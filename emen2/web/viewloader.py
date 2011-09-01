@@ -55,14 +55,13 @@ class ViewLoader(object):
 	def load_extensions(self):
 		# Load exts
 		for ext, path in self.extensions.items():
-			self.load_extension(name, ext)
+			self.load_extension(ext, path)
 		return True
 
 
-	def load_extension(self, name, path):
+	def load_extension(self, ext, path):
 		# We'll be adding the extension paths with a low priority..
 		pth = list(reversed(sys.path))
-
 		config.info('Loading extension %s: %s' % (ext, path))
 
 		# ...load templates

@@ -22,7 +22,7 @@ class Groups(View):
 		self.set_context_item("admin",admin)
 
 		if groups == None:
-			self.template="/pages/page"
+			self.template="/simple"
 			self.set_context_item("content","""No groups found, or insufficient permissions to view group list.""")
 			return
 

@@ -8,7 +8,7 @@ class Workflow(View):
 	__matcher__ = r'^/workflow/$'
 
 	def __init__(self,*_, **__):
-		self.template = "/pages/page"
+		self.template = "/simple"
 		self.title = "User Queries &amp; Workflows"
 		self.set_context_item("content","Workflow:<br /><br />")
 

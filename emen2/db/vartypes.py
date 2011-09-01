@@ -141,23 +141,29 @@ class Vartype(object):
 	
 	
 	def reindex(self, items):
-			# items format: [name, newval, oldval]
-			addrefs = collections.defaultdict(set)
-			delrefs = collections.defaultdict(set)
-			for name, new, old in items:
-				if new == old:
-					continue
-				new = set(new or [])
-				old = set(old or [])
-				for n in new-old:
-					addrefs[n].add(name)
-				for o in old-new:
-					delrefs[o].add(name)
+		print "reindex:", items
+		# items format: [name, newval, oldval]
+		addrefs = collections.defaultdict(set)
+		delrefs = collections.defaultdict(set)
+		for name, new, old in items:
+			if new == old:
+				continue
+			
+			if not self.pd.iter:
+				new=[new]
+				old=[old]
 
-			if None in addrefs: del addrefs[None]
-			if None in delrefs: del delrefs[None]
+			new = set(new or [])
+			old = set(old or [])
+			for n in new-old:
+				addrefs[n].add(name)
+			for o in old-new:
+				delrefs[o].add(name)
 
-			return addrefs, delrefs
+		if None in addrefs: del addrefs[None]
+		if None in delrefs: del delrefs[None]
+
+		return addrefs, delrefs
 
 
 

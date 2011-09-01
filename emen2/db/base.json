@@ -53,26 +53,16 @@
 {"immutable": false, "name": "root", "creator": "root", "keytype": "paramdef", "creationtime": "2011/05/04 04:34:43", "uri": null, "parents": [], "indexed": true, "vartype": "none", "children": ["core"], "desc_short": "Root Parameter"}
 {"immutable": true, "name": "rectype", "creator": "root", "keytype": "paramdef", "creationtime": "2009/11/09 01:52:12", "uri": null, "parents": ["core"], "indexed": true, "vartype": "rectype", "desc_short": "Protocol", "desc_long": "The Record's Protocol; this is may also be referred to as the \"rectype\" or \"recorddef.\""}
 {"immutable": true, "name": "history", "creator": "root", "keytype": "paramdef", "creationtime": "2009/11/09 01:52:12", "uri": null, "parents": ["core"], "indexed": true, "vartype": "history", "desc_short": "History", "desc_long": "A log of all changes made to a Record."}
-{"modifyuser": "root", "name": "person", "views": {"recname": "$$name_first $$name_last", "tabularview": "$$name_last\n$$name_first\n$$username\n$$academic_degrees\n$$email\n$$institution\n$$address_city\n$$address_state\n$$country"}, "mainview": "Name: $$name_first $$name_middle $$name_last\n\n$#email: $$email\n\n*Note:* If this record is associated with an account, you must use the user's profile page to set or change an email address.\n\n$#academic_degrees\t$$academic_degrees\n\n$#department:  $$department\n\n$#institution:\t$$institution\n\n$#address_street:  $$address_street\n\n$#address_street2:\t$$address_street2\n\nCity/State/Zip: $$address_city $$address_state $$address_zipcode\n\n$#country: $$country\n\n$#phone_voice: $$phone_voice\n\n$#phone_fax:  $$phone_fax \n\n$#website: $$website\n\n$#username: $$username", "keytype": "recorddef", "creator": "root", "creationtime": "2009/11/09 01:52:12", "uri": null, "private": 0, "parents": ["core"], "owner": "ianrees", "typicalchld": ["grant"], "desc_short": "Person", "desc_long": "Contact details for a person. These are usually associated with User accounts, but can also be used to store contact details in other places, e.g. a project or report."}
-{"modifyuser": "root", "name": "folder", "views": {"recname": "$$name_folder", "tabularview": "$$name_folder\n$$name_contact\n$$creator\n$$creationtime", "banner": "$$folder_description\n\n$@renderchildren()"}, "mainview": "Folder: $$name_folder\n\n$#folder_description:\n\n$$folder_description", "keytype": "recorddef", "creator": "root", "creationtime": "2009/11/09 01:52:12", "uri": null, "private": 0, "parents": ["core"], "owner": "ianrees", "typicalchld": ["folder", "microscope"], "desc_short": "Folder", "desc_long": "A folder. This is a general purpose organizational device. You will want to use more specific protocols such as project/subproject where appropriate."}
 
+// Core RecordDefs
+{"name": "root", "mainview": "Root Protocol", "keytype": "recorddef", "creator": "root", "creationtime": "2011/05/04 04:34:43", "uri": null, "parents": [], "desc_short": "Root Protocol"}
+{"name": "core", "mainview": "Do not use", "keytype": "recorddef", "creator": "root", "creationtime": "2010/11/22 22:40:18", "parents": ["root"], "desc_short": "Core", "desc_long": "Core Protocols for new EMEN2 installations"}
 
-// RecordDefs
-{"modifyuser": "root", "name": "group", "views": {"recname": "$$name_group", "tabularview": "$$name_group\n$$institution\n$$affiliations\n$$name_contact\n$$address_email\n$$creator\n$$creationtime\n"}, "mainview": "# $#name_group: $$name_group  \n\n$#institution: $$institution\t\n$#affiliations: $$affiliations \t\t\t\t\n\n# Address\n\n$#address_street:\t$$address_street  \n$#address_city:  $$address_city  \n$#address_state:  $$address_state  \n$#address_zipcode:\t $$address_zipcode  \n$#address_international:  $$address_international  \n\n# Contact\n\n$#name_contact: $$name_contact \t\t\t\t \n\n$#phone_voice: $$phone_voice  \n$#phone_fax: $$phone_fax  \n$#phone_voice_international: $$phone_voice_international  \n$#phone_fax_international: $$phone_fax_international   \n\n$#website: $$website  \n$#address_email: $$address_email \t\n\n$#support: $$support", "keytype": "recorddef", "creator": "root", "creationtime": "2009/11/09 01:52:12", "uri": null, "private": 0, "parents": ["core"], "owner": "root", "typicalchld": ["project", "folder", "person", "workshop"], "desc_short": "Group", "desc_long": "None"}
-{"modifyuser": "root", "name": "root", "views": {}, "mainview": "Root Protocol", "keytype": "recorddef", "creator": "root", "creationtime": "2011/05/04 04:34:43", "uri": null, "private": false, "children": ["core"], "parents": [], "owner": "root", "typicalchld": [], "desc_short": "Root Protocol"}
-{"name": "core", "views": {"recname": "$$rectype $$creator $$creationtime"}, "mainview": "Do not use", "keytype": "recorddef", "creator": "ianrees", "creationtime": "2010/11/22 22:40:18", "uri": null, "private": 0, "children": ["person", "folder", "group"], "parents": ["root"], "owner": "ianrees", "typicalchld": [], "desc_short": "Core", "desc_long": "Core Protocols for new EMEN2 installations"}
+// Folder
+{"name": "folder", "views": {"recname": "$$name_folder", "tabularview": "$$name_folder\n$$name_contact\n$$creator\n$$creationtime", "banner": "$$folder_description\n\n$@renderchildren()"}, "mainview": "Folder: $$name_folder\n\n$#folder_description:\n\n$$folder_description", "keytype": "recorddef", "creator": "root", "creationtime": "2009/11/09 01:52:12", "uri": null, "parents": ["core"], "desc_short": "Folder", "desc_long": "A folder. This is a general purpose organizational device. You will want to use more specific protocols such as project/subproject where appropriate."}
 
+// // Person
+{"name": "person", "mainview": "Person", "keytype": "recorddef", "creator": "root", "creationtime": "2011/05/04 04:34:43", "uri": null, "parents": ["core"], "desc_long": "Contact details for a person. These are usually associated with User accounts, but can also be used to store contact details in other places, e.g. a project or report."}
 
-
-// Users
-{"keytype":"user", "name":"root"}
-
-// Groups
-{"keytype":"group", "displayname": "Administrators", "name": "admin", "permissions": [[], [], [], ["root"]]}
-{"keytype":"group", "displayname": "Read-only Administrators", "name": "readadmin"}
-{"keytype":"group", "displayname": "Record Creation Priveleges", "name": "create"}
-{"keytype":"group", "displayname": "Anonymous Access", "name": "anon"}
-{"keytype":"group", "displayname": "Authenticated Users", "name": "authenticated"}
-{"keytype":"group", "displayname": "Published Data", "name": "publish"}
-
-{"keytype":"record", "rectype": "folder", "name_folder": "Root"}
+// // Group
+// {"name": "group", "mainview": "Group", "keytype": "recorddef", "creator": "root", "creationtime": "2011/05/04 04:34:43", "uri": null, "parents": ['core'], "desc_short": "Group"}

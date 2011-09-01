@@ -209,7 +209,6 @@ class NewUser(BaseUser):
 		self.validate()
 
 
-
 	def validate(self, vtm=None, t=None):
 		super(NewUser, self).validate(vtm=vtm, t=t)
 
@@ -217,23 +216,31 @@ class NewUser(BaseUser):
 		required = set(["name_first","name_last"])
 		newsignup = {}
 
-		for param in signupinfo:
-			value = self.signupinfo.get(param, None)
+		for param, value in self.signupinfo.items():
 			if not value:
 				continue
+				
 			# These will be transferred to a Record
 			try:
 				value = self.validate_param(param, value, vtm=vtm)
 			except ValueError:
-				# print "Couldn't validate new user signup field %s: %s"%(param, value)
+				print "Couldn't validate new user signup field %s: %s"%(param, value)
 				continue
 
 			newsignup[param] = value
 
 		for param in required:
-			if not newsignup.get(param): raise ValueError, "Required param %s"%param
+			if not newsignup.get(param):
+				raise ValueError, "Required param %s"%param
 
+
+		if self.signupinfo.get('child'):
+			newsignup['child'] = self.signupinfo['child']
+
+		# print "Validated signup...."
+		# print newsignup
 		self.__dict__['signupinfo'] = newsignup
+
 
 	# def setContext(...)
 	#	Don't let non-admin users read this?

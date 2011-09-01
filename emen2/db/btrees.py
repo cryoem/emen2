@@ -42,11 +42,6 @@ class EMEN2DB(object):
 	cfunc = True
 	extension = 'bdb'
 	
-	# Cached items
-	cache = {}
-
-	# Indexes
-	index = {}
 
 	def __init__(self, filename, keytype=None, datatype=None, dataclass=None, dbenv=None, autoopen=True):
 		"""Main BDB DB wrapper"""
@@ -56,6 +51,12 @@ class EMEN2DB(object):
 
 		# EMEN2DBEnv
 		self.dbenv = dbenv
+
+		# Cached items
+		self.cache = {}
+
+		# Indexes
+		self.index = {}
 
 		# BDB Handle
 		self.bdb = None
@@ -229,15 +230,15 @@ class EMEN2DB(object):
 	def addcache(self, item, txn=None):
 		if item.name in self.cache:
 			raise KeyError, "Item %s already in cache"%item.name
-		#if self.get(item.name, txn=txn):
-		#	raise KeyError, "Item %s already in DB"%item.name
+		if self.get(item.name, txn=txn):
+			raise KeyError, "Item %s already in exists"%item.name
 
-		print "Adding %s to cache"%item.name
+		# print "Adding %s to cache"%item.name
 		# print "Checking parents/children for %s"%item.name
 		item.parents |= self.getindex('parents', txn=txn).get(item.name)
 		item.children |= self.getindex('children', txn=txn).get(item.name)
-		print "... parents:  ", item.parents
-		print "... children: ", item.children
+		# print "... parents:  ", item.parents
+		# print "... children: ", item.children
 		self.cache[unicode(item.name)] = pickle.dumps(item)
 
 
@@ -686,10 +687,13 @@ class DBODB(EMEN2DB):
 
 
 	def cputs(self, items, clone=False, commit=True, indexonly=False, ctx=None, txn=None):
+
 		t = emen2.db.database.gettime()
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 		# Return values
 		crecs = []
+		if not items:
+			return []
 
 		# Note: children/parents used to be handled specially,
 		#	but now they are considered "more or less" regular params, with slightly tweaked indexes
@@ -796,7 +800,7 @@ class DBODB(EMEN2DB):
 		pd = ctx.db.getparamdef(param, filt=False)
 		vtm = emen2.db.datatypes.VartypeManager()
 		vt = vtm.getvartype(pd.vartype)
-
+		vt.pd = pd
 		# Process the changes into index addrefs / removerefs
 		addindexkeys = []
 		removeindexkeys = []

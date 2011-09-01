@@ -51,8 +51,6 @@ import jsonrpc.jsonutil
 	% endif
 
 
-
-
 	<form id="form_newuser" action="${EMEN2WEBROOT}/users/new/save/" method="post" enctype="charset=utf-8">
 
 	<%call expr="buttons.singlepage('userinfo','Account Details (required)')">

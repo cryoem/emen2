@@ -422,26 +422,7 @@ class EMEN2DBEnv(object):
 			'user': self.user,
 			'group': self.group,
 		}
-		
-		# Load built-in paramdefs/recorddefs
-		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))		
-		for ext, path in g.EXTS.items():
-			self.load_extension(ext, path)
 
-
-	def load_json(self, infile):
-		print "Loading... %s"%infile
-		loader = emen2.db.load.BaseLoader(infile=infile)
-		for item in loader.loadfile(keytype='paramdef'):
-			print "ParamDef:", item
-		for item in loader.loadfile(keytype='recorddef'):
-			print "RecordDef:", item
-
-
-	def load_extension(self, ext, path):
-		for j in glob.glob(os.path.join(path, 'json', '*.json')):
-			self.load_json(infile=j)
-			
 
 	# ian: todo: make this nicer.
 	def close(self):
@@ -697,12 +678,40 @@ class DB(object):
 		"""
 		# Open the database
 		self.bdbs = EMEN2DBEnv(path=path)
+
+		
+		# Load built-in paramdefs/recorddefs
+		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))		
+		for ext, path in g.EXTS.items():
+			self.load_extension(ext, path)
+
 		if not hasattr(self.periodic_operations, 'next'):
 			self.__class__.periodic_operations = self.periodic_operations()
+
 		# Periodic operations..
 		self.lastctxclean = time.time()
 		# Cache contexts
 		self.contexts_cache = {}
+
+
+	def load_json(self, infile):
+		ctx = emen2.db.context.SpecialRootContext(db=self)
+
+		print "Loading... %s"%infile
+		loader = emen2.db.load.BaseLoader(infile=infile)
+
+		for item in loader.loadfile(keytype='paramdef'):
+			pd = self.bdbs.paramdef.dataclass(ctx=ctx, **item)
+			self.bdbs.paramdef.addcache(pd)
+
+		for item in loader.loadfile(keytype='recorddef'):
+			rd = self.bdbs.recorddef.dataclass(ctx=ctx, **item)
+			self.bdbs.recorddef.addcache(rd)
+
+
+	def load_extension(self, ext, path):
+		for j in glob.glob(os.path.join(path, 'json', '*.json')):
+			self.load_json(infile=j)
 
 
 	def __str__(self):
@@ -2505,6 +2514,7 @@ class DB(object):
 			sendmail(user.email, template='/email/adduser.signup')
 		return users
 
+
 	group_defaults = g.claim('GROUP_DEFAULTS')
 
 	@publicmethod("user.queue.approve", write=True, admin=True)
@@ -2540,18 +2550,26 @@ class DB(object):
 			# Create the "Record" for this user
 			rec = self.bdbs.record.new(rectype='person', ctx=ctx, txn=txn)
 
+			# Are there any child records specified...
+			childrec = newuser.signupinfo.pop('child', None)
+
 			# This gets updated with the user's signup info
 			rec['username'] = name
 			rec.update(newuser.signupinfo)
 			rec.adduser(name, level=2)
 			rec.addgroup("authenticated")
-
 			rec = self.bdbs.record.cput(rec, ctx=ctx, txn=txn)
 
 			# Update the User with the Record name and put again
 			user.record = rec.name
 			user = self.bdbs.user.cput(user, ctx=ctx, txn=txn)
 			cusers.append(user)
+
+			if childrec:
+				crec = self.newrecord(rectype=childrec.get('rectype'), inherit=rec.name, ctx=ctx, txn=txn)
+				crec.update(childrec)
+				crec = self.bdbs.record.cput(crec, ctx=ctx, txn=txn)
+				
 
 		# Send the 'account approved' emails
 		for user in cusers:

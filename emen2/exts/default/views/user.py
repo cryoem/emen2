@@ -116,7 +116,7 @@ class Users(View):
 			users = self.db.getuser(self.db.getusernames())
 
 		if not users:
-			self.template = "/pages/page"
+			self.template = "/simple"
 			self.set_context_item("content","""No users found, or insufficient permissions to view user roster.""")
 			return
 
@@ -213,7 +213,7 @@ class NewUser(emen2.web.view.View):
 
 		else:
 			self.db.adduser(user)
-			self.template = "/pages/page"
+			self.template = "/simple"
 			self.ctxt['content'] = '''
 			<h1>New User Request</h1>
 			<p>Your request for a new account is being processed. You will be notified via email when it is approved.</p>

@@ -96,6 +96,7 @@ class DBOptions(optparse.OptionParser):
 	def resolve_ext(self, ext, extpaths):
 		# Find the path to the extension
 		path, name = os.path.split(ext)
+
 		# Absolute paths are loaded directly
 		if path:
 			paths = filter(os.path.isdir, [ext])
@@ -114,14 +115,10 @@ class DBOptions(optparse.OptionParser):
 
 		# If a suitable ext was found, load..
 		path = paths.pop()
-		return path
+		return name, path
 
 
 
-	def load_extension(self, extname):
-		print "Loading extension:", extname
-		
-		
 
 	def load_config(self, **kw):
 		g = emen2.db.globalns.GlobalNamespace()
@@ -192,8 +189,8 @@ class DBOptions(optparse.OptionParser):
 		# Load the default extensions
 		# I plan to add a flag to disable automatic loading.
 		exts = self.values.exts or []
-		if 'default' not in exts:
-			exts.insert(0,'default')	
+		#if 'default' not in exts:
+		#	exts.insert(0,'default')	
 		if 'base' not in exts:
 			exts.insert(0,'base')		
 			
@@ -201,8 +198,8 @@ class DBOptions(optparse.OptionParser):
 		# Use an OrderedDict to preserve the order
 		g.EXTS = collections.OrderedDict()
 		for ext in exts:
-			path = self.resolve_ext(ext, g.paths.EXTPATHS)
-			g.EXTS[ext] = path
+			name, path = self.resolve_ext(ext, g.paths.EXTPATHS)
+			g.EXTS[name] = path
 		
 		# Enable/disable snapshot
 		g.SNAPSHOT = self.values.snapshot

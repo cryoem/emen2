@@ -21,8 +21,7 @@ def setup(rootpw=None, rootemail=None, db=None):
 	@keyparam rootpw Root Account Password
 	@keyparam rootemail Root Account email
 	"""
-	infile = emen2.db.config.get_filename('emen2', 'db/skeleton.json')
-
+	
 	if not rootpw or not rootemail:
 		import pwd
 		import platform
@@ -42,7 +41,7 @@ def setup(rootpw=None, rootemail=None, db=None):
 				print "Warning! If you set a password, it needs to be more than 6 characters."
 				rootpw = getpass.getpass("Admin (root) password (default: none): ")
 
-	loader = Loader(infile=infile, db=db)
+	loader = Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
 	loader.load(rootemail=rootemail, rootpw=rootpw)
 
 
@@ -57,7 +56,7 @@ class BaseLoader(object):
 
 	def loadfile(self, infile=None, keytype=None):
 		infile = infile or self.infile
-		filename = os.path.join(self.path, infile)
+		filename = os.path.join(self.path or '', infile or '')
 		if not os.path.exists(filename):
 			return
 
@@ -73,29 +72,7 @@ class BaseLoader(object):
 					else:
 						yield item
 	
-	
 
-class CacheLoader(BaseLoader):
-	def load(self, overwrite=False):
-		# Load ParamDefs
-		for pd in self.loadfile(self.infile, keytype='paramdef'):
-			# Create instance from JSON
-			pd = self.db._db.bdbs.paramdef.dataclass(ctx=self.db._getctx(), **pd)
-			print pd
-			# Cache the instance as a pickle string
-			# print pd
-			# pd = self.db.new(**pd)
-			# print pd
-			# self.db._db.bdbs.paramdef.addcache(pd)
-			
-		# Load RecordDefs
-		for rd in self.loadfile(self.infile, keytype='recorddef'):
-			pass
-			# print rd
-			# self.db._db.bdbs.recorddef.addcache(rd)
-
-	
-	
 
 class Loader(BaseLoader):
 	def load(self, rootemail=None, rootpw=None, overwrite=False):
@@ -134,6 +111,9 @@ class Loader(BaseLoader):
 		##########################
 		# USERS
 		users = []
+		if rootemail:
+			users.append({'name':'root','email':rootemail, 'password':rootpw})
+			
 		for user in self.loadfile(self.infile, keytype='user'):
 			if user.get('name') in existing_usernames and not overwrite:
 				continue
@@ -144,22 +124,17 @@ class Loader(BaseLoader):
 			if user.get("record") != None:
 				del user["record"]
 
-			if user.get('name') == "root":
-				if rootemail != None: user['email'] = rootemail
-				if rootpw != None: user['password'] = rootpw
-
 			if not user.get('email') or user.get('email')=='None':
 				user['email'] = '%s@localhost'%(user['name'])
 
 			# hmm..
-			if user.get('name') != 'root' and user.get("password") == None:
+			if user.get("password") == None:
 				print "User %s has no password! Generating random pass.."%user.get('name')
 				user["password"] = random_password(8)
 
 			users.append(user)
 
 		self.db.put(users, keytype='user', clone=True)
-
 
 		##########################
 		# GROUPS

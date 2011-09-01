@@ -16,7 +16,7 @@ class Home(View):
 	@View.add_matcher(r'^/sleep/$')
 	def sleep(self):
 		# debug: sleep for 10 seconds
-		self.template = '/pages/page'
+		self.template = '/simple'
 		self.title = 'Debug'
 		self.ctxt['content'] = 'Sleeping...'
 		time.sleep(10)
