@@ -91,6 +91,11 @@ class DBOptions(optparse.OptionParser):
 		return os.path.join(gg.EMEN2DBHOME, gg.getattr(pathname))
 
 
+	def load_extension(self, extname):
+		print "Loading extension:", extname
+		
+		
+
 	def load_config(self, **kw):
 		g = emen2.db.globalns.GlobalNamespace()
 		if g.getattr('CONFIG_LOADED', False):
@@ -100,7 +105,6 @@ class DBOptions(optparse.OptionParser):
 
 
 	def load_config_force(self, g, **kw):
-
 		# Default settings
 		default_config = get_filename('emen2', 'db/config.base.json')
 		g.from_file(default_config)

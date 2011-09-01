@@ -11,12 +11,10 @@ import twisted.web.static
 import twisted.web.server
 import twisted.internet.reactor
 
-
 try:
 	from twisted.internet import ssl
 except ImportError:
 	ssl = None
-
 
 import emen2.web.resources.threadpool
 import emen2.db.config
@@ -65,7 +63,6 @@ def allHeadersReceived(self, *a, **kw):
 
 
 class EMEN2Server(object):
-
 	#: Use HTTPS?
 	EMEN2HTTPS = config.claim('EMEN2HTTPS', False, lambda v: isinstance(v, bool))
 	#: Which port to receive HTTPS request?
@@ -99,11 +96,9 @@ class EMEN2Server(object):
 			self.EMEN2PORT_HTTPS = self.options.httpsport
 
 
-
-
 	@contextlib.contextmanager
 	def start(self):
-		'''run the main loop'''
+		'''Run the server main loop'''
 		root = emen2.web.resources.publicresource.PublicView()
 		yield self, root
 		site = twisted.web.server.Site(root)
@@ -162,13 +157,11 @@ def start_emen2():
 		import emen2.db.database
 
 		# Load views and templates
-		#import emen2.web.views
 		import emen2.web.view
 		import emen2.web.notifications
 		notifications = emen2.web.notifications.NotificationHandler()
 		notifications.start()
 		#thread.start_new_thread(notifications.sort_notifications, ())
-
 
 		config.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
 
@@ -183,5 +176,7 @@ def start_emen2():
 
 if __name__ == "__main__":
 	start_emen2()
+	
+	
 __version__ = "$Revision$".split(":")[1][:-1].strip()
 

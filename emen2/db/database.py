@@ -434,6 +434,12 @@ class EMEN2DBEnv(object):
 
 
 	####################################
+	# Load Extensions
+	####################################
+
+
+
+	####################################
 	# Utility methods
 	####################################
 
@@ -685,8 +691,6 @@ class DB(object):
 	# def __del__(self):
 	# 	"""Close DB when deleted"""
 	# 	self.bdbs.close()
-
-
 
 	###############################
 	# Utility methods

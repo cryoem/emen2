@@ -50,8 +50,8 @@ class ViewLoader(object):
 
 
 	def __init__(self):
-		config.debug(self.extensionpaths)
-		config.debug(self.extensions)
+		#config.debug(self.extensionpaths)
+		#config.debug(self.extensions)
 		if 'default' not in self.extensions:
 			self.extensions.insert(0,'default')
 		self.get_views = emen2.util.fileops.walk_path('.py', self.view_callback)
@@ -59,54 +59,59 @@ class ViewLoader(object):
 
 
 	def load_extensions(self):
+		# Load exts
+		for ext in self.extensions:
+			self.load_extension(ext)
+		return True
+
+
+	def load_extension(self, ext):
 		# We'll be adding the extension paths with a low priority..
 		pth = list(reversed(sys.path))
 
-		# Load exts
-		for ext in self.extensions:
-			# Find the path to the extension
-			path, name = os.path.split(ext)
-			# Absolute paths are loaded directly
-			if path:
-				paths = filter(os.path.isdir, [ext])
-			else:
-				# Search g.EXTPATHS for a directory matching the ext name
-				paths = []
-				for p in filter(os.path.isdir, self.extensionpaths):
-					for sp in os.listdir(p):
-						if os.path.isdir(os.path.join(p, sp)) and ext == sp:
-							paths.append(os.path.join(p, sp))
+		# Find the path to the extension
+		path, name = os.path.split(ext)
+		# Absolute paths are loaded directly
+		if path:
+			paths = filter(os.path.isdir, [ext])
+		else:
+			# Search g.EXTPATHS for a directory matching the ext name
+			paths = []
+			for p in filter(os.path.isdir, self.extensionpaths):
+				for sp in os.listdir(p):
+					if os.path.isdir(os.path.join(p, sp)) and ext == sp:
+						paths.append(os.path.join(p, sp))
 
-			if not paths:
-				config.info('Couldn\'t find extension %s'%ext)
-				continue
+		if not paths:
+			config.info('Couldn\'t find extension %s'%ext)
+			return
+			# continue
 
-			# If a suitable ext was found, load..
-			path = paths.pop()
-			config.info('Loading extension %s: %s' % (name, path))
+		# If a suitable ext was found, load..
+		path = paths.pop()
+		config.info('Loading extension %s: %s' % (name, path))
 
-			# ...load templates
-			templatedir = os.path.join(path, 'templates')
-			if os.path.exists(templatedir):
-				self.load_templates(templatedir)
+		# ...load templates
+		templatedir = os.path.join(path, 'templates')
+		if os.path.exists(templatedir):
+			self.load_templates(templatedir)
 
-			# ...load views
-			viewdir = os.path.join(path, 'views')
-			if os.path.exists(viewdir):
-				old_syspath = sys.path[:]
-				sys.path.append(os.path.dirname(path))
-				self.get_views(viewdir, extension_name=name)
-				sys.path = old_syspath
+		# ...load views
+		viewdir = os.path.join(path, 'views')
+		if os.path.exists(viewdir):
+			old_syspath = sys.path[:]
+			sys.path.append(os.path.dirname(path))
+			self.get_views(viewdir, extension_name=name)
+			sys.path = old_syspath
 
-			# ...add ext path to the python module search
-			pythondir = os.path.join(path, 'python')
-			if os.path.exists(pythondir):
-				pth.insert(-1,pythondir)
-
+		# ...add ext path to the python module search
+		pythondir = os.path.join(path, 'python')
+		if os.path.exists(pythondir):
+			pth.insert(-1,pythondir)		
 
 		# Restore the original sys.path
 		sys.path = list(reversed(pth))
-		return True
+
 
 
 	def routes_from_g(self):
