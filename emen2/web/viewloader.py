@@ -16,9 +16,7 @@ config = emen2.db.config.g()
 class ViewLoader(object):
 	routing_table = config.claim('ROUTING', {})
 	redirects = config.claim('REDIRECTS', {})
-	extensionpaths = config.claim('paths.EXTPATHS')
-	extensions = config.claim('EXTS', ['default'])
-	#, [dirent for dirent in os.listdir(default_extensions) if os.path.isdir(dirent) and dirent != 'CVS' ]
+	extensions = config.claim('EXTS')
 
 	def view_callback(self, pwd, pth, mtch, name, ext, failures=None, extension_name=None):
 		if name == '__init__':
@@ -56,36 +54,16 @@ class ViewLoader(object):
 
 	def load_extensions(self):
 		# Load exts
-		for ext in self.extensions:
-			self.load_extension(ext)
+		for ext, path in self.extensions.items():
+			self.load_extension(name, ext)
 		return True
 
 
-	def load_extension(self, ext):
+	def load_extension(self, name, path):
 		# We'll be adding the extension paths with a low priority..
 		pth = list(reversed(sys.path))
 
-		# Find the path to the extension
-		path, name = os.path.split(ext)
-		# Absolute paths are loaded directly
-		if path:
-			paths = filter(os.path.isdir, [ext])
-		else:
-			# Search g.EXTPATHS for a directory matching the ext name
-			paths = []
-			for p in filter(os.path.isdir, self.extensionpaths):
-				for sp in os.listdir(p):
-					if os.path.isdir(os.path.join(p, sp)) and ext == sp:
-						paths.append(os.path.join(p, sp))
-
-		if not paths:
-			config.info('Couldn\'t find extension %s'%ext)
-			return
-			# continue
-
-		# If a suitable ext was found, load..
-		path = paths.pop()
-		config.info('Loading extension %s: %s' % (name, path))
+		config.info('Loading extension %s: %s' % (ext, path))
 
 		# ...load templates
 		templatedir = os.path.join(path, 'templates')
@@ -97,7 +75,7 @@ class ViewLoader(object):
 		if os.path.exists(viewdir):
 			old_syspath = sys.path[:]
 			sys.path.append(os.path.dirname(path))
-			self.get_views(viewdir, extension_name=name)
+			self.get_views(viewdir, extension_name=ext)
 			sys.path = old_syspath
 
 		# ...add ext path to the python module search

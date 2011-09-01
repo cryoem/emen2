@@ -16,6 +16,7 @@ import time
 import traceback
 import weakref
 import shutil
+import glob
 import email
 import email.mime.text
 
@@ -39,6 +40,7 @@ import emen2.db.vartypes
 import emen2.db.properties
 import emen2.db.macros
 import emen2.db.proxy
+import emen2.db.load
 
 # DBObjects
 import emen2.db.dataobject
@@ -420,7 +422,26 @@ class EMEN2DBEnv(object):
 			'user': self.user,
 			'group': self.group,
 		}
+		
+		# Load built-in paramdefs/recorddefs
+		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))		
+		for ext, path in g.EXTS.items():
+			self.load_extension(ext, path)
 
+
+	def load_json(self, infile):
+		print "Loading... %s"%infile
+		loader = emen2.db.load.BaseLoader(infile=infile)
+		for item in loader.loadfile(keytype='paramdef'):
+			print "ParamDef:", item
+		for item in loader.loadfile(keytype='recorddef'):
+			print "RecordDef:", item
+
+
+	def load_extension(self, ext, path):
+		for j in glob.glob(os.path.join(path, 'json', '*.json')):
+			self.load_json(infile=j)
+			
 
 	# ian: todo: make this nicer.
 	def close(self):

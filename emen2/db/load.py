@@ -48,18 +48,15 @@ def setup(rootpw=None, rootemail=None, db=None):
 
 
 class BaseLoader(object):
-	def __init__(self, db, infile=None, path=''):
+	def __init__(self, db=None, infile=None, path=''):
 		self.infile = infile
 		self.path = path
 		# We will be using the private DB api somewhat..
-		self.db = db		
+		self.db = db
 
 
-	def load(self, overwrite=False):
-		pass
-		
-
-	def loadfile(self, infile, keytype=None):
+	def loadfile(self, infile=None, keytype=None):
+		infile = infile or self.infile
 		filename = os.path.join(self.path, infile)
 		if not os.path.exists(filename):
 			return

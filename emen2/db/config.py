@@ -20,11 +20,12 @@ def get_filename(package, resource):
 	return os.path.join(d, resource)
 
 
-
 def defaults():
 	parser = DBOptions()
 	parser.parse_args()
 	return parser
+
+
 
 
 
@@ -89,6 +90,32 @@ class DBOptions(optparse.OptionParser):
 	def getpath(self, pathname):
 		# ian: todo: dynamically resolve pathnames for DB dirs
 		return os.path.join(gg.EMEN2DBHOME, gg.getattr(pathname))
+
+		
+
+	def resolve_ext(self, ext, extpaths):
+		# Find the path to the extension
+		path, name = os.path.split(ext)
+		# Absolute paths are loaded directly
+		if path:
+			paths = filter(os.path.isdir, [ext])
+		else:
+			# Search g.EXTPATHS for a directory matching the ext name
+			paths = []
+			for p in filter(os.path.isdir, extpaths):
+				for sp in os.listdir(p):
+					if os.path.isdir(os.path.join(p, sp)) and ext == sp:
+						paths.append(os.path.join(p, sp))
+
+		if not paths:
+			config.info('Couldn\'t find extension %s'%ext)
+			return
+			# continue
+
+		# If a suitable ext was found, load..
+		path = paths.pop()
+		return path
+
 
 
 	def load_extension(self, extname):
@@ -161,15 +188,22 @@ class DBOptions(optparse.OptionParser):
 
 		# Add any specified extensions
 		g.paths.EXTPATHS.append(get_filename('emen2', 'web/exts'))
-		g.EXTS.extend(self.values.exts or [])
-	
+
 		# Load the default extensions
 		# I plan to add a flag to disable automatic loading.
-		if 'base' not in g.EXTS:
-			g.EXTS.insert(0,'base')		
-		if 'default' not in g.EXTS:
-			g.EXTS.insert(0,'default')	
-	
+		exts = self.values.exts or []
+		if 'default' not in exts:
+			exts.insert(0,'default')	
+		if 'base' not in exts:
+			exts.insert(0,'base')		
+			
+		# Map the extensions back to their physical directories
+		# Use an OrderedDict to preserve the order
+		g.EXTS = collections.OrderedDict()
+		for ext in exts:
+			path = self.resolve_ext(ext, g.paths.EXTPATHS)
+			g.EXTS[ext] = path
+		
 		# Enable/disable snapshot
 		g.SNAPSHOT = self.values.snapshot
 
