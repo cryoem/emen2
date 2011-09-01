@@ -41,6 +41,12 @@ class EMEN2DB(object):
 	# Sort keys numerically, if possible (keytype is d/f)
 	cfunc = True
 	extension = 'bdb'
+	
+	# Cached items
+	cache = {}
+
+	# Indexes
+	index = {}
 
 	def __init__(self, filename, keytype=None, datatype=None, dataclass=None, dbenv=None, autoopen=True):
 		"""Main BDB DB wrapper"""
@@ -55,9 +61,6 @@ class EMEN2DB(object):
 		self.bdb = None
  		self.DBOPENFLAGS = bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE
 		self.DBSETFLAGS = []
-
-		# Cached items
-		self.cached = {}
 
 		# What are we storing?
 		self._setkeytype(keytype or self.keytype)
@@ -184,15 +187,15 @@ class EMEN2DB(object):
 	############################
 
 	def keys(self, txn=None):
-		return map(self.loadkey, self.bdb.keys(txn)) + self.cached.keys()
+		return map(self.loadkey, self.bdb.keys(txn)) + self.cache.keys()
 
 
 	def values(self, txn=None):
-		return [self.loaddata(x) for x in self.bdb.values(txn)] + map(pickle.loads, self.cached.values())
+		return [self.loaddata(x) for x in self.bdb.values(txn)] + map(pickle.loads, self.cache.values())
 
 
 	def items(self, txn=None):
-		return map(lambda x:(self.loadkey(x[0]),self.loaddata(x[1])), self.bdb.items(txn)) + [(k, pickle.loads(v)) for k,v in self.cached.items()]
+		return map(lambda x:(self.loadkey(x[0]),self.loaddata(x[1])), self.bdb.items(txn)) + [(k, pickle.loads(v)) for k,v in self.cache.items()]
 
 
 	def iteritems(self, txn=None, flags=0):
@@ -204,27 +207,27 @@ class EMEN2DB(object):
 			pair = cursor.next_nodup()
 		cursor.close()
 
-		for k,v in self.cached.items():
+		for k,v in self.cache.items():
 			yield (k, pickle.loads(v))
 
 
 	def has_key(self, key, txn=None):
-		return self.bdb.has_key(self.dumpkey(key), txn=txn) or self.cached.has_key(key)
+		return self.bdb.has_key(self.dumpkey(key), txn=txn) or self.cache.has_key(key)
 
 
 	def exists(self, key, txn=None, flags=0):
 		"""Checks to see if key exists in BDB"""
 		if key == None:
 			return False
-		return self.bdb.exists(self.dumpkey(key), txn=txn, flags=flags) or self.cached.has_key(key)
+		return self.bdb.exists(self.dumpkey(key), txn=txn, flags=flags) or self.cache.has_key(key)
 
 
 	############################
-	# Cached items
+	# Cache items
 	############################
 
 	def addcache(self, item, txn=None):
-		if item.name in self.cached:
+		if item.name in self.cache:
 			raise KeyError, "Item %s already in cache"%item.name
 		#if self.get(item.name, txn=txn):
 		#	raise KeyError, "Item %s already in DB"%item.name
@@ -235,7 +238,7 @@ class EMEN2DB(object):
 		item.children |= self.getindex('children', txn=txn).get(item.name)
 		print "... parents:  ", item.parents
 		print "... children: ", item.children
-		self.cached[unicode(item.name)] = pickle.dumps(item)
+		self.cache[unicode(item.name)] = pickle.dumps(item)
 
 
 
@@ -245,8 +248,8 @@ class EMEN2DB(object):
 
 	def get(self, key, default=None, filt=True, txn=None, flags=0):
 		"""Same as dict.get, with txn"""
-		if key in self.cached:
-			return pickle.loads(self.cached[key])
+		if key in self.cache:
+			return pickle.loads(self.cache[key])
 
 		# Check BDB
 		d = self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))
@@ -263,7 +266,7 @@ class EMEN2DB(object):
 
 	def put(self, key, data, txn=None, flags=0):
 		"""Write key/value, with txn."""
-		if key in self.cached:
+		if key in self.cache:
 			raise KeyError, "Cannot modify read-only item %s"%key			
 		g.log.msg('COMMIT', "%s.put: %s"%(self.filename, key))
 		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)
@@ -278,7 +281,7 @@ class EMEN2DB(object):
 
 	# Also dangerous!
 	def delete(self, key, txn=None, flags=0):
-		if key in self.cached:
+		if key in self.cache:
 			raise KeyError, "Cannot delete read-only item %s"%key
 		if self.bdb.exists(self.dumpkey(key), txn=txn):
 			ret = self.bdb.delete(self.dumpkey(key), txn=txn, flags=flags)
@@ -505,7 +508,6 @@ class DBODB(EMEN2DB):
 
 	# Open/close the sequencedb with the main db
 	def init(self):
-		self.index = {}
 		self.sequence = self.sequence
 		self.sequencedb = None
 		super(DBODB, self).init()
@@ -658,7 +660,7 @@ class DBODB(EMEN2DB):
 		elif hasattr(items, 'items'):
 			items = items.items()
 
-		cacheditems = [(k, pickle.loads(v)) for k,v in self.cached.items()]
+		cacheditems = [(k, pickle.loads(v)) for k,v in self.cache.items()]
 		
 		if items is not None:
 			if ctx.checkadmin(): return oitems

@@ -13,7 +13,7 @@ class Auth(View):
 	@View.add_matcher(r'^/auth/login/$')
 	@View.provides('auth_login')
 	def login(self, name=None, pw=None, msg='', errmsg='', location=None, **kwargs):
-		self.template = '/pages/auth.login'
+		self.template = '/auth/login'
 		self.title = 'Login'
 		location = location or g.EMEN2WEBROOT
 		if 'auth' in location or not location:
@@ -41,7 +41,7 @@ class Auth(View):
 	@View.add_matcher(r'^/auth/logout/$')
 	@View.provides('auth_logout')
 	def logout(self, msg='', location=None, **kwargs):
-		self.template = '/pages/auth.login'
+		self.template = '/auth/login'
 		self.title = 'Logout'
 		msg = ''
 		errmsg = ''
@@ -67,7 +67,7 @@ class Auth(View):
 
 	@View.add_matcher(r'^/auth/password/change/$')
 	def setpassword(self, location=None, **kwargs):
-		self.template = '/pages/auth.password.change'
+		self.template = '/auth/password.change'
 		self.title = "Password Change"
 		# location = location or g.EMEN2WEBROOT
 		# if 'auth' in location or not location:
@@ -104,7 +104,7 @@ class Auth(View):
 
 	@View.add_matcher(r'^/auth/password/reset/$', r'^/auth/password/reset/(?P<email>.+)/(?P<secret>\w+)/$')
 	def resetpassword(self, location=None, email=None, secret=None, newpassword=None, **kwargs):
-		self.template = '/pages/auth.password.reset'
+		self.template = '/auth/password.reset'
 		self.title = "Reset Password"
 		self.set_context_item('email',email)
 		self.set_context_item('secret',secret)
@@ -140,7 +140,7 @@ class Auth(View):
 
 	@View.add_matcher(r'^/auth/email/change/$')
 	def setemail(self, location=None, **kwargs):
-		self.template = '/pages/auth.email.change'
+		self.template = '/auth/email.change'
 		self.title = "Change Email"
 		self.ctxt['location'] = location
 
@@ -166,7 +166,7 @@ class Auth(View):
 
 	@View.add_matcher(r'^/auth/email/verify/(?P<email>.+)/(?P<secret>\w+)/$')
 	def verifyemail(self, location=None, email=None, secret=None, **kwargs):
-		self.template = '/pages/auth.email.verify'
+		self.template = '/auth/email.verify'
 		self.title = "Verify Email"
 		msg = ''
 		errmsg = ''

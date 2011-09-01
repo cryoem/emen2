@@ -16,4 +16,5 @@ class Error(View):
 		self.title = 'Error'
 		self.set_context_item("errmsg", errmsg)
 		self.set_context_item('location', location)
+		
 __version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -59,4 +59,5 @@ class ReverseURL(emen2.web.view.View):
 	def execute_url(self, name, arguments, kwargs):
 		kwargs = dict( (k.encode('utf-8'), v) for k,v in kwargs.iteritems() )
 		self.page = self.dbtree.render_template_view(name, *arguments, **kwargs)
+		
 __version__ = "$Revision$".split(":")[1][:-1].strip()
