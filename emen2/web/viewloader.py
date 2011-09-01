@@ -50,10 +50,6 @@ class ViewLoader(object):
 
 
 	def __init__(self):
-		if 'base' not in self.extensions:
-			self.extensions.insert(0,'base')		
-		if 'default' not in self.extensions:
-			self.extensions.insert(0,'default')
 		self.get_views = emen2.util.fileops.walk_path('.py', self.view_callback)
 		self.router = emen2.web.routing.URLRegistry()
 

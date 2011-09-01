@@ -163,6 +163,13 @@ class DBOptions(optparse.OptionParser):
 		g.paths.EXTPATHS.append(get_filename('emen2', 'web/exts'))
 		g.EXTS.extend(self.values.exts or [])
 	
+		# Load the default extensions
+		# I plan to add a flag to disable automatic loading.
+		if 'base' not in g.EXTS:
+			g.EXTS.insert(0,'base')		
+		if 'default' not in g.EXTS:
+			g.EXTS.insert(0,'default')	
+	
 		# Enable/disable snapshot
 		g.SNAPSHOT = self.values.snapshot
 

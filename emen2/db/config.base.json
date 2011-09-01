@@ -36,7 +36,8 @@
       ]
 	},
 
-	// Mail settings. If both of these are set, EMEN2 will send emails during certain events.
+	// Mail settings. If the MAILHOST is configured, and MAILADMIN or root's email address is set,
+	//	emails will be sent during certain events.
 	"mailsettings":{
 		// "MAILADMIN": "",
 		// "MAILHOST": ""
@@ -55,8 +56,8 @@
 		// HTTPS port. You will need to place the SSL certificate and key files in the SSL directory
 		"EMEN2HTTPS": 0,
 
-      // The hostname of the EMEN2 installation, for reversing to a full URL
-      "EMEN2HOST": "localhost",
+		// The hostname of the EMEN2 installation, for reversing to a full URL
+		"EMEN2HOST": "localhost",
 
 		// The EMEN2 URI root -- e.g., "/testserver" or "http://ncmidb.bcm.edu/challenge". Useful for running behind a reverse proxy.
 		"EMEN2WEBROOT": ""
@@ -77,14 +78,19 @@
 		"CACHESIZE": 512
 	},
 
+	"users":{
+		// Automatically approve new user accounts
+		"USER_AUTOAPPROVE": false,
+		
+		// New users will be added to these groups
+		"GROUP_DEFAULTS": ["create"]		
+	},
+
 	// Some basic settings and interface strings
 	"customization":{
 		// Short string for database identification. This shows up several places in the UI
 		// "EMEN2DBNAME": "EMEN2",
 
-		// New users will be added to these groups
-		"GROUP_DEFAULTS": ["create"],
-		
 		// Logo in emen2/web/static/images to use
 		"EMEN2LOGO": "emen2logo-small.png",
 		

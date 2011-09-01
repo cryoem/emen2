@@ -31,7 +31,6 @@ import emen2.web.notifications
 
 from emen2.util.listops import adjust
 from emen2.web import routing
-import emen2.web.extfile
 
 import emen2.db.config
 g = emen2.db.config.g()
