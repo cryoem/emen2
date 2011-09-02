@@ -2588,7 +2588,8 @@ class DB(object):
 
 		# Send the 'account approved' emails
 		for user in cusers:
-			ctxt = {'name':user.name}
+			user.getdisplayname()
+			ctxt = {'name':user.name, 'displayname':user.displayname}
 			template = '/email/adduser.approved'
 			if g.USER_AUTOAPPROVE:
 				template = '/email/adduser.autoapproved'

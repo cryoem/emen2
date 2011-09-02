@@ -384,7 +384,7 @@ class User(BaseUser):
 
 		d = self._formatusername(lnf=lnf)
 		self._set('_displayname', d, True)
-
+		return d
 
 
 	def _formatusername(self, lnf=False):

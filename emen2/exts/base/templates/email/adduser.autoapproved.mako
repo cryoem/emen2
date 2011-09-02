@@ -3,7 +3,7 @@ To: ${recipient}
 Cc: ${MAILADMIN}
 Subject: Your ${EMEN2DBNAME} account has been created
 
-${recipient}:
+${displayname}:
 
 Your ${EMEN2DBNAME} account has been approved by the admin.
 
