@@ -1,15 +1,19 @@
 <%inherit file="/base" />
 
-<%self:header />
+<div id="container">
 
-<%self:alert />
+	<%self:header />
 
-<%self:precontent />
+	<%self:alert />
 
-<%self:tabs />
+	<%self:precontent />
 
-<div id="content">
-	${next.body()}
+	<%self:tabs />
+
+	<div id="content">
+		${next.body()}
+	</div>
+
+	<%self:footer />
+
 </div>
-
-<%self:footer />

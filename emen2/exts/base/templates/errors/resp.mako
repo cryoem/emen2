@@ -24,7 +24,7 @@
    <%namespace name="login" file="/auth/login" />  
    <div style="width:100%;position: relative; text-align:center">
       <div>
-         ${login.login(action_login, location=reverseinfo, user=user, errmsg=errmsg, logintext='', defaultname="")}
+         ${login.login(location=reverseinfo, errmsg=errmsg, logintext='Login')}
       </div>
    </div>
 %endif

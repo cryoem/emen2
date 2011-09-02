@@ -342,6 +342,44 @@ function notify(msg, fade, error) {
 ///////////////////////////////////////////////////
 
 (function($) {
+    $.widget("emen2.WordCount", {
+		options: {
+			min: null,
+			max: null,
+		},	
+					
+		_create: function() {
+			var self = this;
+			this.options.max = this.options.max || parseInt(this.element.attr('data-max'));
+			this.wc = $('<div class="e2-wordcount-count"></div>');
+			this.element.after(this.wc);
+			self.update();
+			this.element.bind('keyup click blur focus change paste', function() {
+				self.update();
+			});
+		},
+		
+		update: function() {
+			var wc = jQuery.trim(this.element.val()).split(' ').length;
+			var t = wc+' Words';
+			if (this.options.max) {
+				t = t + ' (Maximum: '+this.options.max+')';
+			}
+			var fault = false;
+			if (wc > this.options.max) {fault=true}
+			if (fault) {
+				this.wc.addClass('e2-wordcount-error');
+			} else {
+				this.wc.removeClass('e2-wordcount-error')
+			}
+			this.wc.text(t);	
+		}
+	});
+})(jQuery);
+
+
+(function($) {
+
     $.widget("emen2.BookmarksControl", {
 		options: {
 			mode: null,

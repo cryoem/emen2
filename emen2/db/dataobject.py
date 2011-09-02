@@ -407,8 +407,8 @@ class BaseDBObject(object, DictMixin):
 		r = re.compile('[\w-]', re.UNICODE)
 
 		newname = "".join(r.findall(name)).lower()
-		if name != newname or not name[0].isalpha():
-			self.error("Name '%s' can only include a-z, A-Z, 0-9, underscore, must be lowercase, and must start with a letter"%name)
+		if name != newname or not name[0].isalnum():
+			self.error("Name '%s' can only include a-z, 0-9, underscore, must be lowercase, and must start with a number or letter."%name)
 
 		return name
 

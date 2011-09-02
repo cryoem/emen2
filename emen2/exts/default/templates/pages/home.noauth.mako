@@ -6,4 +6,4 @@
 
 ${render_banner or ''}
 
-${login.login(action_login, "%s/home/"%EMEN2WEBROOT, user, None, logintext='', defaultname="")}
+${login.login()}

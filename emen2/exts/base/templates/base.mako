@@ -104,6 +104,6 @@
 
 <body>
 
-	${next.body()}
+${next.body()}
 
 </body></html>

@@ -249,7 +249,7 @@ def error(e=None, msg='', warning=False):
 # Email
 ###############################
 
-def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
+def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, txn=None):
 	"""(Semi-internal) Send an email. You can provide either a template or a message subject and body.
 
 	:param recipient: Email recipient
@@ -258,6 +258,7 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
 	:keyword ctxt: ... Dictionary to pass to template
 	:return: Email recipient, or None if no message was sent
 	"""
+	# ctx and txn arguments don't do anything. I accept them because it's a force of habit to include them.
 
 	if not CVars.MAILADMIN:
 		g.warn("Couldn't get mail config: No admin email available, config.MAILADMIN or root.email.")
