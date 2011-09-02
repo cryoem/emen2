@@ -42,9 +42,12 @@
 ## Alerts and notifications
 <%def name="alert()">
 	<ul id="alert" class="alert nonlist precontent">
-      %for msg in notify:
-         <li class="notify">${msg}</li>
-      %endfor
+		% for msg in notify:
+		   <li class="notify">${msg}</li>
+		% endfor
+		% for msg in errors:
+		   <li class="notify error">${msg}</li>
+		% endfor
    </ul>
 </%def>
 

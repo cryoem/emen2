@@ -141,7 +141,7 @@ class Vartype(object):
 	
 	
 	def reindex(self, items):
-		print "reindex:", items
+		# print "reindex:", items
 		# items format: [name, newval, oldval]
 		addrefs = collections.defaultdict(set)
 		delrefs = collections.defaultdict(set)

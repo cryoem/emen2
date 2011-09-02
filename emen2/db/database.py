@@ -100,6 +100,7 @@ class CVars(object):
 	EMEN2DBNAME = g.claim('EMEN2DBNAME', default="EMEN2", validator=is_str)
 	EMEN2EXTURI = g.claim('EMEN2EXTURI', "", validator=is_str)
 
+
 def fakemodules():
 	import imp
 	Database = imp.new_module("Database")
@@ -259,7 +260,7 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None):
 	"""
 
 	if not CVars.MAILADMIN:
-		g.warn("Couldn't get mail config: No email set for root")
+		g.warn("Couldn't get mail config: No admin email available, config.MAILADMIN or root.email.")
 		return
 	if not CVars.MAILHOST:
 		g.warn("Couldn't get mail config: No SMTP Server")
@@ -725,6 +726,12 @@ class DB(object):
 	###############################
 	# Utility methods
 	###############################
+
+	def _sudo(self, ctx=None, txn=None):
+		ctx = emen2.db.context.SpecialRootContext()
+		ctx.refresh(db=self)
+		return ctx
+
 
 	def _findrecorddefnames(self, names, ctx=None, txn=None):
 		"""(Internal) Find referenced recorddefs."""
@@ -2509,9 +2516,17 @@ class DB(object):
 		"""
 		users = self.bdbs.newuser.cputs(users, ctx=ctx, txn=txn)
 
-		# Send account request email
-		for user in users:
-			sendmail(user.email, template='/email/adduser.signup')
+		if g.USER_AUTOAPPROVE:
+			print "Autoapproving........"
+			rootctx = self._sudo()
+			rootctx.db._txn = txn
+			self.approveuser([user.name for user in users], ctx=rootctx, txn=txn)
+
+		else:
+			# Send account request email
+			for user in users:
+				sendmail(user.email, template='/email/adduser.signup')
+
 		return users
 
 
@@ -2574,7 +2589,10 @@ class DB(object):
 		# Send the 'account approved' emails
 		for user in cusers:
 			ctxt = {'name':user.name}
-			sendmail(user.email, template='/email/adduser.approved', ctxt=ctxt)
+			template = '/email/adduser.approved'
+			if g.USER_AUTOAPPROVE:
+				template = '/email/adduser.autoapproved'
+			sendmail(user.email, template=template, ctxt=ctxt)
 
 		return set([user.name for user in cusers])
 

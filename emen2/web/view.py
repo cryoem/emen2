@@ -177,6 +177,7 @@ class _View(object):
 			css_files = (css_files or self.css_files)(self.__dbtree),
 			js_files = (js_files or self.js_files)(self.__dbtree),
 			notify = self._notify,
+			errors = [],
 			def_title = 'Untitled',
 			reverseinfo = reverseinfo,
 			chromeless=('X-PJAX' in self._reqheaders)

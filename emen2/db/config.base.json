@@ -39,8 +39,8 @@
 	// Mail settings. If the MAILHOST is configured, and MAILADMIN or root's email address is set,
 	//	emails will be sent during certain events.
 	"mailsettings":{
-		// "MAILADMIN": "",
-		// "MAILHOST": ""
+		//"MAILADMIN": "ian@ianrees.net",
+		//"MAILHOST": "localhost"
 	},
 
 	// Web-server related settings
@@ -80,7 +80,7 @@
 
 	"users":{
 		// Automatically approve new user accounts
-		"USER_AUTOAPPROVE": false,
+		"USER_AUTOAPPROVE": true,
 		
 		// New users will be added to these groups
 		"GROUP_DEFAULTS": ["create"]		
