@@ -699,7 +699,7 @@ class DB(object):
 	def load_json(self, infile):
 		ctx = emen2.db.context.SpecialRootContext(db=self)
 
-		print "Loading... %s"%infile
+		# print "Loading... %s"%infile
 		loader = emen2.db.load.BaseLoader(infile=infile)
 
 		for item in loader.loadfile(keytype='paramdef'):
@@ -1960,7 +1960,6 @@ class DB(object):
 		for newrec in newrecs:
 			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)#.update(newrec)
 			rec.update(newrec)
-			print "newrec:", rec
 			recs.append(rec)
 
 		# Default params
@@ -2518,7 +2517,7 @@ class DB(object):
 		users = self.bdbs.newuser.cputs(users, ctx=ctx, txn=txn)
 
 		if g.USER_AUTOAPPROVE:
-			print "Autoapproving........"
+			# print "Autoapproving........"
 			rootctx = self._sudo()
 			rootctx.db._txn = txn
 			self.approveuser([user.name for user in users], ctx=rootctx, txn=txn)
