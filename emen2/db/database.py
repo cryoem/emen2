@@ -728,9 +728,10 @@ class DB(object):
 	# Utility methods
 	###############################
 
-	def _sudo(self, ctx=None, txn=None):
+	def _sudo(self, username=None, ctx=None, txn=None):
+		print "Temporarily granting user %s administrative privileges"
 		ctx = emen2.db.context.SpecialRootContext()
-		ctx.refresh(db=self)
+		ctx.refresh(db=self, username=username)
 		return ctx
 
 
@@ -2581,7 +2582,9 @@ class DB(object):
 			cusers.append(user)
 
 			if childrec:
-				crec = self.newrecord(rectype=childrec.get('rectype'), inherit=rec.name, ctx=ctx, txn=txn)
+				crec = self.newrecord(rectype=childrec.get('rectype'), ctx=ctx, txn=txn)
+				crec.adduser(name, level=3)
+				crec.parents.add(rec.name)
 				crec.update(childrec)
 				crec = self.bdbs.record.cput(crec, ctx=ctx, txn=txn)
 				

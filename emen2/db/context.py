@@ -161,7 +161,7 @@ class SpecialRootContext(Context):
 		self.grouplevels = {"admin":3}
 
 
-	def refresh(self, user=None, grouplevels=None, host=None, db=None, txn=None):
+	def refresh(self, user=None, grouplevels=None, host=None, username=None, db=None, txn=None):
 		if host != self.host:
 			raise emen2.db.exceptions.SessionError, "Session expired"
 
@@ -169,6 +169,7 @@ class SpecialRootContext(Context):
 		if t > (self.time + self.maxidle):
 			raise emen2.db.exceptions.SessionError, "Session expired"
 
+		self.username = username or u'root'
 		self.setdb(db=db)
 		self.time = t
 		self._init_refresh()

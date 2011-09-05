@@ -80,7 +80,7 @@
 
 	"users":{
 		// Automatically approve new user accounts
-		"USER_AUTOAPPROVE": true,
+		"USER_AUTOAPPROVE": false,
 		
 		// New users will be added to these groups
 		"GROUP_DEFAULTS": ["create"]		
