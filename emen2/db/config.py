@@ -51,6 +51,7 @@ class DBOptions(optparse.OptionParser):
 		group.add_option('-h', dest='home', type="string", help=dbhomehelp)
 		group.add_option('-c', '--configfile', action='append', dest='configfile')
 		group.add_option('-l', '--loglevel', action='store', dest='loglevel')
+		group.add_option('--new', action="store_true", help="Initialize a new DB")
 		group.add_option('--ext', action="append", dest='exts', help="Add Extension")
 		group.add_option('--quiet', action='store_true', default=False, help="Quiet")
 		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
