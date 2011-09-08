@@ -2,6 +2,7 @@
 
 import operator
 import cgi
+import re
 
 import emen2.db.datatypes
 import emen2.db.config
@@ -11,6 +12,39 @@ g = emen2.db.config.g()
 ci = emen2.util.listops.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
 vtm = emen2.db.datatypes.VartypeManager
+
+# From http://stackoverflow.com/questions/2212933/python-regex-for-reading-csv-like-rows
+parser = r'''
+    \s*                # Any whitespace.
+    (                  # Start capturing here.
+      [^,"']+?         # Either a series of non-comma non-quote characters.
+      |                # OR
+      "(?:             # A double-quote followed by a string of characters...
+          [^"\\]|\\.   # That are either non-quotes or escaped...
+       )*              # ...repeated any number of times.
+      "                # Followed by a closing double-quote.
+      |                # OR
+      '(?:[^'\\]|\\.)*'# Same as above, for single quotes.
+    )                  # Done capturing.
+    \s*                # Allow arbitrary space before the comma.
+    (?:,|$)            # Followed by a comma or the end of a string.
+    '''
+
+def parse_args(args):
+	r = re.compile(parser, re.VERBOSE)
+	ret = []
+	for i in r.findall(args):
+		if not i:
+			continue
+		if i[0] in ['"',"'"] and i[0]==i[-1]:
+			i = unicode(i[1:-1])
+		else:
+			try:
+				i = float(i)
+			except ValueError:
+				i = unicode(i)
+		ret.append(i)
+	return ret
 
 
 class Macro(object):
@@ -426,8 +460,10 @@ class macro_checkbox(Macro):
 	"""draw a checkbox for editing values"""
 		
 	def process(self, macro, params, rec):
-		print "Checkbox params:", macro, params
-		return "Checkbox!"
+		return self._process(*parse_args(params))
+		
+	def _process(self, param, value, label=None):
+		return '<input type="checkbox" data-param="%s" value="%s" /> <label for="">%s</label>'%(param, value, label or value)
 
 	def macro_name(self, macro, params):
 		return "Checkbox:", params			
