@@ -229,9 +229,13 @@ class EMEN2DB(object):
 
 	def addcache(self, item, txn=None):
 		if item.name in self.cache:
-			raise KeyError, "Item %s already in cache"%item.name
+			print "Warning: Item %s already in cache, skipping"%item.name
+			return
+			# raise KeyError
 		if self.get(item.name, txn=txn):
-			raise KeyError, "Item %s already in exists"%item.name
+			print "Warning: Item %s already in exists in database, skipping"%item.name
+			return
+			# raise KeyError
 
 		# print "Adding %s to cache"%item.name
 		# print "Checking parents/children for %s"%item.name

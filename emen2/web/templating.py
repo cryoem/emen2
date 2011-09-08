@@ -110,7 +110,7 @@ class BaseCSS(ExtFile):
 		for i in addfiles:
 			self.files.append('%s/static-%s/css/%s'%(g.EMEN2WEBROOT, emen2.VERSION, i))
 
-		# self.files.append(self.ctxt.reverse('TemplateRender', t='/css/map.css'))
+		self.files.append(self.ctxt.reverse('TemplateRender', t='/css/map.css'))
 
 
 

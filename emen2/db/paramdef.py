@@ -26,7 +26,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	@attr indexed If the vartype allows it, turn indexing on/off. Default is on.
 	"""
 
-	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(['immutable', 'iter', 'desc_long', 'desc_short', 'choices', 'vartype', 'defaultunits', 'property', 'indexed'])
+	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(['immutable', 'iter', 'desc_long', 'desc_short', 'choices', 'vartype', 'defaultunits', 'property', 'indexed', 'controlhint'])
 	param_required = set(['vartype'])
 
 

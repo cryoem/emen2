@@ -261,7 +261,7 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 	# ctx and txn arguments don't do anything. I accept them because it's a force of habit to include them.
 
 	if not CVars.MAILADMIN:
-		g.warn("Couldn't get mail config: No admin email available, config.MAILADMIN or root.email.")
+		g.warn("Couldn't get mail config: No admin email set")
 		return
 	if not CVars.MAILHOST:
 		g.warn("Couldn't get mail config: No SMTP Server")
@@ -309,18 +309,33 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 # ian: todo: have DBEnv and all BDBs in here --
 #	DB should just be methods for dealing with this dbenv "core"
 class EMEN2DBEnv(object):
+	# Manage open btrees
 	opendbs = weakref.WeakKeyDictionary()
-	cachesize = g.claim('CACHESIZE')
 
+	# Transaction counter
+	txncounter = 0
+	
+	# From global configuration
+	cachesize = g.claim('CACHESIZE')
 	path = g.claim('EMEN2DBHOME')
+	create = g.claim('CREATE')
 	snapshot = g.claim('SNAPSHOT', True)
-	def __init__(self, path=None, maintenance=False, snapshot=False):
+
+	# paths from global configuration
+	LOGPATH = g.watch('paths.LOGPATH')
+	LOG_ARCHIVE = g.claim('paths.LOG_ARCHIVE')
+	TILEPATH = g.claim('paths.TILEPATH')
+	TMPPATH = g.claim('paths.TMPPATH')
+	SSLPATH = g.watch('paths.SSLPATH')
+	
+	def __init__(self, path=None, maintenance=False, snapshot=False, create=False):
 		"""EMEN2 Database Environment.
 		The DB files are accessible as attributes, and indexes are loaded in self.index.
 
 		:keyword path: Directory containing EMEN2 Database Environment.
 		:keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
 		"""
+		
 		self.keytypes =  {}
 
 		if path is not None:
@@ -442,22 +457,26 @@ class EMEN2DBEnv(object):
 	####################################
 
 
-
 	####################################
 	# Utility methods
 	####################################
 
-	LOGPATH = g.watch('paths.LOGPATH')
-	LOG_ARCHIVE = g.claim('paths.LOG_ARCHIVE')
-	TILEPATH = g.claim('paths.TILEPATH')
-	TMPPATH = g.claim('paths.TMPPATH')
-	SSLPATH = g.watch('paths.SSLPATH')
-
 	def checkdirs(self):
 		"""Check that all necessary directories referenced from config file exist."""
-
-		if not os.access(self.path, os.F_OK):
-			os.makedirs(self.path)
+		
+		checkpath = os.access(self.path, os.F_OK)
+		checkconfig = os.access(os.path.join(self.path, 'DB_CONFIG'), os.F_OK)
+		
+		if self.create:
+			if checkconfig:
+				raise ValueError, "Database environment already exists in EMEN2DBHOME directory: %s"%self.path				
+			if not checkpath:
+				os.makedirs(self.path)
+		else:
+			if not checkpath:
+				raise ValueError, "EMEN2DBHOME directory does not exist: %s"%self.path
+			if not checkconfig:
+				raise ValueError, "No database environment in EMEN2DBHOME directory: %s"%self.path
 
 		# ian: todo: create the necessary subdirectories when creating a database
 		paths = [
@@ -519,8 +538,6 @@ class EMEN2DBEnv(object):
 	####################################
 	# Transaction management
 	####################################
-
-	txncounter = 0
 
 	def newtxn(self, parent=None, write=False):
 		"""Start a new transaction.
@@ -672,15 +689,14 @@ class EMEN2DBEnv(object):
 class DB(object):
 	sync_contexts = threading.Event()
 
-	def __init__(self, path=None):
+	def __init__(self, path=None, create=False):
 		"""Initialize DB.
 		Default path is g.EMEN2DBHOME, which checks $EMEN2DBHOME and program arguments.
 
 		:keyword path: Directory containing EMEN2 Database Environment.
 		"""
 		# Open the database
-		self.bdbs = EMEN2DBEnv(path=path)
-
+		self.bdbs = EMEN2DBEnv(path=path, create=create)
 		
 		# Load built-in paramdefs/recorddefs
 		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))		
@@ -692,9 +708,14 @@ class DB(object):
 
 		# Periodic operations..
 		self.lastctxclean = time.time()
+
 		# Cache contexts
 		self.contexts_cache = {}
-
+		
+		# Create root account, groups, and root record if necessary
+		if self.bdbs.create:
+			self.setup()
+		
 
 	def load_json(self, infile):
 		ctx = emen2.db.context.SpecialRootContext(db=self)
@@ -723,6 +744,66 @@ class DB(object):
 	# def __del__(self):
 	# 	"""Close DB when deleted"""
 	# 	self.bdbs.close()
+
+
+	####################################
+	# Open or create new database
+	####################################
+
+	@classmethod
+	def opendb(cls, name=None, password=None, db=None):
+		import emen2.db.proxy
+		# Use self or create new instance..
+		db = db or cls()
+		proxy = emen2.db.proxy.DBProxy(db=db)
+		if name:
+			proxy._login(name, password)
+		else:
+			ctx = emen2.db.context.SpecialRootContext()
+			ctx.refresh(db=proxy)
+			proxy._ctx = ctx
+		return proxy
+	
+
+	def setup(self, rootpw=None, rootemail=None):
+		"""Initialize a new DB.
+		@keyparam rootpw Root Account Password
+		@keyparam rootemail Root Account email
+		"""
+		import pwd
+		import platform
+
+		def getpw(rootpw=None, rootemail=None):
+			host = platform.node() or 'localhost'
+			defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
+			print "\n=== Setup Admin (root) account ==="
+			rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
+			rootpw = rootpw or getpass.getpass("Admin (root) password (default: none): ")
+			while len(rootpw) < 6:
+				if len(rootpw) == 0:
+					print "Warning! No root password!"
+					rootpw = ''
+					break
+				elif len(rootpw) < 6:
+					print "Warning! If you set a password, it needs to be more than 6 characters."
+					rootpw = getpass.getpass("Admin (root) password (default: none): ")
+			return rootpw, rootemail
+		
+
+		db = self.opendb(db=self)
+		with db:
+			#if self.bdbs.enableroot:
+			root = db.getuser('root')
+			if root:
+				print "Warning: root user already exists. Resetting password."
+			rootpw, rootemail = getpw(rootpw=rootpw, rootemail=rootemail)
+			root = {'name':'root','email':rootemail, 'password':rootpw}
+			db.put([root], keytype='user', clone=True)
+
+			loader = emen2.db.load.Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
+			loader.load()
+
+
 
 	###############################
 	# Utility methods
@@ -2146,6 +2227,7 @@ class DB(object):
 
 		return self.bdbs.keytypes[keytype].cputs(items, clone=clone, ctx=ctx, txn=txn)
 
+
 	@publicmethod("new", write=True, admin=True)
 	def new(self, *args, **kwargs):
 		keytype = kwargs.pop('keytype', 'record')
@@ -2557,11 +2639,10 @@ class DB(object):
 			user = self.bdbs.user.cput(user, ctx=ctx, txn=txn)
 
 			# Update default Groups
-			if user.name != 'root':
-				for group in self.group_defaults:
-					gr = self.bdbs.group.cget(group, ctx=ctx, txn=txn)
-					gr.adduser(user.name)
-					self.bdbs.group.cput(gr, ctx=ctx, txn=txn)
+			for group in self.group_defaults:
+				gr = self.bdbs.group.cget(group, ctx=ctx, txn=txn)
+				gr.adduser(user.name)
+				self.bdbs.group.cput(gr, ctx=ctx, txn=txn)
 
 			# Create the "Record" for this user
 			rec = self.bdbs.record.new(rectype='person', ctx=ctx, txn=txn)

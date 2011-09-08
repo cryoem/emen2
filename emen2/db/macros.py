@@ -418,4 +418,21 @@ class macro_thumbnail(Macro):
 
 
 
+
+
+# Editing macros
+@vtm.register_macro('checkbox')
+class macro_checkbox(Macro):
+	"""draw a checkbox for editing values"""
+		
+	def process(self, macro, params, rec):
+		print "Checkbox params:", macro, params
+		return "Checkbox!"
+
+	def macro_name(self, macro, params):
+		return "Checkbox:", params			
+
+
+
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()

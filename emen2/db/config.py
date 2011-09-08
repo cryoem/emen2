@@ -51,13 +51,14 @@ class DBOptions(optparse.OptionParser):
 		group.add_option('-h', dest='home', type="string", help=dbhomehelp)
 		group.add_option('-c', '--configfile', action='append', dest='configfile')
 		group.add_option('-l', '--loglevel', action='store', dest='loglevel')
-		group.add_option('--new', action="store_true", help="Initialize a new DB")
+		group.add_option('--create', action="store_true", help="Create and initialize a new DB")
 		group.add_option('--ext', action="append", dest='exts', help="Add Extension")
 		group.add_option('--quiet', action='store_true', default=False, help="Quiet")
 		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
-		group.add_option('--nosnapshot', action="store_false", dest="snapshot", default=True, help="Disable Berkeley DB Multiversion Concurrency Control (Snapshot)")
 		group.add_option('--version', action='store_true', help="EMEN2 Version")
 		group.add_option('--help', action="help", help="Print help message")
+		# group.add_option('--enableroot', action="store_true", help="Enable root account. You will be prompted for an email and password.")
+		# group.add_option('--nosnapshot', action="store_false", dest="snapshot", default=True, help="Disable Berkeley DB Multiversion Concurrency Control (Snapshot)")
 		self.add_option_group(group)
 
 
@@ -69,23 +70,9 @@ class DBOptions(optparse.OptionParser):
 
 
 	def opendb(self, name=None, password=None):
-		import emen2.db.proxy
-		g = emen2.db.globalns.GlobalNamespace()
-
-		name = name or getattr(self.values, 'name', None)
-		password = password or getattr(self.values, 'password', None)
-		# admin = admin or getattr(self.values, 'admin', None)
-
-		if not g.CONFIG_LOADED:
-			self.load_config()
-
-		db = emen2.db.proxy.DBProxy()
-		ctx = emen2.db.context.SpecialRootContext()
-		ctx.refresh(db=db)
-		db._ctx = ctx
-		if name:
-			db._login(name, password)
-		return db
+		import emen2.db.database
+		db = emen2.db.database.DB.opendb(name=name, password=password)
+		return db		
 
 
 	def getpath(self, pathname):
@@ -119,8 +106,6 @@ class DBOptions(optparse.OptionParser):
 		return name, path
 
 
-
-
 	def load_config(self, **kw):
 		g = emen2.db.globalns.GlobalNamespace()
 		if g.getattr('CONFIG_LOADED', False):
@@ -148,9 +133,6 @@ class DBOptions(optparse.OptionParser):
 		if not g.getattr('EMEN2DBHOME', False):
 			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
 
-		if not os.path.exists(g.EMEN2DBHOME):
-			raise ValueError, "EMEN2DBHOME directory %s does not exist"%g.EMEN2DBHOME
-
 		# Set default log levels
 		loglevel = g.getattr('LOG_LEVEL', 'INFO')
 		if self.values.quiet:
@@ -160,6 +142,8 @@ class DBOptions(optparse.OptionParser):
 		elif self.values.loglevel:
 			loglevel = self.values.loglevel
 
+		# ian: this shouldn't be automatic
+		# a directory inside emen2dbhome will be created if --create is specified
 		# Make sure paths to log files exist
 		if not os.path.exists(g.paths.LOGPATH):
 			os.makedirs(g.paths.LOGPATH)
@@ -203,7 +187,13 @@ class DBOptions(optparse.OptionParser):
 			g.EXTS[name] = path
 		
 		# Enable/disable snapshot
-		g.SNAPSHOT = self.values.snapshot
+		g.SNAPSHOT = True # self.values.snapshot
+
+		# Create new database?
+		g.CREATE = self.values.create or False
+		
+		# Enable root user?
+		# g.ENABLEROOT = self.values.enableroot or False
 
 		# Write out WEB and SECURITY messages to dedicated log files
 		g.log.add_output(['WEB'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'access.log'), 'a', 0))

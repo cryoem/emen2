@@ -16,36 +16,6 @@ def random_password(N):
 
 
 
-def setup(rootpw=None, rootemail=None, db=None):
-	"""Initialize a new DB.
-	@keyparam rootpw Root Account Password
-	@keyparam rootemail Root Account email
-	"""
-	
-	if not rootpw or not rootemail:
-		import pwd
-		import platform
-		host = platform.node() or 'localhost'
-		defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
-
-		print "\n=== New Database Setup ==="
-		rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
-		rootpw = rootpw or getpass.getpass("Admin (root) password (default: none): ")
-
-		while len(rootpw) < 6:
-			if len(rootpw) == 0:
-				print "Warning! No root password!"
-				rootpw = ''
-				break
-			elif len(rootpw) < 6:
-				print "Warning! If you set a password, it needs to be more than 6 characters."
-				rootpw = getpass.getpass("Admin (root) password (default: none): ")
-
-	loader = Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
-	loader.load(rootemail=rootemail, rootpw=rootpw)
-
-
-
 class BaseLoader(object):
 	def __init__(self, db=None, infile=None, path=''):
 		self.infile = infile
@@ -73,9 +43,8 @@ class BaseLoader(object):
 						yield item
 	
 
-
 class Loader(BaseLoader):
-	def load(self, rootemail=None, rootpw=None, overwrite=False):
+	def load(self, overwrite=False):
 		# Changed names
 		userrelmap = {}
 		namemap = {}
@@ -110,10 +79,7 @@ class Loader(BaseLoader):
 
 		##########################
 		# USERS
-		users = []
-		if rootemail:
-			users.append({'name':'root','email':rootemail, 'password':rootpw})
-			
+		users = []			
 		for user in self.loadfile(self.infile, keytype='user'):
 			if user.get('name') in existing_usernames and not overwrite:
 				continue
@@ -220,20 +186,12 @@ class Loader(BaseLoader):
 
 def main():
 	dbo = emen2.db.config.DBOptions()
-	dbo.add_option('--new', action="store_true", help="Initialize a new DB with default items.")
 	dbo.add_option('--path', type="string", help="Directory containing JSON files")
 	dbo.add_option('--file', type="string", help="JSON file containing all keytypes")
-	dbo.add_option('--nopassword', action="store_true", help="Do not prompt for root email or password")
 	(options, args) = dbo.parse_args()
 	db = dbo.opendb()
 
 	with db:
-		if options.new:
-			if options.nopassword:
-				setup(db=db, rootemail='root@localhost', rootpw='123456')
-			else:
-				setup(db=db)
-
 		if options.file:
 			l = Loader(infile=options.file, db=db)
 			l.load()

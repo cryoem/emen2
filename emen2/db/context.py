@@ -1,5 +1,4 @@
 # $Id$
-
 import time
 import operator
 import hashlib
@@ -118,8 +117,6 @@ class Context(object):
 
 	def checkcreate(self):
 		return set(["admin","create"]) & self.groups or False
-
-
 
 
 

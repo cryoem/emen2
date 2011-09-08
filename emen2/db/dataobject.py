@@ -152,6 +152,14 @@ class BaseDBObject(object, DictMixin):
 
 
 
+	################
+	# Convenience
+	################
+
+	def commit(self):
+		return self._ctx.db.put([self], keytype=self.keytype)
+		
+
 	#################################
 	# Mapping methods. These may be changed if you want to implement special behavior,
 	#	e.g. records["permissions"] = [...]
