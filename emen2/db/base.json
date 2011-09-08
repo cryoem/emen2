@@ -54,6 +54,7 @@
 {"immutable": true, "name": "rectype", "creator": "root", "keytype": "paramdef", "creationtime": "2009/11/09 01:52:12", "uri": null, "parents": ["core"], "indexed": true, "vartype": "rectype", "desc_short": "Protocol", "desc_long": "The Record's Protocol; this is may also be referred to as the \"rectype\" or \"recorddef.\""}
 {"immutable": true, "name": "history", "creator": "root", "keytype": "paramdef", "creationtime": "2009/11/09 01:52:12", "uri": null, "parents": ["core"], "indexed": true, "vartype": "history", "desc_short": "History", "desc_long": "A log of all changes made to a Record."}
 {"name": "deleted", "creator": "root", "keytype": "paramdef", "creationtime": "2009/11/09 01:52:12", "uri": null, "parents": ["core"], "indexed": true, "vartype": "boolean", "desc_short": "Deleted Record"}
+{"name": "controlhint", "creator": "root", "keytype": "paramdef", "creationtime": "2009/11/09 01:52:12", "uri": null, "parents": ["core"], "vartype": "string", "desc_short": "Control Hint"}
 
 // Core RecordDefs
 {"name": "root", "mainview": "Root Protocol", "keytype": "recorddef", "creator": "root", "creationtime": "2011/05/04 04:34:43", "uri": null, "parents": [], "desc_short": "Root Protocol"}

@@ -303,7 +303,7 @@ class DBProxy(object):
 
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
-			self._db.periodic_operations.next()
+			# self._db.periodic_operations.next()
 			t = time.time()
 			result = None
 			commit = False

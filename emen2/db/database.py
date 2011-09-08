@@ -687,8 +687,8 @@ class DB(object):
 		for ext, path in g.EXTS.items():
 			self.load_extension(ext, path)
 
-		if not hasattr(self.periodic_operations, 'next'):
-			self.__class__.periodic_operations = self.periodic_operations()
+		#if not hasattr(self.periodic_operations, 'next'):
+		#	self.__class__.periodic_operations = self.periodic_operations()
 
 		# Periodic operations..
 		self.lastctxclean = time.time()
