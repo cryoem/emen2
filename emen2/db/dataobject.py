@@ -32,7 +32,6 @@ class BaseDBObject(object, DictMixin):
 	def validate(self, vtm=None, t=None):
 		pass
 
-
 	# End interface definition
 	########################################
 
