@@ -1,4 +1,5 @@
 <%inherit file="/page" />
+<%namespace name="buttons"  file="/buttons"  /> 
 
 
 <form method="post" action="${EMEN2WEBROOT}/paramdefs/name/">
@@ -51,21 +52,7 @@ for k,v in d.items():
 <h1 class="clearfix">${str(k).capitalize()}</h1>
 
 	% for paramdef in d[k]:
-	
-		<div class="userbox">
-			<a href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/">
-				<img src="${EMEN2WEBROOT}/static/images/gears.png" alt="Parameter" />			
-			</a>
-			
-			<div>
-				<a href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/">
-				${paramdef.desc_short}<br />
-				${paramdef.name}
-				</a>
-			</div>
-			
-		</div>
-	
+		${buttons.infobox(paramdef, autolink=True)}
 	% endfor
 
 % endfor

@@ -7,15 +7,10 @@ from emen2.web.view import View
 import emen2.web.markuputils
 from map import Map
 
-
+@View.register
 class RecordDef(View):
-	__metaclass__ = View.register_view
-	__matcher__ = {
-		'action': r'^/recorddef/(?P<name>.+)/(?P<action>.+)/$',
-		'main': r'^/recorddef/(?P<name>\w+)/$'
-		}
 
-
+	@View.add_matcher(r'^/recorddef/(?P<name>.+)/(?P<action>.+)/$', r'^/recorddef/(?P<name>\w+)/$')	
 	def init(self, name=None, action=None, new=0, notify=[]):
 		self.template = '/pages/recorddef'
 		self.name = name
@@ -68,7 +63,7 @@ class RecordDef(View):
 			'classname':'main',
 			'labels':{'main':"Protocol Viewer"},
 			'content':{'main':""},
-			'href':	{'main': self.dbtree.reverse(self.__class__.__name__, name=self.name)}
+			'href':	{'main': '%s/recorddef/%s/'%(g.EMEN2WEBROOT, self.name)}
 			}
 
 		if edit:

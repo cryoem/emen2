@@ -14,7 +14,7 @@ import jsonrpc.jsonutil
 
 		var edit = ${jsonrpc.jsonutil.encode(edit)};
 
-		caches['groups'][${jsonrpc.jsonutil.encode(group.name)}] = ${jsonrpc.jsonutil.encode(group)};
+		caches['group'][${jsonrpc.jsonutil.encode(group.name)}] = ${jsonrpc.jsonutil.encode(group)};
 
 		$('#group_members').PermissionControl({
 			keytype: 'group',
@@ -24,11 +24,11 @@ import jsonrpc.jsonutil
 		});
 
 		$('input[name=save]').click(function() {
-			var g = caches['groups'][${jsonrpc.jsonutil.encode(group.name)}];
+			var g = caches['group'][${jsonrpc.jsonutil.encode(group.name)}];
 			g["permissions"] = $('#group_members').PermissionControl('getusers');
 			g["displayname"] = $('input[name=group_displayname]').val();
 			g["name"] = $('input[name=group_name]').val();
-			$.jsonRPC2("putgroup", [g], function(group) {
+			$.jsonRPC.call("putgroup", [g], function(group) {
 				//notify_post(EMEN2WEBROOT+'/group/'+group.name, []);
 				window.location = EMEN2WEBROOT+'/group/'+group.name+'/';
 			})
@@ -63,8 +63,7 @@ import jsonrpc.jsonutil
 
 </h1>
 
-<%call expr="buttons.singlepage('_groupinfo','Group Info')">
-
+<%buttons:singlepage label='Group Info'>
 	<table>
 		<tr>
 			<td>Group Name:</td>
@@ -83,9 +82,9 @@ import jsonrpc.jsonutil
 			% if new:
 				<td><input type="text" name="group_displayname" value="" /></td>
 			% elif edit:
-				<td><input type="text" name="group_displayname" value="${group.displayname}" /></td>
+				<td><input type="text" name="group_displayname" value="${group.get('displayname')}" /></td>
 			% else:
-				<td>${group.displayname}</td>
+				<td>${group.get('displayname')}</td>
 			% endif
 
 		</tr>
@@ -107,17 +106,12 @@ import jsonrpc.jsonutil
 
 
 	</table>
-
-</%call>
-
+</%buttons:singlepage>
 
 
-<%call expr="buttons.singlepage('_groupinfo','Group Members')">
 
-<div id="group_members">
-</div>
-
-
-</%call>
+<%buttons:singlepage label='Group Members'>
+	<div id="group_members"></div>
+</%buttons:singlepage>
 
 

@@ -19,67 +19,61 @@ import markdown
 </h1>
 
 
-<%call expr="buttons.singlepage('recdefopts','Protocol Details')">
+<%buttons:singlepage label='Protocol Details'>
+	<table>
+		<tr><td>Name:</td><td>${recdef.name}</td></tr>		
+		<tr><td>Created:</td><td><a href="${EMEN2WEBROOT}/user/${recdef.creator}/">${displaynames.get(recdef.creator, recdef.creator)}</a> @ ${recdef.creationtime}</td></tr>
+		<tr><td>Owner:</td><td>${recdef.owner}</td></tr>
 
-<table>
+		<tr>
+			<td>Private:</td>
+			<td>
+				${["No","Yes"][recdef.private]}		
+			</td>
+		</tr>
 
-	<tr><td>Name:</td><td>${recdef.name}</td></tr>		
-	<tr><td>Created:</td><td><a href="${EMEN2WEBROOT}/user/${recdef.creator}/">${displaynames.get(recdef.creator, recdef.creator)}</a> @ ${recdef.creationtime}</td></tr>
-	<tr><td>Owner:</td><td>${recdef.owner}</td></tr>
+		<tr>
+			<td>Suggested Child Types</td>
+			<td>
+			% if len(recdef.typicalchld) == 0:
+				None Defined
+			% else:
+				<ul id="typicalchld" class="nonlist">
+				% for k,i in enumerate(recdef.typicalchld):
+					<li><a href="${EMEN2WEBROOT}/recorddef/${i}/">${i}</a></li>
+				% endfor
 
-	<tr>
-		<td>Private:</td>
-		<td>
-			${["No","Yes"][recdef.private]}		
-		</td>
-	</tr>
-
-	<tr>
-		<td>Suggested Child Types</td>
-		<td>
-		% if len(recdef.typicalchld) == 0:
-			None Defined
-		% else:
-			<ul id="typicalchld" class="nonlist">
-			% for k,i in enumerate(recdef.typicalchld):
-				<li><a href="${EMEN2WEBROOT}/recorddef/${i}/">${i}</a></li>
-			% endfor
-
-			</ul>
-		% endif
-		</td>
+				</ul>
+			% endif
+			</td>
 	
-	</tr>
+		</tr>
 
-	<tr>
+		<tr>
 			
-		<td>Short Description</td>
-		<td>
-			${recdef.get("desc_short")}
-		</td>
+			<td>Short Description</td>
+			<td>
+				${recdef.get("desc_short")}
+			</td>
 	
-	</tr>
+		</tr>
 
-	<tr>
-		<td colspan="2">
-			<p>Detailed Description</p>
-			<p>
-					${recdef.get("desc_long")}
-			</p>
-		</td>
-	</tr>
-
-
-</table>
-
-
-</%call>
+		<tr>
+			<td colspan="2">
+				<p>Detailed Description</p>
+				<p>
+						${recdef.get("desc_long")}
+				</p>
+			</td>
+		</tr>
+	</table>
+</%buttons:singlepage>
 
 
+<%buttons:singlepage label='Protocol'>
+	${markdown.markdown(recdef.mainview)}
+</%buttons:singlepage>
 
-<%call expr="buttons.singlepage('recdefmainview','Protocol')">
-		${markdown.markdown(recdef.mainview)}
-</%call>	
 
 
 

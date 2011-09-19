@@ -10,9 +10,11 @@ II. View Plugins
 	- class :py:class:`AdminView`
 	- class :py:class:`AuthView`
 
-III. Template Rendering
-	- class :py:class:`Page`
+III. View loader
+	- class :py:class:`ViewLoader`
+	
 '''
+
 import itertools
 import functools
 import sys
@@ -22,14 +24,16 @@ import jsonrpc.jsonutil
 import functools
 import time
 import collections
-
 import contextlib
-import emen2.util.decorators
+
 import emen2.web.routing
 import emen2.web.templating
 import emen2.web.notifications
 
-from emen2.util.listops import adjust
+import emen2.util.decorators
+import emen2.util.listops
+import emen2.util.fileops
+
 from emen2.web import routing
 
 import emen2.db.config
@@ -38,17 +42,54 @@ g = emen2.db.config.g()
 __all__ = ['View', 'ViewPlugin', 'AdminView', 'AuthView', 'Page']
 
 
-
-
 ############ ############ ############
 # I. Views                           #
 ############ ############ ############
 
-class TemplateContext(object):
-	#'''Partial context for views that don't need db access'''
+
+class TemplateContext(collections.MutableMapping):
+	'''Template Context'''
+	
+	def __init__(self, base=None):
+		self.__base = {}
+		self.__dict = self.__base.copy()
+		self.__dict['ctxt'] = self
+
+	def __getitem__(self, n):
+		return self.__dict[n]
+
+	def __setitem__(self, n, v):
+		self.__dict[n] = v
+		self.__dict.update(self.__base)
+
+	def __delitem__(self, n):
+		del self.__dict[n]
+		self.__dict.update(self.__base)
+
+	def __len__(self):
+		return len(self.__dict)
+
+	def __iter__(self):
+		return iter(self.__dict)
+
+	def __repr__(self):
+		return '<TemplateContext: %r>' % self.__dict
+
+	def copy(self):
+		new = TemplateContext(self.__base)
+		new.__dict.update(self.__dict)
+		return new
+
+	def set(self, name, value=None):
+		self[name] = value
+
+
 	host = g.watch('EMEN2HOST', 'localhost')
 	port = g.watch('EMEN2PORT', 80)
+
 	def reverse(self, _name, *args, **kwargs):
+		"""Create a URL given a view Name and arguments"""
+		
 		full = kwargs.pop('_full', False)
 
 		result = '%s/%s'%(g.EMEN2WEBROOT, emen2.web.routing.URLRegistry.reverselookup(_name, *args, **kwargs))
@@ -63,32 +104,7 @@ class TemplateContext(object):
 			result = result.replace('?', '/?', 1)
 
 		return result
-
-
-class ViewContext(collections.MutableMapping):
-	def __init__(self, base):
-		self.__base = base
-		self.__dict = base.copy()
-	def __getitem__(self, n):
-		return self.__dict[n]
-	def __setitem__(self, n, v):
-		self.__dict[n] = v
-		self.__dict.update(self.__base)
-	def __delitem__(self, n):
-		del self.__dict[n]
-		self.__dict.update(self.__base)
-	def __len__(self): return len(self.__dict)
-	def __iter__(self): return iter(self.__dict)
-	def __repr__(self): return '<ViewContext: %r>' % self.__dict
-
-	def copy(self):
-		new = ViewContext(self.__base)
-		new.__dict.update(self.__dict)
-		return new
-
-	def set(self, name, value=None):
-		self[name] = value
-
+		
 
 
 ###NOTE: This class should not access the db in any way, such activity is carried out by
@@ -97,9 +113,7 @@ class _View(object):
 	'''Base Class for views, sets up the instance variables for the class
 
 	Subclasses are required to do four things:
-		- register subclass as a view by either:
-			- having a class attribute called __metaclass__ which is equal to View.register_view
-		- or using View.register as a decorator
+		- Register using View.register as a decorator
 
 		- have a class attribute called __matcher__ which contains either:
 			- A Regular Expression representing the url which matches the class
@@ -115,144 +129,119 @@ class _View(object):
 			- define a method named get_json in order to return a json representation of the view
 	'''
 
+	# A list of methods to call during init (with self)
 	preinit = []
-	# use preinit = View.preinit[:] to modify this in a subclass
-	# i.e.:
-	# class example(View):
-	# 	preinit = View.preinit[:]
-	# 	@preinit.append
-	# 	def _preinithook(self):
-	# 		print 'Hello World'
 
-	ctxt = property(lambda self: self.get_context())
-	dbtree = property(lambda self: self.__dbtree)
-	js_files = emen2.web.templating.BaseJS
-	css_files = emen2.web.templating.BaseCSS
-	page = None
+	title = property(
+		lambda self: self.ctxt.get('title', 'No Title'), 
+		lambda self, value: self.ctxt.set('title',value))
 
-	def __settitle(self, t):
-		self.__ctxt['title'] = t
+	template = property(
+		lambda self: self.ctxt.get('template', '/simple'),
+		lambda self, value: self.ctxt.set('template', value))
 
-	title = property(lambda self: self.__ctxt.get('title'), __settitle)
+	mimetype = property(
+		lambda self: self.get_header('content-type', 'text/html; charset=utf-8'),
+		lambda self, value: self.set_header('content-type', value))
 
-	def __set_mimetype(self, value): self.set_header('content-type', value)
-	mimetype = property(lambda self: self.get_header('content-type'), __set_mimetype)
 
-	def __set_template(self, value): self.__template = value
-	template = property(lambda self: self.__template, __set_template)
-
-	def __init__(self, template='/simple', mimetype='text/html; charset=utf-8', raw=False, css_files=None, js_files=None, format=None, method='GET', init=None, reverseinfo=None, reqheaders=None, **extra):
+	def __init__(self, format=None, method='GET', init=None, reverseinfo=None, request_headers=None, basectxt=None, **extra):
 		'''\
 		subclasses should not override this method, rather they should define an 'init' method.
 		subclasses should remember to call the base classes __init__ method if they override it.
 
-		db is the Database instance for the class to use
-		template is the template the class renders
-		mimetype is the mimetype returned by the class
-		raw governs how the output is processed
-		css_files attaches a css library to the view
-		js_files attaches a javascript library to the view,
 		format governs which method is called to get the view data
 		init passes a method to be called to initialize the view
-		reverseinfo contains information necessary to reconstruct the url
+		reverseinfo is the request URI
+		request_headers are the request headers
 		extra catches arguments to be passed to the 'init' method
 		'''
+		# template is the template the class renders
+		# mimetype is the mimetype returned by the class
+		
+		# Request headers
+		self.__request_headers = request_headers or {}
 
-		if reqheaders is None:
-			reqheaders = {}
-		self._reqheaders = reqheaders
-		g.debug(reqheaders)
-
+		# Response headers
 		self.__headers = {}
-		self.set_header('Content-Type', mimetype)
-		self.__dbtree = TemplateContext()
+		# self.set_header('Content-Type', mimetype)
+		
+		# Notifications and errors
+		self.__notify = []
+		self.__errors = []
 
-		self.__template = template or self.template
-
-		self._notify = jsonrpc.jsonutil.decode(extra.pop('notify','[]'))
-		basectxt = extra.pop('_basectxt', {})
-		basectxt.update(
-			ctxt = self.dbtree,
+		# Template Context
+		# Init context with headers, errors, etc.
+		# Then update with any extra arguments specified.
+		self.ctxt = TemplateContext()
+		self.ctxt.update(dict(
 			headers = self.__headers,
-			css_files = (css_files or self.css_files)(self.__dbtree),
-			js_files = (js_files or self.js_files)(self.__dbtree),
-			notify = self._notify,
-			errors = [],
-			def_title = 'Untitled',
-			reverseinfo = reverseinfo,
-			chromeless=('X-PJAX' in self._reqheaders)
-		)
+			notify = self.__notify,
+			errors = self.__errors,
+			reverseinfo = reverseinfo
+		))
+		self.ctxt.update(basectxt or {})
+		self.ctxt.update(extra)
 
-		self.__ctxt = ViewContext(basectxt)
-		self.__ctxt.update(extra)
-		# print self.__ctxt
-
-		#self.set_context_items(self._basectxt)
-
-		if not hasattr(self._notify, '__iter__'): self._notify = [notify]
-
-
+		# HTTP Method and HTTP ETags (cache control)
 		self.method = method
 		self.etag = None
 
-		# call any view specific initialization
-		self.__raw = False
+		# Set the return format. There must be a get_<format> method.
 		if format is not None:
 			self.get_data = getattr(self, 'get_%s' % format)
 
+		# Run any init hooks
 		preinit = getattr(self, 'preinit', [])
-		for hook in preinit: hook(self)
+		for hook in preinit:
+			hook(self)
 
-		if init is not None: init=functools.partial(init,self)
-		else: init = self.init
+		# Run the View subclass' init method
+		if init is not None:
+			init = functools.partial(init, self)
+		else:
+			init = self.init
+		
+		upd = init(**extra)
+		self.set_context_items(upd)
 
-		ctxt_items = init(**extra)
-		self.set_context_items(ctxt_items)
-
+		
 	def notify(self, msg):
 		self.events.event('notify')(id(self), msg)
 
 
 	def init(self, *_, **__):
 		'''define class specific initialization here'''
+		pass
 
-
-	def is_raw(self):
-		return self.__raw
-
-
-	def make_raw(self):
-		self.__raw = True
-
-
-
-	#### ian: add JS/CSS include
-	#### ed: this looks either unfinished or corrupted
-	def add_js(self, f):
-		self._basectxt['js_files']
 
 	#### Output methods #####################################################################
 
 	def error(self, msg):
-		self.template="/errors/error"
+		'''Set the output to a simple error message'''
+		self.template = "/errors/error"
 		self.title = "Error"
 		self.ctxt["errmsg"] = msg
 
+	def redirect(self, location):
+		self.headers['Location'] = location
+		self.template = '/redirect'
 
 	def get_data(self):
-		'''override to change the way it gets the view data'''
-		return Page.render_view(self)
+		'''Override to change the way it gets the view data'''
+		return g.templates.render_template(self.template, self.ctxt)
+		# return Page.render_view(self)
 
 	def get_json(self):
-		'override to define json equivalent'
+		'''Override to define json equivalent'''
 		return '{}'
 
 	def __iter__(self):
-		'''returns (result, mimetype)'''
+		'''Returns (result, mimetype)'''
 		return iter( (self.get_data(), self.__headers) )
 
 	def __unicode__(self):
-		'''returns the data'''
+		'''Returns the data'''
 		return unicode( self.get_data() )
 
 	def __str__(self):
@@ -264,10 +253,13 @@ class _View(object):
 	#### Metadata manipulation ###############################################################
 
 	# HTTP header manipulation
-	headers = property(fget=lambda self: self.__headers, fdel=lambda self: self.__headers.clear())
+	headers = property(
+		fget=lambda self: self.__headers, 
+		fdel=lambda self: self.__headers.clear())
+
 	@headers.setter
 	def headers(self, value):
-		'add a dictionary containing several headers to the HTTP headers'
+		'''Add a dictionary containing several headers to the HTTP headers'''
 		value = dict( (self.normalize_header_name(k),v) for k,v in value.items() )
 		self.__headers.update(value)
 
@@ -275,39 +267,38 @@ class _View(object):
 		return '-'.join(x.capitalize() for x in name.split('-'))
 
 	def set_header(self, name, value):
-		'set a single header'
+		'''Set a single header'''
 		name = self.normalize_header_name(name)
 		self.__headers[name] = value
 		return (name, value)
 
 	def get_header(self, name):
-		'get a HTTP header that this view will return'
+		'''Get a HTTP header that this view will return'''
 		name = self.normalize_header_name(name)
 		return self.__headers[name]
 
 	# template context manipulation
 	def get_context_item(self, name, default=None):
-		return self.__ctxt.get(name, default)
+		return self.ctxt.get(name, default)
 
 	def set_context_item(self, name, value):
-		'''add a single item to the tempalte context'''
-		self.__ctxt[name] = value
+		'''Add a single item to the tempalte context'''
+		self.ctxt[name] = value
 
 	def set_context_items(self, __dict_=None, **kwargs):
-		'''add a number of items to the template context'''
-		self.__ctxt.update(kwargs)
-		self.__ctxt.update(__dict_ or {})
+		'''Add a number of items to the template context'''
+		self.ctxt.update(kwargs)
+		self.ctxt.update(__dict_ or {})
 
 	# alias update_context to set_context_items
 	update_context = set_context_items
 
 	def get_context(self):
-		'''get the view's context'''
-		return self.__ctxt
+		'''Get the view's context'''
+		return self.ctxt
 
 
 	#### View registration methods ###########################################################
-
 
 	@staticmethod
 	def register_view(name, bases, dict):
@@ -389,7 +380,7 @@ class _View(object):
 		- registers urls specified in the __matcher__ attribute
 
 			- this attribute can specify more than one matcher in a dictionary, if that is the case, reverse lookup
-					can be done by self.dbtree.reverse (in a subclass of View) or ctxt.reverse in a template
+					can be done by self.ctxt.reverse (in a subclass of View) or ctxt.reverse in a template
 					it defaults to the one named 'main', if others exist they can be accessed by '<Classname>/<subname>'
 
 		- this also registers urls defined by the add_matcher decorator
@@ -403,7 +394,7 @@ class _View(object):
 							alt1 = r'^/some/url/(?P<param1>[a-zA-Z]{3,}/$'
 						)
 
-				- these can be reversed with self.dbtree.reverse('ClassName/alt1', param1='asd') and such
+				- these can be reversed with self.ctxt.reverse('ClassName/alt1', param1='asd') and such
 
 			- list
 				.. code-block:: python
@@ -467,37 +458,36 @@ class View(_View):
 		self.__db = db
 		ctx = getattr(self.__db, '_getctx', lambda:None)()
 		self.ctxid = ctx and ctx.name
-		HOST = getattr(ctx, 'host', None)
-
-		user = None
+		
+		user = {}
 		try:
 			user = ctx.db.getuser(ctx.username)
 		except:
 			pass
 
 		basectxt = dict(
-			HOST = HOST,
+			HOST = getattr(ctx, 'host', None),
+			USER = user,
 			EMEN2WEBROOT = g.EMEN2WEBROOT,
 			EMEN2DBNAME = g.EMEN2DBNAME,
 			EMEN2LOGO = g.EMEN2LOGO,
 			BOOKMARKS = g.BOOKMARKS,
-			USER = user
+			VERSION = emen2.VERSION
 		)
 
-		_View.__init__(self, _basectxt=basectxt, **extra)
+		# Need to pass in the basectxt before the View's init()
+		_View.__init__(self, basectxt=basectxt, **extra)
+
 
 	def notify(self, msg):
 		if self.ctxid is not None:
 			self.events.event('notify')(self.ctxid, msg)
 
 	def get_data(self, *a, **kw):
-		# get notifications if the user has a ctxid
+		# Get notifications if the user has a ctxid
 		if self.ctxid is not None:
-			self._notify.extend(self.notifications.get_notifications(self.ctxid))
-
+			self.__notify.extend(self.notifications.get_notifications(self.ctxid))
 		return _View.get_data(self, *a, **kw)
-
-
 
 
 
@@ -547,62 +537,107 @@ class AuthView(ViewPlugin):
 			raise emen2.web.responsecodes.ForbiddenError, 'User %r is not authenticated.' % context.username
 
 
-############ ############ ############
-# III. template rendering            #
-############ ############ ############
 
-class Page(object):
-	'''Helper class which renders templates for a :py:class:`View`'''
+############-############-############
+# III. View loader                    #
+############-############-############
 
-	def __init__(self, template, value_dict=None, **kwargs):
-		self.__template = template
-		self.__valuedict = adjust(kwargs, value_dict or {})
+class ViewLoader(object):
+	routing_table = g.claim('ROUTING', {})
+	redirects = g.claim('REDIRECTS', {})
+	extensions = g.claim('EXTS')
 
-	def __repr__(self):
-		vd = '{%s}'
-		l = ','.join( '%r:%r' % (k,v) for k,v in self.__valuedict.items() )
-		m = l[:20]
-		if l!=m: m = ''.join([m, '...'])
-		vd %= m
-		return '<Page template=%s values=%s>' % (self.__template, vd)
-	def __unicode__(self):
-		return g.templates.render_template(self.__template, self.__valuedict)
+	def view_callback(self, pwd, pth, mtch, name, ext, failures=None, extension_name=None):
+		if name == '__init__':
+			return
+		modulename = '.'.join([extension_name, 'views', name])
 
-	def __str__(self):
-		return g.templates.render_template(self.__template, self.__valuedict).encode('ascii', 'replace')
+		if not hasattr(failures, 'append'):
+			failures = []
 
+		assert ext == mtch
 
-	@classmethod
-	def render_template(cls, template, modifiers=None):
-		modifiers = modifiers or {}
-		modifiers['def_title'] = modifiers.get('title', 'No Title')
-		return cls(template, value_dict=modifiers)
+		filpath = os.path.join(pwd[0], name)
+		data = emen2.util.fileops.openreadclose(filpath+ext)
+		viewname = os.path.join(pwd[0], name).replace(pth,'')
+		level = 'DEBUG'
+		msg = ["VIEW", "LOADED:"]
 
-	@classmethod
-	def quick_render(cls,  title='', content='', modifiers=None):
-		modifiers = modifiers or {}
-		modifiers['def_title'] = title or modifiers.pop('title', None)
-		modifiers['content'] = content
-		return cls.render_template('/simple', modifiers)
+		try:
+			__import__(modulename)
+		except BaseException, e:
+			g.info(e)
+			level = 'ERROR'
+			msg[1] = "FAILED:"
+			failures.append(viewname)
+			g.log.print_exception()
 
-	@classmethod
-	def render_view(cls, view):
-		ctxt = view.get_context()
-
-		if view.get_header('content-type') == 'application/json' and hasattr(view, 'page'):
-			result = view.page
-		else:
-			if view.page is None:
-				result = cls.render_template(view.template, modifiers=ctxt)
-			else:
-				if view.is_raw():
-					result = view.page
-				else:
-					result = cls.quick_render(ctxt['def_title'], view.page % ctxt, modifiers=ctxt)
-		return result
+		msg.append(filpath+ext)
+		g.log.msg(level, ' '.join(msg))
 
 
+	def __init__(self):
+		self.get_views = emen2.util.fileops.walk_path('.py', self.view_callback)
+		self.router = emen2.web.routing.URLRegistry()
 
+
+	def load_extensions(self):
+		# Load exts
+		for ext, path in self.extensions.items():
+			self.load_extension(ext, path)
+		return True
+
+
+	def load_extension(self, ext, path):
+		# We'll be adding the extension paths with a low priority..
+		pth = list(reversed(sys.path))
+		g.info('Loading extension %s: %s' % (ext, path))
+
+		# ...load views
+		viewdir = os.path.join(path, 'views')
+		if os.path.exists(viewdir):
+			old_syspath = sys.path[:]
+			sys.path.append(os.path.dirname(path))
+			self.get_views(viewdir, extension_name=ext)
+			sys.path = old_syspath
+
+		# ...add ext path to the python module search
+		pythondir = os.path.join(path, 'python')
+		if os.path.exists(pythondir):
+			pth.insert(-1,pythondir)		
+
+		# Restore the original sys.path
+		sys.path = list(reversed(pth))
+
+
+	def routes_from_g(self):
+		for key, value in self.routing_table.iteritems():
+			for name, regex in value.iteritems():
+				view = self.router.get(key)
+				if view:
+					view.add_matcher(name, regex, view.get_callback('main'))
+
+
+	def load_redirects(self):
+		for fro,v in self.redirects.iteritems():
+			to, kwargs = v
+			emen2.web.resources.publicresource.PublicView.register_redirect(fro, to, **kwargs)
+
+
+	def reload_views(self, view=None):
+		reload(view)
+		failures = []
+		self.load_templates(failures=failures)
+		self.load_views(failures=failures)
+		if view != None: values = [emen2.web.routing.URLRegistry.URLRegistry[view]]
+		else: values = emen2.web.routing.URLRegistry.URLRegistry.values()
+		for view in values:
+			try:
+				view = view._callback.__module__
+				exec 'import %s;reload(%s)' % (view,view)
+			except:
+				failures.append(str(view))
+		return failures
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

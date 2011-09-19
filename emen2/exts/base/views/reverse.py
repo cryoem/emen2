@@ -13,7 +13,7 @@ g = emen2.db.config.g()
 @emen2.web.view.View.register
 class ReverseURL(emen2.web.view.View):
 	# for python < 2.6 do this:
-	# __metaclass__ = emen2.web.view.View.register_view
+
 	__matcher__ = dict(
 		main=r'^/url/(?P<name>\w+)/$',
 		execute=r'^/url/(?P<name>\w+)/(?P<exe>execute)/$',
@@ -44,7 +44,7 @@ class ReverseURL(emen2.web.view.View):
 		arg = [ (name, args, dict( (k.encode('utf-8'),v) for k,v in kwargs.iteritems() ))
 					for name, args, kwargs in arg]
 
-		arg = [(name, self.dbtree.reverse(name, *args, **kwargs)) for name, args, kwargs in arg]
+		arg = [(name, self.ctxt.reverse(name, *args, **kwargs)) for name, args, kwargs in arg]
 
 		if ret_list is False:
 			if arg: arg = arg[0][1]
@@ -58,6 +58,6 @@ class ReverseURL(emen2.web.view.View):
 
 	def execute_url(self, name, arguments, kwargs):
 		kwargs = dict( (k.encode('utf-8'), v) for k,v in kwargs.iteritems() )
-		self.page = self.dbtree.render_template_view(name, *arguments, **kwargs)
+		self.page = self.ctxt.render_template_view(name, *arguments, **kwargs)
 		
 __version__ = "$Revision$".split(":")[1][:-1].strip()

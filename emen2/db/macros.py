@@ -460,10 +460,11 @@ class macro_checkbox(Macro):
 	"""draw a checkbox for editing values"""
 		
 	def process(self, macro, params, rec):
-		return self._process(*parse_args(params))
+		args = parse_args(params)
+		return self._process(*args)
 		
-	def _process(self, param, value, label=None):
-		return '<input type="checkbox" data-param="%s" value="%s" /> <label for="">%s</label>'%(param, value, label or value)
+	def _process(self, param, value, label=None, *args, **kwargs):
+		return '<input type="checkbox" name="%s" data-param="%s" value="%s" /> <label for="">%s</label>'%(param, param, value, label or value)
 
 	def macro_name(self, macro, params):
 		return "Checkbox:", params			

@@ -1,4 +1,102 @@
 (function($) {
+
+	$.widget('emen2.InfoBox', {
+		options: {
+			name: null,
+			keytype: null,
+			time: null,
+			title: null,
+			body: null,
+			deleteable: false,
+			autolink: false
+		},
+		
+		_create: function() {
+			var self = this;
+			this.tryget = false;
+			this.built = 0;
+			this.build();
+		},
+		
+		build: function() {
+			var self = this;
+			if (this.built) {return}
+			var item = caches[this.options.keytype][this.options.name];
+			if (!item) {
+				$.jsonRPC.call('get', {
+					keytype: this.options.keytype,
+					names: this.options.name
+				}, function(item) {
+					caches[item.keytype][item.name] = item;
+					self.build();
+				});
+				return
+			}
+
+			var title = '';
+			var body = '';
+			if (this.options.keytype == 'user') {
+				title = this.options.title || item.displayname || item.name;
+				body = this.options.body || item.email;
+			} else if (this.options.keytype == 'group') {
+				title = item.displayname || item.name;
+				var count = 0;
+				for (var i=0;i<item['permissions'].length;i++) {
+					count += item['permissions'][i].length;
+				}
+				body = count+' members'
+			} else {
+				title = item.desc_short;
+				body = ''
+			}
+			
+			var link = '';
+			if (this.options.autolink) {
+				var link = EMEN2WEBROOT+'/'+this.options.keytype+'/'+this.options.name+'/';
+			}
+
+			this.element.addClass('e2-infobox');
+			this.element.attr('data-name', this.options.name);
+			this.element.attr('data-keytype', this.options.keytype);
+
+			var h4 = $('<h4 />');
+			if (link) {
+				title = '<a href="'+link+'">'+title+'</a>';
+			}
+			h4.append(title);
+			if (this.options.time) {
+				// h4.append(' @ '+this.options.time);
+				// <abbr class="timeago" title="2008-07-17T09:24:17Z">July 17, 2008</abbr>
+				h4.append('<time class="e2-timeago floatright" datetime="'+this.options.time+'">'+this.options.time+'</time>');
+			}
+			var p = $('<p class="small" />');
+			p.append(body);
+			
+			var src = EMEN2WEBROOT+'/static/images/nophoto.png';
+			if (this.options.keytype == 'user' && item.userrec['person_photo']) {
+				src = EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/?size=thumb';
+			}
+			var img = $('<img data-src="'+src+'" src="'+src+'" class="thumbnail" alt="Photo" />');
+			if (link) {img = $('<a href="'+link+'" />').append(img)}
+			this.element.append(img, h4, p);
+
+			if (this.options.deleteable) {
+				//this.element.append('<img class="delete" src="'+EMEN2WEBROOT+'/static/images/delete.png" alt="Remove" />');
+				$(this.element).hover(function(){
+					$('img.thumbnail', this).attr('src', EMEN2WEBROOT+'/static/images/delete.png');
+				}, function() {
+					$('img.thumbnail', this).attr('src', $('img.thumbnail', this).attr('data-src'));
+				})
+				
+			}
+			// console.log('time.e2-timeago');
+			// $('time.e2-timeago', this.element).timeago();
+			this.built = 1;
+		}
+	});
+	
+	
+
     $.widget("emen2.QuerySelectControl", {
 		options: {
 			rectype: null,
@@ -125,16 +223,12 @@
 			this.dialog = $('<div/>');
 			if (this.options.keytype == 'user'){
 				this.dialog.attr('title', 'Find User');
-				this.add = this.adduser;
 			} else if (this.options.keytype == 'group') {
 				this.dialog.attr('title', 'Find Group');			
-				this.add = this.addgroup;
 			} else if (this.options.keytype == 'paramdef') {
 				this.dialog.attr('title', 'Find Parameter');
-				this.add = this.addparamdef;
 			} else if (this.options.keytype == 'recorddef') {
 				this.dialog.attr('title', 'Find Protocol');
-				this.add = this.addrecorddef;
 			}
 		
 			this.searchinput = $('<input type="text" />');
@@ -142,10 +236,14 @@
 
 			this.searchinput.keyup(function(e) {
 				var v = self.searchinput.val();
+				// ian: this should only work for exact matches..
 				if (e.keyCode == '13') { 
 					e.preventDefault();
-					self.select(v);
+					var check = $('[data-name='+v+']');
+					if (check.length) {
+						self.select(v);
 					}
+				}
 				self.search(v);
 			});
 
@@ -180,10 +278,6 @@
 			this.searchinput.focus();
 		},
 
-		event_select: function(e) {
-			this.select($(e.target).attr("data-name"));
-		},
-	
 		select: function(name) {
 			//this.elem.val(name);
 			this.options.cb(this, name);
@@ -191,55 +285,19 @@
 		},
 	
 		add: function(item) {
-			//console.log(item);
-		},
-
-		addparamdef: function(paramdef) {
-			caches["paramdefs"][paramdef.name] = paramdef;
-			var d = $('<div class="userbox" data-name="'+paramdef.name+'" />');
-			var self=this;
-			d.click(function(e){self.event_select(e)});
-			d.append('<img data-name="'+paramdef.name+'" src="'+EMEN2WEBROOT+'/static/images/gears.png" alt="Parameter" />');	
-			d.append('<div data-name="'+paramdef.name+'">'+paramdef.desc_short+' ('+paramdef.name+')<br />'+paramdef.vartype+'</div>');
-			this.resultsarea.append(d);			
-		},
-
-		addrecorddef: function(recorddef) {
-			caches["recorddefs"][recorddef.name] = recorddef;
-			var d = $('<div class="userbox" data-name="'+recorddef.name+'" />');
-			var self=this;
-			d.click(function(e){self.event_select(e)});
-			d.append('<img data-name="'+recorddef.name+'" src="'+EMEN2WEBROOT+'/static/images/gears.png" alt="Protocol" />');	
-			d.append('<div data-name="'+recorddef.name+'">'+recorddef.desc_short+'<br />'+recorddef.name+'</div>');
-			this.resultsarea.append(d);			
-		},
-		
-		adduser: function(user) {
-			caches["users"][user.name] = user;
-			var d = $('<div class="userbox" data-name="'+user.name+'" />');
-			var self=this;		
-			d.click(function(e){self.event_select(e)});
-			if (user.userrec["person_photo"]) {
-				d.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.name+'.jpg?size=thumb" alt="Photo" />');
-			} else {
-				d.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" alt="Photo" />');			
-			}
-			d.append('<div data-name="'+user.name+'">'+user.displayname+'<br />'+user.email+'</div>');
+			var self = this;
+			caches[item.keytype][item.name] = item;
+			var d = $('<div />');
+			d.InfoBox({
+				keytype: this.options.keytype,
+				name: item.name
+			});
+			d.click(function(e){
+				self.select(item.name);
+				});
 			this.resultsarea.append(d);
 		},
 	
-	
-		addgroup: function(group) {
-			caches["groups"][group.name] = group;
-			var d = $('<div class="userbox" data-name="'+group.name+'" />');
-			var self=this;		
-			d.click(function(e){self.event_select(e)});
-			d.append('<img  data-name="'+group.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" alt="Photo" />');
-			d.append('<div data-name="'+group.name+'">'+group.displayname+'<br />'+group.name+'</div>');
-			this.resultsarea.append(d);
-		},
-	
-		
 		search: function(q) {
 			var self=this;
 			if (q.length < this.options.minimum) {

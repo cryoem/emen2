@@ -10,7 +10,7 @@
 
       // End point URL, sets default in requests if not
       // specified with the request call
-      endPoint: null,
+      endPoint: EMEN2WEBROOT+'/jsonrpc/',
 
       // Default namespace for methods
       namespace: null,

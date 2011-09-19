@@ -57,13 +57,12 @@ def get_tile_dim(tilefile):
 
 
 
-
+@View.register
 class TilesImage(View):
-	__metaclass__ = View.register_view
-	__matcher__ = r'^/tiles/(?P<bid>.+)/image/$'
 	mimetype = "image/jpeg"
 
-	def init(self,bid=None, **kwargs):
+	@View.add_matcher(r'^/tiles/(?P<bid>.+)/image/$')	
+	def init(self, bid=None, **kwargs):
 		self.bid=bid
 		if self.bid == None:
 			return "No Binary ID supplied."
@@ -87,12 +86,11 @@ class TilesImage(View):
 
 
 
-
+@View.register
 class PSpec1D(View):
-	__metaclass__ = View.register_view
-	__matcher__ = r'^/tiles/(?P<bid>.+)/1d/$'
 	mimetype = "image/jpeg"
 
+	@View.add_matcher(r'^/tiles/(?P<bid>.+)/1d/$')
 	def init(self, bid=None, **kwargs):
 		self.bid=bid
 		if self.bid == None:
@@ -136,11 +134,10 @@ class PSpec1D(View):
 
 
 
-
+@View.register
 class TilesCheck(View):
-	__metaclass__ = View.register_view
-	__matcher__ = r'^/tiles/(?P<bid>.+)/check/$'
 
+	@View.add_matcher(r'^/tiles/(?P<bid>.+)/check/$')	
 	def init(self, bid=None):
 		self.bid = bid
 		self.rebuild = False
@@ -179,12 +176,10 @@ class TilesCheck(View):
 
 
 
-
+@View.register
 class TilesCreate(View):
-	__metaclass__ = View.register_view
-	__matcher__ = r'^/tiles/(?P<bid>.+)/create/$'
 
-	
+	@View.add_matcher(r'^/tiles/(?P<bid>.+)/create/$')
 	def init(self,bid=None):
 		self.bid=bid
 

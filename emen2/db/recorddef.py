@@ -1,6 +1,6 @@
 # $Id$
-
 import re
+import textwrap
 
 import emen2.db.btrees
 import emen2.db.dataobject
@@ -69,7 +69,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		# A string defining the experiment with embedded params
 		# this is the primary definition of the contents of the record
 		# Required parameter..
-		self.__dict__['mainview'] = d.pop('mainview')
+		self.__dict__['mainview'] = textwrap.dedent(d.pop('mainview'))
 
 		# Dictionary of additional (named) views for the record
 		self.__dict__['views'] = {}

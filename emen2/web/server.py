@@ -25,7 +25,7 @@ config = emen2.db.config.g()
 import emen2.web.resources.uploadresource
 import emen2.web.resources.downloadresource
 import emen2.web.resources.publicresource
-import emen2.web.resources.rpcresource
+import emen2.web.resources.xmlrpcresource
 import emen2.web.resources.jsonrpcresource
 import jsonrpc.server
 import contextlib
@@ -65,17 +65,23 @@ def allHeadersReceived(self, *a, **kw):
 class EMEN2Server(object):
 	#: Use HTTPS?
 	EMEN2HTTPS = config.claim('EMEN2HTTPS', False, lambda v: isinstance(v, bool))
+
 	#: Which port to receive HTTPS request?
 	EMEN2PORT_HTTPS = config.claim('EMEN2PORT_HTTPS', 443, lambda v: isinstance(v, (int,long)))
+
 	#: Where to find the SSL info
 	SSLPATH = config.claim('paths.SSLPATH', '', validator=lambda v: isinstance(v, (str, unicode)))
 
 	#: Extra resources to load
 	EXTRARESOURCES = config.claim('RESOURCESPECS', {}, lambda v: isinstance(v, dict))
+
 	#: How many threads to load, defaults to :py:func:`multiprocessing.cpu_count`+1
 	NUMTHREADS = config.claim('NUMTHREADS', multiprocessing.cpu_count()+1, lambda v: (v < (multiprocessing.cpu_count()*2)) )
+
 	#: Which port to listen on
-	PORT = config.claim('EMEN2PORT', 8080, lambda v: isinstance(v, (int,long)))
+	PORT = config.watch('EMEN2PORT')
+	#, 8080, lambda v: isinstance(v, (int,long)))
+
 
 	def __init__(self, port=None, dbo=None):
 		# Options
@@ -87,7 +93,7 @@ class EMEN2Server(object):
 
 		# Update the configuration
 		if self.options.port or port:
-			self.EMEN2PORT = self.options.port or port
+			config.EMEN2PORT = self.options.port or port
 
 		if self.options.https:
 			self.EMEN2HTTPS = self.options.https
@@ -101,6 +107,7 @@ class EMEN2Server(object):
 		'''Run the server main loop'''
 		root = emen2.web.resources.publicresource.PublicView()
 		yield self, root
+		
 		site = twisted.web.server.Site(root)
 		site.protocol.allHeadersReceived = allHeadersReceived
 
@@ -138,8 +145,7 @@ class EMEN2Server(object):
 			static = twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')),
 			download = emen2.web.resources.downloadresource.DownloadResource(),
 			upload = emen2.web.resources.uploadresource.UploadResource(),
-			RPC2 = emen2.web.resources.rpcresource.RPCResource(format="xmlrpc"),
-			json = emen2.web.resources.rpcresource.RPCResource(format="json"),
+			RPC2 = emen2.web.resources.xmlrpcresource.RPCResource(format="xmlrpc"),
 			jsonrpc = jsonrpc.server.JSON_RPC().customize(emen2.web.resources.jsonrpcresource.e2jsonrpc),
 		)
 		rl.add_resource('static-%s'%emen2.VERSION, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
@@ -150,6 +156,7 @@ class EMEN2Server(object):
 
 #NOTE: this MUST be imported here
 import emen2.web.viewloader
+
 def start_emen2():
 	with EMEN2Server().start() as (server, root):
 		# This has to go first for metaclasses
@@ -163,9 +170,7 @@ def start_emen2():
 		notifications.start()
 		#thread.start_new_thread(notifications.sort_notifications, ())
 
-		config.templates = emen2.web.templating.TemplateFactory('mako', emen2.web.templating.MakoTemplateEngine())
-
-		vl = emen2.web.viewloader.ViewLoader()
+		vl = emen2.web.view.ViewLoader()
 		vl.load_extensions()
 		vl.load_redirects()
 		vl.routes_from_g()

@@ -7,7 +7,8 @@
 		un += ", " + ", ".join(user.userrec.get("academic_degrees",[]))
 	%>
 
-	${user.displayname}${un} (<a href="${ctxt.reverse('User', name=user.name)}">${user.name}</a>)
+	${user.displayname}${un}
+	## (<a href="${ctxt.reverse('User', name=user.name)}">${user.name}</a>)
 	
 </%def>
 
@@ -206,7 +207,7 @@
 
 		% else:
 
-			<div class="home_userinfo_noimg">No Photo</div><!-- end .home_userinfo_noimg -->
+			<div class="home_userinfo_noimg">No Photo</div>
 
 		% endif
 
@@ -339,7 +340,8 @@
 			% if len(queue) > 10:
 				<p>Showing 1-10 of ${len(queue)} unapproved users. <a href="${EMEN2WEBROOT}/approveuser/">Show All</a></p>
 			% else:
-				<!-- <p><a href="${EMEN2WEBROOT}/approveuser/">View full form</a></p> -->
+				## <p><a href="${EMEN2WEBROOT}/approveuser/">View full form</a></p>
+				
 			% endif
 		% endif
 

@@ -1,5 +1,5 @@
 # $Id$
-from emen2.web.view import View, Page
+from emen2.web.view import View
 from emen2.web import routing
 from emen2.web import responsecodes
 import time
@@ -17,8 +17,8 @@ class Item(object):
 		self.date = rec['creationtime']
 
 
+@View.register
 class RSS(View):
-	__metaclass__ = View.register_view
 	__matcher__ = dict(
 		main=r'^/rss/(?P<begin>\d+)/(?P<end>\d+)/$',
 		to_now=r'^/rss/(?P<begin>\d+)/$',

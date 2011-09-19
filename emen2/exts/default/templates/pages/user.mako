@@ -17,7 +17,6 @@
 </h1>
 
 
-<!-- Profile View; photo and tools are to the left of this -->
 <div class="clearfix">
 
 	<div class="floatright">

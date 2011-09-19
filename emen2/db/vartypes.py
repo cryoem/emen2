@@ -68,7 +68,7 @@ class Vartype(object):
 	def _render(self, value):
 		# Note: Value should already be escaped!
 		label = ''
-		editmarkup = 'data-name="%s" data-param="%s" data-vartype="%s"'%(self.name, self.pd.name, self.pd.vartype)
+		editmarkup = 'data-name="%s" data-param="%s"'%(self.name, self.pd.name)
 		
 		if value and self.pd.defaultunits:
 			value = ['%s %s'%(i, self.pd.defaultunits) for i in value]

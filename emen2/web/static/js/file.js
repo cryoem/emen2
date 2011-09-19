@@ -68,7 +68,7 @@
 			this.tablearea.append('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			$.jsonRPC.call("paramdef.find", {'record':this.options.name}, function(paramdefs) {			
 				$.each(paramdefs, function() {
-					caches["paramdefs"][this.name] = this;
+					caches['paramdef'][this.name] = this;
 				});
 				self._findbinary();
 			});
@@ -78,7 +78,7 @@
 		makebdomap: function() {
 			// This is to avoid an extra RPC call, and sort BDOs by param name
 			this.bdomap = {};
-			var rec = caches["recs"][this.options.name];
+			var rec = caches['record'][this.options.name];
 			var self = this;
 
 			$.each(this.bdos, function(i, bdo) {
@@ -113,7 +113,7 @@
 			}
 			var bdotable = $('<table cellpadding="0" cellspacing="0" class="shaded" />');
 			$.each(this.bdomap, function(k,bdos) {
-				var header = $('<thead><tr><th></th><th colspan="2"><strong>'+caches["paramdefs"][k].desc_short+' ('+k+')</strong></th><th>Size</th><th>Uploaded</th><th></th></tr></thead>');
+				var header = $('<thead><tr><th></th><th colspan="2"><strong>'+caches['paramdef'][k].desc_short+' ('+k+')</strong></th><th>Size</th><th>Uploaded</th><th></th></tr></thead>');
 				// if (self.options.edit) {header.prepend('<th><input type="radio" name="param" value="'+k+'" /></th>');}
 				bdotable.append(header);
 				var tbody = $('<tbody></tbody>');
@@ -257,7 +257,7 @@
 
 			var p = {};
 			$.each(newvalues, function(k,v) {
-				var pd = caches['paramdefs'][k];
+				var pd = caches['paramdef'][k];
 				if (v.length == 0) {
 					v = null;
 				} else if (!pd.iter) {
@@ -273,7 +273,7 @@
 			
 			$.jsonRPC.call("record.update", [this.options.name, p],
 				function(rec) {
-					record_update(rec);
+					$.record_update(rec);
 					self.event_build_tablearea();
 					self.options.cb(self);
 				}

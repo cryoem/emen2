@@ -168,7 +168,6 @@ class URLRegistry(emen2.util.registry.Registry):
 	@classmethod
 	def reverse_helper(cls, regex, *args, **kwargs):
 		mc = MatchChecker(args, kwargs)
-
 		result = re.sub(r'\(([^)]+)\)', mc, regex.pattern)
 
 		qs = '&'.join( '%s=%s' % (k,v) for k,v in mc.get_unused_kwargs().items() )
@@ -176,6 +175,7 @@ class URLRegistry(emen2.util.registry.Registry):
 		if qs == '': result.pop()
 
 		return '?'.join(result)
+
 
 def force_unicode(string):
 	result = string
@@ -186,8 +186,11 @@ def force_unicode(string):
 	else:
 		return unicode(result, 'utf-8', errors='replace')
 
-# modified code from Django
-class NoReverseMatch(Exception): pass
+
+# Modified code from Django
+class NoReverseMatch(Exception):
+	pass
+
 
 class MatchChecker(object):
 	"Class used in reverse RegexURLPattern lookup."
@@ -198,19 +201,21 @@ class MatchChecker(object):
 
 	def get_arg(self, name):
 		result = self.kwargs.get(name)
-		if result is None: result = self.args.next()
-		else: self.used_kwargs.add(name)
+		if result is None:
+			result = self.args.next()
+		else:
+			self.used_kwargs.add(name)
 		return result
 
 	def get_unused_kwargs(self):
 		return dict( (k,v) for k,v in self.kwargs.iteritems() if k not in self.used_kwargs )
 
-
 	NAMED_GROUP = re.compile(r'^\?P<(\w+)>(.*?)$', re.UNICODE)
+
 	def __call__(self, match_obj):
 		grouped = match_obj.group(1)
 		m = self.NAMED_GROUP.search(grouped)
-
+		
 		if m:
 			value, test_regex = self.get_arg(m.group(1)), m.group(2)
 		else:
@@ -221,7 +226,9 @@ class MatchChecker(object):
 
 		if not re.match(test_regex + '$', value, re.UNICODE):
 			raise NoReverseMatch("Value %r didn't match regular expression %r" % (value, test_regex))
+
 		return force_unicode(value)
+
 
 if __name__ == '__main__':
 	from emen2.util.datastructures import doubledict
@@ -229,4 +236,6 @@ if __name__ == '__main__':
 	a = URL('test', GET=('asda(?P<asdasd>sd)', lambda *args, **kwargs: (args, kwargs)))
 	print a.match('asdasd')[1].groupdict()
 	ur = URLRegistry();ur.register(a)
+	
+	
 __version__ = "$Revision$".split(":")[1][:-1].strip()

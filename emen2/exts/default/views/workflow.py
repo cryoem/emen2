@@ -3,10 +3,10 @@ import emen2.db.config
 g = emen2.db.config.g()
 from emen2.web.view import View
 
+@View.register
 class Workflow(View):
-	__metaclass__ = View.register_view
-	__matcher__ = r'^/workflow/$'
 
+	@View.add_matcher(r'^/workflow/$')	
 	def __init__(self,*_, **__):
 		self.template = "/simple"
 		self.title = "User Queries &amp; Workflows"

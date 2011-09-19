@@ -43,17 +43,6 @@ table {
 	border-bottom: solid 1px #ccc;
 }
 
-.userbox {
-	width: 300px;
-	float: left;
-	margin-right: 10px;
-	margin-bottom: 10px;
-}
-.userbox img {
-	float: left;
-	height: 40px;
-	margin-right: 4px;
-}
 .formlabel {
 	width:180px;
 	display:inline-block;
@@ -180,6 +169,9 @@ ul.nonlist
 .e2-layout-fw {
 	display:block;
 	width:100%;
+}
+.e2-layout-controls {
+	float:right !important;
 }
 
 /************* JQUERY UI OVERRIDES ************/

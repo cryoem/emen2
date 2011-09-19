@@ -101,11 +101,10 @@ class User(View):
 
 
 
-
+@View.register
 class Users(View):
-	__metaclass__ = View.register_view
-	__matcher__ = r'^/users/$'
 
+	@View.add_matcher(r'^/users/$')	
 	def init(self, q=None):
 		self.template = "/pages/users"
 		self.title = "User Directory"
@@ -126,11 +125,10 @@ class Users(View):
 
 
 
-
+@View.register
 class AdminUsers(View):
-	__metaclass__ = View.register_view
-	__matcher__ = r'^/users/admin/$'
 
+	@View.add_matcher(r'^/users/admin/$')	
 	def init(self, sortby="name_last", reverse=0, q=None, **kwargs):
 
 		self.template="/pages/users.admin"
@@ -232,25 +230,11 @@ class NewUser(emen2.web.view.View):
 
 
 
-# class ViewNewUser(emen2.web.view.View):
-# 	__metaclass__ = emen2.web.view.View.register_view
-# 	__matcher__ = '^/viewnewuser/(?P<name>\w+)/$'
-#
-# 	def init(self, name=None, **kwargs):
-# 		self.template='/admin/viewnewuser'
-# 		self._user = dict(self.db.getqueueduser(name))
-# 		self._user['name'] = ' '.join(self._user['name'])
-# 		del self._user['password']
-# 		self.set_context_item('user',self._user)
 
-
-
-
+@View.register
 class UserQueue(emen2.web.view.View):
-	__metaclass__ = emen2.web.view.View.register_view
-	__matcher__ = ['^/users/queue/$','^/users/new/(?P<name>\w+)/(?P<action>\w+)/$']
 
-
+	@View.add_matcher(r'^/users/queue/$', r'^/users/new/(?P<name>\w+)/(?P<action>\w+)/$')	
 	def init(self, action=None, name=None, **kwargs):
 		self.template='/pages/users.queue'
 

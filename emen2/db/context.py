@@ -37,7 +37,7 @@ class Context(object):
 		self.name = hashlib.sha1(unicode(username) + unicode(host) + unicode(t) + unicode(random.random())).hexdigest()
 
 		# validated user instance, w/ user record, displayname, groups
-		self.user = user
+		self.user = user or {}
 		self.groups = groups or set()
 		self.grouplevels = {}
 
@@ -58,13 +58,13 @@ class Context(object):
 
 	def json_equivalent(self):
 		return dict(
-			name=self.name,
-			user=self.user,
-			groups=self.groups,
-			grouplevels=self.grouplevels,
-			username=self.username,
-			time=self.time,
-			maxidle=self.maxidle
+			name = self.name,
+			user = self.user,
+			groups = self.groups,
+			grouplevels = self.grouplevels,
+			username = self.username,
+			time = self.time,
+			maxidle = self.maxidle
 		)
 
 

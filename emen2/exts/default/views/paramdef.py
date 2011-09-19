@@ -9,14 +9,10 @@ import emen2.web.markuputils
 
 from map import Map
 
-
+@View.register
 class ParamDef(View):
-	__metaclass__ = View.register_view
-	__matcher__ = {
-		'action': r'^/paramdef/(?P<name>.+)/(?P<action>.+)/$',
-		'main': r'^/paramdef/(?P<name>\w+)/$'
-		}
 
+	@View.add_matcher(r'^/paramdef/(?P<name>.+)/(?P<action>.+)/$', r'^/paramdef/(?P<name>\w+)/$')	
 	def init(self,name=None,action=None,new=0,notify=[]):
 		self.template = '/pages/paramdef'
 		self.name = name
@@ -65,7 +61,7 @@ class ParamDef(View):
 			'classname':'main',
 			'labels':{'main':"Parameter Viewer"},
 			'content':{'main':""},
-			'href':	{'main': self.dbtree.reverse(self.__class__.__name__, name=self.name)}
+			'href':	{'main': '%s/paramdef/%s/'%(g.EMEN2WEBROOT, self.name)}
 			}
 
 		if edit:
@@ -114,11 +110,9 @@ class ParamDef(View):
 
 
 
-
-
-
 @View.register
 class ParamDefs(View):
+	
 	@View.add_matcher(r'^/paramdefs/$', action=r'^/paramdefs/(?P<action>\w+)/$')
 	def init(self, action=None, q=None):
 
@@ -151,14 +145,6 @@ class ParamDefs(View):
 		self.set_context_item('q',q)
 		self.set_context_item("paramdefs",paramdefs)
 		self.set_context_item("childmap",childmap.get_data())
-
-
-
-
-
-
-
-
 
 
 

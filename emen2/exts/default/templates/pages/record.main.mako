@@ -1,20 +1,127 @@
+<%! import jsonrpc.jsonutil  %>
 <%inherit file="/pages/record" />
 <%namespace name="buttons" file="/buttons"  /> 
-<% import jsonrpc.jsonutil  %>
 
-## Init script
 
-<script type="text/javascript">
-//<![CDATA[
-	$(document).ready(function() {
-		record_init(${jsonrpc.jsonutil.encode(rec)}, ${jsonrpc.jsonutil.encode(rec.ptest())}, ${jsonrpc.jsonutil.encode(edit)});
+<%block name="javascript_ready">
+	${parent.javascript_ready()}
+
+	// Record, ptest
+	var rec = caches['record'][${jsonrpc.jsonutil.encode(rec.name)}];
+	var ptest = ${jsonrpc.jsonutil.encode(rec.ptest())}
+	
+	// Permissions editor
+	$('#e2-editbar-record-permissions').EditbarControl({
+		width: 700,
+		cb: function(self){
+			self.popup.PermissionControl({
+				name: rec.name,
+				edit: ptest[3],
+				embed: true,
+				show: true
+				});
+			}
+	});		
+
+	// Attachments editor
+	var showattachments = (window.location.hash.search('attachments'));
+	if (showattachments>-1){showattachments=true}
+	$('#e2-editbar-record-attachments').EditbarControl({
+		width: 600,
+		cb: function(self) {
+			self.popup.AttachmentControl({
+				name: rec.name,
+				edit: ptest[2] || ptest[3],
+				embed: true,
+				show: true
+				});
+			},
+		show: showattachments
+	});
+	
+	// New record editor
+	$('#e2-editbar-record-newrecord').EditbarControl({
+		width: 300,
+		cb: function(self){
+			self.popup.NewRecordControl({
+				embedselector: true,
+				showselector: true,
+				parent: rec.name
+				});
+			}
+	});		
+
+	// Relationship editor
+	$("#e2-editbar-record-relationships").EditbarControl({	
+		width: 600,	
+		cb: function(self){
+			self.popup.SimpleRelationshipControl({
+				name: rec.name,
+				edit: true,
+				embed: true,
+				show: true
+				});
+			}
 	});	
-//]]>
-</script>
+
+	// Change View
+	$('.editbar [data-viewtype]').click(function(){
+		var target = $("#rendered");
+		var viewtype = $(this).attr('data-viewtype') || 'recname';
+		target.attr("data-viewtype", viewtype);
+		$.rebuild_views("#rendered");
+	});
+
+	$('#e2-editbar-tools').EditbarControl({
+		width: 500
+	});
+
+	// Comments editor
+	$('#e2-editbar-comments').EditbarControl({
+		width: 400,
+		align: 'right',
+		cb: function(self) {
+			// Comments and history
+			self.popup.CommentsControl({
+				name: rec.name,
+				edit: ptest[1] || ptest[2] || ptest[3],
+				historycount: "#e2-editbar-commentcount",
+				commentcount: '#e2-editbar-historycount'
+			});
+		}
+	});
+
+	// Simple handler for browsing siblings...
+	var showsiblings = (window.location.hash.search('siblings'));
+	if (showsiblings>-1){showsiblings=true}	
+	$("#e2-editbar-record-siblings").EditbarControl({
+		width: 400,
+		show: showsiblings,
+		align: 'right',
+		cb: function(self) {
+			self.popup.SiblingsControl({
+				name: rec.name
+			})
+		}
+	});	
+
+	// Bind editable widgets
+	// $('.editable').EditControl({});
+	$('#e2-editbar-record-setbookmark').BookmarksControl({'mode':'toggle'});
+
+	$('#e2-editbar-record-edit .label').MultiEditControl({
+		name: rec.name,
+		form: '#rendered'
+	});
+
+	$('.e2-tile').TileControl({'mode':'cached'});
+	
+</%block>
 
 
 <ul class="menu editbar floatlist clearfix">
 
+	## Bookmarks
 	% if USER:
 		<li id="e2-editbar-record-setbookmark">
 			<span class="clickable label" data-parent="${USER.record}" data-name="${rec.name}">
@@ -27,6 +134,7 @@
 		</li>
 	% endif
 	
+	## Edit Record
 	% if rec.writable():
 		<li id="e2-editbar-record-edit">
 			<span class="clickable label" data-name="${rec.name}">
@@ -35,6 +143,7 @@
 		</li>
 	% endif
 
+	## New Record
 	% if create:
 		<li id="e2-editbar-record-newrecord">
 			<span class="clickable label">
@@ -44,6 +153,7 @@
 		</li>
 	% endif
 
+	## Relationship Editor
 	<li id="e2-editbar-record-relationships">
 		<span class="clickable label">
 			Relationships
@@ -51,7 +161,7 @@
 		</span>
 	</li>
 
-
+	## Permissions Editor
 	<li id="e2-editbar-record-permissions">
 		<span class="clickable label">
 			Permissions
@@ -59,6 +169,7 @@
 		</span>
 	</li>
 
+	## Attachments Editor
 	<%
 	attachments = []
 	# cheap filtering....
@@ -69,8 +180,6 @@
 		elif "bdo:" in unicode(v):
 			attachments.extend([v])
 	%>
-
-
 	<li id="e2-editbar-record-attachments">
 		<span class="clickable label">
 			<span id="attachment_count">
@@ -83,7 +192,7 @@
 		</span>
 	</li>
 
-
+	## View Selector
 	<%
 	nicenames = {
 		"tabularview": "Table View (tabularview)",
@@ -97,15 +206,13 @@
 	historycount += len(filter(lambda x:x[2].startswith("LOG:"), rec.get('comments',[])))
 	lastitem = 'comments'
 	%>
-
-
 	<li id="e2-editbar-tools">
 		<span class="clickable label">
 			${rec.rectype}
 			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
 		</span>
-		<div class="hidden" style="width:400px;">
-			<p><a href="${ctxt.reverse('RecordDef',name=rec.rectype)}">${rec.rectype} protocol page</a></p>
+		<div class="hidden">
+			<p><a href="${ctxt.reverse('RecordDef',action=None,name=rec.rectype)}">${rec.rectype} protocol page</a></p>
 
 			<h4>Views</h4>
 			<ul>
@@ -139,13 +246,13 @@
 		</div>
 	</li>
 
+	## Table View
 	<li>
 		<span class="clickable label" data-viewtype="dicttable"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></span>
 	</li>
 
-
+	## Siblings
 	% if len(siblings)>1 and rec.name in siblings:
-
 		<%
 			lastitem = 'siblings'
 			pos = siblings.index(rec.name)
@@ -156,35 +263,23 @@
 			if pos+1 < len(siblings):
 				pos_next = siblings[pos+1]
 		%>
-	
 		<li id="e2-editbar-record-siblings" class="floatright e2-editbar-lastitem" data-sibling="${sibling}" data-prev="${pos_prev}" data-next="${pos_next}">
 			<span class="clickable label">
 			${pos+1} of ${len(siblings)}
 			</span>
 		</li>
-
 	% endif
 	
+	## Comments!
 	<%
-	comments = filter(lambda x:not x[2].startswith('LOG'), rec.get('comments', []))	
+	comments = filter(lambda x:not x[2].startswith('LOG'), rec.get('comments', []))
 	%>
-	
-	
 	% if lastitem == 'comments':	
 		<li id="e2-editbar-comments" class="floatright e2-editbar-lastitem">
 	% else:
 		<li id="e2-editbar-comments" class="floatright">
 	%endif
-		<span class="clickable label">
-			% if comments:
-				<span id="e2-editbar-commentcount">${len(comments)}</span>
-				<img id="e2-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/comment-open.png" alt="Comments" /></span>				
-			% else:
-				<img id="e2-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/comment.png" alt="Comments" /></span>
-			% endif
-	</li>
 	
-	<li id="e2-editbar-helper" class="floatright">
 		<span class="clickable label">
 			% if rec.get('modifytime'):	
 				${displaynames.get(rec.get('modifyuser'), '(%s)'%rec.get('modifyuser'))} @ ${rec.get('modifytime', '')[:10]}
@@ -194,13 +289,21 @@
 			
 			<span id="e2-editbar-historycount">
 			% if historycount:
-			 	(${historycount})
+				<img id="e2-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edits" />
+				${historycount}
+			% endif
+			</span>
+			
+			<span id="e2-editbar-commentcount">
+			% if comments:
+				<img id="e2-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/comment-open.png" alt="Comments" />
+				${len(comments)}
 			% endif
 			</span>
 			
 			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
 		</span>
-		<div class="hidden" style="width:auto;min-width:800px"></div>			
+		<div class="hidden"></div>			
 	</li>
 </ul>
 
@@ -215,7 +318,7 @@
 
 
 ## Main rendered record
-<div id="rendered" class="e2-view" data-viewtype="${viewtype}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
+<form id="rendered" name="rendered" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/edit/" class="e2-view" data-viewtype="${viewtype}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
 	${rendered}
-</div>
+</form>
 

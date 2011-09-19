@@ -1,7 +1,6 @@
 <%inherit file="/page" />
 
-<%!  public=True %>
-<%def name="mimetype()">text/html; encoding=UTF-8</%def>
+<%! public=True %>
 
 <%def name="title()">Page Not Found</%def>
 

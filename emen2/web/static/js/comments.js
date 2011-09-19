@@ -13,124 +13,147 @@
 			this.element.addClass('e2-comments');
 			this.build();
 		},
-	
-		partition: function() {
-			var reccomments = caches["recs"][this.options.name]["comments"] || []; 
-			this.comments = [];
-			this.log = [];
-			for (var i=0;i < reccomments.length;i++) {
-				if (reccomments[i][2].indexOf("LOG") != 0) {
-					this.comments.push(reccomments[i]);
-				}
-			}
-		},
 		
 		rebuild: function() {
+			this.built = 0;
 			this.build();
 		},
 	
 		build: function() {	
 			var self = this;	
+			if (this.built) {return}
+
+			this.comments = caches['record'][this.options.name]["comments"].slice() || [];
+			this.history = caches['record'][this.options.name]['history'].slice() || [];			
+			this.comments.push([caches['record'][this.options.name]['creator'], caches['record'][this.options.name]['creationtime'], 'Record created']);
+
+			// Check to see if we need any users or parameters
 			var users = [];
-			this.partition();
-			$.each(this.comments, function() {
-				var user = this[0];
-				if (caches['users'][user]==null) {
-					users.push(user);
+			$.each(this.comments, function(){users.push(this[0])})
+			$.each(this.history, function(){users.push(this[0])})
+			users = $.map(users, function(user){if (!caches['user'][user]){return user}})
+
+			var params = [];
+			$.each(this.history, function(){
+				if (!caches['paramdef'][this[2]]) {
+					params.push(this[2])
 				}
 			});
-			// console.log(users);
-			if (users.length) {
-				$.jsonRPC.request("getuser", [users], {
-               success: function(u) {
-                  $.each(u.result, function() {
-                     caches['users'][this.name] = this;
-                     caches['displaynames'][this.name] = this.displayname;
-                  });
-                  self._build();
-               },
-               error: function(){console.log(arguments);}
-            });
+
+			// If we need users or params, fetch them.
+			// Todo: find a nice way to chain these together, server side
+			if (users && params) {
+
+				$.jsonRPC.call('getuser', [users], function(users) {
+						$.each(users, function() {caches['user'][this.name] = this});
+						$.jsonRPC.call('getparamdef', [params], function(params) {
+							$.each(params, function() {caches['paramdef'][this.name] = this});
+							self._build();
+						});
+					});
+			
+			} else if (params.length) {
+
+				$.jsonRPC.call("getparamdef", [params], 
+					function(params) {
+						$.each(params, function() {caches['paramdef'][this.name] = this});
+						self._build();
+					});
+					
+			} else if (users.length) {
+
+				$.jsonRPC.call("getuser", [users], 
+					function(users) {
+						$.each(users, function() {caches['user'][this.name] = this});
+						self._build();
+					});
+
 			} else {
 				self._build();
 			}
-			
+			this.built = 1;
 		},
 	
 		_build: function() {
-			var self=this;
-			this.partition();
-			this.comments.reverse();
-			
+			// Build after all data is cached
+			var self = this;
 			this.element.empty();			
-			if (!this.comments.length) {
-				this.element.append('<p>No Comments</p>');
-			}
-
-			$.each(this.comments, function() {
-				// var dname = caches["displaynames"][this[0]] || this[0];
-				var user = caches['users'][this[0]];
-				var photo = user['userrec']['person_photo'];
-				if (photo) {
-					photo = EMEN2WEBROOT+'/download/'+photo+'/'+user.name+'.jpg?size=thumb';
-				} else {
-					photo = EMEN2WEBROOT+'/static/images/nophoto.png';
-				}
-				
-				var time = this[1];
-				self.element.append('<div class="e2-comments-comment"><img src="'+photo+'" class="thumbnail" /><h4>'+user.displayname+' @ '+time+'</h4><p>'+this[2].replace(/\n/g,'<br />')+'</p></div>');
+			var total = this.comments.length + this.history.length
+			var all = [];
+			$.each(this.comments, function(){all.push(this)})
+			$.each(this.history, function(){all.push(this)})
+			// Break each log event out by date
+			var bydate = {};
+			$.each(all, function() {
+				var user = this[0];
+				var date = this[1];
+				// Emulate Python collections.defaultdict
+				if (!bydate[date]) {bydate[date] = {}}
+				if (!bydate[date][user]) {bydate[date][user] = []}
+				bydate[date][user].push(this);
 			});
 
-			var comments_text = caches["recs"][this.options.name]["comments_text"];
-			if (comments_text) {
-				this.element.append('<strong>Additional comments:</strong><p>'+comments_text+'</p>');
-			}
+			// Sort the keys. JS doesn't support sorted(dict, key=..)
+			var keys = [];
+			$.each(bydate, function(k,v){keys.push(k)})
+			keys.sort();
+			// keys.reverse();
+			
+			$.each(keys, function(i, date) {
+				$.each(bydate[date], function(user, events) {
+					// var events = $.map(events, self.makebody);
+					var d = $('<div />');
+					d.InfoBox({
+						'keytype':'user',
+						'name': user,
+						'time': date,
+						'autolink': true,
+						'body': self.makebody(events) || ' '
+					});
+					self.element.append(d);
+				});
+			})
+
+			// var comments_text = caches['record'][this.options.name]["comments_text"];
+			// if (comments_text) {
+			// 	this.element.append('<strong>Additional comments:</strong><p>'+comments_text+'</p>');
+			// }			
 
 			if (this.options.edit) {
 				var controls = $('<div/>');
-				var edit = $('<textarea cols="60" rows="2"></textarea>');
+				var edit = $('<textarea name="comment" cols="60" rows="2"></textarea>');
 				var commit=$('<input type="submit" class="floatright save" value="Add Comment" />').click(function(e) {self.save()});
 				controls.append(edit, commit);
 				this.element.append(controls);
 			}
-			
-			// if (self.options.title) {
-			// 	if (this.comments.length) {
-			// 		$(self.options.title).html(this.comments.length+' Comments');
-			// 	} else {
-			// 		$(self.options.title).html('Comments');					
-			// 	}
-			// }						
-			if (this.options.historycount) {
-				if (this.log.length) {
-					$(this.options.historycount).html('('+this.log.length+')');					
-				} else {
-					$(this.options.historycount).html('');										
-				}
-			}
-			if (this.options.commentcount) {
-				if (this.comments.length) {
-					$(this.options.commentcount).html(this.comments.length);
-				} else {
-					$(this.options.commentcount).html('');					
-				}
-			}
 		},
-
+		
+		makebody: function(events) {
+			var comments = [];
+			var rows = [];
+			$.each(events, function(i, event) {
+				if (event.length == 3) {'<p>'+comments.push(event[2])+'</p>'}
+				if (event.length == 4) {
+					var pdname = event[2];
+					if (caches['paramdef'][pdname]){pdname=caches['paramdef'][pdname].desc_short}
+					var row = '<tr><td style="width:16px"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" /></td><td><a href="'+EMEN2WEBROOT+'/paramdef/'+event[2]+'/">'+pdname+'</a></td></tr><tr><td /><td>Old value: '+event[3]+'</td></tr>';
+					rows.push(row);
+				}
+			});
+			comments = comments.join('');
+			if (rows) {
+				rows = '<table cellpadding="0" cellspacing="0"><tbody>'+rows.join('')+'</tbody></table>';
+			} else { rows = ''}
+			return comments + rows;
+		},
+		
 		////////////////////////////
-		save: function() {
+		save: function() {	
 			var self = this;
-
-			$.jsonRPC.request("addcomment",[this.options.name, $("textarea", this.element).val()],
-		 		{success:
-               function(rec){
-                  //will trigger this rebuild... hopefully.. :)
-                  record_update(rec.result);
-                  notify("Comment Added");
-               },
-              error: console.log
-		 		}
-			)		
+			$.jsonRPC.call('addcomment', [this.options.name, $('textarea[name=comment]', this.element).val()], function(rec) {
+				$.record_update(rec)
+				$.notify('Comment Added');
+			});
 		}
 	});
 })(jQuery);

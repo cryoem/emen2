@@ -12,35 +12,40 @@
 
 ${user_util.page_userrec(user, True)}
 
-<br /><br />
+<br />
 
-<%call expr="buttons.singlepage('_email','Change Email')">		
+<%buttons:singlepage label='Change Email'>
 	${user_util.page_email(user, True)}
-</%call>
-	
-<%call expr="buttons.singlepage('_password','Change Password')">	
+</%buttons:singlepage>
+
+
+<%buttons:singlepage label='Change Password'>
 	${user_util.page_password(user, True)}
-</%call>
+</%buttons:singlepage>
 
-<%call expr="buttons.singlepage('_photo','Update Photo')">
+
+<%buttons:singlepage label='Update Photo'>
 	${user_util.page_photo(user, True)}
-</%call>		
+</%buttons:singlepage>
 
-<%call expr="buttons.singlepage('_privacy','Set Privacy')">		
+
+
+<%buttons:singlepage label='Set Privacy'>
 	${user_util.page_privacy(user, True)}
-</%call>
+</%buttons:singlepage>
 
 % if admin:
-	<%call expr="buttons.singlepage('_status','Set Account Status')">		
+	<%buttons:singlepage label='Account Status'>
 		${user_util.page_status(user, True)}
-	</%call>	
+	</%buttons:singlepage>
 % endif
 
-<%call expr="buttons.singlepage('_groups','Groups')">		
-	${user_util.page_groups(user, True)}
-</%call>
 
-<%call expr="buttons.singlepage('_history','History')">		
+<%buttons:singlepage label='Groups'>
+	${user_util.page_groups(user, True)}
+</%buttons:singlepage>
+
+
+<%buttons:singlepage label='History'>
 	${user_util.page_history(user, True)}
-</%call>
-	
+</%buttons:singlepage>

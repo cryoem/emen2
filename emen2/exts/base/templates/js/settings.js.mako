@@ -17,7 +17,10 @@ for prop in vtm.getproperties():
 	properties[prop] = [p.defaultunits, p.units]
 %>
 
+var EMEN2WEBROOT=${jsonrpc.jsonutil.encode(EMEN2WEBROOT)};
+var VERSION=${jsonrpc.jsonutil.encode(VERSION)};
+
 var valid_properties=${jsonrpc.jsonutil.encode(properties)};
 var valid_vartypes=${jsonrpc.jsonutil.encode(vtm.getvartypes())};
-var EMEN2WEBROOT=${jsonrpc.jsonutil.encode(EMEN2WEBROOT)};
+
 var reverse_url='${ctxt.reverse('ReverseURL_alt')}';

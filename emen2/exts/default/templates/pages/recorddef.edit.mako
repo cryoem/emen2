@@ -40,77 +40,75 @@
 <form action="" method="get" id="recdef_edit">
 
 
-<%call expr="buttons.singlepage('recdefopts','Protocol Details')">
-
-<table>
+<%buttons:singlepage label='Protocol Details'>
+	<table>
 	
 
-	% if new:
-		<tr><td>Name:</td><td><input type="text" name="name" value="" /></td></tr>
-	% else:
-		<tr><td>Name:</td><td>${recdef.name}</td></tr>
-		<tr><td>Created:</td><td><a href="${EMEN2WEBROOT}/users/${recdef.creator}/">${displaynames.get(recdef.creator, recdef.creator)}</a> @ ${recdef.creationtime}</td></tr>
-		<tr><td>Owner:</td><td>${recdef.owner}</td></tr>
-		<input type="hidden" name="name" value="${recdef.name}" />
-	% endif
+		% if new:
+			<tr><td>Name:</td><td><input type="text" name="name" value="" /></td></tr>
+		% else:
+			<tr><td>Name:</td><td>${recdef.name}</td></tr>
+			<tr><td>Created:</td><td><a href="${EMEN2WEBROOT}/users/${recdef.creator}/">${displaynames.get(recdef.creator, recdef.creator)}</a> @ ${recdef.creationtime}</td></tr>
+			<tr><td>Owner:</td><td>${recdef.owner}</td></tr>
+			<input type="hidden" name="name" value="${recdef.name}" />
+		% endif
 	
 
-	<tr>
-		<td>Private:</td>
-		<td>
-			<input type="checkbox" ${['','checked="checked"'][recdef.private]} name="private" />
-		</td>
-	</tr>
+		<tr>
+			<td>Private:</td>
+			<td>
+				<input type="checkbox" ${['','checked="checked"'][recdef.private]} name="private" />
+			</td>
+		</tr>
 
-	<tr>
-		<td>Suggested Child Types</td>
-		<td>
-			<ul id="typicalchld" class="nonlist">
-			% for k,i in enumerate(recdef.typicalchld):
-				<li><input type="text" value="${i}" name="typicalchld"></li>
-			% endfor
+		<tr>
+			<td>Suggested Child Types</td>
+			<td>
+				<ul id="typicalchld" class="nonlist">
+				% for k,i in enumerate(recdef.typicalchld):
+					<li><input type="text" value="${i}" name="typicalchld"></li>
+				% endfor
 
-			<li><input type="text" name="typicalchld"></li>			
-			<li><input type="text" name="typicalchld"></li>			
-			<li><input type="text" name="typicalchld"></li>			
-			<li><input type="text" name="typicalchld"></li>			
-			<li><input type="text" name="typicalchld"></li>			
+				<li><input type="text" name="typicalchld"></li>			
+				<li><input type="text" name="typicalchld"></li>			
+				<li><input type="text" name="typicalchld"></li>			
+				<li><input type="text" name="typicalchld"></li>			
+				<li><input type="text" name="typicalchld"></li>			
 
-			</ul>
-		</td>
+				</ul>
+			</td>
 	
-	</tr>
+		</tr>
 
-	<tr>
+		<tr>
 			
-		<td>Short Description</td>
-		<td>
-			<input type="text" name="desc_short" value="${recdef.get("desc_short","")}" />
-		</td>
+			<td>Short Description</td>
+			<td>
+				<input type="text" name="desc_short" value="${recdef.get("desc_short","")}" />
+			</td>
 	
-	</tr>
+		</tr>
 
-	<tr>
-		<td colspan="2">
-			<p>Detailed Description</p>
-			<p>
-				<textarea cols="80" rows="10" name="desc_long">${recdef.get("desc_long") or ""}</textarea>
-			</p>
-		</td>
-	</tr>
-
-
-</table>
+		<tr>
+			<td colspan="2">
+				<p>Detailed Description</p>
+				<p>
+					<textarea cols="80" rows="10" name="desc_long">${recdef.get("desc_long") or ""}</textarea>
+				</p>
+			</td>
+		</tr>
 
 
-</%call>
+	</table>
+</%buttons:singlepage>
 
 
 
-<%call expr="buttons.singlepage('recdefmainview','Protocol')">
+
+<%buttons:singlepage label='Protocol'>
 		<input type="hidden" value="mainview" name="viewkey_mainview" data-t="mainview" />
 		<textarea cols="80" rows="30" name="view_mainview" data-t"mainview">${recdef.mainview}</textarea>
-</%call>	
+</%buttons:singlepage>
 
 
 

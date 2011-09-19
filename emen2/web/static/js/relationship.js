@@ -1,11 +1,165 @@
-/////////////////////////////////////////////
-//////// Relationship Editor    /////////////
-/////////////////////////////////////////////
-
-
 (function($) {
-    $.widget("emen2.RelationshipControl", {
+	
+	$.widget('emen2.SimpleRelationshipControl', {
+		options: {
+			name: null,
+			show: true
+		},
 
+		_create: function() {
+			this.built = 0;
+			var self = this;
+			if (this.options.show) {this.build()}
+			
+		},
+		
+		rebuild: function() {
+			this.built = 0;
+			this.build();
+		},
+		
+		build: function() {
+			if (this.built) {return}
+			var self = this;
+			var rec = this.cacherec();
+			var getrecs = rec.children.concat(rec.parents);
+			
+			$.jsonRPC.call('getrecord', [getrecs], function(recs) {
+				$.each(recs, function(k,v) {caches['record'][v.name] = v});
+				
+				$.jsonRPC.call('renderview', [getrecs], function(d) {
+					$.each(d, function(k,v) {caches['recnames'][k] = v});
+
+					// get the recorddefs..
+					var args = {};
+					args['record'] = getrecs
+					$.jsonRPC.call('findrecorddef', args, function(rds) {
+						$.each(rds, function(k,v) {caches['recorddef'][v.name] = v})
+						self._build();
+					});
+				});
+			});
+		}, 
+		
+		_build: function() {
+			this.built = 1;
+			var self = this;
+			// Build a simple form
+			var rec = this.cacherec();
+			var parents = rec.parents;
+			var children = rec.children;
+			
+			var p = this.build_summary(parents)
+			var c = this.build_summary(children)
+			
+			this.element.append('<h4>Relationships</h4>');
+			var label = 'parent';
+			if (parents.length > 1) {label = 'parents'}		
+			this.element.append('<p>This record has '+this.build_summary(parents, 'parents')+' and '+this.build_summary(children, 'children')+'</p>');
+			
+			$('.e2-relationship-rectype', this.element).click(function() {
+				var rectype = $(this).attr('data-rectype');
+				var reltype = $(this).attr('data-reltype');
+				$('input[name='+reltype+'][data-rectype='+rectype+']', this.element).attr('checked', true);
+			});
+			
+			var form = $('<form action="'+EMEN2WEBROOT+'/record/'+this.options.name+'/edit/rel/" method="post" name="rel"></form>')
+			form.append(this.build_table());
+			form.append('<input type="hidden" name="method" value="" />');
+			
+			var controls = $('<div class="controls" />');
+
+			var pclink = $('<input type="button" class="big save" value="Remove" />');
+			pclink.click(function() {
+				$('input[name=method]', this.element).val('pclink')
+				$('form[name=rel]', this.element).submit();
+			});
+			
+			var relink = $('<input type="button" class="big save" value="Move" />');
+			relink.click(function() {
+				console.log("moving...");
+			})
+
+			controls.append(pclink, relink);
+			form.append(controls);
+			this.element.append(form);
+
+		},
+		
+		build_summary: function(value, label) {
+			var ct = {}
+			$.each(value, function(k,v){
+				var r = caches['record'][v] || {};
+				if (!ct[r.rectype]){ct[r.rectype]=[]}
+				ct[r.rectype].push(this);
+			});				
+
+			var ce = [];
+			$.each(ct, function(k,v) {
+				var rd = caches['recorddef'][k] || {};
+				var adds = '';
+				if (v.length > 1) {adds='s'}
+				ce.push('<span data-reltype="'+label+'" data-rectype="'+k+'" class="clickable e2-relationship-rectype">'+v.length+' '+rd.desc_short+'</span>');
+			});
+			
+			var pstr = '';
+			if (!value) {
+				pstr = '<strong>no '+label+'</strong>';
+			} else if (ce.length == 1) {
+				pstr = '<strong>'+ce.join(', ')+' '+label+'</strong>';
+			} else {
+				pstr = '<strong>'+value.length+' '+label+'</strong>, including '+ce.join(', ')
+			}	
+			return pstr
+		},
+		
+		build_table: function() {
+			var self = this;
+			var rec = this.cacherec();
+			var table = $('<table cellpadding="0" cellspacing="0"><thead><tr><th><input class="e2-relationship-toggle" data-reltype="parents" type="checkbox" /></th><th>Parents</th><th>This Record</th><th><input class="e2-relationship-toggle" data-reltype="children" type="checkbox" /></th><th>Children</th></tr></thead><tbody></tbody></table>');
+			var max = rec.parents.length;
+			if (rec.children.length > max) {max = rec.children.length}
+			
+			for (var i=0;i<max;i++) {
+				var row = $('<tr></tr>');
+				row.append(this.build_td(rec.parents[i], 'parents'));
+				if (i==0) { 
+					row.append('<td>'+caches['recnames'][this.options.name]+'</td>');
+				} else {
+					row.append('<td />');
+				}
+				row.append(this.build_td(rec.children[i], 'children'));
+				$('tbody',table).append(row);
+			}
+
+			$('.e2-relationship-toggle', table).click(function(){
+				var state = $(this).attr('checked');
+				var reltype = $(this).attr('data-reltype');
+				$('input[name='+reltype+']', this.element).attr('checked', state || false);
+				// self.set_reltype(reltype, state);
+			});
+
+			return table
+		},
+		
+		build_td: function(q, reltype) {
+			if (q == null) {return '<td/><td />'}
+			var rec = caches['record'][q];
+			var recname = caches['recnames'][q];
+			var id = 'e2-relationships-children-'+this.options.name+'-'+q
+			return '<td><input type="checkbox" name="'+reltype+'" value="'+q+'" data-rectype="'+rec.rectype+'" id="'+id+'"/></td><td><label for="'+id+'">'+recname+'</label></td>'
+		},
+		
+		cacherec: function() {
+			return caches['record'][this.options.name];
+		}
+	})
+	
+	
+	
+    $.widget("emen2.RelationshipControl", {
+		// Relationship BROWSER
+		
 		options: {
 			action: "view",
 			attach: false,
@@ -419,12 +573,12 @@
 				});					
 			} else if (self.options.keytype == "recorddef") {
 				$.jsonRPC.call("recorddef.get", [keys], function(rds){
-					$.each(rds, function() {caches['recorddefs'][this.name]=this});
+					$.each(rds, function() {caches['recorddef'][this.name]=this});
 					cb();
 				});											
 			} else if (self.options.keytype == "paramdef") {
 				$.jsonRPC.call("paramdef.get", [keys], function(pds){
-					$.each(pds, function() {caches['paramdefs'][this.name]=this});
+					$.each(pds, function() {caches['paramdef'][this.name]=this});
 					cb();
 				});						
 			}			
@@ -435,9 +589,9 @@
 			if (this.options.keytype == 'record') {
 				return caches['recnames'][item] || String(item)
 			} else if (this.options.keytype == 'paramdef') {
-				return caches['paramdefs'][item].desc_short || item
+				return caches['paramdef'][item].desc_short || item
 			} else if (this.options.keytype == 'recorddef') {
-				return caches['recorddefs'][item].desc_short || item
+				return caches['recorddef'][item].desc_short || item
 			}			
 		},
 		

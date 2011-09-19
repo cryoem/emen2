@@ -1,4 +1,5 @@
 <%inherit file="/page" />
+<%namespace name="buttons"  file="/buttons"  /> 
 
 <form method="post" action="${EMEN2WEBROOT}/recorddefs/name/">
 <h1>
@@ -50,27 +51,15 @@ for k,v in d.items():
 <h1 class="clearfix">${str(k).capitalize()}</h1>
 
 	% for recorddef in d[k]:
-	
-		<div class="userbox">
-			<a href="${EMEN2WEBROOT}/recorddef/${recorddef.name}/">
-				<img src="${EMEN2WEBROOT}/static/images/gears.png" alt="Protocol" />
-			</a>
-			
-			<div>
-				<a href="${EMEN2WEBROOT}/recorddef/${recorddef.name}/">
-				${recorddef.desc_short}
-
-				% if count.get(recorddef.name) > 0:
-					(${count[recorddef.name]} records)				
-				% endif
-
-				<br />
-				${recorddef.name}
-				</a>
-			</div>
-			
-		</div>
-	
+		<%
+		c = count[recorddef.name]
+		body = '%s records'%c
+		if c == 1:
+			body = '1 record'
+		if not c:
+			body = 'No records'
+		%>
+		${buttons.infobox(recorddef, body=body, autolink=True))}
 	% endfor
 
 % endfor

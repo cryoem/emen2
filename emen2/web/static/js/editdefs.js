@@ -52,7 +52,7 @@
 			if (this.options.newdef) {
 				this.pd['parents'] = this.options.parents;
 			}
-			$.jsonRPC2("putparamdef", [this.pd], function(data){
+			$.jsonRPC.call("putparamdef", [this.pd], function(data){
 				$('.spinner', self.options.ext_save).hide();
 				//notify_post(EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/', ["Changes Saved"])
 				window.location = EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/';
@@ -206,7 +206,7 @@
 			var self=this;
 
 			$('.spinner').show();
-			$.jsonRPC2("putrecorddef", [this.rd], function(data){
+			$.jsonRPC.call("putrecorddef", [this.rd], function(data){
 				$('.spinner').hide();
 				// notify_post(EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/', ["Changes Saved"])
 				window.location = EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/';

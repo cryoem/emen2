@@ -54,7 +54,9 @@ class EMEN2DB(object):
 
 		# Cached items
 		self.cache = {}
-
+		self.cache_parents = collections.defaultdict(set) # temporary patch
+		self.cache_children = collections.defaultdict(set) # temporary patch
+		
 		# Indexes
 		self.index = {}
 
@@ -241,6 +243,30 @@ class EMEN2DB(object):
 		# print "Checking parents/children for %s"%item.name
 		item.parents |= self.getindex('parents', txn=txn).get(item.name)
 		item.children |= self.getindex('children', txn=txn).get(item.name)
+
+		for child in item.children:
+			if self.cache.get(child):
+				i = pickle.loads(self.cache[unicode(child)])
+				i.parents.add(item.name)
+				self.cache[unicode(i.name)] = pickle.dumps(i)
+		for parent in item.parents:
+			if self.cache.get(parent):
+				i = pickle.loads(self.cache[unicode(parent)])
+				i.children.add(item.name)
+				self.cache[unicode(i.name)] = pickle.dumps(i)
+
+		# self.cache_parents[item.name] |= item.parents
+		# self.cache_children[item.name] |= item.children
+		# for parent in item.parents:
+		# 	self.cache_children[parent].add(item.name)
+		# for child in item.children:
+		# 	self.cache_parents[child].add(item.name)
+		# 
+		# item.parents |= self.cache_parents[item.name]
+		# item.children |= self.cache_children[item.name]
+		
+		# print self.cache_parents
+		# print self.cache_children
 		# print "... parents:  ", item.parents
 		# print "... children: ", item.children
 		self.cache[unicode(item.name)] = pickle.dumps(item)

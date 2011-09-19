@@ -8,7 +8,7 @@
 		<p>Record ${name} deleted. ${len(orphans)} orphaned child records.</p>
 		
 		<p>
-		<a href="${EMEN2WEBROOT}/home/">Home</a>
+		<a href="${EMEN2WEBROOT}/">Home</a>
 		<p>
 		</p>
 	

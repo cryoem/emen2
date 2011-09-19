@@ -698,8 +698,13 @@ class DB(object):
 		# Open the database
 		self.bdbs = EMEN2DBEnv(path=path, create=create)
 		
-		# Load built-in paramdefs/recorddefs
+		# Load built in ParamDefs/RecordDefs
 		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))		
+
+		# Load extensions:
+		# 	any ParamDefs/RecordDefs from JSON
+		# 	any Mako templates
+		# 	optionally, any web views
 		for ext, path in g.EXTS.items():
 			self.load_extension(ext, path)
 
@@ -733,8 +738,11 @@ class DB(object):
 
 
 	def load_extension(self, ext, path):
+		# ParamDefs/RecordDefs from JSON
 		for j in glob.glob(os.path.join(path, 'json', '*.json')):
 			self.load_json(infile=j)
+		# Add extension to Mako Templates search path
+		g.templates.directories.insert(0, os.path.join(path, 'templates'))
 
 
 	def __str__(self):
@@ -2206,6 +2214,7 @@ class DB(object):
 
 
 	@publicmethod("get", write=True, admin=True)
+	@ol('names')	
 	def get(self, names, keytype='record', ctx=None, txn=None):
 		'''Get an object
 
@@ -2217,6 +2226,7 @@ class DB(object):
 
 
 	@publicmethod("put", write=True, admin=True)
+	@ol('items')	
 	def put(self, items, keytype='record', clone=False, ctx=None, txn=None):
 		'''Get the children of the object as a tree
 

@@ -22,16 +22,17 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 class RecordBase(View):
 	def _init(self, name=None, children=True, parents=True, notify=None):
 		"""Main record rendering."""
-		self.name = int(name)
 		recnames = {}
 		displaynames = {}
-
+		
 		####
 		# Get record..
 		try:
-			self.rec = self.db.getrecord(self.name, filt=False)
+			self.rec = self.db.getrecord(name, filt=False)
 		except (KeyError, TypeError), inst:
 			raise RecordNotFoundError, name
+
+		self.name = self.rec.name
 
 		####
 		# Find if this record is in the user's bookmarks
@@ -84,7 +85,7 @@ class RecordBase(View):
 				pages["order"].append(k)
 				pages["labels"][k] = "%s (%s)"%(k,len(v))
 				pages["content"][k] = ""
-				pages["href"][k] = self.dbtree.reverse('Record/children', name=self.name, childtype=k)
+				pages["href"][k] = '%s/record/%s/children/%s/'%(g.EMEN2WEBROOT, self.name, k)
 
 			pages = emen2.web.markuputils.HTMLTab(pages)
 		else:
@@ -116,7 +117,7 @@ class RecordBase(View):
 class Record(RecordBase):
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
-	def main(self, name=None, sibling=None, notify=None):
+	def view(self, name=None, sibling=None, notify=None):
 		self._init(name=name, notify=notify)
 		self.template = '/pages/record.main'
 
@@ -142,51 +143,72 @@ class Record(RecordBase):
 		)
 
 
+	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$')
-	def edit(self, name=None, notify=None):
-		self.main(name=name, notify=notify)
+	def edit(self, name=None, **kwargs):
+		print "Editing..."
+		print kwargs
+		if kwargs:
+			rec = self.db.getrecord(name, filt=False)
+			try:
+				rec.update(kwargs)
+				self.db.putrecord(rec)
+				self.headers['Location'] = '%s/record/%s/'%(g.EMEN2WEBROOT, name)
+			except Exception, e:
+				self.ctxt['errors'].append(e)
+				
+
+		self.view(name=name)				
 		self.ctxt["edit"] = True
 
 
-	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$')
-	def new(self, name=None, rectype=None, inherit=None, private=False, copy=None, viewtype='mainview', notify=None):
-		self._init(name=name, notify=notify, children=False)
-		self.template = '/pages/record.new'
-		# self.title = "New Record"
+	#@write
+	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/rel/$')
+	def edit_rel(self, name=None, **kwargs):
+		method = kwargs.get('method')
+		parents = kwargs.get('parents', [])
+		children = kwargs.get('children', [])
+		print "Editing pclink to %s parents %s and children %s"%(method, parents, children)
+		self.view(name=name)				
+		self.ctxt["edit"] = True
+		
 
+	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$')
+	def new(self, name=None, rectype=None, **kwargs):
+		self._init(name=name, children=False)
+		self.template = '/pages/record.new'
+		inherit = None
+		viewtype = 'mainview'
 		try:
 			inherit = int(name)
 		except:
 			inherit = None
-
-		user = self.db.checkcontext()[0]
+			
 		newrec = self.db.newrecord(rectype, inherit=inherit)
+		print "kwargs:"
+		print kwargs
 
-		if copy:
-			for k in self.rec.getparamkeys():
-				newrec[k] = self.rec[k]
+		if kwargs:
+			newrec.update(kwargs)
+			newrec = self.db.putrecord(newrec)
+			if newrec:
+				self.redirect('%s/record/%s/'%(g.EMEN2WEBROOT, newrec.name))
+			else:
+				self.error('Did not save record')
+			return
 
-		if private:
-			private = int(private)
-
-		if private:
-			newrec['groups'] = set()
-			newrec['permissions'] = [[],[],[],[user]]
-
-		rendered = self.db.renderview(newrec, edit=True, viewtype=viewtype)
 		recdef = self.db.getrecorddef(newrec.rectype)
-		recorddefnames = self.db.getrecorddefnames()
+		rendered = self.db.renderview(newrec, edit=True, viewtype=viewtype)
 
-		# ${recdef.desc_short} (${recdef.name})
+			
 		self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
-		
 		self.update_context(
 			recdef = recdef,
 			newrec = newrec,
 			viewtype = viewtype,
-			rendered = rendered,
-			recorddefnames = recorddefnames
+			rendered = rendered
 		)
+			
 
 
 	@View.add_matcher('^/record/(?P<name>\d+)/children/(?P<childtype>\w+)/$')
@@ -228,12 +250,24 @@ class Record(RecordBase):
 		if revision:
 			revision = revision.replace("+", " ")
 
-		if simple:
-			self._init(name=name, notify=notify, parents=False, children=False)
-			self.template = "/pages/record.history"
-		else:
-			self._init(name=name, notify=notify, children=False)
-			self.template = "/pages/record.revision"
+		self._init(name=name, notify=notify, parents=True, children=True)
+		self.template = "/pages/record.history"
+
+
+		users = set()
+		paramdefs = set()
+		for i in self.rec.get('history',[]) + self.rec.get('comments',[]):
+			users.add(i[0])
+		for i in self.rec.get('history', []):
+			paramdefs.add(i[2])
+
+		users = self.db.getuser(users)
+		paramdefs = self.db.getparamdef(paramdefs)
+
+		self.ctxt['users'] = users
+		self.ctxt['users_d'] = emen2.util.listops.dictbykey(users, 'name')
+		self.ctxt['paramdefs'] = paramdefs
+		self.ctxt['paramdefs_d'] = emen2.util.listops.dictbykey(paramdefs, 'name')
 
 		rendered = ""
 		self.title = "History"

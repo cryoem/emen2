@@ -34,10 +34,10 @@
 
 		copy_from_cache: function(rec) {
 			if (this.options.keytype=='record') {
-				var plist = caches['recs'][this.options.name]['permissions'];
-				var glist = caches['recs'][this.options.name]['groups'];
+				var plist = caches['record'][this.options.name]['permissions'];
+				var glist = caches['record'][this.options.name]['groups'];
 			} else if (this.options.keytype=='group') {
-				var plist = caches['groups'][this.options.name]['permissions'];				
+				var plist = caches['group'][this.options.name]['permissions'];				
 				var glist = [];
 			}
 			return [plist, glist]
@@ -159,9 +159,9 @@
 				}
 			}
 
-			$.jsonRPC2("getuser", [f2], function(users){ 
+			$.jsonRPC.call("getuser", [f2], function(users){ 
 				$.each(users, function() {
-					caches["users"][this.name] = this;
+					caches['user'][this.name] = this;
 				});
 				self.build_userarea();			
 			});
@@ -176,11 +176,6 @@
 			var self=this;
 			this.grouparea.empty();
 
-			// group area
-			// if (this.groups.length == 0) {
-			// 	
-			// } else {
-
 			var level = $('<div class="e2-permissions-level clearfix" data-level="group"></div>');
 			this.grouparea.append(level);
 
@@ -190,14 +185,14 @@
 				button.FindControl({
 					keytype: 'group',
 					minimum: 0,
-					cb:function(test, groupname){self.addgroup(groupname)}
+					cb:function(test, groupname){self.add(groupname, 'group')}
 				});
 				title.prepend(button);
 			}
 			level.append(title);
 
 			$.each(this.groups, function(i, groupname) {
-				self.drawgroup(groupname);
+				self.draw(groupname, 'group');
 			});
 		},
 
@@ -221,126 +216,92 @@
 				self.userarea.append(level);
 
 				if (v.length == 0) {
-					//level.append('<div class="userbox"></div>');
+
 				} else {
 					// var level_removeall=$('<span class="small_label">[<span class="clickable">X</span>]</span>').click(function () {
 					$.each(v, function(i,name) {
-						self.drawuser(name, k);
+						self.draw(name, k);
 					});
 				}
 
 			});	
 		 },
 	
-		addgroup: function(groupname) {
-			var self=this;
-			$('.userbox[data-groupname='+groupname+']', this.dialog).each(function(){
-				$(this).remove();
-			});
-			self.drawgroup(groupname, true);
-		},
-	
-	
 		add: function(name, level) {
-			level = parseInt(level);
-			var self=this;
-			$('.userbox[data-name='+name+']', this.dialog).each(function(){
+			var self = this;
+			var keytype = 'user';
+			if (level == 'group') {
+				keytype = 'group';
+			}
+			$('.e2-infobox[data-keytype='+keytype+'][data-name='+name+']', this.dialog).each(function(){
 				$(this).remove();
 			});
-			self.drawuser(name, level, true);
+			self.draw(name, level, true);
 		},
 	
 	
-		drawuser: function(name, level, add) {
-			level = parseInt(level);
+		draw: function(name, level, add) {
 			var self = this;				
-			var user = caches["users"][name];
+			var keytype = 'user';
+			if (level=='group') {
+				keytype = 'group';
+			}
 
-			if (!user) {
-				user = {};
-				user.name = name;
-				user.displayname = name;
-				user.userrec = {};
-				user.email = '';
-			}
-			
-			var userdiv = $('<div class="userbox user" data-name="'+user.name+'" data-level="'+level+'"/>');
-			if (user.userrec["person_photo"]) {
-				userdiv.append('<img data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/download/'+user.userrec["person_photo"]+'/'+user.name+'.jpg?size=thumb" alt="Photo" />');
-			} else {
-				userdiv.append('<img  data-name="'+user.name+'" src="'+EMEN2WEBROOT+'/static/images/nophoto.png" alt="Photo" />');			
-			}
-			userdiv.append('<div data-level="'+level+'" data-name="'+user.name+'">'+user.displayname+'<br />'+user.email+'</div>');					
+			var d = $('<div />');
+			d.InfoBox({
+				'keytype':keytype,
+				'name':name
+			});
+			d.attr('data-level', level);
 
 			if (this.options.edit) {
-				userdiv.click(function(e) {e.stopPropagation();self.toggleuser(userdiv.attr("data-name"), userdiv.attr("data-level"))});
+				d.click(function(e) {
+					e.stopPropagation();
+					self.toggle(name, level);
+				});
 			}
 			if (add) {
-				userdiv.addClass('add');
+				d.addClass('add');
 			}
-			$('.e2-permissions-level[data-level='+level+']', this.dialog).append(userdiv);
+			$('.e2-permissions-level[data-level='+level+']', this.dialog).append(d);			
 		},
-
-
-		drawgroup: function(groupname, add) {
-			var self = this;				
-			var groupdiv = $('<div class="userbox" data-groupname="'+groupname+'" />');
-			groupdiv.append('<img  data-groupname="'+groupname+'" src="'+EMEN2WEBROOT+'/static/images/group.png" />');	
-			groupdiv.append('<div data-groupname="'+groupname+'">'+groupname+'<br /></div>');
-		
-			if (this.options.edit) {
-				groupdiv.click(function(e) {e.stopPropagation();self.togglegroup(groupdiv.attr("data-groupname"));});
-			}
-			if (add) {
-				groupdiv.addClass('add');
-			}
-		
-			$('[data-level=group]', this.dialog).append(groupdiv);
-		},
-
-
-		toggleuser: function(name, level) {
-			$('.userbox[data-name='+name+']', this.dialog).each(function(){
+	
+		toggle: function(name, level) {
+			$('.e2-infobox[data-name='+name+'][data-level='+level+']', this.dialog).each(function(){
 				$(this).toggleClass('removed');
 			});
 		},
 
-		togglegroup: function(groupname) {
-			$('.userbox[data-groupname='+groupname+']', this.dialog).each(function(){
-				$(this).toggleClass('removed');
-			});
-		},	
-	
 		getaddgroups: function(all) {
 			if (all) {
-				var baseselector = '.userbox.group:not(.removed)'				
+				var baseselector = '.e2-infobox[data-keytype=group]:not(.removed)'				
 			} else {
-				var baseselector = '.userbox.group.add:not(.removed)'
+				var baseselector = '.e2-infobox[data-keytype=group].add:not(.removed)'
 			}						
-			var r = $(baseselector).map(function(){return $(this).attr('data-groupname')});	
+			var r = $(baseselector, this.grouparea).map(function(){return $(this).attr('data-name')});	
 			return $.makeArray(r);
 		},
 	
 		getdelgroups: function() {
-			var r = $('.userbox.group.removed').map(function(){return $(this).attr('data-groupname')});
+			var r = $('.e2-infobox[data-keytype=group].removed', this.grouparea).map(function(){return $(this).attr('data-name')});
 			return $.makeArray(r);
 		},
 	
 		getdelusers: function() {
-			var r = $('.userbox.user.removed').map(function(){return $(this).attr('data-name')});	
+			var r = $('.e2-infobox[data-keytype=user].removed', this.userarea).map(function(){return $(this).attr('data-name')});	
 			return $.makeArray(r);
 		},
 	
 		getaddusers: function(all) {
 			if (all) {
-				var baseselector = '.userbox.user:not(.removed)'				
+				var baseselector = '.e2-infobox[data-keytype=user]:not(.removed)'				
 			} else {
-				var baseselector = '.userbox.user.add:not(.removed)'
+				var baseselector = '.e2-infobox[data-keytype=user].add:not(.removed)'
 			}
 			var ret = [];
 			var self = this;
 			for (var i=0;i<4;i++) {
-				var r = $(baseselector+'[data-level='+i+']').map(function(){
+				var r = $(baseselector+'[data-level='+i+']', this.userarea).map(function(){
 					return $(this).attr('data-name')
 				});
 				ret.push($.makeArray(r));
@@ -349,7 +310,7 @@
 		},
 		
 		getgroups: function() {
-			var r = $('.userbox.group:not(.removed)').map(function(){return $(this).attr('data-groupname')});	
+			var r = $('.e2-infobox[data-keytype=group]:not(.removed)', this.grouparea).map(function(){return $(this).attr('data-name')});
 			return $.makeArray(r);
 		},
 	
@@ -358,9 +319,9 @@
 		},
 
 		save_group: function() {
-			var group = caches['groups'][this.options.name];
+			var group = caches['group'][this.options.name];
 			group["permissions"] = this.getusers();
-			$.jsonRPC2("putgroup", [group], function(){
+			$.jsonRPC.call("putgroup", [group], function(){
 				alert("Saved Group");
 				window.location = window.location;
 			});
@@ -396,17 +357,15 @@
 			sec_commit["permissions"] = this.getaddusers(1);
 			sec_commit["groups"] = this.getaddgroups(1);
 
-
-
 			$('.spinner', this.savearea).show();			
-			$.jsonRPC2("setpermissions", sec_commit, 
+			$.jsonRPC.call("setpermissions", sec_commit, 
 				function() {				
-					$.jsonRPC2("getrecord",[self.options.name],
+					$.jsonRPC.call("getrecord",[self.options.name],
 						function(record) {
 							$('.spinner', self.savearea).hide();
 							// ian: changing permissions shouldn't require a full rebuild...
-							notify("Saved Permissions");
-							caches["recs"][self.options.name] = record;
+							$.notify("Saved Permissions");
+							caches['record'][self.options.name] = record;
 							self.reinit();
 							//self.hide();
 						});

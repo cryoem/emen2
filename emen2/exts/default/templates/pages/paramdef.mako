@@ -18,73 +18,66 @@
 
 
 
-<%call expr="buttons.singlepage('paramdefopts','Parameter Details')">
-
-<table>
-	<tr>
-		<td>Description:</td>
-		<td>${paramdef.desc_long}</td>
-	</tr>
-
-	<tr>
-		<td>Short Description:</td>
-		<td>${paramdef.desc_short}</td>
-	</tr>
-
-	<tr>
-		<td>Created:</td>
-		<td>${displaynames.get(paramdef.creator,"(%s)"%(paramdef.creator))} (<a href="${EMEN2WEBROOT}/user/${paramdef.creator}">${paramdef.creator}</a>) @ ${paramdef.creationtime}</td>
-	</tr>
-
-	<tr>
-		<td>Data Type:</td>
-		<td>${paramdef.vartype}</td>
-	</tr>
-
-	<tr>
-		<td>Physical Property:</td>
-		<td>${paramdef.property or ""}</td>
-	</tr>
-
-	<tr>
-		<td>Default Units:</td>
-		<td>${paramdef.defaultunits or ""}</td>
-	</tr>
-
-	<tr>
-		<td>Indexed:</td>
-		<td>${paramdef.indexed}</td>
-	</tr>
-
-	% if paramdef.vartype=="choice":
-
+<%buttons:singlepage label='Parameter Details'>
+	<table>
 		<tr>
-			<td>Possible Values:</td>
-			<td>
-				<ul>
-				% for i in paramdef.choices:
-					<li>${i}</li>
-				% endfor
-				</ul>
-			</td>
+			<td>Description:</td>
+			<td>${paramdef.desc_long}</td>
 		</tr>
 
-	% elif paramdef.choices:
-
 		<tr>
-			<td>Suggested Values:</td>
-			<td>
-				<ul>
-				% for i in paramdef.choices:
-					<li>${i}</li>
-				% endfor
-				</ul>
-			</td>
+			<td>Short Description:</td>
+			<td>${paramdef.desc_short}</td>
 		</tr>
 
-	% endif
+		<tr>
+			<td>Created:</td>
+			<td>${displaynames.get(paramdef.creator,"(%s)"%(paramdef.creator))} (<a href="${EMEN2WEBROOT}/user/${paramdef.creator}">${paramdef.creator}</a>) @ ${paramdef.creationtime}</td>
+		</tr>
 
+		<tr>
+			<td>Data Type:</td>
+			<td>${paramdef.vartype}</td>
+		</tr>
 
-</table>
-	
-</%call>
+		<tr>
+			<td>Physical Property:</td>
+			<td>${paramdef.property or ""}</td>
+		</tr>
+
+		<tr>
+			<td>Default Units:</td>
+			<td>${paramdef.defaultunits or ""}</td>
+		</tr>
+
+		<tr>
+			<td>Indexed:</td>
+			<td>${paramdef.indexed}</td>
+		</tr>
+
+		% if paramdef.vartype=="choice":
+			<tr>
+				<td>Possible Values:</td>
+				<td>
+					<ul>
+					% for i in paramdef.choices:
+						<li>${i}</li>
+					% endfor
+					</ul>
+				</td>
+			</tr>
+		% elif paramdef.choices:
+			<tr>
+				<td>Suggested Values:</td>
+				<td>
+					<ul>
+					% for i in paramdef.choices:
+						<li>${i}</li>
+					% endfor
+					</ul>
+				</td>
+			</tr>
+
+		% endif
+	</table>
+</%buttons:singlepage>

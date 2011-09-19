@@ -14,7 +14,24 @@ import emen2.db.globalns
 gg = emen2.db.globalns.GlobalNamespace()
 
 
+# Try to load Mako Templating engine
+import mako
+import mako.lookup
+
+class AddExtLookup(mako.lookup.TemplateLookup):
+	"""This is a slightly modified TemplateLookup that
+ 	adds '.mako' extension to all template names"""
+
+	def get_template(self, uri):
+		return super(AddExtLookup, self).get_template('%s.mako'%uri)
+
+	def render_template(self, name, ctxt):
+		tmpl = self.get_template(name)
+		return tmpl.render(**ctxt)
+		
+
 def get_filename(package, resource):
+	'''Get the absolute path to a file inside a given Python package'''
 	d = os.path.dirname(sys.modules[package].__file__)
 	d = os.path.abspath(d)
 	return os.path.join(d, resource)
@@ -58,7 +75,7 @@ class DBOptions(optparse.OptionParser):
 		group.add_option('--version', action='store_true', help="EMEN2 Version")
 		group.add_option('--help', action="help", help="Print help message")
 		# group.add_option('--enableroot', action="store_true", help="Enable root account. You will be prompted for an email and password.")
-		# group.add_option('--nosnapshot', action="store_false", dest="snapshot", default=True, help="Disable Berkeley DB Multiversion Concurrency Control (Snapshot)")
+		group.add_option('--nosnapshot', action="store_false", dest="snapshot", default=True, help="Disable Berkeley DB Multiversion Concurrency Control (Snapshot)")
 		self.add_option_group(group)
 
 
@@ -174,8 +191,6 @@ class DBOptions(optparse.OptionParser):
 		# Load the default extensions
 		# I plan to add a flag to disable automatic loading.
 		exts = self.values.exts or []
-		#if 'default' not in exts:
-		#	exts.insert(0,'default')	
 		if 'base' not in exts:
 			exts.insert(0,'base')		
 			
@@ -186,8 +201,11 @@ class DBOptions(optparse.OptionParser):
 			name, path = self.resolve_ext(ext, g.paths.EXTPATHS)
 			g.EXTS[name] = path
 		
+		# Mako Template Loader
+		g.templates = AddExtLookup(input_encoding='utf-8')		
+		
 		# Enable/disable snapshot
-		g.SNAPSHOT = True # self.values.snapshot
+		g.SNAPSHOT = self.values.snapshot
 
 		# Create new database?
 		g.CREATE = self.values.create or False
@@ -201,7 +219,6 @@ class DBOptions(optparse.OptionParser):
 
 		g.CONFIG_LOADED = True
 		g.refresh()
-
 
 
 

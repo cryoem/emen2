@@ -49,11 +49,11 @@ class Reverser(object):
 				yield self.next()
 		except EOFError: raise StopIteration
 
-class TableJS(emen2.web.templating.BaseJS):
-	def init(self):
-		super(TableJS, self).init()
-		self.files = '%s/static/js/jquery/jquery.dataTables.js' % g.EMEN2WEBROOT
-		self.files = '%s/static/js/jquery/jquery.accordion.js' % g.EMEN2WEBROOT
+# class TableJS(emen2.web.templating.BaseJS):
+# 	def init(self):
+# 		super(TableJS, self).init()
+# 		self.files = '%s/static/js/jquery/jquery.dataTables.js' % g.EMEN2WEBROOT
+# 		self.files = '%s/static/js/jquery/jquery.accordion.js' % g.EMEN2WEBROOT
 
 ident = lambda x:x
 class Normalizer(object):
@@ -95,7 +95,7 @@ def makereadable(val):
 @AdminView.attach
 class LogAnalysis(View):#AdminView):
 	template = '/pages/log'
-	js_files = TableJS
+	
 	@View.add_matcher("^/log/main/(?P<dataset>.*)/$")
 	def main(self, dataset='host', start=0, end=100, sort='host', reverse=1):
 		pass

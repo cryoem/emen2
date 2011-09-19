@@ -2,104 +2,79 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
 <html xmlns="http://www.w3.org/1999/xhtml" version="-//W3C//DTD XHTML 1.1//EN" xml:lang="en">
 
-<%namespace name="buttons"  file="/buttons"  /> 
+## Named blocks:
+##	title
+## 	javascript_include
+##	javascript_inline
+##	javascript_onload
+##	stylesheet_include
+##	stylesheet_inline
 
-#################
-## Functions that child templates might implement
-
-## Any additional items for <head>
-<%def name="head()"></%def>
-
-
-## Inline styles
-<%def name="extrastyle()"></%def>
-
-
-## Page Title
-<%def name="title()" filter="trim">
-	${context.get('title','')}
-</%def>
-
-
-## Page Title / Header
-<%def name="header()">
-	<div id="title">
-		<%include file="/header" />
-	</div>
-</%def>
-
-
-## Relationship Map
+<%def name="alert()"></%def>
 <%def name="precontent()"></%def>
-
-#################
-## Page
-<%def name="footer()">
-	<div id="footer"></div>
-</%def>
-
-
-## Alerts and notifications
-<%def name="alert()">
-	<ul id="alert" class="alert nonlist precontent">
-		% for msg in notify:
-		   <li class="notify">${msg}</li>
-		% endfor
-		% for msg in errors:
-		   <li class="notify error">${msg}</li>
-		% endfor
-   </ul>
-</%def>
-
-
-## Tabs
-<%def name="tabs()">
-	% if pages:
-		<div class="precontent">${buttons.buttons(pages)}</div>
-	% else:
-		<div class="precontent">${buttons.titlebutton(self.title)}</div>
-	% endif	
-</%def>
-
-#################
-## Page
 
 <head>
 
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
 	<meta http-equiv="Content-Language" content="en-us" />
 
-	<title>${EMEN2DBNAME}: ${self.title()}</title>
+	<title>
+		<%block name="title">
+			${EMEN2DBNAME}: ${context.get('title','No Title')}
+		</%block>
+	</title>
 
-    % for css in css_files:
-		<link rel="StyleSheet" href="${css}" type="text/css" />
-    % endfor
-
-    % for script in js_files:
-		<script src="${script}" type="text/javascript"></script>
-    % endfor
+	<%block name="javascript_include">
+		<script src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/settings.js/" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery-ui.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.json.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.timeago.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.jsonrpc.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/comments.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/edit.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/editdefs.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/file.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/find.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/permission.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/relationship.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/table.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/tile.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/calendar.js" type="text/javascript"></script>
+		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/util.js" type="text/javascript"></script>	
+	</%block>
 
 	<script type="text/javascript">
+		// Global cache
+		var caches = {};
+		caches['user'] = {};
+		caches['group'] = {};
+		caches['record'] = {};
+		caches['paramdef'] = {};
+		caches['recorddef'] = {};
+		caches['children'] = {};
+		caches['parents'] = {};
+		caches['displaynames'] = {};
+		caches['groupnames'] = {};
+		caches['recnames'] = {};	
+		<%block name="javascript_inline" />
 		$(document).ready(function() {
-         $.jsonRPC.setup({endPoint: '/jsonrpc', namespace:null})
-			$("#e2-header-search").focus(function() {
-				if( this.value == this.defaultValue ) {
-					this.value = "";
-				}
-			}).blur(function() {
-				if( !this.value.length ) {
-					this.value = this.defaultValue;
-				}
-			});
+			<%block name="javascript_ready" />
 		});		
 	</script>
 
-	<%self:head />
+	<%block name="stylesheet_include">
+		<link rel="StyleSheet" href="${EMEN2WEBROOT}/static-${VERSION}/css/custom-theme/jquery-ui-1.8.2.custom.css" type="text/css" />
+		<link rel="StyleSheet" href="${EMEN2WEBROOT}/static-${VERSION}/css/base.css" type="text/css" />
+		<link rel="StyleSheet" href="${EMEN2WEBROOT}/static-${VERSION}/css/style.css" type="text/css" />
+		<link rel="StyleSheet" href="${EMEN2WEBROOT}/static-${VERSION}/css/boxer.css" type="text/css" />
+		<link rel="StyleSheet" href="${EMEN2WEBROOT}/tmpl-${VERSION}/css/map.css/" type="text/css" />
+	</%block>
 	
 	<style type="text/css">
-		<%self:extrastyle />
+		<%block name="stylesheet_inline" />
 	</style>
-
+	
 </head>
 
 <body>

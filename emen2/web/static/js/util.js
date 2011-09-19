@@ -1,23 +1,3 @@
-// Note: any global methods or variables should be in this file //
-
-////////////////  Global Cache ///////////////////
-// cache for items of interest
-// the usage pattern is:
-//		If I need an item, check the cache. If not found, send an RPC request
-//		with a callback that will add it to the cache, then re-enter the method, which will now succeed.
-var caches = {};
-caches["paramdefs"] = {};
-caches["recorddefs"] = {};
-caches["displaynames"] = {};
-caches["groupnames"] = {};
-caches["users"] = {};
-caches["groups"] = {};
-caches["recs"] = {};
-caches["recnames"] = {};
-caches["children"] = {};
-caches["parents"] = {};
-
-
 // Log wrapper to keep everything from crashing horribly
 //		if I forget to comment out a Firebug console.log()
 // http://paulirish.com/2009/log-a-lightweight-wrapper-for-consolelog/
@@ -29,22 +9,67 @@ window.log = function(){
   }
 };
 
-
-// Global inits..
-$(document).ready(function() {
-	$('#bookmarks').hover(
-		function() {
-			$(this).BookmarksControl();
-			$(this).BookmarksControl('showbookmarks')
-		}, 
-		function(){}
-	);
-});
-
-
-
-
+// Utility Methods
 (function($){
+	
+	$.setadd = function(arr, item) {
+		if ($.inArray(item, arr) == -1) {
+			arr.push(item);
+		}
+	}
+
+	$.spinner = function() {
+		return '<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner hide" alt="Loading" />'
+	}
+	
+	// Update controls when a record has changed
+	$.record_update = function(rec) {
+		if (typeof(rec)=="number") {
+			var name = rec;
+		} else {
+			caches['record'][rec.name] = rec;
+			var name = rec.name;
+		}
+		$.rebuild_views('.e2-view[data-name='+name+']');
+		$(".e2-comments").CommentsControl('rebuild');
+		$('.e2-attachments').AttachmentControl('rebuild');	
+	}
+
+	// Rebuild a rendered view
+	$.rebuild_views = function(selector) {
+		selector = selector || '.view';
+		var self = this;
+		$(selector).each(function() {
+			var elem = $(this);
+			var name = parseInt(elem.attr('data-name'));
+			var viewtype = elem.attr('data-viewtype');
+			var edit = elem.attr('data-edit');
+			$.jsonRPC.call("renderview", {'names':name, 'viewtype': viewtype, 'edit': edit}, function(view) {
+				elem.html(view);
+				//$('.editable', elem).EditControl({});
+			},
+			function(view){}
+			);
+		})
+	}
+	
+
+	// Notifications
+	$.notify = function(msg, fade, error) {
+		var msg=$('<li class="notify">'+msg+'</li>');
+		if (error) {
+			msg.addClass("error");
+		}
+		var killbutton = $('<span class="floatright">X</span>');
+		killbutton.click(function() {
+			$(this).parent().fadeOut(function(){
+				$(this).remove();
+			});		
+		});
+		msg.append(killbutton);
+		$("#alert").append(msg); //.fadeIn();	
+	}
+	
 	// Convert a byte count to human friendly
 	$.convert_bytes = function(bytes) {
 		var b = 0;
@@ -63,37 +88,6 @@ $(document).ready(function() {
 		} else {
 			return bytes + " bytes"
 		}
-	}
-
-	// RPC request. Important!
-	$.jsonRPC2 = function(method, data, callback, errback) {
-				
-		// Wrap these methods
-		if (errback == null) {errback = function(){}}
-		var eb = function(xhr, textStatus, errorThrown) {
-			//console.log(xhr, textStatus, errorThrown);
-			if (xhr.status == 0) {
-				error_dialog('Connection refused', 'The server may not be responding, or your internet connection may be down.', this.jsonRPCMethod, this.data);
-				return
-			}
-			error_dialog(xhr.statusText, xhr.getResponseHeader('X-Error'), this.jsonRPCMethod, this.data);
-			try {
-				errback(xhr, textStatus, xhr)
-			} catch(e) {}
-		}		
-		var cb = function(data, status, xhr) {
-			callback(data, status, xhr);
-		}
-				
-		$.ajax({
-			jsonRPCMethod:method,
-		    type: "POST",
-		    url: EMEN2WEBROOT+"/json/"+method,
-		    data: $.toJSON(data),
-		    success: cb,
-		    error: eb,
-			dataType: "json"
-	    });
 	}
 
 	// Similar to RPC, but POST to a view.
@@ -170,216 +164,55 @@ $(document).ready(function() {
 		return result
 	}
 	
-})(jQuery)
-
-
-////////////////  JSON Utilities ///////////////////
-
-// Default error message dialog.
-// This gives the user some feedback if an RPC request fails.
-function error_dialog(title, text, method, data) {
-	var error = $('<div title="'+title+'" />');
-	error.append('<p>'+text+'</p>');
-		
-	var debug = $('<div class="e2-error-debug hide"/>');
-	debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+method+'</p>');
-	debug.append('<p><strong>Data:</strong></p><p>'+data+'</p>');
-	error.append(debug);
-
-	error.dialog({
-		width: 400,
-		height: 300,
-		modal: true,
-		buttons: {
-			'OK':function() {
-				$(this).dialog('close')
-			},
-			'More Info': function() {
-				$('.e2-error-debug', this).toggle();
-			}
-		}
-	});
-}
-
-
-////////////////  Approve / Reject Users ///////////////////
-// These should be replaced eventually
-
-function admin_approveuser_form(elem) {
-	var approve=[];
-	var reject=[];
-	var form=$(elem.form);
-	$('input:checked', form).each(function() {
-		if ($(this).val() == "true") {
-			approve.push($(this).attr("name"));
-		} else {
-			reject.push($(this).attr("name"));
-		}
-	});
-
-	if (approve.length > 0) {
-		$.jsonRPC.call("user.queue.approve",[approve],
-			function(names) {
-				//var names = [];
-				//$.each(data, function(){names.push(this.name)});
-				notify("Approved users: "+names);
-				for (var i=0;i<names.length;i++) {
-					$(".userqueue_"+names[i]).remove();
-				}
-				var count=parseInt($("#admin_userqueue_count").html());
-				count -= names.length;
-				$("#admin_userqueue_count").html(String(count))
-			}
-		);
-	};
-
-	if (reject.length > 0) {
-		$.jsonRPC.call("user.queue.reject",[reject],
-			function(names) {
-				//var names = [];
-				//$.each(data, function(){names.push(this.name)});				
-				notify("Rejected users: "+names);
-				for (var i=0;i<names.length;i++) {
-					$(".userqueue_"+names[i]).remove();
-				}
-				var count=parseInt($("#admin_userqueue_count").html());
-				count -= names.length;
-				$("#admin_userqueue_count").html(String(count));							
-			}
-		);
-	};
-}
-
-
-
-
-function admin_userstate_form(elem) {
-	var enable=[];
-	var disable=[];
-	var form=$(elem.form);
-	$('input:checked', form).each(function() {
-		var un=$(this).attr("name");
-		var unv=parseInt($(this).val());
-		if (unv == 0 &&  admin_userstate_cache[un] != unv) {
-			enable.push(un);
-		}
-		if (unv == 1 &&  admin_userstate_cache[un] != unv) {
-			disable.push(un);
-		}
-	});
-	
-	if (enable.length > 0) {
-		$.jsonRPC.call("user.enable",[enable],
-			function(data) {
-				if (data) {
-					notify("Enabled users: "+data);
-					for (var i=0;i<data.length;i++) {
-						admin_userstate_cache[data[i]]=0;
-					}
+	// Default error message dialog.
+	// This gives the user some feedback if an RPC request fails.
+	$.error_dialog = function(title, text, method, data) {
+		var error = $('<div title="'+title+'" />');
+		error.append('<p>'+text+'</p>');
+		var debug = $('<div class="e2-error-debug hide"/>');
+		debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+method+'</p>');
+		debug.append('<p><strong>Data:</strong></p><p>'+data+'</p>');
+		error.append(debug);
+		error.dialog({
+			width: 400,
+			height: 300,
+			modal: true,
+			buttons: {
+				'OK':function() {
+					$(this).dialog('close')
+				},
+				'More Info': function() {
+					$('.e2-error-debug', this).toggle();
 				}
 			}
-		)
-	}
-
-	if (disable.length > 0) {
-		$.jsonRPC.call("user.disable",[disable],
-			function(data) {
-				if (data) {
-					notify("Disabled users: "+data);
-					for (var i=0;i<data.length;i++) {
-						admin_userstate_cache[data[i]]=1;
-					}					
-				}
-			}
-		);
+		});
 	}	
-}
 
-
-////////////////  Button Switching ///////////////////
-// This is pretty old, and a simple top level function, but works well... 
-
-function switchin(classname, id) {
-	$('#buttons_'+classname+' *').each(function() {
-		if (this.id == 'button_'+classname+'_'+id) {
-			$(this).addClass('active');
-		} else {
-			$(this).removeClass('active');
-		}
-	});
-	$('#pages_'+classname+' *').each(function() {
-		if (this.id == 'page_'+classname+'_'+id) {
-			$(this).addClass('active');
-		} else {
-			$(this).removeClass('active');
-		}
-	});
-}
-
-////////////////  Notifications ///////////////////
-
-
-function notify(msg, fade, error) {
-	var msg=$('<li class="notify">'+msg+'</li>');
-	if (error) {
-		msg.addClass("error");
-	}
-	var killbutton = $('<span class="floatright">X</span>');
-	killbutton.click(function() {
-		$(this).parent().fadeOut(function(){
-			$(this).remove();
-		});		
-	});
-	msg.append(killbutton);
-	$("#alert").append(msg); //.fadeIn();	
-}
-
-
-
-///////////////////////////////////////////////////
-// Some simple jquery UI widgets that don't really
-//  fit in any other files..
-///////////////////////////////////////////////////
-
-(function($) {
-    $.widget("emen2.WordCount", {
-		options: {
-			min: null,
-			max: null,
-		},	
-					
-		_create: function() {
-			var self = this;
-			this.options.max = this.options.max || parseInt(this.element.attr('data-max'));
-			this.wc = $('<div class="e2-wordcount-count"></div>');
-			this.element.after(this.wc);
-			self.update();
-			this.element.bind('keyup click blur focus change paste', function() {
-				self.update();
-			});
-		},
-		
-		update: function() {
-			var wc = jQuery.trim(this.element.val()).split(' ').length;
-			var t = wc+' Words';
-			if (this.options.max) {
-				t = t + ' (Maximum: '+this.options.max+')';
-			}
-			var fault = false;
-			if (wc > this.options.max) {fault=true}
-			if (fault) {
-				this.wc.addClass('e2-wordcount-error');
+	// Tab switching
+	// This is pretty old, but works well... 
+	$.switchin = function(classname, id) {
+		$('#buttons_'+classname+' *').each(function() {
+			if (this.id == 'button_'+classname+'_'+id) {
+				$(this).addClass('active');
 			} else {
-				this.wc.removeClass('e2-wordcount-error')
+				$(this).removeClass('active');
 			}
-			this.wc.text(t);	
-		}
-	});
-})(jQuery);
+		});
+		$('#pages_'+classname+' *').each(function() {
+			if (this.id == 'page_'+classname+'_'+id) {
+				$(this).addClass('active');
+			} else {
+				$(this).removeClass('active');
+			}
+		});
+	}
 
-
-(function($) {
-
+	///////////////////////////////////////////////////
+	// Some simple jquery UI widgets that don't really
+	//  fit in any other files..
+	///////////////////////////////////////////////////
+ 
+	// View and edit bookmarks
     $.widget("emen2.BookmarksControl", {
 		options: {
 			mode: null,
@@ -492,7 +325,6 @@ function notify(msg, fade, error) {
 							bookmarks.splice(pos, 1);
 						}
 					}
-
 					//var pos = $.inArray(name, bookmarks);
 					rec['bookmarks'] = bookmarks;
 					var pos = $.inArray(name, bookmarks);
@@ -505,17 +337,94 @@ function notify(msg, fade, error) {
 						self.element.empty();
 						self.element.append(star);
 					});
-					// // console.log(rec);
-					// console.log('updated bookmarks:', rec['bookmarks']);
 				});
 			});			
 		}
 	});
-})(jQuery);
+
+	// Siblings control
+	$.widget('emen2.SiblingsControl', {
+		// $("#e2-editbar-record-siblings").EditbarControl({
+		// 	show: showsiblings,
+		// 	width:300,
+		// 	align: 'right',
+		// 	cb: function(self) {
+		// 		self.popup.empty();
+		// 		var sibling = self.element.attr('data-sibling') || rec.name;
+		// 		var prev = self.element.attr('data-prev') || null;
+		// 		var next = self.element.attr('data-next') || null;
+		// 		if ($('#siblings', self.popup).length) {
+		// 			return
+		// 		}
+		// 		var sibs = $('<div class="e2-siblings"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+		// 		self.popup.append(sibs);
+		// 		$.jsonRPC.call("getsiblings", [rec.name, rec.rectype], function(siblings) {
+		// 			$.jsonRPC.call("renderview", [siblings, null, "recname"], function(recnames) {
+		// 				siblings = siblings.sort(function(a,b){return a-b});
+		// 				sibs.empty();
+		// 				var prevnext = $('<h4 class="clearfix e2-editbar-sibling-prevnext"></h4>');
+		// 				if (prev) {
+		// 					prevnext.append('<div class="floatleft"><a href="'+EMEN2WEBROOT+'/record/'+prev+'/#siblings">&laquo; Previous</a></div>');
+		// 				}
+		// 				if (next) {
+		// 					prevnext.append('<div class="floatright"><a href="'+EMEN2WEBROOT+'/record/'+next+'/#siblings">Next &raquo;</a></div>');
+		// 				}					
+		// 				sibs.append(prevnext);
+		// 
+		// 				var ul = $('<ul class="nonlist"/>');
+		// 				$.extend(caches["recnames"], recnames);
+		// 				$.each(siblings, function(i,k) {
+		// 					if (k != rec.name) {
+		// 						// color:white here is a hack to have them line up
+		// 						ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#siblings">'+(caches["recnames"][k]||k)+'</a></li>');
+		// 					} else {
+		// 						ul.append('<li class="e2-siblings-active">'+(caches["recnames"][k]||k)+'</li>');
+		// 					}
+		// 				});
+		// 				sibs.append(ul);
+		// 			});
+		// 		});
+		// 	}
+		// });	
+	});
+
+	// A simple widget for counting words in a text field
+	$.widget("emen2.WordCount", {
+		options: {
+			min: null,
+			max: null,
+		},	
+
+		_create: function() {
+			var self = this;
+			this.options.max = this.options.max || parseInt(this.element.attr('data-max'));
+			this.wc = $('<div class="e2-wordcount-count"></div>');
+			this.element.after(this.wc);
+			self.update();
+			this.element.bind('keyup click blur focus change paste', function() {
+				self.update();
+			});
+		},
+
+		update: function() {
+			var wc = jQuery.trim(this.element.val()).split(' ').length;
+			var t = wc+' Words';
+			if (this.options.max) {
+				t = t + ' (Maximum: '+this.options.max+')';
+			}
+			var fault = false;
+			if (wc > this.options.max) {fault=true}
+			if (fault) {
+				this.wc.addClass('e2-wordcount-error');
+			} else {
+				this.wc.removeClass('e2-wordcount-error')
+			}
+			this.wc.text(t);	
+		}
+	});
 
 
-////////////////  "Drop-down Menu" ///////////////////
-(function($) {
+	// "Drop-down Menu"
     $.widget("emen2.EditbarControl", {
 		options: {
 			cb: function(self) {},
@@ -608,4 +517,3 @@ function notify(msg, fade, error) {
 		}
 	});
 })(jQuery);
-

@@ -1,4 +1,5 @@
 <%inherit file="/page" />
+<%namespace name="buttons"  file="/buttons"  /> 
 
 
 <%
@@ -52,20 +53,7 @@ for k,v in d.items():
 <h1 class="clearfix">${k.capitalize()}</h1>
 
 	% for group in d[k]:
-	
-		<div class="userbox">
-			<a href="${EMEN2WEBROOT}/group/${group.name}/">
-			<img src="${EMEN2WEBROOT}/static/images/group.png" alt="Group" />			
-			</a>
-			
-			<div>
-			<a href="${EMEN2WEBROOT}/group/${group.name}/">
-			${group.get('displayname', group.name)}
-			</a>
-			</div>
-			
-		</div>
-	
+		<%buttons:infobox item="${group}" autolink="True" />
 	% endfor
 
 % endfor

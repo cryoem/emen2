@@ -70,7 +70,9 @@ tr:last-child th
 
 .notify
 {
-	border: solid 2px #FF8135; /* orange */
+	border: solid 2px #BBDAEE;
+	/* #FF8135*/
+	/* orange */
 }
 
 .deleted,
@@ -304,6 +306,7 @@ h1 .label
 	font-size:10pt;
 }
 .big {
+	font-size:16pt;
 }
 
 a,
@@ -363,24 +366,42 @@ table ul {
 	list-style-type:disc;
 }
 
-.e2-comments-comment {
-	padding:5px;
-	margin-bottom:20px;
+
+/* InfoBox */
+.e2-infobox {
+	/* overflow-x: hidden; */
+	/* float: left; */
+	/* width:290px; */
+	position:relative;
+	margin-bottom:10px;
+	border-bottom:solid 1px #ddd;
 }
-.e2-comments-comment h4 {
+.e2-infobox {
+	/*	border:solid red 1px; */
+	padding:5px;
+}
+.e2-infobox h4 {
 	margin-top:0px;
 	margin-left: 50px;
 	font-size:10pt;
+	border-bottom: none;
 }
-.e2-comments-comment p {
+.e2-infobox p {
 	margin:0px;
 	margin-left: 50px;
 }
-.e2-comments-comment img {
+.e2-infobox img.thumbnail {
 	float: left;
 	height: 40px;
 	margin-right: 4px;
 }
+/*.e2-infobox img.delete {
+	position: absolute;
+	left: 0px;
+	top: 10px;
+}*/
+
+/* Wordcount */
 
 .e2-wordcount-count {
 	text-align:right;

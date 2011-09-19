@@ -1,6 +1,6 @@
 <%inherit file="/page" />
 
-<%def name="login(location='/home', errmsg='', logintext='')">
+<%def name="login(location='/', errmsg='', logintext='')">
 
 	<script type="text/javascript">
 	//<![CDATA[
