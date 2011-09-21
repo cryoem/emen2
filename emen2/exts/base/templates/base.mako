@@ -3,15 +3,14 @@
 <html xmlns="http://www.w3.org/1999/xhtml" version="-//W3C//DTD XHTML 1.1//EN" xml:lang="en">
 
 ## Named blocks:
-##	title
-## 	javascript_include
-##	javascript_inline
-##	javascript_onload
-##	stylesheet_include
-##	stylesheet_inline
+## => title
+## => javascript_include
+## => javascript_inline
+## => javascript_onload
+## => stylesheet_include
+## => stylesheet_inline
 
 <%def name="alert()"></%def>
-<%def name="precontent()"></%def>
 
 <head>
 
@@ -24,24 +23,36 @@
 		</%block>
 	</title>
 
+	<%block name="stylesheet_include">
+		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/custom-theme/jquery-ui-1.8.2.custom.css" />
+		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/base.css" />
+		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/style.css" />
+		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/boxer.css" />
+		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/tmpl-${VERSION}/css/map.css/" />
+	</%block>
+	
+	<style type="text/css">
+		<%block name="stylesheet_inline" />
+	</style>
+
 	<%block name="javascript_include">
-		<script src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/settings.js/" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery-ui.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.json.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.timeago.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.jsonrpc.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/comments.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/edit.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/editdefs.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/file.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/find.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/permission.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/relationship.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/table.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/tile.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/calendar.js" type="text/javascript"></script>
-		<script src="${EMEN2WEBROOT}/static-${VERSION}/js/util.js" type="text/javascript"></script>	
+		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/settings.js/"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery-ui.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.json.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.timeago.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.jsonrpc.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/comments.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/edit.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/editdefs.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/file.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/find.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/permission.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/relationship.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/table.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/tile.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/calendar.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/util.js"></script>	
 	</%block>
 
 	<script type="text/javascript">
@@ -63,18 +74,6 @@
 		});		
 	</script>
 
-	<%block name="stylesheet_include">
-		<link rel="StyleSheet" href="${EMEN2WEBROOT}/static-${VERSION}/css/custom-theme/jquery-ui-1.8.2.custom.css" type="text/css" />
-		<link rel="StyleSheet" href="${EMEN2WEBROOT}/static-${VERSION}/css/base.css" type="text/css" />
-		<link rel="StyleSheet" href="${EMEN2WEBROOT}/static-${VERSION}/css/style.css" type="text/css" />
-		<link rel="StyleSheet" href="${EMEN2WEBROOT}/static-${VERSION}/css/boxer.css" type="text/css" />
-		<link rel="StyleSheet" href="${EMEN2WEBROOT}/tmpl-${VERSION}/css/map.css/" type="text/css" />
-	</%block>
-	
-	<style type="text/css">
-		<%block name="stylesheet_inline" />
-	</style>
-	
 </head>
 
 <body>

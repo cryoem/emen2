@@ -1,6 +1,13 @@
 <%inherit file="/base" />
 <%namespace name="buttons"  file="/buttons"  /> 
 
+## Named blocks:
+## => header
+## => footer
+## => tabs
+## => alert
+## => precontent
+
 ## Javascript to run when the page is loaded
 <%block name="javascript_ready">
 	${parent.javascript_ready()}
@@ -13,16 +20,12 @@
 </%block>
 
 ## Basic page template:
-
 <div id="container">
 
+	## Page header and navigation
 	<%block name="header">
 		<%include file="/header" />
 	</%block>
-
-
-	## Relationship Map
-	<%block name="precontent" />
 
 	## Alerts and notifications
 	<%block name="alert">
@@ -35,6 +38,9 @@
 			% endfor
 	   </ul>
 	</%block>
+
+	## Precontent -- usually a relationship Map
+	<%block name="precontent" />
 
 	## Tabs
 	<%block name="tabs">

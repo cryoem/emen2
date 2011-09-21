@@ -20,7 +20,8 @@ import glob
 import email
 import email.mime.text
 
-# Berkeley DB; the 'bsddb' module is not sufficient.
+# Berkeley DB
+# Note: the 'bsddb' module is not sufficient.
 import bsddb3
 
 # Markdown (HTML) Processing

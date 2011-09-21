@@ -19,6 +19,8 @@ convert = {
 	'acl':'acl'
 }
 
+
+
 with db:
 	ctx = db._getctx()
 	txn = db._gettxn()
@@ -43,7 +45,7 @@ with db:
 		print "Changing %s from binaryimage to binary, non-iter"%pd.name
 		pd.__dict__['iter'] = False
 		pd.__dict__['vartype'] = 'binary'
-		
+			
 	print "Committing"
 	for pd in pds:
 		db._db.bdbs.paramdef.put(pd.name, pd, txn=txn)
