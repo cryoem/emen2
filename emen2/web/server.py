@@ -80,7 +80,6 @@ class EMEN2Server(object):
 
 	#: Which port to listen on
 	PORT = config.watch('EMEN2PORT')
-	#, 8080, lambda v: isinstance(v, (int,long)))
 
 
 	def __init__(self, port=None, dbo=None):

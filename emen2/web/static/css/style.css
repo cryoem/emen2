@@ -305,6 +305,9 @@ h1 .label
 {
 	font-size:10pt;
 }
+.small {
+	font-weight:normal;
+}
 .big {
 	font-size:16pt;
 }
@@ -373,12 +376,11 @@ table ul {
 	/* float: left; */
 	/* width:290px; */
 	position:relative;
-	margin-bottom:10px;
 	border-bottom:solid 1px #ddd;
-}
-.e2-infobox {
-	/*	border:solid red 1px; */
+	width:350px;
 	padding:5px;
+	padding-left:0px;
+	padding-right:0px;
 }
 .e2-infobox h4 {
 	margin-top:0px;
@@ -400,6 +402,9 @@ table ul {
 	left: 0px;
 	top: 10px;
 }*/
+.e2-permissions-level .e2-infobox {
+	float:left;
+}
 
 /* Wordcount */
 

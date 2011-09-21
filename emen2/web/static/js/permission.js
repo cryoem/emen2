@@ -179,7 +179,7 @@
 			var level = $('<div class="e2-permissions-level clearfix" data-level="group"></div>');
 			this.grouparea.append(level);
 
-			var title = $('<h4 class="clearfix"> Groups</h4>');
+			var title = $('<h4 class="clearfix"> Groups <span class="small floatright clickable">(select all)</span></h4>');
 			if (this.options.edit) {
 				var button = $('<input type="button" value="+" /> ');
 				button.FindControl({
@@ -203,7 +203,7 @@
 		
 			$.each(this.permissions, function(k,v) {			
 				var level = $('<div class="e2-permissions-level clearfix" data-level="'+k+'"></div>');
-				var title = $('<h4 class="clearfix"> '+self.options.levels[k]+'</h4>');
+				var title = $('<h4 class="clearfix"> '+self.options.levels[k]+' <span class="small floatright clickable">(select all)</span></h4>');
 				if (self.options.edit) {
 					var button = $('<input type="button" value="+" />');
 					button.FindControl({

@@ -85,8 +85,10 @@ window.log = function(){
 		} else if (bytes >= 1024) {
 			b = bytes / 1024;
 			return b.toFixed(2) + " KB"
-		} else {
+		} else if (bytes != null) {
 			return bytes + " bytes"
+		} else {
+			return "Unknown"
 		}
 	}
 

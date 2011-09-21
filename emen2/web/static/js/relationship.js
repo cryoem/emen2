@@ -58,9 +58,17 @@
 			this.element.append('<p>This record has '+this.build_summary(parents, 'parents')+' and '+this.build_summary(children, 'children')+'</p>');
 			
 			$('.e2-relationship-rectype', this.element).click(function() {
+				var state = $(this).attr('data-checked');
+				if (state=='checked') {
+					$(this).attr('data-checked', '');
+					state = true;
+				} else {
+					$(this).attr('data-checked', 'checked');
+					state = false
+				}
 				var rectype = $(this).attr('data-rectype');
 				var reltype = $(this).attr('data-reltype');
-				$('input[name='+reltype+'][data-rectype='+rectype+']', this.element).attr('checked', true);
+				$('input[name='+reltype+'][data-rectype='+rectype+']', this.element).attr('checked', state);
 			});
 			
 			var form = $('<form action="'+EMEN2WEBROOT+'/record/'+this.options.name+'/edit/rel/" method="post" name="rel"></form>')
@@ -69,18 +77,19 @@
 			
 			var controls = $('<div class="controls" />');
 
-			var pclink = $('<input type="button" class="big save" value="Remove" />');
+			var pclink = $('<input type="button" class="big save" value="Remove Selected Relationships" />');
 			pclink.click(function() {
 				$('input[name=method]', this.element).val('pclink')
 				$('form[name=rel]', this.element).submit();
 			});
+			controls.append(pclink);
 			
-			var relink = $('<input type="button" class="big save" value="Move" />');
-			relink.click(function() {
-				console.log("moving...");
-			})
+			// var relink = $('<input type="button" class="big save" value="Move Selected" />');
+			// relink.click(function() {
+			// 	console.log("moving...");
+			// })
+			// controls.append(relink);
 
-			controls.append(pclink, relink);
 			form.append(controls);
 			this.element.append(form);
 
@@ -99,16 +108,16 @@
 				var rd = caches['recorddef'][k] || {};
 				var adds = '';
 				if (v.length > 1) {adds='s'}
-				ce.push('<span data-reltype="'+label+'" data-rectype="'+k+'" class="clickable e2-relationship-rectype">'+v.length+' '+rd.desc_short+'</span>');
+				ce.push(v.length+' '+rd.desc_short+' <span data-checked="checked" data-reltype="'+label+'" data-rectype="'+k+'" class="small clickable e2-relationship-rectype">(select)</span>');
 			});
 			
 			var pstr = '';
 			if (!value) {
-				pstr = '<strong>no '+label+'</strong>';
+				pstr = '<span>no '+label+'</span>';
 			} else if (ce.length == 1) {
-				pstr = '<strong>'+ce.join(', ')+' '+label+'</strong>';
+				pstr = '<span>'+ce.join(', ')+' '+label+'</span>';
 			} else {
-				pstr = '<strong>'+value.length+' '+label+'</strong>, including '+ce.join(', ')
+				pstr = '<span>'+value.length+' '+label+'</span>, including '+ce.join(', ')
 			}	
 			return pstr
 		},
@@ -116,38 +125,34 @@
 		build_table: function() {
 			var self = this;
 			var rec = this.cacherec();
-			var table = $('<table cellpadding="0" cellspacing="0"><thead><tr><th><input class="e2-relationship-toggle" data-reltype="parents" type="checkbox" /></th><th>Parents</th><th>This Record</th><th><input class="e2-relationship-toggle" data-reltype="children" type="checkbox" /></th><th>Children</th></tr></thead><tbody></tbody></table>');
-			var max = rec.parents.length;
-			if (rec.children.length > max) {max = rec.children.length}
-			
-			for (var i=0;i<max;i++) {
-				var row = $('<tr></tr>');
-				row.append(this.build_td(rec.parents[i], 'parents'));
-				if (i==0) { 
-					row.append('<td>'+caches['recnames'][this.options.name]+'</td>');
-				} else {
-					row.append('<td />');
-				}
-				row.append(this.build_td(rec.children[i], 'children'));
-				$('tbody',table).append(row);
+			var table = $('<div />');
+			table.append('<br /><h4 class="clearfix"><input type="button" value="+" /> Parents</h4>');
+			table.append('<ul class="nonlist e2-relationship-parents"></ul><br />');
+			table.append('<h4 class="clearfix"><input type="button" value="+" /> Children</h4>');
+			table.append('<ul class="nonlist e2-relationship-children"></ul><br />');
+			for (var i=0;i<rec.parents.length;i++) {
+				$('.e2-relationship-parents', table).append(this.build_td(rec.parents[i], 'parents'))
 			}
-
-			$('.e2-relationship-toggle', table).click(function(){
-				var state = $(this).attr('checked');
-				var reltype = $(this).attr('data-reltype');
-				$('input[name='+reltype+']', this.element).attr('checked', state || false);
-				// self.set_reltype(reltype, state);
-			});
-
+			for (var i=0;i<rec.children.length;i++) {
+				$('.e2-relationship-children', table).append(this.build_td(rec.children[i], 'children'))
+			}
 			return table
+
+			// $('.e2-relationship-toggle', table).click(function(){
+			// 	var state = $(this).attr('checked');
+			// 	var reltype = $(this).attr('data-reltype');
+			// 	$('input[name='+reltype+']', this.element).attr('checked', state || false);
+			// 	// self.set_reltype(reltype, state);
+			// });
+			// return table
 		},
 		
 		build_td: function(q, reltype) {
 			if (q == null) {return '<td/><td />'}
 			var rec = caches['record'][q];
 			var recname = caches['recnames'][q];
-			var id = 'e2-relationships-children-'+this.options.name+'-'+q
-			return '<td><input type="checkbox" name="'+reltype+'" value="'+q+'" data-rectype="'+rec.rectype+'" id="'+id+'"/></td><td><label for="'+id+'">'+recname+'</label></td>'
+			var id = 'e2-relationships-children-'+this.options.name+'-'+q;
+			return '<li style="padding-bottom:5px;"><input type="checkbox" name="'+reltype+'" value="'+q+'" data-rectype="'+rec.rectype+'" id="'+id+'"/><label for="'+id+'">'+recname+'</label></li>'
 		},
 		
 		cacherec: function() {
