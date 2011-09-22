@@ -10,8 +10,6 @@
 ## => stylesheet_include
 ## => stylesheet_inline
 
-<%def name="alert()"></%def>
-
 <head>
 
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
