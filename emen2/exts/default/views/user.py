@@ -35,7 +35,7 @@ class User(View):
 
 
 	@View.add_matcher("^/user/(?P<name>[\w\- ]+)/edit/$")
-	def edit(self, name=None, notify=[], **kwargs):
+	def edit(self, name=None, **kwargs):
 		self.init(name=name)
 		self.template = "/pages/user.edit"
 
@@ -48,12 +48,12 @@ class User(View):
 
 
 	@View.add_matcher("^/user/(?P<name>[\w\- ]+)/save/$")
-	def save(self, name=None, action=None, notify=[], **kwargs):
+	def save(self, name=None, action=None, **kwargs):
 		self.edit(name=name, **kwargs)
 		kw_userrec = kwargs.pop('userrec',None)
 		kw_user = kwargs.pop('user', None)
 		self.action_save(kw_userrec, kw_user, kwargs)
-		self.ctxt["notify"].append("Changes Saved")
+		self.ctxt['notify'].append("Changes Saved")
 		self.set_context_item("user",self.user)
 
 

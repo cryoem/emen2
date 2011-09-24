@@ -17,13 +17,13 @@
 </h1>
 
 
-<div class="clearfix">
+<div class="e2l-clearfix">
 
-	<div class="floatright">
+	<div class="e2l-float-right">
 		${pages_user_util.page_photo(user, False)}
 	</div>
 
-	<div class="floatleft">
+	<div class=".e2l-float-left">
 		${pages_user_util.page_userrec(user, False)}
 	</div>
 

@@ -20,7 +20,7 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 
 
 class RecordBase(View):
-	def _init(self, name=None, children=True, parents=True, notify=None):
+	def _init(self, name=None, children=True, parents=True, **kwargs):
 		"""Main record rendering."""
 		recnames = {}
 		displaynames = {}
@@ -61,6 +61,14 @@ class RecordBase(View):
 		for user in self.db.getuser(getusers):
 			displaynames[user.name] = user.displayname
 
+
+		if self.rec.get('deleted'):
+			self.ctxt['errors'].append('Deleted Record')
+		if 'publish' in self.rec.get('groups',[]):
+			self.ctxt['notify'].append('Record marked as published data')
+		if 'authenticated' in self.rec.get('groups',[]):
+			self.ctxt['notify'].append('Any authenticated user can access this record')
+		
 		####
 		# Parent map
 		parentmap = self.db.getparenttree(self.rec.name, recurse=3)
@@ -96,7 +104,6 @@ class RecordBase(View):
 			rec = self.rec,
 			recs = {str(self.name):self.rec},
 			recdef = self.recdef,
-			notify = notify or [],
 			title = "Record: %s: %s (%s)"%(self.rec.rectype, recnames.get(self.rec.name), self.name),
 			recnames = recnames,
 			displaynames = displaynames,
@@ -117,8 +124,8 @@ class RecordBase(View):
 class Record(RecordBase):
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
-	def view(self, name=None, sibling=None, notify=None):
-		self._init(name=name, notify=notify)
+	def view(self, name=None, sibling=None):
+		self._init(name=name)
 		self.template = '/pages/record.main'
 
 		# Siblings
@@ -212,9 +219,9 @@ class Record(RecordBase):
 
 
 	@View.add_matcher('^/record/(?P<name>\d+)/children/(?P<childtype>\w+)/$')
-	def children(self,name=None,childtype=None,notify=None):
+	def children(self,name=None,childtype=None):
 		"""Main record rendering."""
-		self._init(name=name, notify=notify)
+		self._init(name=name)
 		self.template = "/pages/record.table"
 		self.ctxt["create"] = self.db.checkcreate()
 		self.ctxt["childtype"] = childtype
@@ -225,10 +232,10 @@ class Record(RecordBase):
 
 	#@write
 	@View.add_matcher("^/record/(?P<name>\d+)/delete/$")
-	def delete(self, commit=False, name=None, notify=None):
+	def delete(self, commit=False, name=None):
 		"""Main record rendering."""
 
-		self._init(name=name, notify=notify)
+		self._init(name=name)
 		self.template = "/pages/record.delete"
 		self.title = "Delete Record"
 
@@ -244,13 +251,13 @@ class Record(RecordBase):
 
 
 	@View.add_matcher("^/record/(?P<name>\d+)/history/$", "^/record/(?P<name>\d+)/history/(?P<revision>.*)/")
-	def history(self, name=None, notify=None, simple=False, revision=None):
+	def history(self, name=None, simple=False, revision=None):
 		"""Revision/history/comment viewer"""
 
 		if revision:
 			revision = revision.replace("+", " ")
 
-		self._init(name=name, notify=notify, parents=True, children=True)
+		self._init(name=name, parents=True, children=True)
 		self.template = "/pages/record.history"
 
 
@@ -277,10 +284,10 @@ class Record(RecordBase):
 
 
 	@View.add_matcher("^/record/(?P<name>\d+)/email/$")
-	def email(self, name=None, notify=None):
+	def email(self, name=None):
 		"""Main record rendering."""
 
-		self._init(name=name, notify=notify)
+		self._init(name=name)
 		self.template = "/pages/record.email"
 		self.title = "Users referenced by record %s"%(self.name)
 

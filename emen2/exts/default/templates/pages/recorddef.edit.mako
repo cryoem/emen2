@@ -31,7 +31,7 @@
 	${title}
 
 	<div class="controls save" id="ext_save">
-		<img class="spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
+		<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 		<input type="button" value="Save" name="save">
 	</div>
 		
@@ -64,7 +64,7 @@
 		<tr>
 			<td>Suggested Child Types</td>
 			<td>
-				<ul id="typicalchld" class="nonlist">
+				<ul id="typicalchld" class="e2l-nonlist">
 				% for k,i in enumerate(recdef.typicalchld):
 					<li><input type="text" value="${i}" name="typicalchld"></li>
 				% endfor
@@ -117,7 +117,7 @@ ${buttons.buttons(pages_recdefviews)}
 	% for k,v in pages_recdefviews.content.items():
 		<%call expr="buttons.pagewrap(pages_recdefviews,k)">
 
-				<ul class="recdef_edit_actions clearfix">
+				<ul class="recdef_edit_actions e2l-clearfix">
 					<li>Name: <input type="text" value="${k}" data-t="${k}" name="viewkey_${k}" /></li>
 					<li>Copy: <select name="viewcopy_${k}" data-t="${k}" /></li>
 					<li class="recdef_edit_action_remove" data-t="${k}"><img src="${EMEN2WEBROOT}/static/images/remove_small.png" alt="Remove" /> Remove</li>

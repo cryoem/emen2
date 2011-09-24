@@ -54,7 +54,6 @@
 			}
 			$.jsonRPC.call("putparamdef", [this.pd], function(data){
 				$('.spinner', self.options.ext_save).hide();
-				//notify_post(EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/', ["Changes Saved"])
 				window.location = EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/';
 			});
 		},
@@ -208,7 +207,6 @@
 			$('.spinner').show();
 			$.jsonRPC.call("putrecorddef", [this.rd], function(data){
 				$('.spinner').hide();
-				// notify_post(EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/', ["Changes Saved"])
 				window.location = EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/';
 			});
 
@@ -223,12 +221,12 @@
 			var t = 'new' + this.counter_new;
 			var self = this;
 		
-			var ol = $('<li id="button_recdefviews_'+t+'" data-t="'+t+'" class="button button_recdefviews" data-tabgroup="recdefviews" data-tabname="'+t+'">New View: '+this.counter_new+'</li>');
+			var ol = $('<li id="button_recdefviews_'+t+'" data-t="'+t+'" class="e2l-button" data-tabgroup="recdefviews" data-tabname="'+t+'">New View: '+this.counter_new+'</li>');
 			ol.bind("click",function(e){switchin('recdefviews',t)});
 
-			var p = $('<div id="page_recdefviews_'+t+'" data-t="'+t+'" class="page page_recdefviews" data-tabgroup="recdefviews" data-tabname="'+t+'" />');
+			var p = $('<div id="page_recdefviews_'+t+'" data-t="'+t+'" class="e2l-tab-page" data-tabgroup="recdefviews" data-tabname="'+t+'" />');
 
-			var ul = $('<ul class="clearfix" />');
+			var ul = $('<ul class="e2l-clearfix" />');
 			var oname = $('<li>Name: <input type="text" name="viewkey_'+t+'" data-t="'+t+'" value="'+t+'" /></li>');
 			var ocopy = $('<li>Copy: <select name="viewcopy_'+t+'" data-t="'+t+'" "/></li>');
 			var oremove = $('<li class="e2-editdefs-remove" data-t="'+t+'"><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /> Remove</li>');

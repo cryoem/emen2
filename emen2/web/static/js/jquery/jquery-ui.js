@@ -5456,7 +5456,7 @@ $.widget("ui.dialog", {
 					'ui-dialog-titlebar ' +
 					'ui-widget-header ' +
 					'ui-corner-all ' +
-					'ui-helper-clearfix'
+					'ui-helper-e2l-clearfix'
 				)
 				.prependTo(uiDialog),
 
@@ -5686,7 +5686,7 @@ $.widget("ui.dialog", {
 				.addClass(
 					'ui-dialog-buttonpane ' +
 					'ui-widget-content ' +
-					'ui-helper-clearfix'
+					'ui-helper-e2l-clearfix'
 				),
 			uiButtonSet = $( "<div></div>" )
 				.addClass( "ui-dialog-buttonset" )
@@ -6304,7 +6304,7 @@ function Datepicker() {
 		autoSize: false // True to size the input for the date format, false to leave as is
 	};
 	$.extend(this._defaults, this.regional['']);
-	this.dpDiv = bindHover($('<div id="' + this._mainDivId + '" class="ui-datepicker ui-widget ui-widget-content ui-helper-clearfix ui-corner-all"></div>'));
+	this.dpDiv = bindHover($('<div id="' + this._mainDivId + '" class="ui-datepicker ui-widget ui-widget-content ui-helper-e2l-clearfix ui-corner-all"></div>'));
 }
 
 $.extend(Datepicker.prototype, {
@@ -6373,7 +6373,7 @@ $.extend(Datepicker.prototype, {
 			drawMonth: 0, drawYear: 0, // month being drawn
 			inline: inline, // is datepicker inline or not
 			dpDiv: (!inline ? this.dpDiv : // presentation div
-			bindHover($('<div class="' + this._inlineClass + ' ui-datepicker ui-widget ui-widget-content ui-helper-clearfix ui-corner-all"></div>')))};
+			bindHover($('<div class="' + this._inlineClass + ' ui-datepicker ui-widget ui-widget-content ui-helper-e2l-clearfix ui-corner-all"></div>')))};
 	},
 
 	/* Attach the date picker to an input field. */
@@ -7684,7 +7684,7 @@ $.extend(Datepicker.prototype, {
 						}
 					calender += '">';
 				}
-				calender += '<div class="ui-datepicker-header ui-widget-header ui-helper-clearfix' + cornerClass + '">' +
+				calender += '<div class="ui-datepicker-header ui-widget-header ui-helper-e2l-clearfix' + cornerClass + '">' +
 					(/all|left/.test(cornerClass) && row == 0 ? (isRTL ? next : prev) : '') +
 					(/all|right/.test(cornerClass) && row == 0 ? (isRTL ? prev : next) : '') +
 					this._generateMonthYearHeader(inst, drawMonth, drawYear, minDate, maxDate,

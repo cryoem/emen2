@@ -92,7 +92,7 @@
 			this.selectdialog.append(o);
 
 			// options
-			ob = $('<div class="controls"><ul class="nonlist"> \
+			ob = $('<div class="e2l-controls"><ul class="e2l-nonlist"> \
 				<li><input type="checkbox" name="private" id="private" /> <label for="private">Private</label></li> \
 				<li><input type="checkbox" name="copy" id="copy" /> <label for="private">Copy values</label></li>  \
 				</ul></div>');
@@ -293,15 +293,15 @@
 			var self = this;			
 			
 			// Build controls
-			this.controls = $('<div class="controls" />');
+			this.controls = $('<div class="e2l-controls" />');
 			this.controls.append($.spinner());
 			
-			var save = $('<input class="save" type="submit" name="save" value="Save" />');
+			var save = $('<input type="submit" name="save" value="Save" />');
 			save.click(function(e) {self.save()});
 			this.controls.append(save);
 
 			if (this.options.name != "None") {
-				var cancel = $('<input class="cancel" type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
+				var cancel = $('<input type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
 				this.controls.append(cancel);
 			}
 			this.element.after(this.controls);
@@ -354,7 +354,7 @@
 		// 	});
 		// 	
 		// 	$('input[name=save]', this.controls).val('Saving...');
-		// 	$('.spinner', this.controls).show();
+		// 	$('.e2l-spinner', this.controls).show();
 		// 
 		// 	// process changed
 		// 	var updated = [];
@@ -374,7 +374,7 @@
 		// 			window.location = EMEN2WEBROOT + '/record/' + recs[0].name + '/';
 		// 			return
 		// 		}
-		// 		$('.spinner', self.controls).hide();
+		// 		$('.e2l-spinner', self.controls).hide();
 		// 		$('input[name=save]', self.controls).val('Save');
 		// 		$.each(recs, function() {
 		// 			$.record_update(this);
@@ -383,7 +383,7 @@
 		// 		self.options.cb_save(recs);
 		// 	}, function(e) {
 		// 		$('input[name=save]', self.controls).val('Retry');
-		// 		$('.spinner', self.controls).hide();
+		// 		$('.e2l-spinner', self.controls).hide();
 		// 		default_errback(e, function(){})
 		// 	});
 		// },
@@ -470,7 +470,7 @@
 		build: function() {
 			if (this.built){return}
 			this.built = 1;
-			this.dialog = $('<div class="e2-layout-edit" />');
+			this.dialog = $('<div class="e2l-edit" />');
 			this.element.after(this.dialog);
 
 			// Find the right editor...
@@ -553,7 +553,7 @@
 			var val = this.cacheval();
 			this.element.empty();
 			if (this.options.block) {
-				this.element.addClass('e2-layout-fw');
+				this.element.addClass('e2l-fw');
 			}			
 			if (pd.iter) {
 				this.element.append(this.build_iter(val));
@@ -569,7 +569,7 @@
 				var control = this.build_item(val[i]);
 				ul.append($('<li />').append(control));
 			}
-			this.element.addClass('e2-layout-fw');
+			this.element.addClass('e2l-fw');
 			return $('<div />').append(ul, this.build_add());
 		},
 		
@@ -680,12 +680,12 @@
     $.widget("emen2edit.user", $.emen2.EditBase, {
 		build_iter: function(val) {
 			val = val || [];
-			var ul = $('<div class="e2-edit-iterul clearfix" />');
+			var ul = $('<div class="e2-edit-iterul e2l-clearfix" />');
 			for (var i=0;i<val.length;i++) {
 				var control = this.build_item(val[i]);
 				ul.append(control);
 			}
-			this.element.addClass('e2-layout-fw');
+			this.element.addClass('e2l-fw');
 			return $('<div />').append(ul, this.build_add());
 		},
 
@@ -736,7 +736,7 @@
     $.widget("emen2edit.text", $.emen2.EditBase, {
 		build_item: function(val) {
 			var editw = $('<textarea style="width:100%" name="'+this.cachepd().name+'" rows="20">'+(val || '')+'</textarea>');
-			this.element.addClass('e2-layout-fw');
+			this.element.addClass('e2l-fw');
 			return editw
 		}	
 	});
@@ -823,7 +823,7 @@
 			var val = ''; //rec[this.options.name];
 			var pd = this.cachepd();
 			var choices = pd.choices || [];
-			var ul = $('<ul class="nonlist" />');
+			var ul = $('<ul class="e2l-nonlist" />');
 			$.each(choices, function() {
 				// grumble..
 				var rand = Math.ceil(Math.random()*10000000);

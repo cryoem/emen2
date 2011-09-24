@@ -36,7 +36,7 @@ for k,v in d.items():
 </h1>
 </form>
 
-<ul class="buttons clearfix floatlist">
+<ul class="buttons e2l-clearfix e2l-float-list">
 	<li>Last Name Index</li>
 </ul>
 <div class="page page_active">
@@ -50,7 +50,7 @@ for k,v in d.items():
 % for k in sorted(d.keys()):
 
 <a name="${k}"></a>
-<h1 class="clearfix">${k.capitalize()}</h1>
+<h1 class="e2l-clearfix">${k.capitalize()}</h1>
 
 	% for group in d[k]:
 		<%buttons:infobox item="${group}" autolink="True" />

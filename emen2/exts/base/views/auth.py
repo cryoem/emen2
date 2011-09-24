@@ -29,7 +29,7 @@ class Auth(View):
 			#except Exception, errmsg:
 			#	pass
 
-			self.set_header('X-ctxid', ctxid)
+			self.set_header('X-Ctxid', ctxid)
 			self.set_header('Location', location or '/')
 
 		self.set_context_item('msg',msg)
@@ -58,7 +58,7 @@ class Auth(View):
 			pass
 
 		self.set_header('Location', location or '/')
-		self.set_header('X-ctxid', '')
+		self.set_header('X-Ctxid', '')
 
 		self.set_context_item('msg',msg)
 		self.set_context_item('errmsg',errmsg)

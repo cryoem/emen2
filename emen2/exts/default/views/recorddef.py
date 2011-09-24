@@ -11,7 +11,7 @@ from map import Map
 class RecordDef(View):
 
 	@View.add_matcher(r'^/recorddef/(?P<name>.+)/(?P<action>.+)/$', r'^/recorddef/(?P<name>\w+)/$')	
-	def init(self, name=None, action=None, new=0, notify=[]):
+	def init(self, name=None, action=None, new=0):
 		self.template = '/pages/recorddef'
 		self.name = name
 		self.action = action

@@ -75,20 +75,19 @@
 			form.append(this.build_table());
 			form.append('<input type="hidden" name="method" value="" />');
 			
-			var controls = $('<div class="controls" />');
+			var controls = $('<div class="e2l-controls" />');
 
-			var pclink = $('<input type="button" class="big save" value="Remove Selected Relationships" />');
+			var relink = $('<input type="button" class="big e2l-save" value="Move" />');
+			relink.click(function() {
+				console.log("moving...");
+			})
+
+			var pclink = $('<input type="button" class="big e2l-save" value="Remove" />');
 			pclink.click(function() {
 				$('input[name=method]', this.element).val('pclink')
 				$('form[name=rel]', this.element).submit();
 			});
-			controls.append(pclink);
-			
-			// var relink = $('<input type="button" class="big save" value="Move Selected" />');
-			// relink.click(function() {
-			// 	console.log("moving...");
-			// })
-			// controls.append(relink);
+			controls.append(relink, ' or &nbsp;', pclink); //, ' selected relationships');
 
 			form.append(controls);
 			this.element.append(form);
@@ -126,10 +125,10 @@
 			var self = this;
 			var rec = this.cacherec();
 			var table = $('<div />');
-			table.append('<br /><h4 class="clearfix"><input type="button" value="+" /> Parents</h4>');
-			table.append('<ul class="nonlist e2-relationship-parents"></ul><br />');
-			table.append('<h4 class="clearfix"><input type="button" value="+" /> Children</h4>');
-			table.append('<ul class="nonlist e2-relationship-children"></ul><br />');
+			table.append('<br /><h4 class="e2l-clearfix"><input type="button" value="+" /> Parents</h4>');
+			table.append('<ul class="e2l-nonlist e2-relationship-parents"></ul><br />');
+			table.append('<h4 class="e2l-clearfix"><input type="button" value="+" /> Children</h4>');
+			table.append('<ul class="e2l-nonlist e2-relationship-children"></ul><br />');
 			for (var i=0;i<rec.parents.length;i++) {
 				$('.e2-relationship-parents', table).append(this.build_td(rec.parents[i], 'parents'))
 			}
@@ -218,7 +217,7 @@
 			
 			var self = this;
 
-			this.dialog = $('<div class="clearfix"></div>');
+			this.dialog = $('<div class="e2l-clearfix"></div>');
 
 			// Append the table area to the dialog, then the dialog to the element..
 			this.element.append(this.dialog);
@@ -231,14 +230,14 @@
 			}
 			
 			// build the ul.ulm elements, one for parents, and children
-			var p = $(' <div class="clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
-						<div class="e2-browser-parents floatleft" style="width:249px;"> Parents </div> \
-						<div class="e2-browser-action floatleft" style="width:249px;">&nbsp;</div> \
-						<div class="e2-browser-children floatleft" style="width:249px;"> Children </div> \
+			var p = $(' <div class="e2l-clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
+						<div class="e2-browser-parents .e2l-float-left" style="width:249px;"> Parents </div> \
+						<div class="e2-browser-action .e2l-float-left" style="width:249px;">&nbsp;</div> \
+						<div class="e2-browser-children .e2l-float-left" style="width:249px;"> Children </div> \
 					</div>');
 						
-			var parents = $('<div class="e2-map e2-map-parents floatleft" style="width:245px"></div>');
-			var children = $('<div class="e2-map e2-map-children floatleft" ></div>');
+			var parents = $('<div class="e2-map e2-map-parents .e2l-float-left" style="width:245px"></div>');
+			var children = $('<div class="e2-map e2-map-children .e2l-float-left" ></div>');
 			this.dialog.append(p, parents, children);
 
 			this.setaction(this.options.action);
@@ -260,9 +259,9 @@
 		},
 		
 		build_sitemap: function() {
-			var p = $(' <div class="clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
-						<div class="e2-browser-action floatleft" style="width:249px;">&nbsp;</div> \
-						<div class="e2-browser-children floatleft" style="width:249px;"> Children </div> \
+			var p = $(' <div class="e2l-clearfix" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
+						<div class="e2-browser-action .e2l-float-left" style="width:249px;">&nbsp;</div> \
+						<div class="e2-browser-children .e2l-float-left" style="width:249px;"> Children </div> \
 					</div>');						
 			this.element.prepend(p);
 			if (this.options.embed) {
@@ -325,7 +324,7 @@
 			var parents_ul = $('.e2-map-parents', this.dialog);
 
 			parents_ul.empty();			
-			parents_ul.append('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" />');
+			parents_ul.append('<img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" />');
 			this.build_ul(children_ul, key);
 
 			// get the parents through an RPC call

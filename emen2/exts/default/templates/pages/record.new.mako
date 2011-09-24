@@ -8,10 +8,10 @@
 	var rec = caches['record'][null]
 
 	// New Record Information
-	$('#e2-editbar-newrecord-info').EditbarControl({show: true, width:640});
+	$('#e2l-editbar-newrecord-info').EditbarControl({show: true, width:640});
 
 	// Pad the rendered area
-	// $('#rendered').css('margin-top', $('#e2-editbar-newrecord-info div.hidden').height()+10);
+	// $('#rendered').css('margin-top', $('#e2l-editbar-newrecord-info div.hidden').height()+10);
 
 	// Save Record
 	$('#e2-newrecord-save').MultiEditControl({
@@ -21,7 +21,7 @@
 		});
 
 	// Permissions Editor
-	$('#e2-editbar-newrecord-permissions').EditbarControl({width: 640});
+	$('#e2l-editbar-newrecord-permissions').EditbarControl({width: 640});
 	$('#e2-newrecord-permissions').PermissionControl({
 		name: rec.name,
 		edit: true,
@@ -32,7 +32,7 @@
 	$('.editable_files .label').html('(The record must be saved before files can be attached)');
 
 	// Change the Record type
-	$('#e2-editbar-newrecord-recorddef').EditbarControl({
+	$('#e2l-editbar-newrecord-recorddef').EditbarControl({
 		width:300,
 		cb: function(self){
 			self.popup.NewRecordControl({
@@ -44,13 +44,13 @@
 	});
 </%block>
 
-<ul class="menu editbar floatlist clearfix">
+<ul class="menu editbar e2l-float-list e2l-clearfix">
 
-	<li id="e2-editbar-newrecord-recorddef">
+	<li id="e2l-editbar-newrecord-recorddef">
 		<span class="clickable label">Change Protocol <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></span>
 	</li>
 	
-	<li id="e2-editbar-newrecord-permissions">
+	<li id="e2l-editbar-newrecord-permissions">
 		<span class="clickable label">
 			Permissions
 			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
@@ -87,7 +87,7 @@
 	${rendered}
 </form>
 
-<div class="clearfix save">
+<div class="e2l-clearfix save">
 	<div id="e2-newrecord-save" class="label">Edit</div>
 </div>
 

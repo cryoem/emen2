@@ -13,7 +13,7 @@ from map import Map
 class ParamDef(View):
 
 	@View.add_matcher(r'^/paramdef/(?P<name>.+)/(?P<action>.+)/$', r'^/paramdef/(?P<name>\w+)/$')	
-	def init(self,name=None,action=None,new=0,notify=[]):
+	def init(self,name=None, action=None, new=0):
 		self.template = '/pages/paramdef'
 		self.name = name
 		self.action = action

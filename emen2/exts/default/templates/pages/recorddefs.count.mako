@@ -44,7 +44,7 @@ for k,v in d.items():
 %>
 
 
-<div class="clearfix"><div class="infobuttons">Protocol Name Index</div></div>
+<div class="e2l-clearfix"><div class="infobuttons">Protocol Name Index</div></div>
 <div class="info">
 
 	% for k in sorted(d.keys(), reverse=True):
@@ -57,7 +57,7 @@ for k,v in d.items():
 % for k in sorted(d.keys(), reverse=True):
 
 <a name="${k}"></a>
-<h1 class="clearfix">${labels.get(k)}</h1>
+<h1 class="e2l-clearfix">${labels.get(k)}</h1>
 
 	% for recorddef in d[k]:
 		<%

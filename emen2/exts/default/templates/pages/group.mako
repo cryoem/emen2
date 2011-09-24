@@ -29,7 +29,6 @@ import jsonrpc.jsonutil
 			g["displayname"] = $('input[name=group_displayname]').val();
 			g["name"] = $('input[name=group_name]').val();
 			$.jsonRPC.call("putgroup", [g], function(group) {
-				//notify_post(EMEN2WEBROOT+'/group/'+group.name, []);
 				window.location = EMEN2WEBROOT+'/group/'+group.name+'/';
 			})
 
@@ -56,7 +55,7 @@ import jsonrpc.jsonutil
 
 	% if new or edit:
 		<div class="controls save" id="ext_save">
-			<img class="spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
+			<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 			<input type="submit" value="Save" name="save">
 		</div>
 	% endif

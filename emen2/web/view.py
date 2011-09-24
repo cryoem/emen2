@@ -39,7 +39,7 @@ from emen2.web import routing
 import emen2.db.config
 g = emen2.db.config.g()
 
-__all__ = ['View', 'ViewPlugin', 'AdminView', 'AuthView', 'Page']
+__all__ = ['View', 'ViewPlugin', 'AdminView', 'AuthView']
 
 
 ############ ############ ############
@@ -105,26 +105,24 @@ class TemplateContext(collections.MutableMapping):
 
 		return result
 		
+		
+		
+
 
 
 ###NOTE: This class should not access the db in any way, such activity is carried out by
 ###		the View class below.
 class _View(object):
-	'''Base Class for views, sets up the instance variables for the class
+	'''Base Class for views, sets up the instance variables for the class.
 
-	Subclasses are required to do four things:
+	Subclasses should do the following:
 		- Register using View.register as a decorator
 
-		- have a class attribute called __matcher__ which contains either:
+		- Decorate methods with @View.add_matcher(matcher), where matcher is:
 			- A Regular Expression representing the url which matches the class
 			- A list of Regular Expressions to match against
-			- A dictionary of the format { (subviewname or 'main'):matcher }
-				- 'main' indicates the default view
 
-		- override the 'init' method, not __init__
-			- If __init__ is overridden, it will have to be called in the overriding method
-
-		- define data output methods:
+		- Optionally define data output methods:
 			- define a method named get_data in order to return data for web browsers
 			- define a method named get_json in order to return a json representation of the view
 	'''
@@ -132,6 +130,7 @@ class _View(object):
 	# A list of methods to call during init (with self)
 	preinit = []
 
+	# Basic properties
 	title = property(
 		lambda self: self.ctxt.get('title', 'No Title'), 
 		lambda self, value: self.ctxt.set('title',value))
@@ -145,26 +144,22 @@ class _View(object):
 		lambda self, value: self.set_header('content-type', value))
 
 
-	def __init__(self, format=None, method='GET', init=None, reverseinfo=None, request_headers=None, basectxt=None, **extra):
+	def __init__(self, request_format=None, request_method='GET', request_headers=None, request_location=None, basectxt=None, **blargh):
 		'''\
-		subclasses should not override this method, rather they should define an 'init' method.
-		subclasses should remember to call the base classes __init__ method if they override it.
-
-		format governs which method is called to get the view data
-		init passes a method to be called to initialize the view
-		reverseinfo is the request URI
+		request_format governs which method is called to get the view data
+		request_method is the HTTP method
 		request_headers are the request headers
-		extra catches arguments to be passed to the 'init' method
-		'''
-		# template is the template the class renders
-		# mimetype is the mimetype returned by the class
+		request_location is the request URI
+		'''	
+		
+		# HTTP Method and HTTP ETags (cache control)
+		self.__request_method = request_method		
 		
 		# Request headers
 		self.__request_headers = request_headers or {}
 
 		# Response headers
 		self.__headers = {}
-		# self.set_header('Content-Type', mimetype)
 		
 		# Notifications and errors
 		self.__notify = []
@@ -177,33 +172,22 @@ class _View(object):
 		self.ctxt.update(dict(
 			headers = self.__headers,
 			notify = self.__notify,
-			errors = self.__errors,
-			reverseinfo = reverseinfo
+			errors = self.__errors
 		))
 		self.ctxt.update(basectxt or {})
-		self.ctxt.update(extra)
 
-		# HTTP Method and HTTP ETags (cache control)
-		self.method = method
+		# ETags
 		self.etag = None
 
 		# Set the return format. There must be a get_<format> method.
-		if format is not None:
-			self.get_data = getattr(self, 'get_%s' % format)
+		if request_format:
+			self.get_data = getattr(self, 'get_%s'%request_format)
 
-		# Run any init hooks
-		preinit = getattr(self, 'preinit', [])
-		for hook in preinit:
-			hook(self)
-
-		# Run the View subclass' init method
-		if init is not None:
-			init = functools.partial(init, self)
-		else:
-			init = self.init
-		
-		upd = init(**extra)
-		self.set_context_items(upd)
+		# Run any init hooks.
+		# preinit = getattr(self, 'preinit', [])
+		# for hook in preinit:
+		# 	hook(self)
+		# Run self.init?	
 
 		
 	def notify(self, msg):
@@ -217,11 +201,21 @@ class _View(object):
 
 	#### Output methods #####################################################################
 
+	def __unicode__(self):
+		'''Returns the data'''
+		return unicode(self.get_data())
+	
+	def __str__(self):
+		try:
+			return str((unicode(self).encode('utf-8', 'replace')))
+		except UnicodeDecodeError:
+			return self.get_data()
+
 	def error(self, msg):
 		'''Set the output to a simple error message'''
 		self.template = "/errors/error"
-		self.title = "Error"
-		self.ctxt["errmsg"] = msg
+		self.title = 'Error'
+		self.ctxt['errmsg'] = msg
 
 	def redirect(self, location):
 		self.headers['Location'] = location
@@ -230,25 +224,11 @@ class _View(object):
 	def get_data(self):
 		'''Override to change the way it gets the view data'''
 		return g.templates.render_template(self.template, self.ctxt)
-		# return Page.render_view(self)
-
+	
 	def get_json(self):
 		'''Override to define json equivalent'''
 		return '{}'
 
-	def __iter__(self):
-		'''Returns (result, mimetype)'''
-		return iter( (self.get_data(), self.__headers) )
-
-	def __unicode__(self):
-		'''Returns the data'''
-		return unicode( self.get_data() )
-
-	def __str__(self):
-		try:
-			return str((unicode(self).encode('utf-8', 'replace')))
-		except UnicodeDecodeError:
-			return self.get_data()
 
 	#### Metadata manipulation ###############################################################
 
@@ -301,12 +281,18 @@ class _View(object):
 	#### View registration methods ###########################################################
 
 	@staticmethod
-	def register_view(name, bases, dict):
-		cls = type(name, bases, dict)
-		cls.register(cls)
-		return cls
-
-
+	def make_callback(v, method):
+		# Views are executed this way:
+		# 	result = view(db=db, ...)(view args)
+		def cb1(db, request_location, request_method, request_headers):
+			view = v(db=db, request_location=request_location, request_method=request_method, request_headers=request_headers)
+			def cb2(*args, **kwargs):
+				method(view, *args, **kwargs)
+				return view
+			return cb2
+		return cb1		
+	
+	
 	@classmethod
 	def add_matcher(cls, *match, **kwmatch):
 		'''Decorator used to add a matcher to an already existing class
@@ -314,117 +300,67 @@ class _View(object):
 		Named groups in matcher get passed as keyword arguments
 		Other groups in matcher get passed as positional arguments
 		Nothing else gets passed
-
-		The new method is called *after* View.__init__ is called
 		'''
-		if not match: raise ValueError, 'A view must have at least one non-keyword matcher'
-		def check_name(name): return 'main' if name.lower() == 'init' else name
-		def _i1(func):
+		if not match:
+			raise ValueError, 'A view must have at least one non-keyword matcher'
+
+		# Default name (this is usually the method name)
+		def check_name(name):
+			return 'main' if name.lower() == 'init' else name
+
+		# Inner decorator method
+		def inner(func):
 			matchers = []
 			name = check_name(func.__name__)
-
 			# get the main matcher
 			matcher, match_ = match[0], match[1:]
-			matchers.append( ('%s' % name, matcher, func) )
-			g.debug('REGISTERING %r as %r with %r' % (name, matcher, func) )
-
+			matchers.append( ('%s'%name, matcher, func) )
 			# get alternate matchers
-			for k,matcher in itertools.chain(	enumerate(match_, 1),
-															kwmatch.iteritems()	):
+			for k, matcher in itertools.chain(enumerate(match_, 1), kwmatch.iteritems()):
 				name = '%s/%s' % (name, k)
 				matchers.append( (name, matcher, func) )
-				g.debug('REGISTERING %r as %r with %r' % (name, matcher, func) )
 
 			# save all matchers to the function
 			func.matcherinfo = matchers
 			return func
-		return _i1
 
-	@classmethod
-	def __parse_matcher_attribute(self, cls, matchers, urls):
-		if hasattr(matchers, '__iter__'):
-			if hasattr(matchers, 'items'):
-				if not matchers.get('main', False):
-					g.warn('Main matcher not specified for (%r) (%r)' % (cls, urls))
-				for name, expression in matchers.items():
-					name = '%s' % name
-					cb = functools.partial(cls, init=cls.init)
-					result = functools.wraps(cls)(cb)
-					urls.add_matcher(name, expression, cb)
-
-			else:
-				urls.add_matcher('main', matchers[0], cls)
-				for counter, expression in enumerate(matchers):
-					cb = functools.partial(cls, init=cls.init)
-					result = functools.wraps(cls)(cb)
-					urls.add_matcher('%02d' % counter, expression, cb)
-
-		else:
-			cb = functools.partial(cls, init=cls.init)
-			result = functools.wraps(cls)(cb)
-			urls.add_matcher('main', matchers, cb)
-
-	@classmethod
-	def __parse_add_matcher_values(self, cls, matchers, urls):
-		for matcher in matchers:
-			name, matcher, func = matcher
-			func = functools.partial(cls, init=func)
-			func = functools.wraps(cls)(func)
-			urls.add_matcher(name, matcher, func)
+		return inner
 
 
 	@classmethod
 	def register(self, cls):
-		'''Register a view and connect it to a URL
+		'''Register a View and connect it to a URL.
 
-		- registers urls specified in the __matcher__ attribute
-
-			- this attribute can specify more than one matcher in a dictionary, if that is the case, reverse lookup
-					can be done by self.ctxt.reverse (in a subclass of View) or ctxt.reverse in a template
-					it defaults to the one named 'main', if others exist they can be accessed by '<Classname>/<subname>'
-
-		- this also registers urls defined by the add_matcher decorator
-
-		acceptable __matcher__ values:
-			- dictionary
+		- Registers urls specified in the __matcher__ attribute
+		
 				.. code-block:: python
 
-						__matcher__ = dict(
-							main = r'^/some/url/(?P<param1>\d+)/$',
-							alt1 = r'^/some/url/(?P<param1>[a-zA-Z]{3,}/$'
-						)
+					__matcher__ = dict(
+						main = r'^/some/url/(?P<param1>\d+)/$',
+						alt1 = r'^/some/url/(?P<param1>[a-zA-Z]{3,}/$'
+					)
 
-				- these can be reversed with self.ctxt.reverse('ClassName/alt1', param1='asd') and such
+		- Multiple regular expressions can be registered per sub view
 
-			- list
-				.. code-block:: python
+		- This also registers urls defined by the add_matcher decorator. In this case, the sub view name will default to the method name.
 
-					__matcher__ = [r'^/some/url/(?P<param1>\d+)/$', r'^/some/url/(?P<param1>[a-zA-Z]{3,}/$']
-
-			- string
-
-				.. code-block:: python
-
-					__matcher__ =  r'^/some/url/(?P<param1>\d+)/$'
-
-			- or any object that has an attribute named 'match', and 'groupdict' (if one doesn't want to use regular expressions)
-
+		- These can be reversed with self.ctxt.reverse('ClassName/alt1', param1='asd') and such
 		'''
-		with routing.URLRegistry().url(cls.__name__) as url:
-			cls.__url = url
 
-			# old style matchers
-			if hasattr(cls, '__matcher__'):
-				self.__parse_matcher_attribute(cls, cls.__matcher__, url)
+		# Matchers produced by the add_matcher decorator
+		for v in (getattr(func, 'matcherinfo', None) for func in cls.__dict__.values()):
+			for matcher in (v or []):
+				name, matcher, func = matcher
+				with routing.URLRegistry().url(matcher, matcher, self.make_callback(cls, func)) as url:
+					pass
 
-			#matchers produced by the add_matcher decorator
-			for v in ( getattr(func, 'matcherinfo', None) for func in cls.__dict__.values() ):
-				if v is not None:
-					self.__parse_add_matcher_values(cls, v, url)
-
-			ur = routing.URLRegistry()
 		return cls
 
+
+	@classmethod
+	def register_callable(self, cls):
+		pass
+		
 
 	slots = collections.defaultdict(list)
 	@classmethod
@@ -434,6 +370,7 @@ class _View(object):
 			cls.slots[slot].append(functools.partial(cls, init=view))
 			return view
 		return _inner
+
 
 	@classmethod
 	def require(cls, slot):
@@ -454,7 +391,7 @@ class View(_View):
 	events = emen2.web.events.EventRegistry()
 	notifications = emen2.web.notifications.NotificationHandler()
 
-	def __init__(self, db=None, **extra):
+	def __init__(self, db=None, **blargh):
 		self.__db = db
 		ctx = getattr(self.__db, '_getctx', lambda:None)()
 		self.ctxid = ctx and ctx.name
@@ -476,7 +413,7 @@ class View(_View):
 		)
 
 		# Need to pass in the basectxt before the View's init()
-		_View.__init__(self, basectxt=basectxt, **extra)
+		_View.__init__(self, basectxt=basectxt, **blargh)
 
 
 	def notify(self, msg):
@@ -611,11 +548,12 @@ class ViewLoader(object):
 
 
 	def routes_from_g(self):
-		for key, value in self.routing_table.iteritems():
-			for name, regex in value.iteritems():
-				view = self.router.get(key)
-				if view:
-					view.add_matcher(name, regex, view.get_callback('main'))
+		pass
+		# for key, value in self.routing_table.iteritems():
+		# 	for name, regex in value.iteritems():
+		# 		view = self.router.get(key)
+		# 		if view:
+		# 			view.add_matcher(name, regex, view.get_callback('main'))
 
 
 	def load_redirects(self):

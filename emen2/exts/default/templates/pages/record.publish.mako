@@ -28,7 +28,7 @@ import jsonrpc.jsonutil
 <h1>
 	Published Records
 	<div class="controls save" id="ext_save">
-		<img class="spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
+		<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 		<input type="submit" value="Save" name="save">
 	</div>
 </h1>

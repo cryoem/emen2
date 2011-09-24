@@ -1,7 +1,7 @@
 ##########################################################
 
 <%def name="buttons(tabs)">
-	<ul class="buttons clearfix floatlist" id="${tabs.getid_buttons()}" data-tabgroup="${tabs.getclassname()}">
+	<ul class="e2l-tab-buttons e2l-clearfix e2l-float-list" id="${tabs.getid_buttons()}" data-tabgroup="${tabs.getclassname()}">
 	% for i in tabs.order:
 		<li class="${tabs.getclass_button(i)}" id="${tabs.getid_button(i)}" data-tabgroup="${tabs.getclassname()}" ${tabs.getjs_button(i)} >${tabs.getcontent_button(i)}</li>
 	% endfor
@@ -11,7 +11,7 @@
 ##########################################################
 
 <%def name="pages(tabs)">
-	<div class="pages clearfix" id="${tabs.getid_pages()}" data-tabgroup="${tabs.getclassname()}">
+	<div class="e2l-tab-pages e2l-clearfix" id="${tabs.getid_pages()}" data-tabgroup="${tabs.getclassname()}">
 		% for i in tabs.order:
 			<div class="${tabs.getclass_page(i)}" id="${tabs.getid_page(i)}" data-tabgroup="${tabs.getclassname()}">
 				${tabs.getcontent_page(i)}
@@ -35,7 +35,7 @@
 
 <%def name="pageswrap(tabs)">
 
-	<div class="pages" id="${tabs.getid_pages()}" data-tabgroup="${tabs.getclassname()}">
+	<div class="e2l-tab-pages" id="${tabs.getid_pages()}" data-tabgroup="${tabs.getclassname()}">
 		${caller.body()}
 	</div>
 	
@@ -45,13 +45,13 @@
 
 
 <%def name="titlebutton(title)">
-	<ul data-tabgroup="main" id="buttons_main" class="buttons clearfix floatlist">
-		<li data-tabgroup="main" id="button_main_main" class="button button_main active">${title}</li>
+	<ul data-tabgroup="main" id="buttons_main" class="e2l-tab-buttons e2l-clearfix e2l-float-list">
+		<li data-tabgroup="main" id="button_main_main" class="e2l-button button_main active">${title}</li>
 	</ul>
 </%def>
 
 <%def name="save(label='Save')">
-	<div class="e2-layout-controls clearfix">
+	<div class="e2l-float-right e2l-clearfix">
 		${caller.body()}
 		<input value="${label}" type="submit" class="big save">
 	</div>
@@ -86,9 +86,9 @@
 	<div class="e2-infobox" data-name="${item.get('name')}" data-keytype="${item.get('keytype')}">
 
 		% if link:
-			<a href="${link}"><img alt="Photo" class="thumbnail" src="${src}" /></a>
+			<a href="${link}"><img alt="Photo" class="e2l-thumbnail" src="${src}" /></a>
 		% else:
-			<img alt="Photo" class="thumbnail" src="${src}" />
+			<img alt="Photo" class="e2l-thumbnail" src="${src}" />
 		% endif
 
 		<h4>

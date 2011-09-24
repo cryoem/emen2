@@ -36,7 +36,7 @@ for k,v in d.items():
 %>
 
 
-<div class="clearfix"><div class="infobuttons">Last Name Index</div></div>
+<div class="e2l-clearfix"><div class="infobuttons">Last Name Index</div></div>
 <div class="info">
 
 	% for k in sorted(d.keys()):
@@ -53,7 +53,7 @@ for k,v in d.items():
 % for k in sorted(d.keys()):
 
 <a name="${k}"></a>
-<h1 class="clearfix">${k.capitalize()}</h1>
+<h1 class="e2l-clearfix">${k.capitalize()}</h1>
 	% for user in d[k]:
 		${buttons.infobox(user, autolink=True)}
 	% endfor

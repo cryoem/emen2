@@ -78,7 +78,7 @@ import jsonrpc.jsonutil
 			<td><input type="checkbox" checked="checked" name="bids" value="${bdo.name}" data-filesize="${bdo.get('filesize',0)}" /></td>
 			<td>
 				<a href="${EMEN2WEBROOT}/download/${bdo.name}/${bdo.filename}/save/">
-					<img class="thumbnail" src="${EMEN2WEBROOT}/download/${bdo.name}/${bdo.filename}?size=thumb" alt="" /> 
+					<img class="e2l-thumbnail" src="${EMEN2WEBROOT}/download/${bdo.name}/${bdo.filename}?size=thumb" alt="" /> 
 					${bdo.filename}
 				</a>
 			</td>

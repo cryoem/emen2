@@ -34,7 +34,7 @@ for k,v in d.items():
 %>
 
 
-<div class="clearfix"><div class="infobuttons">Parameter Vartype Index</div></div>
+<div class="e2l-clearfix"><div class="infobuttons">Parameter Vartype Index</div></div>
 <div class="info">
 
 	% for k in sorted(d.keys()):
@@ -49,7 +49,7 @@ for k,v in d.items():
 % for k in sorted(d.keys()):
 
 <a name="${k}"></a>
-<h1 class="clearfix">${str(k).capitalize()}</h1>
+<h1 class="e2l-clearfix">${str(k).capitalize()}</h1>
 
 	% for paramdef in d[k]:
 		${buttons.infobox(paramdef, autolink=True)}

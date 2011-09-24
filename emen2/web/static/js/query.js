@@ -77,10 +77,10 @@ function query_build_path(q, postpend) {
 			}
 			
 			this.built = 1;
-			this.container = $('<div class="clearfix" />');
+			this.container = $('<div class="e2l-clearfix" />');
 						
 			var m = $(' \
-				<table cellpadding="0" cellspacing="0" class="shaded" > \
+				<table cellpadding="0" cellspacing="0" class="e2l-shaded" > \
 					<thead> \
 						<tr> \
 							<th>Parameter</th> \
@@ -142,8 +142,8 @@ function query_build_path(q, postpend) {
 			$('.e2-find-recorddef', this.container).FindControl({keytype: 'recorddef'});
 			$('.e2-find-paramdef', this.container).FindControl({keytype: 'paramdef'});
 
-			var save = $('<div class="controls"> \
-				<img class="spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /> \
+			var save = $('<div class="e2l-controls"> \
+				<img class="e2l-spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /> \
 				<input type="button" value="Query" name="save" /></div>');				
 			this.container.append(save);
 			$('input[name=save]', this.container).bind("click", function(e){self.query()});			

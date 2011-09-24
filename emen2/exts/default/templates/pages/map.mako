@@ -24,7 +24,7 @@
 
 	</%def>
 	
-	<div class="e2-map e2-map-${mode} clearfix" data-root="${root}" data-mode="${mode}" data-keytype="${keytype}">
+	<div class="e2-map e2-map-${mode} e2l-clearfix" data-root="${root}" data-mode="${mode}" data-keytype="${keytype}">
 		${inner(None, tree.get(None, [root]), depth=1)}
 	</div>
 	

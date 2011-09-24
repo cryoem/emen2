@@ -64,14 +64,14 @@
 		build_options: function() {
 			var self = this;
 			var options = $(' \
-				<ul class="buttons floatlist clearfix"> \
-					<li class="button active">Repeat</li> \
-					<li class="button">Alerts</li> \
-					<li class="button">Permissions</li> \
-					<li class="button">Attachments</li> \
+				<ul class="e2l-tab-buttons e2l-float-list e2l-clearfix"> \
+					<li class="e2l-button e2l-tab-active">Repeat</li> \
+					<li class="e2l-button">Alerts</li> \
+					<li class="e2l-button">Permissions</li> \
+					<li class="e2l-button">Attachments</li> \
 				</ul> \
-				<div class="pages"> \
-					<div class="e2-daterepeat-options-repeat page active">Loading</div> \
+				<div class="e2l-tab-pages"> \
+					<div class="e2-daterepeat-options-repeat e2l-tab-page e2l-tab-active">Loading</div> \
 				</div> \
 			');
 			this.dialog.append(options);
@@ -130,7 +130,7 @@
 				<tr> \
 					<td>Ends:</td> \
 					<td> \
-						<ul class="nonlist"> \
+						<ul class="e2l-nonlist"> \
 							<li><input type="radio" name="dtopts" checked="checked" /> Never</li> \
 							<li><input type="radio" name="dtopts" /> After <input type="text" name="count" size="4" /> occurrences</li> \
 							<li><input type="radio" name="dtopts" /> On <input type="text" name="dtend" /></li> \

@@ -30,12 +30,12 @@
 
 	## Alerts and notifications
 	<%block name="alert">
-		<ul id="alert" class="alert nonlist precontent">
+		<ul id="e2l-alert" class="e2l-alert e2l-nonlist e2l-precontent">
 			% for msg in notify:
-			   <li class="notify">${msg}</li>
+			   <li>${msg}</li>
 			% endfor
 			% for msg in errors:
-			   <li class="notify error">${msg}</li>
+			   <li class="e2l-error">${msg}</li>
 			% endfor
 	   </ul>
 	</%block>
@@ -46,9 +46,9 @@
 	## Tabs
 	<%block name="tabs">
 		% if pages:
-			<div class="precontent">${buttons.buttons(pages)}</div>
+			<div class="e2l-precontent">${buttons.buttons(pages)}</div>
 		% else:
-			<div class="precontent">${buttons.titlebutton(title)}</div>
+			<div class="e2l-precontent">${buttons.titlebutton(title)}</div>
 		% endif	
 	</%block>
 

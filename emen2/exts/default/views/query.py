@@ -110,7 +110,7 @@ class Query(View):
 
 
 	@View.add_matcher(r'^/query/$', r'^/query/(?P<path>.*)/$')
-	def main(self, path=None, notify=None, *args, **kwargs):
+	def main(self, path=None, *args, **kwargs):
 		self.init(path, *args, **kwargs)
 		self.q['count'] = 100
 		self.q['table'] = True
@@ -157,7 +157,7 @@ class Query(View):
 
 
 	# @View.add_matcher(r'^/query/(?P<path>.*)/goupby/$')
-	# def groupby(self, notify=None, path=None, *args, **kwargs):
+	# def groupby(self, path=None, *args, **kwargs):
 	# 	self.template = '/pages/query.groupby'
 	# 	# if name == None:
 	# 	# 	name = g.BOOKMARKS.get("GROUPS", 0)

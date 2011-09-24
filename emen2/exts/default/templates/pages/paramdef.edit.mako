@@ -23,7 +23,7 @@
 	${title}
 
 	<div class="controls save" id="ext_save">
-		<img class="spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
+		<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 		<input type="button" value="Save" name="save">
 	</div>	
 
@@ -61,7 +61,7 @@
 	<tr>
 		<td>Default Choices</td>
 		<td>
-			<ul class="nonlist">
+			<ul class="e2l-nonlist">
 				% for i,j in enumerate(list(paramdef.choices or [])+[""]*6):
 					<li><input type="text" name="choices" value="${j}"></li>
 				% endfor

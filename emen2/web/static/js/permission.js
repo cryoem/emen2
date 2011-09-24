@@ -82,7 +82,7 @@
 
 			// Save controls
 			if (this.options.edit) {
-				this.savearea = $('<div class="controls save"><ul class="options nonlist"></ul><img class="spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+				this.savearea = $('<div class="e2l-controls"><ul class="e2l-nonlist"></ul><img class="e2l-spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 				if (this.options.keytype == 'record' && this.options.name != "None") {
 					
 					var opt_recurse = $(' \
@@ -176,10 +176,10 @@
 			var self=this;
 			this.grouparea.empty();
 
-			var level = $('<div class="e2-permissions-level clearfix" data-level="group"></div>');
+			var level = $('<div class="e2-permissions-level e2l-clearfix" data-level="group"></div>');
 			this.grouparea.append(level);
 
-			var title = $('<h4 class="clearfix"> Groups <span class="small floatright clickable">(select all)</span></h4>');
+			var title = $('<h4 class="e2l-clearfix"> Groups <span class="small e2l-float-right clickable">(select all)</span></h4>');
 			if (this.options.edit) {
 				var button = $('<input type="button" value="+" /> ');
 				button.FindControl({
@@ -202,8 +202,8 @@
 			this.userarea.empty();		
 		
 			$.each(this.permissions, function(k,v) {			
-				var level = $('<div class="e2-permissions-level clearfix" data-level="'+k+'"></div>');
-				var title = $('<h4 class="clearfix"> '+self.options.levels[k]+' <span class="small floatright clickable">(select all)</span></h4>');
+				var level = $('<div class="e2-permissions-level e2l-clearfix" data-level="'+k+'"></div>');
+				var title = $('<h4 class="e2l-clearfix"> '+self.options.levels[k]+' <span class="small e2l-float-right clickable">(select all)</span></h4>');
 				if (self.options.edit) {
 					var button = $('<input type="button" value="+" />');
 					button.FindControl({
@@ -357,12 +357,12 @@
 			sec_commit["permissions"] = this.getaddusers(1);
 			sec_commit["groups"] = this.getaddgroups(1);
 
-			$('.spinner', this.savearea).show();			
+			$('.e2l-spinner', this.savearea).show();			
 			$.jsonRPC.call("setpermissions", sec_commit, 
 				function() {				
 					$.jsonRPC.call("getrecord",[self.options.name],
 						function(record) {
-							$('.spinner', self.savearea).hide();
+							$('.e2l-spinner', self.savearea).hide();
 							// ian: changing permissions shouldn't require a full rebuild...
 							$.notify("Saved Permissions");
 							caches['record'][self.options.name] = record;

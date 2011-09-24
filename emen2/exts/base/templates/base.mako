@@ -23,10 +23,9 @@
 
 	<%block name="stylesheet_include">
 		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/custom-theme/jquery-ui-1.8.2.custom.css" />
-		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/base.css" />
-		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/style.css" />
+		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/tmpl-${VERSION}/css/base.css" />
+		## <link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/tmpl-${VERSION}/css/style.css" />
 		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/boxer.css" />
-		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/tmpl-${VERSION}/css/map.css/" />
 	</%block>
 	
 	<style type="text/css">

@@ -28,18 +28,18 @@
 				self.options.q['pos'] = 0;
 				self.query();
 			})			
-			count = $('<li class="floatright noborder" />').append(count);
+			count = $('<li class="e2l-float-right" />').append(count);
 
 			// Page controls			
-			var pages = $('<li class="floatright noborder e2-table-pages"></li>');
+			var pages = $('<li class="e2l-float-right e2-table-pages"></li>');
 
 			// Activity spinner
-			var spinner = $('<li class="floatright noborder"><img class="spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></li>');
+			var spinner = $('<li class="e2l-float-right"><img class="e2l-spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></li>');
 
 			// Create a new child record
 			var create = "";
 			if (this.options.rectype && this.options.parent != null) {
-				var create = $('<li class="floatright"><input class="small" data-action="reload" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="submit" value="New '+this.options.rectype+'" /></li>');
+				var create = $('<li class="e2l-float-right"><input class="small" data-action="reload" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="submit" value="New '+this.options.rectype+'" /></li>');
 				$('input', create).NewRecordControl({});
 			}
 
@@ -63,7 +63,7 @@
 			// Build the Tools & Statistics menu
 			var self = this;
 			var q = $('<li><span class="clickable label">Tools<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
-			var hidden = $('<div class="hidden"><ul class="nonlist"> \
+			var hidden = $('<div class="e2l-menu-hidden"><ul class="e2l-nonlist"> \
 						<li class="clickable e2-table-files"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Download all files in this table</li> \
 					</ul></div>');
 
@@ -91,7 +91,7 @@
 		build_stats: function() {
 			var self = this;
 			var q = $('<li><span class="clickable label">Statistics<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
-			var hidden = $('<div class="hidden"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+			var hidden = $('<div class="e2l-menu-hidden"><img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			q.append(hidden);
 			q.EditbarControl({
 				width: 300
@@ -138,7 +138,7 @@
 		query: function(newq) {
 			// Update the query from the current settings
 			newq = newq || this.options.q;
-			$('.e2-table-header .spinner', this.element).show();
+			$('.e2-table-header .e2l-spinner', this.element).show();
 			var self = this;
 			var count = $('.e2-table-header select[name=count]').val();
 			if (count) {newq["count"] = parseInt(count)}
@@ -177,7 +177,7 @@
 			this.update_controls();
 			this.rebuild_table();
 			this.options.q['stats'] = true;
-			$('.e2-table-header .spinner', this.element).hide();					
+			$('.e2-table-header .e2l-spinner', this.element).hide();					
 		},	
 		
 		update_controls: function() {
@@ -240,11 +240,11 @@
 				var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count'])-1;
 				var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}			
 
-				var p1 = $('<span data-pos="0" class="clickable chevron">&laquo;</span>').click(setpos);
-				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="clickable chevron">&lsaquo;</span>').click(setpos);
+				var p1 = $('<span data-pos="0" class="clickable">&laquo;</span>').click(setpos);
+				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="clickable">&lsaquo;</span>').click(setpos);
 				var p  = $('<span class="label"> '+(current+1)+' / '+(pagecount+1)+' </span>');
-				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="clickable chevron">&rsaquo;</span>').click(setpos);
-				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="clickable chevron">&raquo;</span>').click(setpos);
+				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="clickable">&rsaquo;</span>').click(setpos);
+				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="clickable">&raquo;</span>').click(setpos);
 
 				if (current > 0) {pc.prepend(p2)}
 				if (current > 1) {pc.prepend(p1, '')}
@@ -280,11 +280,11 @@
 					this[3]=''
 				}
 				var iw = $('<th>'+this[0]+'</th>');
-				var bw = $('<th class="nopadding" data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');			
+				var bw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');			
 
 				// An editable, sortable field..
 				if (this[1] == "$" && $.inArray(this[2],immutable)==-1) {
-					var editable = $('<button name="edit" class="floatright nopadding"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
+					var editable = $('<button name="edit" class="e2l-float-right"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
 					bw.append(editable);
 				}
 
@@ -294,7 +294,7 @@
 					if (self.options.q['reverse']) {direction = 0}
 				}
 				
-				var sortable = $('<button name="sort" class="floatright nopadding"><img src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="'+direction+'" /></button>');
+				var sortable = $('<button name="sort" class="e2l-float-right"><img src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="'+direction+'" /></button>');
 				bw.append(sortable);				
 
 				tr.append(iw);

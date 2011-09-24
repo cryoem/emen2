@@ -1,7 +1,7 @@
-<ul id="nav" class="menu floatlist clearfix">
+<ul id="nav" class="e2l-menu e2l-float-list e2l-clearfix">
 
-	<li class="nohover">
-		<a class="nopadding" href="${EMEN2WEBROOT}/"><img class="logo" src="${EMEN2WEBROOT}/static/images/${EMEN2LOGO}" alt="${EMEN2DBNAME}" /></a>
+	<li>
+		<a href="${EMEN2WEBROOT}/"><img src="${EMEN2WEBROOT}/static/images/${EMEN2LOGO}" alt="${EMEN2DBNAME}" /></a>
 	</li>
 
 	% if USER:
@@ -42,19 +42,19 @@
 	
 		<li id="bookmarks" data-parent="${USER.record}"><a href="">Bookmarks <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
 			<ul id="bookmarks">
-				<li><a href=""><img src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" /></a></li>
+				<li><a href=""><img class="e2l-spinner" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" /></a></li>
 			</ul>
 		</li>
 	
 	% endif
 
-	<li class="floatright nohover">
+	<li class="e2l-float-right nohover">
 		<form method="get" action="${EMEN2WEBROOT}/query/">
 			<input type="text" name="q" size="8" value="Search" id="e2-header-search" />
 		</form>
 	</li>
 
-	<li class="floatright">
+	<li class="e2l-float-right">
 		% if USER:
 			<a href="${EMEN2WEBROOT}/user/${USER.name}/">${USER.displayname} <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
 			<ul>				

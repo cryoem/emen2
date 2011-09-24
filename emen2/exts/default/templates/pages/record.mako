@@ -14,24 +14,6 @@
 </%block>
 
 
-## Additional alerts
-<%block name="alert">
-	${parent.alert()}
-	<ul id="alert" class="alert nonlist precontent">
-		% if rec.get('deleted'):
-			<li class="notify error">Deleted Record</li>
-		% endif
-
-		% if 'publish' in rec.get('groups', []):
-			<li class="notify">Record marked as published data</li>
-		% endif
-
-		% if 'authenticated' in rec.get('groups', []):
-			<li class="notify">Any authenticated user can access this Record</li>
-		% endif
-	</ul>
-</%block>
-
 ## Relationship Map
 <%block name="precontent">
 	<br />

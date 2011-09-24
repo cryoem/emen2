@@ -95,7 +95,7 @@
 			controls.append('<h4 class="label">Boxes</h4>\
 				<input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /> \
 				<input type="button" name="newset" value="New Set" /><br /> \
-				<div class="spinner hide"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div> \
+				<div class="e2l-spinner hide"><img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div> \
 				<input type="button" name="saveall" value="Save All" /> \
 				');
 			controls.find("input[name=bigger]").click(function() {
@@ -259,7 +259,7 @@
 			var self = this;
 			var recs = [];
 
-			$('.spinner', this.element).show();
+			$('.e2l-spinner', this.element).show();
 
 			$(".e2-box-boxarea", this.element).each(function(){
 				var rec = self._save($(this).attr('data-label'));
@@ -271,7 +271,7 @@
 			
 			$.jsonRPC.call("putrecord", [recs], function(recs) {
 				$.each(recs, function() {
-					$('.spinner', self.element).hide();
+					$('.e2l-spinner', self.element).hide();
 					self.load_record(this);
 				});
 			});			
@@ -382,7 +382,7 @@
 			colorcontrols.append(pen, hide, colorpicker);
 
 			var actions = $('<td />');
-			actions.append('<img class="spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" />', save1, remove);					
+			actions.append('<img class="e2l-spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" />', save1, remove);					
 
 			var boxheader = $('<tr data-label="'+label+'" />');
 			
@@ -632,13 +632,13 @@
 		show: function() {
 			var self = this;
 			if (this.options.mode == "cached") {
-				this.element.append('<img class="spinner" src="'+EMEN2WEBROOT+'/static/images/spinner2.gif" alt="Loading" />');
+				this.element.append('<img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner2.gif" alt="Loading" />');
 				$.ajax({
 					type: 'POST',
 					url: EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/check/',
 					dataType: 'json',
 					success: function(d) {
-						$('.spinner', self.element).remove();
+						$('.e2l-spinner', self.element).remove();
 						//self.options.extend(d);
 						self.options.width = d['width'];
 						self.options.height = d['height'];
@@ -648,7 +648,7 @@
 					},
 					error: function(x,y,z) {
 						//alert("Error! Could not access tiles!");
-						$('.spinner', self.element).remove();
+						$('.e2l-spinner', self.element).remove();
 						self.build_static();
 						//self.element.append('Could not access tiles!');
 					}

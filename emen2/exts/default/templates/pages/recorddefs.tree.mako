@@ -27,6 +27,6 @@
 	});	
 </script>
 
-<div id="sitemap" class="clearfix">
+<div id="sitemap" class="e2l-clearfix">
 ${childmap}
 </div>

@@ -5,6 +5,7 @@ class CallableGeneratorContextManager(contextlib.GeneratorContextManager):
 	def __call__(self, *a, **kw):
 		with self as obj:
 			return obj(*a, **kw)
+			
 def contextmanager(func):
     """@contextmanager decorator.
 

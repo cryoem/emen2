@@ -71,20 +71,20 @@ class HTMLTab():
 			del self.js[name]
 
 	def getclass_buttons(self):
-		return "buttons"%self.classname
+		return "e2l-tab-buttons"%self.classname
 
 	def getclass_pages(self):
-		return "pages"%self.classname
+		return "e2l-tab-pages"%self.classname
 
 	def getclass_button(self, name):
 		if name==self.active:
-			return "button active"
-		return "button"
+			return "e2l-tab-button e2l-tab-active"
+		return "e2l-tab-button"
 
 	def getclass_page(self, name):
 		if name==self.active:
-			return "clearfix page active"
-		return "clearfix page"
+			return "e2l-clearfix e2l-tab-page e2l-tab-active"
+		return "e2l-clearfix e2l-tab-page"
 
 	#id="buttons_main" class="buttons buttons_main"
 	def getid_buttons(self):

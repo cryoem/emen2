@@ -16,13 +16,13 @@ from emen2.web.markuputils import HTMLTab
 	<span class="label"><a href="${EMEN2WEBROOT}/user/${user.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
 </h1>
 
-<div class="clearfix">
+<div class="e2l-clearfix">
 
-	<div class="floatleft">
+	<div class=".e2l-float-left">
 		${pages_user_util.page_userrec(user, False)}
 	</div>
 	
-	<div class="floatright">
+	<div class="e2l-float-right">
 		${pages_user_util.page_photo(user, False)}
 	</div>
 
@@ -38,7 +38,7 @@ from emen2.web.markuputils import HTMLTab
 
 % if admin:
 
-	<div class="clearfix">
+	<div class="e2l-clearfix">
 
 	<%
 	admin_tabs = {

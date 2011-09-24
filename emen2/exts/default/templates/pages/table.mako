@@ -3,8 +3,8 @@
 	<% import jsonrpc.jsonutil %>
 
 	<div class="e2-recordtable">
-		<ul class="clearfix floatlist editbar menu editbar e2-table-header"></ul>
-		<table class="e2-table-inner shaded" cellspacing="0" cellpadding="0"> 
+		<ul class="e2l-clearfix e2l-float-list editbar menu editbar e2-table-header"></ul>
+		<table class="e2-table-inner e2l-shaded" cellspacing="0" cellpadding="0"> 
 			<thead>
 				% for v in q['table']['headers'].get(None, []):
 					<th><div data-name="${v[2]}" data-args="${v[3]}">${v[0]}</div></th>

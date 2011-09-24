@@ -67,7 +67,7 @@
 			if (this.options.time) {
 				// h4.append(' @ '+this.options.time);
 				// <abbr class="timeago" title="2008-07-17T09:24:17Z">July 17, 2008</abbr>
-				h4.append('<time class="e2-timeago floatright" datetime="'+this.options.time+'">'+this.options.time+'</time>');
+				h4.append('<time class="e2-timeago e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
 			}
 			var p = $('<p class="small" />');
 			p.append(body);
@@ -76,16 +76,16 @@
 			if (this.options.keytype == 'user' && item.userrec['person_photo']) {
 				src = EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/?size=thumb';
 			}
-			var img = $('<img data-src="'+src+'" src="'+src+'" class="thumbnail" alt="Photo" />');
+			var img = $('<img data-src="'+src+'" src="'+src+'" class="e2l-thumbnail" alt="Photo" />');
 			if (link) {img = $('<a href="'+link+'" />').append(img)}
 			this.element.append(img, h4, p);
 
 			if (this.options.deleteable) {
 				//this.element.append('<img class="delete" src="'+EMEN2WEBROOT+'/static/images/delete.png" alt="Remove" />');
 				$(this.element).hover(function(){
-					$('img.thumbnail', this).attr('src', EMEN2WEBROOT+'/static/images/delete.png');
+					$('img.e2l-thumbnail', this).attr('src', EMEN2WEBROOT+'/static/images/delete.png');
 				}, function() {
-					$('img.thumbnail', this).attr('src', $('img.thumbnail', this).attr('data-src'));
+					$('img.e2l-thumbnail', this).attr('src', $('img.e2l-thumbnail', this).attr('data-src'));
 				})
 				
 			}
@@ -117,7 +117,7 @@
 
 		build: function() {
 			var self = this;
-			this.dialog = $('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+			this.dialog = $('<div><img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			this.element.append(this.dialog);
 			this.dialog.attr("title", "Select Record");
 			
@@ -247,8 +247,8 @@
 				self.search(v);
 			});
 
-			this.statusmsg = $('<span class="floatright">No Results</span>');
-			var searchbox = $('<div class="searchbox">Search: </div>');
+			this.statusmsg = $('<span class="e2l-float-right">No Results</span>');
+			var searchbox = $('<div class="e2l-searchbox">Search: </div>');
 			searchbox.append(this.searchinput, this.statusmsg); //,this.searchbutton
 			this.resultsarea = $('<div>Results</div>');
 		
@@ -260,7 +260,7 @@
 				height: 400
 			});
 			
-			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="spinner hide"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></span>');		
+			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="e2l-spinner hide"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></span>');		
 		},
 
 		event_click: function(e) {
@@ -306,7 +306,7 @@
 				return
 			}
 			
-			$('.spinner', this.dialog.dialog('widget')).show();
+			$('.e2l-spinner', this.dialog.dialog('widget')).show();
 			
 			var query = {}
 			query['query'] = q;
@@ -315,7 +315,7 @@
 			}
 				
 			$.jsonRPC.call('find'+this.options.keytype, query, function(items) {
-				$('.spinner', self.dialog.dialog('widget')).hide();				
+				$('.e2l-spinner', self.dialog.dialog('widget')).hide();				
 				self.resultsarea.empty();
 				var l = items.length;
 				if (l==0) {

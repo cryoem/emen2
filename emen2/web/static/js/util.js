@@ -19,7 +19,7 @@ window.log = function(){
 	}
 
 	$.spinner = function() {
-		return '<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner hide" alt="Loading" />'
+		return '<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="e2l-spinner hide" alt="Loading" />'
 	}
 	
 	// Update controls when a record has changed
@@ -56,18 +56,18 @@ window.log = function(){
 
 	// Notifications
 	$.notify = function(msg, fade, error) {
-		var msg=$('<li class="notify">'+msg+'</li>');
+		var msg=$('<li>'+msg+'</li>');
 		if (error) {
 			msg.addClass("error");
 		}
-		var killbutton = $('<span class="floatright">X</span>');
+		var killbutton = $('<span class="e2l-float-right">X</span>');
 		killbutton.click(function() {
 			$(this).parent().fadeOut(function(){
 				$(this).remove();
 			});		
 		});
 		msg.append(killbutton);
-		$("#alert").append(msg); //.fadeIn();	
+		$("#e2-alert").append(msg); //.fadeIn();	
 	}
 	
 	// Convert a byte count to human friendly
@@ -195,16 +195,16 @@ window.log = function(){
 	$.switchin = function(classname, id) {
 		$('#buttons_'+classname+' *').each(function() {
 			if (this.id == 'button_'+classname+'_'+id) {
-				$(this).addClass('active');
+				$(this).addClass('e2l-tab-active');
 			} else {
-				$(this).removeClass('active');
+				$(this).removeClass('e2l-tab-active');
 			}
 		});
 		$('#pages_'+classname+' *').each(function() {
 			if (this.id == 'page_'+classname+'_'+id) {
-				$(this).addClass('active');
+				$(this).addClass('e2l-tab-active');
 			} else {
-				$(this).removeClass('active');
+				$(this).removeClass('e2l-tab-active');
 			}
 		});
 	}
@@ -298,7 +298,7 @@ window.log = function(){
 			
 			//$('img.star', this.element).
 			this.element.empty();
-			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="spinner hide" alt="Loading" />');
+			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="e2l-spinner hide" alt="Loading" />');
 			this.element.append(spinner);
 			
 			$.jsonRPC.call('rel.child', [this.options.parent, 1, 'bookmarks'], function(children) {
@@ -346,7 +346,7 @@ window.log = function(){
 
 	// Siblings control
 	$.widget('emen2.SiblingsControl', {
-		// $("#e2-editbar-record-siblings").EditbarControl({
+		// $("#e2l-editbar-record-siblings").EditbarControl({
 		// 	show: showsiblings,
 		// 	width:300,
 		// 	align: 'right',
@@ -364,16 +364,16 @@ window.log = function(){
 		// 			$.jsonRPC.call("renderview", [siblings, null, "recname"], function(recnames) {
 		// 				siblings = siblings.sort(function(a,b){return a-b});
 		// 				sibs.empty();
-		// 				var prevnext = $('<h4 class="clearfix e2-editbar-sibling-prevnext"></h4>');
+		// 				var prevnext = $('<h4 class="e2l-clearfix e2l-editbar-sibling-prevnext"></h4>');
 		// 				if (prev) {
-		// 					prevnext.append('<div class="floatleft"><a href="'+EMEN2WEBROOT+'/record/'+prev+'/#siblings">&laquo; Previous</a></div>');
+		// 					prevnext.append('<div class=".e2l-float-left"><a href="'+EMEN2WEBROOT+'/record/'+prev+'/#siblings">&laquo; Previous</a></div>');
 		// 				}
 		// 				if (next) {
-		// 					prevnext.append('<div class="floatright"><a href="'+EMEN2WEBROOT+'/record/'+next+'/#siblings">Next &raquo;</a></div>');
+		// 					prevnext.append('<div class="e2l-float-right"><a href="'+EMEN2WEBROOT+'/record/'+next+'/#siblings">Next &raquo;</a></div>');
 		// 				}					
 		// 				sibs.append(prevnext);
 		// 
-		// 				var ul = $('<ul class="nonlist"/>');
+		// 				var ul = $('<ul class="e2l-nonlist"/>');
 		// 				$.extend(caches["recnames"], recnames);
 		// 				$.each(siblings, function(i,k) {
 		// 					if (k != rec.name) {
@@ -442,7 +442,7 @@ window.log = function(){
 			this.built = 0;
 			var self = this;
 			this.cachepadding = null;
-			this.element.addClass('active');
+			this.element.addClass('e2l-tab-active');
 			
 			if (this.options.bind) {
 				$('.label', this.element).click(function(e) {
@@ -458,7 +458,7 @@ window.log = function(){
 		},
 		
 		toggle: function() {
-			if (this.element.hasClass('hover')) {
+			if (this.element.hasClass('e2l-hover')) {
 				this.hide();
 			} else {
 				this.show();
@@ -466,9 +466,9 @@ window.log = function(){
 		},
 		
 		show: function() {
-			$('.editbar .hover').EditbarControl('hide');
+			$('.e2l-editbar .e2l-hover').EditbarControl('hide');
 			this.build();
-			this.element.addClass('hover');
+			this.element.addClass('e2l-hover');
 			this.options.cb(this);
 			this.popup.show();
 			if (this.options.reflow) {
@@ -482,7 +482,7 @@ window.log = function(){
 			if (!this.built) {return}
 			this.popup.hide();
 			this.options.cb(this);
-			this.element.removeClass('hover');
+			this.element.removeClass('e2l-hover');
 			if (this.options.reflow) {
 				$(this.options.reflow).css('padding-top', this.cachepadding);
 			}
@@ -497,9 +497,9 @@ window.log = function(){
 			
 			var pos = this.element.position();
 
-			this.popup = $('.hidden', this.element);
+			this.popup = $('.e2l-menu-hidden', this.element);
 			if (!this.popup.length) {
-				this.popup = $('<div class="hidden" />');
+				this.popup = $('<div class="e2l-menu-hidden" />');
 				this.element.append(this.popup);
 			}
 			
