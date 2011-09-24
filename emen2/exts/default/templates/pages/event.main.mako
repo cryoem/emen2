@@ -34,8 +34,7 @@ def convertevent(e, dtstart=None, dtend=None):
 %>
 
 
-<script type="text/javascript">
-$(document).ready(function() {
+<%block name="javascript_ready">
 	$('.e2-event-repeat').DateRepeatControl({});
 	
 	$('#calendar').fullCalendar({
@@ -50,7 +49,7 @@ $(document).ready(function() {
 	    }
 	});
 });
-</script>
+</%block>
 
 
 <div class="e2-event-repeat">New Event</div>

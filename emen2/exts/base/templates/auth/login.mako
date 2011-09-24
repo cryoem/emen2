@@ -2,14 +2,6 @@
 
 <%def name="login(location='/', errmsg='', logintext='')">
 
-	<script type="text/javascript">
-	//<![CDATA[
-	$(document).ready(function() {
-		$("input[name=name]").focus();
-	});
-	//]]>
-	</script>
-
 	% if logintext:
 		<h1>${logintext}</h1>
 	% endif

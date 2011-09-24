@@ -1,52 +1,38 @@
+<%! import jsonrpc.jsonutil %>
 <%inherit file="/page" />
 <%namespace name="table" file="/pages/table"  /> 
 
-<% 
-import jsonrpc.jsonutil 
-%>
 
 
-<script type="text/javascript">
-//<![CDATA[
-	$(document).ready(function() {
+<%block name="javascript_ready">
+	${parent.javascript_ready}
 
-		function updatefilesize() {
-			var s = 0;
-			var c = $('input[name=bids]:checked');
-			c.each(function() {
-				var z = parseInt($(this).attr('data-filesize'));
-				if (z > 0) {
-					s += z;
-				}
-			});
-			$('#filesize').text($.convert_bytes(s));
-			$('#filecount').text(c.length);
-		}
-
-		// plain form action is fine here
-		// $('input[name=download]').click(function() {
-		// 	var s = [];
-		// 	$('input[name=bids]:checked').each(function() {
-		// 		s.push($(this).val());
-		// 	});
-		// });
-		
-		$('input[name=checkbids]').click(function() {
-			var s = $(this).attr('checked');
-			$('input[name=bids]').each(function() {
-				$(this).attr('checked', s);
-			});
-			updatefilesize();
+	function updatefilesize() {
+		var s = 0;
+		var c = $('input[name=bids]:checked');
+		c.each(function() {
+			var z = parseInt($(this).attr('data-filesize'));
+			if (z > 0) {
+				s += z;
+			}
 		});
-		
-		$('input[name=bids]').click(function() {
-			updatefilesize();
+		$('#filesize').text($.convert_bytes(s));
+		$('#filecount').text(c.length);
+	}
+
+	$('input[name=checkbids]').click(function() {
+		var s = $(this).attr('checked');
+		$('input[name=bids]').each(function() {
+			$(this).attr('checked', s);
 		});
+		updatefilesize();
+	});
+	
+	$('input[name=bids]').click(function() {
+		updatefilesize();
+	});
 
-
-	});	
-//]]>
-</script>
+</%block>
 
 
 <form method="post" action="${EMEN2WEBROOT}/download/save/">

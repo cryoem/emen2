@@ -1,43 +1,36 @@
+<%! import jsonrpc.jsonutil %>
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  />
 <%namespace name="pages_user_util" file="/pages/user.util"  />
 
 
-<%
-import jsonrpc.jsonutil
-%>
 
 
-<script type="text/javascript">
-//<![CDATA[
-	$(document).ready(function() {
 
-		var edit = ${jsonrpc.jsonutil.encode(edit)};
+<%block name="javascript_ready">
+	${parent.javascript_ready()}
 
-		caches['group'][${jsonrpc.jsonutil.encode(group.name)}] = ${jsonrpc.jsonutil.encode(group)};
+	var edit = ${jsonrpc.jsonutil.encode(edit)};
+	caches['group'][${jsonrpc.jsonutil.encode(group.name)}] = ${jsonrpc.jsonutil.encode(group)};
 
-		$('#group_members').PermissionControl({
-			keytype: 'group',
-			name: ${jsonrpc.jsonutil.encode(group.name)},
-			edit: edit,
-			embed: true
-		});
-
-		$('input[name=save]').click(function() {
-			var g = caches['group'][${jsonrpc.jsonutil.encode(group.name)}];
-			g["permissions"] = $('#group_members').PermissionControl('getusers');
-			g["displayname"] = $('input[name=group_displayname]').val();
-			g["name"] = $('input[name=group_name]').val();
-			$.jsonRPC.call("putgroup", [g], function(group) {
-				window.location = EMEN2WEBROOT+'/group/'+group.name+'/';
-			})
-
-		});
-
+	$('#group_members').PermissionControl({
+		keytype: 'group',
+		name: ${jsonrpc.jsonutil.encode(group.name)},
+		edit: edit,
+		embed: true
 	});
 
-//]]>
-</script>
+	$('input[name=save]').click(function() {
+		var g = caches['group'][${jsonrpc.jsonutil.encode(group.name)}];
+		g["permissions"] = $('#group_members').PermissionControl('getusers');
+		g["displayname"] = $('input[name=group_displayname]').val();
+		g["name"] = $('input[name=group_name]').val();
+		$.jsonRPC.call("putgroup", [g], function(group) {
+			window.location = EMEN2WEBROOT+'/group/'+group.name+'/';
+		})
+
+	});
+</%block>
 
 
 

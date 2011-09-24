@@ -1,23 +1,16 @@
 ## -*- coding: utf-8 -*-
+<%! import jsonrpc.jsonutil %>
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
-<% import jsonrpc.jsonutil %>
 
-
-<script type="text/javascript">
-//<![CDATA[
-
-	$(document).ready(function() {
-		$('#paramdef_edit').ParamDefEditControl({
-			newdef: ${jsonrpc.jsonutil.encode(new)},
-			parents:['${paramdef.name}'],
-			ext_save: "#ext_save",
-		});
+<%block name="javascript_ready">
+	${parent.javascript_ready}
+	$('#paramdef_edit').ParamDefEditControl({
+		newdef: ${jsonrpc.jsonutil.encode(new)},
+		parents:['${paramdef.name}'],
+		ext_save: "#ext_save",
 	});
-
-//]]>	
-</script>
-
+</%block>	
 
 <h1>
 	${title}

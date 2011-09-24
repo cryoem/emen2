@@ -190,7 +190,7 @@
 			// Submit the form when this changes.
 			$('input[name=filedata]', controls).change(function() {
 				if (!$(this).val()) {return}
-				$('img.spinner', self.dialog).show();
+				$('img.e2l-spinner', self.dialog).show();
 				$('form', self.dialog).submit();
 			});
 

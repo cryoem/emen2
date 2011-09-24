@@ -47,13 +47,13 @@
 		save: function() {
 			var self = this;
 			this.pd = this.getvalues();
-			$('.spinner', this.options.ext_save).show();
+			$('.e2l-spinner', this.options.ext_save).show();
 			
 			if (this.options.newdef) {
 				this.pd['parents'] = this.options.parents;
 			}
 			$.jsonRPC.call("putparamdef", [this.pd], function(data){
-				$('.spinner', self.options.ext_save).hide();
+				$('.e2l-spinner', self.options.ext_save).hide();
 				window.location = EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/';
 			});
 		},
@@ -204,9 +204,9 @@
 
 			var self=this;
 
-			$('.spinner').show();
+			$('.e2l-spinner').show();
 			$.jsonRPC.call("putrecorddef", [this.rd], function(data){
-				$('.spinner').hide();
+				$('.e2l-spinner').hide();
 				window.location = EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/';
 			});
 

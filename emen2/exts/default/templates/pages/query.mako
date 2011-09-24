@@ -1,27 +1,15 @@
+<%! import jsonrpc.jsonutil %>
 <%inherit file="/page" />
 <%namespace name="table" file="/pages/table"  /> 
 
-<%def name="head()">
-	<% import jsonrpc.jsonutil %>
-	<script type="text/javascript">
-	//<![CDATA[
-		$(document).ready(function() {
-			$('#qc').QueryControl({
-				q: ${jsonrpc.jsonutil.encode(q)}
-			});
-		});	
-	//]]>
-	</script>
+<%block name="javascript_ready">
+	${parent.javascript_ready}
+	$('#qc').QueryControl({
+		q: ${jsonrpc.jsonutil.encode(q)}
+	});
+</%block>
 
-	<style type="text/css">
-		#content {
-			width:auto !important;
-		}
-	</style>
-</%def>
-
-<div id="qc">
-</div>
+<div id="qc"></div>
 
 <p></p>
 

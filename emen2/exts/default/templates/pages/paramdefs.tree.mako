@@ -1,5 +1,12 @@
 <%inherit file="/page" />
 
+<%block name="javascript_ready">
+	${parent.javascript_ready}
+	$('#sitemap').RelationshipControl({
+		'attach':true,
+		'keytype':'paramdef'
+	});
+</%block>
 
 
 <form method="post" action="${EMEN2WEBROOT}/paramdefs/name/">
@@ -17,15 +24,6 @@
 	% endif
 </h1>
 </form>
-
-<script type="text/javascript">
-	$(document).ready(function() {
-		$('#sitemap').RelationshipControl({
-			'attach':true,
-			'keytype':'paramdef'
-		});
-	});	
-</script>
 
 <div id="sitemap" class="e2l-clearfix">
 ${childmap}
