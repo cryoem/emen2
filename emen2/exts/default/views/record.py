@@ -5,6 +5,8 @@ import time
 # Standard View imports
 import emen2.db.config
 g = emen2.db.config.g()
+import emen2.web.config
+CVars = emen2.web.config.CVars
 from emen2.web.view import View
 
 import emen2.util.listops as listops
@@ -85,7 +87,7 @@ class RecordBase(View):
 				'classname':'main',
 				'content':{},
 				'labels':{'main':'<span data-name="%s" class="e2-view">%s</span>'%(self.name, recnames.get(self.rec.name))},
-				'href':	{'main':'%s/record/%s/'%(g.EMEN2WEBROOT,self.name)},
+				'href':	{'main':'%s/record/%s/'%(CVars.webroot,self.name)},
 				'active': 'main',
 				'order': ['main']
 			}
@@ -93,7 +95,7 @@ class RecordBase(View):
 				pages["order"].append(k)
 				pages["labels"][k] = "%s (%s)"%(k,len(v))
 				pages["content"][k] = ""
-				pages["href"][k] = '%s/record/%s/children/%s/'%(g.EMEN2WEBROOT, self.name, k)
+				pages["href"][k] = '%s/record/%s/children/%s/'%(CVars.webroot, self.name, k)
 
 			pages = emen2.web.markuputils.HTMLTab(pages)
 		else:
@@ -160,7 +162,7 @@ class Record(RecordBase):
 			try:
 				rec.update(kwargs)
 				self.db.putrecord(rec)
-				self.headers['Location'] = '%s/record/%s/'%(g.EMEN2WEBROOT, name)
+				self.headers['Location'] = '%s/record/%s/'%(CVars.webroot, name)
 			except Exception, e:
 				self.ctxt['errors'].append(e)
 				
@@ -199,7 +201,7 @@ class Record(RecordBase):
 			newrec.update(kwargs)
 			newrec = self.db.putrecord(newrec)
 			if newrec:
-				self.redirect('%s/record/%s/'%(g.EMEN2WEBROOT, newrec.name))
+				self.redirect('%s/record/%s/'%(CVars.webroot, newrec.name))
 			else:
 				self.error('Did not save record')
 			return

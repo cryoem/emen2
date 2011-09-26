@@ -26,11 +26,13 @@ import emen2.db.exceptions
 import emen2.util.listops
 import emen2.db.exceptions
 g = emen2.db.config.g()
+CVars = emen2.db.config.CVars
 
 # Convenience
 ci = emen2.util.listops.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
 vtm = emen2.db.datatypes.VartypeManager
+
 
 
 @vtm.register_vartype('none')
@@ -79,7 +81,7 @@ class Vartype(object):
 
 		# Empty value
 		if not value:
-			label = '<img src="%s/static/images/blank.png" class="e2l-label" alt="No value" />'%g.EMEN2WEBROOT
+			label = '<img src="%s/static/images/blank.png" class="e2l-label" alt="No value" />'%CVars.webroot
 			if self.edit:
 				return '<%s class="%s" %s>%s</%s>'%(self.elem, self.elem_class, editmarkup, label, self.elem)
 			return '<%s></%s>'%(self.elem, self.elem)
@@ -87,7 +89,7 @@ class Vartype(object):
 
 		# Tables have links to the record
 		if self.table:
-			value = ['<a href="%s/record/%s">%s</a>'%(g.EMEN2WEBROOT, self.name, i) for i in value]
+			value = ['<a href="%s/record/%s">%s</a>'%(CVars.webroot, self.name, i) for i in value]
 			
 		# Iterable parameters
 		if self.pd.iter:	
@@ -97,7 +99,7 @@ class Vartype(object):
 			# Editable..
 			# Are we showing the edit label?
 			# if self.showlabel:
-			#	lis.append('<li class="e2l-nonlist"><span class="e2l-editable e2l-label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%g.EMEN2WEBROOT)
+			#	lis.append('<li class="e2l-nonlist"><span class="e2l-editable e2l-label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%CVars.webroot)
 			# Put the editing widget together
 			return '<ul class="%s" %s>%s</ul>'%(self.elem_class, editmarkup, "\n".join(lis))
 
@@ -322,6 +324,7 @@ class vt_text(vt_string):
 	"""Freeform text, with word indexing."""
 	elem = 'div'
 
+	unindexed_words = g.claim('UNINDEXED_WORDS', {"in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"})
 	def reindex(self, items):
 		"""(Internal) calculate param index updates for vartype == text"""
 		addrefs = collections.defaultdict(list)
@@ -336,7 +339,7 @@ class vt_text(vt_string):
 			for i in self._reindex_getindexwords(item[2]):
 				delrefs[i].append(item[0])
 
-		allwords = set(addrefs.keys() + delrefs.keys()) - set(g.UNINDEXED_WORDS)
+		allwords = set(addrefs.keys() + delrefs.keys()) - set(self.unindexed_words)
 		addrefs2 = {}
 		delrefs2 = {}
 
@@ -516,7 +519,7 @@ class vt_binary(Vartype):
 			if self.table:
 				value = ['%s'%(cgi.escape(i.filename)) for i in v]
 			else:
-				value = ['<a href="%s/download/%s/%s">%s</a>'%(g.EMEN2WEBROOT, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
+				value = ['<a href="%s/download/%s/%s">%s</a>'%(CVars.webroot, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
 
 		except (ValueError, TypeError):
 			value = ['Error getting binary %s'%i for i in value]
@@ -568,7 +571,7 @@ class vt_user(Vartype):
 			if self.table or not self.markup:
 				lis.append(dn)
 			else:
-				lis.append('<a href="%s/user/%s">%s</a>'%(g.EMEN2WEBROOT, i, dn))
+				lis.append('<a href="%s/user/%s">%s</a>'%(CVars.webroot, i, dn))
 
 		return lis
 
@@ -686,7 +689,7 @@ class vt_comments(Vartype):
 			if self.table or not self.markup:
 				t = '%s @ %s: %s'%(user, time, comment)
 			else:
-				t = '<h4><a href="%s/user/%s">%s</a> @ %s</h4>%s'%(g.EMEN2WEBROOT, user, dn, time, comment)
+				t = '<h4><a href="%s/user/%s">%s</a> @ %s</h4>%s'%(CVars.webroot, user, dn, time, comment)
 			lis.append(t)
 
 		return lis

@@ -38,6 +38,8 @@ from emen2.web import routing
 
 import emen2.db.config
 g = emen2.db.config.g()
+import emen2.web.config
+CVars = emen2.web.config.CVars
 
 __all__ = ['View', 'ViewPlugin', 'AdminView', 'AuthView']
 
@@ -85,14 +87,14 @@ class TemplateContext(collections.MutableMapping):
 
 
 	host = g.watch('network.EMEN2HOST', 'localhost')
-	port = g.watch(network.'EMEN2PORT', 80)
+	port = g.watch('network.EMEN2PORT', 80)
 
 	def reverse(self, _name, *args, **kwargs):
 		"""Create a URL given a view Name and arguments"""
 		
 		full = kwargs.pop('_full', False)
 
-		result = '%s/%s'%(g.EMEN2WEBROOT, emen2.web.routing.URLRegistry.reverselookup(_name, *args, **kwargs))
+		result = '%s/%s'%(CVars.webroot, emen2.web.routing.URLRegistry.reverselookup(_name, *args, **kwargs))
 		result = result.replace('//','/')
 		if full:
 			result = 'http://%s:%s%s' % (self.host, self.port, result)
@@ -412,11 +414,11 @@ class View(_View):
 			HOST = getattr(ctx, 'host', None),
 			USER = user,
 			ADMIN = admin,
-			EMEN2WEBROOT = g.EMEN2WEBROOT,
-			EMEN2DBNAME = g.EMEN2DBNAME,
-			EMEN2LOGO = g.EMEN2LOGO,
-			BOOKMARKS = g.BOOKMARKS,
-			VERSION = emen2.VERSION
+			EMEN2WEBROOT = CVars.webroot,
+			EMEN2DBNAME = CVars.dbname,
+			EMEN2LOGO = CVars.logo,
+			BOOKMARKS = CVars.BOOKMARKS,
+			VERSION = CVars.version
 		)
 
 		# Need to pass in the basectxt before the View's init()
@@ -537,6 +539,11 @@ class ViewLoader(object):
 		pth = list(reversed(sys.path))
 		g.info('Loading extension %s: %s' % (ext, path))
 
+		# ...add ext path to the python module search
+		pythondir = os.path.join(path, 'python')
+		if os.path.exists(pythondir):
+			pth.insert(-1,pythondir)		
+
 		# ...load views
 		viewdir = os.path.join(path, 'views')
 		if os.path.exists(viewdir):
@@ -544,11 +551,6 @@ class ViewLoader(object):
 			sys.path.append(os.path.dirname(path))
 			self.get_views(viewdir, extension_name=ext)
 			sys.path = old_syspath
-
-		# ...add ext path to the python module search
-		pythondir = os.path.join(path, 'python')
-		if os.path.exists(pythondir):
-			pth.insert(-1,pythondir)		
 
 		# Restore the original sys.path
 		sys.path = list(reversed(pth))

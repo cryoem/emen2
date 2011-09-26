@@ -202,6 +202,7 @@ class DBOptions(optparse.OptionParser):
 		for ext in exts:
 			name, path = self.resolve_ext(ext, g.paths.EXTPATHS)
 			g.extensions.EXTS[name] = path
+		print g.extensions.EXTS
 
 		# Mako Template Loader
 		g.templates = AddExtLookup(input_encoding='utf-8')
@@ -224,5 +225,11 @@ class DBOptions(optparse.OptionParser):
 
 g = lambda: gg
 
+class CVars(object):
+	g = g()
+	dbname = g.claim('customization.EMEN2DBNAME', 'EMEN2')
+	version = g.claim('params.VERSION')
+	webroot = g.claim('network.EMEN2WEBROOT', '')
+	exturi = g.claim('network.EMEN2EXTURI', '')
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

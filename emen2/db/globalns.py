@@ -68,7 +68,7 @@ class Hier(collections.MutableMapping):
 		except AttributeError:
 			if name.startswith('_'): raise
 			else:
-				result = self.getattr(name, default=_Null, prefix=self._name, values=self._values)
+				result = self.getattr(name, default=_Null, prefix=self._name)
 				if isinstance(result, self.__class__):
 					result._create = self._create
 
@@ -86,18 +86,20 @@ class Hier(collections.MutableMapping):
 		else:
 			self.setattr(name, value)
 
-	def getattr(self, name, default=None, prefix='', values=None):
-		if values is None:
-			values = self.hier
-
-		result = values.get(name, _Null)
+	def getattr(self, name, default=None, prefix=''):
+		result = self._values.get(name, _Null)
 		if result is _Null and default is not _Null:
 			result = default
 		elif hasattr(result, 'items'):
 			if prefix == '': result = self.__class__(name)
 			else: result = self.__class__('%s.%s' % (prefix, name))
 		return result
-	__getitem__ = getattr
+
+	def __getitem__(self, name):
+		result = self.getattr(name, default=_Null)
+		if result is _Null:
+			raise KeyError('Item %r not found' % name)
+		return result
 
 	def setattr(self, name, value, options=None):
 		name = name.split('.')
@@ -106,11 +108,13 @@ class Hier(collections.MutableMapping):
 		for seg in name[:-1]:
 			values = values.setdefault(seg, {})
 		values[name[-1]] = value
-	__setitem__ = setattr
+
+	def __setitem__(self, name, value):
+		self._values[name] = value
 
 	def __delitem__(self, name):
 		del self._values[name]
-	
+
 	def __iter__(self): return iter(self._values)
 	def __len__(self): return len(self._values)
 

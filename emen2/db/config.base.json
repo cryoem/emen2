@@ -80,10 +80,10 @@
 
 	"users":{
 		// Automatically approve new user accounts
-		"USER_AUTOAPPROVE": false,
+		//"USER_AUTOAPPROVE": false,
 		
 		// New users will be added to these groups
-		"GROUP_DEFAULTS": ["create"]		
+		//"GROUP_DEFAULTS": ["create"]		
 	},
 
 	// Some basic settings and interface strings
@@ -92,7 +92,7 @@
 		// "EMEN2DBNAME": "EMEN2",
 
 		// Logo in emen2/web/static/images to use
-		"EMEN2LOGO": "emen2logo-small.png",
+		//"EMEN2LOGO": "emen2logo-small.png",
 		
 		// These words will not be indexed
 		"UNINDEXED_WORDS": ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"]

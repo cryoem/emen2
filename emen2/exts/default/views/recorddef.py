@@ -2,6 +2,8 @@
 # Standard View imports
 import emen2.db.config
 g = emen2.db.config.g()
+import emen2.web.config
+CVars = emen2.web.config.CVars
 from emen2.web.view import View
 
 import emen2.web.markuputils
@@ -63,7 +65,7 @@ class RecordDef(View):
 			'classname':'main',
 			'labels':{'main':"Protocol Viewer"},
 			'content':{'main':""},
-			'href':	{'main': '%s/recorddef/%s/'%(g.EMEN2WEBROOT, self.name)}
+			'href':	{'main': '%s/recorddef/%s/'%(CVars.webroot, self.name)}
 			}
 
 		if edit:
@@ -152,7 +154,7 @@ class RecordDefs(View):
 			'classname':'main',
 			'labels':{'tree':"Protocol Ontology", 'name':'Protocols by Name', 'count':'Protocols by Number of Records'},
 			'content':{'main':""},
-			'href':	{'tree': '%s/recorddefs/tree/'%g.EMEN2WEBROOT, 'name': '%s/recorddefs/name/'%g.EMEN2WEBROOT, 'count': '%s/recorddefs/count/'%g.EMEN2WEBROOT},
+			'href':	{'tree': '%s/recorddefs/tree/'%CVars.webroot, 'name': '%s/recorddefs/name/'%CVars.webroot, 'count': '%s/recorddefs/count/'%CVars.webroot},
 			'order': ['tree', 'name', 'count']
 		}
 

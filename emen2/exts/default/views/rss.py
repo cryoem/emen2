@@ -7,6 +7,8 @@ import datetime
 import calendar
 import emen2.db.config
 g = emen2.db.config.g()
+import emen2.web.config
+CVars = emen2.web.config.CVars
 
 
 class Item(object):
@@ -84,6 +86,6 @@ class RSS(View):
 		for x in recs:
 			items.append(Item(x.name, x))
 		self.set_context_item('items', items)
-		self.title = '%s Record Feed - %s to %s' % (g.EMEN2DBNAME, self._begin, self._end)
+		self.title = '%s Record Feed - %s to %s' % (CVars.dbname, self._begin, self._end)
 		return View.get_data(self)
 __version__ = "$Revision$".split(":")[1][:-1].strip()

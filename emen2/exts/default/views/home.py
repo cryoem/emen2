@@ -5,6 +5,8 @@ import time
 # Standard View imports
 import emen2.db.config
 g = emen2.db.config.g()
+import emen2.web.config
+CVars = emen2.web.config.CVars
 from emen2.web.view import View
 
 import emen2.db.exceptions
@@ -25,12 +27,12 @@ class Home(View):
 	@View.add_matcher(r'^/$', r'^/home/$')
 	def init(self, showsubproject=0, **kwargs):
 			self.update_context(args=kwargs, title="Home")
-			self.set_context_item("action_login","%s/auth/login/"%(g.EMEN2WEBROOT))
-			self.set_context_item("action_logout","%s/auth/logout"%(g.EMEN2WEBROOT))
-			self.set_context_item("action_chpasswd","%s/auth/password/change/"%(g.EMEN2WEBROOT))
+			self.set_context_item("action_login","%s/auth/login/"%(CVars.webroot))
+			self.set_context_item("action_logout","%s/auth/logout"%(CVars.webroot))
+			self.set_context_item("action_chpasswd","%s/auth/password/change/"%(CVars.webroot))
 			self.set_context_item("msg",'')
 
-			banner = g.BOOKMARKS.get('BANNER', 0)
+			banner = CVars.bookmarks.get('BANNER', 0)
 
 			try:
 				user, groups = self.db.checkcontext()
@@ -41,7 +43,7 @@ class Home(View):
 
 
 			if user == "anonymous":
-				banner = g.BOOKMARKS.get('BANNER_NOAUTH', banner)
+				banner = CVars.bookmarks.get('BANNER_NOAUTH', banner)
 
 			try:
 				banner = self.db.getrecord(banner)
@@ -67,7 +69,7 @@ class Home(View):
 			# q = self.db.query(count=10, table=True)
 			# self.set_context_item('q',  q)
 
-			ctroot = g.BOOKMARKS.get("GROUPS",0)
+			ctroot = CVars.bookmarks.get("GROUPS",0)
 			rn, childtree = self.db.renderchildtree(ctroot, recurse=2, rectype=["group","project"])
 			recnames.update(rn)
 

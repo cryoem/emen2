@@ -4,6 +4,8 @@ import urlparse
 # Standard View imports
 import emen2.db.config
 g = emen2.db.config.g()
+import emen2.web.config
+CVars = emen2.web.config.CVars
 from emen2.web.view import View
 ###
 
@@ -15,9 +17,9 @@ class Auth(View):
 	def login(self, name=None, pw=None, msg='', errmsg='', location=None, **kwargs):
 		self.template = '/auth/login'
 		self.title = 'Login'
-		location = location or g.EMEN2WEBROOT
+		location = location or CVars.webroot
 		if 'auth' in location or not location:
-			location = g.EMEN2WEBROOT
+			location = CVars.webroot
 
 		self.set_context_item("name",name)
 		self.set_context_item('location', location)
@@ -45,9 +47,9 @@ class Auth(View):
 		msg = ''
 		errmsg = ''
 
-		location = location or g.EMEN2WEBROOT
+		location = location or CVars.webroot
 		if 'auth' in location or not location:
-			location = g.EMEN2WEBROOT
+			location = CVars.webroot
 
 		self.set_context_item('location', location)
 		try:
@@ -70,9 +72,9 @@ class Auth(View):
 	def setpassword(self, location=None, **kwargs):
 		self.template = '/auth/password.change'
 		self.title = "Password Change"
-		# location = location or g.EMEN2WEBROOT
+		# location = location or CVars.webroot
 		# if 'auth' in location or not location:
-		# 	location = g.EMEN2WEBROOT
+		# 	location = CVars.webroot
 		self.ctxt['location'] = location
 
 		name = kwargs.pop("name",None) or self.db.checkcontext()[0]

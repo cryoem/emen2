@@ -18,14 +18,19 @@ from math import *
 EXTS = set(["dm3", "tiff", "tif", "mrc", "jpg", "jpeg", "png", "gif"])
 COMPRESS = set(["gz","bz2"])
 
+import emen2.web.config
 
 def run_from_bdo(bdoo, wait=False):
 	# Get config info to setup command
 	import emen2.db.config
+	inst = lambda x:x()
+	@inst
+	class CVars(emen2.db.config.CVars):
+		python = g.claim('EMAN2.EMAN2PYTHON')
+		tilepath = g.claim('paths.TILEPATH')
+		convertpath = g.claim('IMAGEMAGICK.CONVERTPATH')
 	g = emen2.db.config.g()
-	python = g.EMAN2PYTHON
 	e2t = emen2.db.config.get_filename('emen2','web/thumbs.py')
-	tilepath = g.paths.TILEPATH
 
 
 	filepath = bdoo.get('filepath')
@@ -45,17 +50,17 @@ def run_from_bdo(bdoo, wait=False):
 		return
 
 	args = []
-	if python:
-		args.append(python)
+	if CVars.python:
+		args.append(CVars.python)
 
 	args.append(e2t)
-	args.append("--outpath=%s/%s"%(tilepath, bdoo.get('name').replace(":",".")))
+	args.append("--outpath=%s/%s"%(CVars.tilepath, bdoo.get('name').replace(":",".")))
 	args.append("--compress=%s"%compress)
 	args.append("--type=%s"%filetype)
 	args.append("--small")
 	args.append("--thumb")
 	args.append("--pspec")
-	args.append("--convert=%s" % g.CONVERTPATH)
+	args.append("--convert=%s" % CVars.convertpath)
 	args.append(filepath)
 
 	print "Thumbnails: %s"%args

@@ -76,7 +76,7 @@ class EMEN2Server(object):
 	EXTRARESOURCES = config.claim('config.RESOURCESPECS', {}, lambda v: isinstance(v, dict))
 
 	#: How many threads to load, defaults to :py:func:`multiprocessing.cpu_count`+1
-	NUMTHREADS = config.claim('config.NUMTHREADS', multiprocessing.cpu_count()+1, lambda v: (v < (multiprocessing.cpu_count()*2)) )
+	NUMTHREADS = config.claim('network.NUMTHREADS', multiprocessing.cpu_count()+1, lambda v: (v < (multiprocessing.cpu_count()*2)) )
 
 	#: Which port to listen on
 	PORT = config.watch('network.EMEN2PORT', 8080)
@@ -106,7 +106,7 @@ class EMEN2Server(object):
 		'''Run the server main loop'''
 		root = emen2.web.resources.publicresource.PublicView()
 		yield self, root
-		
+
 		site = twisted.web.server.Site(root)
 		site.protocol.allHeadersReceived = allHeadersReceived
 
@@ -180,7 +180,7 @@ def start_emen2():
 
 if __name__ == "__main__":
 	start_emen2()
-	
-	
+
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()
 

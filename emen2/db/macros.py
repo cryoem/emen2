@@ -7,6 +7,7 @@ import re
 import emen2.db.datatypes
 import emen2.db.config
 g = emen2.db.config.g()
+CVars = emen2.db.config.CVars
 
 # Convenience
 ci = emen2.util.listops.check_iterable
@@ -29,6 +30,7 @@ parser = r'''
     \s*                # Allow arbitrary space before the comma.
     (?:,|$)            # Followed by a comma or the end of a string.
     '''
+
 
 def parse_args(args):
 	r = re.compile(parser, re.VERBOSE)
@@ -85,7 +87,7 @@ class Macro(object):
 		if not self.markup:
 			return unicode(value)		
 		if self.table:
-			value = '<a href="%s/record/%s/">%s</a>'%(g.EMEN2WEBROOT, self.rec.name, value)
+			value = '<a href="%s/record/%s/">%s</a>'%(CVars.webroot, self.rec.name, value)
 		return unicode(value)
 
 
@@ -214,7 +216,7 @@ class macro_img(Macro):
 				bdoo = self.engine.db.getbinary(i, filt=False)
 				fname = bdoo.get("filename")
 				bname = bdoo.get("filepath")
-				ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="" />'%(g.EMEN2WEBROOT,i[4:], fname, height, width))
+				ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="" />'%(CVars.webroot,i[4:], fname, height, width))
 			except (KeyError, AttributeError, emen2.db.exceptions.SecurityError):
 				ret.append("(Error: %s)"%i)
 
@@ -317,7 +319,7 @@ class macro_renderchildren(Macro):
 
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
-			l = """<li><a href="%s/record/%s">%s</a></li>"""%(g.EMEN2WEBROOT, k, v or k)
+			l = """<li><a href="%s/record/%s">%s</a></li>"""%(CVars.webroot, k, v or k)
 			hrefs.append(l)
 
 		return "<ul>%s</ul>"%("\n".join(hrefs))
@@ -357,7 +359,7 @@ class macro_renderchildrenoftype(Macro):
 
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
-			l = """<li><a href="%s/record/%s">%s</a></li>"""%(g.EMEN2WEBROOT, k, v or k)
+			l = """<li><a href="%s/record/%s">%s</a></li>"""%(CVars.webroot, k, v or k)
 			hrefs.append(l)
 
 		return "<ul>%s</ul>"%("\n".join(hrefs))
@@ -442,7 +444,7 @@ class macro_thumbnail(Macro):
 			bdos = [bdos]
 
 		return "".join(['<img src="%s/download/%s/%s.%s.%s?size=%s&amp;format=%s" alt="" />'%(
-				g.EMEN2WEBROOT, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos
+				CVars.webroot, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos
 				)])
 
 

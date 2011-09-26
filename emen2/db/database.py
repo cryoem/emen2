@@ -94,12 +94,10 @@ set_lg_bsize 2097152
 inst = lambda x:x()
 is_str = lambda x: hasattr(x, 'upper')
 @inst
-class CVars(object):
-	MAILADMIN = g.claim('config.MAILADMIN', default="", validator=is_str)
-	MAILHOST = g.claim('config.MAILHOST', default="", validator=is_str)
-	TIMESTR = g.claim('config.TIMESTR', default="%Y/%m/%d %H:%M:%S", validator=is_str)
-	EMEN2DBNAME = g.claim('config.EMEN2DBNAME', default="EMEN2", validator=is_str)
-	EMEN2EXTURI = g.claim('config.EMEN2EXTURI', "", validator=is_str)
+class CVars(emen2.db.config.CVars):
+	MAILADMIN = g.claim('mailsettings.MAILADMIN', default="", validator=is_str)
+	MAILHOST = g.claim('mailsettings.MAILHOST', default="", validator=is_str)
+	TIMESTR = g.claim('params.TIMESTR', default="%Y/%m/%d %H:%M:%S", validator=is_str)
 
 
 def fakemodules():
@@ -271,8 +269,8 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 	ctxt = ctxt or {}
 	ctxt["recipient"] = recipient
 	ctxt["MAILADMIN"] = CVars.MAILADMIN
-	ctxt["EMEN2DBNAME"] = CVars.EMEN2DBNAME
-	ctxt["EMEN2EXTURI"] = CVars.EMEN2EXTURI
+	ctxt["EMEN2DBNAME"] = CVars.dbname
+	ctxt["EMEN2EXTURI"] = CVars.exturi
 
 	if not recipient:
 		return
@@ -2611,7 +2609,7 @@ class DB(object):
 		"""
 		users = self.bdbs.newuser.cputs(users, ctx=ctx, txn=txn)
 
-		if g.USER_AUTOAPPROVE:
+		if self.user_autoapprove:
 			# print "Autoapproving........"
 			rootctx = self._sudo()
 			rootctx.db._txn = txn
@@ -2625,7 +2623,8 @@ class DB(object):
 		return users
 
 
-	group_defaults = g.claim('users.GROUP_DEFAULTS')
+	group_defaults = g.claim('users.GROUP_DEFAULTS', ["create"])
+	user_autoapprove = g.claim('users.USER_AUTOAPPROVE', False)
 
 	@publicmethod("user.queue.approve", write=True, admin=True)
 	@ol('names')
@@ -2687,7 +2686,7 @@ class DB(object):
 			user.getdisplayname()
 			ctxt = {'name':user.name, 'displayname':user.displayname}
 			template = '/email/adduser.approved'
-			if g.USER_AUTOAPPROVE:
+			if g.user_autoapprove:
 				template = '/email/adduser.autoapproved'
 			sendmail(user.email, template=template, ctxt=ctxt)
 

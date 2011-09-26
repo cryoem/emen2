@@ -2,6 +2,8 @@
 # Standard View imports
 import emen2.db.config
 g = emen2.db.config.g()
+import emen2.web.config
+CVars = emen2.web.config.CVars
 from emen2.web.view import View
 ###
 
@@ -12,7 +14,7 @@ from map import Map
 @View.register
 class ParamDef(View):
 
-	@View.add_matcher(r'^/paramdef/(?P<name>.+)/(?P<action>.+)/$', r'^/paramdef/(?P<name>\w+)/$')	
+	@View.add_matcher(r'^/paramdef/(?P<name>.+)/(?P<action>.+)/$', r'^/paramdef/(?P<name>\w+)/$')
 	def init(self,name=None, action=None, new=0):
 		self.template = '/pages/paramdef'
 		self.name = name
@@ -62,7 +64,7 @@ class ParamDef(View):
 			'classname':'main',
 			'labels':{'main':"Parameter Viewer"},
 			'content':{'main':""},
-			'href':	{'main': '%s/paramdef/%s/'%(g.EMEN2WEBROOT, self.name)}
+			'href':	{'main': '%s/paramdef/%s/'%(CVars.webroot, self.name)}
 			}
 
 		if edit:
@@ -113,7 +115,7 @@ class ParamDef(View):
 
 @View.register
 class ParamDefs(View):
-	
+
 	@View.add_matcher(r'^/paramdefs/$', action=r'^/paramdefs/(?P<action>\w+)/$')
 	def init(self, action=None, q=None):
 
@@ -133,7 +135,7 @@ class ParamDefs(View):
 			'classname':'main',
 			'labels':{'tree':"Parameter Ontology", 'name': "Parameters by Name", 'vartype':'Parameters by Variable Type', 'property':'Parameters by Physical Property'},
 			'content':{'main':""},
-			'href':	{'tree': '%s/paramdefs/tree/'%g.EMEN2WEBROOT, 'name': '%s/paramdefs/name/'%g.EMEN2WEBROOT, 'vartype': '%s/paramdefs/vartype/'%g.EMEN2WEBROOT, 'property': '%s/paramdefs/property/'%g.EMEN2WEBROOT},
+			'href':	{'tree': '%s/paramdefs/tree/'%CVars.webroot, 'name': '%s/paramdefs/name/'%CVars.webroot, 'vartype': '%s/paramdefs/vartype/'%CVars.webroot, 'property': '%s/paramdefs/property/'%CVars.webroot},
 			'order': ['tree', 'name', 'vartype', 'property']
 		}
 		pages['active'] = action

@@ -1150,10 +1150,11 @@ class RelateDB(DBODB):
 	# Search tree-like indexes (e.g. parents/children)
 	##############################
 
+	maxrecurse = g.claim('params.MAXRECURSE', 50)
 	def dfs(self, key, rel='children', recurse=1, ctx=None, txn=None):
 		# Return a dict of results as well as the nodes visited (saves time)
 		if recurse == -1:
-			recurse = g.MAXRECURSE
+			recurse = self.maxrecurse
 
 		# Get the index, and create a cursor (slightly faster)
 		rel = self.getindex(rel, txn=txn)

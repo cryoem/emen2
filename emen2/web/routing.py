@@ -70,7 +70,7 @@ class URLRegistry(emen2.util.registry.Registry):
 			# Return a result if found
 			tmp = url.match(path)
 			if tmp != None:
-				return url.cb, tmp				
+				return url.cb, tmp
 
 		raise responsecodes.NotFoundError(path)
 
@@ -92,7 +92,7 @@ class URLRegistry(emen2.util.registry.Registry):
 		self.events.event('web.routing.url.register')(url)
 		return url
 
-	
+
 	# Reverse lookup
 	@classmethod
 	def reverselookup(cls, _name, *args, **kwargs):
@@ -154,7 +154,7 @@ class MatchChecker(object):
 	def __call__(self, match_obj):
 		grouped = match_obj.group(1)
 		m = self.NAMED_GROUP.search(grouped)
-		
+
 		if m:
 			value, test_regex = self.get_arg(m.group(1)), m.group(2)
 		else:
@@ -186,6 +186,6 @@ if __name__ == '__main__':
 	a = URL('test', GET=('asda(?P<asdasd>sd)', lambda *args, **kwargs: (args, kwargs)))
 	print a.match('asdasd')[1].groupdict()
 	ur = URLRegistry();ur.register(a)
-	
-	
+
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()
