@@ -104,6 +104,7 @@ class EMEN2Server(object):
 	@contextlib.contextmanager
 	def start(self):
 		'''Run the server main loop'''
+		config.info('starting EMEN2 version: %s' % emen2.db.config.CVars.version)
 		root = emen2.web.resources.publicresource.PublicView()
 		yield self, root
 
@@ -147,7 +148,7 @@ class EMEN2Server(object):
 			RPC2 = emen2.web.resources.xmlrpcresource.RPCResource(format="xmlrpc"),
 			jsonrpc = jsonrpc.server.JSON_RPC().customize(emen2.web.resources.jsonrpcresource.e2jsonrpc),
 		)
-		rl.add_resource('static-%s'%emen2.VERSION, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
+		rl.add_resource('static-%s'%emen2.db.config.CVars.version, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		rl.add_resource('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
 		rl.add_resource('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
 

@@ -195,7 +195,7 @@ class DBOptions(optparse.OptionParser):
 		exts = self.values.exts or []
 		if 'base' not in exts:
 			exts.insert(0,'base')
-		exts.extend(g.getattr('extensions.EXTS', []))
+		exts.extend(g.extensions.EXTS)
 
 		# Map the extensions back to their physical directories
 		# Use an OrderedDict to preserve the order

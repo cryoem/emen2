@@ -360,9 +360,7 @@ class GlobalNamespace(Hier):
 				for key2, value in b.iteritems():
 					self.__yaml_keys[key].append(key2)
 					#self.setattr('.'.join([key,key2]), value, options)
-			print data
 			self.from_dict(data)
-			print '-----------\n',self.extensions.EXTS
 
 			# load alternate config files
 			# for fn in self.paths.CONFIGFILES:
@@ -603,21 +601,18 @@ class Watch(object):
 class Claim(Watch):
 	claimed_attributes = set()
 	def __init__(self, ns, name, default, validator=None):
-		print 'claiming', name, 'from, ns, with default', default,
 		if name in self.claimed_attributes:
 			raise ValueError, 'attribute %s already claimed, use GlobalNamespace.watch() instead' % name
 		else:
 			self.claimed_attributes.add(name)
 
 		if not hasattr(ns, name):
-			print 'setting name %r to %r' % (name, default),
 			ns.setattr(name, default),
 
 		self.validator = validator
 		self._validate(default)
 
 
-		print ns.getattr(name)
 		Watch.__init__(self, ns, name, default, validator)
 
 	def _validate(self, value):

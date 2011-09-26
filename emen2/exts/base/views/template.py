@@ -17,7 +17,7 @@ class TemplateRender(view.View):
 			<%def name='mimetype()'></%def>: set the mime type
 	'''
 
-	@view.View.add_matcher(r'^/tmpl-%s/$'%emen2.VERSION, r'^/tmpl/$', r'^/tmpl/(?P<template>.+)/',  r'^/tmpl-%s/(?P<template>.+)/'%emen2.VERSION)
+	@view.View.add_matcher(r'^/tmpl-%s/$'%emen2.db.config.CVars.version, r'^/tmpl/$', r'^/tmpl/(?P<template>.+)/',  r'^/tmpl-%s/(?P<template>.+)/'%emen2.VERSION)
 	def init(self, template='/simple', **kwargs):
 		makot = g.templates.get_template(template)
 
