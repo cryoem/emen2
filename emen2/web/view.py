@@ -84,8 +84,8 @@ class TemplateContext(collections.MutableMapping):
 		self[name] = value
 
 
-	host = g.watch('EMEN2HOST', 'localhost')
-	port = g.watch('EMEN2PORT', 80)
+	host = g.watch('network.EMEN2HOST', 'localhost')
+	port = g.watch(network.'EMEN2PORT', 80)
 
 	def reverse(self, _name, *args, **kwargs):
 		"""Create a URL given a view Name and arguments"""
@@ -487,8 +487,8 @@ class AuthView(ViewPlugin):
 ############-############-############
 
 class ViewLoader(object):
-	routing_table = g.claim('ROUTING', {})
-	redirects = g.claim('REDIRECTS', {})
+	routing_table = g.claim('config.ROUTING', {})
+	redirects = g.claim('config.REDIRECTS', {})
 	extensions = g.claim('extensions.EXTS', {})
 
 	def view_callback(self, pwd, pth, mtch, name, ext, failures=None, extension_name=None):

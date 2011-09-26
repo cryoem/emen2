@@ -64,22 +64,22 @@ def allHeadersReceived(self, *a, **kw):
 
 class EMEN2Server(object):
 	#: Use HTTPS?
-	EMEN2HTTPS = config.claim('EMEN2HTTPS', False, lambda v: isinstance(v, bool))
+	EMEN2HTTPS = config.claim('network.EMEN2HTTPS', False, lambda v: isinstance(v, bool))
 
 	#: Which port to receive HTTPS request?
-	EMEN2PORT_HTTPS = config.claim('EMEN2PORT_HTTPS', 443, lambda v: isinstance(v, (int,long)))
+	EMEN2PORT_HTTPS = config.claim('network.EMEN2PORT_HTTPS', 443, lambda v: isinstance(v, (int,long)))
 
 	#: Where to find the SSL info
 	SSLPATH = config.claim('paths.SSLPATH', '', validator=lambda v: isinstance(v, (str, unicode)))
 
 	#: Extra resources to load
-	EXTRARESOURCES = config.claim('RESOURCESPECS', {}, lambda v: isinstance(v, dict))
+	EXTRARESOURCES = config.claim('config.RESOURCESPECS', {}, lambda v: isinstance(v, dict))
 
 	#: How many threads to load, defaults to :py:func:`multiprocessing.cpu_count`+1
-	NUMTHREADS = config.claim('NUMTHREADS', multiprocessing.cpu_count()+1, lambda v: (v < (multiprocessing.cpu_count()*2)) )
+	NUMTHREADS = config.claim('config.NUMTHREADS', multiprocessing.cpu_count()+1, lambda v: (v < (multiprocessing.cpu_count()*2)) )
 
 	#: Which port to listen on
-	PORT = config.watch('EMEN2PORT')
+	PORT = config.watch('network.EMEN2PORT', 8080)
 
 
 	def __init__(self, port=None, dbo=None):
