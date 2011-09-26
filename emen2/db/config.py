@@ -189,6 +189,7 @@ class DBOptions(optparse.OptionParser):
 		# Add any specified extensions
 		g.paths.EXTPATHS.append(get_filename('emen2', 'web/exts'))
 
+		print g.extensions.EXTS
 		# Load the default extensions
 		# I plan to add a flag to disable automatic loading.
 		exts = self.values.exts or []

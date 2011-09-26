@@ -359,7 +359,10 @@ class GlobalNamespace(Hier):
 
 				for key2, value in b.iteritems():
 					self.__yaml_keys[key].append(key2)
-					self.setattr('.'.join([key,key2]), value, options)
+					#self.setattr('.'.join([key,key2]), value, options)
+			print data
+			self.from_dict(data)
+			print '-----------\n',self.extensions.EXTS
 
 			# load alternate config files
 			# for fn in self.paths.CONFIGFILES:

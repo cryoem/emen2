@@ -491,7 +491,7 @@ class AuthView(ViewPlugin):
 class ViewLoader(object):
 	routing_table = g.claim('config.ROUTING', {})
 	redirects = g.claim('config.REDIRECTS', {})
-	extensions = g.claim('extensions.EXTS', {})
+	extensions = g.watch('extensions.EXTS')
 
 	def view_callback(self, pwd, pth, mtch, name, ext, failures=None, extension_name=None):
 		if name == '__init__':
@@ -529,7 +529,9 @@ class ViewLoader(object):
 
 	def load_extensions(self):
 		# Load exts
+		print self.extensions
 		for ext, path in self.extensions.items():
+			print ext,path, 'extension loading'
 			self.load_extension(ext, path)
 		return True
 
