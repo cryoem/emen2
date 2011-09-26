@@ -52,7 +52,8 @@ class ParamDef(View):
 
 		###############
 
-		parentmap = Map(mode=mapmode, keytype="paramdef", root=self.name, recurse=-1, db=self.db)
+		parentmap = Map(db=self.db)
+		parentmap.init(mode=mapmode, keytype="paramdef", root=self.name, recurse=-1)
 		parentmap_ctxt = parentmap.get_context()
 
 		###############
@@ -140,7 +141,8 @@ class ParamDefs(View):
 		pages = emen2.web.markuputils.HTMLTab(pages)
 		self.set_context_item('pages',pages)
 
-		childmap = Map(mode="children", keytype="paramdef", root="root", db=self.db, recurse=-1)
+		childmap = Map(db=self.db)
+		childmap.init(mode="children", keytype="paramdef", root="root", recurse=-1)
 
 		self.set_context_item('q',q)
 		self.set_context_item("paramdefs",paramdefs)

@@ -116,7 +116,7 @@
 				<div class="home_userinfo_name">
 					${extract(child, 'name_first', 'First Name')} ${extract(child,'name_middle','')}
 					${extract(child, 'name_last', 'Last Name')}
-##					<span class="small">${u' '.join(child.get('academic_degrees', []))}</span>
+##					<span class="e2l-small">${u' '.join(child.get('academic_degrees', []))}</span>
 				</div><!-- .end home_userinfo_name -->
 
 				<p>

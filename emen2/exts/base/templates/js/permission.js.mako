@@ -82,7 +82,7 @@
 
 			// Save controls
 			if (this.options.edit) {
-				this.savearea = $('<div class="e2l-controls"><ul class="e2l-nonlist"></ul><img class="e2l-spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+				this.savearea = $('<div class="e2l-controls"><ul class="e2l-nonlist e2-permissions-options"></ul>'+$.spinner()+'</div>');
 				if (this.options.keytype == 'record' && this.options.name != "None") {
 					
 					var opt_recurse = $(' \
@@ -108,9 +108,9 @@
 							}
 						});
 
-					var apply = $('<input type="button" value="Apply Changes" />').click(function(){self.save_record()});
+					var apply = $('<input class="e2l-save" type="button" value="Apply Changes" />').click(function(){self.save_record()});
 					
-					$('.options', this.savearea).append(opt_recurse);
+					$('.e2-permissions-options', this.savearea).append(opt_recurse);
 					this.savearea.append(apply);
 					this.dialog.append(this.savearea);
 					
@@ -179,7 +179,7 @@
 			var level = $('<div class="e2-permissions-level e2l-clearfix" data-level="group"></div>');
 			this.grouparea.append(level);
 
-			var title = $('<h4 class="e2l-clearfix"> Groups <span class="small e2l-float-right e2l-a">(select all)</span></h4>');
+			var title = $('<h4 class="e2l-clearfix"> Groups <span class="e2l-small e2l-float-right e2l-a">(select all)</span></h4>');
 			if (this.options.edit) {
 				var button = $('<input type="button" value="+" /> ');
 				button.FindControl({
@@ -203,7 +203,7 @@
 		
 			$.each(this.permissions, function(k,v) {			
 				var level = $('<div class="e2-permissions-level e2l-clearfix" data-level="'+k+'"></div>');
-				var title = $('<h4 class="e2l-clearfix"> '+self.options.levels[k]+' <span class="small e2l-float-right e2l-a">(select all)</span></h4>');
+				var title = $('<h4 class="e2l-clearfix"> '+self.options.levels[k]+' <span class="e2l-small e2l-float-right e2l-a">(select all)</span></h4>');
 				if (self.options.edit) {
 					var button = $('<input type="button" value="+" />');
 					button.FindControl({
@@ -261,42 +261,42 @@
 				});
 			}
 			if (add) {
-				d.addClass('add');
+				d.addClass('e2l-add');
 			}
 			$('.e2-permissions-level[data-level='+level+']', this.dialog).append(d);			
 		},
 	
 		toggle: function(name, level) {
 			$('.e2-infobox[data-name='+name+'][data-level='+level+']', this.dialog).each(function(){
-				$(this).toggleClass('removed');
+				$(this).toggleClass('e2l-removed');
 			});
 		},
 
 		getaddgroups: function(all) {
 			if (all) {
-				var baseselector = '.e2-infobox[data-keytype=group]:not(.removed)'				
+				var baseselector = '.e2-infobox[data-keytype=group]:not(.e2l-removed)'				
 			} else {
-				var baseselector = '.e2-infobox[data-keytype=group].add:not(.removed)'
+				var baseselector = '.e2-infobox[data-keytype=group].add:not(.e2l-removed)'
 			}						
 			var r = $(baseselector, this.grouparea).map(function(){return $(this).attr('data-name')});	
 			return $.makeArray(r);
 		},
 	
 		getdelgroups: function() {
-			var r = $('.e2-infobox[data-keytype=group].removed', this.grouparea).map(function(){return $(this).attr('data-name')});
+			var r = $('.e2-infobox[data-keytype=group].e2l-removed', this.grouparea).map(function(){return $(this).attr('data-name')});
 			return $.makeArray(r);
 		},
 	
 		getdelusers: function() {
-			var r = $('.e2-infobox[data-keytype=user].removed', this.userarea).map(function(){return $(this).attr('data-name')});	
+			var r = $('.e2-infobox[data-keytype=user].e2l-removed', this.userarea).map(function(){return $(this).attr('data-name')});	
 			return $.makeArray(r);
 		},
 	
 		getaddusers: function(all) {
 			if (all) {
-				var baseselector = '.e2-infobox[data-keytype=user]:not(.removed)'				
+				var baseselector = '.e2-infobox[data-keytype=user]:not(.e2l-removed)'				
 			} else {
-				var baseselector = '.e2-infobox[data-keytype=user].add:not(.removed)'
+				var baseselector = '.e2-infobox[data-keytype=user].add:not(.e2l-removed)'
 			}
 			var ret = [];
 			var self = this;
@@ -310,7 +310,7 @@
 		},
 		
 		getgroups: function() {
-			var r = $('.e2-infobox[data-keytype=group]:not(.removed)', this.grouparea).map(function(){return $(this).attr('data-name')});
+			var r = $('.e2-infobox[data-keytype=group]:not(.e2l-removed)', this.grouparea).map(function(){return $(this).attr('data-name')});
 			return $.makeArray(r);
 		},
 	
@@ -377,3 +377,11 @@
 	});
 	
 })(jQuery);		
+
+<%!
+public = True
+headers = {
+	'Content-Type': 'application/javascript',
+	'Cache-Control': 'max-age=86400'
+}
+%>

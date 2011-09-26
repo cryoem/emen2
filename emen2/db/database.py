@@ -2185,7 +2185,7 @@ class DB(object):
 		:return: HTML table of params
 		"""
 		if markup:
-			dt = ['''<table cellspacing="0" cellpadding="0">
+			dt = ['''<table class="e2l-kv" cellspacing="0" cellpadding="0">
 					<thead><th>Parameter</th><th>Value</th></thead>
 					<tbody>''']
 			for count, i in enumerate(params):

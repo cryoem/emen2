@@ -1,40 +1,17 @@
 <%inherit file="/css/colors.css" />
 
-/***
-Non-prefixed classes:
-	show
-	hide
-	save
-	big
-	small
-	add
-	remove
-***/
-
 /* Basic table behavior */
 table {
 	width:100%;
 }
 
-/* Basic show/hide behavior */
-.show {
-	display: block;
-}
+/******************************************
+ 		Basic EMEN2 Layouts
+******************************************/
 
-.hide {
-	display: none;
-}
-
-/* Basic text size */
-.small {
-	font-size: 10pt;
-}
-.big {
-	font-size:16pt;
-}
-/* Commit button */
-.save {
-	
+/* Simple two column tables */
+.e2l-kv td:first-child {
+	width:250px;
 }
 
 /* Basic link styling */
@@ -51,31 +28,58 @@ a:hover,
 	text-decoration: underline;
 }
 
-
-/******************************************
- 		Basic EMEN2 Layouts
-******************************************/
+/* Commit button */
+.e2l-save {
+}
 
 .e2l-thumbnail {
 	height:64px;
 }
 
+/* Basic text size */
+.e2l-small {
+	font-size: 10pt;
+}
+.e2l-big {
+	font-size:16pt;
+}
 
+/* Alerts */
+.e2l-removed
+{
+	background:red;
+}
+
+/* Editable items */
 .e2l-edit {
 	display:inline-block;
 }
 
+/* Basic show/hide behavior */
+.e2l-show {
+	display: block;
+}
+
+.e2l-hide {
+	display: none;
+}
+
+
+/* Full width */
 .e2l-fw {
 	display:block;
 	width:100%;
 }
 
+
+/* Search box */
 .e2l-searchbox { 
 	padding-bottom: 10px;
 	margin-bottom: 10px;
 	border-bottom: solid 1px #ccc;
 }
 
+/* Unselectable elements */
 .e2l-unselect {
 	-webkit-user-select: none;
 	-moz-user-select: none;	
@@ -83,8 +87,11 @@ a:hover,
 
 
 /***** e2l-menu: Drop-down menu *****/
-
+.e2l-menu {
+	list-style:none;
+}
 .e2l-menu > li {
+	float: left;
 	position: relative;
 }
 .e2l-menu > li > a,
@@ -116,8 +123,13 @@ a:hover,
 
 
 /***** e2l-alert: Alerts, notifications, and errors *****/
-
+.e2l-alert {
+	list-style: none;
+	padding-left: 0px;
+}
 .e2l-alert > li {
+	list-style: none;
+	padding-left: 0px;
 	border: solid 2px <%self:ADDED />;
 	padding: 5px;
 	margin-bottom:10px;
@@ -211,6 +223,9 @@ a:hover,
 /*** e2l-editbar: Editing bar *****/
 
 .e2l-editbar {
+	margin:0px;
+	list-style: none;
+	padding-left: 0px;
 	background-image: -moz-linear-gradient(#fff, #fff, #eee);
 	border-bottom:solid 1px #ccc;
 }
@@ -260,6 +275,7 @@ a:hover,
 /***** e2-infobox: Display Infobox *****/
 
 .e2-infobox {
+	float:left;
 	position:relative;
 	border-bottom:solid 1px #ddd;
 	width:350px;

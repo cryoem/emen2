@@ -3,8 +3,8 @@
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 
-<%block name="javascript_ready">
-	${parent.javascript_ready}
+<%block name="js_ready">
+	${parent.js_ready}
 	$('#paramdef_edit').ParamDefEditControl({
 		newdef: ${jsonrpc.jsonutil.encode(new)},
 		parents:['${paramdef.name}'],
@@ -16,7 +16,7 @@
 	${title}
 
 	<div class="e2l-controls" id="ext_save">
-		<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
+		${buttons.spinner(false)}
 		<input type="button" value="Save" name="save">
 	</div>	
 

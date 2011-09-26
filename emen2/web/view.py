@@ -402,9 +402,16 @@ class View(_View):
 		except:
 			pass
 
+		admin = False
+		try:
+			admin = ctx.checkadmin()
+		except:
+			pass
+
 		basectxt = dict(
 			HOST = getattr(ctx, 'host', None),
 			USER = user,
+			ADMIN = admin,
 			EMEN2WEBROOT = g.EMEN2WEBROOT,
 			EMEN2DBNAME = g.EMEN2DBNAME,
 			EMEN2LOGO = g.EMEN2LOGO,

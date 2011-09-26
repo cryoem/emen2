@@ -3,8 +3,8 @@
 <%namespace name="buttons" file="/buttons"  /> 
 
 
-<%block name="javascript_ready">
-	${parent.javascript_ready()}
+<%block name="js_ready">
+	${parent.js_ready()}
 
 	// Record, ptest
 	var rec = caches['record'][${jsonrpc.jsonutil.encode(rec.name)}];
@@ -109,7 +109,7 @@
 	// $('.e2l-editable').EditControl({});
 	$('#e2l-editbar-record-setbookmark').BookmarksControl({'mode':'toggle'});
 
-	$('#e2l-editbar-record-edit .label').MultiEditControl({
+	$('#e2l-editbar-record-edit .e2l-label').MultiEditControl({
 		name: rec.name,
 		form: '#rendered'
 	});
@@ -119,7 +119,7 @@
 </%block>
 
 
-<ul class="e2l-menu e2l-editbar e2l-float-list e2l-clearfix">
+<ul class="e2l-menu e2l-editbar e2l-clearfix">
 
 	## Bookmarks
 	% if USER:

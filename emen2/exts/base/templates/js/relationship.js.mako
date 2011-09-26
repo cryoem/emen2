@@ -77,12 +77,12 @@
 			
 			var controls = $('<div class="e2l-controls" />');
 
-			var relink = $('<input type="button" class="big e2l-save" value="Move" />');
+			var relink = $('<input type="button" class="e2l-save" value="Move" />');
 			relink.click(function() {
 				console.log("moving...");
 			})
 
-			var pclink = $('<input type="button" class="big e2l-save" value="Remove" />');
+			var pclink = $('<input type="button" class="e2l-save" value="Remove" />');
 			pclink.click(function() {
 				$('input[name=method]', this.element).val('pclink')
 				$('form[name=rel]', this.element).submit();
@@ -107,7 +107,7 @@
 				var rd = caches['recorddef'][k] || {};
 				var adds = '';
 				if (v.length > 1) {adds='s'}
-				ce.push(v.length+' '+rd.desc_short+' <span data-checked="checked" data-reltype="'+label+'" data-rectype="'+k+'" class="small e2l-a e2-relationship-rectype">(select)</span>');
+				ce.push(v.length+' '+rd.desc_short+' <span data-checked="checked" data-reltype="'+label+'" data-rectype="'+k+'" class="e2l-small e2l-a e2-relationship-rectype">(select)</span>');
 			});
 			
 			var pstr = '';
@@ -324,7 +324,7 @@
 			var parents_ul = $('.e2-map-parents', this.dialog);
 
 			parents_ul.empty();			
-			parents_ul.append('<img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" />');
+			parents_ul.append($.spinner());
 			this.build_ul(children_ul, key);
 
 			// get the parents through an RPC call
@@ -373,16 +373,16 @@
 			
 			// Record selector
 			var selector1 = $('<input name="root" type="text" size="6" value="'+this.options.root+'" />');
-			var selector2 = $('<input name="select" type="button" class="save" value="'+this.options.selecttext+'" />');
+			var selector2 = $('<input name="select" type="button" class="e2l-save" value="'+this.options.selecttext+'" />');
 			selector1.keypress(function() {
-				$('input[name=select]', self.dialog).val("Go To").data("reroot", true).removeClass("save");
+				$('input[name=select]', self.dialog).val("Go To").data("reroot", true).removeClass("e2l-save");
 			})
 			selector2.click(function() {
 				var reroot = $(this).data("reroot");
 				var key = $("input[name=root]", self.dialog).val();
 				if (reroot) {
 					$(this).data("reroot", false);
-					$(this).addClass("save");
+					$(this).addClass("e2l-save");
 					$(this).val(self.options.selecttext);
 					self.build_root(key);
 				} else {
@@ -735,3 +735,10 @@
 	});
 })(jQuery);
 
+<%!
+public = True
+headers = {
+	'Content-Type': 'application/javascript',
+	'Cache-Control': 'max-age=86400'
+}
+%>

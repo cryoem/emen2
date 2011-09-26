@@ -1,6 +1,6 @@
 <%inherit file="/css/colors.css" />
 
-table.shaded tbody tr:nth-of-type(odd) {
+table.e2l-shaded tbody tr:nth-of-type(odd) {
 	background: <%self:LIGHTEST />;
 }
 
@@ -152,16 +152,13 @@ input[type=password]
 {
 	border:solid 1px #aaa;
 }
-.save input, 
-input.save
-{
+
+input.e2l-save {
 	color: white;
 	border-color: #ccc;
 	background: #5B74A8;
 }
-.cancel input,
-input.cancel
-{
+input.e2l-cancel {
 	background-color: #eee;
 	color: #666;
 }

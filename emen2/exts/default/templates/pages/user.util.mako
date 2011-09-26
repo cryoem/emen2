@@ -1,5 +1,6 @@
 <%namespace name="buttons" file="/buttons"  />
 
+
 <%def name="page_title(user, edit)">
 	<%
 	un = ""
@@ -19,109 +20,112 @@
 
 	<form method="post" action="${ctxt.reverse('User/save', name=user.name)}">
 
+	<table class="e2l-kv">
+		<tbody>
+		% if edit:
+			<tr>
+				<td>First name:</td>
+				<td><input type="text" name="userrec.name_first" value="${user.userrec.get('name_first','')}" /></td>
+			</tr>
+			<tr>
+				<td>Middle name:</td>
+				<td><input type="text" name="userrec.name_middle" value="${user.userrec.get('name_middle','')}" /></td>
+			</tr>
+			<tr>
+				<td>Last name:</td>
+				<td><input type="text" name="userrec.name_last" value="${user.userrec.get('name_last','')}" /></td>
+			</tr>
+		% endif
+
+			<tr>
+				<td>Department:</td>
+				<td>
+				% if edit:
+					<input type="text" name="userrec.department" value="${user.userrec.get('department','')}" />
+				% else:
+					${user.userrec.get("department",'')} 
+				% endif				
+				</td>
+			</tr>
+
+			<tr>
+				<td>Institution:</td>
+				<td>
+				% if edit:
+					<input type="text" name="userrec.institution" value="${user.userrec.get('institution','')}" />
+				% else:
+					${user.userrec.get("institution",'')}
+				% endif
+				</td>
+			</tr>
+			
+			<tr>
+				<td>Address:</td>
+				<td>
+					% if edit:
+						<input type="text" name="userrec.address_street" value="${user.userrec.get('address_street','')}" />
+					% else:
+						${user.userrec.get("address_street")}			
+					% endif
+					<br />
+
+				% if edit:
+					<input type="text" name="userrec.address_street2" value="${user.userrec.get('address_street2','')}" />
+				% else:
+					${user.userrec.get("address_street2")}
+				% endif
+				<br />
+
+				% if edit:
+					<input type="text" name="userrec.address_city" value="${user.userrec.get('address_city','')}" /> <span class="e2l-small">(City)</span><br />
+					<input type="text" name="userrec.address_state" value="${user.userrec.get('address_state','')}" /> <span class="e2l-small">(State)</span><br />
+					<input type="text" name="userrec.address_zipcode" value="${user.userrec.get('address_zipcode','')}" /> <span class="e2l-small">(Zip)</span><br />
+					<input type="text" name="userrec.country" value="${user.userrec.get('country','')}" /> <span class="e2l-small">(Country)</span>
+				% else:
+					${user.userrec.get("address_city",'')} ${user.userrec.get("address_state",'')}, ${user.userrec.get("address_zipcode",'')} ${user.userrec.get("country",'')}			
+				% endif
+				</td>
+			</tr>
+	
+			<tr>
+				<td>Email:</td>
+				<td>
+				<a href="mailto:${user.email}">${user.email}</a>
+				% if edit:
+					&nbsp;&nbsp;&nbsp;<span class="e2l-small">(Set email below)</span>
+				% endif
+			</tr>
+
+			<tr>
+				<td>Phone:</td>
+				<td>
+				% if edit:
+					<input type="text" name="userrec.phone_voice" value="${user.userrec.get('phone_voice','')}" />			
+				% else:
+					${user.userrec.get("phone_voice",'')}
+				% endif
+				</td>
+			</tr>
+			
+			<tr>
+				<td>Web:</td>
+				<td>
+				% if edit:
+					<input type="text" name="userrec.uri" value="${user.userrec.get('uri','')}" />
+				% else:
+					${user.userrec.get('uri','')}		
+				% endif
+				</td>
+			</tr>
+
+		</tbody>
+	</table>
+
 	% if edit:
-	<p>
-		<span >First Name:</span>
-		<input type="text" name="userrec.name_first" value="${user.userrec.get('name_first','')}" />
-		<br />
-
-		<span >Middle Name:</span>
-		<input type="text" name="userrec.name_middle" value="${user.userrec.get('name_middle','')}" />
-		<br />
-
-		<span >Last Name:</span>
-		<input type="text" name="userrec.name_last" value="${user.userrec.get('name_last','')}" />
-	</p>
-	% endif
-	
-	<p>
-
-		<span >Department:</span>
-		% if edit:
-			<input type="text" name="userrec.department" value="${user.userrec.get('department','')}" />
-		% else:
-			${user.userrec.get("department",'')} 
-		% endif
-		<br />
-
-		<span >Institution:</span>
-		% if edit:
-			<input type="text" name="userrec.institution" value="${user.userrec.get('institution','')}" />
-		% else:
-			${user.userrec.get("institution",'')}
-		% endif
-		
-	</p>
-	
-	<p>
-		<span >Address:</span>
-		% if edit:
-			<input type="text" name="userrec.address_street" value="${user.userrec.get('address_street','')}" />
-		% else:
-			${user.userrec.get("address_street")}			
-		% endif
-		<br />
-
-		<span >&nbsp;</span>
-		% if edit:
-			<input type="text" name="userrec.address_street2" value="${user.userrec.get('address_street2','')}" />
-		% else:
-			${user.userrec.get("address_street2")}
-		% endif
-		<br />
-
-		% if edit:
-			<span >&nbsp;</span><input type="text" name="userrec.address_city" value="${user.userrec.get('address_city','')}" /> (City)<br />
-			<span >&nbsp;</span><input type="text" name="userrec.address_state" value="${user.userrec.get('address_state','')}" /> (State)<br />
-			<span >&nbsp;</span><input type="text" name="userrec.address_zipcode" value="${user.userrec.get('address_zipcode','')}" /> (Zip)<br />
-			<span >&nbsp;</span><input type="text" name="userrec.country" value="${user.userrec.get('country','')}" /> (Country)
-		% else:
-			<span >&nbsp;</span>${user.userrec.get("address_city",'')} ${user.userrec.get("address_state",'')}, ${user.userrec.get("address_zipcode",'')} ${user.userrec.get("country",'')}			
-		% endif
-	</p>
-	
-	<p>
-		<span >Email:</span>
-		<a href="mailto:${user.email}">${user.email}</a>
-		% if edit:
-			(Set email below)
-		% endif
-		<br />
-				
-		<span >Phone:</span>
-		% if edit:
-			<input type="text" name="userrec.phone_voice" value="${user.userrec.get('phone_voice','')}" />			
-		% else:
-			${user.userrec.get("phone_voice",'')}
-		% endif
-		<br />
-
-		<span >Fax:</span>
-		% if edit:
-			<input type="text" name="userrec.phone_fax" value="${user.userrec.get('phone_fax','')}" />					
-		% else:
-			${user.userrec.get("phone_fax",'')}
-		% endif
-		<br />
-
-		<span >Web:</span>
-		% if edit:
-			<input type="text" name="userrec.uri" value="${user.userrec.get('uri','')}" />
-		% else:
-			${user.userrec.get("uri",'')}		
-		% endif
-	</p>
-
-
-	% if edit:
-		<div class="e2l-controls" id="ext_save">
-			<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
-			<input type="submit" value="Save" name="save">
-		</div>	
+		${buttons.save('Save profile')}
 	% endif	
 
 	</form>
-
 
 </%def>
 
@@ -129,43 +133,26 @@
 
 
 <%def name="page_email(user, edit)">
-
-	% if edit:
-		
-		<form method="post" action="${EMEN2WEBROOT}/auth/email/change/">
-		
-		<input type="hidden" name="name" value="${user.name or ''}" />
-
-		<p>
-
-			<div>
-				<span >Current Password:</span>
-				<input type="password" name="opw" value="" /> (required to change email)
-			</div>
-
-			<div>
-				<span >New Email:</span>
-				<input type="text" name="email" value="${user.get('email','')}" />
-			</div>
-
-			<div class="e2l-controls" id="ext_save">
-				<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
-				<input type="submit" value="Change Email" name="save">
-			</div>	
-		</p>
-		</form>
-
-		
-	% else:
-		
-		% if user.email:
-			<a href="mailto:${user.email}">${user.email}</a> <br />
-		% endif
-		<br />
-
+	<form method="post" action="${EMEN2WEBROOT}/auth/email/change/">
 	
-	% endif
+	<input type="hidden" name="name" value="${user.name or ''}" />
 
+	<table class="e2l-kv">
+		<tbody>
+			<tr>
+				<td>Current password:</td>
+				<td><input type="password" name="opw" value="" /> <span class="e2l-small">(required to change email)</span></td>
+			</tr>
+			</tr>
+				<td>New email:</td>
+				<td><input type="text" name="email" value="${user.get('email','')}" /></td>
+			</tr>
+		</tbody>
+	</table>
+
+	${buttons.save('Change email')}
+
+	</form>
 </%def>
 
 
@@ -176,22 +163,25 @@
 		<input type="hidden" name="location" value="${ctxt.reverse('User/save', name=user.name)}" />
 		<input type="hidden" name="name" value="${user.name or ''}" />
 
-		<span >Current password:</span>
-		<input type="password" name="opw" />
-		<br />
+		<table class="e2l-kv">
+			<tbody>
+				<tr>
+					<td>Current password:</td>
+					<td><input type="password" name="opw" /></td>
+				</tr>
+				<tr>
+					<td>New password:</td>
+					<td><input type="password" name="on1" /></td>
+				</tr>
+				<tr>
+					<td>Confirm new password:</td>
+					<td><input type="password" name="on2" /></td>
+				</tr>
+			</tbody>
+		</table>
 
-		<span >New password:</span>
-		<input type="password" name="on1" />
-		<br />
+		${buttons.save('Change password')}
 
-		<span >Confirm new password:</span>
-		<input type="password" name="on2" />
-
-		<div class="e2l-controls" id="ext_save">
-			<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
-			<input type="submit" value="Change Password" name="save">
-		</div>	
-	
 	</form>
 </%def>
 
@@ -201,33 +191,32 @@
 
 <%def name="page_photo(user, edit)">
 	% if edit:
+	
 		% if user.userrec.get('person_photo'):
 			<% pf_url = EMEN2WEBROOT + "/download/" + user.userrec.get('person_photo') + "/" + user.name %>
 			<a href="${pf_url}"><img src="${pf_url}.jpg?size=small" alt="profile photo" /></a>
-
 		% else:
-
 			<div>No Photo</div>
-
 		% endif
 
+		<form method="post" enctype="multipart/form-data" action="${EMEN2WEBROOT}/upload/${user.userrec.get('name')}/">
 
-		<p>
-			Upload new photo:
-	
-			<form method="post" enctype="multipart/form-data" action="${EMEN2WEBROOT}/upload/${user.userrec.get('name')}/">
-
-			<input type="file" name="filedata"/>
-			<input type="hidden" value="${ctxt.reverse('User/save', name=user.name, action='save')}" name="Location" class="hide" />
+			<input type="hidden" value="${ctxt.reverse('User/save', name=user.name, action='save')}" name="Location" class="e2l-hide" />
 			<input type="hidden" value="person_photo" name="param" />
 
-			<div class="e2l-controls" id="ext_save">
-				<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
-				<input type="submit" value="Upload Photo" name="save">
-			</div>	
 
-			</form>
-		</p>
+			<table class="e2l-kv">
+				<tbody>
+					<tr>
+						<td>Select a new photo:</td>
+						<td><input type="file" name="filedata"/></td>
+					</tr>
+				</tbody>
+			</table>
+
+			${buttons.save('Upload photo')}
+
+		</form>
 
 	% else:
 		% if user.userrec.get('person_photo'):
@@ -249,13 +238,7 @@
 
 
 <%def name="page_groups(user, edit)">
-
-##	<ul>
-##		% for group in user.groups:
-##			<li><a href="${EMEN2WEBROOT}/group/${group}">${group}</a></li>
-##		% endfor
-##	</ul>
-	
+	## Fix me.
 </%def>
 
 
@@ -263,63 +246,31 @@
 
 
 <%def name="page_history(user, edit)">
-	% if edit:
-
-		<p>Created: ${user.userrec.get("creationtime")}</p>
-		<p>Modified: ${user.userrec.get("modifytime")}</p>
-
-	% else:
-	
-	% endif
-
+	<p>Created: ${user.userrec.get("creationtime")}</p>
+	<p>Modified: ${user.userrec.get("modifytime")}</p>
 </%def>
 
 
 
 <%def name="page_status(user, edit)">
-	% if edit:
-				
-		<form method="post" action="${ctxt.reverse('User/save', name=user.name, action='save')}">
-			<input type="radio" name="user.disabled" value="0" ${['checked="checked"',''][user.disabled]}> Enabled <br />
-			<input type="radio" name="user.disabled" value="1" ${['','checked="checked"'][user.disabled]}> Disabled
-
-			<div class="e2l-controls" id="ext_save">
-				<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
-				<input type="submit" value="Set Account Status" name="save">
-			</div>	
-
-		</form>
-		
-	% else:
-	
-	% endif
-
+	<form method="post" action="${ctxt.reverse('User/save', name=user.name, action='save')}">
+		<input type="radio" name="user.disabled" value="0" ${['checked="checked"',''][user.disabled]}> Enabled <br />
+		<input type="radio" name="user.disabled" value="1" ${['','checked="checked"'][user.disabled]}> Disabled
+		${buttons.save('Set account status')}
+	</form>
 </%def>
 
 
 
 <%def name="page_privacy(user, edit)">
-	% if edit:
-		
-		Who may view your account information:
-				
-		<form method="post" action="${ctxt.reverse('User/save', name=user.name, action='save')}">
-			<input type="radio" name="user.privacy" value="0" ${['checked="checked"','',''][user.privacy]}> Public <br />
-			<input type="radio" name="user.privacy" value="1" ${['','checked="checked"',''][user.privacy]}> Only authenticated users<br />
-			<input type="radio" name="user.privacy" value="2" ${['','','checked="checked"'][user.privacy]}> Private<br />
-
-			<div class="e2l-controls" id="ext_save">
-				<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
-				<input type="submit" value="Set Privacy Level" name="save">
-			</div>	
+	Who may view your account information:
 			
-			
-		</form>
-		
-	% else:
-	
-	% endif
-
+	<form method="post" action="${ctxt.reverse('User/save', name=user.name, action='save')}">
+		<input type="radio" name="user.privacy" value="0" ${['checked="checked"','',''][user.privacy]}> Public <br />
+		<input type="radio" name="user.privacy" value="1" ${['','checked="checked"',''][user.privacy]}> Only authenticated users<br />
+		<input type="radio" name="user.privacy" value="2" ${['','','checked="checked"'][user.privacy]}> Private<br />
+		${buttons.save('Set privacy level')}
+	</form>		
 </%def>
 
 
@@ -404,7 +355,7 @@
 		</table>
 		
 		<div class="e2l-controls" id="ext_save">
-			<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
+			${buttons.spinner(false)}
 			<input type="button" value="Accept / Reject Users" onclick="javascript:admin_approveuser_form(this);return false" />
 		</div>	
 

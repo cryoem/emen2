@@ -122,7 +122,7 @@
 			if (this.options.edit) {
 				var controls = $('<div/>');
 				var edit = $('<textarea name="comment" cols="60" rows="2"></textarea>');
-				var commit=$('<input type="submit" class="e2l-float-right" value="Add Comment" />').click(function(e) {self.save()});
+				var commit=$('<input type="submit" class="e2l-float-right e2l-save" value="Add Comment" />').click(function(e) {self.save()});
 				controls.append(edit, commit);
 				this.element.append(controls);
 			}
@@ -158,3 +158,10 @@
 	});
 })(jQuery);
 
+<%!
+public = True
+headers = {
+	'Content-Type': 'application/javascript',
+	'Cache-Control': 'max-age=86400'
+}
+%>

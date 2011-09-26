@@ -34,40 +34,6 @@ from emen2.web.markuputils import HTMLTab
 
 
 
-
-
-% if admin:
-
-	<div class="e2l-clearfix">
-
-	<%
-	admin_tabs = {
-		'classname':'homeadmin',
-		'labels':{"userqueue":'Users (<span id="admin_userqueue_count">%s pending</span>)'%(len(admin_queue))}, 
-		'order':["userqueue"],
-		'switched':1
-	}
-	admin_tabs = HTMLTab(admin_tabs)
-
-
-	%>
-
-
-	${buttons.buttons(admin_tabs)}
-	<%call expr="buttons.pageswrap(admin_tabs)">
-		<%call expr="buttons.pagewrap(admin_tabs,'userqueue')">
-			${pages_user_util.userqueue(admin_queue,1)}		
-		</%call>
-	</%call>
-
-	</div>
-
-	<br /><br />
-
-% endif
-
-## End admin stuff
-
 <%
 ctsearch = [[None, ctroot]]
 rn = {}

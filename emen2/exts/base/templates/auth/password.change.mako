@@ -8,11 +8,11 @@
 	<input type="hidden" name="location" value="${location}" />
 	<input type="hidden" name="name" value="${name or ''}" />
 
-	<table>
+	<table class="e2l-kv">
 		% if not admin:
 			<tr><td>Current password:</td><td><input type="password" name="opw" /></td></tr>
 		% endif
-		<tr><td style="width:150px">New password:</td><td><input type="password" name="on1" /></td></tr>
+		<tr><td>New password:</td><td><input type="password" name="on1" /></td></tr>
 		<tr><td>Confirm new password:</td><td><input type="password" name="on2" /></td></tr>
 
 		<tr><td /><td><input type="submit" value="Change Password" /></td></tr>

@@ -3,8 +3,8 @@
 <%namespace name="buttons" file="/buttons"  /> 
 <%namespace name="relmap" file="/pages/map"  /> 
 
-<%block name="stylesheet_inline">
-	${parent.stylesheet_inline()}
+<%block name="css_inline">
+	${parent.css_inline()}
 	#content {
 		padding: 0px;
 	}
@@ -24,16 +24,16 @@
 </%block>
 
 ## Cached items
-<%block name="javascript_inline">
-	${parent.javascript_inline()}
+<%block name="js_inline">
+	${parent.js_inline()}
 	caches['record'][${jsonrpc.jsonutil.encode(rec.name)}] = ${jsonrpc.jsonutil.encode(rec)};
 	caches['recnames'] = ${jsonrpc.jsonutil.encode(recnames)};
 	caches['displaynames'] = ${jsonrpc.jsonutil.encode(displaynames)};
 </%block>
 
 ## Start map browser
-<%block name="javascript_ready">
-	${parent.javascript_ready()}
+<%block name="js_ready">
+	${parent.js_ready()}
 	$('#map .e2-map').RelationshipControl({'attach':true});
 </%block>
 

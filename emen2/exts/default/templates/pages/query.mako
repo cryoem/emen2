@@ -2,8 +2,8 @@
 <%inherit file="/page" />
 <%namespace name="table" file="/pages/table"  /> 
 
-<%block name="javascript_ready">
-	${parent.javascript_ready}
+<%block name="js_ready">
+	${parent.js_ready}
 	$('#qc').QueryControl({
 		q: ${jsonrpc.jsonutil.encode(q)}
 	});

@@ -34,11 +34,11 @@ for k,v in d.items():
 %>
 
 
-Parameter Vartype Index
-% for k in sorted(d.keys()):
-	<a href="#${k}">${k}</a>
-% endfor
-
+<%buttons:singlepage label='Index'>
+	% for k in sorted(d.keys()):
+		<a href="#${k}">${k}</a>
+	% endfor
+</%buttons:singlepage>
 
 
 % for k in sorted(d.keys()):

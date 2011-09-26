@@ -10,8 +10,8 @@
 ## => precontent
 
 ## Javascript to run when the page is loaded
-<%block name="javascript_ready">
-	${parent.javascript_ready()}
+<%block name="js_ready">
+	${parent.js_ready()}
 	$('#bookmarks').hover(
 		function() {
 			$(this).BookmarksControl();
@@ -30,7 +30,7 @@
 
 	## Alerts and notifications
 	<%block name="alert">
-		<ul id="e2l-alert" class="e2l-alert e2l-nonlist e2l-precontent">
+		<ul id="e2l-alert" class="e2l-alert e2l-precontent">
 			% for msg in notify:
 			   <li>${msg}</li>
 			% endfor

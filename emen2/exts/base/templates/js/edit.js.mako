@@ -78,7 +78,10 @@
 			}
 			this.built_selector = true;
 			this.selectdialog = $('<div />');
-			this.typicalchld = $('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>')
+
+			this.typicalchld = $('<div/>');
+			this.typicalchld.append($.spinner())
+			
 			this.selectdialog.append('<h4>New Record</h4>', this.typicalchld);
 
 			// new record rectype
@@ -176,7 +179,9 @@
 		
 		build_newrecord: function() {
 			var self = this;
-			this.newdialog = $('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+			this.newdialog = $('<div/>');
+			this.newdialog.append($.spinner());
+			
 			$.jsonRPC.call('getrecorddef', [this.options.rectype], function(rd) {
 				caches['recorddef'][rd.name] = rd;
 				
@@ -296,7 +301,7 @@
 			this.controls = $('<div class="e2l-controls" />');
 			this.controls.append($.spinner());
 			
-			var save = $('<input type="submit" name="save" value="Save" />');
+			var save = $('<input type="submit" name="save" class="e2l-save" value="Save" />');
 			save.click(function(e) {self.save()});
 			this.controls.append(save);
 
@@ -842,4 +847,10 @@
 })(jQuery);
 
 
-
+<%!
+public = True
+headers = {
+	'Content-Type': 'application/javascript',
+	'Cache-Control': 'max-age=86400'
+}
+%>

@@ -2,7 +2,7 @@
 <%inherit file="/pages/record" />
 <%namespace name="buttons" file="/buttons" />
 
-<%block name="javascript_ready">
+<%block name="js_ready">
 	caches['record'][null] = ${jsonrpc.jsonutil.encode(newrec)};
 	caches['recorddef'][${jsonrpc.jsonutil.encode(recdef.name)}] = ${jsonrpc.jsonutil.encode(recdef)};
 	var rec = caches['record'][null]

@@ -2,8 +2,8 @@
 
 <%namespace name="buttons"  file="/buttons"  /> 
 
-<%block name="javascript_ready">
-	${parent.javascript_ready()}
+<%block name="js_ready">
+	${parent.js_ready()}
 	$("#comments").CommentsControl({
 		name: ${rec.name}
 	})

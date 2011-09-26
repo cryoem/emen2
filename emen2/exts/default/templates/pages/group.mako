@@ -7,8 +7,8 @@
 
 
 
-<%block name="javascript_ready">
-	${parent.javascript_ready()}
+<%block name="js_ready">
+	${parent.js_ready()}
 
 	var edit = ${jsonrpc.jsonutil.encode(edit)};
 	caches['group'][${jsonrpc.jsonutil.encode(group.name)}] = ${jsonrpc.jsonutil.encode(group)};
@@ -48,7 +48,7 @@
 
 	% if new or edit:
 		<div class="e2l-controls" id="ext_save">
-			<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
+			${buttons.spinner(false)}
 			<input type="submit" value="Save" name="save">
 		</div>
 	% endif

@@ -69,7 +69,7 @@
 				// <abbr class="timeago" title="2008-07-17T09:24:17Z">July 17, 2008</abbr>
 				h4.append('<time class="e2-timeago e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
 			}
-			var p = $('<p class="small" />');
+			var p = $('<p class="e2l-small" />');
 			p.append(body);
 			
 			var src = EMEN2WEBROOT+'/static/images/nophoto.png';
@@ -117,7 +117,7 @@
 
 		build: function() {
 			var self = this;
-			this.dialog = $('<div><img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+			this.dialog = $('<div>'+$.spinner()+'</div>');
 			this.element.append(this.dialog);
 			this.dialog.attr("title", "Select Record");
 			
@@ -152,10 +152,6 @@
 					for (var i=0;i<recs.length;i++) {
 						var row = rendered[recs[i]];
 						var tr = $('<tr/>');
-						if (i%2) {
-							tr.addClass('s');
-						}
-						
 						for (var j=0;j<row.length;j++) {
 							var td = $('<td data-name="'+recs[i]+'" class="e2l-a">'+row[j]+'</td>');
 							tr.append(td);
@@ -185,12 +181,9 @@
 			}
 		}
 	});
-})(jQuery);
 
 
 
-
-(function($) {
     $.widget("emen2.FindControl", {
 
 		options: {
@@ -260,7 +253,7 @@
 				height: 400
 			});
 			
-			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append('<span class="e2l-spinner hide"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></span>');		
+			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append($.spinner());		
 		},
 
 		event_click: function(e) {
@@ -336,3 +329,11 @@
 	});
 	
 })(jQuery);
+
+<%!
+public = True
+headers = {
+	'Content-Type': 'application/javascript',
+	'Cache-Control': 'max-age=86400'
+}
+%>

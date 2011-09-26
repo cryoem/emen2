@@ -65,7 +65,7 @@
 		event_build_tablearea: function(e) {
 			var self = this;
 			this.tablearea.empty();
-			this.tablearea.append('<div><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+			this.tablearea.append('<div>'+$.spinner()+'</div>');
 			$.jsonRPC.call("paramdef.find", {'record':this.options.name}, function(paramdefs) {			
 				$.each(paramdefs, function() {
 					caches['paramdef'][this.name] = this;
@@ -136,9 +136,9 @@
 				var target = $(this).parent().parent();
 				var state = $(this).attr('checked');
 				if (state) {
-					target.addClass('removed');
+					target.addClass('e2l-removed');
 				} else {
-					target.removeClass('removed');
+					target.removeClass('e2l-removed');
 				}
 			});
 			
@@ -172,9 +172,9 @@
 					</span> \
 				</div> \
 				<div style="width:100%" class="e2l-controls"> \
-					<input class=".e2l-float-left e2l-save" name="remove" type="button" value="Remove Selected Attachments" /> \
+					<input class="e2l-float-left e2l-save" name="remove" type="button" value="Remove Selected Attachments" /> \
 					<input class="e2l-float-right e2l-save" name="save" type="submit" value="Upload Attachment" /> \
-					<img class="e2l-spinner e2l-float-right hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /> \
+					'+$.spinner()+' \
 				</div>');
 			
 			// If we have permission to edit, show controls.
@@ -190,7 +190,7 @@
 			// Submit the form when this changes.
 			$('input[name=filedata]', controls).change(function() {
 				if (!$(this).val()) {return}
-				$('img.e2l-spinner', self.dialog).show();
+				$('.e2l-spinner', self.dialog).show();
 				$('form', self.dialog).submit();
 			});
 
@@ -244,13 +244,13 @@
 		removebdos: function() {
 			var self = this;
 			var newvalues = {}
-			//:not(.removed)
+			//:not(.e2l-removed)
 			$('tr[data-param]', this.element).each(function() {
 				var t = $(this);
 				var param = t.attr('data-param');
 				var bdo = t.attr('data-bdo');
 				if (!newvalues[param]) {newvalues[param]=[]}
-				if (!t.hasClass('removed')) {
+				if (!t.hasClass('e2l-removed')) {
 					newvalues[param].push(bdo)
 				}
 			});
@@ -281,3 +281,11 @@
 		}
 	});
 })(jQuery);
+
+<%!
+public = True
+headers = {
+	'Content-Type': 'application/javascript',
+	'Cache-Control': 'max-age=86400'
+}
+%>

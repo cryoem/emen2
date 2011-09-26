@@ -1,4 +1,5 @@
 <%inherit file="/page" />
+<%namespace name="buttons" file="/buttons"  /> 
 
 <% 
 import jsonrpc.jsonutil 
@@ -28,7 +29,7 @@ import jsonrpc.jsonutil
 <h1>
 	Published Records
 	<div class="e2l-controls" id="ext_save">
-		<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
+		${buttons.spinner(false)}
 		<input type="submit" value="Save" name="save">
 	</div>
 </h1>

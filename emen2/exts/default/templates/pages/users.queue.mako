@@ -1,8 +1,8 @@
 <%inherit file="/page" />
 <%namespace name="pages_user_util" file="/pages/user.util"  /> 
 
-<%block name="javascript_inline">
-	${parent.javascript_inline()}
+<%block name="js_inline">
+	${parent.js_inline()}
 
 	// Approve / Reject Users
 	function admin_approveuser_form(elem) {

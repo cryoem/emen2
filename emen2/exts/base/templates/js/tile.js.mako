@@ -77,7 +77,7 @@
 	
 			// Box areas
 			var boxtable = $('<table class="e2-box-table"><thead><tr><th style="width:60px">Visible</th><th style="width:30px">Count</th><th style="width:40px">Size</th><th>Name</th><th>Actions</th></tr></thead><tbody></tbody></table>');
-			var controls = $('<div class="controls" />');
+			var controls = $('<div class="e2l-controls" />');
 			// controls.resizable({
 			// 	handles: 'w',
 			// 	minWidth: 450,
@@ -95,8 +95,8 @@
 			controls.append('<h4 class="e2l-label">Boxes</h4>\
 				<input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /> \
 				<input type="button" name="newset" value="New Set" /><br /> \
-				<div class="e2l-spinner hide"><img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div> \
-				<input type="button" name="saveall" value="Save All" /> \
+				'+$.spinner(false)+' \
+				<input type="button" name="saveall" class="e2l-save" value="Save All" /> \
 				');
 			controls.find("input[name=bigger]").click(function() {
 				self.resize_controls(1);
@@ -131,7 +131,7 @@
 			var maxh = document.height;
 			var pos = this.element.parent().offset();
 			this.element.height(parseInt(maxh-pos.top)-22);
-			var cw = $('.controls', this.element);
+			var cw = $('.e2l-controls', this.element);
 			var w = cw.width();
 			if (cw.css("display") == "none") { w = 0 }
 			this.img.width(this.element.width()-w);
@@ -165,7 +165,7 @@
 		
 		resize_controls: function(size) {
 			// make the controls bigger or smaller...
-			var cw = $('.controls', this.element);
+			var cw = $('.e2l-controls', this.element);
 			var maxsize = this.element.width()-100;			
 			var datawidth = parseInt(cw.attr('data-width'));
 			var datamaxsize = parseInt(cw.attr('data-maxsize'));						
@@ -249,7 +249,6 @@
 			var boxes = $('.e2-box-img[data-label='+label+']');
 			var rec = caches['record'][label];
 			rec['box_coords'] = $.makeArray(boxes.map(function(){return $(this).BoxImg('getcoords')}));
-			//rec['box_length'] = $('.boximg[data-label='+label+']').length;
 			rec['box_label'] = $('.e2-box-label[data-label='+label+']').val();
 			rec['box_size'] = $('.e2-box-size[data-label='+label+']').val();
 			return rec
@@ -342,7 +341,7 @@
 				self.pen = $(this).attr('data-label');
 			});
 			
-			var save1 = $('<input data-label="'+label+'" type="button" value="Save" />');
+			var save1 = $('<input data-label="'+label+'" type="button" class="e2l-save" value="Save" />');
 			save1.click(function(e){
 				var label = $(this).attr("data-label");
 				self.save(label);
@@ -382,7 +381,7 @@
 			colorcontrols.append(pen, hide, colorpicker);
 
 			var actions = $('<td />');
-			actions.append('<img class="e2l-spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" />', save1, remove);					
+			actions.append($.spinner(), save1, remove);					
 
 			var boxheader = $('<tr data-label="'+label+'" />');
 			
@@ -422,12 +421,6 @@
 	});
 
 
-})(jQuery);
-
-
-
-
-(function($) {
     $.widget("emen2.BoxBox", {
 		options: {
 			bdo: null,
@@ -504,11 +497,8 @@
 			this.refresh();
 		}
 	});
-})(jQuery);
 
 
-
-(function($) {
     $.widget("emen2.BoxImg", {
 		options: {
 			bdo: null,
@@ -596,11 +586,8 @@
 			this.refresh();
 		}
 	});
-})(jQuery);
 
 
-
-(function($) {
     $.widget("emen2.TileControl", {
 		options: {
 			width: 0,
@@ -632,7 +619,7 @@
 		show: function() {
 			var self = this;
 			if (this.options.mode == "cached") {
-				this.element.append('<img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner2.gif" alt="Loading" />');
+				this.element.append($.spinner());
 				$.ajax({
 					type: 'POST',
 					url: EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/check/',
@@ -698,17 +685,17 @@
 				apix = 1.0;
 			}
 
-			var controls = $('<div class="roundleft e2-tile-controls"> \
+			var controls = $('<div class="e2-tile-controls"> \
 				<h4 class="e2l-label">Image</h4> \
 				<input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /> \
 				<input type="button" name="autocenter" value="Center" /> <br />\
-				<input type="button" name="save" value="Save" /> \
+				<input type="button" name="save" class="e2l-save" value="Save" /> \
 				<h4 class="e2l-label">Mode</h4> \
 				<div style="text-align:left"> \
 				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /><label for="displaymode_image">Image</label><br />\
 				<input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /><label for="displaymode_pspec">PSpec</label><br />\
 				<input type="radio" name="displaymode" value="1d" id="displaymode_1d" /><label for="displaymode_1d">1D</label> <br />\
-				<input type="text" name="apix" value="'+apix+'" size="1" /><span class="small">A/px</a><br />\
+				<input type="text" name="apix" value="'+apix+'" size="1" /><span class="e2l-small">A/px</a><br />\
 				</div> \
 			</div>');
 			
@@ -954,3 +941,10 @@
 // 
 // ct.find("tbody").append(contrast);
 
+<%!
+public = True
+headers = {
+	'Content-Type': 'application/javascript',
+	'Cache-Control': 'max-age=86400'
+}
+%>

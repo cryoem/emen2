@@ -19,7 +19,7 @@
 			var length = $('<li class="e2-table-length" />');
 						
 			// Row count
-			var count = $('<select name="count" class="small"></select>');
+			var count = $('<select name="count" class="e2l-small"></select>');
 			count.append('<option value="">Rows</option>');
 			$.each([1, 10,50,100,500,1000], function() {
 				count.append('<option value="'+this+'">'+this+'</option>');
@@ -34,12 +34,12 @@
 			var pages = $('<li class="e2l-float-right e2-table-pages"></li>');
 
 			// Activity spinner
-			var spinner = $('<li class="e2l-float-right"><img class="e2l-spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></li>');
+			var spinner = $('<li class="e2l-float-right">'+$.spinner(false)+'</li>');
 
 			// Create a new child record
 			var create = "";
 			if (this.options.rectype && this.options.parent != null) {
-				var create = $('<li class="e2l-float-right"><input class="small" data-action="reload" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="submit" value="New '+this.options.rectype+'" /></li>');
+				var create = $('<li class="e2l-float-right"><input class="e2l-small" data-action="reload" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="submit" value="New '+this.options.rectype+'" /></li>');
 				$('input', create).NewRecordControl({});
 			}
 
@@ -91,7 +91,7 @@
 		build_stats: function() {
 			var self = this;
 			var q = $('<li><span class="e2l-a e2l-label">Statistics<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
-			var hidden = $('<div class="e2l-menu-hidden"><img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+			var hidden = $('<div class="e2l-menu-hidden">'+$.spinner()+'</div>');
 			q.append(hidden);
 			q.EditbarControl({
 				width: 300
@@ -362,3 +362,10 @@
 	});
 })(jQuery);
 
+<%!
+public = True
+headers = {
+	'Content-Type': 'application/javascript',
+	'Cache-Control': 'max-age=86400'
+}
+%>

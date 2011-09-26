@@ -4,8 +4,8 @@
 
 
 
-<%block name="javascript_ready">
-	${parent.javascript_ready}
+<%block name="js_ready">
+	${parent.js_ready}
 
 	function updatefilesize() {
 		var s = 0;

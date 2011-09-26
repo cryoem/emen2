@@ -18,8 +18,12 @@ window.log = function(){
 		}
 	}
 
-	$.spinner = function() {
-		return '<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="e2l-spinner hide" alt="Loading" />'
+	$.spinner = function(show) {
+		if (show) {
+			return '<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="e2l-spinner" alt="Loading" />'			
+		} else { 
+			return '<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="e2l-spinner e2l-hide" alt="Loading" />'
+		}
 	}
 	
 	// Update controls when a record has changed
@@ -55,10 +59,10 @@ window.log = function(){
 	
 
 	// Notifications
-	$.notify = function(msg, fade, error) {
+	$.notify = function(msg, error, fade) {
 		var msg=$('<li>'+msg+'</li>');
-		if (error) {
-			msg.addClass("error");
+		if (error!=null) {
+			msg.addClass("e2l-error");
 		}
 		var killbutton = $('<span class="e2l-float-right">X</span>');
 		killbutton.click(function() {
@@ -67,7 +71,7 @@ window.log = function(){
 			});		
 		});
 		msg.append(killbutton);
-		$("#e2-alert").append(msg); //.fadeIn();	
+		$("#e2l-alert").append(msg); //.fadeIn();	
 	}
 	
 	// Convert a byte count to human friendly
@@ -171,7 +175,7 @@ window.log = function(){
 	$.error_dialog = function(title, text, method, data) {
 		var error = $('<div title="'+title+'" />');
 		error.append('<p>'+text+'</p>');
-		var debug = $('<div class="e2-error-debug hide"/>');
+		var debug = $('<div class="e2-error-debug e2l-hide"/>');
 		debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+method+'</p>');
 		debug.append('<p><strong>Data:</strong></p><p>'+data+'</p>');
 		error.append(debug);
@@ -298,8 +302,7 @@ window.log = function(){
 			
 			//$('img.star', this.element).
 			this.element.empty();
-			var spinner = $('<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="e2l-spinner hide" alt="Loading" />');
-			this.element.append(spinner);
+			this.element.append($.spinner(false));
 			
 			$.jsonRPC.call('rel.child', [this.options.parent, 1, 'bookmarks'], function(children) {
 				$.jsonRPC.call('record.get', [children], function(recs) {
@@ -358,7 +361,7 @@ window.log = function(){
 		// 		if ($('#siblings', self.popup).length) {
 		// 			return
 		// 		}
-		// 		var sibs = $('<div class="e2-siblings"><img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
+		// 		var sibs = $('<div class="e2-siblings">'+$.spinner()+'</div>');
 		// 		self.popup.append(sibs);
 		// 		$.jsonRPC.call("getsiblings", [rec.name, rec.rectype], function(siblings) {
 		// 			$.jsonRPC.call("renderview", [siblings, null, "recname"], function(recnames) {
@@ -417,9 +420,9 @@ window.log = function(){
 			var fault = false;
 			if (wc > this.options.max) {fault=true}
 			if (fault) {
-				this.wc.addClass('e2-wordcount-error');
+				this.wc.addClass('e2l-error');
 			} else {
-				this.wc.removeClass('e2-wordcount-error')
+				this.wc.removeClass('e2l-error')
 			}
 			this.wc.text(t);	
 		}
@@ -519,3 +522,11 @@ window.log = function(){
 		}
 	});
 })(jQuery);
+
+<%!
+public = True
+headers = {
+	'Content-Type': 'application/javascript',
+	'Cache-Control': 'max-age=86400'
+}
+%>

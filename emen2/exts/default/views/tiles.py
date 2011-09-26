@@ -124,7 +124,7 @@ class PSpec1D(View):
 		dx = 1.0 / (2.0 * self.angstroms_per_pixel * (len(y)+1))
 		x = [dx*(i+1) for i in range(len(y))]
 		
-		q = self.db.plot(x, y, plotmode="xy", xlabel="Spatial Freq. (1/A); A/pix set to %s"%self.angstroms_per_pixel, ylabel="Log Intensity (10^x)", style='-')
+		q = self.db.plot(x, y, plotmode="xy", xlabel="Spatial Freq. (1/A); A/pix set to %s"%self.angstroms_per_pixel, ylabel="Log Intensity (10^x)")
 		f = open(q['plots']['png'], "r")
 		ret = f.read()
 		f.close()

@@ -1,6 +1,7 @@
-///////////////// Parameter Editor /////////////////////
-
 (function($) {
+
+	///////////////// Parameter Editor /////////////////////
+	
     $.widget("emen2.ParamDefEditControl", {
 		options: {
 			newdef: null,
@@ -90,16 +91,11 @@
 			return pd
 		}
 	});
-})(jQuery);
 
 
 
- 
-///////////////// Protocol Editor /////////////////////
+	///////////////// Protocol Editor /////////////////////
 
-
-
-(function($) {
     $.widget("emen2.RecordDefEditControl", {
 		options: {
 			newdef: null,
@@ -127,7 +123,7 @@
 		
 			$("#button_recdefviews_new", this.element).bind("click",function(e){self.event_addview(e)});
 		
-			$('.page[data-tabgroup="recdefviews"]', this.element).each(function() {
+			$('.e2l-tab-page[data-tabgroup="recdefviews"]', this.element).each(function() {
 				var t=$(this).attr("data-tabname");
 				self.bindview(t,$(this));
 			});
@@ -151,7 +147,7 @@
 		
 			r.attr("data-t",t);
 		
-			var obutton=$('.button[data-tabname="'+t+'"]');
+			var obutton=$('.e2l-tab-button[data-tabname="'+t+'"]');
 			obutton.attr("data-t",t);
 
 		},
@@ -160,7 +156,7 @@
 			var t=$(e.target).attr("data-t");
 			var v=$(e.target).val();
 
-			$('.button_recdefviews[data-t="'+t+'"]').html("New View: "+v);
+			$('.e2l-tab-button-recdefviews[data-t="'+t+'"]').html("New View: "+v);
 		
 			$('[data-t="'+t+'"]').each(function(){
 				$(this).attr("data-t",v);
@@ -293,3 +289,10 @@
 	
 })(jQuery);
 
+<%!
+public = True
+headers = {
+	'Content-Type': 'application/javascript',
+	'Cache-Control': 'max-age=86400'
+}
+%>

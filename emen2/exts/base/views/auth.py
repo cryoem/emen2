@@ -23,17 +23,16 @@ class Auth(View):
 		self.set_context_item('location', location)
 		ctxid = None
 		if name != None:
-			#try:
 			ctxid = self.db.login(name, pw, host=self.ctxt['HOST'])
 			msg = 'Successfully logged in'
-			#except Exception, errmsg:
-			#	pass
 
 			self.set_header('X-Ctxid', ctxid)
 			self.set_header('Location', location or '/')
 
-		self.set_context_item('msg',msg)
-		self.set_context_item('errmsg',errmsg)
+		if msg:
+			self.ctxt['notify'].append(msg)
+		if errmsg:
+			self.ctxt['errors'].append(errmsg)
 
 
 
@@ -60,8 +59,10 @@ class Auth(View):
 		self.set_header('Location', location or '/')
 		self.set_header('X-Ctxid', '')
 
-		self.set_context_item('msg',msg)
-		self.set_context_item('errmsg',errmsg)
+		if msg:
+			self.ctxt['notify'].append(msg)
+		if errmsg:
+			self.ctxt['errors'].append(errmsg)
 
 
 
@@ -97,8 +98,10 @@ class Auth(View):
 			except Exception, errmsg:
 				pass
 
-		self.set_context_item('msg',msg)
-		self.set_context_item('errmsg',errmsg)
+		if msg:
+			self.ctxt['notify'].append(msg)
+		if errmsg:
+			self.ctxt['errors'].append(errmsg)
 
 
 
@@ -132,9 +135,10 @@ class Auth(View):
 				except Exception, errmsg:
 					pass
 
-
-		self.set_context_item('msg',msg)
-		self.set_context_item('errmsg',errmsg)
+		if msg:
+			self.ctxt['notify'].append(msg)
+		if errmsg:
+			self.ctxt['errors'].append(errmsg)
 
 
 
@@ -159,8 +163,10 @@ class Auth(View):
 			except Exception, errmsg:
 				pass
 
-		self.set_context_item('msg',msg)
-		self.set_context_item('errmsg',errmsg)
+		if msg:
+			self.ctxt['notify'].append(msg)
+		if errmsg:
+			self.ctxt['errors'].append(errmsg)
 
 
 
@@ -178,8 +184,10 @@ class Auth(View):
 			except Exception, errmsg:
 				pass
 
-		self.set_context_item('msg',msg)
-		self.set_context_item('errmsg',errmsg)
+		if msg:
+			self.ctxt['notify'].append(msg)
+		if errmsg:
+			self.ctxt['errors'].append(errmsg)
 
 
 

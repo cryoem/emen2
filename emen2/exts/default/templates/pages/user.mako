@@ -1,14 +1,6 @@
 <%inherit file="/page" />
 <%namespace name="pages_user_util" file="/pages/user.util"  /> 
 
-
-% if user.disabled:
-	<div class="notify deleted">Disabled User</div>
-% endif
-
-
-
-
 <h1>
 	${pages_user_util.page_title(user, False)} 
 	% if admin:
@@ -28,5 +20,14 @@
 	</div>
 
 </div>
+
+
+
+
+
+
+
+
+
 
 

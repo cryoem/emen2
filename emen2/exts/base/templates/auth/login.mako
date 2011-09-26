@@ -1,11 +1,6 @@
 <%inherit file="/page" />
 
-<%def name="login(location='/', errmsg='', logintext='')">
-
-	% if logintext:
-		<h1>${logintext}</h1>
-	% endif
-
+<%def name="login(location='/')">
 	<form action="${EMEN2WEBROOT}/auth/login/" method="post">
 	    <input type="hidden" name="location" value="${EMEN2WEBROOT}${location}" />
 		<table class="login" cellpadding="0" cellspacing="0">
@@ -19,12 +14,13 @@
 			</tr>
 			<tr>
 				<td />
-				<td><input type="submit" value="Login" /> <span class="small">(<a href="${EMEN2WEBROOT}/auth/password/reset/">Forgot Password?</a>)</span></td>
+				<td><input type="submit" value="Login" /> <span class="e2l-small">(<a href="${EMEN2WEBROOT}/auth/password/reset/">Forgot Password?</a>)</span></td>
 			</tr>
 		</table>
 	</form>
 
 </%def>
 
+<h1>Login</h1>
 
-${login(logintext='Login', errmsg=errmsg)}
+${login()}

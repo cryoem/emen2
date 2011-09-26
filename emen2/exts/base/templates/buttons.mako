@@ -1,3 +1,5 @@
+<%namespace name="forms"  file="/forms"  /> 
+
 ##########################################################
 
 <%def name="buttons(tabs)">
@@ -41,8 +43,8 @@
 	
 </%def>
 
-##########################################################
 
+## Simple title button
 
 <%def name="titlebutton(title)">
 	<ul data-tabgroup="main" id="buttons_main" class="e2l-tab-buttons e2l-clearfix e2l-float-list">
@@ -50,15 +52,22 @@
 	</ul>
 </%def>
 
+
+## Some simple form controls
+
+<%def name="spinner(show=True)">
+	<img src="${EMEN2WEBROOT}/static/images/spinner.gif" class="e2l-spinner ${forms.iffalse(show, 'e2l-hide')}" alt="Loading" />
+</%def>
+
+
 <%def name="save(label='Save')">
-	<div class="e2l-float-right e2l-clearfix">
-		${caller.body()}
-		<input value="${label}" type="submit" class="big save">
+	<div class="e2l-controls">
+		<input value="${label}" type="submit" class="e2l-save">
 	</div>
 </%def>
 
 
-
+## Info Box
 
 <%def name="infobox(item=None, title=None, body=None, time=None, link=None, autolink=False)">
 	<%
@@ -77,7 +86,7 @@
 	elif item.get('keytype') == 'group':
 		src = "%s/static/images/group.png"%EMEN2WEBROOT
 		title = title or item.get('displayname') or item.get('name')
-		body = body or sum([len(i) for i in item.get('permissions',[])])
+		body = body or '%s members'%sum([len(i) for i in item.get('permissions',[])])
 	else:
 		src = "%s/static/images/gears.png"%EMEN2WEBROOT
 		title = title or item.get('desc_short') or item.get('name')
@@ -106,9 +115,10 @@
 				</a>
 			% endif
 		</h4>
-		<p class="small">${caller.body()}${body}</p>
+		<p class="e2l-small">${body}</p>
 	</div>
 </%def>
+
 
 
 ##########################################################

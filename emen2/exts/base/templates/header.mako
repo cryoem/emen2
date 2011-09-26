@@ -1,9 +1,11 @@
-<ul id="nav" class="e2l-menu e2l-float-list e2l-clearfix">
+<%namespace name="buttons" file="/buttons"  />
+
+<ul id="nav" class="e2l-menu e2l-clearfix">
 
 	<li>
 		<a href="${EMEN2WEBROOT}/"><img src="${EMEN2WEBROOT}/static/images/${EMEN2LOGO}" alt="${EMEN2DBNAME}" /></a>
 	</li>
-
+	
 	% if USER:
 
 		<li><a href="${EMEN2WEBROOT}/">Home <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
@@ -22,30 +24,31 @@
 		<li>
 			<a href="${EMEN2WEBROOT}/query/">Query <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
 			<ul>
-				<li>
-					<a href="${EMEN2WEBROOT}/query">All Records</a>
-				</li>
-				<li>
-					<a href="${EMEN2WEBROOT}/query/rectype.is.grid_imaging/">Imaging Sessions</a>
-				</li>
-				<li>
-					<a href="${EMEN2WEBROOT}/query/rectype.is.image_capture*/">Images</a>
-				</li>
-				<li>
-					<a href="${EMEN2WEBROOT}/query/rectype.is.labnotebook/">Lab Notebooks</a>
-				</li>
-				<li>
-					<a href="${EMEN2WEBROOT}/query/rectype.is.publication*/">Publications</a>
-				</li>
+				<li><a href="${EMEN2WEBROOT}/query">All Records</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/rectype.is.grid_imaging/">Imaging Sessions</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/rectype.is.image_capture*/">Images</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/rectype.is.labnotebook/">Lab Notebooks</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/rectype.is.publication*/">Publications</a></li>
 			</ul>
 		</li>
 	
 		<li id="bookmarks" data-parent="${USER.record}"><a href="">Bookmarks <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
 			<ul id="bookmarks">
-				<li><a href=""><img class="e2l-spinner" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" /></a></li>
+				<li><a href="">${buttons.spinner()}</a></li>
 			</ul>
 		</li>
 	
+	% endif
+
+	% if ADMIN:
+		<li><a href="${EMEN2WEBROOT}/">Admin <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
+			<ul>
+				<li><a href="">Account Requests</a></li>
+				<li><a href="">User Administration</a></li>
+				<li><a href="">Configuration</a></li>
+				<li><a href="">Backup</a></li>
+			</ul>
+		</li>
 	% endif
 
 	<li class="e2l-float-right nohover">

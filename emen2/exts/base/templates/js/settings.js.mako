@@ -1,4 +1,3 @@
-<%def name="mimetype()">application/javascript</%def>
 <%!
 public = True
 headers = {
@@ -24,3 +23,5 @@ var valid_properties=${jsonrpc.jsonutil.encode(properties)};
 var valid_vartypes=${jsonrpc.jsonutil.encode(vtm.getvartypes())};
 
 var reverse_url='${ctxt.reverse('ReverseURL_alt')}';
+
+

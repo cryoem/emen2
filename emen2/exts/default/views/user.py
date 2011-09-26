@@ -27,6 +27,9 @@ class User(View):
 			self.admin = user.userrec.writable()
 		except:
 			pass
+			
+		if self.user.disabled:
+			self.ctxt['errors'].append("This user account is disabled")	
 
 		self.ctxt["admin"] = self.admin
 		self.title = "User: %s (%s)"%(self.user.displayname, name)

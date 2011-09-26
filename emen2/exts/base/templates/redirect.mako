@@ -1,6 +1,7 @@
 <html>
 <head>
 	<title>Redirect</title>
+	<meta http-equiv="refresh" content="0; url=${headers.get('Location')}">
 </head>
 
 <body>

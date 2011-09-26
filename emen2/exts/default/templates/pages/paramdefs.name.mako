@@ -1,17 +1,13 @@
 <%inherit file="/page" />
 <%namespace name="buttons"  file="/buttons"  /> 
 
-
 <form method="post" action="${EMEN2WEBROOT}/paramdefs/name/">
 <h1>
-
 	${title}
-
 	<span class="e2l-label">
 		<input value="${q or ''}" name="q" type="text" size="8" />
 		<input type="submit" value="Search" />
 	</span>
-
 	% if create:
 		<span class="e2l-label"><a href="${EMEN2WEBROOT}/paramdef/root/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a></span>
 	% endif
@@ -33,21 +29,18 @@ for k,v in d.items():
 %>
 
 
-Parameter Vartype Index
+<%buttons:singlepage label='Index'>
+	% for k in sorted(d.keys()):
+		<a href="#${k}">${k}</a>
+	% endfor
+</%buttons:singlepage>
+
+
+
 % for k in sorted(d.keys()):
-
-	<a href="#${k}">${k}</a>
-
-% endfor
-
-
-% for k in sorted(d.keys()):
-
-<a name="${k}"></a>
-<h1 class="e2l-clearfix">${str(k).capitalize()}</h1>
-
+	<a name="${k}"></a>
+	<h1 class="e2l-clearfix">${str(k).capitalize()}</h1>
 	% for paramdef in d[k]:
 		${buttons.infobox(paramdef, autolink=True)}
 	% endfor
-
 % endfor

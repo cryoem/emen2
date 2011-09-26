@@ -28,8 +28,9 @@ class Map(View):
 	def sitemap(self, root=0, recurse=1, *args, **kwargs):
 		self.template = '/pages/sitemap'
 		self.title = 'Sitemap: %s'%root
-		childmap = Map(mode="children", root=root, db=self.db, recurse=int(recurse))
-		self.ctxt['childmap'] = childmap.get_data()
+		m = Map(db=self.db)
+		m.init(mode="children", root=root, db=self.db, recurse=int(recurse))
+		self.ctxt['childmap'] = m
 		self.ctxt['root'] = root
 
 

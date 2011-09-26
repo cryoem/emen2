@@ -1,27 +1,28 @@
-function query_build_path(q, postpend) {
-	var output = [];
-	$.each(q['c'], function() {
-		output.push(encodeURIComponent(this[0])+'.'+encodeURIComponent(this[1])+'.'+encodeURIComponent(this[2]));
-	});
-	delete q['c'];
-	
-	if (postpend) {
-		output.push(postpend);
-	}
-	
-	// remove some default arguments..
-	if (q['ignorecase'] == 1){
-		delete q['ignorecase'];
-	}
-	if (q['boolmode'] == 'AND') {
-		delete q['boolmode'];
-	}
-	qs = '?' + $.param(q);
-	return EMEN2WEBROOT + '/query/' + output.join("/") + '/' + qs;
-}
-
-
 (function($) {
+	
+	$.query_build_path = function(q, postpend) {
+		var output = [];
+		$.each(q['c'], function() {
+			output.push(encodeURIComponent(this[0])+'.'+encodeURIComponent(this[1])+'.'+encodeURIComponent(this[2]));
+		});
+		delete q['c'];
+
+		if (postpend) {
+			output.push(postpend);
+		}
+
+		// remove some default arguments..
+		if (q['ignorecase'] == 1){
+			delete q['ignorecase'];
+		}
+		if (q['boolmode'] == 'AND') {
+			delete q['boolmode'];
+		}
+		qs = '?' + $.param(q);
+		return EMEN2WEBROOT + '/query/' + output.join("/") + '/' + qs;
+	}
+
+
     $.widget("emen2.QueryControl", {
 		options: {
 			q: null,
@@ -95,7 +96,7 @@ function query_build_path(q, postpend) {
 							<td><input type="hidden" name="param" value="root" />Keywords</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" /></td> \
-							<td><input type="checkbox" name="recurse_p" checked="checked" class="hide" /></td> \
+							<td><input type="checkbox" name="recurse_p" checked="checked" class="e2l-hide" /></td> \
 							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="rectype" />Protocol</td> \
@@ -136,15 +137,14 @@ function query_build_path(q, postpend) {
 			this.container.append(m);
 			
 			// ian: todo
-			//$('.findrecord', this.container).Browser({});
 			$('.e2-find-user', this.container).FindControl({keytype: 'user'});
 			$('.e2-find-group', this.container).FindControl({keytype: 'group'});
 			$('.e2-find-recorddef', this.container).FindControl({keytype: 'recorddef'});
 			$('.e2-find-paramdef', this.container).FindControl({keytype: 'paramdef'});
 
 			var save = $('<div class="e2l-controls"> \
-				<img class="e2l-spinner hide" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /> \
-				<input type="button" value="Query" name="save" /></div>');				
+				'+$.spinner(true)+' \
+				<input type="button" value="Query" name="save" class="e2l-save" /></div>');				
 			this.container.append(save);
 			$('input[name=save]', this.container).bind("click", function(e){self.query()});			
 
@@ -266,7 +266,7 @@ function query_build_path(q, postpend) {
 			// Check the transforms..
 			var cmp2 = this.comparators_lookup[cmp] || cmp;
 			
-			var i = $('<select name="cmp" style="width:150px" />');
+			var i = $('<select name="cmp" />');
 			$.each(this.comparators, function(k,v) {
 				var r = $('<option value="'+k+'">'+v+'</option>');
 				if (cmp2==k) {r.attr("selected", "selected")}
@@ -372,3 +372,11 @@ function query_build_path(q, postpend) {
 		}
 	});
 })(jQuery);
+
+<%!
+public = True
+headers = {
+	'Content-Type': 'application/javascript',
+	'Cache-Control': 'max-age=86400'
+}
+%>
