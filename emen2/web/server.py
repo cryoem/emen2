@@ -18,7 +18,7 @@ except ImportError:
 
 import emen2.web.resources.threadpool
 import emen2.db.config
-import emen2.web.templating
+#import emen2.web.templating
 config = emen2.db.config.g()
 
 # Load EMEN2 Twisted Resources
@@ -154,7 +154,7 @@ class EMEN2Server(object):
 
 
 #NOTE: this MUST be imported here
-import emen2.web.viewloader
+#import emen2.web.viewloader
 
 def start_emen2():
 	with EMEN2Server().start() as (server, root):

@@ -417,7 +417,7 @@ class View(_View):
 			EMEN2WEBROOT = CVars.webroot,
 			EMEN2DBNAME = CVars.dbname,
 			EMEN2LOGO = CVars.logo,
-			BOOKMARKS = CVars.BOOKMARKS,
+			BOOKMARKS = CVars.bookmarks,
 			VERSION = CVars.version
 		)
 
