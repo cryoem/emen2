@@ -28,7 +28,7 @@ class AddExtLookup(mako.lookup.TemplateLookup):
 	def render_template(self, name, ctxt):
 		tmpl = self.get_template(name)
 		return tmpl.render(**ctxt)
-		
+
 
 def get_filename(package, resource):
 	'''Get the absolute path to a file inside a given Python package'''
@@ -89,14 +89,14 @@ class DBOptions(optparse.OptionParser):
 	def opendb(self, name=None, password=None):
 		import emen2.db.database
 		db = emen2.db.database.DB.opendb(name=name, password=password)
-		return db		
+		return db
 
 
 	def getpath(self, pathname):
 		# ian: todo: dynamically resolve pathnames for DB dirs
 		return os.path.join(gg.EMEN2DBHOME, gg.getattr(pathname))
 
-		
+
 
 	def resolve_ext(self, ext, extpaths):
 		# Find the path to the extension
@@ -114,8 +114,8 @@ class DBOptions(optparse.OptionParser):
 						paths.append(os.path.join(p, sp))
 
 		if not paths:
-			config.info('Couldn\'t find extension %s'%ext)
-			return
+			self.config.info('Couldn\'t find extension %s'%ext)
+			return '', ''
 			# continue
 
 		# If a suitable ext was found, load..
@@ -125,6 +125,7 @@ class DBOptions(optparse.OptionParser):
 
 	def load_config(self, **kw):
 		g = emen2.db.globalns.GlobalNamespace()
+		self.config = g
 		if g.getattr('CONFIG_LOADED', False):
 			return
 		else:
@@ -138,7 +139,7 @@ class DBOptions(optparse.OptionParser):
 
 		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
 		g.EMEN2DBHOME = self.values.home or os.getenv("EMEN2DBHOME")
-		
+
 		# Load other specified config files
 		for fil in self.values.configfile or []:
 			g.from_file(fil)
@@ -192,24 +193,24 @@ class DBOptions(optparse.OptionParser):
 		# I plan to add a flag to disable automatic loading.
 		exts = self.values.exts or []
 		if 'base' not in exts:
-			exts.insert(0,'base')		
-			
+			exts.insert(0,'base')
+		exts.extend(g.getattr('extensions.EXTS', []))
+
 		# Map the extensions back to their physical directories
 		# Use an OrderedDict to preserve the order
-		g.EXTS = collections.OrderedDict()
+		g.extensions.EXTS = collections.OrderedDict()
 		for ext in exts:
 			name, path = self.resolve_ext(ext, g.paths.EXTPATHS)
-			g.EXTS[name] = path
-		
+			g.extensions.EXTS[name] = path
+
 		# Mako Template Loader
-		g.templates = AddExtLookup(input_encoding='utf-8')		
-		
+		g.templates = AddExtLookup(input_encoding='utf-8')
 		# Enable/disable snapshot
-		g.SNAPSHOT = self.values.snapshot
+		g.params.SNAPSHOT = self.values.snapshot
 
 		# Create new database?
-		g.CREATE = self.values.create or False
-		
+		g.params.CREATE = self.values.create or False
+
 		# Enable root user?
 		# g.ENABLEROOT = self.values.enableroot or False
 
@@ -217,8 +218,7 @@ class DBOptions(optparse.OptionParser):
 		g.log.add_output(['WEB'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'access.log'), 'a', 0))
 		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'security.log'), 'a', 0))
 
-		g.CONFIG_LOADED = True
-		g.refresh()
+		g.params.CONFIG_LOADED = True
 
 
 

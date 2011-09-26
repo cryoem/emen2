@@ -1,4 +1,124 @@
 # $Id$
+##########################################################
+from __future__ import with_statement
+
+import itertools
+import collections
+def dict_merge(dct1, dct2):
+	commonkeys = set(dct1) & set(dct2)
+	newkeys = set(dct2) - commonkeys
+
+	for key in commonkeys:
+		olditem = dct1[key]
+		newitem = dct2[key]
+		if hasattr(newitem, 'items') and hasattr(olditem, 'items'):
+			dict_merge(olditem, newitem)
+		elif hasattr(olditem, 'update') and hasattr(newitem, '__iter__'):
+			olditem.update(newitem)
+		elif hasattr(olditem, 'extend') and hasattr(newitem, '__iter__'):
+			olditem.extend(newitem)
+		else:
+			dct1[key] = dct2[key]
+	dct1.update( (k,dct2[k]) for k in newkeys )
+	return dct1
+
+
+class _Null: pass
+class Hier(collections.MutableMapping):
+	####################
+	# Class Attributes #
+	####################
+
+	hier = {}
+
+	@classmethod
+	def from_dict(cls, dct):
+		#cls.init()
+		dict_merge(cls.hier, dct)
+		return cls()
+
+	#######################
+	# Instance Attributes #
+	#######################
+
+	def to_dict(self):
+		return self._values
+
+	def __init__(self, name=''):
+		self._values = self.hier
+		self._create = False
+
+		self._name = name
+
+		for segment in self._name.split('.'):
+			item = self._values.get(segment)
+			if hasattr(item, 'items'):
+				#print item
+				self._values = item
+			elif name != '':
+				raise ValueError('no such item: %r' % self._name)
+
+	def __repr__(self):
+		return '%s().from_dict(%r)' % (self.__class__.__name__, self._values)
+
+	def __getattribute__(self, name):
+		result = _Null
+		try:
+			result = object.__getattribute__(self, name)
+		except AttributeError:
+			if name.startswith('_'): raise
+			else:
+				result = self.getattr(name, default=_Null, prefix=self._name, values=self._values)
+				if isinstance(result, self.__class__):
+					result._create = self._create
+
+		if result is _Null:
+			if self._create:
+				self.setattr(name, {})
+			else:
+				raise
+		return result
+
+	def __setattr__(self, name, value):
+		res = getattr(self.__class__, name, None)
+		if name.startswith('_') or hasattr(res, '__set__'):
+			object.__setattr__(self, name, value)
+		else:
+			self.setattr(name, value)
+
+	def getattr(self, name, default=None, prefix='', values=None):
+		if values is None:
+			values = self.hier
+
+		result = values.get(name, _Null)
+		if result is _Null and default is not _Null:
+			result = default
+		elif hasattr(result, 'items'):
+			if prefix == '': result = self.__class__(name)
+			else: result = self.__class__('%s.%s' % (prefix, name))
+		return result
+	__getitem__ = getattr
+
+	def setattr(self, name, value, options=None):
+		name = name.split('.')
+
+		values = self._values
+		for seg in name[:-1]:
+			values = values.setdefault(seg, {})
+		values[name[-1]] = value
+	__setitem__ = setattr
+
+	def __delitem__(self, name):
+		del self._values[name]
+	
+	def __iter__(self): return iter(self._values)
+	def __len__(self): return len(self._values)
+
+
+
+##########################################################
+
+
 '''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
 
 NOTE: access globals this way:
@@ -44,9 +164,10 @@ class LoggerStub(debug.DebugState):
 		sn = self.debugstates.get_name(self.debugstates[sn])
 		print u'   %s:%s :: %s' % (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, self.print_list(args))
 
+log = LoggerStub()
 
 inst = lambda x:x()
-class GlobalNamespace(object):
+class GlobalNamespace(Hier):
 
 	def claim(self, name, default=None, validator=None):
 		return Claim(self, name, default, validator)
@@ -102,12 +223,13 @@ class GlobalNamespace(object):
 				elif hasattr(value, '__iter__'):
 					if hasattr(value, 'items'): value = dictWrapper(value, self.root)
 					else: value = listWrapper(value, self.root)
+			if value is _Null:
+				raise AttributeError('Attribute %r not found' % name)
 			return value
 
 
 	__yaml_keys = collections.defaultdict(list)
 	__yaml_files = collections.defaultdict(list)
-	__vardict = {'log': LoggerStub()}
 	__options = collections.defaultdict(set)
 	__all__ = []
 
@@ -162,13 +284,14 @@ class GlobalNamespace(object):
 		cls.__locked = False
 
 
-	def __init__(self,_=None):
-		# Bind other logging methods
-		self.info = lambda *a, **k: self.log.msg('INFO', *a, **k)
-		self.init = lambda *a, **k: self.log.msg('INIT', *a, **k)
-		self.error = lambda *a, **k: self.log.msg('ERROR', *a, **k)
-		self.warn = lambda *a, **k: self.log.msg('WARNING', *a, **k)
-		self.debug = lambda *a, **k: self.log.msg('DEBUG', *a, **k)
+	hier = dict(
+		log = log,
+		info = lambda *a, **k: log.msg('INFO', *a, **k),
+		init = lambda *a, **k: log.msg('INIT', *a, **k),
+		error = lambda *a, **k: log.msg('ERROR', *a, **k),
+		warn = lambda *a, **k: log.msg('WARNING', *a, **k),
+		debug = lambda *a, **k: log.msg('DEBUG', *a, **k)
+	)
 
 
 
@@ -209,7 +332,7 @@ class GlobalNamespace(object):
 
 		data = cls.load_data(fn, data)
 
-		# load data
+		## load data
 		self = cls()
 
 		if data:
@@ -219,23 +342,11 @@ class GlobalNamespace(object):
 			self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
 			self.paths.root = self.EMEN2DBHOME
 
-			#def prefix_path(path):
-			#	if hasattr(path, 'keys'):
-			#		for k,v in path.items():
-			#			path[k] = prefix_path(v)
-			#	elif hasattr(path, '__iter__'):
-			#		path = [prefix_path(i) for i in path]
-			#	elif not path.startswith('/'):
-			#		path = os.path.join(self.paths.root, path)
-			#	return path
-
 			for k,v in data.pop('paths', {}).items():
-			#	print 'before prefix_path', v
-			#	v = prefix_path(v)
-			#	print 'after', v
 				setattr(self.paths, k, v)
 
 			# process data
+			self._create = True
 			for key in data:
 				b = data[key]
 				pref = ''.join(b.pop('prefix',[])) # get the prefix for the current toplevel dictionary
@@ -244,7 +355,7 @@ class GlobalNamespace(object):
 
 				for key2, value in b.iteritems():
 					self.__yaml_keys[key].append(key2)
-					self.__addattr(key2, value, options)
+					self.setattr('.'.join([key,key2]), value, options)
 
 			# load alternate config files
 			# for fn in self.paths.CONFIGFILES:
@@ -276,61 +387,66 @@ class GlobalNamespace(object):
 		_dict = collections.defaultdict(dict)
 		for key, value in keys.iteritems():
 			for k2 in value:
-				_dict[key][k2] = self.getattr(k2)
+				value = self.getattr(key).getattr(k2)
+				if hasattr(value, 'json_equivalent'): value = value.json_equivalent()
+				_dict[key][k2] = value
 
 		for key in self.paths.attrs:
 			path = getattr(self.paths, key)
 			if hasattr(path, 'json_equivalent'): path = path.json_equivalent()
 			_dict['paths'][key] = path
 		return dict(_dict)
+	def json_equivalent(self):
+		return dict(self._values)
 
 
-	@classmethod
-	def setattr(self, name, value):
-		#if name == 'paths': raise AttributeError, 'cannot set attribute paths of %r' % self
-		self.__addattr(name, value)
+	#@classmethod
+	#def setattr(self, name, value):
+	#	self.__addattr(name, value)
 
 
-	def __setattr__(self, name, value):
-		self._trigger_event(name, value, write=True)
-		res = getattr(self.__class__, name, None)
-		if name.startswith('_') or hasattr(res, '__set__'):
-			object.__setattr__(self, name, value)
-		else:
-			self.setattr(name, value)
-	__setitem__ = __setattr__
+	#def __setattr__(self, name, value):
+	#	self._trigger_event(name, value, write=True)
+	#	res = getattr(self.__class__, name, None)
+	#	if name.startswith('_') or hasattr(res, '__set__'):
+	#		object.__setattr__(self, name, value)
+	#	else:
+	#		self.setattr(name, value)
+
+	def __getitem__(self, name):
+		if not hasattr(name, 'split'):
+			name = '.'.join(name)
+		return self.getattr(name)
+	def __setitem__(self, name, value):
+		if not hasattr(name, 'split'):
+			name = '.'.join(name)
+		return self.setattr(name, value)
 
 
-	@classmethod
-	def __addattr(cls, name, value, options=None):
-		if not name in cls.__all__:
-			cls.__all__.append(name)
 
-		cls.check_locked()
-		if name.startswith('_') or not cls.__locked:
+	#@classmethod
+	def setattr(self, name, value, options=None):
+		if not name in self.__all__:
+			self.__all__.append(name)
+
+		self.check_locked()
+		if name.startswith('_') or not self.__locked:
 			if options is not None:
 				for option in options:
-					cls.__options[option].add(name)
-			cls.__vardict[name] = value
+					self.__options[option].add(name)
+			Hier.setattr(self, name, value)
 		else: raise LockedNamespaceError, 'cannot change locked namespace'
 
 
-	@classmethod
-	def refresh(cls):
-		cls.__all__ = [x for x in cls.__vardict.keys() if x[0] != '_']
-		cls.__all__.append('refresh')
 
-
-	@classmethod
-	def getattr(cls, name, default=None):
-		if name.startswith('___'):
+	def getattr(self, name, default=None, *args, **kwargs):
+		if name.endswith('___'):
 			name = name.partition('___')[-1]
-		if cls.__options.has_key('private'):
-			if name in cls.__options['private']:
+		if self.__options.has_key('private'):
+			if name in self.__options['private']:
 				return default
-		if name.startswith('_'): result = getattr(cls, name, default)
-		else: result = cls.__vardict.get(name, default)
-		cls._trigger_event(name, result, read=True)
+		result = Hier.getattr(self, name, default=default, *args, **kwargs)
+		self._trigger_event(name, result, read=True)
 		return result
 
 
@@ -344,22 +460,8 @@ class GlobalNamespace(object):
 	def getprivate(cls, name):
 		if name.startswith('___'):
 			name = name.partition('___')[-1]
-		result = cls.__vardict.get(name)
+		result = Hier.getattr(self, name)
 		return result
-
-
-	def __getattribute__(self, name):
-		result = None
-		try:
-			result = object.__getattribute__(self, name)
-		except AttributeError:
-			_getattr = object.__getattribute__(self, 'getattr')
-			result = _getattr(name)
-			if result == None: raise
-
-		return result
-
-	__getitem__ = __getattribute__
 
 
 	def update(self, dict):
@@ -494,18 +596,21 @@ class Watch(object):
 class Claim(Watch):
 	claimed_attributes = set()
 	def __init__(self, ns, name, default, validator=None):
+		print 'claiming', name, 'from, ns, with default', default,
 		if name in self.claimed_attributes:
 			raise ValueError, 'attribute %s already claimed, use GlobalNamespace.watch() instead' % name
 		else:
 			self.claimed_attributes.add(name)
 
 		if not hasattr(ns, name):
-			ns.setattr(name, default)
+			print 'setting name %r to %r' % (name, default),
+			ns.setattr(name, default),
 
 		self.validator = validator
 		self._validate(default)
 
 
+		print ns.getattr(name)
 		Watch.__init__(self, ns, name, default, validator)
 
 	def _validate(self, value):

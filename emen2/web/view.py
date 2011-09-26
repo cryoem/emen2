@@ -489,7 +489,7 @@ class AuthView(ViewPlugin):
 class ViewLoader(object):
 	routing_table = g.claim('ROUTING', {})
 	redirects = g.claim('REDIRECTS', {})
-	extensions = g.claim('EXTS')
+	extensions = g.claim('extensions.EXTS', {})
 
 	def view_callback(self, pwd, pth, mtch, name, ext, failures=None, extension_name=None):
 		if name == '__init__':

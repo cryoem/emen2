@@ -95,11 +95,11 @@ inst = lambda x:x()
 is_str = lambda x: hasattr(x, 'upper')
 @inst
 class CVars(object):
-	MAILADMIN = g.claim('MAILADMIN', default="", validator=is_str)
-	MAILHOST = g.claim('MAILHOST', default="", validator=is_str)
-	TIMESTR = g.claim('TIMESTR', default="%Y/%m/%d %H:%M:%S", validator=is_str)
-	EMEN2DBNAME = g.claim('EMEN2DBNAME', default="EMEN2", validator=is_str)
-	EMEN2EXTURI = g.claim('EMEN2EXTURI', "", validator=is_str)
+	MAILADMIN = g.claim('config.MAILADMIN', default="", validator=is_str)
+	MAILHOST = g.claim('config.MAILHOST', default="", validator=is_str)
+	TIMESTR = g.claim('config.TIMESTR', default="%Y/%m/%d %H:%M:%S", validator=is_str)
+	EMEN2DBNAME = g.claim('config.EMEN2DBNAME', default="EMEN2", validator=is_str)
+	EMEN2EXTURI = g.claim('config.EMEN2EXTURI', "", validator=is_str)
 
 
 def fakemodules():
@@ -315,12 +315,12 @@ class EMEN2DBEnv(object):
 
 	# Transaction counter
 	txncounter = 0
-	
+
 	# From global configuration
-	cachesize = g.claim('CACHESIZE')
+	cachesize = g.claim('BDB.CACHESIZE', 1024)
 	path = g.claim('EMEN2DBHOME')
-	create = g.claim('CREATE')
-	snapshot = g.claim('SNAPSHOT', True)
+	create = g.claim('params.CREATE', False)
+	snapshot = g.claim('params.SNAPSHOT', True)
 
 	# paths from global configuration
 	LOGPATH = g.watch('paths.LOGPATH')
@@ -328,7 +328,7 @@ class EMEN2DBEnv(object):
 	TILEPATH = g.claim('paths.TILEPATH')
 	TMPPATH = g.claim('paths.TMPPATH')
 	SSLPATH = g.watch('paths.SSLPATH')
-	
+
 	def __init__(self, path=None, maintenance=False, snapshot=False, create=False):
 		"""EMEN2 Database Environment.
 		The DB files are accessible as attributes, and indexes are loaded in self.index.
@@ -336,7 +336,7 @@ class EMEN2DBEnv(object):
 		:keyword path: Directory containing EMEN2 Database Environment.
 		:keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
 		"""
-		
+
 		self.keytypes =  {}
 
 		if path is not None:
@@ -464,13 +464,13 @@ class EMEN2DBEnv(object):
 
 	def checkdirs(self):
 		"""Check that all necessary directories referenced from config file exist."""
-		
+
 		checkpath = os.access(self.path, os.F_OK)
 		checkconfig = os.access(os.path.join(self.path, 'DB_CONFIG'), os.F_OK)
-		
+
 		if self.create:
 			if checkconfig:
-				raise ValueError, "Database environment already exists in EMEN2DBHOME directory: %s"%self.path				
+				raise ValueError, "Database environment already exists in EMEN2DBHOME directory: %s"%self.path
 			if not checkpath:
 				os.makedirs(self.path)
 		else:
@@ -688,6 +688,7 @@ class EMEN2DBEnv(object):
 
 
 class DB(object):
+	extensions = g.watch('extensions.EXTS')
 	sync_contexts = threading.Event()
 
 	def __init__(self, path=None, create=False):
@@ -698,15 +699,15 @@ class DB(object):
 		"""
 		# Open the database
 		self.bdbs = EMEN2DBEnv(path=path, create=create)
-		
+
 		# Load built in ParamDefs/RecordDefs
-		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))		
+		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
 
 		# Load extensions:
 		# 	any ParamDefs/RecordDefs from JSON
 		# 	any Mako templates
 		# 	optionally, any web views
-		for ext, path in g.EXTS.items():
+		for ext, path in self.extensions.items():
 			self.load_extension(ext, path)
 
 		#if not hasattr(self.periodic_operations, 'next'):
@@ -717,11 +718,11 @@ class DB(object):
 
 		# Cache contexts
 		self.contexts_cache = {}
-		
+
 		# Create root account, groups, and root record if necessary
 		if self.bdbs.create:
 			self.setup()
-		
+
 
 	def load_json(self, infile):
 		ctx = emen2.db.context.SpecialRootContext(db=self)
@@ -772,7 +773,7 @@ class DB(object):
 			ctx.refresh(db=proxy)
 			proxy._ctx = ctx
 		return proxy
-	
+
 
 	def setup(self, rootpw=None, rootemail=None):
 		"""Initialize a new DB.
@@ -797,7 +798,7 @@ class DB(object):
 					print "Warning! If you set a password, it needs to be more than 6 characters."
 					rootpw = getpass.getpass("Admin (root) password (default: none): ")
 			return rootpw, rootemail
-		
+
 
 		db = self.opendb(db=self)
 		with db:
@@ -2044,10 +2045,10 @@ class DB(object):
 
 		# We'll be working with a list of names
 		# ed: added the *() for better visual grouping :)
-		# 
+		#
 		names, recs, newrecs, other = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject, dict)
 		recs.extend(self.bdbs.record.cgets(names, ctx=ctx, txn=txn))
-		
+
 		for newrec in newrecs:
 			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)#.update(newrec)
 			rec.update(newrec)
@@ -2164,7 +2165,7 @@ class DB(object):
 				p = (sum(v), sum(v)/float(len(v)), min(v), max(v))
 				p = [t[:5].ljust(5), k[:20].ljust(20)] + [("%2.2f"%i).rjust(5) for i in p] + [str(len(v)).rjust(5)]
 				print "   ".join(p)
-				
+
 		# header = ["Type ", "Name".ljust(20), "Total", "  Avg", "  Min", "  Max", "Count"]
 		# print "   ".join(header)
 		# pp("param", pt)
@@ -2215,7 +2216,7 @@ class DB(object):
 
 
 	@publicmethod("get", write=True, admin=True)
-	@ol('names')	
+	@ol('names')
 	def get(self, names, keytype='record', ctx=None, txn=None):
 		'''Get an object
 
@@ -2227,7 +2228,7 @@ class DB(object):
 
 
 	@publicmethod("put", write=True, admin=True)
-	@ol('items')	
+	@ol('items')
 	def put(self, items, keytype='record', clone=False, ctx=None, txn=None):
 		'''Get the children of the object as a tree
 
@@ -2624,7 +2625,7 @@ class DB(object):
 		return users
 
 
-	group_defaults = g.claim('GROUP_DEFAULTS')
+	group_defaults = g.claim('users.GROUP_DEFAULTS')
 
 	@publicmethod("user.queue.approve", write=True, admin=True)
 	@ol('names')
@@ -2679,7 +2680,7 @@ class DB(object):
 				crec.parents.add(rec.name)
 				crec.update(childrec)
 				crec = self.bdbs.record.cput(crec, ctx=ctx, txn=txn)
-				
+
 
 		# Send the 'account approved' emails
 		for user in cusers:
@@ -3188,7 +3189,7 @@ class DB(object):
 		:keyword param: ... Record param to use
 			for the reference to the Binary name
 		"""
-		
+
 		# Preprocess
 		if not item:
 			item = self.bdbs.binary.new(ctx=ctx, txn=txn)

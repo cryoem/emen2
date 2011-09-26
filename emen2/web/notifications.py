@@ -12,7 +12,6 @@ import collections
 config = emen2.db.config.g()
 
 class NotificationHandler(object):
-	_listeners = collections.defaultdict(set)
 	_notifications_by_ctxid = {}
 	_nlock = threading.RLock()
 
@@ -21,11 +20,9 @@ class NotificationHandler(object):
 
 	@contextlib.contextmanager
 	def set_db(self, db):
-		self._olddb = getattr(self, 'db', None)
 		self.db = self.get_db_instance(db)
 		yield self
-		self.db = self._olddb
-		del self._olddb
+		del self.db
 
 	def start(self):
 		self.db = emen2.db.proxy.DBProxy()
@@ -33,10 +30,7 @@ class NotificationHandler(object):
 
 	def notify(self, ctxid, msg):
 		with self._nlock:
-			if ctxid in self._listeners:
-				self._listeners[ctxid].pop().callback(msg)
-			else:
-				self.__getqueue(ctxid).put(msg)
+			self.__getqueue(ctxid).put(msg)
 		return self
 
 	def __getqueue(self, ctxid):
@@ -78,6 +72,7 @@ class NotificationHandler(object):
 
 	def get_db_instance(self, db):
 		if db is None:
+			print 'creating new db'
 			db = emen2.db.proxy.DBProxy()
 		return db
 
@@ -91,29 +86,25 @@ class NotificationHandler(object):
 
 	def pub_notify(self, ctxid, host, msg, toctxid=None, db=None):
 		with self.set_db(db):
-			self.db._setContext(ctxid, host)
+			#self.db._setContext(ctxid, host)
 			try:
 				if toctxid is None:
 					toctxid = ctxid
 				self.notify(toctxid, msg)
 			finally:
-				self.db._clearcontext()
+				pass #self.db._clearcontext()
 
 	def poll(self, ctxid, host, db=None):
 		with self.set_db(db):
-			self.db._setContext(ctxid, host)
+			#self.db._setContext(ctxid, host)
 			try:
-				result = twisted.internet.defer.Deferred()
-				n = self.get_notification(ctxid)
-				if n is not None:
-					result = twisted.internet.defer.succeed(n)
-				print 'begin nlock'
-				with self._nlock:
-					self._listeners[ctxid].add(result)
-				print 'end nlock'
+				print 'getting'
+				result = self.__getqueue(ctxid).get()
+				print 'done'
 				return result
 			finally:
-				self.db._clearcontext()
+				pass
+				#self.db._clearcontext()
 
 
 
