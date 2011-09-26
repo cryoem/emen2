@@ -46,7 +46,6 @@
 		## Base EMEN2 widgets
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/comments.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/edit.js"></script>
-		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/editdefs.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/file.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/find.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/permission.js"></script>

@@ -1,29 +1,211 @@
 <%! import jsonrpc.jsonutil %>
 <%inherit file="/page" />
 
+<%block name="js_inline">
+	${parent.js_inline()}
+	(function($) {
+	///////////////// Protocol Editor /////////////////////
 
-<script type="text/javascript">
-//<![CDATA[
+    $.widget("emen2.RecordDefEditControl", {
+		options: {
+			newdef: null,
+			parents: null,
+			ext_save: null
+		},
+				
+		_create: function() {
+			this.build();
+			this.rd = {};
+			this.counter_new = 0;
+		},
+	
+		
+		build: function() {
+			this.bindall();
+			this.refreshall();
+			this.getvalues();
+		},
+	
+		bindall: function() {
+			var self=this;
+	
+			$('input[name=save]', this.options.ext_save).bind("click",function(e){self.event_save(e)});
+		
+			$("#button_recdefviews_new", this.element).bind("click",function(e){self.event_addview(e)});
+		
+			$('.e2l-tab-page[data-tabgroup="recdefviews"]', this.element).each(function() {
+				var t=$(this).attr("data-tabname");
+				self.bindview(t,$(this));
+			});
+			
+			$('input[name=typicalchld]', this.element).FindControl({keytype: 'recorddef'});			
+		
+		},
+	
+		bindview: function(t,r) {
+			var self=this;
 
-	$(document).ready(function() {
-		$('#recdef_edit').RecordDefEditControl({
-			newdef: ${jsonrpc.jsonutil.encode(new)},
-			parents:['${recdef.name}'],
-			ext_save: "#ext_save"
-		});
+			var oname = $('input[data-t="'+t+'"]',r);
+			oname.bind("change",function(e){self.event_namechange(e)});
+
+			var ocopy = $('select[data-t="'+t+'"]',r);
+			ocopy.bind("refreshlist",self.event_copy_refresh);
+			ocopy.bind("change",function(e){self.event_copy_copy(e,oname.val())});
 		
-##		$("#reledit").RelationshipControl({
-##			name: '${recdef.name}',
-##			keytype: 'recorddef',
-##			edit: true,
-##			embed: true,
-##			show: true
-##			});
+			var oremove = $('.e2-editdefs-remove[data-t="'+t+'"]',r);
+			oremove.bind("click",function(e){self.event_removeview(e)});
 		
+			r.attr("data-t",t);
+		
+			var obutton=$('.e2l-tab-button[data-tabname="'+t+'"]');
+			obutton.attr("data-t",t);
+
+		},
+	
+		event_namechange: function(e) {
+			var t=$(e.target).attr("data-t");
+			var v=$(e.target).val();
+
+			$('.e2l-tab-button-recdefviews[data-t="'+t+'"]').html("New View: "+v);
+		
+			$('[data-t="'+t+'"]').each(function(){
+				$(this).attr("data-t",v);
+			});
+			this.refreshall();
+		
+		},	
+	
+		event_addview: function(e) {
+			this.addview();
+		},
+	
+		event_removeview: function(e) {
+			var t=$(e.target).attr("data-t");
+			this.removeview(t);
+		},
+	
+		event_save: function(e) {
+			this.save();
+		},
+	
+		event_copy_refresh: function(e) {
+			var t=$(e.target);
+			t.empty();
+			t.append('<option />');
+			$("input[name^='viewkey']", this.element).each(function(){
+				t.append('<option>'+$(this).val()+'</option>');
+			});
+		},
+
+		event_copy_copy: function(e,d) {
+			var t=$(e.target);
+			this.copyview(t.val(),d);
+		},	
+	
+		save: function() {
+			this.rd=this.getvalues();
+			if (this.options.newdef) {
+				this.rd['parents'] = this.options.parents;
+			}
+
+			var self=this;
+
+			$('.e2l-spinner').show();
+			$.jsonRPC.call("putrecorddef", [this.rd], function(data){
+				$('.e2l-spinner').hide();
+				window.location = EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/';
+			});
+
+		},	
+	
+		refreshall: function(e) {
+			$("select[name^='viewcopy']", this.element).each(function(){$(this).trigger("refreshlist");});
+		},
+	
+		addview: function() {
+			this.counter_new += 1;
+			var t = 'new' + this.counter_new;
+			var self = this;
+		
+			var ol = $('<li id="button_recdefviews_'+t+'" data-t="'+t+'" class="e2l-button" data-tabgroup="recdefviews" data-tabname="'+t+'">New View: '+this.counter_new+'</li>');
+			ol.bind("click",function(e){switchin('recdefviews',t)});
+
+			var p = $('<div id="page_recdefviews_'+t+'" data-t="'+t+'" class="e2l-tab-page" data-tabgroup="recdefviews" data-tabname="'+t+'" />');
+
+			var ul = $('<ul class="e2l-clearfix" />');
+			var oname = $('<li>Name: <input type="text" name="viewkey_'+t+'" data-t="'+t+'" value="'+t+'" /></li>');
+			var ocopy = $('<li>Copy: <select name="viewcopy_'+t+'" data-t="'+t+'" "/></li>');
+			var oremove = $('<li class="e2-editdefs-remove" data-t="'+t+'"><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /> Remove</li>');
+			ul.append(oname, ocopy, oremove);
+		
+			var ovalue = $('<textarea name="view_'+t+'" data-t="'+t+'" rows="30" cols="80">');
+
+			p.append(ul,ovalue);
+
+			$("#buttons_recdefviews ul").prepend(ol);
+			$("#pages_recdefviews", this.element).append(p);
+
+			switchin('recdefviews',t);
+			this.bindview(t,p);
+			this.refreshall();
+		},
+	
+		removeview: function(t) {
+			$('.button_recdefviews[data-t="'+t+'"]').remove();
+			$('.page_recdefviews[data-t="'+t+'"]').remove();
+			var tabname=$($('.button_recdefviews')[0]).attr("data-tabname");
+			switchin('recdefviews',tabname);
+			this.refreshall();
+		},
+	
+		copyview: function(src,dest) {
+			var v=$('textarea[data-t="'+src+'"]').val();
+			$('textarea[data-t="'+dest+'"]').val(v);		
+		},
+	
+		getvalues: function() {
+			rd={}
+			rd["name"]=$("input[name='name']", this.element).val();
+
+			var prv=$("input[name='private']", this.element).attr("checked");
+			if (prv) {rd["private"]=1} else {rd["private"]=0}
+
+			rd["typicalchld"]=[];
+
+			$("input[name^='typicalchld']", this.element).each(function(){
+				if ($(this).val()) {
+					rd["typicalchld"].push($(this).val());
+				}
+			});
+
+			rd["desc_short"]=$("input[name='desc_short']", this.element).val();
+			rd["desc_long"]=$("textarea[name='desc_long']", this.element).val();
+
+			rd["mainview"]=$("textarea[name='view_mainview']", this.element).val();
+
+			rd["views"]={};
+			var viewroot=$('#pages_recdefviews');
+			$('.page[data-tabgroup="recdefviews"]',viewroot).each(function() {
+				var n=$('input[name^="viewkey_"]',this).val();
+				var v=$('textarea[name^="view_"]',this).val();			
+				if (n && v) {
+					rd["views"][n]=v;
+				}
+			});
+
+			return rd			
+		}
 	});
+</%block>
 
-//]]>
-</script>
+
+<%block name="js_ready">
+	$('#recdef_edit').RecordDefEditControl({
+		newdef: ${jsonrpc.jsonutil.encode(new)},
+		parents:['${recdef.name}'],
+		ext_save: "#ext_save"
+	});
+</%block>
 
 
 <h1>

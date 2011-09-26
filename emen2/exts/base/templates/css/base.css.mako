@@ -1,12 +1,20 @@
 <%inherit file="/css/colors.css" />
 
-/* Basic table behavior */
+/* Basic table behavior should be 100% width */
+
 table {
 	width:100%;
 }
 
 /******************************************
  		Basic EMEN2 Layouts
+
+Please note that all EMEN2 classes should
+begin with one of the following prefixes:
+
+	.e2l 	Layout classes
+	.e2		Widget classes
+
 ******************************************/
 
 /* Simple two column tables */
@@ -22,6 +30,7 @@ a,
 	text-decoration: none;
 	cursor: pointer;
 }
+
 a:hover,
 .e2l-a:hover
 {

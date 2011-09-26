@@ -3,6 +3,104 @@
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 
+<%block name="js_inline">
+	${parent.js_inline()}
+	(function($) {
+		///////////////// Parameter Editor /////////////////////
+	
+	    $.widget("emen2.ParamDefEditControl", {
+			options: {
+				newdef: null,
+				parents: null,
+				ext_save: null,
+			},
+				
+			_create: function() {
+				this.pd = {};
+				this.build();
+			},
+
+			build: function() {
+				this.bindall();
+			},
+
+			bindall: function() {
+				var self=this;
+				$('input[name=save]', this.options.ext_save).bind("click",function(e){self.event_save(e)});
+			
+				$('select[name=property]', this.element).change(function() {
+					var val = $(this).val();
+					var sel = $('select[name=defaultunits]', this.element);
+					sel.empty();
+					if (!val) {
+						return
+					}
+
+					var defaultunits = valid_properties[val][0];
+					var units = valid_properties[val][1];
+					$.each(units, function() {
+						var opt = $('<option value="'+this+'">'+this+'</option>');
+						sel.append(opt);
+					});
+					sel.val(defaultunits);				
+				});
+			
+			},
+
+			event_save: function(e) {
+				this.save();
+			},	
+
+			save: function() {
+				var self = this;
+				this.pd = this.getvalues();
+				$('.e2l-spinner', this.options.ext_save).show();
+			
+				if (this.options.newdef) {
+					this.pd['parents'] = this.options.parents;
+				}
+				$.jsonRPC.call("putparamdef", [this.pd], function(data){
+					$('.e2l-spinner', self.options.ext_save).hide();
+					window.location = EMEN2WEBROOT+'/paramdef/'+self.pd.name+'/';
+				});
+			},
+
+			getvalues: function() {
+				pd={}
+				pd["name"] = $("input[name='name']", this.element).val();
+				pd["desc_short"] = $("input[name='desc_short']",this.element).val();
+				pd["desc_long"] = $("textarea[name='desc_long']",this.element).val();
+				pd["controlhint"] = $("input[name='controlhint']",this.element).val();
+
+				pd["choices"] = [];
+				$("input[name=choices]",this.element).each(function(){
+					if ($(this).val()) {
+						pd["choices"].push($(this).val());
+					}
+				});
+
+				var vartype = $("select[name='vartype']",this.element);
+				if (vartype) {pd["vartype"] = vartype.val()} 
+
+				var property = $("select[name='property']",this.element);
+				if (property) {pd["property"] = property.val()}
+			
+				var defaultunits = $("select[name='defaultunits']",this.element);
+				if (defaultunits) {pd["defaultunits"] = defaultunits.val()}
+			
+				var indexed = $("input[name='indexed']",this.element);
+				if (indexed) {pd["indexed"] = indexed.attr('checked')}
+			
+				var immutable = $("input[name='immutable']",this.element);
+				if (immutable) {pd['immutable'] = immutable.attr('checked')}
+			
+				return pd
+			}
+		});
+	});
+</%block>
+
+
 <%block name="js_ready">
 	${parent.js_ready}
 	$('#paramdef_edit').ParamDefEditControl({
