@@ -27,7 +27,7 @@ import collections
 import contextlib
 
 import emen2.web.routing
-import emen2.web.templating
+#import emen2.web.templating
 import emen2.web.notifications
 
 import emen2.util.decorators
