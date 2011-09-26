@@ -84,7 +84,7 @@ class RecordBase(View):
 			pages = {
 				'classname':'main',
 				'content':{},
-				'labels':{'main':'<span data-name="%s" class="view">%s</span>'%(self.name, recnames.get(self.rec.name))},
+				'labels':{'main':'<span data-name="%s" class="e2-view">%s</span>'%(self.name, recnames.get(self.rec.name))},
 				'href':	{'main':'%s/record/%s/'%(g.EMEN2WEBROOT,self.name)},
 				'active': 'main',
 				'order': ['main']

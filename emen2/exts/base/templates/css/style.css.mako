@@ -58,7 +58,7 @@ h4 {
 	margin-top: 5px;
 	margin-bottom: 5px;
 }
-h1 .label {
+h1 .e2l-label {
 	padding: 10px;
 	float: right;
 	display: block;

@@ -43,11 +43,11 @@
 	% endif
 
 	% if admin and not edit:
-		<span class="label"><a href="${EMEN2WEBROOT}/group/${group.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
+		<span class="e2l-label"><a href="${EMEN2WEBROOT}/group/${group.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
 	% endif
 
 	% if new or edit:
-		<div class="controls save" id="ext_save">
+		<div class="e2l-controls" id="ext_save">
 			<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 			<input type="submit" value="Save" name="save">
 		</div>

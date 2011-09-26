@@ -12,7 +12,7 @@
 <h1>
 	${pages_user_util.page_title(user, False)} 
 	% if admin:
-		<span class="label"><a href="${EMEN2WEBROOT}/user/${user.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
+		<span class="e2l-label"><a href="${EMEN2WEBROOT}/user/${user.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
 	% endif
 </h1>
 

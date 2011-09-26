@@ -13,12 +13,12 @@ from emen2.web.markuputils import HTMLTab
 
 <h1>
 	${pages_user_util.page_title(user, False)} 
-	<span class="label"><a href="${EMEN2WEBROOT}/user/${user.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
+	<span class="e2l-label"><a href="${EMEN2WEBROOT}/user/${user.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
 </h1>
 
 <div class="e2l-clearfix">
 
-	<div class=".e2l-float-left">
+	<div class="e2l-float-left">
 		${pages_user_util.page_userrec(user, False)}
 	</div>
 	
@@ -89,7 +89,7 @@ while ctsearch:
 <h1>
 	Welcome to ${EMEN2DBNAME}
 	% if banner.writable():
-		<span class="label"><a href="${EMEN2WEBROOT}/record/${banner.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
+		<span class="e2l-label"><a href="${EMEN2WEBROOT}/record/${banner.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
 	% endif
 </h1>
 

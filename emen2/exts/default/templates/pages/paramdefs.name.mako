@@ -7,13 +7,13 @@
 
 	${title}
 
-	<span class="label search">
+	<span class="e2l-label">
 		<input value="${q or ''}" name="q" type="text" size="8" />
 		<input type="submit" value="Search" />
 	</span>
 
 	% if create:
-		<span class="label"><a href="${EMEN2WEBROOT}/paramdef/root/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a></span>
+		<span class="e2l-label"><a href="${EMEN2WEBROOT}/paramdef/root/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a></span>
 	% endif
 </h1>
 </form>
@@ -33,16 +33,12 @@ for k,v in d.items():
 %>
 
 
-<div class="e2l-clearfix"><div class="infobuttons">Parameter Vartype Index</div></div>
-<div class="info">
+Parameter Vartype Index
+% for k in sorted(d.keys()):
 
-	% for k in sorted(d.keys()):
+	<a href="#${k}">${k}</a>
 
-		<a href="#${k}">${k}</a>
-
-	% endfor
-
-</div>
+% endfor
 
 
 % for k in sorted(d.keys()):

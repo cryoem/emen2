@@ -30,7 +30,7 @@
 <h1>
 	${title}
 
-	<div class="controls save" id="ext_save">
+	<div class="e2l-controls" id="ext_save">
 		<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 		<input type="button" value="Save" name="save">
 	</div>

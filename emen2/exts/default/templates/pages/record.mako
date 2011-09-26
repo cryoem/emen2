@@ -18,7 +18,7 @@
 <%block name="precontent">
 	<br />
 	${parent.precontent()}
-	<div id="map" class="precontent">
+	<div id="map" class="e2l-precontent">
 		${relmap.traverse(tree=parentmap, root=rec.name, recurse=3, recnames=recnames, mode='parents')}		
 	</div>
 </%block>

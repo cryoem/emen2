@@ -4,9 +4,6 @@
 Non-prefixed classes:
 	show
 	hide
-	clickable
-	editable
-	label
 	save
 	big
 	small
@@ -35,17 +32,6 @@ table {
 .big {
 	font-size:16pt;
 }
-
-/* Basic editable indicators */
-.editable {
-	color: <%self:EDITABLE />;
-}
-.editable img.label {
-	height: 10px;
-	border-bottom: dotted 1px <%self:NEUTRAL />;
-	width: 50px;
-}
-
 /* Commit button */
 .save {
 	
@@ -53,14 +39,14 @@ table {
 
 /* Basic link styling */
 a,
-.clickable
+.e2l-a
 {
 	color: <%self:LINK />;
 	text-decoration: none;
 	cursor: pointer;
 }
 a:hover,
-.clickable:hover
+.e2l-a:hover
 {
 	text-decoration: underline;
 }
@@ -102,7 +88,7 @@ a:hover,
 	position: relative;
 }
 .e2l-menu > li > a,
-.e2l-menu > li > .clickable,
+.e2l-menu > li > .e2l-a,
 .e2l-menu ul > li > a
  {
 	padding: 5px;
@@ -235,7 +221,7 @@ a:hover,
 .e2l-editbar > li.e2l-editbar-lastitem {
 	border-right:none;
 }
-.e2l-editbar > li > .label {
+.e2l-editbar > li > .e2l-label {
 	padding:5px;
 	display:inline-block;
 }
@@ -256,6 +242,19 @@ a:hover,
 /******************************************
  		EMEN2 Widgets
 ******************************************/
+
+
+
+/***** e2l-ediable: Editing controls *****/
+.e2l-editable {
+	color: <%self:EDITABLE />;
+}
+.e2l-editable img.e2l-label {
+	height: 10px;
+	border-bottom: dotted 1px <%self:NEUTRAL />;
+	width: 50px;
+}
+
 
 
 /***** e2-infobox: Display Infobox *****/
@@ -427,7 +426,7 @@ to fit more information */
 }
 
 /* tiny */
-.e2-tile .label {
+.e2-tile .e2l-label {
 	font-size: 8pt;
 	text-align: center
 }

@@ -21,7 +21,7 @@ import urllib
 
 	<% order = map(recsdict.get, sorted(v, key=sortfunc)) %>
 
-	<div class="outline">
+	<div class="e2l-outline">
 		<ul>
 		% for rec in order:
 		 	<li><a href="#${rec.name}">${rendered.get(rec.name)}</a></li>
@@ -32,8 +32,8 @@ import urllib
 	% for rec in order:
 		<h1 id="${rec.name}">
 			${rendered.get(rec.name)}
-			<span class="label"><a href="${EMEN2WEBROOT}/query/children.name.${rec.name}*/"><img src="${EMEN2WEBROOT}/static/images/query.png" alt="Query" /> Query</a></span>			
-			<span class="label"><a href="${EMEN2WEBROOT}/record/${rec.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>			
+			<span class="e2l-label"><a href="${EMEN2WEBROOT}/query/children.name.${rec.name}*/"><img src="${EMEN2WEBROOT}/static/images/query.png" alt="Query" /> Query</a></span>			
+			<span class="e2l-label"><a href="${EMEN2WEBROOT}/record/${rec.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>			
 		</h1>
 
 

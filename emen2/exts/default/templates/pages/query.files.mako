@@ -39,7 +39,7 @@
 
 <h1>
 	<span id="filecount">${len(bdos)}</span> files, <span id="filesize">${filesize}</span>
-	<div class="controls save">
+	<div class="e2l-controls">
 		<input type="submit" value="Download Checked Files" name="download">
 	</div>
 </h1>

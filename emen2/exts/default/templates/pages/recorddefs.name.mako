@@ -5,13 +5,13 @@
 <h1>
 	${title}
 
-	<span class="label search">
+	<span class="e2l-label">
 		<input value="${q or ''}" name="q" type="text" size="8" />
 		<input type="submit" value="Search" />
 	</span>
 
 	% if create:
-		<span class="label"><a href="${EMEN2WEBROOT}/recorddef/root/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a></span>
+		<span class="e2l-label"><a href="${EMEN2WEBROOT}/recorddef/root/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a></span>
 	% endif
 
 </h1>
@@ -33,16 +33,10 @@ for k,v in d.items():
 %>
 
 
-<div class="e2l-clearfix"><div class="infobuttons">Protocol Name Index</div></div>
-<div class="info">
-
-	% for k in sorted(d.keys()):
-
-		<a href="#${k}">${k}</a>
-
-	% endfor
-
-</div>
+Protocol Name Index
+% for k in sorted(d.keys()):
+	<a href="#${k}">${k}</a>
+% endfor
 
 
 % for k in sorted(d.keys()):

@@ -5,22 +5,7 @@
 import jsonrpc.jsonutil 
 %>
 
-<script type="text/javascript">
-//<![CDATA[
-
-	// init view edit
-	$(document).ready(function() {
-##		record_init(${jsonrpc.jsonutil.encode(rec)}, ${jsonrpc.jsonutil.encode(rec.ptest()}, true);
-	});	
-
-//]]>
-</script>
-
-% if rec.get('deleted'):
-	<div class="notify deleted">Deleted Record</div>
-% endif
-
-<div id="rendered" class="view" data-viewtype="${viewtype}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
+<div id="rendered" class="e2-view" data-viewtype="${viewtype}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
 	${rendered}
 </div>
 

@@ -24,26 +24,23 @@ for k,v in d.items():
 
 	${title}
 
-	<span class="label search">
+	<span class="e2l-label">
 		<input value="${q or ''}" name="q" type="text" size="8" />
 		<input type="submit" value="Search" />
 	</span>	
 	
 	% if admin:
-		<span class="label"><a href="${EMEN2WEBROOT}/groups/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a></span>
+		<span class="e2l-label"><a href="${EMEN2WEBROOT}/groups/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a></span>
 	% endif
 
 </h1>
 </form>
 
-<ul class="buttons e2l-clearfix e2l-float-list">
-	<li>Last Name Index</li>
-</ul>
-<div class="page page_active">
-	% for k in sorted(d.keys()):
-		<a href="#${k}">${k}</a>
-	% endfor
-</div>
+
+Last Name Index
+% for k in sorted(d.keys()):
+	<a href="#${k}">${k}</a>
+% endfor
 
 
 

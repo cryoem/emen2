@@ -3,8 +3,10 @@
 
 <h1>
 	${rec.get('wiki_page') | h}
-	<span class="label"><a href="${EMEN2WEBROOT}/wiki/${rec.get('wiki_page') | u}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
-	</h1>
+	<span class="e2l-label">
+		<a href="${EMEN2WEBROOT}/wiki/${rec.get('wiki_page') | u}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a>
+	</span>
+</h1>
 
 
 ${rendered}

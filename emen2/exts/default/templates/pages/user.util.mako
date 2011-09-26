@@ -21,22 +21,22 @@
 
 	% if edit:
 	<p>
-		<span class="">First Name:</span>
+		<span >First Name:</span>
 		<input type="text" name="userrec.name_first" value="${user.userrec.get('name_first','')}" />
 		<br />
 
-		<span class="">Middle Name:</span>
+		<span >Middle Name:</span>
 		<input type="text" name="userrec.name_middle" value="${user.userrec.get('name_middle','')}" />
 		<br />
 
-		<span class="">Last Name:</span>
+		<span >Last Name:</span>
 		<input type="text" name="userrec.name_last" value="${user.userrec.get('name_last','')}" />
 	</p>
 	% endif
 	
 	<p>
 
-		<span class="">Department:</span>
+		<span >Department:</span>
 		% if edit:
 			<input type="text" name="userrec.department" value="${user.userrec.get('department','')}" />
 		% else:
@@ -44,7 +44,7 @@
 		% endif
 		<br />
 
-		<span class="">Institution:</span>
+		<span >Institution:</span>
 		% if edit:
 			<input type="text" name="userrec.institution" value="${user.userrec.get('institution','')}" />
 		% else:
@@ -54,7 +54,7 @@
 	</p>
 	
 	<p>
-		<span class="">Address:</span>
+		<span >Address:</span>
 		% if edit:
 			<input type="text" name="userrec.address_street" value="${user.userrec.get('address_street','')}" />
 		% else:
@@ -62,7 +62,7 @@
 		% endif
 		<br />
 
-		<span class="">&nbsp;</span>
+		<span >&nbsp;</span>
 		% if edit:
 			<input type="text" name="userrec.address_street2" value="${user.userrec.get('address_street2','')}" />
 		% else:
@@ -71,24 +71,24 @@
 		<br />
 
 		% if edit:
-			<span class="">&nbsp;</span><input type="text" name="userrec.address_city" value="${user.userrec.get('address_city','')}" /> (City)<br />
-			<span class="">&nbsp;</span><input type="text" name="userrec.address_state" value="${user.userrec.get('address_state','')}" /> (State)<br />
-			<span class="">&nbsp;</span><input type="text" name="userrec.address_zipcode" value="${user.userrec.get('address_zipcode','')}" /> (Zip)<br />
-			<span class="">&nbsp;</span><input type="text" name="userrec.country" value="${user.userrec.get('country','')}" /> (Country)
+			<span >&nbsp;</span><input type="text" name="userrec.address_city" value="${user.userrec.get('address_city','')}" /> (City)<br />
+			<span >&nbsp;</span><input type="text" name="userrec.address_state" value="${user.userrec.get('address_state','')}" /> (State)<br />
+			<span >&nbsp;</span><input type="text" name="userrec.address_zipcode" value="${user.userrec.get('address_zipcode','')}" /> (Zip)<br />
+			<span >&nbsp;</span><input type="text" name="userrec.country" value="${user.userrec.get('country','')}" /> (Country)
 		% else:
-			<span class="">&nbsp;</span>${user.userrec.get("address_city",'')} ${user.userrec.get("address_state",'')}, ${user.userrec.get("address_zipcode",'')} ${user.userrec.get("country",'')}			
+			<span >&nbsp;</span>${user.userrec.get("address_city",'')} ${user.userrec.get("address_state",'')}, ${user.userrec.get("address_zipcode",'')} ${user.userrec.get("country",'')}			
 		% endif
 	</p>
 	
 	<p>
-		<span class="">Email:</span>
+		<span >Email:</span>
 		<a href="mailto:${user.email}">${user.email}</a>
 		% if edit:
 			(Set email below)
 		% endif
 		<br />
 				
-		<span class="">Phone:</span>
+		<span >Phone:</span>
 		% if edit:
 			<input type="text" name="userrec.phone_voice" value="${user.userrec.get('phone_voice','')}" />			
 		% else:
@@ -96,7 +96,7 @@
 		% endif
 		<br />
 
-		<span class="">Fax:</span>
+		<span >Fax:</span>
 		% if edit:
 			<input type="text" name="userrec.phone_fax" value="${user.userrec.get('phone_fax','')}" />					
 		% else:
@@ -104,7 +104,7 @@
 		% endif
 		<br />
 
-		<span class="">Web:</span>
+		<span >Web:</span>
 		% if edit:
 			<input type="text" name="userrec.uri" value="${user.userrec.get('uri','')}" />
 		% else:
@@ -114,7 +114,7 @@
 
 
 	% if edit:
-		<div class="controls save" id="ext_save">
+		<div class="e2l-controls" id="ext_save">
 			<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 			<input type="submit" value="Save" name="save">
 		</div>	
@@ -138,17 +138,17 @@
 
 		<p>
 
-			<div class="profile_form_item">
-				<span class="">Current Password:</span>
+			<div>
+				<span >Current Password:</span>
 				<input type="password" name="opw" value="" /> (required to change email)
 			</div>
 
-			<div class="profile_form_item">
-				<span class="">New Email:</span>
+			<div>
+				<span >New Email:</span>
 				<input type="text" name="email" value="${user.get('email','')}" />
 			</div>
 
-			<div class="controls save" id="ext_save">
+			<div class="e2l-controls" id="ext_save">
 				<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 				<input type="submit" value="Change Email" name="save">
 			</div>	
@@ -176,18 +176,18 @@
 		<input type="hidden" name="location" value="${ctxt.reverse('User/save', name=user.name)}" />
 		<input type="hidden" name="name" value="${user.name or ''}" />
 
-		<span class="">Current password:</span>
+		<span >Current password:</span>
 		<input type="password" name="opw" />
 		<br />
 
-		<span class="">New password:</span>
+		<span >New password:</span>
 		<input type="password" name="on1" />
 		<br />
 
-		<span class="">Confirm new password:</span>
+		<span >Confirm new password:</span>
 		<input type="password" name="on2" />
 
-		<div class="controls save" id="ext_save">
+		<div class="e2l-controls" id="ext_save">
 			<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 			<input type="submit" value="Change Password" name="save">
 		</div>	
@@ -203,11 +203,11 @@
 	% if edit:
 		% if user.userrec.get('person_photo'):
 			<% pf_url = EMEN2WEBROOT + "/download/" + user.userrec.get('person_photo') + "/" + user.name %>
-			<a href="${pf_url}"><img class="home_profilephoto" src="${pf_url}.jpg?size=small" alt="profile photo" /></a>
+			<a href="${pf_url}"><img src="${pf_url}.jpg?size=small" alt="profile photo" /></a>
 
 		% else:
 
-			<div class="home_userinfo_noimg">No Photo</div>
+			<div>No Photo</div>
 
 		% endif
 
@@ -221,7 +221,7 @@
 			<input type="hidden" value="${ctxt.reverse('User/save', name=user.name, action='save')}" name="Location" class="hide" />
 			<input type="hidden" value="person_photo" name="param" />
 
-			<div class="controls save" id="ext_save">
+			<div class="e2l-controls" id="ext_save">
 				<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 				<input type="submit" value="Upload Photo" name="save">
 			</div>	
@@ -233,7 +233,7 @@
 		% if user.userrec.get('person_photo'):
 
 			<% pf_url = EMEN2WEBROOT + "/download/" + user.userrec.get('person_photo') + "/" + user.name %>
-			<a href="${pf_url}"><img class="home_profilephoto" src="${pf_url}.jpg?size=small" alt="profile photo" /></a>
+			<a href="${pf_url}"><img src="${pf_url}.jpg?size=small" alt="profile photo" /></a>
 
 		% else:
 
@@ -283,7 +283,7 @@
 			<input type="radio" name="user.disabled" value="0" ${['checked="checked"',''][user.disabled]}> Enabled <br />
 			<input type="radio" name="user.disabled" value="1" ${['','checked="checked"'][user.disabled]}> Disabled
 
-			<div class="controls save" id="ext_save">
+			<div class="e2l-controls" id="ext_save">
 				<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 				<input type="submit" value="Set Account Status" name="save">
 			</div>	
@@ -308,7 +308,7 @@
 			<input type="radio" name="user.privacy" value="1" ${['','checked="checked"',''][user.privacy]}> Only authenticated users<br />
 			<input type="radio" name="user.privacy" value="2" ${['','','checked="checked"'][user.privacy]}> Private<br />
 
-			<div class="controls save" id="ext_save">
+			<div class="e2l-controls" id="ext_save">
 				<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 				<input type="submit" value="Set Privacy Level" name="save">
 			</div>	
@@ -403,7 +403,7 @@
 			
 		</table>
 		
-		<div class="controls save" id="ext_save">
+		<div class="e2l-controls" id="ext_save">
 			<img class="e2l-spinner hide" src="${EMEN2WEBROOT}/static/images/spinner.gif" alt="Loading" />
 			<input type="button" value="Accept / Reject Users" onclick="javascript:admin_approveuser_form(this);return false" />
 		</div>	

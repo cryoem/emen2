@@ -14,13 +14,13 @@
 
 	${title}
 
-	<span class="label search">
+	<span class="e2l-label search">
 		<input value="${q or ''}" name="q" type="text" size="8" />
 		<input type="submit" value="Search" />
 	</span>
 
 	% if create:
-		<span class="label"><a href="${EMEN2WEBROOT}/paramdef/root/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a></span>
+		<span class="e2l-label"><a href="${EMEN2WEBROOT}/paramdef/root/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a></span>
 	% endif
 </h1>
 </form>

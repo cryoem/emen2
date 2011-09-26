@@ -19,13 +19,13 @@
 <h2>Overview</h2>
 
 <p>
-	<span class="label">Project Title:</span>
+	<span class="e2l-label">Project Title:</span>
 	<input type=text  name=project_title  size="50">
 </p>
 
 
 <p>                           
-	<span class="label">Proposed Dates of Experiments:</span>
+	<span class="e2l-label">Proposed Dates of Experiments:</span>
 	<input type=text name=date_of_experiments size="50">
 </p>
 
@@ -35,33 +35,33 @@
 
 
 <p>
-	<span class="label">Name of Agency:</span>
+	<span class="e2l-label">Name of Agency:</span>
 	<input type=text name="grant_agency" size="50" value=''>
 </p>
 
 <p>
-	<span class="label">Grant No:</span>
+	<span class="e2l-label">Grant No:</span>
 	<input type=text name="grant_no" size="50" value=''>
 </p>
 
 <p>
-	<span class="label">Title of Grant:</span>
+	<span class="e2l-label">Title of Grant:</span>
 	<input type=text name="grant_title" size="50" value=''>
 </p>
 
 
 <p>
-	<span class="label">Duration of Grant:</span>
+	<span class="e2l-label">Duration of Grant:</span>
 	<input type=text name="grant_duration" size="50" value=''>
 </p>
 
 <p>               
-	<span class="label">Annual Total Cost:</span>
+	<span class="e2l-label">Annual Total Cost:</span>
 	<input type=text name="grant_amount" size="50" value=''>
 </p>
 
 <p>
-	<span class="label">Project Type (required):</span>
+	<span class="e2l-label">Project Type (required):</span>
             
 	<input type="radio" name="projectMode" value="collaborative">Collaborative 
 	<input type="radio" name="projectMode" value="service">Service
@@ -90,13 +90,13 @@ upload from local disk <input type="file" name="desfile" size="40">
                         
                     
 <p>
-	<span class="label">Molecular Mass, kDa (required):</span>
+	<span class="e2l-label">Molecular Mass, kDa (required):</span>
 	<input type="text" name="molecularmass" size="50" value="">
 </p>
 		    
        
 <p>
-	<span class="label">Molecular Size (required):</span>
+	<span class="e2l-label">Molecular Size (required):</span>
 	<input type="text" name="molecularsize" size="50" value="">
 </p>	    
 

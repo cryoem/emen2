@@ -5,14 +5,14 @@
 <h1>
 	${title}
 
-	<span class="label"><a href="${EMEN2WEBROOT}/query/${paramdef.name}.!None./"><img src="${EMEN2WEBROOT}/static/images/query.png" alt="Query" /> Query</a></span>	
+	<span class="e2l-label"><a href="${EMEN2WEBROOT}/query/${paramdef.name}.!None./"><img src="${EMEN2WEBROOT}/static/images/query.png" alt="Query" /> Query</a></span>	
 
 	% if editable:
-		<span class="label"><a href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
+		<span class="e2l-label"><a href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
 	% endif
 
 	% if create:
-		<span class="label"><a href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="New" /> New</a></span>
+		<span class="e2l-label"><a href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="New" /> New</a></span>
 	% endif
 </h1>
 

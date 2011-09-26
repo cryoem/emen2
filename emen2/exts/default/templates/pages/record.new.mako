@@ -29,7 +29,7 @@
 		});	
 
 	// Change the text of file upload elements..
-	$('.editable_files .label').html('(The record must be saved before files can be attached)');
+	$('.e2l-editable-binary .e2l-label').html('(The record must be saved before files can be attached)');
 
 	// Change the Record type
 	$('#e2l-editbar-newrecord-recorddef').EditbarControl({
@@ -47,15 +47,15 @@
 <ul class="menu editbar e2l-float-list e2l-clearfix">
 
 	<li id="e2l-editbar-newrecord-recorddef">
-		<span class="clickable label">Change Protocol <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></span>
+		<span class="e2l-a e2l-label">Change Protocol <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></span>
 	</li>
 	
 	<li id="e2l-editbar-newrecord-permissions">
-		<span class="clickable label">
+		<span class="e2l-a e2l-label">
 			Permissions
 			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
 		</span>
-		<div id="e2-newrecord-permissions" class="hidden"></div>
+		<div id="e2-newrecord-permissions" class="e2l-menu-hidden"></div>
 	</li>
 
 </ul>
@@ -88,6 +88,6 @@
 </form>
 
 <div class="e2l-clearfix save">
-	<div id="e2-newrecord-save" class="label">Edit</div>
+	<div id="e2-newrecord-save" class="e2l-label">Edit</div>
 </div>
 

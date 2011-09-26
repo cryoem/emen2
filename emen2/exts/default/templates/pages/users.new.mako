@@ -5,26 +5,21 @@ import jsonrpc.jsonutil
 %>
 
 
-<script type="text/javascript">
-//<![CDATA[
+<%block name="javascript_ready">
+	${parent.javascript_ready()}
+	var invalid = ${jsonrpc.jsonutil.encode(invalid)};
+	var country = ${jsonrpc.jsonutil.encode(kwargs.get('country','United States'))};
+	$('select[name=country]').val(country);
+	$.each(invalid, function() {
+		$('input[name='+this+']').addClass("error");
+	})
+</%block>
 
-	$(document).ready(function() {
-		var invalid = ${jsonrpc.jsonutil.encode(invalid)};
-		var country = ${jsonrpc.jsonutil.encode(kwargs.get('country','United States'))};
-		$('select[name=country]').val(country);
-		$.each(invalid, function() {
-			$('input[name='+this+']').addClass("error");
-		})
-	});
-
-//]]>
-</script>
-
-<style type="text/css">
-.signup td:first-child {
-	text-align:right;
-}
-</style>
+<%block name="stylesheet_inline">
+	.signup td:first-child {
+		text-align:right;
+	}
+</block>
 
 
 <h1>Welcome to ${EMEN2DBNAME}</h1>

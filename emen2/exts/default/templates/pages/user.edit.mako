@@ -2,12 +2,6 @@
 <%namespace name="buttons" file="/buttons"  /> 
 <%namespace name="user_util" file="/pages/user.util" /> 
 
-
-% if user.disabled:
-	<div class="notify deleted">Disabled User</div>
-% endif
-
-
 <h1>${user_util.page_title(user, True)}</h1>
 
 ${user_util.page_userrec(user, True)}

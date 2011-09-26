@@ -106,7 +106,7 @@
 	});	
 
 	// Bind editable widgets
-	// $('.editable').EditControl({});
+	// $('.e2l-editable').EditControl({});
 	$('#e2l-editbar-record-setbookmark').BookmarksControl({'mode':'toggle'});
 
 	$('#e2l-editbar-record-edit .label').MultiEditControl({
@@ -124,7 +124,7 @@
 	## Bookmarks
 	% if USER:
 		<li id="e2l-editbar-record-setbookmark">
-			<span class="clickable label" data-parent="${USER.record}" data-name="${rec.name}">
+			<span class="e2l-a e2l-label" data-parent="${USER.record}" data-name="${rec.name}">
 			% if rec.name in bookmarks:
 				<img src="${EMEN2WEBROOT}/static/images/star-closed.png" alt="Bookmarked" />
 			% else:
@@ -137,7 +137,7 @@
 	## Edit Record
 	% if rec.writable():
 		<li id="e2l-editbar-record-edit">
-			<span class="clickable label" data-name="${rec.name}">
+			<span class="e2l-a e2l-label" data-name="${rec.name}">
 				<img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit
 			</span>
 		</li>
@@ -146,7 +146,7 @@
 	## New Record
 	% if create:
 		<li id="e2l-editbar-record-newrecord">
-			<span class="clickable label">
+			<span class="e2l-a e2l-label">
 				New
 				<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
 			</span>
@@ -155,7 +155,7 @@
 
 	## Relationship Editor
 	<li id="e2l-editbar-record-relationships">
-		<span class="clickable label">
+		<span class="e2l-a e2l-label">
 			Relationships
 			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
 		</span>
@@ -163,7 +163,7 @@
 
 	## Permissions Editor
 	<li id="e2l-editbar-record-permissions">
-		<span class="clickable label">
+		<span class="e2l-a e2l-label">
 			Permissions
 			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
 		</span>
@@ -181,7 +181,7 @@
 			attachments.extend([v])
 	%>
 	<li id="e2l-editbar-record-attachments">
-		<span class="clickable label">
+		<span class="e2l-a e2l-label">
 			<span id="attachment_count">
 			% if attachments:
 				${len(attachments)}
@@ -207,7 +207,7 @@
 	lastitem = 'comments'
 	%>
 	<li id="e2l-editbar-tools">
-		<span class="clickable label">
+		<span class="e2l-a e2l-label">
 			${rec.rectype}
 			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
 		</span>
@@ -217,7 +217,7 @@
 			<h4>Views</h4>
 			<ul>
 			% for i in sorted(set(recdef.views.keys()+['mainview', 'dicttable'])):
-				<li class="clickable" data-viewtype="${i}">${nicenames.get(i, i)}</li>	
+				<li class="e2l-a" data-viewtype="${i}">${nicenames.get(i, i)}</li>	
 			% endfor
 			</ul>
 
@@ -248,7 +248,7 @@
 
 	## Table View
 	<li>
-		<span class="clickable label" data-viewtype="dicttable"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></span>
+		<span class="e2l-a e2l-label" data-viewtype="dicttable"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></span>
 	</li>
 
 	## Siblings
@@ -264,7 +264,7 @@
 				pos_next = siblings[pos+1]
 		%>
 		<li id="e2l-editbar-record-siblings" class="e2l-float-right e2l-editbar-lastitem" data-sibling="${sibling}" data-prev="${pos_prev}" data-next="${pos_next}">
-			<span class="clickable label">
+			<span class="e2l-a e2l-label">
 			${pos+1} of ${len(siblings)}
 			</span>
 		</li>
@@ -280,7 +280,7 @@
 		<li id="e2l-editbar-comments" class="e2l-float-right">
 	%endif
 	
-		<span class="clickable label">
+		<span class="e2l-a e2l-label">
 			% if rec.get('modifytime'):	
 				${displaynames.get(rec.get('modifyuser'), '(%s)'%rec.get('modifyuser'))} @ ${rec.get('modifytime', '')[:10]}
 			% else:

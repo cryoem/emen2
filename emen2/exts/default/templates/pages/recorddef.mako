@@ -7,14 +7,14 @@ import markdown
 <h1>
 	${title}
 	
-	<span class="label"><a href="${EMEN2WEBROOT}/query/rectype==${recdef.name}/"><img src="${EMEN2WEBROOT}/static/images/query.png" alt="Query" /> Query</a></span>	
+	<span class="e2l-label"><a href="${EMEN2WEBROOT}/query/rectype==${recdef.name}/"><img src="${EMEN2WEBROOT}/static/images/query.png" alt="Query" /> Query</a></span>	
 	
 	% if editable:
-		<span class="label"><a href="${EMEN2WEBROOT}/recorddef/${recdef.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
+		<span class="e2l-label"><a href="${EMEN2WEBROOT}/recorddef/${recdef.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
 	% endif
 
 	% if create:
-		<span class="label"><a href="${EMEN2WEBROOT}/recorddef/${recdef.name}/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="New" /> New</a></span>
+		<span class="e2l-label"><a href="${EMEN2WEBROOT}/recorddef/${recdef.name}/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="New" /> New</a></span>
 	% endif
 </h1>
 
