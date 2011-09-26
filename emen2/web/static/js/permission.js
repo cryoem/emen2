@@ -179,7 +179,7 @@
 			var level = $('<div class="e2-permissions-level e2l-clearfix" data-level="group"></div>');
 			this.grouparea.append(level);
 
-			var title = $('<h4 class="e2l-clearfix"> Groups <span class="small e2l-float-right clickable">(select all)</span></h4>');
+			var title = $('<h4 class="e2l-clearfix"> Groups <span class="small e2l-float-right e2l-a">(select all)</span></h4>');
 			if (this.options.edit) {
 				var button = $('<input type="button" value="+" /> ');
 				button.FindControl({
@@ -203,7 +203,7 @@
 		
 			$.each(this.permissions, function(k,v) {			
 				var level = $('<div class="e2-permissions-level e2l-clearfix" data-level="'+k+'"></div>');
-				var title = $('<h4 class="e2l-clearfix"> '+self.options.levels[k]+' <span class="small e2l-float-right clickable">(select all)</span></h4>');
+				var title = $('<h4 class="e2l-clearfix"> '+self.options.levels[k]+' <span class="small e2l-float-right e2l-a">(select all)</span></h4>');
 				if (self.options.edit) {
 					var button = $('<input type="button" value="+" />');
 					button.FindControl({
@@ -218,7 +218,7 @@
 				if (v.length == 0) {
 
 				} else {
-					// var level_removeall=$('<span class="small_label">[<span class="clickable">X</span>]</span>').click(function () {
+					// var level_removeall=$('<span class="small_label">[<span class="e2l-a">X</span>]</span>').click(function () {
 					$.each(v, function(i,name) {
 						self.draw(name, k);
 					});

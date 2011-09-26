@@ -165,7 +165,7 @@
 			var t = caches['recorddef'][this.rectype].typicalchld;
 			$.each(t, function() {
 				try {
-					var i = $('<div><input type="radio" name="newrecordselect" value="'+this+'" id="newrecordselect_'+this+'"  /> <label class="clickable" for="newrecordselect_'+this+'">'+caches['recorddef'][this].desc_short+'</label></div>');
+					var i = $('<div><input type="radio" name="newrecordselect" value="'+this+'" id="newrecordselect_'+this+'"  /> <label class="e2l-a" for="newrecordselect_'+this+'">'+caches['recorddef'][this].desc_short+'</label></div>');
 					self.typicalchld.append(i);
 				} catch(e) {
 					//self.dialog.append('<div><a href="/record/'+self.options.name+'/new/'+this+'/">('+this+')</a></div>');
@@ -194,7 +194,7 @@
 						var content = $('<form id="newrecord" method="post" action="'+EMEN2WEBROOT+'/record/'+self.options.parent+'/new/'+rd.name+'">');
 						content.append(data);
 						self.newdialog.append(content);
-						$('.editable', content).EditControl({
+						$('.e2l-editable', content).EditControl({
 							name:'None'
 						});
 
@@ -245,7 +245,7 @@
 			this.options.name = this.options.name || parseInt(this.element.attr("data-name"));
 			
 			// jQuery selector for this multi-edit control to activate
-			this.options.selector = this.options.selector || '.editable[data-name='+this.options.name+']';
+			this.options.selector = this.options.selector || '.e2l-editable[data-name='+this.options.name+']';
 
 			// Bind click
 			this.element.click(function(e){self.event_click()});			

@@ -92,7 +92,7 @@
 			var self = this;
 
 			var controls = $('.e2-tile[data-bdo='+this.options.bdo+'] .tilemapcontrols');
-			controls.append('<h4 class="label">Boxes</h4>\
+			controls.append('<h4 class="e2l-label">Boxes</h4>\
 				<input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /> \
 				<input type="button" name="newset" value="New Set" /><br /> \
 				<div class="e2l-spinner hide"><img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div> \
@@ -699,11 +699,11 @@
 			}
 
 			var controls = $('<div class="roundleft e2-tile-controls"> \
-				<h4 class="label">Image</h4> \
+				<h4 class="e2l-label">Image</h4> \
 				<input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /> \
 				<input type="button" name="autocenter" value="Center" /> <br />\
 				<input type="button" name="save" value="Save" /> \
-				<h4 class="label">Mode</h4> \
+				<h4 class="e2l-label">Mode</h4> \
 				<div style="text-align:left"> \
 				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /><label for="displaymode_image">Image</label><br />\
 				<input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /><label for="displaymode_pspec">PSpec</label><br />\

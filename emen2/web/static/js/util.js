@@ -46,7 +46,7 @@ window.log = function(){
 			var edit = elem.attr('data-edit');
 			$.jsonRPC.call("renderview", {'names':name, 'viewtype': viewtype, 'edit': edit}, function(view) {
 				elem.html(view);
-				//$('.editable', elem).EditControl({});
+				//$('.e2l-editable', elem).EditControl({});
 			},
 			function(view){}
 			);
@@ -445,7 +445,7 @@ window.log = function(){
 			this.element.addClass('e2l-tab-active');
 			
 			if (this.options.bind) {
-				$('.label', this.element).click(function(e) {
+				$('.e2l-label', this.element).click(function(e) {
 					e.stopPropagation();
 					self.toggle();
 				});

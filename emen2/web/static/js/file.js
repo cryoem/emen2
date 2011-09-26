@@ -168,7 +168,7 @@
 					<input type="hidden" name="param" id="e2-file-param" value="file_binary" /> \
 					<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'#attachments" /> \
 					<input style="opacity:0" type="file" name="filedata" /> \
-					<span class="clickable label e2-file-target">Regular Attachment</span> \
+					<span class="e2l-a e2l-label e2-file-target">Regular Attachment</span> \
 					</span> \
 				</div> \
 				<div style="width:100%" class="e2l-controls"> \

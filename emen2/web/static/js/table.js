@@ -62,9 +62,9 @@
 		build_tools: function() {
 			// Build the Tools & Statistics menu
 			var self = this;
-			var q = $('<li><span class="clickable label">Tools<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
+			var q = $('<li><span class="e2l-a e2l-label">Tools<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
 			var hidden = $('<div class="e2l-menu-hidden"><ul class="e2l-nonlist"> \
-						<li class="clickable e2-table-files"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Download all files in this table</li> \
+						<li class="e2l-a e2-table-files"><img src="'+EMEN2WEBROOT+'/static/images/action.png" alt="Action" /> Download all files in this table</li> \
 					</ul></div>');
 
 			$('.e2-table-files', hidden).click(function() {self.query_download()});
@@ -79,7 +79,7 @@
 		
 		build_plot: function() {
 			// var self = this;
-			// var q = $('<li><span class="clickable label">Plots <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
+			// var q = $('<li><span class="e2l-a e2l-label">Plots <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
 			// var hidden = $('<div class="hidden">Plotting...</div>');
 			// q.append(hidden);
 			// q.EditbarControl({
@@ -90,7 +90,7 @@
 		
 		build_stats: function() {
 			var self = this;
-			var q = $('<li><span class="clickable label">Statistics<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
+			var q = $('<li><span class="e2l-a e2l-label">Statistics<img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
 			var hidden = $('<div class="e2l-menu-hidden"><img class="e2l-spinner" src="'+EMEN2WEBROOT+'/static/images/spinner.gif" alt="Loading" /></div>');
 			q.append(hidden);
 			q.EditbarControl({
@@ -104,7 +104,7 @@
 			if (!this.options.qc) {return}
 			
 			var self = this;
-			var q = $('<li><span class="clickable label"> \
+			var q = $('<li><span class="e2l-a e2l-label"> \
 				Query <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
 
 			q.EditbarControl({
@@ -212,7 +212,7 @@
 			}
 
 			$('.e2-table-header .e2-table-length').empty();
-			$('.e2-table-header .e2-table-length').append('<span class="label">'+title+'</span>');
+			$('.e2-table-header .e2-table-length').append('<span class="e2l-label">'+title+'</span>');
 			
 			// Update the record type statistics
 			var qstats = $(".e2-query-stats", this.element);
@@ -240,11 +240,11 @@
 				var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count'])-1;
 				var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}			
 
-				var p1 = $('<span data-pos="0" class="clickable">&laquo;</span>').click(setpos);
-				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="clickable">&lsaquo;</span>').click(setpos);
-				var p  = $('<span class="label"> '+(current+1)+' / '+(pagecount+1)+' </span>');
-				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="clickable">&rsaquo;</span>').click(setpos);
-				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="clickable">&raquo;</span>').click(setpos);
+				var p1 = $('<span data-pos="0" class="e2l-a">&laquo;</span>').click(setpos);
+				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="e2l-a">&lsaquo;</span>').click(setpos);
+				var p  = $('<span class="e2l-label"> '+(current+1)+' / '+(pagecount+1)+' </span>');
+				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="e2l-a">&rsaquo;</span>').click(setpos);
+				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="e2l-a">&raquo;</span>').click(setpos);
 
 				if (current > 0) {pc.prepend(p2)}
 				if (current > 1) {pc.prepend(p1, '')}
@@ -349,9 +349,9 @@
 				t = $(e.target).parent();
 				var key = t.parent().attr('data-name');				
 			}
-			var selector = '#tbody .editable';
+			var selector = '#tbody .e2l-editable';
 			if (key) {
-				selector = '#tbody .editable[data-param='+key+']'
+				selector = '#tbody .e2l-editable[data-param='+key+']'
 			}			
 			t.MultiEditControl({
 				show: true,

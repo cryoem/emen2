@@ -157,7 +157,7 @@
 						}
 						
 						for (var j=0;j<row.length;j++) {
-							var td = $('<td data-name="'+recs[i]+'" class="clickable">'+row[j]+'</td>');
+							var td = $('<td data-name="'+recs[i]+'" class="e2l-a">'+row[j]+'</td>');
 							tr.append(td);
 						}
 						$('tbody', table).append(tr);
@@ -166,7 +166,7 @@
 					$('thead', table).append(trh)
 					self.dialog.append(table);
 					
-					$('.clickable', table).click(function() {
+					$('.e2l-a', table).click(function() {
 						var name = $(this).attr('data-name');
 						self.options.cb_select(name);
 						self.dialog.dialog('close');

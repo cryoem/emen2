@@ -107,7 +107,7 @@
 				var rd = caches['recorddef'][k] || {};
 				var adds = '';
 				if (v.length > 1) {adds='s'}
-				ce.push(v.length+' '+rd.desc_short+' <span data-checked="checked" data-reltype="'+label+'" data-rectype="'+k+'" class="small clickable e2-relationship-rectype">(select)</span>');
+				ce.push(v.length+' '+rd.desc_short+' <span data-checked="checked" data-reltype="'+label+'" data-rectype="'+k+'" class="small e2l-a e2-relationship-rectype">(select)</span>');
 			});
 			
 			var pstr = '';
