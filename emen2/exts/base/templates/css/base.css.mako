@@ -240,6 +240,7 @@ a:hover,
 	padding:5px;
 	display:inline-block;
 }
+
 /*.editbar input, 
 .editbar select
 {
@@ -250,6 +251,12 @@ a:hover,
 	margin-left: 4px;
 }
 */
+
+h1 .e2l-label {
+	float:right;
+	font-size:12pt;
+	margin:10px;
+}
 
 
 
@@ -512,12 +519,13 @@ to fit more information */
 	max-height: 300px;
 	overflow-y: auto;
 }
+
 /* IE 6 doesn't support max-height
  * we use height instead, but this forces the menu to always be this tall
- */
 * html .ui-autocomplete {
 	height: 300px;
 }
+*/
 
 <%!
 public = True
