@@ -221,6 +221,7 @@ class DBOptions(optparse.OptionParser):
 		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'security.log'), 'a', 0))
 
 		g.params.CONFIG_LOADED = True
+		emen2.VERSION = g.params.VERSION
 
 
 

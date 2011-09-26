@@ -13,10 +13,10 @@ def dict_merge(dct1, dct2):
 		newitem = dct2[key]
 		if hasattr(newitem, 'items') and hasattr(olditem, 'items'):
 			dict_merge(olditem, newitem)
-		elif hasattr(olditem, 'update') and hasattr(newitem, '__iter__'):
-			olditem.update(newitem)
-		elif hasattr(olditem, 'extend') and hasattr(newitem, '__iter__'):
-			olditem.extend(newitem)
+		#elif hasattr(olditem, 'update') and hasattr(newitem, '__iter__'):
+		#	olditem.update(newitem)
+		#elif hasattr(olditem, 'extend') and hasattr(newitem, '__iter__'):
+		#	olditem.extend(newitem)
 		else:
 			dct1[key] = dct2[key]
 	dct1.update( (k,dct2[k]) for k in newkeys )
