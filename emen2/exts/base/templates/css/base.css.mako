@@ -98,6 +98,7 @@ a:hover,
 /***** e2l-menu: Drop-down menu *****/
 .e2l-menu {
 	list-style:none;
+	padding-left: 0px;
 }
 .e2l-menu > li {
 	float: left;
@@ -120,6 +121,9 @@ a:hover,
 	padding:10px;
 	z-index:200;
 	background:white;
+}
+.e2l-menu-divider {
+	border-top:solid 1px #ccc;
 }
 .e2l-menu img {
 	vertical-align: bottom;
@@ -159,21 +163,27 @@ a:hover,
 /***** e2l-spinner: Progress indicator *****/
 
 .e2l-spinner {
-	
 }
 
 
 /***** e2l-tab: Page and tab widget *****/
-
 .e2l-tab-pages > .e2l-tab-page {
 	border: solid 1px #ccc;
+	border-top: none;
 	display: none;
 	padding: 10px;
 }
 .e2l-tab-pages > .e2l-tab-active {
 	display: block;
 }
+.e2l-tab-buttons {
+	margin: 0px;
+	padding-left: 0px;
+	list-style: none;
+	border-bottom: solid 1px #ccc;
+}
 .e2l-tab-buttons > .e2l-tab-button {
+	float: left;
 	padding: 8px;
 	margin-top: 10px;
 	margin-right: 10px; 
@@ -199,15 +209,6 @@ a:hover,
 }
 .e2l-float-right {
 	float:right !important;
-}
-.e2l-float-list {
-	list-style:none;
-	padding-left:0px;
-	margin-top:0px;
-	margin-bottom:0px;
-}
-.e2l-float-list > li {
-	float:left;
 }
 .e2l-nonlist {
 	list-style: none;

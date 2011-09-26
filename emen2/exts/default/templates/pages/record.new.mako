@@ -44,7 +44,7 @@
 	});
 </%block>
 
-<ul class="menu editbar e2l-float-list e2l-clearfix">
+<ul class="menu editbar e2l-clearfix">
 
 	<li id="e2l-editbar-newrecord-recorddef">
 		<span class="e2l-a e2l-label">Change Protocol <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></span>

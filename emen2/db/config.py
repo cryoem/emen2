@@ -189,7 +189,6 @@ class DBOptions(optparse.OptionParser):
 		# Add any specified extensions
 		g.paths.EXTPATHS.append(get_filename('emen2', 'web/exts'))
 
-		print g.extensions.EXTS
 		# Load the default extensions
 		# I plan to add a flag to disable automatic loading.
 		exts = self.values.exts or []
@@ -203,10 +202,10 @@ class DBOptions(optparse.OptionParser):
 		for ext in exts:
 			name, path = self.resolve_ext(ext, g.paths.EXTPATHS)
 			g.extensions.EXTS[name] = path
-		print g.extensions.EXTS
 
 		# Mako Template Loader
 		g.templates = AddExtLookup(input_encoding='utf-8')
+
 		# Enable/disable snapshot
 		g.params.SNAPSHOT = self.values.snapshot
 

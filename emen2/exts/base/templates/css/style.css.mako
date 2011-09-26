@@ -85,9 +85,6 @@ td
 #nav li ul {
 	padding:0px;
 }
-#nav li.divider {
-	border-top:solid 1px #ccc;
-}
 #nav li:last-child ul {
 	right:0px;
 }

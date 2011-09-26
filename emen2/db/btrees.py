@@ -231,13 +231,13 @@ class EMEN2DB(object):
 
 	def addcache(self, item, txn=None):
 		if item.name in self.cache:
-			print "Warning: Item %s already in cache, skipping"%item.name
-			return
+			# print "Warning: Item %s already in cache, skipping"%item.name
 			# raise KeyError
+			return
 		if self.get(item.name, txn=txn):
-			print "Warning: Item %s already in exists in database, skipping"%item.name
-			return
+			# print "Warning: Item %s already in exists in database, skipping"%item.name
 			# raise KeyError
+			return
 
 		# print "Adding %s to cache"%item.name
 		# print "Checking parents/children for %s"%item.name

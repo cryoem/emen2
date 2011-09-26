@@ -2,7 +2,7 @@ import collections
 import emen2.db
 db = emen2.db.opendb()
 
-# set([u'binaryimage', u'links', u'int', u'text', u'float', u'datetime', u'boolean', u'stringlist', u'binary', u'comments', u'intlistlist', 'intlist', u'string', u'choice', u'user', u'groups', u'rectype', 'none', u'choicelist', 'name', u'acl', u'userlist', u'recid', u'e2l-float-list', u'history'])
+# set([u'binaryimage', u'links', u'int', u'text', u'float', u'datetime', u'boolean', u'stringlist', u'binary', u'comments', u'intlistlist', 'intlist', u'string', u'choice', u'user', u'groups', u'rectype', 'none', u'choicelist', 'name', u'acl', u'userlist', u'recid', u'floatlist', u'history'])
 
 convert = {
 	'links':'links',
@@ -13,7 +13,7 @@ convert = {
 	'intlistlist':'coordinate',
 	'groups':'groups',
 	'userlist':'user',
-	'e2l-float-list':'float',
+	'floatlist':'float',
 	'history':'history',
 	'choicelist':'choice',
 	'acl':'acl'

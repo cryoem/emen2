@@ -171,9 +171,7 @@ def start_emen2():
 		#thread.start_new_thread(notifications.sort_notifications, ())
 
 		vl = emen2.web.view.ViewLoader()
-		print 'loading extensions'
 		vl.load_extensions()
-		print 'loaded'
 		vl.load_redirects()
 		vl.routes_from_g()
 

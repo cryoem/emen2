@@ -529,9 +529,9 @@ class ViewLoader(object):
 
 	def load_extensions(self):
 		# Load exts
-		print self.extensions
+		# print self.extensions
 		for ext, path in self.extensions.items():
-			print ext,path, 'extension loading'
+			# print ext, path, 'extension loading'
 			self.load_extension(ext, path)
 		return True
 

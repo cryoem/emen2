@@ -6,24 +6,18 @@ import jsonrpc.jsonutil
 %>
 
 
-<script type="text/javascript">
-//<![CDATA[
 
-	$(document).ready(function() {
-		
-		caches["children"] = ${jsonrpc.jsonutil.encode(children)};
-		caches["collapsed"] = ${jsonrpc.jsonutil.encode(dict([(k, list(v)) for k,v in collapsed.items()]))};
+<%block name="js_ready">
+	${parent.js_ready()}
+	caches["children"] = ${jsonrpc.jsonutil.encode(children)};
+	caches["collapsed"] = ${jsonrpc.jsonutil.encode(dict([(k, list(v)) for k,v in collapsed.items()]))};
 
-		$('#publishmap').MapSelect({
-			name: ${rec.name},
-			status: ${jsonrpc.jsonutil.encode(status)},
-			ext_save: '#ext_save'
-		});
+	$('#publishmap').MapSelect({
+		name: ${rec.name},
+		status: ${jsonrpc.jsonutil.encode(status)},
+		ext_save: '#ext_save'
 	});
-
-
-//]]>
-</script>
+</%block>
 
 
 <h1>

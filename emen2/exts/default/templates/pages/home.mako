@@ -1,14 +1,9 @@
+<%! import operator %>
 <%inherit file="/page" />
-
 <%namespace name="buttons" file="/buttons"  /> 
 <%namespace name="pages_user_util" file="/pages/user.util"  /> 
-<%namespace name="table" file="/pages/table"  /> 
 
 
-<%
-import operator
-from emen2.web.markuputils import HTMLTab
-%>
 
 
 <h1>
@@ -30,14 +25,13 @@ from emen2.web.markuputils import HTMLTab
 </div>
 
 
-<br /><br />
+<br />
 
 
 
 <%
 ctsearch = [[None, ctroot]]
 rn = {}
-
 while ctsearch:
 	parent, child = ctsearch.pop()
 	if parent == None:
@@ -50,20 +44,24 @@ while ctsearch:
 %>
 
 
+
+
 % if banner:
+	<h1>
+		Welcome to ${EMEN2DBNAME}
+		% if banner.writable():
+			<span class="e2l-label">
+				<a href="${EMEN2WEBROOT}/record/${banner.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a>
+			</span>
+		% endif
+	</h1>
 
-<h1>
-	Welcome to ${EMEN2DBNAME}
-	% if banner.writable():
-		<span class="e2l-label"><a href="${EMEN2WEBROOT}/record/${banner.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
-	% endif
-</h1>
-
-<div>
-${render_banner}
-</div>
-
+	<div>
+	${render_banner}
+	</div>
 % endif
+
+
 
 
 <h1>Projects</h1>

@@ -3,7 +3,7 @@
 ##########################################################
 
 <%def name="buttons(tabs)">
-	<ul class="e2l-tab-buttons e2l-clearfix e2l-float-list" id="${tabs.getid_buttons()}" data-tabgroup="${tabs.getclassname()}">
+	<ul class="e2l-tab-buttons e2l-clearfix" id="${tabs.getid_buttons()}" data-tabgroup="${tabs.getclassname()}">
 	% for i in tabs.order:
 		<li class="${tabs.getclass_button(i)}" id="${tabs.getid_button(i)}" data-tabgroup="${tabs.getclassname()}" ${tabs.getjs_button(i)} >${tabs.getcontent_button(i)}</li>
 	% endfor
@@ -47,7 +47,7 @@
 ## Simple title button
 
 <%def name="titlebutton(title)">
-	<ul data-tabgroup="main" id="buttons_main" class="e2l-tab-buttons e2l-clearfix e2l-float-list">
+	<ul data-tabgroup="main" id="buttons_main" class="e2l-tab-buttons e2l-clearfix">
 		<li data-tabgroup="main" id="button_main_main" class="e2l-button button_main active">${title}</li>
 	</ul>
 </%def>

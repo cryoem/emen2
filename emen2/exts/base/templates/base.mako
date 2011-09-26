@@ -68,11 +68,14 @@
 		caches['parents'] = {};
 		caches['displaynames'] = {};
 		caches['groupnames'] = {};
-		caches['recnames'] = {};	
+		caches['recnames'] = {};
+			
 		<%block name="js_inline" />
+		
 		$(document).ready(function() {
 			<%block name="js_ready" />
-		});		
+		});	
+			
 	</script>
 
 </head>

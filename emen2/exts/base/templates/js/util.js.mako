@@ -276,7 +276,7 @@ window.log = function(){
 				var li = $('<li><a href="'+EMEN2WEBROOT+'/record/'+this+'/">'+caches['recnames'][this]+'</a></li>');
 				ul.append(li);
 			});			
-			// ul.append('<li class="divider"><a href="">Bookmark Manager</a></li>');			
+			// ul.append('<li class="e2l-menu-divider"><a href="">Bookmark Manager</a></li>');			
 			this.element.append(ul);
 		},
 		

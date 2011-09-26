@@ -1,6 +1,5 @@
 <%! import jsonrpc.jsonutil %>
 <%inherit file="/page" />
-<%namespace name="table" file="/pages/table"  /> 
 
 
 

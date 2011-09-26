@@ -13,11 +13,11 @@
 				<li><a href="${EMEN2WEBROOT}/sitemap/">Sitemap</a></li>
 				##<li><a href="${ctxt.reverse('Record/children', BOOKMARKS.get('PROJECTS',1), 'project')}">Projects</a></li>
 				##<li><a href="${EMEN2WEBROOT}/record/${BOOKMARKS.get('EQUIPMENT',1)}/children/folder/">Equipment</a></li>
-				<li class="divider"><a href="${EMEN2WEBROOT}/paramdefs/">Params</a></li>
+				<li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/paramdefs/">Params</a></li>
 				<li><a href="${EMEN2WEBROOT}/recorddefs/">Protocols</a></li>
-				<li class="divider"><a href="${EMEN2WEBROOT}/users/">Users</a></li>
+				<li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/users/">Users</a></li>
 				<li><a href="${EMEN2WEBROOT}/groups/">Groups</a></li>
-				<li class="divider"><a href="${EMEN2WEBROOT}/help/">Help</a></li>				
+				<li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/help/">Help</a></li>				
 			</ul>
 		</li>
 
