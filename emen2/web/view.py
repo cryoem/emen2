@@ -94,7 +94,7 @@ class TemplateContext(collections.MutableMapping):
 		
 		full = kwargs.pop('_full', False)
 
-		result = '%s/%s'%(CVars.webroot, emen2.web.routing.URLRegistry.reverselookup(_name, *args, **kwargs))
+		result = '%s/%s'%(CVars.webroot, emen2.web.routing.reverse(_name, *args, **kwargs))
 		result = result.replace('//','/')
 		if full:
 			result = 'http://%s:%s%s' % (self.host, self.port, result)
@@ -322,6 +322,7 @@ class _View(object):
 				name = '%s/%s' % (name, k)
 				matchers.append( (name, matcher, func) )
 
+			name = '%s/%s'%(cls.__name__, name)
 			# save all matchers to the function
 			func.matcherinfo = matchers
 			return func
@@ -353,7 +354,8 @@ class _View(object):
 		for v in (getattr(func, 'matcherinfo', None) for func in cls.__dict__.values()):
 			for matcher in (v or []):
 				name, matcher, func = matcher
-				with routing.URLRegistry().url(matcher, matcher, self.make_callback(cls, func)) as url:
+				name = '%s/%s'%(cls.__name__, name)
+				with routing.URLRegistry().url(matcher, name, self.make_callback(cls, func)) as url:
 					pass
 
 		return cls
@@ -524,7 +526,6 @@ class ViewLoader(object):
 
 	def __init__(self):
 		self.get_views = emen2.util.fileops.walk_path('.py', self.view_callback)
-		self.router = emen2.web.routing.URLRegistry()
 
 
 	def load_extensions(self):
@@ -573,20 +574,20 @@ class ViewLoader(object):
 			emen2.web.resources.publicresource.PublicView.register_redirect(fro, to, **kwargs)
 
 
-	def reload_views(self, view=None):
-		reload(view)
-		failures = []
-		self.load_templates(failures=failures)
-		self.load_views(failures=failures)
-		if view != None: values = [emen2.web.routing.URLRegistry.URLRegistry[view]]
-		else: values = emen2.web.routing.URLRegistry.URLRegistry.values()
-		for view in values:
-			try:
-				view = view._callback.__module__
-				exec 'import %s;reload(%s)' % (view,view)
-			except:
-				failures.append(str(view))
-		return failures
+	# def reload_views(self, view=None):
+	# 	reload(view)
+	# 	failures = []
+	# 	self.load_templates(failures=failures)
+	# 	self.load_views(failures=failures)
+	# 	if view != None: values = [emen2.web.routing.URLRegistry.URLRegistry[view]]
+	# 	else: values = emen2.web.routing.URLRegistry.URLRegistry.values()
+	# 	for view in values:
+	# 		try:
+	# 			view = view._callback.__module__
+	# 			exec 'import %s;reload(%s)' % (view,view)
+	# 		except:
+	# 			failures.append(str(view))
+	# 	return failures
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -18,13 +18,26 @@ import emen2.db.config
 g = emen2.db.config.g()
 
 
+def resolve(name=None, path=None):
+	return URLRegistry.resolve(name=name, path=path)
+
+
+def reverse(*args, **kwargs):
+	pass
+	
+
+def add(*args, **kwargs):
+	pass	
+	
+
 class URL(object):
 	def __init__(self, name, matcher, cb):
+		print name, matcher, cb
 		self.name = name
-		self.cb = cb
 		if not hasattr(matcher, 'match'):
 			matcher = re.compile(matcher)
 		self.matcher = matcher
+		self.cb = cb
 
 	def match(self, path):
 		result = None
@@ -47,11 +60,12 @@ class URLRegistry(emen2.util.registry.Registry):
 	# Default route
 	def get_default(self):
 		return self._default
-
+	
 	def set_default(self, value):
 		self._default = bool(value)
-
+	
 	default = property(get_default, set_default)
+
 
 	# Not Found
 	@staticmethod
@@ -60,57 +74,70 @@ class URLRegistry(emen2.util.registry.Registry):
 
 
 	# Find a match for a path
-	def resolve(self, path):
+	@classmethod
+	def resolve(cls, path=None, name=None):
+		if (not path and not name) or (path and name):
+			raise ValueError, "You must specify either a path or a name"
+
 		# print "Resolving...", path
 		# Return a callback and found arguments
 		result = None, None
-		# Look at all the URLs in the registry
-		for url in self.registry.values():
-			# print "Checking:", url.name
-			# Return a result if found
-			tmp = url.match(path)
-			if tmp != None:
-				return url.cb, tmp
 
-		raise responsecodes.NotFoundError(path)
+		# Look at all the URLs in the registry
+		for url in cls.registry.values():
+			# Return a result if found
+			# print "Checking:", url.name
+			if path:
+				tmp = url.match(path)
+				if tmp != None:
+					return url.cb, tmp
+			elif name:
+				if name == url.name:
+					return url.cb, {}
+
+		raise responsecodes.NotFoundError(path or name)
 
 
 	# Test resolve a route
-	def is_reachable(self, url):
-		cb, groups = self.resolve(url)
+	@classmethod
+	def is_reachable(cls, url):
+		cb, groups = cls.resolve(url)
 		return cb != None and groups != None
 
 
 	# Registration
-	def register(self, url):
+	@classmethod
+	def register(cls, url):
 		'''Add a URL object to the registry.  If a URL with the same "name" is already
 		registered, merge the two into the previously registered one.
 
 		@returns true if a url was already registered with the same name
 		'''
-		url = emen2.util.registry.Registry.register(self, url)
-		self.events.event('web.routing.url.register')(url)
+		p = cls()
+		url = emen2.util.registry.Registry.register(p, url)
+		cls.events.event('web.routing.url.register')(url)
 		return url
 
 
 	# Reverse lookup
 	@classmethod
-	def reverselookup(cls, _name, *args, **kwargs):
-		'''reverselookup: take a name and arguments, and return a url'''
+	def reverse(cls, _name, *args, **kwargs):
+		'''reverse: take a name and arguments, and return a url'''
 		return '/error'
+		
 		_name = _name.split('/',1)
 		if len(_name) == 1: _name.append('main')
 		url = cls.get(_name[0], None)
 		result = '/error/'
 		if url is not None:
-			result = cls.reverse_helper(url.get_matcher(_name[1]), *args, **kwargs)
+			result = cls._reverse_helper(url.get_matcher(_name[1]), *args, **kwargs)
 			result = str.join('', (cls._prepend, result))
 
 		return result
 
 
 	@classmethod
-	def reverse_helper(cls, regex, *args, **kwargs):
+	def _reverse_helper(cls, regex, *args, **kwargs):
 		mc = MatchChecker(args, kwargs)
 		result = re.sub(r'\(([^)]+)\)', mc, regex.pattern)
 

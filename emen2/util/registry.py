@@ -93,7 +93,7 @@ class Registry(object):
 			cls.registry = {}
 			cls._lock = threading.RLock()
 			return cls
-
+	
 	def register(self, obj):
 		with self._lock:
 			old_obj = self.registry.get(obj.name)
