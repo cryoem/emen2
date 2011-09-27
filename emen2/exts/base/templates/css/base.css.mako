@@ -114,16 +114,23 @@ a:hover,
 	padding: 5px;
 	display: block;
 }
+.e2l-menu > li > ul {
+	list-style:none;
+}
+.e2l-menu > .e2l-hover {
+	background:white;
+}
 .e2l-menu > li > ul,
 .e2l-menu .e2l-menu-hidden
 {
-	list-style: none;
 	position: absolute;
 	display: none;
 	width: 250px;
 	padding:10px;
 	z-index:200;
 	background:white;
+	border: solid 1px #ccc;
+	border-top: none;
 }
 .e2l-menu-divider {
 	border-top:solid 1px #ccc;
@@ -137,6 +144,17 @@ a:hover,
 	display: block;
 }
 
+/* Experiments... */
+.e2l-menu-box {
+/*	position:absolute;
+	width:300px;
+	left:100px;
+	z-index:1000; */
+	padding:10px;
+	background:#eee;
+	border:solid 1px #ccc;
+	border-top:none;
+}
 
 /***** e2l-alert: Alerts, notifications, and errors *****/
 .e2l-alert {
@@ -159,6 +177,7 @@ a:hover,
 
 .e2l-controls {
 	float:right;
+	padding-bottom:20px;
 }
 
 

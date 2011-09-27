@@ -438,14 +438,15 @@ window.log = function(){
 			reflow: false,
 			align: 'left',
 			width: null,
-			height: null
+			height: null,
+			box: null
 		},
 				
 		_create: function() {
 			this.built = 0;
 			var self = this;
 			this.cachepadding = null;
-			this.element.addClass('e2l-tab-active');
+			// this.element.addClass('e2l-tab-active');
 			
 			if (this.options.bind) {
 				$('.e2l-label', this.element).click(function(e) {
@@ -500,7 +501,12 @@ window.log = function(){
 			
 			var pos = this.element.position();
 
-			this.popup = $('.e2l-menu-hidden', this.element);
+			if (this.options.box) {
+				this.popup = $(this.options.box);
+			} else {
+				this.popup = $('.e2l-menu-hidden', this.element);
+			}
+
 			if (!this.popup.length) {
 				this.popup = $('<div class="e2l-menu-hidden" />');
 				this.element.append(this.popup);

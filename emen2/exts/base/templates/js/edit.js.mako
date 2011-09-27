@@ -239,23 +239,21 @@
 		},
 				
 		_create: function() {
-			var self = this;
 			this.built = 0;
 
 			// Parse options from element attributes if available
-			this.options.name = this.options.name || parseInt(this.element.attr("data-name"));
+			this.options.name = this.options.name || this.element.attr("data-name");
 			
 			// jQuery selector for this multi-edit control to activate
 			this.options.selector = this.options.selector || '.e2l-editable[data-name='+this.options.name+']';
 
-			// Bind click
-			// this.element.click(function(e){self.event_click()});			
+			// Show
 			if (this.options.show) {
-				this.event_click();
+				this.show();
 			}			
 		},
 		
-		event_click: function(e) {
+		show: function() {
 			// Gather records and params to request from server..
 			var self=this;
 			var names = [];
@@ -272,20 +270,30 @@
 					params.push(params_toget[i]);
 				}
 			}
+			
 			// Request records and params; update caches; show widget on callback
-			$.jsonRPC.call("getrecord", [names], function(recs) {
-				$.each(recs, function(k,v) {
-					caches['record'][v.name] = v;
-				});
-				$.jsonRPC.call("getparamdef", [params], function(paramdefs) {
-					$.each(paramdefs, function(k,v) {
-						caches['paramdef'][v.name] = v;
+			if (names || params) {
+				$.jsonRPC.call("getrecord", [names], function(recs) {
+					$.each(recs, function(k,v) {
+						caches['record'][v.name] = v;
 					});
-					self.show();
-				});
-			});
+					$.jsonRPC.call("getparamdef", [params], function(paramdefs) {
+						$.each(paramdefs, function(k,v) {
+							caches['paramdef'][v.name] = v;
+						});
+						self.build();
+					});
+				});			
+			} else {
+				this.build();
+			}
 		},
-
+	
+		hide: function() {
+			$(this.options.selector).EditControl('hide');
+			this.element.show();
+		},		
+		
 		build: function() {
 			if (this.built) {
 				return
@@ -294,38 +302,24 @@
 			var self = this;			
 			
 			// Build controls
-			this.controls = $('<div class="e2l-controls" />');
-			this.controls.append($.spinner());
+			// this.controls = $('<div class="e2l-controls" />');
+			// this.controls.append($.spinner());
+			// var save = $('<input type="submit" name="save" class="e2l-save" value="Save" />');
+			// save.click(function(e) {self.save()});
+			// this.controls.append(save);
+			// if (this.options.name != "None") {
+			// 	var cancel = $('<input type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
+			// 	this.controls.append(cancel);
+			// }
+			// this.element.after(this.controls);
 
-			if (!this.options.controls) {return}			
-			
-			var save = $('<input type="submit" name="save" class="e2l-save" value="Save" />');
-			save.click(function(e) {self.save()});
-			this.controls.append(save);
-
-			if (this.options.name != "None") {
-				var cancel = $('<input type="button" value="Cancel" />').bind("click", function(e) {e.stopPropagation();self.hide()});
-				this.controls.append(cancel);
-			}
-			this.element.after(this.controls);
-		},
-		
-		show: function() {
-			this.build();
+			// Attach the Edit widgets
 			$(this.options.selector).each(function() {
+				console.log(this);
 				var t = $(this);
 				t.EditControl({});
-				t.EditControl('hide');
 				t.EditControl('show');
-			});
-			this.element.hide();
-			this.controls.show();
-		},
-	
-		hide: function() {
-			$(this.options.selector).EditControl('hide');
-			this.controls.hide();
-			this.element.show();
+			});			
 		},
 		
 		save: function() {
@@ -405,6 +399,8 @@
 		// 	return newrec2
 		// }
 	});
+
+
 
 	// Edit Control Wrapper
 	// This class create the actual editing control
