@@ -19,7 +19,48 @@ g = emen2.db.config.g()
 
 
 def resolve(name=None, path=None):
+	"""Resolve a route using either a route name or path URI.
+	This method returns a callable, and any keywords parsed from the path URI.
+	Bind the DB handle by passing it to the callable. This will produce a second
+	callable that will instantiate the View and run the View's method.
+
+	Example:
+	
+	# Get the callback
+	cb, kwargs = routing.resolve(path='/record/1')
+
+	# Update the keyword arguments
+	kwargs['blah'] = True
+
+	# Create the view and run the routed method
+	view = cb(db=db)(**kwargs)
+
+	# Render the View
+	print view	
+	"""
 	return URLRegistry.resolve(name=name, path=path)
+
+
+
+def execute(_execute_name, db=None, *args, **kwargs):
+	"""Find and execute a route by name.
+	The route name (e.g. 'Home/main') must be the first positional argument.
+	"""
+	cb, matched = URLRegistry.resolve(name=_execute_name)
+	matched.update(kwargs)
+	view = cb(db=db)(*args, **kwargs)
+	return view
+	
+	
+def execute_path(_execute_path, db=None, *args, **kwargs):
+	"""Find and execute a route by a path URI.
+	The route path (e.g. '/home/') must be the first positional argument.
+	"""	
+	cb, matched = URLRegistry.resolve(path=_execute_path)
+	matched.update(kwargs)
+	view = cb(db=db)(*args, **kwargs)
+	return view
+
 
 
 def reverse(*args, **kwargs):
@@ -31,8 +72,10 @@ def add(*args, **kwargs):
 	
 
 class URL(object):
+	"""Private"""
+	
 	def __init__(self, name, matcher, cb):
-		print name, matcher, cb
+		print "URL:", name, matcher, cb
 		self.name = name
 		if not hasattr(matcher, 'match'):
 			matcher = re.compile(matcher)
@@ -49,6 +92,8 @@ class URL(object):
 
 @emen2.util.registry.Registry.setup
 class URLRegistry(emen2.util.registry.Registry):
+	"""Private"""
+	
 	_prepend = ''
 	events = emen2.web.events.EventRegistry()
 	child_class = URL

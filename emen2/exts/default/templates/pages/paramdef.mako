@@ -1,6 +1,16 @@
+<%! import jsonrpc.jsonutil %>
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
-<% import jsonrpc.jsonutil %>
+
+<%block name="js_ready">
+	${parent.js_ready()}
+	$(".e2-map").RelationshipControl({attach:true});
+</%block>
+
+<%block name="precontent">
+	${parent.precontent()}
+	${parentmap}
+</%block>
 
 <h1>
 	${title}

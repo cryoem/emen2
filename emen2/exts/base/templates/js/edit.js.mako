@@ -196,7 +196,7 @@
 						header.append(rd.desc_long);
 						self.newdialog.append(header);
 
-						var content = $('<form id="newrecord" method="post" action="'+EMEN2WEBROOT+'/record/'+self.options.parent+'/new/'+rd.name+'">');
+						var content = $('<form id="newrecord" data-name="None" method="post" action="'+EMEN2WEBROOT+'/record/'+self.options.parent+'/new/'+rd.name+'">');
 						content.append(data);
 						self.newdialog.append(content);
 						$('.e2l-editable', content).EditControl({
@@ -205,11 +205,7 @@
 
 						var controls = $('<div></div>');
 						self.newdialog.append(controls);
-						controls.MultiEditControl({
-							name: 'None',
-							show: true,
-							form: '#newrecord'
-						});
+						$('#newrecord').MultiEditControl({show: true});
 
 					});
 				});
@@ -238,7 +234,7 @@
 			show: false,
 			name: null,
 			selector: null,
-			form: null,
+			controls: false,
 			cb_save: function(recs){}
 		},
 				
@@ -253,10 +249,10 @@
 			this.options.selector = this.options.selector || '.e2l-editable[data-name='+this.options.name+']';
 
 			// Bind click
-			this.element.click(function(e){self.event_click()});			
+			// this.element.click(function(e){self.event_click()});			
 			if (this.options.show) {
 				this.event_click();
-			}
+			}			
 		},
 		
 		event_click: function(e) {
@@ -300,6 +296,8 @@
 			// Build controls
 			this.controls = $('<div class="e2l-controls" />');
 			this.controls.append($.spinner());
+
+			if (!this.options.controls) {return}			
 			
 			var save = $('<input type="submit" name="save" class="e2l-save" value="Save" />');
 			save.click(function(e) {self.save()});

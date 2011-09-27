@@ -14,7 +14,7 @@ from map import Map
 @View.register
 class ParamDef(View):
 
-	@View.add_matcher(r'^/paramdef/(?P<name>.+)/(?P<action>.+)/$', r'^/paramdef/(?P<name>\w+)/$')
+	@View.add_matcher(r'^/paramdef/(?P<name>\w+)/$')
 	def init(self,name=None, action=None, new=0):
 		self.template = '/pages/paramdef'
 		self.name = name
@@ -54,9 +54,7 @@ class ParamDef(View):
 
 		###############
 
-		parentmap = Map(db=self.db)
-		parentmap.init(mode=mapmode, keytype="paramdef", root=self.name, recurse=-1)
-		parentmap_ctxt = parentmap.get_context()
+		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='paramdef', root=self.name, mode='parents', recurse=3)
 
 		###############
 
@@ -92,7 +90,7 @@ class ParamDef(View):
 			units = self.db.getpropertyunits(paramdef.property)
 
 		self.update_context(dict(
-			parentmap = parentmap.get_data(),
+			parentmap = parentmap,
 			title = title,
 			editable = editable,
 			edit = edit,
@@ -112,13 +110,39 @@ class ParamDef(View):
 			))
 
 
+	@View.add_matcher(r'^/paramdef/(?P<name>.+)/edit/$')
+	def edit(self, name, **kwargs):
+		pass
+
+
+
+
 
 @View.register
 class ParamDefs(View):
 
-	@View.add_matcher(r'^/paramdefs/$', action=r'^/paramdefs/(?P<action>\w+)/$')
-	def init(self, action=None, q=None):
+	@View.add_matcher(r'^/paramdefs/vartype/$')
+	def vartype(self, *args, **kwargs):
+		return self.init(action='vartype', *args, **kwargs)
 
+
+	@View.add_matcher(r'^/paramdefs/tree/$')
+	def tree(self, *args, **kwargs):
+		return self.init(action='tree', *args, **kwargs)
+
+
+	@View.add_matcher(r'^/paramdefs/property/$')
+	def property(self, *args, **kwargs):
+		return self.init(action='property', *args, **kwargs)
+		
+		
+	@View.add_matcher(r'^/paramdefs/name/$')
+	def name(self, *args, **kwargs):
+		return self.init(action='property', *args, **kwargs)
+		
+
+	@View.add_matcher(r'^/paramdefs/$')
+	def init(self, action=None, q=None):
 		if action == None or action not in ["vartype", "name", "tree", "property"]:
 			action = "tree"
 
@@ -135,7 +159,11 @@ class ParamDefs(View):
 			'classname':'main',
 			'labels':{'tree':"Parameter Ontology", 'name': "Parameters by Name", 'vartype':'Parameters by Variable Type', 'property':'Parameters by Physical Property'},
 			'content':{'main':""},
-			'href':	{'tree': '%s/paramdefs/tree/'%CVars.webroot, 'name': '%s/paramdefs/name/'%CVars.webroot, 'vartype': '%s/paramdefs/vartype/'%CVars.webroot, 'property': '%s/paramdefs/property/'%CVars.webroot},
+			'href':	{
+				'tree': '%s/paramdefs/tree/'%CVars.webroot, 
+				'name': '%s/paramdefs/name/'%CVars.webroot, 
+				'vartype': '%s/paramdefs/vartype/'%CVars.webroot, 
+				'property': '%s/paramdefs/property/'%CVars.webroot},
 			'order': ['tree', 'name', 'vartype', 'property']
 		}
 		pages['active'] = action
@@ -143,8 +171,7 @@ class ParamDefs(View):
 		pages = emen2.web.markuputils.HTMLTab(pages)
 		self.set_context_item('pages',pages)
 
-		childmap = Map(db=self.db)
-		childmap.init(mode="children", keytype="paramdef", root="root", recurse=-1)
+		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="paramdef", root="root", recurse=-1)
 
 		self.set_context_item('q',q)
 		self.set_context_item("paramdefs",paramdefs)

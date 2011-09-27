@@ -49,8 +49,8 @@ class RegisteredObj(object):
 
 def make_ctxt_manager(name):
 	@contextmanager
-	def _inner(self, name, *args):
-		obj = self.registry.get(name) if name in self.registry else self.child_class(name, *args)
+	def _inner(self, name, *args, **kwargs):
+		obj = self.registry.get(name) if name in self.registry else self.child_class(name, *args, **kwargs)
 		yield obj
 		if obj.name not in self.registry:
 			self.register(obj)

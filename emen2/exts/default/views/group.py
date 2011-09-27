@@ -12,9 +12,8 @@ import time
 class Groups(View):
 
 	@View.add_matcher(r'^/groups/$')
-	def multiple(self,q=None):
+	def init(self,q=None):
 		self.template="/pages/groups"
-		self.title = "Wtf"
 		self.title = "Group Directory"
 		self.set_context_item("q","")
 		groups = self.db.getgroup(self.db.getgroupnames())
@@ -34,9 +33,9 @@ class Groups(View):
 
 @View.register
 class Group(View):
-
+	
 	@View.add_matcher(r'^/group/(?P<groupname>[\w\- ]+)/$')
-	def main(self, groupname=None):
+	def init(self, groupname=None):
 		group = self.db.getgroup(groupname)
 		admin = group.isowner()
 		edit = False
@@ -54,7 +53,8 @@ class Group(View):
 		self.set_context_item("edit",True)
 
 
-	@View.add_matcher(r'^/group/(?P<groupname>[\w\- ]+)/new/$', r'^/groups/new/$')
+	# @View.add_matcher(r'^/groups/new/$', name='new')
+	@View.add_matcher(r'^/group/(?P<groupname>[\w\- ]+)/new/$')
 	def new(self, groupname=None):
 		admin = self.db.checkadmin()
 		if groupname:

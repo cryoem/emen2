@@ -47,8 +47,8 @@
 ## Simple title button
 
 <%def name="titlebutton(title)">
-	<ul data-tabgroup="main" id="buttons_main" class="e2l-tab-buttons e2l-clearfix">
-		<li data-tabgroup="main" id="button_main_main" class="e2l-button button_main active">${title}</li>
+	<ul data-tabgroup="main" class="e2l-tab-buttons e2l-clearfix">
+		<li data-tabgroup="main" class="e2l-tab-button e2l-tab-active">${title}</li>
 	</ul>
 </%def>
 

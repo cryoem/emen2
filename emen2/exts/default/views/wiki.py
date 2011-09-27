@@ -13,7 +13,7 @@ import record
 class Wiki(record.Record):
 
 	@View.add_matcher(r'^/wiki/(?P<name>.+)/$')
-	def wiki(self, name=None):
+	def init(self, name=None):
 		self._init(name=name, children=False, parents=False)
 		self.template = '/pages/wiki.main'
 		self.set_context_item("rendered",self.db.renderview(self.rec, viewtype="mainview"))

@@ -94,44 +94,51 @@ class TooManyFiles(Exception):
 @View.register
 class Query(View):
 
-	def init(self, path, *args, **kwargs):
-		self.template = '/pages/query'
+	def init(self, path=None, q=None, c=None, **kwargs):
+		self.template = '/pages/query.main'
 		self.title = "Query"
-
-		q = kwargs.pop('q', {})
 		if q:
-			newq = {}
-			newq['c'] = [['root*','contains',q]]
-			self.q = newq
-			return
+			self.q = q
+		else: 
+			self.q = path_to_query(path, **kwargs)
+		if c:
+			self.q['c'] = c
+			
 
-		self.q = path_to_query(path, **kwargs)
-
-
-
-	@View.add_matcher(r'^/query/$', r'^/query/(?P<path>.*)/$')
-	def main(self, path=None, *args, **kwargs):
-		self.init(path, *args, **kwargs)
+	@View.add_matcher(r'^/query/$', name='main')
+	@View.add_matcher(r'^/query/(?P<path>.*)/$', name='query')
+	def main(self, path=None, q=None, c=None):
+		self.init(path, q, c)
 		self.q['count'] = 100
 		self.q['table'] = True
 		self.q['stats'] = True
-		self.set_context_item('q',self.db.query(**self.q))
+		self.q = self.db.query(**self.q)
+		self.set_context_item('q', self.q)
 
 
-	@View.add_matcher(r'^/query/(?P<path>.*)/edit/$')
-	def edit(self, path=None, *args, **kwargs):
-		self.init(path, *args, **kwargs)
+	@View.add_matcher(r'^/query/(?P<path>.*)/embed/$')
+	def embed(self, path=None, q=None, c=None):
+		self.main(path, q, c)
+		self.template = '/pages/query'
+
+
+	@View.add_matcher(r'^/query/(?P<path>.*)/edit/$', name='edit')
+	def edit(self, path=None, q=None, c=None):
+		self.init(path, q, c)
 		self.template = '/pages/query.edit'
-		self.set_context_item('q',self.q)
+		self.q = self.db.query(**self.q)
+		self.set_context_item('q', self.q)
 
 
 	# /download/ can't be in the path because of a emen2resource.getchild issue
-	@View.add_matcher(r'^/query/(?P<path>.*)/files/$')
-	def download(self, path=None, confirm=False, *args, **kwargs):
-		self.init(path, *args, **kwargs)
+	@View.add_matcher(r'^/query/(?P<path>.*)/attachments/$', name='attachments')
+	def attachments(self, path=None, q=None, c=None, confirm=False):
+		self.init(path, q, c)
 		self.template = '/pages/query.files'
 		self.q = self.db.query(**self.q)
-		self.set_context_item('q',self.q)
+		self.set_context_item('q', self.q)
+
+		# Look up all the binaries
 		bdos = self.db.findbinary(record=self.q['names'])
 		
 		for bdo in bdos:
@@ -151,9 +158,6 @@ class Query(View):
 		self.ctxt['rendered'] = self.db.renderview(records)
 		self.ctxt['filesize'] = convert_bytes(filesize)
 		self.ctxt['bdos'] = bdos
-
-
-
 
 
 	# @View.add_matcher(r'^/query/(?P<path>.*)/goupby/$')
@@ -225,6 +229,8 @@ class Query(View):
 	# 
 	# 	self.ctxt["rendered"] = rendered
 	# 	self.ctxt["sortitems"] = sortitems
+					
+					
 						
 		
 __version__ = "$Revision$".split(":")[1][:-1].strip()

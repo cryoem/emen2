@@ -1,12 +1,12 @@
 # $Id$
 import itertools
 #from emen2.web import templating
-from emen2.web import view
+from emen2.web.view import View
 import emen2.db.config
 g = emen2.db.config.g()
 
-@view.View.register
-class TemplateRender(view.View):
+@View.register
+class TemplateRender(View):
 	'''Renders a template given its path.  To be usable, the template must set public to true in the global namespace.
 
 		<%! ... %> defines code in the global namespace in a template
@@ -17,7 +17,8 @@ class TemplateRender(view.View):
 			<%def name='mimetype()'></%def>: set the mime type
 	'''
 
-	@view.View.add_matcher(r'^/tmpl-%s/$'%emen2.db.config.CVars.version, r'^/tmpl/$', r'^/tmpl/(?P<template>.+)/',  r'^/tmpl-%s/(?P<template>.+)/'%emen2.db.config.CVars.version)
+	@View.add_matcher(r'^/tmpl/(?P<template>.+)/', name='main')
+	@View.add_matcher(r'^/tmpl-%s/(?P<template>.+)/'%emen2.db.config.CVars.version, name='main/version')
 	def init(self, template='/simple', **kwargs):
 		makot = g.templates.get_template(template)
 

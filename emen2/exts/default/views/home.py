@@ -24,7 +24,8 @@ class Home(View):
 		time.sleep(10)
 
 
-	@View.add_matcher(r'^/$', r'^/home/$')
+	@View.add_matcher(r'^/$', view='Root', name='main')
+	@View.add_matcher(r'^/home/$')
 	def init(self, showsubproject=0, **kwargs):
 			self.update_context(args=kwargs, title="Home")
 			self.set_context_item("action_login","%s/auth/login/"%(CVars.webroot))

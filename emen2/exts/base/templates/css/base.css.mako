@@ -5,6 +5,9 @@
 table {
 	width:100%;
 }
+table.e2l-shaded tbody tr:nth-of-type(odd) {
+	background: #eee;
+}
 
 /******************************************
  		Basic EMEN2 Layouts
@@ -276,7 +279,6 @@ h1 .e2l-label {
 ******************************************/
 
 
-
 /***** e2l-ediable: Editing controls *****/
 .e2l-editable {
 	color: <%self:EDITABLE />;
@@ -288,6 +290,19 @@ h1 .e2l-label {
 }
 
 
+/***** e2-query: Query Results *****/
+
+.e2-query {
+	
+}
+.e2-query .e2-query-table ul {
+	list-style: none;
+	padding-left: 0px;
+}
+.e2-query .e2-query-table li {
+/*	float: left;
+*/	margin-right:10px;
+}
 
 /***** e2-infobox: Display Infobox *****/
 

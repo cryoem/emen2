@@ -109,10 +109,7 @@
 	// $('.e2l-editable').EditControl({});
 	$('#e2l-editbar-record-setbookmark').BookmarksControl({'mode':'toggle'});
 
-	$('#e2l-editbar-record-edit .e2l-label').MultiEditControl({
-		name: rec.name,
-		form: '#rendered'
-	});
+	$('#rendered').MultiEditControl({controls:true});
 
 	$('.e2-tile').TileControl({'mode':'cached'});
 	
@@ -224,8 +221,8 @@
 			<h4>Tools</h4>
 			<ul>
 				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
-				<li><a href="${EMEN2WEBROOT}/query/name==${rec.name}/files/">View / Download all files</a></li>
-				<li><a href="${EMEN2WEBROOT}/query/children.name.${rec.name}*/files/">View / Download all files in children</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/name==${rec.name}/attachments/">View / Download all attachments</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/children.name.${rec.name}*/attachments/">View / Download all attachments in children</a></li>
 				<li><a href="${EMEN2WEBROOT}/sitemap/${rec.name}/">Child tree</a></li>
 				<li><a href="${EMEN2WEBROOT}/sitemap/${rec.name}/?recurse=3">Child tree (Semi-expanded)</a></li>
 				<li><a href="${EMEN2WEBROOT}/sitemap/${rec.name}/?recurse=-1">Child tree (Expanded)</a></li>

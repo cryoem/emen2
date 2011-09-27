@@ -58,10 +58,10 @@ def get_tile_dim(tilefile):
 
 
 @View.register
-class TilesImage(View):
+class Tiles(View):
 	mimetype = "image/jpeg"
 
-	@View.add_matcher(r'^/tiles/(?P<bid>.+)/image/$')	
+	@View.add_matcher(r'^/tiles/(?P<bid>.+)/image/$', view='Tiles', name='image')	
 	def init(self, bid=None, **kwargs):
 		self.bid=bid
 		if self.bid == None:
@@ -90,7 +90,7 @@ class TilesImage(View):
 class PSpec1D(View):
 	mimetype = "image/jpeg"
 
-	@View.add_matcher(r'^/tiles/(?P<bid>.+)/1d/$')
+	@View.add_matcher(r'^/tiles/(?P<bid>.+)/1d/$', view='Tiles', name='pspec1d')
 	def init(self, bid=None, **kwargs):
 		self.bid=bid
 		if self.bid == None:
@@ -137,16 +137,14 @@ class PSpec1D(View):
 @View.register
 class TilesCheck(View):
 
-	@View.add_matcher(r'^/tiles/(?P<bid>.+)/check/$')	
+	@View.add_matcher(r'^/tiles/(?P<bid>.+)/check/$', view='Tiles', name='check')	
 	def init(self, bid=None):
 		self.bid = bid
 		self.rebuild = False
 		View.init(self)
 
-	def get_data(self):
-				
+	def get_data(self):	
 		ret=()
-
 		bdoo = self.db.getbinary(self.bid, filt=False)
 
 		bname = bdoo.get('filename')
@@ -179,7 +177,7 @@ class TilesCheck(View):
 @View.register
 class TilesCreate(View):
 
-	@View.add_matcher(r'^/tiles/(?P<bid>.+)/create/$')
+	@View.add_matcher(r'^/tiles/(?P<bid>.+)/create/$', view='Tiles', name='create')
 	def init(self,bid=None):
 		self.bid=bid
 

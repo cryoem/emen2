@@ -131,7 +131,7 @@ class Users(View):
 @View.register
 class AdminUsers(View):
 
-	@View.add_matcher(r'^/users/admin/$')	
+	@View.add_matcher(r'^/users/admin/$', view='Users', name='admin')	
 	def init(self, sortby="name_last", reverse=0, q=None, **kwargs):
 
 		self.template="/pages/users.admin"
@@ -156,16 +156,11 @@ class AdminUsers(View):
 
 
 
-
-
-
-
-
 @View.register
 class NewUser(emen2.web.view.View):
 
 	#@write
-	@View.add_matcher("^/users/new/save/$")
+	@View.add_matcher("^/users/new/$", view='Users', name='new')
 	def save(self, **kwargs):
 		self.template = '/pages/users.new'
 		self.title = 'New User Application'
@@ -223,13 +218,6 @@ class NewUser(emen2.web.view.View):
 			'''%(user.name,user.email)
 
 
-	@View.add_matcher("^/users/new/$")
-	def init(self, **kwargs):
-		self.template = '/pages/users.new'
-		self.title = 'New User Application'
-		self.ctxt['kwargs'] = kwargs
-		self.ctxt["invalid"] = set()
-
 
 
 
@@ -237,7 +225,7 @@ class NewUser(emen2.web.view.View):
 @View.register
 class UserQueue(emen2.web.view.View):
 
-	@View.add_matcher(r'^/users/queue/$', r'^/users/new/(?P<name>\w+)/(?P<action>\w+)/$')	
+	@View.add_matcher(r'^/users/queue/$', view='Users', name='queue')	
 	def init(self, action=None, name=None, **kwargs):
 		self.template='/pages/users.queue'
 

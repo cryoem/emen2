@@ -11,7 +11,7 @@ from emen2.web.view import View
 class Error(View):
 	@View.add_matcher('/error/')
 	@View.provides('error_handler')
-	def error(self, errmsg='', location='/', **kwargs):
+	def init(self, errmsg='', location='/', **kwargs):
 		self.template = '/errors/error'
 		self.title = 'Error'
 		self.set_context_item("errmsg", errmsg)

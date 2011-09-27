@@ -12,7 +12,17 @@ from map import Map
 @View.register
 class RecordDef(View):
 
-	@View.add_matcher(r'^/recorddef/(?P<name>.+)/(?P<action>.+)/$', r'^/recorddef/(?P<name>\w+)/$')	
+
+	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/new/$')	
+	def new(self, *args, **kwargs):
+		pass
+		
+
+	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/edit/$')	
+	def edit(self, *args, **kwargs):
+		pass
+
+	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/$')	
 	def init(self, name=None, action=None, new=0):
 		self.template = '/pages/recorddef'
 		self.name = name
@@ -134,10 +144,26 @@ class RecordDef(View):
 
 @View.register
 class RecordDefs(View):
-	@View.add_matcher(r'^/recorddefs/$', r'^/recorddefs/(?P<action>\w+)/$')
+
+	@View.add_matcher(r'^/recorddefs/name/$')
+	def name(self, *args, **kwargs):
+		return self.init(action='name', *args, **kwargs)
+
+
+	@View.add_matcher(r'^/recorddefs/count/$')
+	def count(self, *args, **kwargs):
+		return self.init(action='count', *args, **kwargs)
+
+
+	@View.add_matcher(r'^/recorddefs/tree/$')
+	def tree(self, action=None, q=None):
+		return self.init(action='tree', *args, **kwargs)
+
+
+	@View.add_matcher(r'^/recorddefs/$')
 	def init(self, action=None, q=None):
 
-		if action == None or action not in ["vartype", "name", "count"]:
+		if action == None or action not in ["tree", "name", "count"]:
 			action = "tree"
 
 		if q:

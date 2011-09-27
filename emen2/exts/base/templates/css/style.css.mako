@@ -1,8 +1,5 @@
 <%inherit file="/css/colors.css" />
-
-table.e2l-shaded tbody tr:nth-of-type(odd) {
-	background: <%self:LIGHTEST />;
-}
+<%block name="BODY">#BBDAEE</%block>
 
 th {
 	font-weight:normal;
@@ -10,6 +7,9 @@ th {
 	border-right:solid 1px <%self:LIGHTEST />;
 }
 
+ul {
+	margin-top:0px;
+}
 
 /***** Layouts *****/
 
@@ -29,11 +29,6 @@ body
 	margin-left:auto;
 	margin-right:auto;
 }
-#title {
-	width:auto;
-	margin-left:0px;
-	margin-right:0px;
-}
 #content {
     -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
     -moz-box-sizing: border-box;    /* Firefox, other Gecko */
@@ -46,6 +41,10 @@ body
 	display:none;
 }
 
+
+#nav, #content, #footer, .e2-map {
+	background:white;
+}
 
 
 /******* TOP LEVEL ELEMENTS *******/
@@ -73,11 +72,8 @@ td
 
 /************* NAV BAR ************/
 
-#title {
-	border-bottom:solid 1px #ccc;
-}
 #nav {
-	padding:8px;
+	margin:0px;
 }
 #nav a {
 	padding:8px;

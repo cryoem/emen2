@@ -1,3 +1,5 @@
+<%! import jsonrpc.jsonutil  %>
+
 <%def name="traverse(tree, root, recnames, recurse, mode='children', keytype='record', expandable=True)">
 	<%def name="inner(parent, children, depth)">
 		<ul data-depth="${depth}">

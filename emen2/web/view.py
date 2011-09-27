@@ -145,6 +145,7 @@ class _View(object):
 		lambda self: self.get_header('content-type', 'text/html; charset=utf-8'),
 		lambda self, value: self.set_header('content-type', value))
 
+	routing = routing
 
 	def __init__(self, request_format=None, request_method='GET', request_headers=None, request_location=None, basectxt=None, **blargh):
 		'''\
@@ -286,7 +287,7 @@ class _View(object):
 	def make_callback(v, method):
 		# Views are executed this way:
 		# 	result = view(db=db, ...)(view args)
-		def cb1(db, request_location, request_method, request_headers):
+		def cb1(db, request_location=None, request_method=None, request_headers=None):
 			view = v(db=db, request_location=request_location, request_method=request_method, request_headers=request_headers)
 			def cb2(*args, **kwargs):
 				method(view, *args, **kwargs)
@@ -296,15 +297,15 @@ class _View(object):
 	
 	
 	@classmethod
-	def add_matcher(cls, *match, **kwmatch):
+	def add_matcher(cls, *matchers, **kwargs):
 		'''Decorator used to add a matcher to an already existing class
 
 		Named groups in matcher get passed as keyword arguments
 		Other groups in matcher get passed as positional arguments
 		Nothing else gets passed
 		'''
-		if not match:
-			raise ValueError, 'A view must have at least one non-keyword matcher'
+		if not matchers:
+			raise ValueError, 'A view must have at least one matcher'
 
 		# Default name (this is usually the method name)
 		def check_name(name):
@@ -312,19 +313,16 @@ class _View(object):
 
 		# Inner decorator method
 		def inner(func):
-			matchers = []
-			name = check_name(func.__name__)
-			# get the main matcher
-			matcher, match_ = match[0], match[1:]
-			matchers.append( ('%s'%name, matcher, func) )
-			# get alternate matchers
-			for k, matcher in itertools.chain(enumerate(match_, 1), kwmatch.iteritems()):
-				name = '%s/%s' % (name, k)
-				matchers.append( (name, matcher, func) )
-
-			name = '%s/%s'%(cls.__name__, name)
+			name = kwargs.pop('name', check_name(func.__name__))
+			view = kwargs.pop('view', None)
+			matcherinfo = getattr(func, 'matcherinfo', [])
+			for count, m in enumerate(matchers):
+				if count>0:
+					name='%s/%s'%(name, count)
+				matcherinfo.append((m, name, view))
+			
 			# save all matchers to the function
-			func.matcherinfo = matchers
+			func.matcherinfo = matcherinfo
 			return func
 
 		return inner
@@ -351,13 +349,14 @@ class _View(object):
 		'''
 
 		# Matchers produced by the add_matcher decorator
-		for v in (getattr(func, 'matcherinfo', None) for func in cls.__dict__.values()):
-			for matcher in (v or []):
-				name, matcher, func = matcher
-				name = '%s/%s'%(cls.__name__, name)
-				with routing.URLRegistry().url(matcher, name, self.make_callback(cls, func)) as url:
+		# for matchers in (getattr(func, 'matcherinfo', None) for func in cls.__dict__.values()):
+		for func in cls.__dict__.values():
+			for matcher in getattr(func, 'matcherinfo', []):
+				matcher, name, view = matcher
+				view = view or cls.__name__
+				name = '%s/%s'%(view, name)
+				with routing.URLRegistry().url(name=name, matcher=matcher, cb=self.make_callback(cls, func)) as url:
 					pass
-
 		return cls
 
 

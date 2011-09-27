@@ -20,14 +20,12 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 	msg = 'Record %s not found'
 
 
-
 class RecordBase(View):
-	def _init(self, name=None, children=True, parents=True, **kwargs):
+	def init(self, name=None, children=True, parents=True, **kwargs):
 		"""Main record rendering."""
 		recnames = {}
 		displaynames = {}
 		
-		####
 		# Get record..
 		try:
 			self.rec = self.db.getrecord(name, filt=False)
@@ -36,7 +34,6 @@ class RecordBase(View):
 
 		self.name = self.rec.name
 
-		####
 		# Find if this record is in the user's bookmarks
 		bookmarks = []
 		user = None
@@ -51,11 +48,9 @@ class RecordBase(View):
 
 		self.ctxt['bookmarks'] = bookmarks
 
-		####
 		# Get RecordDef
 		self.recdef = self.db.getrecorddef(self.rec.rectype)
 
-		####
 		# User display names
 		# These are generally displayed: creator, modifyuser, comments.
 		getusers = set([self.rec.get('creator'), self.rec.get('modifyuser')])
@@ -64,6 +59,7 @@ class RecordBase(View):
 			displaynames[user.name] = user.displayname
 
 
+		# Some warnings/alerts
 		if self.rec.get('deleted'):
 			self.ctxt['errors'].append('Deleted Record')
 		if 'publish' in self.rec.get('groups',[]):
@@ -71,15 +67,16 @@ class RecordBase(View):
 		if 'authenticated' in self.rec.get('groups',[]):
 			self.ctxt['notify'].append('Any authenticated user can access this record')
 		
-		####
+		
 		# Parent map
-		parentmap = self.db.getparenttree(self.rec.name, recurse=3)
-		found = dfs(self.rec.name, parentmap, 3)
-		found.add(self.rec.name)
-		recnames.update(self.db.renderview(found))
+		if parents:
+			parentmap = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='parents', recurse=3)
+		else:
+			parentmap = ''
 
-		####
+
 		# Children
+		# TODO: Finish getting rid of HTMLTab
 		if children:
 			children = self.db.getchildren(self.name)
 			self.childgroups = self.db.groupbyrectype(children)
@@ -100,6 +97,7 @@ class RecordBase(View):
 			pages = emen2.web.markuputils.HTMLTab(pages)
 		else:
 			pages = None
+
 
 		# Update context
 		self.update_context(
@@ -127,7 +125,7 @@ class Record(RecordBase):
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
 	def view(self, name=None, sibling=None):
-		self._init(name=name)
+		self.init(name=name)
 		self.template = '/pages/record.main'
 
 		# Siblings
@@ -155,8 +153,6 @@ class Record(RecordBase):
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$')
 	def edit(self, name=None, **kwargs):
-		print "Editing..."
-		print kwargs
 		if kwargs:
 			rec = self.db.getrecord(name, filt=False)
 			try:
@@ -166,13 +162,12 @@ class Record(RecordBase):
 			except Exception, e:
 				self.ctxt['errors'].append(e)
 				
-
 		self.view(name=name)				
 		self.ctxt["edit"] = True
 
 
 	#@write
-	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/rel/$')
+	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/rel/$', name='edit/rel')
 	def edit_rel(self, name=None, **kwargs):
 		method = kwargs.get('method')
 		parents = kwargs.get('parents', [])
@@ -182,9 +177,10 @@ class Record(RecordBase):
 		self.ctxt["edit"] = True
 		
 
+	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$')
 	def new(self, name=None, rectype=None, **kwargs):
-		self._init(name=name, children=False)
+		self.init(name=name, children=False)
 		self.template = '/pages/record.new'
 		inherit = None
 		viewtype = 'mainview'
@@ -194,8 +190,6 @@ class Record(RecordBase):
 			inherit = None
 			
 		newrec = self.db.newrecord(rectype, inherit=inherit)
-		print "kwargs:"
-		print kwargs
 
 		if kwargs:
 			newrec.update(kwargs)
@@ -221,14 +215,16 @@ class Record(RecordBase):
 
 
 	@View.add_matcher('^/record/(?P<name>\d+)/children/(?P<childtype>\w+)/$')
-	def children(self,name=None,childtype=None):
+	def children(self, name=None, childtype=None):
 		"""Main record rendering."""
-		self._init(name=name)
+		self.init(name=name)
 		self.template = "/pages/record.table"
 		self.ctxt["create"] = self.db.checkcreate()
 		self.ctxt["childtype"] = childtype
 		c = [['children', 'name', name], ['rectype', '==', childtype]]
-		self.ctxt["q"] = self.db.query(c=c, table=True, count=1000)
+		query = self.routing.execute('Query/embed', db=self.db, c=c)
+		self.ctxt['table'] = query
+		self.ctxt['q'] = {}
 		self.ctxt["pages"].setactive(childtype)
 
 
@@ -237,7 +233,7 @@ class Record(RecordBase):
 	def delete(self, commit=False, name=None):
 		"""Main record rendering."""
 
-		self._init(name=name)
+		self.init(name=name)
 		self.template = "/pages/record.delete"
 		self.title = "Delete Record"
 
@@ -252,14 +248,15 @@ class Record(RecordBase):
 		self.set_context_item("recnames", recnames)
 
 
-	@View.add_matcher("^/record/(?P<name>\d+)/history/$", "^/record/(?P<name>\d+)/history/(?P<revision>.*)/")
+	@View.add_matcher(r'^/record/(?P<name>\d+)/history/$')
+	@View.add_matcher(r'^/record/(?P<name>\d+)/history/(?P<revision>.*)/', name='history/revision')
 	def history(self, name=None, simple=False, revision=None):
 		"""Revision/history/comment viewer"""
 
 		if revision:
 			revision = revision.replace("+", " ")
 
-		self._init(name=name, parents=True, children=True)
+		self.init(name=name, parents=True, children=True)
 		self.template = "/pages/record.history"
 
 
@@ -289,7 +286,7 @@ class Record(RecordBase):
 	def email(self, name=None):
 		"""Main record rendering."""
 
-		self._init(name=name)
+		self.init(name=name)
 		self.template = "/pages/record.email"
 		self.title = "Users referenced by record %s"%(self.name)
 
@@ -319,7 +316,7 @@ class Record(RecordBase):
 
 	# @View.add_matcher(r'^/record/(?P<name>\d+)/publish/$')
 	# def publish(self, name=None):
-	# 	self._init(name=name)
+	# 	self.init(name=name)
 	# 	self.template = '/pages/record.publish'
 	# 	self.title = 'Publish Records'
 	# 
@@ -337,7 +334,7 @@ class Record(RecordBase):
 
 	# @View.add_matcher(r'^/record/(?P<name>\d+)/boxer/$')
 	# def boxer(self, name=None):
-	# 	self._init(name=name)
+	# 	self.init(name=name)
 	# 	self.template = '/pages/boxer'
 	# 	self.title = "web.boxer (EXPERIMENTAL!)"
 	# 
@@ -350,6 +347,7 @@ class Record(RecordBase):
 	# 
 	# 	self.set_context_item("bdo",bdo)
 	
+
 
 # moved from db...
 def checkorphans(db, name):

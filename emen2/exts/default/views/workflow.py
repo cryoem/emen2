@@ -7,7 +7,7 @@ from emen2.web.view import View
 class Workflow(View):
 
 	@View.add_matcher(r'^/workflow/$')	
-	def __init__(self,*_, **__):
+	def init(self,*_, **__):
 		self.template = "/simple"
 		self.title = "User Queries &amp; Workflows"
 		self.set_context_item("content","Workflow:<br /><br />")

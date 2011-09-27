@@ -23,6 +23,65 @@
 	}
 
 
+	$.widget('emen2.QueryStatsControl', {
+		options: {
+			q: null
+		},
+		
+		_create: function() {
+			console.log('bc');
+			var self = this;
+			this.built = 0;
+			// Check cache
+			var rds = [];
+			var stats = this.options.q['stats'];
+			$.each(stats['rectypes'], function(k,v){
+				if (caches['recorddef'][k]==null){rds.push(k)}
+			});
+			// Fetch any RecordDefs we need
+			if (rds) {
+				$.jsonRPC.call('getrecorddef',[rds], function(items) {
+					$.each(items, function(k,v){
+						caches['recorddef'][v.name] = v;
+					});
+					self.build();
+				})
+			} else {
+				this.build();
+			}
+		},
+		
+		build: function() {
+			if (this.built) {return}
+			this.element.empty();
+			
+			var stats = this.options.q['stats'];
+			var d = $('<div></div>');
+			// d.append('<h4>Summary</h4>');
+			// var st = $('<table class="e2l-kv"></table>');
+			// st.append('<tr><td>Records found</td><td>'+this.options.q['length']+'</td></tr>');
+			// st.append('<tr><td>Time</td><td>'+stats['time'].toFixed(2)+'s</td></tr>');
+			// d.append(st);			
+			
+			d.append('<h4>Protocols</h4>')
+			var table = $('<table class="e2l-kv"></table>');
+			$.each(stats['rectypes'] || {}, function(k,v){
+				var name = k;
+				if (caches['recorddef'][k]) {
+					name = caches['recorddef'][k].desc_short
+				}
+				var row = $('<tr><td>'+name+'</td><td>'+v+'</td></tr>');
+				table.append(row);
+			});
+			d.append(table);
+			
+			this.element.append(d);
+			//this.built = 1;
+		},
+	
+	});
+
+
     $.widget("emen2.QueryControl", {
 		options: {
 			q: null,
@@ -371,6 +430,340 @@
 			}
 		}
 	});
+	
+	
+	///////// Table Control /////////
+	
+    $.widget("emen2.TableControl", {
+		options: {
+			q: null,
+			qc: true,
+			create: null,
+			parent: null
+		},
+				
+		_create: function() {
+			this.build();
+		},
+		
+		build: function() {
+			var self = this;
+
+			// Build control elements
+			// Record count
+			var length = $('<li><span class="e2l-label e2l-a"><span class="e2-query-length">Records</span> <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
+			length.EditbarControl({
+				width: 300,
+				cb: function(s){s.popup.QueryStatsControl({q:self.options.q})}
+			});
+			
+			// Row count
+			var count = $('<select name="count" class="e2l-small"></select>');
+			count.append('<option value="">Rows</option>');
+			$.each([1, 10,50,100,500,1000], function() {
+				count.append('<option value="'+this+'">'+this+'</option>');
+			});
+			count.change(function() {
+				self.options.q['pos'] = 0;
+				self.query();
+			})			
+			count = $('<li class="e2l-float-right" />').append(count);
+
+			// Page controls			
+			var pages = $('<li class="e2l-float-right e2-query-pages"></li>');
+
+			// Activity spinner
+			var spinner = $('<li class="e2l-float-right">'+$.spinner(false)+'</li>');
+
+			// Create a new child record
+			var create = "";
+			if (this.options.rectype && this.options.parent != null) {
+				var create = $('<li class="e2l-float-right"><input class="e2l-small" data-action="reload" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="submit" value="New '+this.options.rectype+'" /></li>');
+				$('input', create).NewRecordControl({});
+			}
+
+			// Add basic controls
+			$('.e2-query-header', this.element).append(create, length, pages, count, create, spinner);
+
+			// Kindof hacky..
+			this.build_querycontrol();
+						
+			// Set the control values from the current query state
+			this.update_controls();
+
+			// Rebind to table header controls
+			this.rebuild_thead();
+		},
+		
+		build_querycontrol: function() {
+			// Build the Query control
+			if (!this.options.qc) {return}
+			var self = this;
+			var q = $('<li><span class="e2l-a e2l-label">Query <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
+			q.EditbarControl({
+				width: 700,
+				cb: function(self2) {
+					self2.popup.QueryControl({
+						q: self.options.q,
+						keywords: false,
+						cb: function(test, newq) {self.query(newq)} 
+					});
+				}
+			});		
+			$('.e2-query-header', this.element).append(q);
+			
+		},
+		
+		query_download: function() {
+			// Get all the binaries in this table, and prepare a download link.
+			var newq = {};
+			newq['c'] = this.options.q['c'];
+			newq['boolmode'] = this.options.q['boolmode'];
+			newq['ignorecase'] = this.options.q['ignorecase'];
+			window.location = query_build_path(newq, 'files');
+		},
+		
+		query_batch_edit: function() {
+			alert("Still being implemented..");
+			return			
+		},
+		
+		query: function(newq) {
+			// Update the query from the current settings
+			newq = newq || this.options.q;
+			$('.e2-query-header .e2l-spinner', this.element).show();
+			var self = this;
+			var count = $('.e2-query-header select[name=count]').val();
+			if (count) {newq["count"] = parseInt(count)}
+			newq['names'] = [];
+			newq['recs'] = true;
+			newq['table'] = true;
+			$.jsonRPC.call("query", newq, function(q){self.update(q)});			
+		},
+		
+		setpos: function(pos) {
+			// Change the page
+			if (pos == this.options.q['pos']) {return}
+			var self = this;
+			this.options.q['pos'] = pos;
+			this.query();
+		},
+		
+		resort: function(sortkey, args) {
+			// Sort by a column key
+			if (args) {
+				sortkey = '$@' + sortkey + "(" + args + ")"
+			}
+			if (this.options.q['sortkey'] == sortkey) {
+				this.options.q['reverse'] = (this.options.q['reverse']) ? false : true;
+			} else {
+				this.options.q['reverse'] = false;
+			}
+			this.options.q['sortkey'] = sortkey;
+			this.query();			
+		},
+		
+		update: function(q) {
+			// Callback from a query; Update the table and all controls
+			this.options.q = q;
+			$('.e2-query-header .e2-query-control').QueryControl('update', this.options.q)					
+			this.update_controls();
+			this.rebuild_table();
+			this.options.q['stats'] = true;
+			$('.e2-query-header .e2l-spinner', this.element).hide();					
+		},	
+		
+		update_controls: function() {
+			// Update the table controls
+			var self = this;
+
+			// Update the title bar information
+			var title = '';
+			var rtkeys = [];
+			for (i in this.options.q['stats']['rectypes']) {
+				rtkeys.push(i);
+			}
+			rtkeys.sort();
+			
+			
+			// Build a nice string for the title
+			// This gives basic query statistics
+			title = this.options.q['length'] + ' records, ' + rtkeys.length + ' protocols';
+			if (rtkeys.length == 0) {
+				title = this.options.q['length'] + ' records';				
+			} else if (rtkeys.length == 1) {
+				title = this.options.q['length'] + ' ' + rtkeys[0] + ' records';
+			} else if (rtkeys.length <= 5) {				
+				title = title + ": ";
+				for (var i=0;i<rtkeys.length;i++) {
+					title = title + self.options.q['stats']['rectypes'][rtkeys[i]] + ' ' + rtkeys[i];
+					if (i+1<rtkeys.length) {
+						title = title + ', ';
+					}
+				}
+			}
+			if (this.options.q['stats']['time']) {
+				title = title + ' ('+this.options.q['stats']['time'].toFixed(2)+'s)';
+			}
+			$('.e2-query-header .e2-query-length').html(title);
+
+						
+			// Update the page count
+			var pages = $('.e2-query-header .e2-query-pages');
+			pages.empty();
+			var pc = $('<span></span>');
+			
+			// ... build the pagination controls
+			var count = this.options.q['count'];
+			var l = this.options.q['length'];
+			if (count == 0 || count > l || l == 0) {
+				//pages.append("All Records");
+			} else {			
+				var current = (this.options.q['pos'] / this.options.q['count']);
+				var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count'])-1;
+				var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}			
+
+				var p1 = $('<span data-pos="0" class="e2l-a">&laquo;</span>').click(setpos);
+				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="e2l-a">&lsaquo;</span>').click(setpos);
+				var p  = $('<span class="e2l-label"> '+(current+1)+' / '+(pagecount+1)+' </span>');
+				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="e2l-a">&rsaquo;</span>').click(setpos);
+				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="e2l-a">&raquo;</span>').click(setpos);
+
+				if (current > 0) {pc.prepend(p2)}
+				if (current > 1) {pc.prepend(p1, '')}
+				pc.append(p);
+				if (current < pagecount) {pc.append(p3)}
+				if (current < pagecount - 1) {pc.append('', p4)}
+				pages.append(pc);
+			}
+		},
+				
+		
+		rebuild_table: function() {
+			// Rebuild everything
+			this.rebuild_thead();
+			this.rebuild_tbody();
+		},
+				
+		rebuild_thead: function() {
+			// Rebuild the table header after each update			
+			var self = this;
+			var t = $('.e2-query-table', this.element);
+
+			// The query result includes details about columns
+			var headers = this.options.q['table']['headers']['null'];
+			
+			// Clear out the current header
+			$('thead', t).empty();
+			
+			// ian: todo: Check 'immutable' attr
+			var immutable = ["creator","creationtime","modifyuser","modifytime","history","name","rectype","keytype","parents","children"];
+			
+			var tr = $('<tr />');
+			var tr2 = $('<tr />');
+
+			// Build the check boxes for selecting records
+			tr.append('<th><input type="checkbox" /></th>');
+			tr2.append('<th />');
+
+			// Build the rest of the column headers
+			$.each(headers, function() {
+				if (this[3] == null) {
+					this[3]=''
+				}
+				var iw = $('<th>'+this[0]+'</th>');
+				var bw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');			
+
+				// If the column is editable, build an edit button
+				//if (this[1] == "$" && $.inArray(this[2],immutable)==-1) {
+				//	var editable = $('<button name="edit" class="e2l-float-right"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
+				//	bw.append(editable);
+				//}
+
+				// Build the sort button
+				var direction = 'able';
+				if (self.options.q['sortkey'] == this[2] || self.options.q['sortkey'] == '$@'+this[2]+'('+this[3]+')') {
+					var direction = 1;
+					if (self.options.q['reverse']) {direction = 0}
+				}
+				
+				var sortable = $('<button name="sort" class="e2l-float-right"><img src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="'+direction+'" /></button>');
+				bw.append(sortable);				
+
+				tr.append(iw);
+				tr2.append(bw);
+			});
+
+			// Connect the sort and edit buttons
+			$('button[name=sort]', tr2).click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
+			$('button[name=edit]', tr2).click(function(e){self.event_edit(e)});						
+			
+			// Append the title row and control row
+			$('thead', t).append(tr, tr2);
+		},
+		
+		
+		rebuild_tbody: function() {
+			// Rebuild the table body
+			var self = this;
+			var t = $('.e2-query-table', this.element);			
+			var headers = this.options.q['table']['headers']['null'];
+			var names = this.options.q['names'];
+			var rows = []			
+
+			// Empty results
+			if (names.length == 0) {
+				var row = '<tr><td colspan="0">No Records found for this query.</td</tr>';
+				rows.push(row);
+			}
+
+			// Build each row
+			for (var i=0;i<names.length;i++) {
+				var row = [];
+				row.push('<td><input type="checkbox" data-name="'+names[i]+'" /></td>');
+				for (var j=0;j<headers.length;j++) {
+					row.push('<td>'+self.options.q['table'][names[i]][j]+'</td>');
+				}
+				row = '<tr>' + row.join('') + '</tr>';					
+				rows.push(row);
+			}
+			
+			// This was a easonably fast way to do this
+			$('tbody', t).empty();
+			$('tbody', t).append(rows.join(''));		
+		},
+		
+		event_edit: function(e, param) {
+			alert('Not Implemented');
+			// Event handler for "Edit" column
+			// 	if (this.options.q['count'] > 100) {
+			// 		var check = confirm('Editing tables with more than 100 rows may use excessive resources. Continue?');
+			// 		if (check==false) {return}
+			// 	}
+			// 	var self = this;
+			// 
+			// 	//e.stopPropagation();
+			// 	// ugly hack..
+			// 	var t = $(e.target);
+			// 	var key = t.parent().attr('data-name');
+			// 	if (key==null) {
+			// 		t = $(e.target).parent();
+			// 		var key = t.parent().attr('data-name');				
+			// 	}
+			// 	var selector = '#tbody .e2l-editable';
+			// 	if (key) {
+			// 		selector = '#tbody .e2l-editable[data-param='+key+']'
+			// 	}			
+			// 	t.MultiEditControl({
+			// 		show: true,
+			// 		selector: selector,
+			// 		cb_save: function(caller){self.query()}
+			// 	});
+		}
+	});	
+	
+	
+	
 })(jQuery);
 
 <%!

@@ -13,7 +13,7 @@ from emen2.web.view import View
 class Event(View):
 
 	@View.add_matcher(r'^/event/(?P<name>.+)/$')
-	def event(self, name=None):
+	def init(self, name=None):
 		self.template = '/pages/event.main'
 		self.name = int(name)
 		self.rec = self.db.getrecord(self.name)

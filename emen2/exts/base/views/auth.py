@@ -12,8 +12,8 @@ from emen2.web.view import View
 @View.register
 class Auth(View):
 
+	# @View.provides('auth_login')
 	@View.add_matcher(r'^/auth/login/$')
-	@View.provides('auth_login')
 	def login(self, name=None, pw=None, msg='', errmsg='', location=None, **kwargs):
 		self.template = '/auth/login'
 		self.title = 'Login'
@@ -39,8 +39,8 @@ class Auth(View):
 
 
 
+	# @View.provides('auth_logout')
 	@View.add_matcher(r'^/auth/logout/$')
-	@View.provides('auth_logout')
 	def logout(self, msg='', location=None, **kwargs):
 		self.template = '/auth/login'
 		self.title = 'Logout'
@@ -68,7 +68,7 @@ class Auth(View):
 
 
 
-	@View.add_matcher(r'^/auth/password/change/$')
+	@View.add_matcher(r'^/auth/password/change/$', name='password/change')
 	def setpassword(self, location=None, **kwargs):
 		self.template = '/auth/password.change'
 		self.title = "Password Change"
@@ -107,7 +107,8 @@ class Auth(View):
 
 
 
-	@View.add_matcher(r'^/auth/password/reset/$', r'^/auth/password/reset/(?P<email>.+)/(?P<secret>\w+)/$')
+	@View.add_matcher(r'^/auth/password/reset/$', name='password/reset')
+	@View.add_matcher(r'^/auth/password/reset/(?P<email>.+)/(?P<secret>\w+)/$', name='password/reset/confirm')
 	def resetpassword(self, location=None, email=None, secret=None, newpassword=None, **kwargs):
 		self.template = '/auth/password.reset'
 		self.title = "Reset Password"
@@ -144,7 +145,7 @@ class Auth(View):
 
 
 
-	@View.add_matcher(r'^/auth/email/change/$')
+	@View.add_matcher(r'^/auth/email/change/$', name='email/change')
 	def setemail(self, location=None, **kwargs):
 		self.template = '/auth/email.change'
 		self.title = "Change Email"
@@ -172,7 +173,7 @@ class Auth(View):
 
 
 
-	@View.add_matcher(r'^/auth/email/verify/(?P<email>.+)/(?P<secret>\w+)/$')
+	@View.add_matcher(r'^/auth/email/verify/(?P<email>.+)/(?P<secret>\w+)/$', name='email/verify')
 	def verifyemail(self, location=None, email=None, secret=None, **kwargs):
 		self.template = '/auth/email.verify'
 		self.title = "Verify Email"

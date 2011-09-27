@@ -24,19 +24,15 @@ def dfs(root, tree, recurse=1):
 @View.register
 class Map(View):
 
-	@View.add_matcher(r'^/sitemap/$', r'^/sitemap/(?P<root>\w+)/$')
-	def sitemap(self, root=0, recurse=1, *args, **kwargs):
-		self.template = '/pages/sitemap'
-		self.title = 'Sitemap: %s'%root
-		m = Map(db=self.db)
-		m.init(mode="children", root=root, db=self.db, recurse=int(recurse))
-		self.ctxt['childmap'] = m
-		self.ctxt['root'] = root
+	@View.add_matcher(r'^/sitemap/$', name='root')
+	@View.add_matcher(r'^/sitemap/(?P<root>\w+)/$')
+	def init(self, root=0, *args, **kwargs):
+		self.embed(root=root, *args, **kwargs)
+		self.template = '/pages/map.sitemap'
 
 
-	#@View.add_matcher(r'^/sitemap/$', r'^/sitemap/(?P<root>\w+)/$', r'^/sitemap/(?P<root>\w+)/(?P<action>\w+)/$')
-	@View.add_matcher(r'^/map/(?P<keytype>\w+)/(?P<root>\w+)/(?P<mode>\w+)/$')
-	def init(self, root=None, recurse=1, keytype="record", action=None, mode="children", expandable=True, **kwargs):
+	@View.add_matcher(r'^/map/(?P<keytype>\w+)/(?P<root>\w+)/(?P<mode>\w+)/$', name='embed')
+	def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", expandable=True):
 		self.template = '/pages/map'
 		self.title = 'Sitemap'
 		self.root = root
@@ -90,5 +86,6 @@ class Map(View):
 		self.set_context_item('keytype',keytype)
 		self.set_context_item('parents',parents)
 		self.set_context_item('expandable',expandable)
+
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
