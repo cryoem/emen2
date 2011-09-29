@@ -49,8 +49,8 @@
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/edit.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/file.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/find.js"></script>
-		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/permission.js"></script>
-		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/relationship.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/permissions.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/relationships.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/query.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/tile.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/calendar.js"></script>

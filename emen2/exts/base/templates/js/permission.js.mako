@@ -1,381 +1,173 @@
 (function($) {
-    $.widget("emen2.PermissionControl", {
+	
+	$.widget('emen2.PermissionsControl', {
 		options: {
 			keytype: 'record',
 			name: null,
-			levels: ["Read-only","Comment","Write","Admin"],
-			edit: 0,
-			show: 0,
-			modal: false,
-			embed: false
+			edit: false,
+			show: false,
+			controls: null,
+			groups: true
 		},
-				
+		
 		_create: function() {
-			var self=this;
+			var self = this;
 			this.built = 0;
-			this.reset_from_cache();
-
-			if (!this.options.embed) {
-				this.element.click(function(e){e.stopPropagation();self.event_click(e);})
-			}
-
-			if (this.options.show || this.options.embed) {
+			if (this.options.show) {
 				this.show();
 			}
 		},
-	
-	
-		reinit: function() {
-			this.reset_from_cache();
-			this.build_userarea();
-			this.build_grouparea();
-		},
-	
-
-		copy_from_cache: function(rec) {
-			if (this.options.keytype=='record') {
-				var plist = caches['record'][this.options.name]['permissions'];
-				var glist = caches['record'][this.options.name]['groups'];
-			} else if (this.options.keytype=='group') {
-				var plist = caches['group'][this.options.name]['permissions'];				
-				var glist = [];
-			}
-			return [plist, glist]
-		},
 		
-		reset_from_cache: function() {
-			var f = this.copy_from_cache();
-			
-			this.permissions = [[],[],[],[]];
-			this.groups = [];
-
-			var self=this;
-			$.each(f[0], function(i) {
-				self.permissions[i]=this;
-			});			
-			$.each(f[1], function(i) {
-				self.groups.push(this);
-			});
-		},
-
-
-		event_click: function(e) {
-			this.show();
-		},
-	
-		build: function() {
-
-			if (this.built) {
-				return
-			}
-			this.built = 1;
-			var self=this;
-
-			////////////////////////////////
-			// Add user controls
-		
-			this.dialog = $('<div/>');
-			this.grouparea = $('<div/>');
-			this.userarea = $("<div/>");
-			this.dialog.append(this.grouparea);
-			this.dialog.append(this.userarea);
-
-			// Save controls
-			if (this.options.edit) {
-				this.savearea = $('<div class="e2l-controls"><ul class="e2l-nonlist e2-permissions-options"></ul>'+$.spinner()+'</div>');
-				if (this.options.keytype == 'record' && this.options.name != "None") {
-					
-					var opt_recurse = $(' \
-						<li><input type="checkbox" id="recurse" name="recurse"> <label for="recurse">Recursive</label></li> \
-						<li> \
-							<input type="checkbox" disabled="disabled" name="overwrite_users" id="e2-permissions-overwrite-users"> \
-							<label for="e2-permissions-overwrite-users">Overwrite Users</label> \
-						</li> \
-						<li> \
-							<input type="checkbox" disabled="disabled" name="overwrite_groups" id="e2-permissions-overwrite-groups"> \
-							<label for="e2-permissions-overwrite-groups">Overwrite Groups</label> \
-						</li>');
-
-
-					$('input[name=recurse]', opt_recurse).click(function(){
-						var state = $(this).attr('checked');
-							if (state) {
-								$('input[name=overwrite_users]', self.element).removeAttr("disabled");
-								$('input[name=overwrite_groups]', self.element).removeAttr("disabled");							
-							} else {
-								$('input[name=overwrite_users]', self.element).attr("disabled", 1);
-								$('input[name=overwrite_groups]', self.element).attr("disabled", 1);
-							}
-						});
-
-					var apply = $('<input class="e2l-save" type="button" value="Apply Changes" />').click(function(){self.save_record()});
-					
-					$('.e2-permissions-options', this.savearea).append(opt_recurse);
-					this.savearea.append(apply);
-					this.dialog.append(this.savearea);
-					
-
-				}
-			}
-
-			// this.elem.append(user_outer);
-			this.dialog.attr("title","Permissions");
-		
-			if (this.options.embed) {
-				this.element.append(this.dialog);
-				return
-			}
-
-			var pos = this.element.offset();
-			this.dialog.dialog({
-				autoOpen: false,
-				width: 800,
-				height: 600,
-				position: [pos.left, pos.top+this.element.outerHeight()],
-				modal: this.options.modal
-			});
-		
-		},
-	
-	
 		show: function() {
 			this.build();
-			if (!this.options.embed) {this.dialog.dialog('open')}
-			this.getdisplaynames();
 		},
-
-		hide: function() {
-			this.dialog.dialog('close');
-		},
-	
-		getdisplaynames: function() {	
-			var self = this;
-			var f = this.copy_from_cache();
-
-			var f2 = [];
-			for (var i=0;i<f[0].length;i++) {
-				for (var j=0;j<f[0][i].length;j++) {
-					f2.push(f[0][i][j]);
-				}
-			}
-
-			$.jsonRPC.call("getuser", [f2], function(users){ 
-				$.each(users, function() {
-					caches['user'][this.name] = this;
-				});
-				self.build_userarea();			
-			});
-			this.build_grouparea();
-		},
-	
-	
-		build_grouparea: function() {
-
-			if (this.options.keytype=='group') {return}
-
-			var self=this;
-			this.grouparea.empty();
-
-			var level = $('<div class="e2-permissions-level e2l-clearfix" data-level="group"></div>');
-			this.grouparea.append(level);
-
-			var title = $('<h4 class="e2l-clearfix"> Groups <span class="e2l-small e2l-float-right e2l-a">(select all)</span></h4>');
-			if (this.options.edit) {
-				var button = $('<input type="button" value="+" /> ');
-				button.FindControl({
-					keytype: 'group',
-					minimum: 0,
-					cb:function(test, groupname){self.add(groupname, 'group')}
-				});
-				title.prepend(button);
-			}
-			level.append(title);
-
-			$.each(this.groups, function(i, groupname) {
-				self.draw(groupname, 'group');
-			});
-		},
-
-
-		build_userarea: function() {
-			var self=this;
-			this.userarea.empty();		
 		
-			$.each(this.permissions, function(k,v) {			
-				var level = $('<div class="e2-permissions-level e2l-clearfix" data-level="'+k+'"></div>');
-				var title = $('<h4 class="e2l-clearfix"> '+self.options.levels[k]+' <span class="e2l-small e2l-float-right e2l-a">(select all)</span></h4>');
-				if (self.options.edit) {
-					var button = $('<input type="button" value="+" />');
-					button.FindControl({
-						cb:function(test, name){self.add(name, k)}
-					});
-					title.prepend(button);
-				}
-				level.append(title);
+		build: function() {
+			var self = this;
+			var item = caches[this.options.keytype][this.options.name];
+			if (!item) {
+				var args = {}
+				args['keytype'] = this.options.keytype;
+				args['names'] = this.options.name;
+				$.jsonRPC.call('get', {'keytype':this.options.keytype, 'names':this.options.name}, function(item) {
+					caches[item.keytype][item.name] = item;
+				});
+			} else {
+				this._build();
+			}
+		},
+		
+		_build: function() {
+			var self = this;
+			var permissions = caches[this.options.keytype][this.options.name]['permissions'] || [];
+			var groups = caches[this.options.keytype][this.options.name]['groups'] || [];
+			this.element.empty();
+
+			this.element.append(this._build_level('Groups', 'groups', groups, 'group'));
+			this.element.append(this._build_level('Read-only', 'read', permissions[0]));
+			this.element.append(this._build_level('Comment', 'comment', permissions[1]));
+			this.element.append(this._build_level('Write', 'write', permissions[2]));
+			this.element.append(this._build_level('Owners', 'admin', permissions[3]));
 			
-				self.userarea.append(level);
+			if (this.options.controls) {
+				var options = $('<div class="e2l-options">');
+				options.append(' \
+					Select <span class="e2l-a e2-permissions-all">all</span> / <span class="e2l-a e2-permissions-none">none</span><br /> \
+					<input type="checkbox" name="recurse" value="recurse" id="e2-permissions-mode"><label for="e2-permissions-mode">Recurse</label><br /> \
+					<ul class="e2l-nonlist e2l-hide"> \
+						<li><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label><br /></li> \
+				 		<li><input type="radio" name="recurse_mode" value="add" id="e2-permissions-mode-add" checked><label for="e2-permissions-mode-add">Add to children</label></li> \
+			 			<li><input type="radio" name="recurse_mode" value="remove" id="e2-permissions-mode-remove"><label for="e2-permissions-mode-remove">Remove from children</label></li> \
+				 		<li><input type="radio" name="recurse_mode" value="overwrite" id="e2-permissions-mode-overwrite"><label for="e2-permissions-mode-overwrite">Overwrite children</label></li> \
+				 	</ul>');
+				
+				$('.e2-permissions-all', options).click(function(){$('input:checkbox', self.element).attr('checked', 'checked')});
+				$('.e2-permissions-none', options).click(function() {$('input:checkbox', self.element).attr('checked', null)});
+				
+				$('input[name=recurse]', options).click(function(){
+					var t = $(this);
+					var state = t.attr('checked');
+					if (state) {
+						$('ul', options).show();
+						// $('ul input, ul label', controls).attr('disabled', false);
+					} else {
+						$('ul', options).hide();
+						// $('ul input, ul label', controls).attr('disabled', true);						
+					}
+				})
 
-				if (v.length == 0) {
-
-				} else {
-					// var level_removeall=$('<span class="small_label">[<span class="e2l-a">X</span>]</span>').click(function () {
-					$.each(v, function(i,name) {
-						self.draw(name, k);
-					});
-				}
-
-			});	
-		 },
-	
-		add: function(name, level) {
-			var self = this;
-			var keytype = 'user';
-			if (level == 'group') {
-				keytype = 'group';
-			}
-			$('.e2-infobox[data-keytype='+keytype+'][data-name='+name+']', this.dialog).each(function(){
-				$(this).remove();
-			});
-			self.draw(name, level, true);
+				var controls = $('<div class="e2l-controls"></div>');
+				controls.append('<input type="button" name="save" value="Save permissions" />');
+				$('input[name=save]', controls).click(function(e){self.save(e)})
+				this.options.controls.append(options, controls);
+			}			
 		},
-	
-	
-		draw: function(name, level, add) {
-			var self = this;				
-			var keytype = 'user';
-			if (level=='group') {
-				keytype = 'group';
+		
+		_build_level: function(lab, level, l, keytype) {
+			var self = this;
+			var param = 'permissions.'+level;
+			var keytype = (keytype || 'user');
+			if (level == 'groups') {
+				param = 'groups'
 			}
 
-			var d = $('<div />');
-			d.InfoBox({
-				'keytype':keytype,
-				'name':name
-			});
-			d.attr('data-level', level);
-
+			var ret = $('<div></div>')
+			
+			var header = $('<h4>'+lab+'</h4>');
 			if (this.options.edit) {
-				d.click(function(e) {
-					e.stopPropagation();
-					self.toggle(name, level);
+				var add = $('<input type="button" data-level="'+level+'" data-keytype="'+keytype+'" value="+" class="e2l-float-left" style="margin-right:10px" /> ');
+				var minimum = 2;
+				if (keytype=='group'){minimum=0}
+				add.FindControl({
+					keytype: keytype,
+					minimum: minimum,
+					cb: function(w, value) {
+						var level = w.element.attr('data-level');
+						console.log(w, value);
+						self.add(level, value);
+					}
 				});
+				header.append(add);
 			}
-			if (add) {
-				d.addClass('e2l-add');
-			}
-			$('.e2-permissions-level[data-level='+level+']', this.dialog).append(d);			
-		},
-	
-		toggle: function(name, level) {
-			$('.e2-infobox[data-name='+name+'][data-level='+level+']', this.dialog).each(function(){
-				$(this).toggleClass('e2l-removed');
-			});
-		},
 
-		getaddgroups: function(all) {
-			if (all) {
-				var baseselector = '.e2-infobox[data-keytype=group]:not(.e2l-removed)'				
-			} else {
-				var baseselector = '.e2-infobox[data-keytype=group].add:not(.e2l-removed)'
-			}						
-			var r = $(baseselector, this.grouparea).map(function(){return $(this).attr('data-name')});	
-			return $.makeArray(r);
-		},
-	
-		getdelgroups: function() {
-			var r = $('.e2-infobox[data-keytype=group].e2l-removed', this.grouparea).map(function(){return $(this).attr('data-name')});
-			return $.makeArray(r);
-		},
-	
-		getdelusers: function() {
-			var r = $('.e2-infobox[data-keytype=user].e2l-removed', this.userarea).map(function(){return $(this).attr('data-name')});	
-			return $.makeArray(r);
-		},
-	
-		getaddusers: function(all) {
-			if (all) {
-				var baseselector = '.e2-infobox[data-keytype=user]:not(.e2l-removed)'				
-			} else {
-				var baseselector = '.e2-infobox[data-keytype=user].add:not(.e2l-removed)'
-			}
-			var ret = [];
-			var self = this;
-			for (var i=0;i<4;i++) {
-				var r = $(baseselector+'[data-level='+i+']', this.userarea).map(function(){
-					return $(this).attr('data-name')
+			var div = $('<div class="e2l-cf"></div>');
+			div.attr('data-level', level);
+			for (var i=0;i<l.length;i++) {
+				var d = $('<div></div>');
+				d.InfoBox({
+					keytype: keytype,
+					name: l[i],
+					selectable: true,
+					input: ['checkbox', param, true]
 				});
-				ret.push($.makeArray(r));
+				div.append(d);
 			}
+
+			ret.append(header, div);
 			return ret
 		},
 		
-		getgroups: function() {
-			var r = $('.e2-infobox[data-keytype=group]:not(.e2l-removed)', this.grouparea).map(function(){return $(this).attr('data-name')});
-			return $.makeArray(r);
-		},
-	
-		getusers: function() {
-			return this.getaddusers(true);
-		},
+		add: function(level, name) {
+			var keytype = 'user';
+			var param = 'permissions.'+level;
+			if (level=='groups') {
+				keytype = 'group';
+				param = 'groups';
+			}
 
-		save_group: function() {
-			var group = caches['group'][this.options.name];
-			group["permissions"] = this.getusers();
-			$.jsonRPC.call("putgroup", [group], function(){
-				alert("Saved Group");
-				window.location = window.location;
+			var level = $('div[data-level='+level+']');
+			var d = $('<div></div>');
+			d.InfoBox({
+				keytype: keytype,
+				name: name,
+				selectable: true,
+				input: ['checkbox', param, true]
 			});
+			level.append(d);
 		},
-
-		save_record: function() {		
+		
+		save: function(e) {
+			e.preventDefault();
 			var self = this;
-			var rlevels=0;
-			if ($('input[name=recurse]', this.dialog).attr('checked')) {
-				rlevels = -1;
-			}
-						
-			var sec_commit = {};
-			sec_commit["names"] = this.options.name;
-			sec_commit["recurse"] = rlevels;
 
-			// sec_commit["reassign"] = 1;
-			// sec_commit["delusers"] = this.getdelusers();
-			// sec_commit["delgroups"] = this.getdelgroups();
-			var overwrite_users = $('input[name=overwrite_users]', this.dialog).attr('checked');
-			var overwrite_groups = $('input[name=overwrite_groups]', this.dialog).attr('checked');			
-			if (overwrite_users) {
-				sec_commit['overwrite_users'] = overwrite_users;
+			// Copy options into the form...
+			$('.e2-edit-copied', this.element).remove();
+			var copied = $('<div class="e2-edit-copied e2l-hide"></div>');
+
+			var recurse = $('input[name=recurse]:checked', this.options.controls).val();
+			var recurse_mode = $('input[name=recurse_mode]:checked', this.options.controls).val();
+			var filt = $('input[name=filt]:checked', this.options.controls).val();
+			if (recurse) {
+				copied.append('<input type="hidden" name="recurse" value="'+recurse+'" />');
+				copied.append('<input type="hidden" name="recurse_mode" value="'+recurse_mode+'" />');
+				copied.append('<input type="hidden" name="filt" value="'+filt+'" />');
 			}
-			if (overwrite_groups) {
-				sec_commit['overwrite_groups'] = overwrite_groups;
-			}
-			if (overwrite_users || overwrite_groups) {
-				var c = confirm("This action will overwrite the permissions of all child records to be the same as this record. Are you sure you want to continue?")
-				if (!c) {return}
-			}			
+			this.element.append(copied);
 			
-			sec_commit["permissions"] = this.getaddusers(1);
-			sec_commit["groups"] = this.getaddgroups(1);
-
-			$('.e2l-spinner', this.savearea).show();			
-			$.jsonRPC.call("setpermissions", sec_commit, 
-				function() {				
-					$.jsonRPC.call("getrecord",[self.options.name],
-						function(record) {
-							$('.e2l-spinner', self.savearea).hide();
-							// ian: changing permissions shouldn't require a full rebuild...
-							$.notify("Saved Permissions");
-							caches['record'][self.options.name] = record;
-							self.reinit();
-							//self.hide();
-						});
-
-				}
-			);		
-
-		}
-	});
-	
+			// Submit the actual form
+			this.element.submit();			
+		}		
+	});	
 })(jQuery);		
 
 <%!
