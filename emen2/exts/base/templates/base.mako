@@ -1,6 +1,9 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml" version="-//W3C//DTD XHTML 1.1//EN" xml:lang="en">
+<!DOCTYPE HTML>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+## <?xml version="1.0" encoding="utf-8"?>
+## <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+## <html xmlns="http://www.w3.org/1999/xhtml" version="-//W3C//DTD XHTML 1.1//EN" xml:lang="en">
 
 ## Named blocks:
 ## => title
@@ -10,7 +13,6 @@
 ## => css_include
 ## => css_inline
 
-<% precontent="" %>
 <head>
 
 	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
@@ -44,14 +46,12 @@
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.jsonrpc.js"></script>
 
 		## Base EMEN2 widgets
-		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/comments.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/edit.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/file.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/find.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/permission.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/relationship.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/query.js"></script>
-		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/table.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/tile.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/calendar.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/util.js"></script>
