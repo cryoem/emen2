@@ -122,6 +122,15 @@ class RecordBase(View):
 
 @View.register
 class Record(RecordBase):
+	
+	def process_permissions(self, permissions):
+		ret = []
+		ret.append(permissions.get('read', []))
+		ret.append(permissions.get('comment', []))
+		ret.append(permissions.get('write', []))
+		ret.append(permissions.get('admin', []))
+		return ret
+		
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
 	def view(self, name=None, sibling=None):
@@ -153,7 +162,10 @@ class Record(RecordBase):
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$')
 	def edit(self, name=None, **kwargs):
-		if kwargs:
+		if kwargs.get('permissions'):
+			kwargs['permissions'] = self.process_permissions(kwargs.get('permissions'))
+			
+		if self.request_method == 'post' and kwargs:
 			rec = self.db.getrecord(name, filt=False)
 			try:
 				rec.update(kwargs)
@@ -167,31 +179,78 @@ class Record(RecordBase):
 
 
 	#@write
-	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/rel/$', name='edit/rel')
-	def edit_rel(self, name=None, **kwargs):
-		method = kwargs.get('method')
-		parents = kwargs.get('parents', [])
-		children = kwargs.get('children', [])
-		print "Editing pclink to %s parents %s and children %s"%(method, parents, children)
+	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/relationships/$', name='edit/relationships')
+	def edit_relationships(self, name=None):
+		# method = kwargs.get('method')
+		# parents = kwargs.get('parents', [])
+		# children = kwargs.get('children', [])
+		# print "Editing pclink to %s parents %s and children %s"%(method, parents, children)
 		self.view(name=name)				
 		self.ctxt["edit"] = True
+
+
+
+	#@write
+	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/permissions/$', name='edit/permissions')
+	def edit_permissions(self, name=None, permissions=None, groups=None, recurse=False, recurse_mode=None, filt=False):
+		permissions = permissions or {}
+		groups = groups or []
+		users = set()
+		if hasattr(permissions, 'items'):
+			for k,v in permissions.items():
+				users |= set(listops.check_iterable(v))
+		else:
+			for v in permissions:
+				users |= set(listops.check_iterable(v))
+		
+		
+		if self.request_method == 'post':
+			if recurse_mode == 'add':
+				self.db.setpermissions(names=name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt)			
+
+			elif recurse_mode == 'remove':
+				self.db.setpermissions(names=name, recurse=-1, removeusers=users, removegroups=groups, filt=filt)			
+				
+			elif recurse_mode == 'overwrite':
+				self.db.setpermissions(names=name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt, overwrite_users=True, overwrite_groups=True)			
+				
+			else:
+				rec = self.db.getrecord(name, filt=False)
+				rec['groups'] = groups
+				rec['permissions'] = permissions
+				rec = self.db.putrecord(rec)
+
+		self.template = '/redirect'
+		self.headers['Location'] = '%s/record/%s/#permissions'%(self.ctxt['EMEN2WEBROOT'], name)
 		
 
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$')
-	def new(self, name=None, rectype=None, **kwargs):
+	def new(self, name=None, rectype=None, _copy=False, _private=False, **kwargs):
 		self.init(name=name, children=False)
 		self.template = '/pages/record.new'
-		inherit = None
 		viewtype = 'mainview'
-		try:
-			inherit = int(name)
-		except:
-			inherit = None
-			
-		newrec = self.db.newrecord(rectype, inherit=inherit)
 
-		if kwargs:
+		inherit = None
+		try:
+			inherit = [int(name)]
+		except:
+			inherit = []
+
+		if _private:
+			newrec = self.db.newrecord(rectype)
+			newrec.parents = inherit
+		else:
+			newrec = self.db.newrecord(rectype, inherit=inherit)
+
+		if _copy:
+			for rec in self.db.getrecord(inherit):
+				newrec.update(rec)
+
+		if kwargs.get('permissions'):
+			kwargs['permissions'] = self.process_permissions(kwargs.get('permissions'))
+			
+		if self.request_method == 'post' and kwargs:
 			newrec.update(kwargs)
 			newrec = self.db.putrecord(newrec)
 			if newrec:
@@ -200,10 +259,10 @@ class Record(RecordBase):
 				self.error('Did not save record')
 			return
 
+
 		recdef = self.db.getrecorddef(newrec.rectype)
 		rendered = self.db.renderview(newrec, edit=True, viewtype=viewtype)
 
-			
 		self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
 		self.update_context(
 			recdef = recdef,

@@ -4,12 +4,6 @@
 
 <%block name="css_inline">
 	${parent.css_inline()}
-	#content {
-		padding: 0px;
-	}
-	#rendered {
-		padding: 10px;
-	}
 </%block>
 
 

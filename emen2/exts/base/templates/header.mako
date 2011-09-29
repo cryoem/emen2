@@ -1,6 +1,6 @@
 <%namespace name="buttons" file="/buttons"  />
 
-<ul id="nav" class="e2l-menu e2l-clearfix">
+<ul id="nav" class="e2l-menu e2l-cf">
 
 	<li>
 		<a style="padding:0px;padding-left:8px;" href="${EMEN2WEBROOT}/"><img src="${EMEN2WEBROOT}/static/images/${EMEN2LOGO}" alt="${EMEN2DBNAME}" /></a>
@@ -53,7 +53,7 @@
 
 	<li class="e2l-float-right nohover">
 		<form method="get" action="${EMEN2WEBROOT}/query/">
-			<input type="text" name="q" size="8" value="Search" id="e2-header-search" />
+			<input type="text" name="q" size="8" placeholder="Search" id="e2-header-search" />
 		</form>
 	</li>
 

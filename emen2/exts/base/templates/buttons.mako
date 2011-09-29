@@ -3,7 +3,7 @@
 ##########################################################
 
 <%def name="buttons(tabs)">
-	<ul class="e2l-tab-buttons e2l-clearfix" id="${tabs.getid_buttons()}" data-tabgroup="${tabs.getclassname()}">
+	<ul class="e2l-tab-buttons e2l-cf" id="${tabs.getid_buttons()}" data-tabgroup="${tabs.getclassname()}">
 	% for i in tabs.order:
 		<li class="${tabs.getclass_button(i)}" id="${tabs.getid_button(i)}" data-tabgroup="${tabs.getclassname()}" ${tabs.getjs_button(i)} >${tabs.getcontent_button(i)}</li>
 	% endfor
@@ -13,7 +13,7 @@
 ##########################################################
 
 <%def name="pages(tabs)">
-	<div class="e2l-tab-pages e2l-clearfix" id="${tabs.getid_pages()}" data-tabgroup="${tabs.getclassname()}">
+	<div class="e2l-tab-pages e2l-cf" id="${tabs.getid_pages()}" data-tabgroup="${tabs.getclassname()}">
 		% for i in tabs.order:
 			<div class="${tabs.getclass_page(i)}" id="${tabs.getid_page(i)}" data-tabgroup="${tabs.getclassname()}">
 				${tabs.getcontent_page(i)}
@@ -47,7 +47,7 @@
 ## Simple title button
 
 <%def name="titlebutton(title)">
-	<ul data-tabgroup="main" class="e2l-tab-buttons e2l-clearfix">
+	<ul data-tabgroup="main" class="e2l-tab-buttons e2l-cf">
 		<li data-tabgroup="main" class="e2l-tab-button e2l-tab-active">${title}</li>
 	</ul>
 </%def>
@@ -57,6 +57,10 @@
 
 <%def name="spinner(show=True)">
 	<img src="${EMEN2WEBROOT}/static/images/spinner.gif" class="e2l-spinner ${forms.iffalse(show, 'e2l-hide')}" alt="Loading" />
+</%def>
+
+<%def name="caret()">
+	<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
 </%def>
 
 

@@ -26,6 +26,10 @@ window.log = function(){
 		}
 	}
 	
+	$.caret = function() {
+		return '<img alt="^" src="'+EMEN2WEBROOT+'/static/images/caret_small.png" />';
+	}
+	
 	// Update controls when a record has changed
 	$.record_update = function(rec) {
 		if (typeof(rec)=="number") {
@@ -218,6 +222,106 @@ window.log = function(){
 	//  fit in any other files..
 	///////////////////////////////////////////////////
  
+	// EMEN2 Tabs
+	// Works somewhat like jQuery-UI Tabs -- uses
+	//		basically the same markup
+	$.widget('emen2.TabControl', {
+		options: {
+			active: 'e2l-newtab-active',
+			absolute: false,
+			cbs: {},
+			hidecbs: {}
+		},
+		
+		_create: function() {
+			this.built = 0;
+			this.build();
+			this.options.cbs['attachments'] = function(page){console.log(page)}
+		},
+		
+		build: function() {
+			if (this.built){return}
+			var self = this;
+			$('li[data-tab]', this.element).click(function(){
+				var tab = $(this).attr('data-tab');
+				var hc = $(this).hasClass(self.options.active);
+				if (hc) {
+					self.hide(tab);
+				} else {
+					self.hide(tab);
+					self.show(tab);
+				}
+			});
+			this.built = 1;
+		},
+		
+		setcb: function(tab, cb) {
+			this.options.cbs[tab] = cb;
+		},
+		
+		sethidecb: function(tab, cb) {
+			this.options.hidecbs[tab] = cb;			
+		},
+		
+		hide: function(tab) {
+			var self = this;
+			$('li.'+this.options.active, this.element).each(function() {
+				var t = $(this);
+				var tab = t.attr('data-tab');
+				var p = $('div[data-tab='+tab+']', self.element);
+				console.log(p);
+				t.removeClass(self.options.active);
+				p.removeClass(self.options.active);
+				var cb = self.options.hidecbs[tab];
+				if (cb) {cb(p)}
+			});
+		},
+
+		show: function(tab) {
+			var t = $('li[data-tab='+tab+']', this.element);
+			var p = $('div[data-tab='+tab+']', this.element);
+			if (!p.length) {
+				var p = $('<div data-tab="'+tab+'"></div>');
+				this.element.append(p);
+			}
+			
+			p.addClass('e2l-cf');
+
+			// Menu-style -- float above content
+			if (this.options.absolute) {
+				// Set the position
+				var pos = t.position();
+				var height = t.height();
+				var width = t.width();
+				p.css('position', 'absolute');
+				p.css('top', pos.top + height);
+
+				// Is it right aligned?
+				var align = t.css('float');				
+				if (align=='left') {
+					p.css('left', pos.left-1);					
+				} else {
+					var parentwidth = p.parent().width();
+					console.log(parentwidth);
+					p.css('right', parentwidth-(width+pos.left)-2);
+				}
+			}
+			
+			// Run any callbacks
+			var cb = this.options.cbs[tab];
+			if (cb) {
+				cb(p);
+			}
+
+			t.addClass(this.options.active);
+			p.addClass(this.options.active);
+		},
+		
+		switch: function(tab) {
+		}
+		
+	});
+
 	// View and edit bookmarks
     $.widget("emen2.BookmarksControl", {
 		options: {
@@ -367,7 +471,7 @@ window.log = function(){
 		// 			$.jsonRPC.call("renderview", [siblings, null, "recname"], function(recnames) {
 		// 				siblings = siblings.sort(function(a,b){return a-b});
 		// 				sibs.empty();
-		// 				var prevnext = $('<h4 class="e2l-clearfix e2l-editbar-sibling-prevnext"></h4>');
+		// 				var prevnext = $('<h4 class="e2l-cf e2l-editbar-sibling-prevnext"></h4>');
 		// 				if (prev) {
 		// 					prevnext.append('<div class=".e2l-float-left"><a href="'+EMEN2WEBROOT+'/record/'+prev+'/#siblings">&laquo; Previous</a></div>');
 		// 				}
@@ -425,106 +529,6 @@ window.log = function(){
 				this.wc.removeClass('e2l-error')
 			}
 			this.wc.text(t);	
-		}
-	});
-
-
-	// "Drop-down Menu"
-    $.widget("emen2.EditbarControl", {
-		options: {
-			cb: function(self) {},
-			bind: true,
-			show: false,
-			reflow: false,
-			align: 'left',
-			width: null,
-			height: null,
-			box: null
-		},
-				
-		_create: function() {
-			this.built = 0;
-			var self = this;
-			this.cachepadding = null;
-			// this.element.addClass('e2l-tab-active');
-			
-			if (this.options.bind) {
-				$('.e2l-label', this.element).click(function(e) {
-					e.stopPropagation();
-					self.toggle();
-				});
-			}
-			
-			if (this.options.show==true) {
-				this.toggle();
-			}
-			
-		},
-		
-		toggle: function() {
-			if (this.element.hasClass('e2l-hover')) {
-				this.hide();
-			} else {
-				this.show();
-			}
-		},
-		
-		show: function() {
-			$('.e2l-editbar .e2l-hover').EditbarControl('hide');
-			this.build();
-			this.element.addClass('e2l-hover');
-			this.options.cb(this);
-			this.popup.show();
-			if (this.options.reflow) {
-				this.cachepadding = $(this.options.reflow).css('padding-top');
-				$(this.options.reflow).css('padding-top', this.popup.outerHeight());
-			}
-			
-		},
-		
-		hide: function() {
-			if (!this.built) {return}
-			this.popup.hide();
-			this.options.cb(this);
-			this.element.removeClass('e2l-hover');
-			if (this.options.reflow) {
-				$(this.options.reflow).css('padding-top', this.cachepadding);
-			}
-			
-		},		
-		
-		build: function() {
-			if (this.built) {
-				return
-			}
-			this.built = 1;			
-			
-			var pos = this.element.position();
-
-			if (this.options.box) {
-				this.popup = $(this.options.box);
-			} else {
-				this.popup = $('.e2l-menu-hidden', this.element);
-			}
-
-			if (!this.popup.length) {
-				this.popup = $('<div class="e2l-menu-hidden" />');
-				this.element.append(this.popup);
-			}
-			
-			if (this.options.width) {
-				this.popup.css('width','auto');
-				this.popup.css('min-width', this.options.width);
-			}
-			if (this.options.height) {
-				this.popup.height(this.options.height);
-			}
-			
-			if (this.options.align == 'left') {
-				this.popup.css('left', -1);
-			} else {
-				this.popup.css('left', -this.popup.outerWidth()+this.element.outerWidth());
-			}			
 		}
 	});
 })(jQuery);

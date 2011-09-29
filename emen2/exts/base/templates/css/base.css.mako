@@ -9,6 +9,15 @@ table.e2l-shaded tbody tr:nth-of-type(odd) {
 	background: #eee;
 }
 
+h4 {
+	border-bottom: solid 1px #ccc;
+}
+
+/*.paramdef {
+	font-weight:bold;
+}
+*/
+
 /******************************************
  		Basic EMEN2 Layouts
 
@@ -92,7 +101,7 @@ a:hover,
 }
 
 /* Unselectable elements */
-.e2l-unselect {
+.e2l-a, .e2l-unselect {
 	-webkit-user-select: none;
 	-moz-user-select: none;	
 }
@@ -175,9 +184,16 @@ a:hover,
 
 /***** e2l-controls: Control boxes *****/
 
-.e2l-controls {
+.e2l-options {
+	clear:both;
 	float:right;
-	padding-bottom:20px;
+	margin:10px;
+	margin-bottom:0px;
+}
+.e2l-controls {
+	clear:both;
+	float:right;
+	margin:10px;
 }
 
 
@@ -235,15 +251,16 @@ a:hover,
 .e2l-nonlist {
 	list-style: none;
 	padding-left: 0px;
+	margin:0px;
 }
 
 
-/***** e2l-clearfix: Correct wrapping around floating elements *****/
+/***** e2l-cf: Correct wrapping around floating elements *****/
 
-.e2l-clearfix {
+.e2l-cf {
 	clear:both;
 }
-.e2l-clearfix:after {
+.e2l-cf:after {
     content: "."; 
     display: block; 
     height: 0; 
@@ -251,45 +268,59 @@ a:hover,
     visibility: hidden;	
 }
 
-
-/*** e2l-editbar: Editing bar *****/
-
-.e2l-editbar {
-	margin:0px;
-	list-style: none;
-	padding-left: 0px;
-	background-image: -moz-linear-gradient(#fff, #fff, #eee);
-	border-bottom:solid 1px #ccc;
-}
-.e2l-editbar > li {
-	position:relative;
-	border-right:solid 1px #ccc;
-}
-.e2l-editbar > li.e2l-editbar-lastitem {
-	border-right:none;
-}
-.e2l-editbar > li > .e2l-label {
-	padding:5px;
-	display:inline-block;
-}
-
-/*.editbar input, 
-.editbar select
-{
-	font-size: 10pt;
-	padding: 2px;
-	margin: 2px;
-	margin-right: 4px;
-	margin-left: 4px;
-}
-*/
-
 h1 .e2l-label {
 	float:right;
 	font-size:12pt;
 	margin:10px;
 }
+h4 .e2l-label {
+	font-weight: normal;
+	float: right;
+}
 
+/***** e2l-newtab: NEW editing bar *****/
+.e2l-newtab {
+	position:relative;
+}
+.e2l-newtab > ul {
+	padding-left: 0px;
+	list-style: none;
+	margin: 0px;
+	border-bottom: solid 1px #ccc;
+	background-image: -moz-linear-gradient(#fff, #fff, #eee);
+}
+.e2l-newtab > ul > li {
+	float: left;
+	border-right: solid 1px #ccc;
+	margin-bottom:-1px;
+}
+.e2l-newtab > ul > li.e2l-float-right {
+	border-left: solid 1px #ccc;
+	border-right: none;
+}
+.e2l-newtab > ul > li img {
+	vertical-align:middle;
+}
+.e2l-newtab > ul > li > a,
+.e2l-newtab > ul > li > span
+{
+	display:inline-block;
+	padding:5px;
+}
+.e2l-newtab > div {
+	display:none;
+	padding:10px;
+	border: solid 1px #ccc;
+	border-top: none;
+	background: #eee;
+	z-index: 1000;
+}
+li.e2l-newtab-active {
+	background: #eee;
+}
+div.e2l-newtab-active {
+	display: block;
+}
 
 
 
@@ -322,39 +353,73 @@ h1 .e2l-label {
 /*	float: left;
 */	margin-right:10px;
 }
+.e2-query-extraspacing span {
+	padding-right: 5px;
+	padding-left: 5px;
+}
+
 
 /***** e2-infobox: Display Infobox *****/
 
 .e2-infobox {
 	float:left;
 	position:relative;
-	border-bottom:solid 1px #ddd;
-	width:350px;
+	width:300px;
+	margin-right:50px;
 	padding:5px;
 	padding-left:0px;
 	padding-right:0px;
+	border-bottom:solid 1px #ddd;
 }
 .e2-infobox h4 {
-	margin-top:0px;
-	margin-left: 50px;
-	font-size:10pt;
 	border-bottom: none;
+	margin-top: 0px;
+	margin-left: 50px;
+	margin-bottom: 5px;
+	font-weight:normal;
+	font-size:12pt;
 }
 .e2-infobox p {
 	margin:0px;
 	margin-left: 50px;
+}
+.e2-infobox-input {
+	float: left;
+	margin:10px;
+	margin-left:0px;
 }
 .e2-infobox img.e2l-thumbnail {
 	float: left;
 	height: 40px;
 	margin-right: 4px;
 }
-/* Infobox in the permissions widget floats
-to fit more information */
-.e2-permissions-level .e2-infobox {
-	float:left;
+.e2-infobox-hover {
 }
 
+.e2-infobox-selected {
+	background: <%self:ADDED />;
+}
+
+.e2-comments .e2-infobox,
+.e2l-fw .e2-infobox
+{
+	width: auto;
+	float: none;
+	margin-right: 0px;
+}
+
+.e2l-fw textarea,
+textarea.e2l-fw
+
+{
+	max-width:100%;
+	min-width:100%;	
+}
+textarea.e2l-fw {
+	margin: 0px;
+	margin-top: 10px;
+	margin-bottom: 10px;
+}
 
 /***** e2-wordcount: Wordcount widget *****/
 

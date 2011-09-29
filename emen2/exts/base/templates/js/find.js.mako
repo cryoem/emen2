@@ -8,7 +8,13 @@
 			title: null,
 			body: null,
 			deleteable: false,
-			autolink: false
+			autolink: false,
+			selectable: false,
+			// toggle: 'e2-infobox-selected',
+			// hover: 'e2-infobox-hover',
+			input: ['radio', 'test', false],
+			addcb: function(elem){console.log('added', elem)},
+			removecb: function(elem){console.log('removed', elem)}
 		},
 		
 		_create: function() {
@@ -36,17 +42,17 @@
 			var title = '';
 			var body = '';
 			if (this.options.keytype == 'user') {
-				title = this.options.title || item.displayname || item.name;
+				title = $.trim(this.options.title || item.displayname) || item.name;
 				body = this.options.body || item.email;
 			} else if (this.options.keytype == 'group') {
-				title = item.displayname || item.name;
+				title = $.trim(item.displayname) || item.name;
 				var count = 0;
 				for (var i=0;i<item['permissions'].length;i++) {
 					count += item['permissions'][i].length;
 				}
 				body = count+' members'
 			} else {
-				title = item.desc_short;
+				title = $.trim(item.desc_short) || item.name;
 				body = ''
 			}
 			
@@ -78,112 +84,65 @@
 			}
 			var img = $('<img data-src="'+src+'" src="'+src+'" class="e2l-thumbnail" alt="Photo" />');
 			if (link) {img = $('<a href="'+link+'" />').append(img)}
-			this.element.append(img, h4, p);
 
-			if (this.options.deleteable) {
-				//this.element.append('<img class="delete" src="'+EMEN2WEBROOT+'/static/images/delete.png" alt="Remove" />');
-				$(this.element).hover(function(){
-					$('img.e2l-thumbnail', this).attr('src', EMEN2WEBROOT+'/static/images/delete.png');
-				}, function() {
-					$('img.e2l-thumbnail', this).attr('src', $('img.e2l-thumbnail', this).attr('data-src'));
-				})
-				
+			// Widget!!
+			var input = ''
+			if (this.options.selectable && this.options.input) {
+				var type = this.options.input[0];
+				var name = this.options.input[1];
+				var state = this.options.input[2];
+				var input = $('<input class="e2-infobox-input" type="'+type+'" name="'+name+'" />');
+				input.val(this.options.name);
+				input.attr('checked', state);
 			}
-			// console.log('time.e2-timeago');
+
+			// Put it all together..
+			this.element.append(img, input, h4, p);
+			
+			this.element.click(function() {
+				var input = $('input', self.element);
+				var state = input.attr('checked')
+				if (state) {
+					input.attr('checked',null);
+				} else {
+					input.attr('checked','checked');					
+				}
+			});
+			
+			// // Hover classes
+			// if (this.options.hover) {
+			// 	this.element.hover(function(){
+			// 		$(this).addClass(self.options.hover);
+			// 	}, function() {
+			// 		$(this).removeClass(self.options.hover);
+			// 	});
+			// }
+			// 
+			// // Selected classes
+			// if (this.options.selectable && this.options.toggle) {
+			// 	this.element.click(function() {self.toggle($(this))})
+			// };
+
 			// $('time.e2-timeago', this.element).timeago();
 			this.built = 1;
-		}
-	});
-	
-	
-
-    $.widget("emen2.QuerySelectControl", {
-		options: {
-			rectype: null,
-			children: null,
-			show: false,
-			cb_select: function(name) {}
 		},
 		
-		_create: function() {
-			var self = this;
-			this.options.rectype = this.element.attr('data-rectype') || this.options.rectype;			
-			if (this.options.show) {
-				this.build();				
+		toggle: function(elem) {
+			var keytype = elem.attr('data-keytype');
+			var name = elem.attr('data-name');
+			var state = elem.hasClass(this.options.toggle);
+			if (state) {
+				this.options.removecb(elem);
 			} else {
-				this.element.click(function(){self.build()});
+				this.options.addcb(elem);
 			}
-		},
-
-		build: function() {
-			var self = this;
-			this.dialog = $('<div>'+$.spinner()+'</div>');
-			this.element.append(this.dialog);
-			this.dialog.attr("title", "Select Record");
-			
-			var c = [];
-			if (this.options.rectype) {
-				c.push(['rectype','==',this.options.rectype]);
-			}
-			if (this.options.children) {
-				c.push(['children','==',this.options.children]);
-			}
-			var query = {
-				'c':c,
-			}
-
-			$.jsonRPC.call("query", query, function(data) {
-				var recs = data['names'];
-				var rq = {
-					'names':recs,
-					'viewdef': '$@recname() $$creator $$creationtime',
-					'table': true,
-					'markup': false
-				}
-				
-				$.jsonRPC.call('renderview', rq, function(rendered) {
-					self.dialog.empty();
-					var table = $('<table cellspacing="0" cellpadding="0"><thead></thead><tbody></tbody></table>');
-					var trh = $('<tr/>');
-					$.each(rendered['headers'][null], function() {
-						trh.append('<th>'+this[0]+'</th>');
-					});
-
-					for (var i=0;i<recs.length;i++) {
-						var row = rendered[recs[i]];
-						var tr = $('<tr/>');
-						for (var j=0;j<row.length;j++) {
-							var td = $('<td data-name="'+recs[i]+'" class="e2l-a">'+row[j]+'</td>');
-							tr.append(td);
-						}
-						$('tbody', table).append(tr);
-					}
-
-					$('thead', table).append(trh)
-					self.dialog.append(table);
-					
-					$('.e2l-a', table).click(function() {
-						var name = $(this).attr('data-name');
-						self.options.cb_select(name);
-						self.dialog.dialog('close');
-					});
-
-				});
-			});
-
-			if (!this.options.embed) {
-				this.dialog.dialog({
-					width: 800,
-					height: $(window).height()*0.8,
-					modal: true,
-					autoOpen: true
-				});
-			}
+			elem.toggleClass(this.options.toggle);
 		}
 	});
-
-
-
+	
+	
+	// Search for users, groups, parameters, etc..
+	
     $.widget("emen2.FindControl", {
 
 		options: {
@@ -263,8 +222,8 @@
 		show: function() {
 			this.build();		
 			if (this.element.val() != "+") {
-				this.searchinput.val(this.element.val());
-				this.options.value = this.searchinput.val();
+				// this.searchinput.val(this.element.val());
+				// this.options.value = this.searchinput.val();
 			}
 			this.dialog.dialog('open');
 			this.search(this.options.value);		

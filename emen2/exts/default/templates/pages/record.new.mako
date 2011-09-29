@@ -13,77 +13,63 @@
 	var rec = caches['record'][null]
 
 	// Save Record
-	$('#newrecord').MultiEditControl({show: true});
-
-	//$('#newrecord .e2l-editable').each(function() {
-	//	$(this).EditControl({show:true});
-	//});
-
-	// Permissions Editor
-	$('#e2l-editbar-permissions').EditbarControl({
-		'box':'#e2l-editbar-permissions-box'
+	$('#e2-form-newrecord').MultiEditControl({
+		show: true,
+		permissions: $('#e2-form-permissions')
 	});
-	$('#e2l-editbar-newrecord').EditbarControl({
-		'box':'#e2l-editbar-newrecord-box'
+
+	$('.e2l-newtab').TabControl({});
+
+	$('.e2l-newtab').TabControl('setcb','permissions', function(page){
+		$('#e2-form-permissions', page).PermissionsControl({
+			name: 'None',
+			show: true
+		})
 	})
-
-	// $('#e2-newrecord-permissions').PermissionControl({
-	//	name: 'None',
-	//	edit: true,
-	//	embed: true
-	//});	
-
-	// Change the text of file upload elements..
-	$('.e2l-editable-binary .e2l-label').html('(The record must be saved before files can be attached)');
-
-	// Change the Record type
-	//$('#e2l-editbar-newrecord-recorddef').EditbarControl({
-	//	width:300,
-	//	cb: function(self){
-	//		self.popup.NewRecordControl({
-	//			embedselector: true,
-	//			showselector: true,
-	//			parent: parent.name
-	//			});
-	//		}
-	//});
 </%block>
 
-<ul class="e2l-menu e2l-editbar e2l-clearfix">
 
-	<li id="e2l-editbar-newrecord">
-		<span class="e2l-a e2l-label">Change Protocol <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></span>
-	</li>
+
+<div class="e2l-newtab e2l-cf" data-group="newrecord">
+
+	<ul class="e2l-cf">
+		<li data-tab="newrecord"><a>Change Protocol ${buttons.caret()}</a></li>
+		<li data-tab="info" class="e2l-newtab-active"><a>Info ${buttons.caret()}</a></li>
+		<li data-tab="permissions"><a>Permissions ${buttons.caret()}</a></li>
+	</ul>
+
+	<div data-tab="newrecord">
+		Change protocol...
+	</div>
 	
-	<li id="e2l-editbar-permissions">
-		<span class="e2l-a e2l-label">
-			Permissions
-			<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
-		</span>
-	</li>
-
-</ul>
-
-<div class="e2l-editbar-area">
-	<div class="e2l-menu-box e2l-hide" id="e2l-editbar-newrecord-box">Change Protocol...</div>
-
-	<div class="e2l-menu-box e2l-hide" id="e2l-editbar-permissions-box">Permissions...</div>
-
-	<div class="e2l-menu-box">
+	<div data-tab="info" class="e2l-newtab-active">
 		<p>
 			You are creating a new <a href="">${recdef.desc_short}</a> record as a child of <a href="">${recnames.get(rec.name, rec.name)}</a>
 		</p>
-		##<p><strong>Protocol description:</strong></p>
+		<p><strong>Protocol description:</strong></p>
 		${markdown.markdown(recdef.desc_long)}
 	</div>
+
+	<div data-tab="permissions">
+		## This form will be copied into the main form during submit
+		<form id="e2-form-permissions"></form>
+	</div>
+
 </div>
 
+
 ## Main rendered record
-<form id="newrecord" name="rendered" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/edit/" class="e2-view" data-viewtype="${viewtype}" data-name="None" data-edit="True">
-	${rendered}
-	<div class="e2l-controls">
-		<input type="button" value="Save">
+
+<form id="e2-form-newrecord" data-name="None" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/new/${newrec.rectype}/" >
+
+	<div id="rendered" class="e2-view" data-viewtype="${viewtype}" data-name="None">
+		${rendered}
 	</div>
+	
+	<div class="e2l-controls">
+		<input type="submit" value="Save">
+	</div>
+
 </form>
 
 

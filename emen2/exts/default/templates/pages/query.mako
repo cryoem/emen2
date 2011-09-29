@@ -18,8 +18,9 @@
 
 	<div class="e2-query">
 
-		<ul class="e2l-menu e2l-clearfix e2l-editbar e2-query-header">
-		</ul>
+		<div class="e2l-newtab">
+			<ul class="e2-query-header e2l-cf"></ul>
+		</div>
 		
 		<table class="e2-query-table e2l-shaded" cellspacing="0" cellpadding="0"> 
 			<thead>

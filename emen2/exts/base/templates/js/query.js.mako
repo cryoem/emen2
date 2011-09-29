@@ -137,7 +137,7 @@
 			}
 			
 			this.built = 1;
-			this.container = $('<div class="e2l-clearfix" />');
+			this.container = $('<div class="e2l-cf" />');
 						
 			var m = $(' \
 				<table cellpadding="0" cellspacing="0" class="e2l-shaded" > \
@@ -449,70 +449,68 @@
 		build: function() {
 			var self = this;
 
-			// Build control elements
-			// Record count
-			var length = $('<li><span class="e2l-label e2l-a"><span class="e2-query-length">Records</span> <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
-			length.EditbarControl({
-				width: 300,
-				cb: function(s){s.popup.QueryStatsControl({q:self.options.q})}
-			});
+			// Tab control
+			var tab = $('.e2l-newtab', this.element)
+			var ul = $('.e2l-newtab ul', this.element);
 			
+			// Statistics
+			ul.append('<li data-tab="stats"><span class="e2l-a"><span class="e2-query-length">Records</span>'+$.caret()+'</span></li>');
+			ul.append('<li data-tab="controls"><span class="e2l-a">Query '+$.caret()+'</span></li>')
+
 			// Row count
 			var count = $('<select name="count" class="e2l-small"></select>');
 			count.append('<option value="">Rows</option>');
-			$.each([1, 10,50,100,500,1000], function() {
+			$.each([1, 10,100,1000], function() {
 				count.append('<option value="'+this+'">'+this+'</option>');
 			});
 			count.change(function() {
 				self.options.q['pos'] = 0;
 				self.query();
 			})			
-			count = $('<li class="e2l-float-right" />').append(count);
-
-			// Page controls			
-			var pages = $('<li class="e2l-float-right e2-query-pages"></li>');
+			count = $('<li class="e2l-float-right" />').append($('<span class="e2l-a"></span>').append(count));
+			ul.append(count);
+			
+			// Pages
+			ul.append('<li class="e2l-float-right e2-query-pages"></li>');
 
 			// Activity spinner
-			var spinner = $('<li class="e2l-float-right">'+$.spinner(false)+'</li>');
+			ul.append('<li class="e2l-float-right e2-query-activity"><span>'+$.spinner(false)+'</span></li>');
+			
+			// Create new record
+			// if (this.options.rectype && this.options.parent != null) {
+			if (true) {
+				var create = $(' \
+					<li class="e2l-float-right"> \
+						<span><input class="e2l-small" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="button" value="New '+this.options.rectype+'" /></span> \
+					</li>');
+				ul.append(create);
+			}			
 
-			// Create a new child record
-			var create = "";
-			if (this.options.rectype && this.options.parent != null) {
-				var create = $('<li class="e2l-float-right"><input class="e2l-small" data-action="reload" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="submit" value="New '+this.options.rectype+'" /></li>');
-				$('input', create).NewRecordControl({});
-			}
+			// Init tab control
+			tab.TabControl({});
 
-			// Add basic controls
-			$('.e2-query-header', this.element).append(create, length, pages, count, create, spinner);
-
-			// Kindof hacky..
-			this.build_querycontrol();
-						
+			// Add callbacks
+			tab.TabControl('setcb', 'stats', function(page) {
+				page.QueryStatsControl({
+					q: self.options.q,
+					show: true
+				})
+			});
+			tab.TabControl('setcb', 'controls', function(page) {
+				page.QueryControl({
+					q: self.options.q,
+					keywords: false,
+					cb: function(test, newq) {self.query(newq)} 
+				});	
+			});
+			
 			// Set the control values from the current query state
 			this.update_controls();
 
 			// Rebind to table header controls
-			this.rebuild_thead();
+			// this.rebuild_thead();
 		},
-		
-		build_querycontrol: function() {
-			// Build the Query control
-			if (!this.options.qc) {return}
-			var self = this;
-			var q = $('<li><span class="e2l-a e2l-label">Query <img src="'+EMEN2WEBROOT+'/static/images/caret_small.png" alt="^" /></span></li>');
-			q.EditbarControl({
-				width: 700,
-				cb: function(self2) {
-					self2.popup.QueryControl({
-						q: self.options.q,
-						keywords: false,
-						cb: function(test, newq) {self.query(newq)} 
-					});
-				}
-			});		
-			$('.e2-query-header', this.element).append(q);
-			
-		},
+
 		
 		query_download: function() {
 			// Get all the binaries in this table, and prepare a download link.
@@ -533,7 +531,7 @@
 			newq = newq || this.options.q;
 			$('.e2-query-header .e2l-spinner', this.element).show();
 			var self = this;
-			var count = $('.e2-query-header select[name=count]').val();
+			var count = $('.e2-query-header select[name=count]', this.element).val();
 			if (count) {newq["count"] = parseInt(count)}
 			newq['names'] = [];
 			newq['recs'] = true;
@@ -566,11 +564,12 @@
 		update: function(q) {
 			// Callback from a query; Update the table and all controls
 			this.options.q = q;
-			$('.e2-query-header .e2-query-control').QueryControl('update', this.options.q)					
+			$('.e2-query-control', this.element).QueryControl('update', this.options.q)					
+
 			this.update_controls();
 			this.rebuild_table();
 			this.options.q['stats'] = true;
-			$('.e2-query-header .e2l-spinner', this.element).hide();					
+			$('.e2-query-activity .e2l-spinner', this.element).hide();					
 		},	
 		
 		update_controls: function() {
@@ -609,9 +608,9 @@
 
 						
 			// Update the page count
-			var pages = $('.e2-query-header .e2-query-pages');
+			var pages = $('.e2-query-pages', this.element);
 			pages.empty();
-			var pc = $('<span></span>');
+			var pc = $('<span class="e2-query-extraspacing"></span>');
 			
 			// ... build the pagination controls
 			var count = this.options.q['count'];
@@ -623,11 +622,11 @@
 				var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count'])-1;
 				var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}			
 
-				var p1 = $('<span data-pos="0" class="e2l-a">&laquo;</span>').click(setpos);
-				var p2 = $('<span data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'" class="e2l-a">&lsaquo;</span>').click(setpos);
-				var p  = $('<span class="e2l-label"> '+(current+1)+' / '+(pagecount+1)+' </span>');
-				var p3 = $('<span data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'" class="e2l-a">&rsaquo;</span>').click(setpos);
-				var p4 = $('<span data-pos="'+(pagecount*this.options.q['count'])+'" class="e2l-a">&raquo;</span>').click(setpos);
+				var p1 = $('<span class="e2l-a" data-pos="0">&laquo;</span>').click(setpos);
+				var p2 = $('<span class="e2l-a" data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'">&lsaquo;</span>').click(setpos);
+				var p  = $('<span> '+(current+1)+' / '+(pagecount+1)+' </span>');
+				var p3 = $('<span class="e2l-a" data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'">&rsaquo;</span>').click(setpos);
+				var p4 = $('<span class="e2l-a" data-pos="'+(pagecount*this.options.q['count'])+'">&raquo;</span>').click(setpos);
 
 				if (current > 0) {pc.prepend(p2)}
 				if (current > 1) {pc.prepend(p1, '')}

@@ -44,7 +44,7 @@ for k,v in d.items():
 % for k in sorted(d.keys()):
 
 <a name="${k}"></a>
-<h1 class="e2l-clearfix">${str(k).capitalize()}</h1>
+<h1 class="e2l-cf">${str(k).capitalize()}</h1>
 
 	% for paramdef in d[k]:
 		${buttons.infobox(paramdef, autolink=True)}

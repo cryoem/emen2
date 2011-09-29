@@ -83,8 +83,8 @@ class HTMLTab():
 
 	def getclass_page(self, name):
 		if name==self.active:
-			return "e2l-clearfix e2l-tab-page e2l-tab-active"
-		return "e2l-clearfix e2l-tab-page"
+			return "e2l-cf e2l-tab-page e2l-tab-active"
+		return "e2l-cf e2l-tab-page"
 
 	#id="buttons_main" class="buttons buttons_main"
 	def getid_buttons(self):

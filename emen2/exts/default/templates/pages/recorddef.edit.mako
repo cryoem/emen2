@@ -132,7 +132,7 @@
 
 			var p = $('<div id="page_recdefviews_'+t+'" data-t="'+t+'" class="e2l-tab-page" data-tabgroup="recdefviews" data-tabname="'+t+'" />');
 
-			var ul = $('<ul class="e2l-clearfix" />');
+			var ul = $('<ul class="e2l-cf" />');
 			var oname = $('<li>Name: <input type="text" name="viewkey_'+t+'" data-t="'+t+'" value="'+t+'" /></li>');
 			var ocopy = $('<li>Copy: <select name="viewcopy_'+t+'" data-t="'+t+'" "/></li>');
 			var oremove = $('<li class="e2-editdefs-remove" data-t="'+t+'"><img src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /> Remove</li>');
@@ -298,7 +298,7 @@ ${buttons.buttons(pages_recdefviews)}
 	% for k,v in pages_recdefviews.content.items():
 		<%call expr="buttons.pagewrap(pages_recdefviews,k)">
 
-				<ul class="recdef_edit_actions e2l-clearfix">
+				<ul class="recdef_edit_actions e2l-cf">
 					<li>Name: <input type="text" value="${k}" data-t="${k}" name="viewkey_${k}" /></li>
 					<li>Copy: <select name="viewcopy_${k}" data-t="${k}" /></li>
 					<li class="recdef_edit_action_remove" data-t="${k}"><img src="${EMEN2WEBROOT}/static/images/remove_small.png" alt="Remove" /> Remove</li>

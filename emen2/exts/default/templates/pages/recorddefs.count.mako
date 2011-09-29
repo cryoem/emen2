@@ -53,7 +53,7 @@ Protocol Name Index
 % for k in sorted(d.keys(), reverse=True):
 
 <a name="${k}"></a>
-<h1 class="e2l-clearfix">${labels.get(k)}</h1>
+<h1 class="e2l-cf">${labels.get(k)}</h1>
 
 	% for recorddef in d[k]:
 		<%

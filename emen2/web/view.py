@@ -156,10 +156,10 @@ class _View(object):
 		'''	
 		
 		# HTTP Method and HTTP ETags (cache control)
-		self.__request_method = request_method		
+		self.request_method = (request_method or 'GET').lower()
 		
 		# Request headers
-		self.__request_headers = request_headers or {}
+		self.request_headers = request_headers or {}
 
 		# Response headers
 		self.__headers = {}

@@ -3080,65 +3080,61 @@ class DB(object):
 		return self._mapcommit('record', names, 'removegroup', ctx, txn, groups)
 
 
+
 	# This method is for compatibility with the web interface widget..
 	@publicmethod("record.setpermissions_compat", write=True)
 	@ol('names')
-	def setpermissions(self, names, permissions, groups, recurse=None, overwrite_users=False, overwrite_groups=False, ctx=None, txn=None):
+	def setpermissions(self, names, addumask=None, addgroups=None, removeusers=None, removegroups=None, recurse=None, overwrite_users=False, overwrite_groups=False, filt=True, ctx=None, txn=None):
 		"""Update a Record's permissions.
 
 		:param names: Record name(s)
-		:param permissions:
-		:param groups:
+		:keyword addumask:
+		:keyword addgroups:
+		:keyword removeusers:
+		:keyword removegroups:
 		:keyword recurse:
 		:keyword overwrite_users:
 		:keyword overwrite_groups:
+		:keyword filt:
 		"""
-		allusers = set()
-		for i in permissions:
-			allusers |= set(i)
-
-		groups = set(groups or [])
+		
 		recs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
 		crecs = []
+
 		for rec in recs:
-			current = rec.members()
-
-			# Calculate changes
-			addusers = allusers - current
-			delusers = current - allusers
-			addgroups = groups - rec.groups
-			delgroups = rec.groups - groups
-			added = []
-			for old,new in zip(rec.permissions, permissions):
-				added.append(set(new)-set(old))
-
-			# Apply the changes
-			rec.setpermissions(permissions)
-			rec.setgroups(groups)
-			crecs.append(rec)
-
-			# Apply the changes to the children
+			# Get the record and children
+			children = [rec]
 			if recurse:
-				children = self.bdbs.record.rel([rec.name], recurse=recurse, ctx=ctx, txn=txn).get(rec.name, set())
-				childrecs = self.bdbs.record.cgets(children, ctx=ctx, txn=txn)
-				for child in childrecs:
-					if overwrite_users:
-						child.setpermissions(permissions)
-					else:
-						child.removeuser(delusers)
-						child.addumask(added)
+				c = self.bdbs.record.rel([rec.name], recurse=recurse, ctx=ctx, txn=txn).get(rec.name, set())
+				c = self.bdbs.record.cgets(c, ctx=ctx, txn=txn)
+				children.extend(c)
+				
+			# Apply the operations
+			for crec in children:
+				# Filter out items we can't edit..
+				if not crec.isowner() and filt:
+					continue
 
-					if overwrite_groups:
-						child.setgroups(groups)
-					else:
-						child.removegroup(delgroups)
-						child.addgroup(addgroups)
+				if removeusers:
+					crec.removeuser(removeusers)
 
-					crecs.append(child)
+				if removegroups:
+					crec.removegroup(removegroups)
 
+				if overwrite_users:
+					crec['permissions'] = addumask
+				elif addumask:
+					crec.addumask(addumask)
+
+				if overwrite_groups:
+					crec['groups'] = addgroups
+				elif addgroups:
+					crec.addgroups(addgroups)
+				
+				crecs.append(crec)
+				
 		return self.bdbs.record.cputs(crecs, ctx=ctx, txn=txn)
-
-
+				
 
 
 	###############################

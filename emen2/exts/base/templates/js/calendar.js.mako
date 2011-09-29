@@ -64,7 +64,7 @@
 		build_options: function() {
 			var self = this;
 			var options = $(' \
-				<ul class="e2l-tab-buttons e2l-clearfix"> \
+				<ul class="e2l-tab-buttons e2l-cf"> \
 					<li class="e2l-button e2l-tab-active">Repeat</li> \
 					<li class="e2l-button">Alerts</li> \
 					<li class="e2l-button">Permissions</li> \

@@ -47,7 +47,7 @@ for k,v in d.items():
 % for k in sorted(d.keys()):
 
 <a name="${k}"></a>
-<h1 class="e2l-clearfix">${k.capitalize()}</h1>
+<h1 class="e2l-cf">${k.capitalize()}</h1>
 
 	% for group in d[k]:
 		<%buttons:infobox item="${group}" autolink="True" />

@@ -117,6 +117,9 @@ class Users(View):
 		else:
 			users = self.db.getuser(self.db.getusernames())
 
+		#for user in users:
+		#	user.getdisplayname(lnf=True)
+		
 		if not users:
 			self.template = "/simple"
 			self.set_context_item("content","""No users found, or insufficient permissions to view user roster.""")

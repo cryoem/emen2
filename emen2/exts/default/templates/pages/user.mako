@@ -9,7 +9,7 @@
 </h1>
 
 
-<div class="e2l-clearfix">
+<div class="e2l-cf">
 
 	<div class="e2l-float-right">
 		${pages_user_util.page_photo(user, False)}

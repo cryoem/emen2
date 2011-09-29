@@ -542,6 +542,17 @@ class PermissionsDBObject(BaseDBObject):
 	# Permissions methods
 	#################################
 
+	def _check_permformat(self, value):
+		if hasattr(value, 'items'):
+			v = [[],[],[],[]]
+			v[0] = emen2.util.listops.check_iterable(value.get('read', []))
+			v[1] = emen2.util.listops.check_iterable(value.get('comment', []))
+			v[2] = emen2.util.listops.check_iterable(value.get('write', []))
+			v[3] = emen2.util.listops.check_iterable(value.get('admin', []))
+			value = v
+		return [[unicode(y) for y in x] for x in value]		
+
+
 	def adduser(self, users, level=0, reassign=False):
 		"""Add a user to the record's permissions"""
 		if not users:
@@ -571,7 +582,9 @@ class PermissionsDBObject(BaseDBObject):
 		self.setpermissions(p)
 
 
-	def addumask(self, umask, reassign=False):
+	def addumask(self, value, reassign=False):
+		umask = self._check_permformat(value)
+
 		p = [set(x) for x in self.permissions]
 		umask = [set(x) for x in umask]
 		users = reduce(set.union, umask)
@@ -601,8 +614,8 @@ class PermissionsDBObject(BaseDBObject):
 
 
 	def setpermissions(self, value):
-		# You could skip validation here, but commits go through update(), and get validated that way.
-		value = [[unicode(y) for y in x] for x in value]
+		value = self._check_permformat(value)
+
 		if len(value) != 4:
 			raise ValueError, "Invalid permissions format: %s"%value
 
@@ -629,6 +642,7 @@ class PermissionsDBObject(BaseDBObject):
 
 
 	def setgroups(self, groups):
+		groups = emen2.util.listops.check_iterable(groups)
 		return self._set('groups', set(groups), self.isowner())
 
 
