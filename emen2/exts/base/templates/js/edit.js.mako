@@ -262,11 +262,14 @@
 			
 			// Options
 			var form = $('<form name="e2-newrecord" action="" method="get"></form>')
-			form.append('<div class="e2l-options"><ul class="e2l-nonlist"> \
-				<li><input type="checkbox" name="_private" id="e2-newrecord-private" /> <label for="e2-newrecord-private">Private</label></li> \
-				<li><input type="checkbox" name="_copy" id="e2-newrecord-copy" /> <label for="e2-newrecord-copy">Copy values</label></li>  \
-				</ul></div>');
-			form.append('<div class="e2l-controls"><input type="submit" value="New record" /></div>');
+			form.append(' \
+				<ul class="e2l-options e2l-nonlist"> \
+					<li><input type="checkbox" name="_private" id="e2-newrecord-private" /> <label for="e2-newrecord-private">Private</label></li> \
+					<li><input type="checkbox" name="_copy" id="e2-newrecord-copy" /> <label for="e2-newrecord-copy">Copy</label></li>  \
+				</ul> \
+				<ul class="e2l-controls e2l-nonlist"> \
+					<li><input type="submit" value="New record" /></li> \
+				</ul>');
 
 			if (this.options.private) {
 				$("input[name=private]", form).attr("checked", "checked");
@@ -384,16 +387,18 @@
 			this.built = 1;
 			var self = this;			
 			
+			// Build the individual editing controls
 			$(this.options.selector).EditControl({show:true})
 
 			$('input[type=submit]', this.element).click(function(e){self.save(e)});
 
-			// Build controls
+			// Build overall controls
 			if (this.options.controls) {
-				var controls = $('<div class="e2l-controls e2l-fw"></div>');
-				controls.append('<input type="button" name="show" value="Edit" class="e2l-hide" />');
-				controls.append('<textarea class="e2l-fw" type="text" name="comments" placeholder="Reason for changes" /></textarea>');				
-				controls.append('<input class="e2l-float-right" type="button" name="save" value="Save"/>');
+				var controls = $(' \
+					<textarea class="e2l-fw" name="comments" placeholder="Reason for changes"></textarea> \
+					<ul class="e2l-controls e2l-nonlist"> \
+						<li><input type="button" name="save" value="Save" /></li> \
+					</ul>');
 				$('input[name=show]', controls).click(function() {self.show()})
 				$('input[name=cancel]', controls).click(function() {self.hide()})
 				$('input[name=save]', controls).click(function(e){self.save(e)})
@@ -422,8 +427,9 @@
 			
 			// Copy comments
 			if (this.options.controls) {
-				var comments = $('input[name=comments]', this.options.controls);
+				var comments = $('textarea[name=comments]', this.options.controls);
 				var cloned = $('<input type="hidden" name="comments" />')
+				console.log('saving comments:', comments.val());
 				cloned.val(comments.val());
 				copied.append(cloned);
 			}

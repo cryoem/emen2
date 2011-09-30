@@ -192,7 +192,7 @@ class Record(RecordBase):
 
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/permissions/$', name='edit/permissions')
-	def edit_permissions(self, name=None, permissions=None, groups=None, recurse=False, recurse_mode=None, filt=False):
+	def edit_permissions(self, name=None, permissions=None, groups=None, action=None, filt=False):
 		permissions = permissions or {}
 		groups = groups or []
 		users = set()
@@ -205,13 +205,13 @@ class Record(RecordBase):
 		
 		
 		if self.request_method == 'post':
-			if recurse_mode == 'add':
+			if action == 'add':
 				self.db.setpermissions(names=name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt)			
 
-			elif recurse_mode == 'remove':
+			elif action == 'remove':
 				self.db.setpermissions(names=name, recurse=-1, removeusers=users, removegroups=groups, filt=filt)			
 				
-			elif recurse_mode == 'overwrite':
+			elif action == 'overwrite':
 				self.db.setpermissions(names=name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt, overwrite_users=True, overwrite_groups=True)			
 				
 			else:

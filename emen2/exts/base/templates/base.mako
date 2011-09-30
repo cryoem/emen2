@@ -46,15 +46,15 @@
 		## <script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.timeago.js"></script>
 
 		## Base EMEN2 widgets
+		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/util.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/edit.js"></script>
-		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/file.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/attachments.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/find.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/permissions.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/relationships.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/query.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/tile.js"></script>
-		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/calendar.js"></script>
-		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/util.js"></script>
+		## <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/calendar.js"></script>
 	</%block>
 
 	<script type="text/javascript">

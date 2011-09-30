@@ -450,8 +450,8 @@
 			var self = this;
 
 			// Tab control
-			var tab = $('.e2l-newtab', this.element)
-			var ul = $('.e2l-newtab ul', this.element);
+			var tab = $('.e2-tab', this.element)
+			var ul = $('.e2-tab ul', this.element);
 			
 			// Statistics
 			ul.append('<li data-tab="stats"><span class="e2l-a"><span class="e2-query-length">Records</span>'+$.caret()+'</span></li>');

@@ -13,11 +13,6 @@ h4 {
 	border-bottom: solid 1px #ccc;
 }
 
-/*.paramdef {
-	font-weight:bold;
-}
-*/
-
 /******************************************
  		Basic EMEN2 Layouts
 
@@ -101,13 +96,28 @@ a:hover,
 }
 
 /* Unselectable elements */
-.e2l-a, .e2l-unselect {
+.e2l-a,
+.e2l-unselect
+{
 	-webkit-user-select: none;
 	-moz-user-select: none;	
 }
 
 
-/***** e2l-menu: Drop-down menu *****/
+/* I often show actions along 
+	the right side of a header */
+h1 .e2l-label {
+	float:right;
+	font-size:12pt;
+	margin:10px;
+}
+h4 .e2l-label {
+	font-weight: normal;
+	float: right;
+}
+
+
+/***** e2l-menu: Navigation *****/
 .e2l-menu {
 	list-style:none;
 	padding-left: 0px;
@@ -153,17 +163,6 @@ a:hover,
 	display: block;
 }
 
-/* Experiments... */
-.e2l-menu-box {
-/*	position:absolute;
-	width:300px;
-	left:100px;
-	z-index:1000; */
-	padding:10px;
-	background:#eee;
-	border:solid 1px #ccc;
-	border-top:none;
-}
 
 /***** e2l-alert: Alerts, notifications, and errors *****/
 .e2l-alert {
@@ -183,28 +182,32 @@ a:hover,
 
 
 /***** e2l-controls: Control boxes *****/
-
-.e2l-options {
-	clear:both;
-	float:right;
-	margin:10px;
-	margin-bottom:0px;
-}
-.e2l-controls {
-	clear:both;
-	float:right;
-	margin:10px;
+.e2l-options, 
+.e2l-advanced,
+.e2l-controls
+{
+	clear: both;
+	float: right;
+	margin: 10px;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding-bottom:10px;
 }
 
 
 
 /***** e2l-spinner: Progress indicator *****/
 
+/* This is usually just drawn with an inline-style
+		display:none
+	and displayed/hidden with jQuery.show()/hide()/toggle() */
 .e2l-spinner {
+
 }
 
-
 /***** e2l-tab: Page and tab widget *****/
+
+/* todo: Merge with e2-tab widget */
 .e2l-tab-pages > .e2l-tab-page {
 	border: solid 1px #ccc;
 	border-top: none;
@@ -234,14 +237,18 @@ a:hover,
 	border-bottom: none;
 	outline: solid 1px white;
 }
-/* should these be in base template? */
+
+/* Should this be in base template? 
+	Top-margins on the first block element in a page
+	can cause separation between the tabs and
+	the page area...
+*/
 .e2l-tab-page > p {
 	margin-top:0px;
 }
 
 
 /***** e2l-float: Floating items *****/
-
 .e2l-float-left {
 	float:left !important;
 }
@@ -255,8 +262,7 @@ a:hover,
 }
 
 
-/***** e2l-cf: Correct wrapping around floating elements *****/
-
+/***** e2l-cf: "Clearfix", for correct wrapping around floating elements *****/
 .e2l-cf {
 	clear:both;
 }
@@ -268,46 +274,37 @@ a:hover,
     visibility: hidden;	
 }
 
-h1 .e2l-label {
-	float:right;
-	font-size:12pt;
-	margin:10px;
-}
-h4 .e2l-label {
-	font-weight: normal;
-	float: right;
-}
 
-/***** e2l-newtab: NEW editing bar *****/
-.e2l-newtab {
+/***** e2-tab: NEW editing bar *****/
+.e2-tab {
 	position:relative;
 }
-.e2l-newtab > ul {
+.e2-tab > ul {
 	padding-left: 0px;
 	list-style: none;
 	margin: 0px;
 	border-bottom: solid 1px #ccc;
 	background-image: -moz-linear-gradient(#fff, #fff, #eee);
 }
-.e2l-newtab > ul > li {
+.e2-tab > ul > li {
 	float: left;
 	border-right: solid 1px #ccc;
 	margin-bottom:-1px;
 }
-.e2l-newtab > ul > li.e2l-float-right {
+.e2-tab > ul > li.e2l-float-right {
 	border-left: solid 1px #ccc;
 	border-right: none;
 }
-.e2l-newtab > ul > li img {
+.e2-tab > ul > li img {
 	vertical-align:middle;
 }
-.e2l-newtab > ul > li > a,
-.e2l-newtab > ul > li > span
+.e2-tab > ul > li > a,
+.e2-tab > ul > li > span
 {
 	display:inline-block;
 	padding:5px;
 }
-.e2l-newtab > div {
+.e2-tab > div {
 	display:none;
 	padding:10px;
 	border: solid 1px #ccc;
@@ -315,10 +312,10 @@ h4 .e2l-label {
 	background: #eee;
 	z-index: 1000;
 }
-li.e2l-newtab-active {
+li.e2-tab-active {
 	background: #eee;
 }
-div.e2l-newtab-active {
+div.e2-tab-active {
 	display: block;
 }
 
@@ -341,7 +338,6 @@ div.e2l-newtab-active {
 
 
 /***** e2-query: Query Results *****/
-
 .e2-query {
 	
 }
@@ -350,8 +346,7 @@ div.e2l-newtab-active {
 	padding-left: 0px;
 }
 .e2-query .e2-query-table li {
-/*	float: left;
-*/	margin-right:10px;
+	margin-right:10px;
 }
 .e2-query-extraspacing span {
 	padding-right: 5px;
@@ -400,14 +395,18 @@ div.e2l-newtab-active {
 	background: <%self:ADDED />;
 }
 
+/* Non-floating InfoBoxes */
 .e2-comments .e2-infobox,
-.e2l-fw .e2-infobox
+.e2l-fw .e2-infobox,
+#e2-relationships .e2-infobox
 {
+	clear: both;
 	width: auto;
 	float: none;
 	margin-right: 0px;
 }
 
+/* Full-width textareas */
 .e2l-fw textarea,
 textarea.e2l-fw
 
@@ -424,49 +423,50 @@ textarea.e2l-fw {
 /***** e2-wordcount: Wordcount widget *****/
 
 .e2-wordcount-count {
-	text-align:right;
-	padding-top:10px;
-	padding-bottom:10px;
+	text-align: right;
+	padding-top: 10px;
+	padding-bottom: 10px;
 }
 .e2-wordcount-error {
-	color:<%self:REMOVED />;
+	color: <%self:REMOVED />;
 }
 
 
 /***** e2-siblings: Sibling relationship widget *****/
 
 .e2-siblings h1 {
-	margin-bottom:10px;
+	margin-bottom: 10px;
 }
 .e2-siblings li {
-	margin-left:10px;
-	list-style-type:none;
+	margin-left: 10px;
+	list-style-type: none;
 }
 .e2-siblings li.e2-siblings-active {
-	list-style-type:disc;
+	list-style-type: disc;
 }
 
 
 /***** e2-map: Relationship Map *****/
 
-/* total width per item should be 249px */
+/* This very sensitive to changes. Be careful! */
+/* Total width per item should be 249px */
 /* Nested lists */
 .e2-map.e2-map-children ul {
-	padding-left:0px;
-	margin-left:249px;	
+	padding-left: 0px;
+	margin-left: 249px;	
 }
 .e2-map.e2-map-parents ul {
-	padding-left:0px;
-	margin-left:-249px;	
+	padding-left: 0px;
+	margin-left: -249px;	
 	/* text-align:right; */
 }
 
 /* List items */
 .e2-map li {
-	list-style:none;
-	padding-bottom:4px;
-	position:relative;	
-	width:249px;
+	list-style: none;
+	padding-bottom: 4px;
+	position: relative;	
+	width: 249px;
 }
 
 .e2-map ul li a {
@@ -563,7 +563,7 @@ textarea.e2l-fw {
 	text-align: center
 }
 
-.e2-tile .controls {
+.e2-tile .e2l-controls {
 	margin: 0px;
 	display: block;
 	padding: 0px;

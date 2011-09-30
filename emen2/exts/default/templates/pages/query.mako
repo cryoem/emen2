@@ -18,7 +18,7 @@
 
 	<div class="e2-query">
 
-		<div class="e2l-newtab">
+		<div class="e2-tab e2-editbar">
 			<ul class="e2-query-header e2l-cf"></ul>
 		</div>
 		

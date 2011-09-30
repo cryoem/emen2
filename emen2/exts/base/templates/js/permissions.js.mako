@@ -50,36 +50,37 @@
 			this.element.append(this._build_level('Owners', 'admin', permissions[3]));
 			
 			if (this.options.controls) {
-				var options = $('<div class="e2l-options">');
-				options.append(' \
-					Select <span class="e2l-a e2-permissions-all">all</span> / <span class="e2l-a e2-permissions-none">none</span><br /> \
-					<input type="checkbox" name="recurse" value="recurse" id="e2-permissions-mode"><label for="e2-permissions-mode">Recurse</label><br /> \
-					<ul class="e2l-nonlist e2l-hide"> \
-						<li><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label><br /></li> \
-				 		<li><input type="radio" name="recurse_mode" value="add" id="e2-permissions-mode-add" checked><label for="e2-permissions-mode-add">Add to children</label></li> \
-			 			<li><input type="radio" name="recurse_mode" value="remove" id="e2-permissions-mode-remove"><label for="e2-permissions-mode-remove">Remove from children</label></li> \
-				 		<li><input type="radio" name="recurse_mode" value="overwrite" id="e2-permissions-mode-overwrite"><label for="e2-permissions-mode-overwrite">Overwrite children</label></li> \
-				 	</ul>');
-				
-				$('.e2-permissions-all', options).click(function(){$('input:checkbox', self.element).attr('checked', 'checked')});
-				$('.e2-permissions-none', options).click(function() {$('input:checkbox', self.element).attr('checked', null)});
-				
-				$('input[name=recurse]', options).click(function(){
-					var t = $(this);
-					var state = t.attr('checked');
-					if (state) {
-						$('ul', options).show();
-						// $('ul input, ul label', controls).attr('disabled', false);
-					} else {
-						$('ul', options).hide();
-						// $('ul input, ul label', controls).attr('disabled', true);						
-					}
-				})
+				var controls = $(' \
+					<ul class="e2l-options e2l-nonlist"> \
+						<li>Select <span class="e2l-a e2-permissions-all">all</span> or <span class="e2l-a e2-permissions-none">none</span><br /></li> \
+						<li><span class="e2-permissions-advanced e2l-a">'+$.caret('up')+'Advanced</span></li> \
+				 	</ul> \
+					<ul class="e2l-advanced e2l-nonlist e2l-hide"> \
+				 		<li><input type="button" name="add" value="Add selection to children" /></li> \
+			 			<li><input type="button" name="remove" value="Remove selection from children" /></li> \
+				 		<li><input type="button" name="overwrite" value="Overwrite children with selection" /></li> \
+					 	<li><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label><br /></li> \
+					</ul> \
+					<ul class="e2l-controls e2l-nonlist"> \
+						<li><input type="button" name="save" value="Save permissions" /></li> \
+					</ul>');
 
-				var controls = $('<div class="e2l-controls"></div>');
-				controls.append('<input type="button" name="save" value="Save permissions" />');
-				$('input[name=save]', controls).click(function(e){self.save(e)})
-				this.options.controls.append(options, controls);
+
+				$('.e2-permissions-advanced', controls).click(function(){
+					$.caret('toggle', self.options.controls);
+					$('.e2l-controls', self.options.controls).toggle();
+					$('.e2l-advanced', self.options.controls).toggle();
+				});
+				
+				$('.e2-permissions-all', controls).click(function(){$('input:checkbox', self.element).attr('checked', 'checked')});
+				$('.e2-permissions-none', controls).click(function() {$('input:checkbox', self.element).attr('checked', null)});				
+
+				$('input[name=add]', controls).click(function(){self.save('add')})
+				$('input[name=remove]', controls).click(function(){self.save('remove')})
+				$('input[name=overwrite]', controls).click(function(){self.save('overwrite')})
+				$('input[name=save]', controls).click(function(){self.save()});
+				
+				this.options.controls.append(controls);
 			}			
 		},
 		
@@ -103,7 +104,6 @@
 					minimum: minimum,
 					cb: function(w, value) {
 						var level = w.element.attr('data-level');
-						console.log(w, value);
 						self.add(level, value);
 					}
 				});
@@ -146,23 +146,18 @@
 			level.append(d);
 		},
 		
-		save: function(e) {
-			e.preventDefault();
+		save: function(action) {
 			var self = this;
-
+			
 			// Copy options into the form...
-			$('.e2-edit-copied', this.element).remove();
-			var copied = $('<div class="e2-edit-copied e2l-hide"></div>');
-
-			var recurse = $('input[name=recurse]:checked', this.options.controls).val();
-			var recurse_mode = $('input[name=recurse_mode]:checked', this.options.controls).val();
-			var filt = $('input[name=filt]:checked', this.options.controls).val();
-			if (recurse) {
-				copied.append('<input type="hidden" name="recurse" value="'+recurse+'" />');
-				copied.append('<input type="hidden" name="recurse_mode" value="'+recurse_mode+'" />');
+			if (action) {
+				$('.e2-edit-copied', this.element).remove();
+				var copied = $('<div class="e2-edit-copied e2l-hide"></div>');
+				var filt = $('input[name=filt]:checked', this.options.controls).val();
+				copied.append('<input type="hidden" name="action" value="'+action+'" />');
 				copied.append('<input type="hidden" name="filt" value="'+filt+'" />');
+				this.element.append(copied);
 			}
-			this.element.append(copied);
 			
 			// Submit the actual form
 			this.element.submit();			

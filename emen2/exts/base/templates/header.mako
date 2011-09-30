@@ -8,7 +8,7 @@
 	
 	% if USER:
 
-		<li><a href="${EMEN2WEBROOT}/">Home <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
+		<li><a href="${EMEN2WEBROOT}/">Home ${buttons.caret()}</a>
 			<ul>
 				<li><a href="${EMEN2WEBROOT}/sitemap/">Sitemap</a></li>
 				##<li><a href="${ctxt.reverse('Record/children', BOOKMARKS.get('PROJECTS',1), 'project')}">Projects</a></li>
@@ -22,7 +22,7 @@
 		</li>
 
 		<li>
-			<a href="${EMEN2WEBROOT}/query/">Query <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
+			<a href="${EMEN2WEBROOT}/query/">Query ${buttons.caret()}</a>
 			<ul>
 				<li><a href="${EMEN2WEBROOT}/query">All Records</a></li>
 				<li><a href="${EMEN2WEBROOT}/query/rectype.is.grid_imaging/">Imaging Sessions</a></li>
@@ -32,7 +32,7 @@
 			</ul>
 		</li>
 	
-		<li id="bookmarks" data-parent="${USER.record}"><a href="">Bookmarks <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
+		<li id="bookmarks" data-parent="${USER.record}"><a href="">Bookmarks ${buttons.caret()}</a>
 			<ul id="bookmarks">
 				<li><a href="">${buttons.spinner()}</a></li>
 			</ul>
@@ -41,7 +41,7 @@
 	% endif
 
 	% if ADMIN:
-		<li><a href="${EMEN2WEBROOT}/">Admin <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
+		<li><a href="${EMEN2WEBROOT}/">Admin ${buttons.caret()}</a>
 			<ul>
 				<li><a href="">Account Requests</a></li>
 				<li><a href="">User Administration</a></li>
@@ -59,7 +59,7 @@
 
 	<li class="e2l-float-right">
 		% if USER:
-			<a href="${EMEN2WEBROOT}/user/${USER.name}/">${USER.displayname} <img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" /></a>
+			<a href="${EMEN2WEBROOT}/user/${USER.name}/">${USER.displayname} ${buttons.caret()}</a>
 			<ul>				
 				<li><a href="${EMEN2WEBROOT}/user/${USER.name}/edit/">Edit Profile</a></li>
 				<li><a href="${EMEN2WEBROOT}/auth/logout/">Logout</a></li>

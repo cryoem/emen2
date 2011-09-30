@@ -10,9 +10,7 @@
 			deleteable: false,
 			autolink: false,
 			selectable: false,
-			// toggle: 'e2-infobox-selected',
-			// hover: 'e2-infobox-hover',
-			input: ['radio', 'test', false],
+			input: ['radio', '', false],
 			addcb: function(elem){console.log('added', elem)},
 			removecb: function(elem){console.log('removed', elem)}
 		},
@@ -51,6 +49,11 @@
 					count += item['permissions'][i].length;
 				}
 				body = count+' members'
+			} else if (this.options.keytype == 'record') {
+				var recname = caches['recnames'][item.name];
+				title = $.trim(recname || item.rectype);
+				body = item.name + ' ('+item.rectype+')';
+				this.element.attr('data-rectype', item.rectype);
 			} else {
 				title = $.trim(item.desc_short) || item.name;
 				body = ''
@@ -99,9 +102,14 @@
 			// Put it all together..
 			this.element.append(img, input, h4, p);
 			
-			this.element.click(function() {
+			// $('input:checkbox', this.element).click(function(e){e.stopPropagation()});
+			
+			this.element.click(function(e) {
 				var input = $('input', self.element);
 				var state = input.attr('checked')
+				if ($(e.target).is('input:checkbox')) {
+					return
+				}
 				if (state) {
 					input.attr('checked',null);
 				} else {

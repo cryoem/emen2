@@ -22,12 +22,34 @@ window.log = function(){
 		if (show) {
 			return '<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="e2l-spinner" alt="Loading" />'			
 		} else { 
-			return '<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="e2l-spinner e2l-hide" alt="Loading" />'
+			return '<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="e2l-spinner" style="display:none" alt="Loading" />'
 		}
 	}
 	
-	$.caret = function() {
-		return '<img alt="^" src="'+EMEN2WEBROOT+'/static/images/caret_small.png" />';
+	$.caret = function(state, elem) {
+		// Create or toggle a caret up/down icon
+		var caret = [];
+		if (elem) {
+			var caret = $('.e2l-caret', elem);
+		}
+		if (!elem || !caret.length) {
+			caret = $('<img class="e2l-caret" data-state="up" alt="^" src="'+EMEN2WEBROOT+'/static/images/caret_up.png" />');				
+		}
+		state = state || 'down';
+		if (state == 'toggle') {
+			if (caret.attr('data-state')=='up') {state='down'} else {state='up'}
+		}		
+		var up = EMEN2WEBROOT+'/static/images/caret_up.png';
+		var down = EMEN2WEBROOT+'/static/images/caret_down.png';
+		if (state == 'up') {
+			caret.attr('src', up);
+			caret.attr('data-state', 'up');
+		} else if (state == 'down') {
+			caret.attr('src', down);
+			caret.attr('data-state', 'down')
+		}
+		if (elem){return}
+		return $('<div />').append(caret).html()
 	}
 	
 	// Update controls when a record has changed
@@ -39,7 +61,7 @@ window.log = function(){
 			var name = rec.name;
 		}
 		$.rebuild_views('.e2-view[data-name='+name+']');
-		$(".e2-comments").CommentsControl('rebuild');
+		$('.e2-comments').CommentsControl('rebuild');
 		$('.e2-attachments').AttachmentControl('rebuild');	
 	}
 
@@ -227,7 +249,7 @@ window.log = function(){
 	//		basically the same markup
 	$.widget('emen2.TabControl', {
 		options: {
-			active: 'e2l-newtab-active',
+			active: 'e2-tab-active',
 			absolute: false,
 			cbs: {},
 			hidecbs: {}

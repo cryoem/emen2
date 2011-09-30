@@ -3,18 +3,22 @@
 	$.widget('emen2.SimpleRelationshipControl', {
 		options: {
 			name: null,
+			keytype: 'record',
 			show: true
 		},
 
 		_create: function() {
 			this.built = 0;
 			var self = this;
-			if (this.options.show) {this.build()}
-			
+			if (this.options.show) {this.show()}			
 		},
 		
 		rebuild: function() {
 			this.built = 0;
+			this.build();
+		},
+		
+		show: function() {
 			this.build();
 		},
 		
@@ -24,9 +28,12 @@
 			var rec = this.cacherec();
 			var getrecs = rec.children.concat(rec.parents);
 
+			// Always empty the element before a rebuild, and place a spinner
 			this.element.empty();
 			this.element.append($.spinner(true));
 			
+			// Cache rendered views for all the items
+			// ian: todo: replace this with a InfoBox pre-cache method
 			$.jsonRPC.call('getrecord', [getrecs], function(recs) {
 				$.each(recs, function(k,v) {caches['record'][v.name] = v});
 				
@@ -49,20 +56,21 @@
 			this.built = 1;
 			var self = this;
 			
-			// Build a simple form
+			// Get the parents and children from cache
 			var rec = this.cacherec();
 			var parents = rec.parents;
 			var children = rec.children;
 			
+			// Build a textual summary
 			var p = this.build_summary(parents)
 			var c = this.build_summary(children)
-			
 			this.element.append('<h4>Relationships</h4>');
 			var label = 'parent';
 			if (parents.length > 1) {label = 'parents'}		
-			this.element.append('<p>This record has '+this.build_summary(parents, 'parents')+' and '+this.build_summary(children, 'children')+'</p>');
+			this.element.append('<p>This record has '+this.build_summary(parents, 'parents')+' and '+this.build_summary(children, 'children')+'. Select <span class="e2l-a e2-permissions-all">all</span> or <span class="e2l-a e2-permissions-none">none</span></p>');
 			
-			$('.e2-relationship-rectype', this.element).click(function() {
+			// Select by rectype
+			$('.e2-relationships-rectype', this.element).click(function() {
 				var state = $(this).attr('data-checked');
 				if (state=='checked') {
 					$(this).attr('data-checked', '');
@@ -73,30 +81,21 @@
 				}
 				var rectype = $(this).attr('data-rectype');
 				var reltype = $(this).attr('data-reltype');
-				$('input[name='+reltype+'][data-rectype='+rectype+']', this.element).attr('checked', state);
+				$('.e2-infobox[data-rectype='+rectype+'] input', self.element).attr('checked', state);
 			});
 			
-			var form = $('<form action="'+EMEN2WEBROOT+'/record/'+this.options.name+'/edit/rel/" method="post" name="rel"></form>')
-			form.append(this.build_table());
-			form.append('<input type="hidden" name="method" value="" />');
+			// Add the items
+			this.element.append(this.build_level('Parents', 'parents', parents));
+			this.element.append(this.build_level('Children', 'children', children));
 			
-			var controls = $('<div class="e2l-controls" />');
+			if (this.options.controls) {
+				this.build_controls();
+			}
 
-			var relink = $('<input type="button" class="e2l-save" value="Move" />');
-			relink.click(function() {
-				console.log("moving...");
-			})
-
-			var pclink = $('<input type="button" class="e2l-save" value="Remove" />');
-			pclink.click(function() {
-				$('input[name=method]', this.element).val('pclink')
-				$('form[name=rel]', this.element).submit();
-			});
-			controls.append(relink, ' or &nbsp;', pclink, ' selected relationships');
-
-			form.append(controls);
-			this.element.append(form);
-
+			// Do this here to find items in both the summary and options
+			$('.e2-permissions-all').click(function(){$('input:checkbox', self.element).attr('checked', 'checked')});
+			$('.e2-permissions-none').click(function() {$('input:checkbox', self.element).attr('checked', null)});			
+			
 		},
 		
 		build_summary: function(value, label) {
@@ -112,7 +111,7 @@
 				var rd = caches['recorddef'][k] || {};
 				var adds = '';
 				if (v.length > 1) {adds='s'}
-				ce.push(v.length+' '+rd.desc_short+' <span data-checked="checked" data-reltype="'+label+'" data-rectype="'+k+'" class="e2l-small e2l-a e2-relationship-rectype">(select)</span>');
+				ce.push(v.length+' '+rd.desc_short+' <span data-checked="checked" data-reltype="'+label+'" data-rectype="'+k+'" class="e2l-small e2l-a e2-relationships-rectype">(toggle)</span>');
 			});
 			
 			var pstr = '';
@@ -126,37 +125,81 @@
 			return pstr
 		},
 		
-		build_table: function() {
+		build_level: function(label, level, items) {
 			var self = this;
-			var rec = this.cacherec();
-			var table = $('<div />');
-			table.append('<br /><h4 class="e2l-cf"><input type="button" value="+" /> Parents</h4>');
-			table.append('<ul class="e2l-nonlist e2-relationship-parents"></ul><br />');
-			table.append('<h4 class="e2l-cf"><input type="button" value="+" /> Children</h4>');
-			table.append('<ul class="e2l-nonlist e2-relationship-children"></ul><br />');
-			for (var i=0;i<rec.parents.length;i++) {
-				$('.e2-relationship-parents', table).append(this.build_td(rec.parents[i], 'parents'))
-			}
-			for (var i=0;i<rec.children.length;i++) {
-				$('.e2-relationship-children', table).append(this.build_td(rec.children[i], 'children'))
-			}
-			return table
+			var header = $('<h4 class="e2l-cf"><input data-level="'+level+'" type="button" value="+" /> '+label+'</h4>');
+			$('input:button', header).click(function() {
+				var level = $(this).attr('data-level');
+				console.log("Add...", level);
+			});
 
-			// $('.e2-relationship-toggle', table).click(function(){
-			// 	var state = $(this).attr('checked');
-			// 	var reltype = $(this).attr('data-reltype');
-			// 	$('input[name='+reltype+']', this.element).attr('checked', state || false);
-			// 	// self.set_reltype(reltype, state);
-			// });
-			// return table
+			var d = $('<div data-level="'+level+'"></div>');
+			for (var i=0;i<items.length;i++) {
+				d.append(this.build_item(items[i]))
+			}
+			return $('<div></div>').append(header, d);
 		},
 		
-		build_td: function(q, reltype) {
-			if (q == null) {return '<td/><td />'}
-			var rec = caches['record'][q];
-			var recname = caches['recnames'][q];
-			var id = 'e2-relationships-children-'+this.options.name+'-'+q;
-			return '<li style="padding-bottom:5px;"><input type="checkbox" name="'+reltype+'" value="'+q+'" data-rectype="'+rec.rectype+'" id="'+id+'"/><label for="'+id+'">'+recname+'</label></li>'
+		build_item: function(q) {
+			return $('<div></div>').InfoBox({
+				keytype: 'record',
+				name: q,
+				'selectable': true,
+				'input': ['checkbox', this.options.param, true]				
+			});
+		},
+		
+		build_controls: function() {
+			var self = this;
+			var controls = $(' \
+				<ul class="e2l-options e2l-nonlist"> \
+					<li>Select <span class="e2-permissions-all e2l-a">all</span> or <span class="e2-permissions-none e2l-a">none</span></li> \
+					<li><span class="e2-relationships-advanced e2l-a">'+$.caret('up')+'Advanced</span></li> \
+				</ul> \
+				<ul class="e2l-advanced e2l-nonlist e2l-hide"> \
+					<li><input type="button" value="Remove a parent from selected records" /></li> \
+					<li><input type="button" value="Remove a child from selected records" /></li> \
+					<li><input type="button" value="Add a parent to selected records" /></li> \
+					<li><input type="button" value="Add a child to selected records" /></li> \
+					<li><input type="button" value="Delete selected records" /></li> \
+				</ul> \
+				<ul class="e2l-controls e2l-nonlist"> \
+					<li><input type="submit" value="Save relationships" /></li> \
+				</ul> \
+				');
+
+			$('.e2-relationships-advanced', controls).click(function(){
+				$.caret('toggle', self.options.controls);
+				$('.e2l-controls', self.options.controls).toggle();
+				$('.e2l-advanced', self.options.controls).toggle();
+			});
+			
+			// The select all / none callbacks are added at the end of build
+
+			this.options.controls.append(controls);
+
+			// var all = $('<span  class="e2l-a">all</span>').click(function(){});
+			// var none = $('<span class="e2l-a">none</span>').click(function(){});
+			// options.append('Select: ', all, ' / ', none, '<br />');
+			// 
+			// var a = $('<span class="e2l-a e2-relationships-advanced">Advanced '+$.caret('up')+'</span>').click(function(){});
+			// options.append(a);
+			// 
+			// var advanced = $('<div class="e2l-options-advanced">Test</div>');
+			// options.append(advanced)
+			// 
+			// var controls = $('<div class="e2l-controls"></div>');
+			// controls.append('<input type="submit" value="Save" />');
+			// $('input:submit', controls).click(function(e){self.save(e)});
+			// this.options.controls.append(controls);
+			// var relink = $('<input type="button" class="e2l-save" value="Move" />');
+			// var pclink = $('<input type="button" class="e2l-save" value="Remove" />');
+			// controls.append(relink, ' or &nbsp;', pclink, ' selected relationships');
+		},
+		
+		save: function(e) {
+			e.preventDefault();
+			console.log("form:", this.element);
 		},
 		
 		cacherec: function() {

@@ -59,8 +59,12 @@
 	<img src="${EMEN2WEBROOT}/static/images/spinner.gif" class="e2l-spinner ${forms.iffalse(show, 'e2l-hide')}" alt="Loading" />
 </%def>
 
-<%def name="caret()">
-	<img src="${EMEN2WEBROOT}/static/images/caret_small.png" alt="^" />
+<%def name="caret(state='down')">
+	% if state == 'up':
+		<img src="${EMEN2WEBROOT}/static/images/caret_up.png" alt="^" />
+	% elif state == 'down':
+		<img src="${EMEN2WEBROOT}/static/images/caret_down.png" alt="^" />	
+	% endif
 </%def>
 
 

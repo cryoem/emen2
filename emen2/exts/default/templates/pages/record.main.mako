@@ -12,7 +12,7 @@
 	
 	
 	// Change View
-	$('.e2l-newtab [data-viewtype]').click(function(){
+	$('#e2-editbar [data-viewtype]').click(function(){
 		var target = $("#rendered");
 		var viewtype = $(this).attr('data-viewtype') || 'recname';
 		target.attr("data-viewtype", viewtype);
@@ -26,26 +26,27 @@
 	$('.e2-tile').TileControl({'mode':'cached'});
 		
 	// Intialize the Tab controller
-	$('.e2l-newtab').TabControl({
+	var tab = $("#e2-editbar-record");		
+	tab.TabControl({
 		##absolute: true
 	});
 
 	// Editor
-	$('.e2l-newtab').TabControl('setcb', 'edit', function(page) {
-		$('.e2-edit').MultiEditControl({
+	tab.TabControl('setcb', 'edit', function(page) {
+		$('#e2-edit').MultiEditControl({
 			name: rec.name,
 			controls: page
 		});
-		$('.e2-edit').MultiEditControl('show');
+		$('#e2-edit').MultiEditControl('show');
 	});
 	
-	$('.e2l-newtab').TabControl('sethidecb', 'edit', function(page) {
-		$('.e2-edit').MultiEditControl('hide');	
-	})
+	tab.TabControl('sethidecb', 'edit', function(page) {
+		$('#e2-edit').MultiEditControl('hide');	
+	});
 
 	// Permissions editor
-	$('.e2l-newtab').TabControl('setcb','permissions', function(page) {
-		$('#e2-form-permissions', page).PermissionsControl({
+	tab.TabControl('setcb','permissions', function(page) {
+		$('#e2-permissions', page).PermissionsControl({
 			name: rec.name,
 			edit: ptest[3],
 			show: true,
@@ -54,34 +55,36 @@
 	});
 	
 	// Attachments editor
-	$('.e2l-newtab').TabControl('setcb', 'attachments', function(page) {
+	tab.TabControl('setcb', 'attachments', function(page) {
 		page.AttachmentControl({
 			name: rec.name,
 			edit: ptest[2] || ptest[3],
-			embed: true,
-			show: true
-			});
+			show: true,
+			controls: page
 		});
+	});
 	
 	// New record editor
-	$('.e2l-newtab').TabControl('setcb', 'newrecord', function(page) {
+	tab.TabControl('setcb', 'newrecord', function(page) {
 		page.NewRecordControl({
-			parent: rec.name
+			parent: rec.name,
+			controls: page
 		});
 	});		
 
 	// Relationship editor
-	$('.e2l-newtab').TabControl('setcb', 'relationships', function(page) {
-		page.SimpleRelationshipControl({
+	tab.TabControl('setcb', 'relationships', function(page) {
+		$('#e2-relationships', page).SimpleRelationshipControl({
 			name: rec.name,
 			edit: true,
 			embed: true,
-			show: true
-			});
+			show: true,
+			controls: page
+		});
 	});
 
 	// Comments editor
-	$('.e2l-newtab').TabControl('setcb', 'comments', function(page) {
+	tab.TabControl('setcb', 'comments', function(page) {
 		page.CommentsControl({
 			name: rec.name,
 			edit: ptest[1] || ptest[2] || ptest[3],
@@ -91,7 +94,7 @@
 	});
 
 	// Simple handler for browsing siblings...
-	$('.e2l-newtab').TabControl('setcb', 'siblings', function(page) {
+	tab.TabControl('setcb', 'siblings', function(page) {
 		page.SiblingsControl({
 			name: rec.name
 		})
@@ -102,7 +105,7 @@
 
 
 
-<div class="e2l-newtab" data-group="newrecord">
+<div class="e2-tab e2-editbar" id="e2-editbar-record" data-group="editbar">
 
 	<ul class="e2l-cf">
 
@@ -119,14 +122,12 @@
 			</li>
 		% endif
 	
-	
 		## Edit Record
 		% if rec.writable():
 			<li data-tab="edit">
 				<span class="e2l-a"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</span>
 			</li>
 		% endif
-
 
 		## New Record
 		% if create:
@@ -135,18 +136,15 @@
 			</li>
 		% endif
 
-
 		## Relationship Editor
 		<li data-tab="relationships">
 			<span class="e2l-a">Relationships ${buttons.caret()}</span>
 		</li>
 
-
 		## Permissions Editor
 		<li data-tab="permissions">
 			<span class="e2l-a">Permissions ${buttons.caret()}</span>
 		</li>
-
 
 		## Attachments Editor
 		<%
@@ -171,7 +169,6 @@
 			</span>
 		</li>
 
-
 		## View Selector
 		<%
 		nicenames = {
@@ -190,12 +187,10 @@
 			<span class="e2l-a"> ${rec.rectype} ${buttons.caret()}</span>
 		</li>
 
-
 		## Table View
 		<li>
 			<span class="e2l-a" data-viewtype="dicttable"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></span>
 		</li>
-
 
 		## Siblings
 		% if len(siblings)>1 and rec.name in siblings:
@@ -213,7 +208,6 @@
 				<span class="e2l-a">${pos+1} of ${len(siblings)}</span>
 			</li>
 		% endif
-	
 	
 		## Comments!
 		<%
@@ -250,22 +244,18 @@
 	<div data-tab="edit"></div>
 	
 	<div data-tab="newrecord"></div>
-	## style="width:250px"
 	
-	<div data-tab="relationships"></div>	 
-	## style="width:700px"
+	<div data-tab="relationships">
+		<form id="e2-relationships" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/edit/relationships/"></form>
+	</div>	 
 	
 	<div data-tab="permissions">
-		<form id="e2-form-permissions" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/edit/permissions/"></form>
-		<div id="e2-form-permissions-control"></div>
+		<form id="e2-permissions" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/edit/permissions/"></form>
 	</div>
-	## style="width:700px"
 	
 	<div data-tab="attachments"></div>
-	## style="width:700px"
 	
 	<div data-tab="comments"></div>
-	## style="width:350px"
 	
 	<div data-tab="siblings"></div>
 	
@@ -317,7 +307,7 @@
 
 
 ## Main rendered record
-<form class="e2-edit" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/edit/">
+<form id="e2-edit" method="post" data-name="${rec.name}" action="${EMEN2WEBROOT}/record/${rec.name}/edit/">
 	<div id="rendered" class="e2-view" data-viewtype="${viewtype}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
 		${rendered}
 	</div>
