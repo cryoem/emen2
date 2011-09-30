@@ -3,9 +3,8 @@
 		options: {
 			name: null,
 			edit: 0,
-			modal: false,
-			embed: false,
 			show: false,
+			controls: null,
 			cb: function(self) {}
 		},
 				
@@ -13,97 +12,37 @@
 			this.bdomap = {};
 			this.built = 0;
 			this.bdos = {};
-		
-			var self=this;
-			this.element.click(function(e) {self.event_click(e)});
-
 			if (this.options.show) {			
 				this.show();
 			}
 		},
-	
-		event_click: function(e) {
-			this.show();
+		
+		rebuild: function() {
+			// Update the attachment count
 		},
 		
-		_findbinary: function() {
-			var self = this;
-			$.jsonRPC.call("binary.find", {'record':self.options.name}, 
-				function(bdos) {						
-					if (bdos == null) {bdos=[]}
-					if (bdos.length == null) {bdos=[bdos]}
-					self.bdos = bdos || {};
-					self.makebdomap();
-					self._findusernames();
-					//self.build_tablearea();
-				}
-			);
-		},
-		
-		_findusernames: function() {
-			var findusers = [];
-			var self = this;
-			$.each(self.bdos, function() {
-				if (caches['displaynames'][this.creator] == null) {
-					findusers.push(this.creator);
-				}
-			});
+		show: function() {
+			this.build();
+		},		
 
-			if (findusers.length) {
-				$.jsonRPC.call('user.get', [findusers], function(users) {
-					$.each(users, function() {
-						caches['displaynames'][this.name] = this.displayname;
-					});
-					self.build_tablearea();
-				})
-			} else {
-				self.build_tablearea();				
-			}
+		build: function() {
+			if (this.built) {return}
+			this.built = 1;
 			
-		},
-		
-		event_build_tablearea: function(e) {
 			var self = this;
-			this.tablearea.empty();
-			this.tablearea.append('<div>'+$.spinner()+'</div>');
-			$.jsonRPC.call("paramdef.find", {'record':this.options.name}, function(paramdefs) {			
-				$.each(paramdefs, function() {
-					caches['paramdef'][this.name] = this;
-				});
-				self._findbinary();
-			});
+			this.dialog = $('<div> \
+				<form method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+this.options.name+'"></form> \
+			</div>');	
+			
+			this.event_build_tablearea();
 
-		},
-	
-		makebdomap: function() {
-			// This is to avoid an extra RPC call, and sort BDOs by param name
-			this.bdomap = {};
-			var rec = caches['record'][this.options.name];
-			var self = this;
-
-			$.each(this.bdos, function(i, bdo) {
-				// find bdo in record..
-				$.each(rec, function(k,v) {
-					if (typeof(v)=="object" && v != null) {
-						if ($.inArray(bdo.name, v) > -1) {
-							self.bdomap_append(k, bdo);
-						}
-					} else {
-						if (v==bdo.name) {
-							self.bdomap_append(k, bdo);
-						}
-					}
-				});
-			});			
-		},
-
-		bdomap_append: function(param, value) {
-			if (this.bdomap[param] == null) {
-				this.bdomap[param] = [];
+			if (this.options.controls) {
+				this.build_controls();
 			}
-			this.bdomap[param].push(value);
+
+			this.element.append(this.dialog);
 		},
-	
+
 		build_tablearea: function() {
 			var self=this;
 			this.tablearea.empty();
@@ -144,44 +83,23 @@
 			
 			$('input[value=file_binary]', bdotable).attr('checked', 'checked');
 			this.tablearea.append(bdotable);
-		
 		},
 
-		build: function() {
-			var self = this;
-
-			if (this.built) {
-				return
-			}
-			this.built = 1;
-
-			this.dialog = $('<div><form method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+this.options.name+'"></form></div>');	
-			this.tablearea = $('<div />');
-			this.browserarea = $('<div />');
-			this.queryarea = $('<div></div>')
-
-			$('form', this.dialog).append(this.tablearea, this.browserarea, this.queryarea);
-			this.event_build_tablearea();
+		build_controls: function() {
+			var controls = $(' \
+				<input type="hidden" name="param" id="e2-file-param" value="file_binary" /> \
+				<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'#attachments" /> \
+				<ul class="e2l-options e2l-nonlist"> \
+					<li> \
+						<input style="opacity:0" type="file" name="filedata" /> \
+						<span class="e2l-a e2l-label e2-file-target">Regular Attachment</span> \
+					</li> \
+				</ul> \
+				<ul clss="e2l-controls e2l-nonlist"> \
+					<li><input class="e2l-float-left e2l-save" name="remove" type="button" value="Remove Selected Attachments" /></li> \
+					<li>'+$.spinner()+'<input class="e2l-float-right e2l-save" name="save" type="submit" value="Upload Attachment" /></li> \
+				</ul>');
 			
-			var controls = $(' <br /> \
-				<div class="e2l-controls"> \
-					<input type="hidden" name="param" id="e2-file-param" value="file_binary" /> \
-					<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'#attachments" /> \
-					<input style="opacity:0" type="file" name="filedata" /> \
-					<span class="e2l-a e2l-label e2-file-target">Regular Attachment</span> \
-					</span> \
-				</div> \
-				<div style="width:100%" class="e2l-controls"> \
-					<input class="e2l-float-left e2l-save" name="remove" type="button" value="Remove Selected Attachments" /> \
-					<input class="e2l-float-right e2l-save" name="save" type="submit" value="Upload Attachment" /> \
-					'+$.spinner()+' \
-				</div>');
-			
-			// If we have permission to edit, show controls.
-			if (this.options.edit) {
-				$('form', this.dialog).append(controls);
-			}
-
 			// Remove items
 			$('input[name=remove]', controls).click(function() {
 				self.removebdos();
@@ -210,37 +128,11 @@
 					self.element.html(value);
 				}
 			});
+			
+			this.options.controls.append(controls);
+		},
 
-			// Embed or put in a dialog
-			if (this.options.embed) {
-				this.element.append(this.dialog);
-			} else {
-				var pos = this.element.offset();
-				this.dialog.attr("title", "Attachments");
-				this.dialog.dialog({
-					autoOpen: false,
-					width:850,
-					height:650,
-					position:[pos.left, pos.top+this.element.outerHeight()],
-					modal:this.options.modal
-				});
-			}
-
-		},
-		
-		rebuild: function() {
-			$("#attachment_count").html("");
-		},
-		
-		show: function() {
-			this.build();
-			if (!this.options.embed) {this.dialog.dialog('open')}
-		},
-	
-		close: function() {
-			if (!this.options.embed) {this.dialog.dialog('close')}
-		},
-		
+		// Remove BDOs
 		removebdos: function() {
 			var self = this;
 			var newvalues = {}
@@ -263,11 +155,6 @@
 				} else if (!pd.iter) {
 					v = v[0];
 				}
-				// if (v.length == 0) {
-				// 	v = null
-				// } else if (vt=='binaryimage') {
-				// 	v = v[0];
-				// }
 				p[k] = v;
 			});
 			
@@ -278,6 +165,85 @@
 					self.options.cb(self);
 				}
 			);			
+		},
+		
+		event_build_tablearea: function(e) {
+			var self = this;
+			this.tablearea.empty();
+			this.tablearea.append('<div>'+$.spinner()+'</div>');
+			$.jsonRPC.call("paramdef.find", {'record':this.options.name}, function(paramdefs) {			
+				$.each(paramdefs, function() {
+					caches['paramdef'][this.name] = this;
+				});
+				self._findbinary();
+			});
+
+		},
+	
+		// Utility methods --
+		makebdomap: function() {
+			// This is to avoid an extra RPC call, and sort BDOs by param name
+			this.bdomap = {};
+			var rec = caches['record'][this.options.name];
+			var self = this;
+
+			$.each(this.bdos, function(i, bdo) {
+				// find bdo in record..
+				$.each(rec, function(k,v) {
+					if (typeof(v)=="object" && v != null) {
+						if ($.inArray(bdo.name, v) > -1) {
+							self.bdomap_append(k, bdo);
+						}
+					} else {
+						if (v==bdo.name) {
+							self.bdomap_append(k, bdo);
+						}
+					}
+				});
+			});			
+		},
+
+		bdomap_append: function(param, value) {
+			if (this.bdomap[param] == null) {
+				this.bdomap[param] = [];
+			}
+			this.bdomap[param].push(value);
+		},		
+		
+		_findbinary: function() {
+			// Find binaries attached to the named record
+			var self = this;
+			$.jsonRPC.call("binary.find", {'record':self.options.name}, 
+				function(bdos) {						
+					if (bdos == null) {bdos=[]}
+					if (bdos.length == null) {bdos=[bdos]}
+					self.bdos = bdos || {};
+					self.makebdomap();
+					self._findusernames();
+				}
+			);
+		},
+		
+		_findusernames: function() {
+			// Get all the user names associated with the record + binaries
+			var findusers = [];
+			var self = this;
+			$.each(self.bdos, function() {
+				if (caches['displaynames'][this.creator] == null) {
+					findusers.push(this.creator);
+				}
+			});
+
+			if (findusers.length) {
+				$.jsonRPC.call('user.get', [findusers], function(users) {
+					$.each(users, function() {
+						caches['displaynames'][this.name] = this.displayname;
+					});
+					self.build_tablearea();
+				})
+			} else {
+				self.build_tablearea();				
+			}
 		}
 	});
 })(jQuery);
