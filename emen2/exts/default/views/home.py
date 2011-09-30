@@ -15,13 +15,22 @@ import emen2.db.exceptions
 @View.register
 class Home(View):
 
-	@View.add_matcher(r'^/sleep/$')
-	def sleep(self):
+	@View.add_matcher(r'^/debug/sleep/$')
+	def debug_sleep(self):
 		# debug: sleep for 10 seconds
 		self.template = '/simple'
 		self.title = 'Debug'
 		self.ctxt['content'] = 'Sleeping...'
 		time.sleep(10)
+
+
+	@View.add_matcher(r'^/debug/error/$')
+	def debug_error(self):
+		self.template = '/simple'
+		self.title = 'Debug'
+		self.ctxt['content'] = 'Error'
+		raise Exception, "Test Exception"
+
 
 
 	@View.add_matcher(r'^/$', view='Root', name='main')

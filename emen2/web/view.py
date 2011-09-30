@@ -161,6 +161,9 @@ class _View(object):
 		# Request headers
 		self.request_headers = request_headers or {}
 
+		# Request location
+		self.request_location = request_location
+
 		# Response headers
 		self.__headers = {}
 		
@@ -173,9 +176,11 @@ class _View(object):
 		# Then update with any extra arguments specified.
 		self.ctxt = TemplateContext()
 		self.ctxt.update(dict(
-			headers = self.__headers,
-			notify = self.__notify,
-			errors = self.__errors
+			HEADERS = self.__headers,
+			NOTIFY = self.__notify,
+			ERRORS = self.__errors,
+			REQUEST_LOCATION = self.request_location,
+			REQUEST_HEADERS = self.request_headers
 		))
 		self.ctxt.update(basectxt or {})
 
@@ -221,7 +226,7 @@ class _View(object):
 		self.ctxt['errmsg'] = msg
 
 	def redirect(self, location):
-		self.headers['Location'] = location
+		self.headers['Location'] = location.replace('//','/')
 		self.template = '/redirect'
 
 	def get_data(self):

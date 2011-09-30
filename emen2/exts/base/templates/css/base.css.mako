@@ -205,6 +205,32 @@ h4 .e2l-label {
 
 }
 
+/***** e2l-float: Floating items *****/
+.e2l-float-left {
+	float:left !important;
+}
+.e2l-float-right {
+	float:right !important;
+}
+.e2l-nonlist {
+	list-style: none;
+	padding-left: 0px;
+	margin:0px;
+}
+
+/***** e2l-cf: "Clearfix", for correct wrapping around floating elements *****/
+.e2l-cf {
+	clear:both;
+}
+.e2l-cf:after {
+    content: "."; 
+    display: block; 
+    height: 0; 
+    clear: both; 
+    visibility: hidden;	
+}
+
+
 /***** e2l-tab: Page and tab widget *****/
 
 /* todo: Merge with e2-tab widget */
@@ -248,52 +274,19 @@ h4 .e2l-label {
 }
 
 
-/***** e2l-float: Floating items *****/
-.e2l-float-left {
-	float:left !important;
-}
-.e2l-float-right {
-	float:right !important;
-}
-.e2l-nonlist {
-	list-style: none;
-	padding-left: 0px;
-	margin:0px;
-}
-
-
-/***** e2l-cf: "Clearfix", for correct wrapping around floating elements *****/
-.e2l-cf {
-	clear:both;
-}
-.e2l-cf:after {
-    content: "."; 
-    display: block; 
-    height: 0; 
-    clear: both; 
-    visibility: hidden;	
-}
-
-
 /***** e2-tab: NEW editing bar *****/
+
+/* minimal definition */
 .e2-tab {
 	position:relative;
 }
 .e2-tab > ul {
 	padding-left: 0px;
 	list-style: none;
-	margin: 0px;
-	border-bottom: solid 1px #ccc;
-	background-image: -moz-linear-gradient(#fff, #fff, #eee);
+	margin:0px;
 }
 .e2-tab > ul > li {
 	float: left;
-	border-right: solid 1px #ccc;
-	margin-bottom:-1px;
-}
-.e2-tab > ul > li.e2l-float-right {
-	border-left: solid 1px #ccc;
-	border-right: none;
 }
 .e2-tab > ul > li img {
 	vertical-align:middle;
@@ -306,16 +299,71 @@ h4 .e2l-label {
 }
 .e2-tab > div {
 	display:none;
+	z-index: 1000;
+}
+.e2-tab li.e2-tab-active {	
+}
+.e2-tab div.e2-tab-active {
+	display:block;
+}
+
+
+/* e2-switchbar: Simple tab widget */
+.e2-tab-switcher > ul > li {
+	border: solid 1px #ccc;
+	border-bottom: none;
+	margin-right: 15px;
+	margin-bottom: -1px;
+}
+.e2-tab-switcher > div {
+	border: solid 1px #ccc;
+	padding: 10px;
+	background: #eee;
+}
+.e2-tab-switcher li.e2-tab-active {
+	background: #eee;
+}
+
+
+/* e2-switcher-main: Additional class for page-level tabs */
+.e2-tab-main > ul {
+	border-bottom:solid 1px #ccc;
+}
+.e2-tab-main > ul > li {
+	background: #eee;
+	border: solid 1px #ccc;
+	margin-right: 15px;
+	margin-bottom: -1px;
+}
+.e2-tab-main li.e2-tab-active {
+	border-bottom: solid 1px white;
+	background: white;
+}
+
+
+/* e2-editbar: Editing Bar */
+.e2-editbar > ul {
+	border-bottom: solid 1px #ccc;
+	background-image: -moz-linear-gradient(#fff, #fff, #eee);
+}
+.e2-editbar > ul > li {
+	border-right: solid 1px #ccc;
+	margin-bottom:-1px;
+}
+.e2-editbar > ul > li.e2l-float-right {
+	border-left: solid 1px #ccc;
+	border-right: none;
+}
+.e2-editbar > div {
 	padding:10px;
 	border: solid 1px #ccc;
 	border-top: none;
 	background: #eee;
-	z-index: 1000;
 }
-li.e2-tab-active {
+.e2-editbar li.e2-tab-active {
 	background: #eee;
 }
-div.e2-tab-active {
+.e2-editbar div.e2-tab-active {
 	display: block;
 }
 

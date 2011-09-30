@@ -1,55 +1,23 @@
 <%namespace name="forms"  file="/forms"  /> 
 
-##########################################################
-
-<%def name="buttons(tabs)">
-	<ul class="e2l-tab-buttons e2l-cf" id="${tabs.getid_buttons()}" data-tabgroup="${tabs.getclassname()}">
-	% for i in tabs.order:
-		<li class="${tabs.getclass_button(i)}" id="${tabs.getid_button(i)}" data-tabgroup="${tabs.getclassname()}" ${tabs.getjs_button(i)} >${tabs.getcontent_button(i)}</li>
-	% endfor
-	</ul>
-</%def>
-
-##########################################################
-
-<%def name="pages(tabs)">
-	<div class="e2l-tab-pages e2l-cf" id="${tabs.getid_pages()}" data-tabgroup="${tabs.getclassname()}">
-		% for i in tabs.order:
-			<div class="${tabs.getclass_page(i)}" id="${tabs.getid_page(i)}" data-tabgroup="${tabs.getclassname()}">
-				${tabs.getcontent_page(i)}
-			</div>
-		% endfor
-	</div>
-</%def>		
-
-##########################################################
-
-<%def name="pagewrap(tabs,name)">
-
-	<div class="${tabs.getclass_page(name)}" id="${tabs.getid_page(name)}" data-tabgroup="${tabs.getclassname()}">
-		${caller.body()}
-	</div>
-
-</%def>
-
-##########################################################
-
-
-<%def name="pageswrap(tabs)">
-
-	<div class="e2l-tab-pages" id="${tabs.getid_pages()}" data-tabgroup="${tabs.getclassname()}">
-		${caller.body()}
-	</div>
-	
-</%def>
-
-
-## Simple title button
-
-<%def name="titlebutton(title)">
-	<ul data-tabgroup="main" class="e2l-tab-buttons e2l-cf">
-		<li data-tabgroup="main" class="e2l-tab-button e2l-tab-active">${title}</li>
-	</ul>
+<%def name="newtabs(tabs, cls='')">
+	<%
+		if not hasattr(tabs, 'items'):
+			tabs = {'main':tabs}
+		active = getattr(tabs, 'active', 'main')
+		uris = getattr(tabs, 'uris', dict())
+	%>
+	<div class="e2-tab ${cls}">
+		<ul class="e2l-cf">
+			% for k,v in tabs.items():
+				% if k == active:
+					<li class="e2-tab-active"><a href="${uris.get(k,REQUEST_LOCATION)}">${v}</a></li>
+				% else:
+					<li><a href="${uris.get(k,REQUEST_LOCATION)}">${v}</a></li>				
+				% endif
+			% endfor
+		</ul>
+	</div>		
 </%def>
 
 
@@ -72,6 +40,11 @@
 	<div class="e2l-controls">
 		<input value="${label}" type="submit" class="e2l-save">
 	</div>
+</%def>
+
+
+<%def name="editicon()">
+	<img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" />
 </%def>
 
 
@@ -125,33 +98,4 @@
 		</h4>
 		<p class="e2l-small">${body}</p>
 	</div>
-</%def>
-
-
-
-##########################################################
-
-<%def name="all(tabs)">
-${buttons(tabs)}
-${pages(tabs)}
-</%def>
-
-##########################################################
-
-<%def name="singlepage(name=None,label=None)">
-
-<%
-import random
-import hashlib
-from emen2.web.markuputils import HTMLTab
-tabs = HTMLTab()
-tabs.setclassname(name or hashlib.md5(str(random.random())).hexdigest())
-tabs.setlabel("main",label)
-tabs.setcontent("main",caller.body)
-tabs.check()
-%>
-
-${buttons(tabs)}
-${pages(tabs)}
-
 </%def>

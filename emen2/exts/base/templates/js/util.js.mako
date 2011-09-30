@@ -11,12 +11,6 @@ window.log = function(){
 
 // Utility Methods
 (function($){
-	
-	$.setadd = function(arr, item) {
-		if ($.inArray(item, arr) == -1) {
-			arr.push(item);
-		}
-	}
 
 	$.spinner = function(show) {
 		if (show) {
@@ -50,6 +44,21 @@ window.log = function(){
 		}
 		if (elem){return}
 		return $('<div />').append(caret).html()
+	}
+	
+	$.updatecache = function(items) {
+		$.each(items, function() {
+			caches[this.keytype][this.name] = this;
+		})
+	}
+	
+	$.checkcache = function(keytype, items) {
+		var ret = [];
+		$.each(items, function(i,v) {
+			var item = caches[keytype][v];
+			if (item==null) {ret.push(v)}
+		});
+		return ret
 	}
 	
 	// Update controls when a record has changed
@@ -258,7 +267,6 @@ window.log = function(){
 		_create: function() {
 			this.built = 0;
 			this.build();
-			this.options.cbs['attachments'] = function(page){console.log(page)}
 		},
 		
 		build: function() {
@@ -291,7 +299,6 @@ window.log = function(){
 				var t = $(this);
 				var tab = t.attr('data-tab');
 				var p = $('div[data-tab='+tab+']', self.element);
-				console.log(p);
 				t.removeClass(self.options.active);
 				p.removeClass(self.options.active);
 				var cb = self.options.hidecbs[tab];
@@ -324,7 +331,6 @@ window.log = function(){
 					p.css('left', pos.left-1);					
 				} else {
 					var parentwidth = p.parent().width();
-					console.log(parentwidth);
 					p.css('right', parentwidth-(width+pos.left)-2);
 				}
 			}

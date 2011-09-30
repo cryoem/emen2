@@ -29,7 +29,7 @@ class User(View):
 			pass
 			
 		if self.user.disabled:
-			self.ctxt['errors'].append("This user account is disabled")	
+			self.ctxt['ERRORS'].append("This user account is disabled")	
 
 		self.ctxt["admin"] = self.admin
 		self.title = "User: %s (%s)"%(self.user.displayname, name)
@@ -56,7 +56,7 @@ class User(View):
 		kw_userrec = kwargs.pop('userrec',None)
 		kw_user = kwargs.pop('user', None)
 		self.action_save(kw_userrec, kw_user, kwargs)
-		self.ctxt['notify'].append("Changes Saved")
+		self.ctxt['NOTIFY'].append("Changes Saved")
 		self.set_context_item("user",self.user)
 
 

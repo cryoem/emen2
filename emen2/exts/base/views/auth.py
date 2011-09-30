@@ -23,18 +23,20 @@ class Auth(View):
 
 		self.set_context_item("name",name)
 		self.set_context_item('location', location)
+
 		ctxid = None
 		if name != None:
 			ctxid = self.db.login(name, pw, host=self.ctxt['HOST'])
 			msg = 'Successfully logged in'
 
 			self.set_header('X-Ctxid', ctxid)
-			self.set_header('Location', location or '/')
+			self.redirect(location or '/')
+			# self.set_header('Location', location or '/')
 
 		if msg:
-			self.ctxt['notify'].append(msg)
+			self.ctxt['NOTIFY'].append(msg)
 		if errmsg:
-			self.ctxt['errors'].append(errmsg)
+			self.ctxt['ERRORS'].append(errmsg)
 
 
 
@@ -62,9 +64,9 @@ class Auth(View):
 		self.set_header('X-Ctxid', '')
 
 		if msg:
-			self.ctxt['notify'].append(msg)
+			self.ctxt['NOTIFY'].append(msg)
 		if errmsg:
-			self.ctxt['errors'].append(errmsg)
+			self.ctxt['ERRORS'].append(errmsg)
 
 
 
@@ -101,9 +103,9 @@ class Auth(View):
 				pass
 
 		if msg:
-			self.ctxt['notify'].append(msg)
+			self.ctxt['NOTIFY'].append(msg)
 		if errmsg:
-			self.ctxt['errors'].append(errmsg)
+			self.ctxt['ERRORS'].append(errmsg)
 
 
 
@@ -139,9 +141,9 @@ class Auth(View):
 					pass
 
 		if msg:
-			self.ctxt['notify'].append(msg)
+			self.ctxt['NOTIFY'].append(msg)
 		if errmsg:
-			self.ctxt['errors'].append(errmsg)
+			self.ctxt['ERRORS'].append(errmsg)
 
 
 
@@ -167,9 +169,9 @@ class Auth(View):
 				pass
 
 		if msg:
-			self.ctxt['notify'].append(msg)
+			self.ctxt['NOTIFY'].append(msg)
 		if errmsg:
-			self.ctxt['errors'].append(errmsg)
+			self.ctxt['ERRORS'].append(errmsg)
 
 
 
@@ -188,9 +190,9 @@ class Auth(View):
 				pass
 
 		if msg:
-			self.ctxt['notify'].append(msg)
+			self.ctxt['NOTIFY'].append(msg)
 		if errmsg:
-			self.ctxt['errors'].append(errmsg)
+			self.ctxt['ERRORS'].append(errmsg)
 
 
 

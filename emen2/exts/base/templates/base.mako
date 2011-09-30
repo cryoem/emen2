@@ -60,11 +60,14 @@
 	<script type="text/javascript">
 		// Global cache
 		var caches = {};
+
 		caches['user'] = {};
 		caches['group'] = {};
 		caches['record'] = {};
 		caches['paramdef'] = {};
 		caches['recorddef'] = {};
+		caches['binary'] = {};
+
 		caches['children'] = {};
 		caches['parents'] = {};
 		caches['displaynames'] = {};

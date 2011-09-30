@@ -2,7 +2,7 @@
 
 <%def name="login(location='/')">
 	<form action="${EMEN2WEBROOT}/auth/login/" method="post">
-	    <input type="hidden" name="location" value="${EMEN2WEBROOT}${location}" />
+	    <input type="hidden" name="location" value="${EMEN2WEBROOT}/${location}" />
 		<table class="login" cellpadding="0" cellspacing="0">
 			<tr>
 				<td>Email:</td>

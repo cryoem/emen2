@@ -9,20 +9,35 @@
 		},
 				
 		_create: function() {
-			this.bdomap = {};
 			this.built = 0;
-			this.bdos = {};
+			this.bdos = [];
+			this.bdomap = {};
 			if (this.options.show) {			
 				this.show();
 			}
 		},
-		
-		rebuild: function() {
-			// Update the attachment count
-		},
-		
+
 		show: function() {
-			this.build();
+			// Find binaries attached to the named record
+			var self = this;
+			$.jsonRPC.call("binary.find", {'record':self.options.name}, 
+				function(bdos) {
+					self.bdos = bdos;
+					$.updatecache(bdos);
+
+					// Grab all the users we need
+					var users = $.map(self.bdos, function(i){return i['creator']});
+					users = $.checkcache('user', users);
+					if (users.length) {
+						$.jsonRPC.call('user.get', [users], function(users) {
+							$.updatecache(users);
+							self.build();
+						});
+					} else {
+						self.build();
+					}
+				}
+			);
 		},		
 
 		build: function() {
@@ -30,101 +45,81 @@
 			this.built = 1;
 			
 			var self = this;
-			this.dialog = $('<div> \
-				<form method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+this.options.name+'"></form> \
-			</div>');	
+			var dialog = $('<div></div>');	
 			
-			this.event_build_tablearea();
+			// Key the binaries by parameter
+			this.bdomap = this.makebdomap(this.bdos);
+			
+			// Build the items
+			$.each(this.bdomap, function(k,v) {
+				self.element.append(self.build_level(k,k,v))
+			})
+
+			this.element.append(dialog);
 
 			if (this.options.controls) {
 				this.build_controls();
 			}
-
-			this.element.append(this.dialog);
 		},
 
-		build_tablearea: function() {
-			var self=this;
-			this.tablearea.empty();
-			if (this.bdos.length == 0) {
-				this.tablearea.append('<h4>There are currently no attachments.</h4>');
-				return
-			}
-			var bdotable = $('<table cellpadding="0" cellspacing="0" class="e2l-shaded" />');
-			$.each(this.bdomap, function(k,bdos) {
-				var header = $('<thead><tr><th></th><th colspan="2"><strong>'+caches['paramdef'][k].desc_short+' ('+k+')</strong></th><th>Size</th><th>Uploaded</th><th></th></tr></thead>');
-				// if (self.options.edit) {header.prepend('<th><input type="radio" name="param" value="'+k+'" /></th>');}
-				bdotable.append(header);
-				var tbody = $('<tbody></tbody>');
-				$.each(bdos, function(i,v) {
-					var row = $('<tr data-param="'+k+'" data-bdo="'+v.name+'"/>');
-					if (self.options.edit) {
-						row.append('<td><input type="checkbox" name="remove"/></td>');
-					}
-					row.append('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'"><img class="e2l-thumbnail" src="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'?size=thumb" alt="Thumb" /></a></td>');
-					row.append('<td><a target="_blank" href="'+EMEN2WEBROOT+'/download/'+v.name+'/'+v.filename+'">'+v.filename+'</a></td>');
-					row.append('<td>'+$.convert_bytes(v.filesize)+'</td>');
-					row.append('<td><a href="'+EMEN2WEBROOT+'/user/'+v.creator+'/">'+caches['displaynames'][v.creator]+'</a></td>');
-					row.append('<td>'+v.creationtime+'</td>');
-					tbody.append(row);
+		build_level: function(label, level, items) {
+			var pd = caches['paramdef'][level];
+			if (pd) {label = pd.desc_short}
+			
+			var header = $('<h4>'+label+'</h4>');
+			var d = $('<div class="e2l-cf e2l-fw"></div>');
+			$.each(items, function() {
+				var infobox = $('<div />');
+				infobox.InfoBox({
+					name: this,
+					keytype: 'binary',
+					selectable: true,
+					input: ['checkbox',level,true]
 				});
-				bdotable.append(tbody);
+				d.append(infobox);
 			});
 			
-			$('input[name=remove]', bdotable).click(function() {
-				var target = $(this).parent().parent();
-				var state = $(this).attr('checked');
-				if (state) {
-					target.addClass('e2l-removed');
-				} else {
-					target.removeClass('e2l-removed');
-				}
-			});
-			
-			$('input[value=file_binary]', bdotable).attr('checked', 'checked');
-			this.tablearea.append(bdotable);
+			return $('<div>').append(header, d)
 		},
 
 		build_controls: function() {
-			var controls = $(' \
-				<input type="hidden" name="param" id="e2-file-param" value="file_binary" /> \
-				<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'#attachments" /> \
-				<ul class="e2l-options e2l-nonlist"> \
-					<li> \
-						<input style="opacity:0" type="file" name="filedata" /> \
-						<span class="e2l-a e2l-label e2-file-target">Regular Attachment</span> \
-					</li> \
-				</ul> \
-				<ul clss="e2l-controls e2l-nonlist"> \
-					<li><input class="e2l-float-left e2l-save" name="remove" type="button" value="Remove Selected Attachments" /></li> \
-					<li>'+$.spinner()+'<input class="e2l-float-right e2l-save" name="save" type="submit" value="Upload Attachment" /></li> \
-				</ul>');
 			
-			// Remove items
-			$('input[name=remove]', controls).click(function() {
-				self.removebdos();
-			});
+			// Controls includes it's own form for uploading files
+			var controls = $(' \
+				<form id="e2-attachments-upload" method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+this.options.name+'"> \
+					<input type="hidden" name="param" id="e2-attachments-param" value="file_binary" /> \
+					<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'#attachments" /> \
+					<ul class="e2l-options e2l-nonlist"> \
+						<li><span class="e2l-a e2l-label e2-attachments-target">Regular Attachment</span></li> \
+						<li><input type="file" name="filedata" /></li> \
+					</ul> \
+					<ul class="e2l-controls e2l-nonlist"> \
+						<li>'+$.spinner()+'<input name="save" type="submit" value="Upload Attachment" /></li> \
+					</ul> \
+				</form>');
+				
+			// <li><input class="e2l-float-left e2l-save" name="remove" type="button" value="Remove Selected Attachments" /></li> \
 			
 			// Submit the form when this changes.
-			$('input[name=filedata]', controls).change(function() {
-				if (!$(this).val()) {return}
-				$('.e2l-spinner', self.dialog).show();
-				$('form', self.dialog).submit();
-			});
+			// $('input[name=filedata]', controls).change(function() {
+			//	 console.log("Got files:", $(this).val());
+			//	 if (!$(this).val()) {return}
+			// 	$('#e2-attachments-upload', self.element).submit();
+			// });
 
 			// Submit button causes file selection then upload when value changes
-			$('input[name=save]', this.dialog).click(function(e) {
-				$('input[name=filedata]', self.dialog).click();
-				e.preventDefault();
-			});			
+			// $('input[name=save]', controls).click(function(e) {
+			//	$('input[name=filedata]', self.element).click();
+			//	e.preventDefault();
+			// });			
 
 			// Change the selected param for upload..
-			$('.e2-file-target', controls).FindControl({
+			$('.e2-attachments-target', controls).FindControl({
 				keytype: 'paramdef',
 				vartype: ['binary'],
 				minimum: 0,
 				cb: function(self, value) {
-					$('#e2-file-param').val(value);
+					$('#e2-attachments-param').val(value);
 					self.element.html(value);
 				}
 			});
@@ -132,119 +127,37 @@
 			this.options.controls.append(controls);
 		},
 
-		// Remove BDOs
-		removebdos: function() {
-			var self = this;
-			var newvalues = {}
-			//:not(.e2l-removed)
-			$('tr[data-param]', this.element).each(function() {
-				var t = $(this);
-				var param = t.attr('data-param');
-				var bdo = t.attr('data-bdo');
-				if (!newvalues[param]) {newvalues[param]=[]}
-				if (!t.hasClass('e2l-removed')) {
-					newvalues[param].push(bdo)
-				}
-			});
-
-			var p = {};
-			$.each(newvalues, function(k,v) {
-				var pd = caches['paramdef'][k];
-				if (v.length == 0) {
-					v = null;
-				} else if (!pd.iter) {
-					v = v[0];
-				}
-				p[k] = v;
-			});
-			
-			$.jsonRPC.call("record.update", [this.options.name, p],
-				function(rec) {
-					$.record_update(rec);
-					self.event_build_tablearea();
-					self.options.cb(self);
-				}
-			);			
-		},
-		
-		event_build_tablearea: function(e) {
-			var self = this;
-			this.tablearea.empty();
-			this.tablearea.append('<div>'+$.spinner()+'</div>');
-			$.jsonRPC.call("paramdef.find", {'record':this.options.name}, function(paramdefs) {			
-				$.each(paramdefs, function() {
-					caches['paramdef'][this.name] = this;
-				});
-				self._findbinary();
-			});
-
-		},
-	
 		// Utility methods --
-		makebdomap: function() {
+		makebdomap: function(bdos) {
 			// This is to avoid an extra RPC call, and sort BDOs by param name
-			this.bdomap = {};
+			var bdomap = {};
 			var rec = caches['record'][this.options.name];
 			var self = this;
 
-			$.each(this.bdos, function(i, bdo) {
+			$.each(bdos, function(i, bdo) {
 				// find bdo in record..
 				$.each(rec, function(k,v) {
 					if (typeof(v)=="object" && v != null) {
 						if ($.inArray(bdo.name, v) > -1) {
-							self.bdomap_append(k, bdo);
+							self.bdomap_append(bdomap, k, bdo.name);
 						}
 					} else {
 						if (v==bdo.name) {
-							self.bdomap_append(k, bdo);
+							self.bdomap_append(bdomap, k, bdo.name);
 						}
 					}
 				});
-			});			
+			});	
+			return bdomap
 		},
 
-		bdomap_append: function(param, value) {
-			if (this.bdomap[param] == null) {
-				this.bdomap[param] = [];
+		bdomap_append: function(bdomap, param, value) {
+			if (bdomap[param] == null) {
+				bdomap[param] = [];
 			}
-			this.bdomap[param].push(value);
-		},		
-		
-		_findbinary: function() {
-			// Find binaries attached to the named record
-			var self = this;
-			$.jsonRPC.call("binary.find", {'record':self.options.name}, 
-				function(bdos) {						
-					if (bdos == null) {bdos=[]}
-					if (bdos.length == null) {bdos=[bdos]}
-					self.bdos = bdos || {};
-					self.makebdomap();
-					self._findusernames();
-				}
-			);
-		},
-		
-		_findusernames: function() {
-			// Get all the user names associated with the record + binaries
-			var findusers = [];
-			var self = this;
-			$.each(self.bdos, function() {
-				if (caches['displaynames'][this.creator] == null) {
-					findusers.push(this.creator);
-				}
-			});
-
-			if (findusers.length) {
-				$.jsonRPC.call('user.get', [findusers], function(users) {
-					$.each(users, function() {
-						caches['displaynames'][this.name] = this.displayname;
-					});
-					self.build_tablearea();
-				})
-			} else {
-				self.build_tablearea();				
-			}
-		}
+			bdomap[param].push(value);
+		},	
+			
 	});
 })(jQuery);
 

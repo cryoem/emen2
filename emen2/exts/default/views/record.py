@@ -29,7 +29,7 @@ class RecordBase(View):
 		# Get record..
 		try:
 			self.rec = self.db.getrecord(name, filt=False)
-		except (KeyError, TypeError), inst:
+		except (ValueError, KeyError, TypeError), inst: 
 			raise RecordNotFoundError, name
 
 		self.name = self.rec.name
@@ -61,11 +61,11 @@ class RecordBase(View):
 
 		# Some warnings/alerts
 		if self.rec.get('deleted'):
-			self.ctxt['errors'].append('Deleted Record')
+			self.ctxt['ERRORS'].append('Deleted Record')
 		if 'publish' in self.rec.get('groups',[]):
-			self.ctxt['notify'].append('Record marked as published data')
+			self.ctxt['NOTIFY'].append('Record marked as published data')
 		if 'authenticated' in self.rec.get('groups',[]):
-			self.ctxt['notify'].append('Any authenticated user can access this record')
+			self.ctxt['NOTIFY'].append('Any authenticated user can access this record')
 		
 		
 		# Parent map
@@ -172,7 +172,7 @@ class Record(RecordBase):
 				self.db.putrecord(rec)
 				self.headers['Location'] = '%s/record/%s/'%(CVars.webroot, name)
 			except Exception, e:
-				self.ctxt['errors'].append(e)
+				self.ctxt['ERRORS'].append(e)
 				
 		self.view(name=name)				
 		self.ctxt["edit"] = True

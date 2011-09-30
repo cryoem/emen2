@@ -1,15 +1,12 @@
 # $Id$
-# Standard View imports
+import collections
+
+from emen2.web.view import View
 import emen2.db.config
-g = emen2.db.config.g()
 import emen2.web.config
 CVars = emen2.web.config.CVars
-from emen2.web.view import View
-###
 
-import emen2.web.markuputils
 
-from map import Map
 
 @View.register
 class ParamDef(View):
@@ -21,7 +18,6 @@ class ParamDef(View):
 		self.action = action
 
 		paramdef = self.db.getparamdef(self.name)
-
 		edit = 0
 		new = 0
 		mapmode = "parents"
@@ -52,35 +48,9 @@ class ParamDef(View):
 				title = "Parameter Creator: New parameter based on %s"%self.name
 
 
-		###############
-
 		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='paramdef', root=self.name, mode='parents', recurse=3)
-
-		###############
-
-		pages = {
-			'classname':'main',
-			'labels':{'main':"Parameter Viewer"},
-			'content':{'main':""},
-			'href':	{'main': '%s/paramdef/%s/'%(CVars.webroot, self.name)}
-			}
-
-		if edit:
-			pages["labels"]["main"]="Parameter Editor"
-		if new:
-			pages["labels"]["main"]="Parameter Creator"
-
-		pages = emen2.web.markuputils.HTMLTab(pages)
-
-		pages_map = emen2.web.markuputils.HTMLTab({
-			'classname':'map',
-			'content':{'parents':parentmap},
-			'active':'parents',
-			'order':['parents','children'],
-			'labels':{'parents':'Parents','children':'Children'}
-		})
-
-
+		
+		
 		creator = self.db.getuser(paramdef.creator) or {}
 		displaynames = {}
 		displaynames[paramdef.creator] = creator.get('displayname', paramdef.creator)
@@ -97,15 +67,9 @@ class ParamDef(View):
 			new = new,
 			mapmode = mapmode,
 			paramdef = paramdef,
-			# ian: todo! fix this
 			displaynames = displaynames,
 			keytype = "paramdef",
 			key = self.name,
-			pages_map = pages_map,
-			pages = pages,
-			vartypes = self.db.getvartypenames(),
-			properties = self.db.getpropertynames(),
-			units = units,
 			create = create
 			))
 
@@ -143,6 +107,8 @@ class ParamDefs(View):
 
 	@View.add_matcher(r'^/paramdefs/$')
 	def init(self, action=None, q=None):
+		self.title = 'Parameters'
+		
 		if action == None or action not in ["vartype", "name", "tree", "property"]:
 			action = "tree"
 
@@ -152,31 +118,25 @@ class ParamDefs(View):
 		else:
 			paramdefs = self.db.getparamdef(self.db.getparamdefnames())
 
-		self.template='/pages/paramdefs.%s'%action
-		self.set_context_item('create',self.db.checkcreate())
+		self.template = '/pages/paramdefs.%s'%action
 
-		pages = {
-			'classname':'main',
-			'labels':{'tree':"Parameter Ontology", 'name': "Parameters by Name", 'vartype':'Parameters by Variable Type', 'property':'Parameters by Physical Property'},
-			'content':{'main':""},
-			'href':	{
-				'tree': '%s/paramdefs/tree/'%CVars.webroot, 
-				'name': '%s/paramdefs/name/'%CVars.webroot, 
-				'vartype': '%s/paramdefs/vartype/'%CVars.webroot, 
-				'property': '%s/paramdefs/property/'%CVars.webroot},
-			'order': ['tree', 'name', 'vartype', 'property']
+		pages = collections.OrderedDict()
+		pages['main'] = 'Parameter ontology'
+		pages['name'] = 'Parameters by name'
+		pages['vartype'] = 'Parameters by vartype'
+		pages['property'] = 'Parameters by property'
+		uris = {
+			'main': 'test'
 		}
-		pages['active'] = action
-		self.title = pages['labels'].get(action)
-		pages = emen2.web.markuputils.HTMLTab(pages)
-		self.set_context_item('pages',pages)
-
+		pages.uris = uris
+		self.ctxt['pages'] = pages
+		
 		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="paramdef", root="root", recurse=-1)
 
 		self.set_context_item('q',q)
-		self.set_context_item("paramdefs",paramdefs)
-		self.set_context_item("childmap",childmap.get_data())
-
+		self.set_context_item("paramdefs", paramdefs)
+		self.set_context_item("childmap", childmap)
+		self.set_context_item('create',self.db.checkcreate())
 
 
 

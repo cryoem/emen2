@@ -75,7 +75,7 @@ class URL(object):
 	"""Private"""
 	
 	def __init__(self, name, matcher, cb):
-		print "URL:", name, matcher, cb
+		# print "URL:", name, matcher, cb
 		self.name = name
 		if not hasattr(matcher, 'match'):
 			matcher = re.compile(matcher)

@@ -497,7 +497,7 @@ class PermissionsDBObject(BaseDBObject):
 
 		# Allow us to override readable; normally just checks "any(self._ptest)"
 		if not self.readable():
-			raise emen2.db.exceptions.SecurityError, "Permission Denied: %s"%self.name
+			raise emen2.db.exceptions.SecurityError, "Permission denied: %s %s"%(self.keytype, self.name)
 
 		return self._ptest[0]
 

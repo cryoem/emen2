@@ -37,6 +37,7 @@
 				return
 			}
 
+			// ian: todo: This could be refactored somewhat
 			var title = '';
 			var body = '';
 			if (this.options.keytype == 'user') {
@@ -54,20 +55,32 @@
 				title = $.trim(recname || item.rectype);
 				body = item.name + ' ('+item.rectype+')';
 				this.element.attr('data-rectype', item.rectype);
+			} else if (this.options.keytype == 'binary') {
+				title = item.filename;
+				if (item.filesize) {
+					title = title+' ('+item.filesize+')';
+				}
+				var user = item.creator;
+				body = 'Created by '+user+' on '+item.creationtime;
 			} else {
 				title = $.trim(item.desc_short) || item.name;
 				body = ''
 			}
 			
+			// Create the link
 			var link = '';
 			if (this.options.autolink) {
 				var link = EMEN2WEBROOT+'/'+this.options.keytype+'/'+this.options.name+'/';
+			} else if (this.options.keytype == 'binary') {
+				var link = EMEN2WEBROOT+'/download/'+item.name+'/'+item.filename;
 			}
-
+			
+			// Set the box properties
 			this.element.addClass('e2-infobox');
 			this.element.attr('data-name', this.options.name);
 			this.element.attr('data-keytype', this.options.keytype);
 
+			// Box title
 			var h4 = $('<h4 />');
 			if (link) {
 				title = '<a href="'+link+'">'+title+'</a>';
@@ -78,12 +91,17 @@
 				// <abbr class="timeago" title="2008-07-17T09:24:17Z">July 17, 2008</abbr>
 				h4.append('<time class="e2-timeago e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
 			}
+			
+			// Body body
 			var p = $('<p class="e2l-small" />');
 			p.append(body);
 			
+			// Images
 			var src = EMEN2WEBROOT+'/static/images/nophoto.png';
 			if (this.options.keytype == 'user' && item.userrec['person_photo']) {
 				src = EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/?size=thumb';
+			} else if (this.options.keytype == 'binary') {
+				src = EMEN2WEBROOT+'/download/'+item.name+'/'+item.filename+'?size=thumb';
 			}
 			var img = $('<img data-src="'+src+'" src="'+src+'" class="e2l-thumbnail" alt="Photo" />');
 			if (link) {img = $('<a href="'+link+'" />').append(img)}
@@ -105,32 +123,14 @@
 			// $('input:checkbox', this.element).click(function(e){e.stopPropagation()});
 			
 			this.element.click(function(e) {
-				var input = $('input', self.element);
-				var state = input.attr('checked')
-				if ($(e.target).is('input:checkbox')) {
-					return
-				}
-				if (state) {
-					input.attr('checked',null);
-				} else {
-					input.attr('checked','checked');					
-				}
+				//if ($(e.target).is('input:checkbox, a')) {return}
+				//if ($('input', self.element).attr('checked')) {
+				//	input.attr('checked',null);
+				//} else {
+				//	input.attr('checked','checked');		
+				//}
 			});
 			
-			// // Hover classes
-			// if (this.options.hover) {
-			// 	this.element.hover(function(){
-			// 		$(this).addClass(self.options.hover);
-			// 	}, function() {
-			// 		$(this).removeClass(self.options.hover);
-			// 	});
-			// }
-			// 
-			// // Selected classes
-			// if (this.options.selectable && this.options.toggle) {
-			// 	this.element.click(function() {self.toggle($(this))})
-			// };
-
 			// $('time.e2-timeago', this.element).timeago();
 			this.built = 1;
 		},

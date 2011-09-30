@@ -64,55 +64,9 @@ class RecordDef(View):
 
 		###############
 
-		parentmap = Map(mode=mapmode, keytype="recorddef", root=self.name, recurse=-1, db=self.db)
-		parentmap_ctxt = parentmap.get_context()
+		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='recorddef', root=self.name, mode='parents', recurse=3)
 
 		###############
-
-		labels = {"mainview":"Protocol","tabularview":"Table","recname":"Record Title","defaultview":"Default"}
-
-		pages = {
-			'classname':'main',
-			'labels':{'main':"Protocol Viewer"},
-			'content':{'main':""},
-			'href':	{'main': '%s/recorddef/%s/'%(CVars.webroot, self.name)}
-			}
-
-		if edit:
-			pages["labels"]["main"]="Protocol Editor"
-		if new:
-			pages["labels"]["main"]="Protocol Creator"
-
-		pages = emen2.web.markuputils.HTMLTab(pages)
-
-		pages_map = emen2.web.markuputils.HTMLTab({
-			'classname':'map',
-			'content':{'parents':parentmap},
-			'active':'parents',
-			'order':['parents','children'],
-			'labels':{'parents':'Parents','children':'Children'}
-		})
-
-		pages_recdefviews = {
-			'classname':'recdefviews',
-			'active': 'recname',
-			'content':{},
-			'labels':{}
-			}
-
-		for k,v in recdef.views.items():
-			pages_recdefviews["content"][k]=v
-			pages_recdefviews["labels"][k]=labels.get(k,k)
-
-
-		if edit:
-			pages_recdefviews['labels']['new']='Add View [+]'
-			pages_recdefviews['js']={'new':'void(0)'}
-			pages_recdefviews["order"]=sorted(pages_recdefviews["content"].keys())+['new']
-			if len(recdef.views) == 0:
-				pages_recdefviews["active"]='new'
-
-			#self.ctxt["pages_recdefviews"]["content"]["new"]="No additional views defined; why not add some?"
 
 		displaynames = {}
 		try:
@@ -120,8 +74,6 @@ class RecordDef(View):
 			displaynames[recdef.creator] = creator.displayname
 		except:
 			pass
-
-		pages_recdefviews = emen2.web.markuputils.HTMLTab(pages_recdefviews)
 
 		self.update_context(dict(
 			parentmap = parentmap.get_data(),
@@ -134,9 +86,6 @@ class RecordDef(View):
 			recdef = recdef,
 			displaynames = displaynames,
 			key = self.name,
-			pages_recdefviews = pages_recdefviews,
-			pages_map = pages_map,
-			pages = pages,
 			create = create
 			))
 
@@ -189,17 +138,17 @@ class RecordDefs(View):
 		pages = emen2.web.markuputils.HTMLTab(pages)
 		self.set_context_item('pages',pages)
 
-		childmap = Map(mode="children", keytype="recorddef", root="root", recurse=-1, db=self.db)
+		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="recorddef", root="root", recurse=-1)
 
 		count = {}
 		if action != 'tree':
 			for pd in recorddefs:
 				count[pd.name] = len(self.db.getindexbyrectype(pd.name))
 
-		self.set_context_item('q',q)
-		self.set_context_item('count',count)
-		self.set_context_item("recorddefs",recorddefs)
-		self.set_context_item("childmap",childmap.get_data())
+		self.set_context_item('q', q)
+		self.set_context_item('count', count)
+		self.set_context_item("recorddefs", recorddefs)
+		self.set_context_item("childmap", childmap)
 
 
 

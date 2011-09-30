@@ -31,6 +31,7 @@
 				args['names'] = this.options.name;
 				$.jsonRPC.call('get', {'keytype':this.options.keytype, 'names':this.options.name}, function(item) {
 					caches[item.keytype][item.name] = item;
+					self._build();
 				});
 			} else {
 				this._build();

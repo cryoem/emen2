@@ -31,10 +31,10 @@
 	## Alerts and notifications
 	<%block name="alert">
 		<ul id="e2l-alert" class="e2l-alert e2l-precontent">
-			% for msg in notify:
+			% for msg in NOTIFY:
 			   <li>${msg}</li>
 			% endfor
-			% for msg in errors:
+			% for msg in ERRORS:
 			   <li class="e2l-error">${msg}</li>
 			% endfor
 	   </ul>
@@ -45,11 +45,7 @@
 
 	## Tabs
 	<%block name="tabs">
-		% if pages:
-			<div class="e2l-precontent">${buttons.buttons(pages)}</div>
-		% else:
-			<div class="e2l-precontent">${buttons.titlebutton(title)}</div>
-		% endif	
+		${buttons.newtabs(pages or title, cls='e2-tab-main')}
 	</%block>
 
 	<div id="content">
