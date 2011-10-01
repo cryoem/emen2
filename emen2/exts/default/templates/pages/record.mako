@@ -17,7 +17,7 @@
 ## Cached items
 <%block name="js_inline">
 	${parent.js_inline()}
-	caches['record'][${jsonrpc.jsonutil.encode(rec.name)}] = ${jsonrpc.jsonutil.encode(rec)};
+	${buttons.tocache(rec)}
 	caches['recnames'] = ${jsonrpc.jsonutil.encode(recnames)};
 	caches['displaynames'] = ${jsonrpc.jsonutil.encode(displaynames)};
 </%block>
@@ -26,7 +26,7 @@
 ## Start map browser
 <%block name="js_ready">
 	${parent.js_ready()}
-	$('.e2-map').RelationshipControl({'attach':true});
+	$('.e2-map').MapControl({'attach':true});
 </%block>
 
 ${next.body()}

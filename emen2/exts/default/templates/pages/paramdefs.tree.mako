@@ -2,7 +2,7 @@
 
 <%block name="js_ready">
 	${parent.js_ready()}
-	$('#sitemap').RelationshipControl({
+	$('#sitemap').MapControl({
 		'attach':true,
 		'keytype':'paramdef'
 	});
@@ -24,5 +24,5 @@
 
 
 <div id="sitemap" class="e2l-cf">
-${childmap}
+	${childmap}
 </div>

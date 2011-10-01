@@ -2,7 +2,7 @@
 
 <%block name="js_ready">
 	${parent.js_ready()}
-	$('#sitemap').RelationshipControl({
+	$('#sitemap').MapControl({
 		'attach': true,
 		'keytype': 'recorddef'
 	});

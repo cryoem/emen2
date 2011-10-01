@@ -6,12 +6,16 @@
 
 <%namespace name="buttons" file="/buttons" />
 
+<%block name="js_inline">
+	${parent.js_inline()}
+	${buttons.tocache(newrec)}
+	${buttons.tocache(recdef)}
+</%block>
+
+
 <%block name="js_ready">
 	${parent.js_ready()}
 	
-	caches['record']['None'] = ${jsonrpc.jsonutil.encode(newrec)};
-	caches['recorddef'][${jsonrpc.jsonutil.encode(recdef.name)}] = ${jsonrpc.jsonutil.encode(recdef)};
-
 	// Save Record
 	$('#e2-edit').MultiEditControl({
 		show: true,
@@ -24,7 +28,6 @@
 	// Permissions editor
 	tab.TabControl('setcb','permissions', function(page){
 		$('#e2-permissions', page).PermissionsControl({
-			name: 'None',
 			show: true,
 			edit: true,
 		});
@@ -64,7 +67,7 @@
 
 <form id="e2-edit" data-name="None" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/new/${newrec.rectype}/" >
 
-	<div id="rendered" class="e2-view" data-viewtype="${viewtype}" data-name="None">
+	<div id="rendered" class="e2-view" data-viewtype="${viewtype}">
 		${rendered}
 	</div>
 	

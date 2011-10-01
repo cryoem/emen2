@@ -39,7 +39,7 @@ vtm = emen2.db.datatypes.VartypeManager
 class Vartype(object):
 	keytype = None
 	iterable = True
-	elem_class = 'e2l-editable'
+	elem_class = 'e2-edit'
 	elem = 'span'
 
 	def __init__(self, engine=None, pd=None):
@@ -99,7 +99,7 @@ class Vartype(object):
 			# Editable..
 			# Are we showing the edit label?
 			# if self.showlabel:
-			#	lis.append('<li class="e2l-nonlist"><span class="e2l-editable e2l-label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%CVars.webroot)
+			#	lis.append('<li class="e2l-nonlist"><span class="e2-edit e2l-label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%CVars.webroot)
 			# Put the editing widget together
 			return '<ul class="%s" %s>%s</ul>'%(self.elem_class, editmarkup, "\n".join(lis))
 
@@ -503,7 +503,7 @@ class vt_uri(Vartype):
 class vt_binary(Vartype):
 	"""File Attachment"""
 	keytype = None
-	elem_class = "e2l-editable-binary"
+	elem_class = "e2-edit-binary"
 
 	def validate(self, value):
 		return self._rci([i.name for i in self.engine.db.getbinary(ci(value), filt=False)])

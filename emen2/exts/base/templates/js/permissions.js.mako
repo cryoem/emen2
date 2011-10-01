@@ -5,7 +5,7 @@
 			keytype: 'record',
 			name: null,
 			edit: false,
-			show: false,
+			show: true,
 			controls: null,
 			groups: true
 		},
@@ -152,8 +152,8 @@
 			
 			// Copy options into the form...
 			if (action) {
-				$('.e2-edit-copied', this.element).remove();
-				var copied = $('<div class="e2-edit-copied e2l-hide"></div>');
+				$('.e2-permissions-copied', this.element).remove();
+				var copied = $('<div class="e2-permissions-copied e2l-hide"></div>');
 				var filt = $('input[name=filt]:checked', this.options.controls).val();
 				copied.append('<input type="hidden" name="action" value="'+action+'" />');
 				copied.append('<input type="hidden" name="filt" value="'+filt+'" />');

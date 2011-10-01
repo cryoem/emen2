@@ -56,9 +56,22 @@ window.log = function(){
 		var ret = [];
 		$.each(items, function(i,v) {
 			var item = caches[keytype][v];
-			if (item==null) {ret.push(v)}
+			if (item==null && $.inArray(v,ret)==-1) {ret.push(v)}
 		});
 		return ret
+	}
+	
+	// For EMEN2 widgets, check this.options first, then
+	// this.element.attr('data-'+key)
+	// This includes a check so that record ID = 0 works
+	$.checkopt = function(self, key, dfault) {
+		var value = self.options[key];
+		if (value == 0) {
+			//  && key == 'name') {
+			return value
+		}
+		value = value || self.element.attr('data-'+key) || dfault;
+		return value
 	}
 	
 	// Update controls when a record has changed
@@ -85,7 +98,7 @@ window.log = function(){
 			var edit = elem.attr('data-edit');
 			$.jsonRPC.call("renderview", {'names':name, 'viewtype': viewtype, 'edit': edit}, function(view) {
 				elem.html(view);
-				//$('.e2l-editable', elem).EditControl({});
+				//$('.e2-edit', elem).EditControl({});
 			},
 			function(view){}
 			);
@@ -358,9 +371,9 @@ window.log = function(){
 		},
 				
 		_create: function() {
-			this.options.parent = this.element.attr('data-parent') || this.options.parent;
-			this.options.mode = this.element.attr('data-mode') || this.options.mode;
-			this.options.name = this.element.attr('data-name') || this.options.name;			
+			this.options.parent = $.checkopt(this, 'parent');
+			this.options.mode = $.checkopt(this, 'mode');
+			this.options.name = $.checkopt(this, 'name');
 			this.built_bookmarks = 0;
 			var self = this;
 			if (this.options.mode) {
@@ -534,7 +547,8 @@ window.log = function(){
 
 		_create: function() {
 			var self = this;
-			this.options.max = this.options.max || parseInt(this.element.attr('data-max'));
+			this.options.max = $.checkopt(this, 'max');
+			
 			this.wc = $('<div class="e2-wordcount-count"></div>');
 			this.element.after(this.wc);
 			self.update();

@@ -293,10 +293,7 @@
 
 
 
-${buttons.buttons(pages_recdefviews)}
-<%call expr="buttons.pageswrap(pages_recdefviews)">
 	% for k,v in pages_recdefviews.content.items():
-		<%call expr="buttons.pagewrap(pages_recdefviews,k)">
 
 				<ul class="recdef_edit_actions e2l-cf">
 					<li>Name: <input type="text" value="${k}" data-t="${k}" name="viewkey_${k}" /></li>
@@ -311,11 +308,7 @@ ${buttons.buttons(pages_recdefviews)}
 	% endfor
 	
 	
-	<%call expr="buttons.pagewrap(pages_recdefviews,'new')">
 		No additional views defined; why not add some?				
-	</%call>
-	
-</%call>
 
 
 </form>

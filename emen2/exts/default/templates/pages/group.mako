@@ -3,16 +3,16 @@
 <%namespace name="buttons" file="/buttons"  />
 <%namespace name="pages_user_util" file="/pages/user.util"  />
 
-
-
-
+<%block name="js_inline">
+	${parent.js_inline()}
+	${buttons.tocache(group)}
+</%block>
 
 <%block name="js_ready">
 	${parent.js_ready()}
 
 	var edit = ${jsonrpc.jsonutil.encode(edit)};
-	caches['group'][${jsonrpc.jsonutil.encode(group.name)}] = ${jsonrpc.jsonutil.encode(group)};
-
+	
 	$('#group_members').PermissionControl({
 		keytype: 'group',
 		name: ${jsonrpc.jsonutil.encode(group.name)},

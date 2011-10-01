@@ -1,13 +1,12 @@
 (function($) {
 	
-	
 	// Comments Widget
-	
     $.widget("emen2.CommentsControl", {
 		options: {
 			name: null,
 			edit: false,
 			title: null,
+			controls: null,
 			historycount: false,
 			commentcount: false
 		},
@@ -26,66 +25,64 @@
 		build: function() {	
 			var self = this;	
 			if (this.built) {return}
+			this.built = 1;
 
-			this.comments = caches['record'][this.options.name]["comments"].slice() || [];
-			this.history = caches['record'][this.options.name]['history'].slice() || [];			
-			this.comments.push([caches['record'][this.options.name]['creator'], caches['record'][this.options.name]['creationtime'], 'Record created']);
+			// Make a copy of the cached comments and history
+			var rec = caches['record'][this.options.name];
+			this.comments = rec['comments'].slice() || [];
+			this.history = rec['history'].slice() || [];
+			
+			// Add a "comment" for the record creation time		
+			this.comments.push([
+				rec['creator'], 
+				rec['creationtime'], 
+				'Record created']);
 
-			// Check to see if we need any users or parameters
+			// Check for cached users
 			var users = [];
 			$.each(this.comments, function(){users.push(this[0])})
 			$.each(this.history, function(){users.push(this[0])})
-			users = $.map(users, function(user){if (!caches['user'][user]){return user}})
+			users = $.checkcache('user', users);
 
-			var params = [];
-			$.each(this.history, function(){
-				if (!caches['paramdef'][this[2]]) {
-					params.push(this[2])
-				}
-			});
+			// Check cached parameters
+			var params = $.map(this.history, function(item){return item[2]});
+			params = $.checkcache('paramdef', params);
 
 			// If we need users or params, fetch them.
-			// Todo: find a nice way to chain these together, server side
+			// Todo: find a nicer way to chain these together
 			if (users && params) {
-
 				$.jsonRPC.call('getuser', [users], function(users) {
-						$.each(users, function() {caches['user'][this.name] = this});
-						$.jsonRPC.call('getparamdef', [params], function(params) {
-							$.each(params, function() {caches['paramdef'][this.name] = this});
-							self._build();
-						});
-					});
-			
-			} else if (params.length) {
-
-				$.jsonRPC.call("getparamdef", [params], 
-					function(params) {
-						$.each(params, function() {caches['paramdef'][this.name] = this});
+					$.updatecache(users)
+					$.jsonRPC.call('getparamdef', [params], function(params) {
+						$.updatecache(params)
 						self._build();
 					});
-					
-			} else if (users.length) {
-
-				$.jsonRPC.call("getuser", [users], 
-					function(users) {
-						$.each(users, function() {caches['user'][this.name] = this});
-						self._build();
-					});
-
+				});
+			} else if (params) {
+				$.jsonRPC.call("getparamdef", [params], function(params) {
+					$.updatecache(params)
+					self._build();
+				});
+			} else if (users) {
+				$.jsonRPC.call("getuser", [users], function(users) {
+					$.updatecache(users)
+					self._build();
+				});
 			} else {
 				self._build();
 			}
-			this.built = 1;
 		},
 	
 		_build: function() {
 			// Build after all data is cached
 			var self = this;
+			
 			this.element.empty();			
 			var total = this.comments.length + this.history.length
 			var all = [];
 			$.each(this.comments, function(){all.push(this)})
 			$.each(this.history, function(){all.push(this)})
+
 			// Break each log event out by date
 			var bydate = {};
 			$.each(all, function() {
@@ -105,7 +102,6 @@
 			
 			$.each(keys, function(i, date) {
 				$.each(bydate[date], function(user, events) {
-					// var events = $.map(events, self.makebody);
 					var d = $('<div />');
 					d.InfoBox({
 						'keytype':'user',
@@ -118,15 +114,14 @@
 				});
 			})
 
-			// var comments_text = caches['record'][this.options.name]["comments_text"];
-			// if (comments_text) {
-			// 	this.element.append('<strong>Additional comments:</strong><p>'+comments_text+'</p>');
-			// }			
-
-			if (this.options.edit) {
-				var controls = $('<div><textarea class="e2l-fw" name="comment" rows="2" placeholder="Add a comment"></textarea><input type="submit" class="e2l-float-right e2l-save" value="Add Comment" /></div>');
-				$('input[name=save]', controls).click(function(e) {self.save()});
-				this.element.append(controls);
+			if (this.options.edit && this.options.controls) {
+				var controls = $(' \
+					<ul class="e2l-controls e2l-nonlist e2l-fw"> \
+						<li><textarea name="comment" rows="2" placeholder="Add a comment"></textarea></li> \
+						<li><input type="submit" class="e2l-float-right e2l-save" value="Add Comment" /></li> \
+					</ul>');
+				$('input:submit', controls).click(function(e) {self.save(e)});
+				this.options.controls.append(controls)
 			}
 		},
 		
@@ -138,7 +133,14 @@
 				if (event.length == 4) {
 					var pdname = event[2];
 					if (caches['paramdef'][pdname]){pdname=caches['paramdef'][pdname].desc_short}
-					var row = '<tr><td style="width:16px"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" /></td><td><a href="'+EMEN2WEBROOT+'/paramdef/'+event[2]+'/">'+pdname+'</a></td></tr><tr><td /><td>Old value: '+event[3]+'</td></tr>';
+					var row = ' \
+						<tr> \
+							<td style="width:16px"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" /></td> \
+							<td><a href="'+EMEN2WEBROOT+'/paramdef/'+event[2]+'/">'+pdname+'</a></td> \
+						</tr><tr> \
+							<td /> \
+							<td>Old value: '+event[3]+'</td> \
+						</tr>';
 					rows.push(row);
 				}
 			});
@@ -149,10 +151,9 @@
 			return comments + rows;
 		},
 		
-		////////////////////////////
-		save: function() {	
+		save: function(e) {	
 			var self = this;
-			$.jsonRPC.call('addcomment', [this.options.name, $('textarea[name=comment]', this.element).val()], function(rec) {
+			$.jsonRPC.call('addcomment', [this.options.name, $('textarea[name=comment]', this.options.controls).val()], function(rec) {
 				$.record_update(rec)
 				$.notify('Comment Added');
 			});
@@ -165,19 +166,18 @@
 		options: {
 			parent: null,
 			rectype: null,
-			private: false,
-			copy: false,
-			embed: true,
+			private: null,
+			copy: null,
 			show: true
 		},
 		
 		_create: function() {
 			this.built = 0;
-			this.options.rectype = this.element.attr('data-rectype') || this.options.rectype;
-			this.options.parent = this.element.attr('data-parent') || this.options.parent;
-			this.options.private = this.element.attr('data-private') || this.options.private;
-			this.options.copy = this.element.attr('data-copy') || this.options.copy;
-			this.options.embed = this.element.attr('data-embed') || this.options.embed;			
+			this.options.rectype = $.checkopt(this, 'rectype');
+			this.options.parent = $.checkopt(this, 'parent');
+			this.options.private = $.checkopt(this, 'private');
+			this.options.copy = $.checkopt(this, 'copy');
+			
 			if (this.options.show) {
 				this.show();
 			}
@@ -221,6 +221,7 @@
 			this.dialog = $('<div />');			
 			
 			// Children suggested by RecordDef.typicalchld
+			// todo: -> this.build_leve(label, level, items);
 			if (rd.typicalchld.length) {
 				this.dialog.append('<h4>Suggested protocols for children</h4>');
 				var c = $('<div class="e2l-cf"></div>');
@@ -264,8 +265,14 @@
 			var form = $('<form name="e2-newrecord" action="" method="get"></form>')
 			form.append(' \
 				<ul class="e2l-options e2l-nonlist"> \
-					<li><input type="checkbox" name="_private" id="e2-newrecord-private" /> <label for="e2-newrecord-private">Private</label></li> \
-					<li><input type="checkbox" name="_copy" id="e2-newrecord-copy" /> <label for="e2-newrecord-copy">Copy</label></li>  \
+					<li> \
+						<input type="checkbox" name="_private" id="e2-newrecord-private" /> \
+						<label for="e2-newrecord-private">Private</label> \
+					</li> \
+					<li> \
+						<input type="checkbox" name="_copy" id="e2-newrecord-copy" /> \
+						<label for="e2-newrecord-copy">Copy</label> \
+					</li>  \
 				</ul> \
 				<ul class="e2l-controls e2l-nonlist"> \
 					<li><input type="submit" value="New record" /></li> \
@@ -281,7 +288,6 @@
 			// Action button
 			$('input[type=submit]', form).click(function(e) {
 				var rectype = $('input[name=rectype]:checked', this.dialog).val();
-				console.log(rectype);
 				if (rectype) {
 					var uri = EMEN2WEBROOT+'/record/'+self.options.parent+'/new/'+rectype+'/';
 					var form = $('form[name=e2-newrecord]', this.element);
@@ -303,21 +309,20 @@
 	// This control acts on groups of EditControls, editing one or more records.
     $.widget("emen2.MultiEditControl", {		
 		options: {
-			show: false,
+			show: null,
 			name: null,
 			selector: null,
-			controls: false,
-			cb_save: function(recs){}
+			controls: null,
 		},
 				
 		_create: function() {
 			this.built = 0;
 
 			// Parse options from element attributes if available
-			this.options.name = this.options.name || this.element.attr("data-name");
+			this.options.name = $.checkopt(this, 'name');
 			
 			// jQuery selector for this multi-edit control to activate
-			this.options.selector = this.options.selector || '.e2l-editable[data-name='+this.options.name+']';
+			this.options.selector = $.checkopt(this, 'selector', '.e2-edit[data-name='+this.options.name+']');
 
 			// Show
 			if (this.options.show) {
@@ -345,32 +350,17 @@
 		build: function() {
 			var self = this;
 			// Gather records and params to request from server..
-			var self=this;
-			var names = [];
-			var names_toget = $.makeArray($(this.options.selector).map(function(){return $(this).attr("data-name")}));
-			for (var i=0;i < names_toget.length;i++) {
-				if (caches['record'][names_toget[i]] == null) {
-					names.push(names_toget[i]);
-				}
-			}			
-			var params = [];
-			var params_toget = $.makeArray($(this.options.selector).map(function(){return $(this).attr("data-param")}));			
-			for (var i=0;i < params_toget.length;i++) {
-				if (caches['paramdef'][params_toget[i]] == null) {
-					params.push(params_toget[i]);
-				}
-			}
-			
+			var names = $.map($(this.options.selector), function(elem){return $(elem).attr("data-name")});
+			var params = $.map($(this.options.selector), function(elem){return $(elem).attr("data-param")});
+			names = $.checkcache('record', names);
+			params = $.checkcache('paramdef', params);
+
 			// Request records and params; update caches; show widget on callback
-			if (names || params) {
+			if (names.length || params.length) {
 				$.jsonRPC.call("getrecord", [names], function(recs) {
-					$.each(recs, function(k,v) {
-						caches['record'][v.name] = v;
-					});
+					$.updatecache(recs);
 					$.jsonRPC.call("getparamdef", [params], function(paramdefs) {
-						$.each(paramdefs, function(k,v) {
-							caches['paramdef'][v.name] = v;
-						});
+						$.updatecache(paramdefs);
 						self._build();
 					});
 				});
@@ -388,7 +378,7 @@
 			var self = this;			
 			
 			// Build the individual editing controls
-			$(this.options.selector).EditControl({show:true})
+			$(this.options.selector).EditControl({});
 
 			$('input[type=submit]', this.element).click(function(e){self.save(e)});
 
@@ -429,7 +419,6 @@
 			if (this.options.controls) {
 				var comments = $('textarea[name=comments]', this.options.controls);
 				var cloned = $('<input type="hidden" name="comments" />')
-				console.log('saving comments:', comments.val());
 				cloned.val(comments.val());
 				copied.append(cloned);
 			}
@@ -445,44 +434,37 @@
 	// It will grab the ParamDef if it isn't cached
     $.widget("emen2.EditControl", {
 		options: {
-			show: false,
+			show: true,
 			name: null,
 			param: null
 		},
 				
 		_create: function() {
 			// Parse options from element attributes if available		
-			this.options.param = this.options.param || this.element.attr("data-param");
-			this.options.name = this.options.name || parseInt(this.element.attr("data-name"));
-
-			// Record name is null or empty, editing a new record..
-			if (isNaN(this.options.name)) this.options.name = "None";
-			
+			this.options.name = $.checkopt(this, 'name');
+			this.options.param = $.checkopt(this, 'param');
 			this.built = 0;
-			this.find_cache = {};
 
 			if (this.options.show) {
 				this.show();
 			}
 		},
 	
-		show: function(showcontrols) {
-			if (showcontrols==null) {showcontrols=1}
-			var self = this;
-
+		show: function() {			
 			// Get the Record if it isn't cached
 			if (caches['record'][this.options.name] == null) {
 				$.jsonRPC.call("getrecord", [this.options.name], function(rec) {
-					caches['record'][rec.name] = rec;
+					$.updatecache([rec]);
 					self.show();
 				});
 				return
 			}
+
 			// Get the ParamDef if it isn't cached
 			if (!caches['paramdef'][this.options.param]) {
 				$.jsonRPC.call("getparamdef", [this.options.param], function(paramdef){
-					caches['paramdef'][paramdef.name]=paramdef;
-					self.show(showcontrols);
+					$.updatecache([paramdef]);
+					self.show();
 				});
 				return
 			}
@@ -507,7 +489,9 @@
 		build: function() {
 			if (this.built){return}
 			this.built = 1;
-			this.dialog = $('<div class="e2l-edit" />');
+			
+			// The edit widget container
+			this.dialog = $('<div class="e2-edit-widget" />');
 			this.element.after(this.dialog);
 
 			// Find the right editor...
@@ -524,17 +508,17 @@
 			this.editor = new cls(this.options, this.dialog);
 		},		
 
-		save: function() {
-			var self = this;
-			var p = {}
-			p[this.options.param] = this.getval();
-			$.jsonRPC.call("putrecordvalues", [this.options.name, p], function(rec) {
-				$.record_update(rec);
-				self.hide();
-			}, function(e) {
-				$.error_dialog(e.statusText, e.getResponseHeader('X-Error'), this.jsonRPCMethod, this.data);
-			});
-		},
+		// save: function(e) {
+		// 	var self = this;
+		// 	var p = {}
+		// 	p[this.options.param] = this.getval();
+		// 	$.jsonRPC.call("putrecordvalues", [this.options.name, p], function(rec) {
+		// 		$.record_update(rec);
+		// 		self.hide();
+		// 	}, function(e) {
+		// 		$.error_dialog(e.statusText, e.getResponseHeader('X-Error'), this.jsonRPCMethod, this.data);
+		// 	});
+		// },
 		
 		controlhints: function(vt) {
 			var defaults = {
@@ -740,10 +724,10 @@
 		build_item: function(val) {
 			var d = $('<div />');
 			d.InfoBox({
-				'keytype': 'user',
-				'name': val,
-				'selectable': true,
-				'input': ['checkbox', this.options.param, true]
+				keytype: 'user',
+				name: val,
+				selectable: true,
+				input: ['checkbox', this.options.param, true]
 			});
 			// d.append('<input type="hidden" name="'+this.options.param+'" value="'+val+'" />');
 			// d.click(function() {

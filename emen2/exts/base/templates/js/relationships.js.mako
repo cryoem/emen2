@@ -1,15 +1,21 @@
 (function($) {
 	
-	$.widget('emen2.SimpleRelationshipControl', {
+	$.widget('emen2.RelationshipControl', {
 		options: {
 			name: null,
-			keytype: 'record',
+			keytype: null,
+			edit: null,
+			summary: null,
 			show: true
 		},
 
 		_create: function() {
 			this.built = 0;
 			var self = this;
+			this.options.name = $.checkopt(this, 'name');
+			this.options.keytype = $.checkopt(this, 'keytype', 'record');
+			this.options.edit = $.checkopt(this, 'edit')
+			this.options.summary = $.checkopt(this, 'summary')
 			if (this.options.show) {this.show()}			
 		},
 		
@@ -25,8 +31,11 @@
 		build: function() {
 			if (this.built) {return}
 			var self = this;
-			var rec = this.cacherec();
-			var getrecs = rec.children.concat(rec.parents);
+			// Load all the parents and children
+			var item = caches[this.options.keytype][this.options.name];
+			var names = item.children.concat(item.parents);
+			// This has to be a copy; the original gets emptied somewhere in the callback
+			var names2 = names.slice()
 
 			// Always empty the element before a rebuild, and place a spinner
 			this.element.empty();
@@ -34,40 +43,44 @@
 			
 			// Cache rendered views for all the items
 			// ian: todo: replace this with a InfoBox pre-cache method
-			$.jsonRPC.call('getrecord', [getrecs], function(recs) {
-				$.each(recs, function(k,v) {caches['record'][v.name] = v});
-				
-				$.jsonRPC.call('renderview', [getrecs], function(d) {
-					$.each(d, function(k,v) {caches['recnames'][k] = v});
-
-					// get the recorddefs..
-					var args = {};
-					args['record'] = getrecs
-					$.jsonRPC.call('findrecorddef', args, function(rds) {
-						$.each(rds, function(k,v) {caches['recorddef'][v.name] = v})
+			// Filter for what we need
+			names = $.checkcache(this.options.keytype, names);
+			$.jsonRPC.call('get', {names:names, keytype:this.options.keytype}, function(items) {
+				$.updatecache(items)
+				// Records need a second callback for pretty rendered text
+				if (self.options.keytype == 'record') {
+					// var names2 = $.checkcache('recnames', names2); ???
+					$.jsonRPC.call('renderview', [names2], function(recnames) {
+						$.each(recnames, function(k,v) {caches['recnames'][k] = v})
 						self._build();
-					});
-				});
+					})
+				} else {
+					self._build();
+				}
 			});
 		}, 
 		
 		_build: function() {
-			this.element.empty();
 			this.built = 1;
 			var self = this;
+
+			// Remove the spinner
+			this.element.empty();
 			
 			// Get the parents and children from cache
-			var rec = this.cacherec();
+			var rec = caches[this.options.keytype][this.options.name];
 			var parents = rec.parents;
 			var children = rec.children;
 			
 			// Build a textual summary
-			var p = this.build_summary(parents)
-			var c = this.build_summary(children)
-			this.element.append('<h4>Relationships</h4>');
-			var label = 'parent';
-			if (parents.length > 1) {label = 'parents'}		
-			this.element.append('<p>This record has '+this.build_summary(parents, 'parents')+' and '+this.build_summary(children, 'children')+'. Select <span class="e2l-a e2-permissions-all">all</span> or <span class="e2l-a e2-permissions-none">none</span></p>');
+			if (this.options.summary && this.options.keytype == 'record') {
+				var p = this.build_summary(parents)
+				var c = this.build_summary(children)
+				this.element.append('<h4>Relationships</h4>');
+				var label = 'parent';
+				if (parents.length > 1) {label = 'parents'}		
+				this.element.append('<p>This record has '+this.build_summary(parents, 'parents')+' and '+this.build_summary(children, 'children')+'. Select <span class="e2l-a e2-permissions-all">all</span> or <span class="e2l-a e2-permissions-none">none</span></p>');
+			}
 			
 			// Select by rectype
 			$('.e2-relationships-rectype', this.element).click(function() {
@@ -95,7 +108,6 @@
 			// Do this here to find items in both the summary and options
 			$('.e2-permissions-all').click(function(){$('input:checkbox', self.element).attr('checked', 'checked')});
 			$('.e2-permissions-none').click(function() {$('input:checkbox', self.element).attr('checked', null)});			
-			
 		},
 		
 		build_summary: function(value, label) {
@@ -127,7 +139,10 @@
 		
 		build_level: function(label, level, items) {
 			var self = this;
-			var header = $('<h4 class="e2l-cf"><input data-level="'+level+'" type="button" value="+" /> '+label+'</h4>');
+			var header = $('<h4 class="e2l-cf">'+label+'</h4>');
+			if (this.options.edit) {
+				header.prepend('<input data-level="'+level+'" type="button" value="+" /> ');
+			}
 			$('input:button', header).click(function() {
 				var level = $(this).attr('data-level');
 				console.log("Add...", level);
@@ -142,31 +157,36 @@
 		
 		build_item: function(q) {
 			return $('<div></div>').InfoBox({
-				keytype: 'record',
+				keytype: this.options.keytype,
 				name: q,
-				'selectable': true,
-				'input': ['checkbox', this.options.param, true]				
+				selectable: this.options.edit,
+				input: ['checkbox', this.options.param, true]				
 			});
 		},
 		
 		build_controls: function() {
 			var self = this;
+			// ian: todo: move "Select all or none" to a template utility function
 			var controls = $(' \
 				<ul class="e2l-options e2l-nonlist"> \
-					<li>Select <span class="e2-permissions-all e2l-a">all</span> or <span class="e2-permissions-none e2l-a">none</span></li> \
-					<li><span class="e2-relationships-advanced e2l-a">'+$.caret('up')+'Advanced</span></li> \
-				</ul> \
-				<ul class="e2l-advanced e2l-nonlist e2l-hide"> \
-					<li><input type="button" value="Remove a parent from selected records" /></li> \
-					<li><input type="button" value="Remove a child from selected records" /></li> \
-					<li><input type="button" value="Add a parent to selected records" /></li> \
-					<li><input type="button" value="Add a child to selected records" /></li> \
-					<li><input type="button" value="Delete selected records" /></li> \
+					<li> \
+						Select \
+						<span class="e2-permissions-all e2l-a">all</span> \
+						or <span class="e2-permissions-none e2l-a">none</span> \
+					</li> \
 				</ul> \
 				<ul class="e2l-controls e2l-nonlist"> \
 					<li><input type="submit" value="Save relationships" /></li> \
-				</ul> \
-				');
+				</ul>');
+
+			// <li><span class="e2-relationships-advanced e2l-a">'+$.caret('up')+'Advanced</span></li> \
+			// <ul class="e2l-advanced e2l-nonlist e2l-hide"> \
+			// 	<li><input type="button" value="Remove a parent from selected records" /></li> \
+			// 	<li><input type="button" value="Remove a child from selected records" /></li> \
+			// 	<li><input type="button" value="Add a parent to selected records" /></li> \
+			// 	<li><input type="button" value="Add a child to selected records" /></li> \
+			// 	<li><input type="button" value="Delete selected records" /></li> \
+			// </ul> \
 
 			$('.e2-relationships-advanced', controls).click(function(){
 				$.caret('toggle', self.options.controls);
@@ -177,24 +197,6 @@
 			// The select all / none callbacks are added at the end of build
 
 			this.options.controls.append(controls);
-
-			// var all = $('<span  class="e2l-a">all</span>').click(function(){});
-			// var none = $('<span class="e2l-a">none</span>').click(function(){});
-			// options.append('Select: ', all, ' / ', none, '<br />');
-			// 
-			// var a = $('<span class="e2l-a e2-relationships-advanced">Advanced '+$.caret('up')+'</span>').click(function(){});
-			// options.append(a);
-			// 
-			// var advanced = $('<div class="e2l-options-advanced">Test</div>');
-			// options.append(advanced)
-			// 
-			// var controls = $('<div class="e2l-controls"></div>');
-			// controls.append('<input type="submit" value="Save" />');
-			// $('input:submit', controls).click(function(e){self.save(e)});
-			// this.options.controls.append(controls);
-			// var relink = $('<input type="button" class="e2l-save" value="Move" />');
-			// var pclink = $('<input type="button" class="e2l-save" value="Remove" />');
-			// controls.append(relink, ' or &nbsp;', pclink, ' selected relationships');
 		},
 		
 		save: function(e) {
@@ -202,16 +204,15 @@
 			console.log("form:", this.element);
 		},
 		
-		cacherec: function() {
-			return caches['record'][this.options.name];
+		cache: function() {
+			return caches[this.options.keytype][this.options.name];
 		}
 	})
 	
 	
 	
-    $.widget("emen2.RelationshipControl", {
-		// Relationship BROWSER
-		
+	// Relationship BROWSER
+    $.widget("emen2.MapControl", {		
 		options: {
 			action: "view",
 			attach: false,
@@ -231,9 +232,9 @@
 			var self = this;
 			this.built = 0;
 			
-			this.options.mode = this.element.attr('data-mode') || this.options.mode;
-			this.options.root = this.element.attr('data-root') || this.options.root;
-			this.options.keytype = this.element.attr('data-keytype') || this.options.keytype;	
+			this.options.mode = $.checkopt(this, 'mode');
+			this.options.root = $.checkopt(this, 'root');
+			this.options.keytype = $.checkopt(this, 'keytype');	
 										
 			if (this.options.attach) {
 				this.bind_ul(this.element);
@@ -326,13 +327,13 @@
 			var addparents = $('<input type="button" name="addparents" value="+" />').click(function() {
 				var cb = function(parent) {self._action_addrel(parent, self.options.root)}
 				var i = $('<div></div>');
-				i.RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});
+				i.MapControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});
 			});
 
 			var addchildren = $('<input type="button" name="addchildren" value="+" />').click(function() {
 				var cb = function(child) {self._action_addrel(self.options.root, child)}
 				var i = $('<div></div>');
-				i.RelationshipControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Child", cb:cb});
+				i.MapControl({root:self.options.root, embed: false, keytype:self.options.keytype, action:"select", selecttext:"Add Child", cb:cb});
 			});			
 
 			$('.e2-browser-parents', this.dialog).prepend(addparents);
@@ -480,13 +481,13 @@
 
 				var cb = function(parent) {self._action_addrel(parent, key)}
 				var i = $('<div></div>');
-				i.RelationshipControl({root:this.options.root, embed: false, keytype:this.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});				
+				i.MapControl({root:this.options.root, embed: false, keytype:this.options.keytype, action:"select", selecttext:"Add Parent", cb:cb});				
 
 			} else if (this.options.action == "addchild") {
 
 				var cb = function(child) {self._action_addrel(key, child)}
 				var i = $('<div></div>');
-				i.RelationshipControl({root:this.options.root, embed: false, keytype:this.options.keytype, action:"select", selecttext:"Add Child", cb:cb});
+				i.MapControl({root:this.options.root, embed: false, keytype:this.options.keytype, action:"select", selecttext:"Add Child", cb:cb});
 
 			} else if (this.options.action == "reroot" || this.options.action == "select") {
 

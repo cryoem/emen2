@@ -38,18 +38,17 @@ class ParamDef(View):
 		create = 0
 		if self.db.checkcreate():
 			create = 1
-
-		title = "Parameter Viewer: %s"%self.name
+		
+		title = "Parameter: %s"%paramdef.desc_short
 
 		if edit:
 			self.template = '/pages/paramdef.edit'
-			title = "Parameter Editor: %s"%self.name
+			title = "Parameter Editor: %s"%paramdef.desc_short
 			if new:
-				title = "Parameter Creator: New parameter based on %s"%self.name
+				title = "Parameter Creator: New parameter based on %s"%paramdef.desc_short
 
 
 		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='paramdef', root=self.name, mode='parents', recurse=3)
-		
 		
 		creator = self.db.getuser(paramdef.creator) or {}
 		displaynames = {}
@@ -65,7 +64,6 @@ class ParamDef(View):
 			editable = editable,
 			edit = edit,
 			new = new,
-			mapmode = mapmode,
 			paramdef = paramdef,
 			displaynames = displaynames,
 			keytype = "paramdef",
@@ -102,7 +100,7 @@ class ParamDefs(View):
 		
 	@View.add_matcher(r'^/paramdefs/name/$')
 	def name(self, *args, **kwargs):
-		return self.init(action='property', *args, **kwargs)
+		return self.init(action='name', *args, **kwargs)
 		
 
 	@View.add_matcher(r'^/paramdefs/$')
@@ -120,17 +118,20 @@ class ParamDefs(View):
 
 		self.template = '/pages/paramdefs.%s'%action
 
+		# Tab Switcher
 		pages = collections.OrderedDict()
-		pages['main'] = 'Parameter ontology'
+		pages['tree'] = 'Parameter ontology'
 		pages['name'] = 'Parameters by name'
 		pages['vartype'] = 'Parameters by vartype'
 		pages['property'] = 'Parameters by property'
-		uris = {
-			'main': 'test'
-		}
+		uris = {}
+		for k in pages:
+			uris[k] = self.routing.reverse('ParamDefs/%s'%k)
 		pages.uris = uris
+		pages.active = action
 		self.ctxt['pages'] = pages
 		
+		# Children
 		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="paramdef", root="root", recurse=-1)
 
 		self.set_context_item('q',q)

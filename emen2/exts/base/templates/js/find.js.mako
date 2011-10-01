@@ -7,7 +7,6 @@
 			time: null,
 			title: null,
 			body: null,
-			deleteable: false,
 			autolink: false,
 			selectable: false,
 			input: ['radio', '', false],

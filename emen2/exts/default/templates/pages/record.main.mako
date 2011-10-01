@@ -10,9 +10,8 @@
 	var rec = caches['record'][${jsonrpc.jsonutil.encode(rec.name)}];
 	var ptest = ${jsonrpc.jsonutil.encode(rec.ptest())}
 	
-	
 	// Change View
-	$('#e2-editbar [data-viewtype]').click(function(){
+	$('#e2-editbar-record [data-viewtype]').click(function(){
 		var target = $("#rendered");
 		var viewtype = $(this).attr('data-viewtype') || 'recname';
 		target.attr("data-viewtype", viewtype);
@@ -74,7 +73,7 @@
 
 	// Relationship editor
 	tab.TabControl('setcb', 'relationships', function(page) {
-		$('#e2-relationships', page).SimpleRelationshipControl({
+		$('#e2-relationships', page).RelationshipControl({
 			name: rec.name,
 			edit: true,
 			embed: true,
@@ -88,6 +87,7 @@
 		page.CommentsControl({
 			name: rec.name,
 			edit: ptest[1] || ptest[2] || ptest[3],
+			controls: page,
 			historycount: "#e2l-editbar-commentcount",
 			commentcount: '#e2l-editbar-historycount'
 		});

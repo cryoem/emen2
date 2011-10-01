@@ -2,9 +2,14 @@
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 
+<%block name="js_inline">
+	${parent.js_inline()}
+	${buttons.tocache(paramdef)}
+</%block>
+
 <%block name="js_ready">
 	${parent.js_ready()}
-	$(".e2-map").RelationshipControl({attach:true});
+	$('#e2-relationships').RelationshipControl({});
 </%block>
 
 <%block name="precontent">
@@ -92,13 +97,6 @@
 <br />
 
 <%buttons:singlepage label='Relationships'>
-	asd
+	<div id="e2-relationships" data-name="${paramdef.name}" data-keytype="${paramdef.keytype}"></div>
 </%buttons:singlepage>
-
-<br />
-
-## <%buttons:singlepage label='Statistics'>
-##	asd
-## </%buttons:singlepage>
-
 

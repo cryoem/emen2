@@ -2,8 +2,8 @@
     $.widget("emen2.AttachmentControl", {
 		options: {
 			name: null,
-			edit: 0,
-			show: false,
+			edit: false,
+			show: true,
 			controls: null,
 			cb: function(self) {}
 		},
@@ -63,6 +63,7 @@
 		},
 
 		build_level: function(label, level, items) {
+			var self = this;
 			var pd = caches['paramdef'][level];
 			if (pd) {label = pd.desc_short}
 			
@@ -73,7 +74,7 @@
 				infobox.InfoBox({
 					name: this,
 					keytype: 'binary',
-					selectable: true,
+					selectable: self.options.edit,
 					input: ['checkbox',level,true]
 				});
 				d.append(infobox);

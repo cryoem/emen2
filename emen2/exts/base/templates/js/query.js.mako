@@ -749,9 +749,9 @@
 			// 		t = $(e.target).parent();
 			// 		var key = t.parent().attr('data-name');				
 			// 	}
-			// 	var selector = '#tbody .e2l-editable';
+			// 	var selector = '#tbody .e2-edit';
 			// 	if (key) {
-			// 		selector = '#tbody .e2l-editable[data-param='+key+']'
+			// 		selector = '#tbody .e2-edit[data-param='+key+']'
 			// 	}			
 			// 	t.MultiEditControl({
 			// 		show: true,

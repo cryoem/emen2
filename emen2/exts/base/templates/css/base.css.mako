@@ -66,11 +66,6 @@ a:hover,
 	background:red;
 }
 
-/* Editable items */
-.e2l-edit {
-	display:inline-block;
-}
-
 /* Basic show/hide behavior */
 .e2l-show {
 	display: block;
@@ -375,14 +370,20 @@ h4 .e2l-label {
 
 
 /***** e2l-ediable: Editing controls *****/
-.e2l-editable {
+.e2-edit {
 	color: <%self:EDITABLE />;
 }
-.e2l-editable img.e2l-label {
+.e2-edit img.e2l-label {
 	height: 10px;
 	border-bottom: dotted 1px <%self:NEUTRAL />;
 	width: 50px;
 }
+/* Editable items */
+.e2-edit-widget {
+	display:inline-block;
+}
+
+
 
 
 /***** e2-query: Query Results *****/
@@ -433,7 +434,7 @@ h4 .e2l-label {
 }
 .e2-infobox img.e2l-thumbnail {
 	float: left;
-	height: 40px;
+	height: 32px;
 	margin-right: 4px;
 }
 .e2-infobox-hover {

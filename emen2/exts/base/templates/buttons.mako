@@ -1,3 +1,4 @@
+<%! import jsonrpc.jsonutil %>
 <%namespace name="forms"  file="/forms"  /> 
 
 <%def name="newtabs(tabs, cls='')">
@@ -18,6 +19,17 @@
 			% endfor
 		</ul>
 	</div>		
+</%def>
+
+
+
+<%def name="singlepage(label, cls='e2-tab-switcher')">
+	<div class="e2-tab e2-tab-switcher">
+		<ul class="e2l-cf">
+			<li class="e2-tab-active"><span>${label}</span></li>
+		</ul>
+		<div class="e2-tab-active" id="${cls}-main">${caller.body()}</div>
+	</div>			
 </%def>
 
 
@@ -45,6 +57,16 @@
 
 <%def name="editicon()">
 	<img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" />
+</%def>
+
+
+<%def name="tocache(item)">
+	<%
+	name = item.name
+	if name == None:
+		name = 'None'
+	%>
+	caches[${jsonrpc.jsonutil.encode(item.keytype)}][${jsonrpc.jsonutil.encode(name)}] = ${jsonrpc.jsonutil.encode(item)};
 </%def>
 
 

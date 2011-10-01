@@ -16,14 +16,10 @@
 			this.pen = -1;
 			this.boxid = 0;
 
-			if (this.options.bdo == null) {
-				this.options.bdo = this.element.attr('data-bdo');
-			}
+			this.options.bdo = $.checkopt(this, 'bdo');
 			this.element.attr('data-bdo', this.options.bdo);
 
-			if (this.options.name == null) {
-				this.options.name = parseInt(this.element.attr('data-name'));
-			}
+			this.options.name = $.checkopt(this, 'name');
 			this.element.attr('data-name', this.options.name);
 
 			if (this.options.show) {

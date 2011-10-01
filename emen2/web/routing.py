@@ -64,7 +64,7 @@ def execute_path(_execute_path, db=None, *args, **kwargs):
 
 
 def reverse(*args, **kwargs):
-	pass
+	return URLRegistry.reverse(*args, **kwargs)
 	
 
 def add(*args, **kwargs):
@@ -166,18 +166,17 @@ class URLRegistry(emen2.util.registry.Registry):
 
 	# Reverse lookup
 	@classmethod
-	def reverse(cls, _name, *args, **kwargs):
+	def reverse(cls, *args, **kwargs):
 		'''reverse: take a name and arguments, and return a url'''
-		return '/error'
-		
-		_name = _name.split('/',1)
-		if len(_name) == 1: _name.append('main')
-		url = cls.get(_name[0], None)
-		result = '/error/'
-		if url is not None:
-			result = cls._reverse_helper(url.get_matcher(_name[1]), *args, **kwargs)
+		result = '/error'
+		name = args[0].split('/',1)
+		if len(name) == 1:
+			name.append('main')
+		name = '/'.join(name)
+		url = cls.get(name, None)
+		if url:
+			result = cls._reverse_helper(url.matcher, *args, **kwargs)
 			result = str.join('', (cls._prepend, result))
-
 		return result
 
 
