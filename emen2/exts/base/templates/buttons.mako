@@ -33,15 +33,17 @@
 </%def>
 
 
-## Some simple form controls
+## Some simple helpers
 
 <%def name="image(name, alt='', cls='')">
 	<img src="${EMEN2WEBROOT}/static-${VERSION}/images/${name}" class="${cls}" alt="${alt}" />
 </%def>
 
+
 <%def name="spinner(show=True)">
 	<img src="${EMEN2WEBROOT}/static/images/spinner.gif" class="e2l-spinner ${forms.iffalse(show, 'e2l-hide')}" alt="Loading" />
 </%def>
+
 
 <%def name="caret(state='down')">
 	% if state == 'up':
