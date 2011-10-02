@@ -143,10 +143,12 @@
 			if (this.options.edit) {
 				header.prepend('<input data-level="'+level+'" type="button" value="+" /> ');
 			}
-			$('input:button', header).MapControl({
+			$('input:button', header).BrowseControl({
 				name: this.options.name,
 				keytype: this.options.keytype
-			});
+			}).click(function(){
+				$(this).BrowseControl('show');
+			})
 			
 			//click(function() {
 			//	var level = $(this).attr('data-level');
@@ -216,7 +218,7 @@
 	})
 	
 	
-	$.widget('emen2.MapFindControl', {
+	$.widget('emen2.BrowseControl', {
 		options: {
 			root: null,
 			keytype: null,
@@ -226,12 +228,65 @@
 		},
 		
 		_create: function() {
-			
+			var self = this;
+			this.built = 0;
+
+			this.options.mode = $.checkopt(this, 'mode');
+			this.options.root = $.checkopt(this, 'root');
+			this.options.keytype = $.checkopt(this, 'keytype', 'record');
+
+			this.element.click(function(e){self.show(e)});
+			if (this.options.show) {
+				this.show();
+			}			
 		},
 		
+		show: function(e) {
+			this.build();
+			this.dialog.dialog('open');
+		},
+
 		build: function() {
+			if (this.built) {return}
+			this.built = 1;
+			var self = this;
+
+			// Build the dialog
+			this.dialog = $('<div class="e2-browse" />');
+
+			var p = $(' \
+					<div class="e2l-cf" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
+						<div class="e2-browser-parents e2l-float-left" style="width:249px;"> Parents </div> \
+						<div class="e2-browser-action e2l-float-left" style="width:249px;">&nbsp;</div> \
+						<div class="e2-browser-children e2l-float-left" style="width:249px;"> Children </div> \
+					</div>');
+
+
+			var parents = $('<div class="e2-map e2l-float-left" style="width:250px"/>');
+			parents.MapControl({
+				root: this.options.name, 
+				keytype: this.options.keytype, 
+				mode: 'parents',
+				show: true
+			});			
 			
-		}
+			var children = $('<div class="e2-map e2l-float-left" />');
+			children.MapControl({
+				root: this.options.name, 
+				keytype: this.options.keytype, 
+				mode: 'children',
+				show: true
+			});			
+						
+			this.dialog.append(p, parents, children);
+
+			// Show the dialog
+			this.dialog.attr("title", "Relationship Browser");
+			this.dialog.dialog({
+				width: 1200,
+				height: 400
+			});			
+		},
 	});
 	
 	
@@ -254,7 +309,8 @@
 			this.options.mode = $.checkopt(this, 'mode');
 			this.options.root = $.checkopt(this, 'root');
 			this.options.keytype = $.checkopt(this, 'keytype', 'record');	
-			
+
+			this.element.addClass('e2-map-'+this.options.mode);
 			if (this.options.attach) {
 				this.attach(this.element);
 			} else if (this.options.show) {
@@ -263,7 +319,12 @@
 		},
 	
 		build: function() {
-			
+			this.element.empty();
+			var root = $('<ul></ul>');
+			root.append('<li><a data-key='+this.options.root+'>'+this.getname(this.options.root)+'</a>'+$.e2image('bg-open.'+this.options.mode+'.png', '+', 'e2-map-expand')+'</li>')
+			this.element.append(root);
+			this.attach(root);
+			this.expand(root.find('li'));
 		},
 		
 		attach: function(root) {
