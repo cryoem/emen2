@@ -771,7 +771,7 @@ def update_username_cache(engine, values):
 			to_cache.append(v)
 
 	if to_cache:
-		users = engine.db.getuser(to_cache, filt=True)
+		users = engine.db.getuser(to_cache)
 		for user in users:
 			user.getdisplayname(lnf=True)
 			key = engine.get_cache_key('displayname', user.name)

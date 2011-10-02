@@ -640,18 +640,20 @@ class DBODB(EMEN2DB):
 
 	# Takes an iterable..
 	def cgets(self, keys, filt=True, ctx=None, txn=None, flags=0):
+		# filt can be an exception type, a list of exception types
+		# or True, which defaults to SecurityError, KeyError
+		# KeyError if item doesn't exist; SecurityError if no access
+		if filt == True:
+			filt = (emen2.db.exceptions.SecurityError, KeyError)
+			
 		ret = []
 		for key in self.expand(keys, ctx=ctx, txn=txn):
 			try:
 				d = self.get(key, filt=False, txn=txn, flags=flags)
 				d.setContext(ctx)
 				ret.append(d)
-			except (emen2.db.exceptions.SecurityError, KeyError), e:
-				# KeyError if item doesn't exist; SecurityError if no access
-				if filt:
-					pass
-				else:
-					raise
+			except filt, e:
+				pass
 		return ret
 
 
@@ -1054,7 +1056,7 @@ class RelateDB(DBODB):
 		elif mode == 'removerefs':
 			newvalue -= set([c.name])
 
-		# Slip into the regular commit methods
+		# The values will actually be set on the records during the relinking method..
 		self._reindex_relink([], [[p.name, newvalue, p.children]], ctx=ctx, txn=txn)
 
 

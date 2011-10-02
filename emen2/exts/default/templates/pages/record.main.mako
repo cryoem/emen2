@@ -64,7 +64,7 @@
 	});
 	
 	// New record editor
-	tab.TabControl('setcb', 'newrecord', function(page) {
+	tab.TabControl('setcb', 'new', function(page) {
 		page.NewRecordControl({
 			parent: rec.name,
 			controls: page
@@ -101,6 +101,9 @@
 		})
 	});	
 	
+	// Now that we have all the callbacks added...
+	tab.TabControl('checkhash');
+	
 </%block>
 
 
@@ -126,25 +129,25 @@
 		## Edit Record
 		% if rec.writable():
 			<li data-tab="edit">
-				<span class="e2l-a"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</span>
+				<a href="#edit"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a>
 			</li>
 		% endif
 
 		## New Record
 		% if create:
-			<li data-tab="newrecord">
-				<span class="e2l-a">New ${buttons.caret()}</span>
+			<li data-tab="new">
+				<a href="#new">New ${buttons.caret()}</a>
 			</li>
 		% endif
 
 		## Relationship Editor
 		<li data-tab="relationships">
-			<span class="e2l-a">Relationships ${buttons.caret()}</span>
+			<a href="#relationships">Relationships ${buttons.caret()}</a>
 		</li>
 
 		## Permissions Editor
 		<li data-tab="permissions">
-			<span class="e2l-a">Permissions ${buttons.caret()}</span>
+			<a href="#permissions">Permissions ${buttons.caret()}</a>
 		</li>
 
 		## Attachments Editor
@@ -159,7 +162,7 @@
 				attachments.extend([v])
 		%>
 		<li data-tab="attachments">
-			<span class="e2l-a">
+			<a href="#attachments">
 				<span id="attachment_count">
 				% if attachments:
 					${len(attachments)}
@@ -167,7 +170,7 @@
 				</span>
 				<img id="e2l-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/attachments.png" alt="Attachments" />
 				${buttons.caret()}
-			</span>
+			</a>
 		</li>
 
 		## View Selector
@@ -185,7 +188,7 @@
 		lastitem = 'comments'
 		%>
 		<li data-tab="tools">
-			<span class="e2l-a"> ${rec.rectype} ${buttons.caret()}</span>
+			<a href="#tools"> ${rec.rectype} ${buttons.caret()}</a>
 		</li>
 
 		## Table View
@@ -206,7 +209,7 @@
 					pos_next = siblings[pos+1]
 			%>
 			<li data-tab="siblings" class="e2l-float-right" data-sibling="${sibling}" data-prev="${pos_prev}" data-next="${pos_next}">
-				<span class="e2l-a">${pos+1} of ${len(siblings)}</span>
+				<a href="#siblings">${pos+1} of ${len(siblings)}</a>
 			</li>
 		% endif
 	
@@ -215,7 +218,7 @@
 		comments = filter(lambda x:not x[2].startswith('LOG'), rec.get('comments', []))
 		%>
 		<li data-tab="comments" class="e2l-float-right">
-			<span class="e2l-a">
+			<a href="#comments">
 				% if rec.get('modifytime'):	
 					${displaynames.get(rec.get('modifyuser'), '(%s)'%rec.get('modifyuser'))} @ ${rec.get('modifytime', '')[:10]}
 				% else:
@@ -237,14 +240,14 @@
 				</span>
 			
 				${buttons.caret()}
-			</span>
+			</a>
 		</li>
 	</ul>
 	
 	
 	<div data-tab="edit"></div>
 	
-	<div data-tab="newrecord"></div>
+	<div data-tab="new"></div>
 	
 	<div data-tab="relationships">
 		<form id="e2-relationships" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/edit/relationships/"></form>

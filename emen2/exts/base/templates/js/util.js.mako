@@ -267,14 +267,24 @@ window.log = function(){
 			this.built = 0;
 			this.build();
 		},
+
+		// Check the window hash (e.g. "#permissions")
+		// and open that tab if it exists
+		checkhash: function() {
+			var active = window.location.hash.replace("#","")
+			if (active) {
+				this.show(active);
+			}			
+		},
 		
 		build: function() {
 			if (this.built){return}
 			var self = this;
-			$('li[data-tab]', this.element).click(function(){
+			$('li[data-tab]', this.element).click(function(e){
 				var tab = $(this).attr('data-tab');
 				var hc = $(this).hasClass(self.options.active);
 				if (hc) {
+					e.preventDefault();
 					self.hide(tab);
 				} else {
 					self.hide(tab);
@@ -303,10 +313,17 @@ window.log = function(){
 				var cb = self.options.hidecbs[tab];
 				if (cb) {cb(p)}
 			});
+			var active = window.location.hash.replace("#","")
+			if (tab==active) {
+				window.location.hash = '';
+			}
 		},
 
 		show: function(tab) {
 			var t = $('li[data-tab='+tab+']', this.element);
+			if (!t.length) {
+				return
+			}
 			var p = $('div[data-tab='+tab+']', this.element);
 			if (!p.length) {
 				var p = $('<div data-tab="'+tab+'"></div>');

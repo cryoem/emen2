@@ -108,7 +108,9 @@ class BaseDBObject(object, DictMixin):
 
 
 	def clone(self, update, vtm=None, t=None):
-		self.vw(msg='Warning! Only an admin may clone items!', check=self._ctx.checkadmin())
+		if not self._ctx.checkadmin():
+			self.error('Warning! Only an admin may clone items!', e=emen2.db.exceptions.SecurityError)
+			
 		vtm, t = self._vtmtime(vtm, t)
 		cp = set()
 
@@ -243,21 +245,21 @@ class BaseDBObject(object, DictMixin):
 		return cp
 
 
-	def _seterror(self, key, *args, **kwargs):
-		"""Immutable params"""
+	# Record will override this
+	def _setoob(self, key, value, vtm=None, t=None):
+		"""Handle params not found in self.param_all"""
 		self.error("Cannot set param %s in this way"%key, warning=True)
 		return set()
 
 
-	# Record will override this
-	def _setoob(self, key, value, vtm=None, t=None):
-		"""Handle params not found in self.param_all"""
-		return self._seterror(key, value)
-
-
 	def _set(self, key, value, check=None, vtm=None, t=None):
-		"""Actually set a value. See self.vw() for check argument"""
-		self.vw(key, check)
+		"""Actually set a value."""
+		if check == None:
+			check = self.writable()
+		if not check:
+			msg = "Insufficient permissions to change param %s"%key
+			self.error(msg, e=emen2.db.exceptions.SecurityError)
+			
 		self.__dict__[key] = value
 		return set([key])
 
@@ -266,12 +268,39 @@ class BaseDBObject(object, DictMixin):
 	# Set parents / children
 	##########################
 
+	def _setrel(self, key, value):		
+		# Filter out changes to permissions on records
+		# that we can't access...
+		value = set(value or [])
+		orig = self.get(key)
+		changed = orig ^ value
+		# Get all of the changed items that we can access
+		# (KeyErrors will be checked later, during commit..)
+		access = self._ctx.db.get(changed, keytype=self.keytype)
+		
+		# Check write permissions
+		thiswrite = self.writable()
+		for item in access:
+			itemwrite = item.writable()
+			if not (thiswrite or itemwrite):
+				msg = 'Insufficient permissions to add or remove relationship: %s -> %s'%(self.name, item.name)
+				self.error(msg, e=emen2.db.exceptions.SecurityError)
+		
+		# Keep items that we can't access..
+		# 	they might be new items, or items we won't
+		#	have permission to read/edit.
+		value |= changed - set(i.name for i in access)
+		
+		# print "Kept..", key, " :", changed-access
+		return self._set(key, value, True)
+
+
 	def _set_children(self, key, value, vtm=None, t=None):
-		return self._set(key, set(value or []))
+		return self._setrel(key, value)
 
 
 	def _set_parents(self, key, value, vtm=None, t=None):
-		return self._set(key, set(value or []))
+		return self._setrel(key, value)
 
 
 	def _set_uri(self, key, value, vtm=None, t=None):
@@ -335,27 +364,6 @@ class BaseDBObject(object, DictMixin):
 		return vtm, t
 
 
-	# Verify write
-	def vw(self, key=None, check=None, msg=None):
-		"""Convenience method for checking permissions and printing
-		error messages.
-
-		Typical use:
-		self.vw('permissions', check=self.isowner())
-		self.vw('vartype', check=self._ctx.checkadmin())
-
-		@keyword key Param to use error message
-		@keyword check None: Perform a basic .writable() check. False: Raise SecurityError. True: OK
-		@keyword msg Alternative error message
-		"""
-		if check == None:
-			check = self.writable()
-		if not check:
-			msg = msg or "Insufficient permissions to change param %s"%key
-			self.error(msg, e=emen2.db.exceptions.SecurityError)
-
-
-
 	##########################
 	# Validation and error control
 	##########################
@@ -392,7 +400,7 @@ class BaseDBObject(object, DictMixin):
 		# Is it an immutable param?
 		if self.name and pd.get('immutable'):
 			self.error('Cannot change immutable param %s'%pd.name)
-
+			
 		# Validate
 		v = vtm.validate(pd, value)
 
@@ -401,7 +409,7 @@ class BaseDBObject(object, DictMixin):
 			self.error(
 				"Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%
 				(pd.name, pd.vartype, type(value), value, type(v), v), warning=True)
-
+			
 		return v
 
 
@@ -409,14 +417,14 @@ class BaseDBObject(object, DictMixin):
 		"""Validate the name of this object"""
 		if not name:
 			self.error("No name specified")
-
+			
 		# have to compile since flags= is a Python 2.7+ keyword
 		r = re.compile('[\w-]', re.UNICODE)
 
 		newname = "".join(r.findall(name)).lower()
 		if name != newname or not name[0].isalnum():
 			self.error("Name '%s' can only include a-z, 0-9, underscore, must be lowercase, and must start with a number or letter."%name)
-
+			
 		return name
 
 

@@ -379,7 +379,7 @@ class User(BaseUser):
 
 		if not self._userrec:
 			if not record:
-				record = self._ctx.db.getrecord(self.record, filt=True) or {}
+				record = self._ctx.db.getrecord(self.record) or {}
 			self._set('_userrec', record, True)
 
 		d = self._formatusername(lnf=lnf)

@@ -2212,20 +2212,20 @@ class DB(object):
 	#************************************************************************
 	#########################################################################
 
-
-	@publicmethod("get", write=True, admin=True)
+	# This was incorrectly tagged as an admin method
+	@publicmethod("get")
 	@ol('names')
-	def get(self, names, keytype='record', ctx=None, txn=None):
+	def get(self, names, keytype='record', filt=True, ctx=None, txn=None):
 		'''Get an object
 
 			:param names: the IDs for which the children are to be retrieved
 			:param keytype: What kind of objects the IDs refer to
 		'''
 
-		return self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
+		return self.bdbs.keytypes[keytype].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
-
-	@publicmethod("put", write=True, admin=True)
+	# This was incorrectly tagged as an admin method
+	@publicmethod("put", write=True)
 	@ol('items')
 	def put(self, items, keytype='record', clone=False, ctx=None, txn=None):
 		'''Get the children of the object as a tree
@@ -2237,8 +2237,8 @@ class DB(object):
 
 		return self.bdbs.keytypes[keytype].cputs(items, clone=clone, ctx=ctx, txn=txn)
 
-
-	@publicmethod("new", write=True, admin=True)
+	# This was incorrectly tagged as an admin method
+	@publicmethod("new")
 	def new(self, *args, **kwargs):
 		keytype = kwargs.pop('keytype', 'record')
 		return dict(
@@ -2695,7 +2695,7 @@ class DB(object):
 
 	@publicmethod("user.queue.reject", write=True, admin=True)
 	@ol('names')
-	def rejectuser(self, names, filt=False, ctx=None, txn=None):
+	def rejectuser(self, names, filt=True, ctx=None, txn=None):
 		"""(Admin Only) Remove a user from the new user queue.
 
 		:param names: New user name(s) to reject

@@ -187,7 +187,7 @@ class Record(RecordBase):
 
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/permissions/$', name='edit/permissions')
-	def edit_permissions(self, name=None, permissions=None, groups=None, action=None, filt=False):
+	def edit_permissions(self, name=None, permissions=None, groups=None, action=None, filt=True):
 		permissions = permissions or {}
 		groups = groups or []
 		users = set()
@@ -357,7 +357,7 @@ class Record(RecordBase):
 		for v in self.rec.get('permissions'):
 			users_permissions |= set(v)
 
-		users = self.db.getuser(users_ref | users_permissions, filt=True)
+		users = self.db.getuser(users_ref | users_permissions)
 		for user in users:
 			user.getdisplayname(lnf=True)
 

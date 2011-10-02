@@ -33,6 +33,7 @@
 					keytype: this.options.keytype,
 					names: this.options.name
 				}, function(item) {
+					if (!item) {return}
 					caches[item.keytype][item.name] = item;
 					self.build();
 				});

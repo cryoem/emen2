@@ -103,10 +103,15 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 	# in Record, params not in self.param_all are put in self.params{}.
 	def _setoob(self, key, value, vtm=None, t=None):
+		# No change
 		if self.params.get(key) == value:
-			# print ":: No change: ", key, value
 			return set()
-		self.vw(key) # Check permissions
+
+		# Check write permission
+		if not self.writable():
+			msg = "Insufficient permissions to change param %s"%key
+			self.error(msg, e=emen2.db.exceptions.SecurityError)
+
 		self._addhistory(key, t=t)
 		# print ":: Setting param key/value", key, value
 		self.params[key] = value
@@ -154,8 +159,9 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 
 	def addcomment(self, value, vtm=False, t=None):
-		self.vw('comments', self.commentable(), 'Insufficient permissions to add comment')
-
+		if not self.commentable():
+			self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.SecurityError)
+			
 		vtm, t = self._vtmtime(vtm, t)
 		cp = set()
 		if value == None:
