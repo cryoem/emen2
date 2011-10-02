@@ -245,7 +245,7 @@
 		<tr>
 			<td>Suggested Child Types</td>
 			<td>
-				<ul id="typicalchld" class="e2l-nonlist">
+				<ul id="typicalchld">
 				% for k,i in enumerate(recdef.typicalchld):
 					<li><input type="text" value="${i}" name="typicalchld"></li>
 				% endfor

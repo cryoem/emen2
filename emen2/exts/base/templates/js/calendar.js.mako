@@ -130,7 +130,7 @@
 				<tr> \
 					<td>Ends:</td> \
 					<td> \
-						<ul class="e2l-nonlist"> \
+						<ul> \
 							<li><input type="radio" name="dtopts" checked="checked" /> Never</li> \
 							<li><input type="radio" name="dtopts" /> After <input type="text" name="count" size="4" /> occurrences</li> \
 							<li><input type="radio" name="dtopts" /> On <input type="text" name="dtend" /></li> \

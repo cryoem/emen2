@@ -12,12 +12,16 @@ window.log = function(){
 // Utility Methods
 (function($){
 
+	$.e2image = function(name, alt, cls) {
+		alt = alt || '';
+		cls = cls || '';
+		return '<img src="'+EMEN2WEBROOT+'/static-'+VERSION+'/images/'+name+'" class="'+cls+'" alt="'+alt+'" />'		
+	}
+
 	$.spinner = function(show) {
-		if (show) {
-			return '<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="e2l-spinner" alt="Loading" />'			
-		} else { 
-			return '<img src="'+EMEN2WEBROOT+'/static/images/spinner.gif" class="e2l-spinner" style="display:none" alt="Loading" />'
-		}
+		var cls = 'e2l-spinner e2l-hide';
+		if (show) {cls = 'e2l-spinner'}
+		return $.e2image('spinner.gif', 'Loading', cls);
 	}
 	
 	$.caret = function(state, elem) {
@@ -27,14 +31,14 @@ window.log = function(){
 			var caret = $('.e2l-caret', elem);
 		}
 		if (!elem || !caret.length) {
-			caret = $('<img class="e2l-caret" data-state="up" alt="^" src="'+EMEN2WEBROOT+'/static/images/caret_up.png" />');				
+			caret = $($.e2image('caret_up.png', '^', 'e2l-caret'));
 		}
 		state = state || 'down';
 		if (state == 'toggle') {
 			if (caret.attr('data-state')=='up') {state='down'} else {state='up'}
 		}		
-		var up = EMEN2WEBROOT+'/static/images/caret_up.png';
-		var down = EMEN2WEBROOT+'/static/images/caret_down.png';
+		var up = EMEN2WEBROOT+'/static-'+VERSION+'/images/caret_up.png';
+		var down = EMEN2WEBROOT+'/static-'+VERSION+'/images/caret_down.png';
 		if (state == 'up') {
 			caret.attr('src', up);
 			caret.attr('data-state', 'up');
@@ -242,24 +246,6 @@ window.log = function(){
 		});
 	}	
 
-	// Tab switching
-	// This is pretty old, but works well... 
-	$.switchin = function(classname, id) {
-		$('#buttons_'+classname+' *').each(function() {
-			if (this.id == 'button_'+classname+'_'+id) {
-				$(this).addClass('e2l-tab-active');
-			} else {
-				$(this).removeClass('e2l-tab-active');
-			}
-		});
-		$('#pages_'+classname+' *').each(function() {
-			if (this.id == 'page_'+classname+'_'+id) {
-				$(this).addClass('e2l-tab-active');
-			} else {
-				$(this).removeClass('e2l-tab-active');
-			}
-		});
-	}
 
 	///////////////////////////////////////////////////
 	// Some simple jquery UI widgets that don't really
@@ -421,7 +407,6 @@ window.log = function(){
 				var li = $('<li><a href="'+EMEN2WEBROOT+'/record/'+this+'/">'+caches['recnames'][this]+'</a></li>');
 				ul.append(li);
 			});			
-			// ul.append('<li class="e2l-menu-divider"><a href="">Bookmark Manager</a></li>');			
 			this.element.append(ul);
 		},
 		
@@ -480,9 +465,9 @@ window.log = function(){
 					var pos = $.inArray(name, bookmarks);
 					$.jsonRPC.call('record.put', [rec], function(updrec) {
 						if (pos == -1) {
-							var star = $('<img src="'+EMEN2WEBROOT+'/static/images/star-open.png" alt="Add Bookmark" />');
+							var star = $($.e2image('star-open.png', 'Add Bookmark'))
 						} else {
-							var star = $('<img src="'+EMEN2WEBROOT+'/static/images/star-closed.png" alt="Bookmarked" />');							
+							var star = $($.e2image('star-closed.png', 'Bookmarked'))
 						}
 						self.element.empty();
 						self.element.append(star);
@@ -521,7 +506,7 @@ window.log = function(){
 		// 				}					
 		// 				sibs.append(prevnext);
 		// 
-		// 				var ul = $('<ul class="e2l-nonlist"/>');
+		// 				var ul = $('<ul/>');
 		// 				$.extend(caches["recnames"], recnames);
 		// 				$.each(siblings, function(i,k) {
 		// 					if (k != rec.name) {

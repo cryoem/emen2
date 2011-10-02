@@ -545,10 +545,10 @@ class PermissionsDBObject(BaseDBObject):
 	def _check_permformat(self, value):
 		if hasattr(value, 'items'):
 			v = [[],[],[],[]]
-			v[0] = emen2.util.listops.check_iterable(value.get('read', []))
-			v[1] = emen2.util.listops.check_iterable(value.get('comment', []))
-			v[2] = emen2.util.listops.check_iterable(value.get('write', []))
-			v[3] = emen2.util.listops.check_iterable(value.get('admin', []))
+			v[0] = emen2.util.listops.check_iterable(value.get('read'))
+			v[1] = emen2.util.listops.check_iterable(value.get('comment'))
+			v[2] = emen2.util.listops.check_iterable(value.get('write'))
+			v[3] = emen2.util.listops.check_iterable(value.get('admin'))
 			value = v
 		return [[unicode(y) for y in x] for x in value]		
 

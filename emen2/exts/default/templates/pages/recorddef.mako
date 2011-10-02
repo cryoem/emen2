@@ -46,7 +46,7 @@ import markdown
 		% if len(recdef.typicalchld) == 0:
 			None Defined
 		% else:
-			<ul id="typicalchld" class="e2l-nonlist">
+			<ul id="typicalchld">
 			% for k,i in enumerate(recdef.typicalchld):
 				<li><a href="${EMEN2WEBROOT}/recorddef/${i}/">${i}</a></li>
 			% endfor

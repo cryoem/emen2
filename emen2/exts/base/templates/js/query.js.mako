@@ -147,7 +147,7 @@
 							<th></th> \
 							<th>Value</th> \
 							<th></th> \
-							<th><img class="e2-query-clear-all" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /> Reset</th> \
+							<th>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear-all')+' Reset</th> \
 						</tr> \
 					</thead> \
 					<tbody class="e2-query-base e2-query-constraints"> \
@@ -156,37 +156,37 @@
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" /></td> \
 							<td><input type="checkbox" name="recurse_p" checked="checked" class="e2l-hide" /></td> \
-							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="rectype" />Protocol</td> \
 							<td><input type="hidden" name="cmp" value="is" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-recorddef" /></td> \
 							<td><input type="checkbox" name="recurse_v" /><label>Child Protocols</label></td> \
-							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="creator" />Creator</td> \
 							<td><input type="hidden" name="cmp" value="is" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-user" /></td> \
 							<td></td> \
-							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="permissions" />Permissions</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-user" /></td> \
 							<td></td> \
-							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="groups" />Groups</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-group" /></td> \
 							<td></td> \
-							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="children" />Child Of</td> \
 							<td><input type="hidden" name="cmp" value="name" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-record" /></td> \
 							<td><input type="checkbox" name="recurse_v" /><label>Recursive</label></td> \
-							<td><img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" /></td> \
+							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr> \
 					</tbody> \
 					<tbody class="e2-query-param e2-query-constraints"></tbody> \
@@ -306,10 +306,10 @@
 
 			var controls = $('<td />');
 
-			var addimg = $('<img src="'+EMEN2WEBROOT+'/static/images/add_small.png" alt="Add" />');
+			var addimg = $($.e2image('add_small.png', 'Add'))
 			addimg.click(function() {self.addconstraint()});
 
-			var removeimg = $('<img class="e2-query-clear" src="'+EMEN2WEBROOT+'/static/images/remove_small.png" alt="Remove" />');
+			var removeimg = $($.e2image('remove_small.png', 'Remove', 'e2-query-clear'))
 			removeimg.click(function(e) {
 				self.event_clear(e);
 			});
@@ -675,7 +675,7 @@
 
 				// If the column is editable, build an edit button
 				//if (this[1] == "$" && $.inArray(this[2],immutable)==-1) {
-				//	var editable = $('<button name="edit" class="e2l-float-right"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" alt="Edit" /></button>');
+				//	var editable = $('<button name="edit" class="e2l-float-right">'+$.e2image('edit.png', 'Edit')+'</button>');
 				//	bw.append(editable);
 				//}
 
@@ -686,7 +686,7 @@
 					if (self.options.q['reverse']) {direction = 0}
 				}
 				
-				var sortable = $('<button name="sort" class="e2l-float-right"><img src="'+EMEN2WEBROOT+'/static/images/sort_'+direction+'.png" alt="'+direction+'" /></button>');
+				var sortable = $('<button name="sort" class="e2l-float-right">'+$.e2image('sort_'+direction+'.png', 'Sort')+'</button>');
 				bw.append(sortable);				
 
 				tr.append(iw);

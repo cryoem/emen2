@@ -6,8 +6,6 @@ import emen2.web.config
 CVars = emen2.web.config.CVars
 from emen2.web.view import View
 
-import emen2.web.markuputils
-from map import Map
 
 @View.register
 class RecordDef(View):
@@ -135,7 +133,6 @@ class RecordDefs(View):
 
 		pages['active'] = action
 		self.title = pages['labels'].get(action)
-		pages = emen2.web.markuputils.HTMLTab(pages)
 		self.set_context_item('pages',pages)
 
 		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="recorddef", root="root", recurse=-1)

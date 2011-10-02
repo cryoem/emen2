@@ -78,6 +78,7 @@
 			edit: true,
 			embed: true,
 			show: true,
+			summary: true,
 			controls: page
 		});
 	});

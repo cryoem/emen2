@@ -27,9 +27,11 @@
 
 	// Permissions editor
 	tab.TabControl('setcb','permissions', function(page){
+		console.log('perm');
 		$('#e2-permissions', page).PermissionsControl({
+			name: 'None',
 			show: true,
-			edit: true,
+			edit: true
 		});
 	});
 	

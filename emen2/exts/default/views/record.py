@@ -4,15 +4,13 @@ import time
 
 # Standard View imports
 import emen2.db.config
-g = emen2.db.config.g()
+from emen2.web.view import View
+
 import emen2.web.config
 CVars = emen2.web.config.CVars
-from emen2.web.view import View
 
 import emen2.util.listops as listops
 import emen2.web.responsecodes
-
-from map import Map, dfs
 
 
 class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
@@ -94,7 +92,6 @@ class RecordBase(View):
 				pages["content"][k] = ""
 				pages["href"][k] = '%s/record/%s/children/%s/'%(CVars.webroot, self.name, k)
 
-			pages = emen2.web.markuputils.HTMLTab(pages)
 		else:
 			pages = None
 
@@ -122,15 +119,6 @@ class RecordBase(View):
 
 @View.register
 class Record(RecordBase):
-	
-	def process_permissions(self, permissions):
-		ret = []
-		ret.append(permissions.get('read', []))
-		ret.append(permissions.get('comment', []))
-		ret.append(permissions.get('write', []))
-		ret.append(permissions.get('admin', []))
-		return ret
-		
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
 	def view(self, name=None, sibling=None):
@@ -162,9 +150,6 @@ class Record(RecordBase):
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$')
 	def edit(self, name=None, **kwargs):
-		if kwargs.get('permissions'):
-			kwargs['permissions'] = self.process_permissions(kwargs.get('permissions'))
-			
 		if self.request_method == 'post' and kwargs:
 			rec = self.db.getrecord(name, filt=False)
 			try:
@@ -174,19 +159,29 @@ class Record(RecordBase):
 			except Exception, e:
 				self.ctxt['ERRORS'].append(e)
 				
-		self.view(name=name)				
+		self.view(name=name)
 		self.ctxt["edit"] = True
 
 
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/relationships/$', name='edit/relationships')
-	def edit_relationships(self, name=None):
-		# method = kwargs.get('method')
-		# parents = kwargs.get('parents', [])
-		# children = kwargs.get('children', [])
-		# print "Editing pclink to %s parents %s and children %s"%(method, parents, children)
-		self.view(name=name)				
-		self.ctxt["edit"] = True
+	def edit_relationships(self, name=None, parents=None, children=None):
+		# ian: todo: Check orphans, show orphan confirmation page
+		# ian: add map(int) for now..
+		parents = set(map(int,listops.check_iterable(parents)))
+		children = set(map(int,listops.check_iterable(children)))
+		if self.request_method == 'post':
+			rec = self.db.getrecord(name, filt=False)
+			# print "Parents added:", parents - rec.parents
+			# print "Parents removed:", rec.parents - parents
+			# print "Children added:", children - rec.children
+			# print "Children removed:", rec.children - children
+			rec.parents = parents
+			rec.children = children
+			rec = self.db.putrecord(rec)
+		
+		self.template = '/redirect'
+		self.headers['Location'] = '%s/record/%s/#relationships'%(self.ctxt['EMEN2WEBROOT'], name)
 
 
 
@@ -202,7 +197,6 @@ class Record(RecordBase):
 		else:
 			for v in permissions:
 				users |= set(listops.check_iterable(v))
-		
 		
 		if self.request_method == 'post':
 			if action == 'add':
@@ -246,9 +240,6 @@ class Record(RecordBase):
 		if _copy:
 			for rec in self.db.getrecord(inherit):
 				newrec.update(rec)
-
-		if kwargs.get('permissions'):
-			kwargs['permissions'] = self.process_permissions(kwargs.get('permissions'))
 			
 		if self.request_method == 'post' and kwargs:
 			newrec.update(kwargs)

@@ -99,7 +99,7 @@ class Vartype(object):
 			# Editable..
 			# Are we showing the edit label?
 			# if self.showlabel:
-			#	lis.append('<li class="e2l-nonlist"><span class="e2-edit e2l-label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%CVars.webroot)
+			#	lis.append('<li><span class="e2-edit e2l-label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%CVars.webroot)
 			# Put the editing widget together
 			return '<ul class="%s" %s>%s</ul>'%(self.elem_class, editmarkup, "\n".join(lis))
 

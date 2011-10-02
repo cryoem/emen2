@@ -90,11 +90,11 @@
 				<form id="e2-attachments-upload" method="post" enctype="multipart/form-data" action="'+EMEN2WEBROOT+'/upload/'+this.options.name+'"> \
 					<input type="hidden" name="param" id="e2-attachments-param" value="file_binary" /> \
 					<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'#attachments" /> \
-					<ul class="e2l-options e2l-nonlist"> \
+					<ul class="e2l-options"> \
 						<li><span class="e2l-a e2l-label e2-attachments-target">Regular Attachment</span></li> \
 						<li><input type="file" name="filedata" /></li> \
 					</ul> \
-					<ul class="e2l-controls e2l-nonlist"> \
+					<ul class="e2l-controls"> \
 						<li>'+$.spinner()+'<input name="save" type="submit" value="Upload Attachment" /></li> \
 					</ul> \
 				</form>');

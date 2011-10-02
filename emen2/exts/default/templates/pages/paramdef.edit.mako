@@ -152,7 +152,7 @@
 	<tr>
 		<td>Default Choices</td>
 		<td>
-			<ul class="e2l-nonlist">
+			<ul>
 				% for i,j in enumerate(list(paramdef.choices or [])+[""]*6):
 					<li><input type="text" name="choices" value="${j}"></li>
 				% endfor

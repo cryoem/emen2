@@ -52,17 +52,17 @@
 			
 			if (this.options.controls) {
 				var controls = $(' \
-					<ul class="e2l-options e2l-nonlist"> \
+					<ul class="e2l-options"> \
 						<li>Select <span class="e2l-a e2-permissions-all">all</span> or <span class="e2l-a e2-permissions-none">none</span><br /></li> \
 						<li><span class="e2-permissions-advanced e2l-a">'+$.caret('up')+'Advanced</span></li> \
 				 	</ul> \
-					<ul class="e2l-advanced e2l-nonlist e2l-hide"> \
+					<ul class="e2l-advanced e2l-hide"> \
 				 		<li><input type="button" name="add" value="Add selection to children" /></li> \
 			 			<li><input type="button" name="remove" value="Remove selection from children" /></li> \
 				 		<li><input type="button" name="overwrite" value="Overwrite children with selection" /></li> \
 					 	<li><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label><br /></li> \
 					</ul> \
-					<ul class="e2l-controls e2l-nonlist"> \
+					<ul class="e2l-controls"> \
 						<li><input type="button" name="save" value="Save permissions" /></li> \
 					</ul>');
 

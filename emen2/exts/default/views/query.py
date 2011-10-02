@@ -221,7 +221,6 @@ class Query(View):
 	# 	for k,v in sortitems.items():
 	# 		pages['labels'][k]='%s (%s)'%(k, len(v))
 	# 
-	# 	pages = emen2.web.markuputils.HTMLTab(pages)
 	# 	self.set_context_item('pages',pages)
 	# 
 	# 	self.set_context_item("rendered",rendered)

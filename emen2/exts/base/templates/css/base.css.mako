@@ -1,18 +1,5 @@
 <%inherit file="/css/colors.css" />
 
-/* Basic table behavior should be 100% width */
-
-table {
-	width:100%;
-}
-table.e2l-shaded tbody tr:nth-of-type(odd) {
-	background: #eee;
-}
-
-h4 {
-	border-bottom: solid 1px #ccc;
-}
-
 /******************************************
  		Basic EMEN2 Layouts
 
@@ -24,10 +11,12 @@ begin with one of the following prefixes:
 
 ******************************************/
 
-/* Simple two column tables */
-.e2l-kv td:first-child {
-	width:250px;
-}
+
+/***** Layout Styles *****/
+/* 
+	These are styles that are 
+	not part of a particular widget
+*/
 
 /* Basic link styling */
 a,
@@ -45,9 +34,6 @@ a:hover,
 }
 
 /* Commit button */
-.e2l-save {
-}
-
 .e2l-thumbnail {
 	height:64px;
 }
@@ -60,12 +46,6 @@ a:hover,
 	font-size:16pt;
 }
 
-/* Alerts */
-.e2l-removed
-{
-	background:red;
-}
-
 /* Basic show/hide behavior */
 .e2l-show {
 	display: block;
@@ -75,29 +55,20 @@ a:hover,
 	display: none;
 }
 
-
 /* Full width */
 .e2l-fw {
 	display:block;
 	width:100%;
 }
 
-
-/* Search box */
-.e2l-searchbox { 
-	padding-bottom: 10px;
-	margin-bottom: 10px;
-	border-bottom: solid 1px #ccc;
-}
-
 /* Unselectable elements */
 .e2l-a,
-.e2l-unselect
+.e2l-unselect,
+.e2-infobox
 {
 	-webkit-user-select: none;
 	-moz-user-select: none;	
 }
-
 
 /* I often show actions along 
 	the right side of a header */
@@ -111,8 +82,92 @@ h4 .e2l-label {
 	float: right;
 }
 
+/* e2l-alert: Alerts, notifications, and errors */
+.e2l-alert {
+	list-style: none;
+	padding-left: 0px;
+}
+.e2l-alert > li {
+	list-style: none;
+	padding-left: 0px;
+	border: solid 2px <%self:ADDED />;
+	padding: 5px;
+	margin-bottom:10px;
+}
+.e2l-alert > li.e2l-error {
+	border: solid 2px <%self:REMOVED />;
+}
 
-/***** e2l-menu: Navigation *****/
+/* e2l-controls: Control boxes */
+.e2l-options, 
+.e2l-advanced,
+.e2l-controls
+{
+	list-style: none;
+	padding-left: 0px;
+	margin:0px;
+	clear: both;
+	float: right;
+	margin: 10px;
+	margin-left: 0px;
+	margin-right: 0px;
+	padding-bottom:10px;
+}
+
+/* e2l-spinner: Activity indicator */
+
+/* This is usually just drawn with an inline-style
+		display:none
+	and displayed/hidden with jQuery.show()/hide()/toggle() */
+.e2l-spinner {
+}
+
+/* e2l-float: Floating items */
+.e2l-float-left {
+	float:left !important;
+}
+.e2l-float-right {
+	float:right !important;
+}
+
+/* e2l-cf: "Clearfix", for correct wrapping around floating elements */
+.e2l-cf {
+	clear:both;
+}
+.e2l-cf:after {
+    content: "."; 
+    display: block; 
+    height: 0; 
+    clear: both; 
+    visibility: hidden;	
+}
+
+/* e2l-shaded: Alternating row colors */
+table.e2l-shaded tbody tr:nth-of-type(odd) {
+	background: #eee;
+}
+
+/* e2l-kv: Simple two column tables */
+table.e2l-kv td:first-child {
+	width:250px;
+}
+
+
+
+
+/***** These should go in style.css *****/
+
+table {
+	width:100%;
+}
+
+h1,
+h4
+{
+	border-bottom: solid 1px #ccc;
+}
+
+/* e2l-menu: Navigation */
 .e2l-menu {
 	list-style:none;
 	padding-left: 0px;
@@ -159,119 +214,14 @@ h4 .e2l-label {
 }
 
 
-/***** e2l-alert: Alerts, notifications, and errors *****/
-.e2l-alert {
-	list-style: none;
-	padding-left: 0px;
-}
-.e2l-alert > li {
-	list-style: none;
-	padding-left: 0px;
-	border: solid 2px <%self:ADDED />;
-	padding: 5px;
-	margin-bottom:10px;
-}
-.e2l-alert > li.e2l-error {
-	border: solid 2px <%self:REMOVED />;
-}
-
-
-/***** e2l-controls: Control boxes *****/
-.e2l-options, 
-.e2l-advanced,
-.e2l-controls
-{
-	clear: both;
-	float: right;
-	margin: 10px;
-	margin-left: 0px;
-	margin-right: 0px;
-	padding-bottom:10px;
-}
 
 
 
-/***** e2l-spinner: Progress indicator *****/
+/******************************************
+ 		EMEN2 Widgets
+******************************************/
 
-/* This is usually just drawn with an inline-style
-		display:none
-	and displayed/hidden with jQuery.show()/hide()/toggle() */
-.e2l-spinner {
-
-}
-
-/***** e2l-float: Floating items *****/
-.e2l-float-left {
-	float:left !important;
-}
-.e2l-float-right {
-	float:right !important;
-}
-.e2l-nonlist {
-	list-style: none;
-	padding-left: 0px;
-	margin:0px;
-}
-
-/***** e2l-cf: "Clearfix", for correct wrapping around floating elements *****/
-.e2l-cf {
-	clear:both;
-}
-.e2l-cf:after {
-    content: "."; 
-    display: block; 
-    height: 0; 
-    clear: both; 
-    visibility: hidden;	
-}
-
-
-/***** e2l-tab: Page and tab widget *****/
-
-/* todo: Merge with e2-tab widget */
-.e2l-tab-pages > .e2l-tab-page {
-	border: solid 1px #ccc;
-	border-top: none;
-	display: none;
-	padding: 10px;
-}
-.e2l-tab-pages > .e2l-tab-active {
-	display: block;
-}
-.e2l-tab-buttons {
-	margin: 0px;
-	padding-left: 0px;
-	list-style: none;
-	border-bottom: solid 1px #ccc;
-}
-.e2l-tab-buttons > .e2l-tab-button {
-	float: left;
-	padding: 8px;
-	margin-top: 10px;
-	margin-right: 10px; 
-	background: #ccc;
-	border-bottom: solid 1px #ccc;
-}
-.e2l-tab-buttons > .e2l-tab-active {
-	background: none;
-	border: solid 1px #ccc;
-	border-bottom: none;
-	outline: solid 1px white;
-}
-
-/* Should this be in base template? 
-	Top-margins on the first block element in a page
-	can cause separation between the tabs and
-	the page area...
-*/
-.e2l-tab-page > p {
-	margin-top:0px;
-}
-
-
-/***** e2-tab: NEW editing bar *****/
-
-/* minimal definition */
+/***** e2-tab: Tab/page switch. Similar to jQuery.tab *****/
 .e2-tab {
 	position:relative;
 }
@@ -303,7 +253,7 @@ h4 .e2l-label {
 }
 
 
-/* e2-switchbar: Simple tab widget */
+/* e2-switcher: Simple tab widget */
 .e2-tab-switcher > ul > li {
 	border: solid 1px #ccc;
 	border-bottom: none;
@@ -320,7 +270,7 @@ h4 .e2l-label {
 }
 
 
-/* e2-switcher-main: Additional class for page-level tabs */
+/* e2-tab-main: Page layout level tabs */
 .e2-tab-main > ul {
 	border-bottom:solid 1px #ccc;
 }
@@ -363,13 +313,7 @@ h4 .e2l-label {
 }
 
 
-
-/******************************************
- 		EMEN2 Widgets
-******************************************/
-
-
-/***** e2l-ediable: Editing controls *****/
+/***** e2l-edit: Editing controls *****/
 .e2-edit {
 	color: <%self:EDITABLE />;
 }
@@ -384,12 +328,7 @@ h4 .e2l-label {
 }
 
 
-
-
 /***** e2-query: Query Results *****/
-.e2-query {
-	
-}
 .e2-query .e2-query-table ul {
 	list-style: none;
 	padding-left: 0px;
@@ -403,8 +342,16 @@ h4 .e2l-label {
 }
 
 
-/***** e2-infobox: Display Infobox *****/
+/***** e2-find: Find popup *****/
+/* Search box */
+.e2-find-searchbox { 
+	padding-bottom: 10px;
+	margin-bottom: 10px;
+	border-bottom: solid 1px #ccc;
+}
 
+
+/***** e2-infobox: Display Infobox *****/
 .e2-infobox {
 	float:left;
 	position:relative;
@@ -469,8 +416,8 @@ textarea.e2l-fw {
 	margin-bottom: 10px;
 }
 
-/***** e2-wordcount: Wordcount widget *****/
 
+/***** e2-wordcount: Wordcount widget *****/
 .e2-wordcount-count {
 	text-align: right;
 	padding-top: 10px;
@@ -482,7 +429,6 @@ textarea.e2l-fw {
 
 
 /***** e2-siblings: Sibling relationship widget *****/
-
 .e2-siblings h1 {
 	margin-bottom: 10px;
 }
@@ -558,31 +504,31 @@ textarea.e2l-fw {
 
 /* Backgrounds */
 .e2-map.e2-map-children li {
-	background:url('${EMEN2WEBROOT}/static/images/bg-F.children.png') repeat-y;	
+	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-F.children.png') repeat-y;	
 }
 .e2-map.e2-map-parents li {
-	background:url('${EMEN2WEBROOT}/static/images/bg-F.parents.png') repeat-y;	
+	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-F.parents.png') repeat-y;	
 	background-position:top right;	
 }
 .e2-map.e2-map-children li:first-child {
-	background:url('${EMEN2WEBROOT}/static/images/bg-T.children.png') repeat-y;	
+	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-T.children.png') repeat-y;	
 }
 .e2-map.e2-map-parents li:first-child {
-	background:url('${EMEN2WEBROOT}/static/images/bg-T.parents.png') repeat-y;	
+	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-T.parents.png') repeat-y;	
 	background-position:top right;
 }
 .e2-map.e2-map-children li:last-child {
-	background:url('${EMEN2WEBROOT}/static/images/bg-L.children.png') no-repeat;
+	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-L.children.png') no-repeat;
 }
 .e2-map.e2-map-parents li:last-child {
-	background:url('${EMEN2WEBROOT}/static/images/bg-L.parents.png') no-repeat;
+	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-L.parents.png') no-repeat;
 	background-position:top right;
 }
 .e2-map.e2-map-children ul li:only-child {
-	background:url('${EMEN2WEBROOT}/static/images/bg--.children.png') no-repeat;
+	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg--.children.png') no-repeat;
 }
 .e2-map.e2-map-parents ul li:only-child {
-	background:url('${EMEN2WEBROOT}/static/images/bg--.parents.png') no-repeat;
+	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg--.parents.png') no-repeat;
 	background-position:top right;
 }
 .e2-map:first-child > ul:first-child > li:first-child {
@@ -590,9 +536,7 @@ textarea.e2l-fw {
 }
 
 
-
 /***** e2-tile: Tile image preview *****/
-
 .e2-tile .e2-tile-controls {
 	display: block;
 	position: absolute;

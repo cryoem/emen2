@@ -4,7 +4,7 @@
 
 <p>The email account:
 
-<ul class="e2l-nonlist"><li>${email}</li></ul>
+<p>${email}</p>
 
 has been verified</p>
 

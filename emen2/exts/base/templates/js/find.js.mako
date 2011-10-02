@@ -10,8 +10,7 @@
 			autolink: false,
 			selectable: false,
 			input: ['radio', '', false],
-			addcb: function(elem){console.log('added', elem)},
-			removecb: function(elem){console.log('removed', elem)}
+			cb: function(self, e) {} 
 		},
 		
 		_create: function() {
@@ -24,8 +23,12 @@
 		build: function() {
 			var self = this;
 			if (this.built) {return}
+
+			// Can't build for items that don't exist
+			if (this.options.name == null) {return}
+
 			var item = caches[this.options.keytype][this.options.name];
-			if (!item) {
+			if (!item && this.options.name) {
 				$.jsonRPC.call('get', {
 					keytype: this.options.keytype,
 					names: this.options.name
@@ -88,7 +91,7 @@
 			if (this.options.time) {
 				// h4.append(' @ '+this.options.time);
 				// <abbr class="timeago" title="2008-07-17T09:24:17Z">July 17, 2008</abbr>
-				h4.append('<time class="e2-timeago e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
+				h4.append('<time class="e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
 			}
 			
 			// Body body
@@ -96,13 +99,12 @@
 			p.append(body);
 			
 			// Images
-			var src = EMEN2WEBROOT+'/static/images/nophoto.png';
+			var img = $($.e2image('nophoto.png', 'Thumb', 'e2l-thumbnail'));
 			if (this.options.keytype == 'user' && item.userrec['person_photo']) {
-				src = EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/?size=thumb';
+				img.attr('src', EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/?size=thumb')
 			} else if (this.options.keytype == 'binary') {
-				src = EMEN2WEBROOT+'/download/'+item.name+'/'+item.filename+'?size=thumb';
+				img.attr('src', EMEN2WEBROOT+'/download/'+item.name+'/'+item.filename+'?size=thumb');
 			}
-			var img = $('<img data-src="'+src+'" src="'+src+'" class="e2l-thumbnail" alt="Photo" />');
 			if (link) {img = $('<a href="'+link+'" />').append(img)}
 
 			// Widget!!
@@ -119,41 +121,38 @@
 			// Put it all together..
 			this.element.append(img, input, h4, p);
 			
-			// $('input:checkbox', this.element).click(function(e){e.stopPropagation()});
-			
 			this.element.click(function(e) {
-				//if ($(e.target).is('input:checkbox, a')) {return}
-				//if ($('input', self.element).attr('checked')) {
-				//	input.attr('checked',null);
-				//} else {
-				//	input.attr('checked','checked');		
-				//}
+				self.toggle(e);
+				self.options.cb(self, e);
 			});
 			
 			// $('time.e2-timeago', this.element).timeago();
 			this.built = 1;
 		},
 		
-		toggle: function(elem) {
-			var keytype = elem.attr('data-keytype');
-			var name = elem.attr('data-name');
-			var state = elem.hasClass(this.options.toggle);
-			if (state) {
-				this.options.removecb(elem);
+		toggle: function(e) {
+			var input = $('input', this.element);
+			if ($(e.target).is('input, a')) {return}
+			if (input.attr('checked')) {
+				input.attr('checked',null);
 			} else {
-				this.options.addcb(elem);
+				input.attr('checked','checked');		
 			}
-			elem.toggleClass(this.options.toggle);
+		},
+		
+		check: function() {
+			var input = $('input', this.element);
+			input.attr('checked','checked');		
 		}
+		
 	});
 	
 	
 	// Search for users, groups, parameters, etc..
-	
     $.widget("emen2.FindControl", {
 
 		options: {
-			show: 0,
+			show: false,
 			keytype: 'user',
 			value: '',
 			modal: true,
@@ -165,21 +164,25 @@
 		_create: function() {
 			this.built = 0;
 			var self=this;
-			this.element.click(function(e){self.event_click(e);})
+			
+			this.options.keytype = $.checkopt(this, 'keytype');
+			this.options.vartype = $.checkopt(this, 'vartype');
+			this.options.modal = $.checkopt(this, 'modal');
+			this.options.minimum = $.checkopt(this, 'minimum');
+			this.options.value = $.checkopt(this, 'value');
+						
+			this.element.click(function(e){self.show(e)});
 			if (this.options.show) {
 				this.show();
 			}
 		},
 	
-	
 		build: function() {
-			if (this.built) {
-				return
-			}
-			var self = this;
+			if (this.built) {return}
 			this.built = 1;
 
-			this.dialog = $('<div/>');
+			var self = this;
+			this.dialog = $('<div class="e2-find" />');
 			if (this.options.keytype == 'user'){
 				this.dialog.attr('title', 'Find User');
 			} else if (this.options.keytype == 'group') {
@@ -188,14 +191,19 @@
 				this.dialog.attr('title', 'Find Parameter');
 			} else if (this.options.keytype == 'recorddef') {
 				this.dialog.attr('title', 'Find Protocol');
+			} else {
+				this.dialog.attr('title', 'Find '+this.options.keytype);
 			}
 		
 			this.searchinput = $('<input type="text" />');
 			this.searchinput.val(this.options.value);
 
+			// Run a search for every key press
+			// ian: todo: event queue so long-running 
+			//	searches don't write over short ones
 			this.searchinput.keyup(function(e) {
 				var v = self.searchinput.val();
-				// ian: this should only work for exact matches..
+				// Enter should check for an exact match and return
 				if (e.keyCode == '13') { 
 					e.preventDefault();
 					var check = $('[data-name='+v+']');
@@ -207,7 +215,7 @@
 			});
 
 			this.statusmsg = $('<span class="e2l-float-right">No Results</span>');
-			var searchbox = $('<div class="e2l-searchbox">Search: </div>');
+			var searchbox = $('<div class="e2-find-searchbox">Search: </div>');
 			searchbox.append(this.searchinput, this.statusmsg); //,this.searchbutton
 			this.resultsarea = $('<div>Results</div>');
 		
@@ -215,18 +223,14 @@
 			this.dialog.dialog({
 				modal: this.options.modal,
 				autoOpen: false,
-				width: 700,
-				height: 400
+				width: 750,
+				height: 600
 			});
 			
 			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append($.spinner());		
 		},
-
-		event_click: function(e) {
-			this.show();
-		},
 	
-		show: function() {
+		show: function(e) {
 			this.build();		
 			if (this.element.val() != "+") {
 				// this.searchinput.val(this.element.val());

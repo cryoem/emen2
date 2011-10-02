@@ -116,7 +116,7 @@
 
 			if (this.options.edit && this.options.controls) {
 				var controls = $(' \
-					<ul class="e2l-controls e2l-nonlist e2l-fw"> \
+					<ul class="e2l-controls e2l-fw"> \
 						<li><textarea name="comment" rows="2" placeholder="Add a comment"></textarea></li> \
 						<li><input type="submit" class="e2l-float-right e2l-save" value="Add Comment" /></li> \
 					</ul>');
@@ -135,7 +135,7 @@
 					if (caches['paramdef'][pdname]){pdname=caches['paramdef'][pdname].desc_short}
 					var row = ' \
 						<tr> \
-							<td style="width:16px"><img src="'+EMEN2WEBROOT+'/static/images/edit.png" /></td> \
+							<td style="width:16px">'+$.e2image('edit.png')+'</td> \
 							<td><a href="'+EMEN2WEBROOT+'/paramdef/'+event[2]+'/">'+pdname+'</a></td> \
 						</tr><tr> \
 							<td /> \
@@ -218,53 +218,32 @@
 			var rd = caches['recorddef'][this.options.rectype];
 
 			this.element.empty();
-			this.dialog = $('<div />');			
 			
 			// Children suggested by RecordDef.typicalchld
 			// todo: -> this.build_leve(label, level, items);
 			if (rd.typicalchld.length) {
-				this.dialog.append('<h4>Suggested protocols for children</h4>');
-				var c = $('<div class="e2l-cf"></div>');
-				$.each(rd.typicalchld, function() {
-					var d = $('<div></div>').InfoBox({
-						keytype: 'recorddef',
-						selectable: true,						
-						name: this,
-						input: ['radio', 'rectype']
-					});
-					c.append(d);				
-				});
-				this.dialog.append(c);
+				this.element.append(this.build_level('Suggested protocols for children', 'typicalchld', rd.typicalchld))
 			}
 			
 			// Child protocols
 			if (rd.children.length) {
-				this.dialog.append('<h4>Related protocols</h4>');
-				var c = $('<div class="e2l-cf"></div>');
-				var related = rd.children; //.concat(rd.parents);
-				$.each(related, function() {
-					var d = $('<div></div>').InfoBox({
-						keytype: 'recorddef',
-						selectable: true,
-						name: this,
-						input: ['radio', 'rectype']
-					});
-					c.append(d);				
-				});
-				this.dialog.append(c);
+				this.element.append(this.build_level('Related protocols', 'related', rd.children));
 			}
 			
-			this.dialog.append('<p><input type="button" name="other" value="Browse other protocols" /></p>')
+			this.element.append('<p><input type="button" name="other" value="Browse other protocols" /></p>')
 			
-			$('input[name=other]', this.dialog).FindControl({
+			$('input[name=other]', this.element).FindControl({
 				keytype: 'recorddef',
-				value: rd.name
+				value: rd.name,
+				cb: function(widget, value) {
+					self.add('related', value);
+				}
 			});
 			
 			// Options
 			var form = $('<form name="e2-newrecord" action="" method="get"></form>')
 			form.append(' \
-				<ul class="e2l-options e2l-nonlist"> \
+				<ul class="e2l-options"> \
 					<li> \
 						<input type="checkbox" name="_private" id="e2-newrecord-private" /> \
 						<label for="e2-newrecord-private">Private</label> \
@@ -274,7 +253,7 @@
 						<label for="e2-newrecord-copy">Copy</label> \
 					</li>  \
 				</ul> \
-				<ul class="e2l-controls e2l-nonlist"> \
+				<ul class="e2l-controls"> \
 					<li><input type="submit" value="New record" /></li> \
 				</ul>');
 
@@ -287,7 +266,7 @@
 			
 			// Action button
 			$('input[type=submit]', form).click(function(e) {
-				var rectype = $('input[name=rectype]:checked', this.dialog).val();
+				var rectype = $('input[name=rectype]:checked', this.element).val();
 				if (rectype) {
 					var uri = EMEN2WEBROOT+'/record/'+self.options.parent+'/new/'+rectype+'/';
 					var form = $('form[name=e2-newrecord]', this.element);
@@ -297,10 +276,40 @@
 				}
 			});
 
-			this.dialog.append(form);
-
-			// Create the dialog...
-			this.element.append(this.dialog);
+			this.element.append(form);
+		},
+		
+		build_level: function(label, level, items) {
+			var header = $('<h4>'+label+'</h4>')
+			var boxes = $('<div class="e2l-cf"></div>');
+			boxes.attr('data-level', level);
+			$.each(items, function() {
+				var box = $('<div/>').InfoBox({
+					keytype: 'recorddef',
+					selectable: true,						
+					name: this,
+					input: ['radio', 'rectype']
+				});
+				boxes.append(box);
+			});
+			return $('<div/>').append(header, boxes);
+		},
+		
+		add: function(level, name) {
+			var selector = 'div[data-level='+level+']';
+			var boxes = $(selector, this.element);
+			if (!boxes.length) {
+				this.element.prepend(this.build_level('Other protocols', level, []));
+				var boxes = $(selector, this.element);
+			}
+			var box = $('<div/>').InfoBox({
+				keytype: 'recorddef',
+				selectable: true,						
+				name: name,
+				input: ['radio', 'rectype']
+			});
+			box.InfoBox('check');
+			boxes.append(box);
 		}
 	});
 	
@@ -386,7 +395,7 @@
 			if (this.options.controls) {
 				var controls = $(' \
 					<textarea class="e2l-fw" name="comments" placeholder="Reason for changes"></textarea> \
-					<ul class="e2l-controls e2l-nonlist"> \
+					<ul class="e2l-controls"> \
 						<li><input type="button" name="save" value="Save" /></li> \
 					</ul>');
 				$('input[name=show]', controls).click(function() {self.show()})
@@ -846,7 +855,7 @@
 			var val = ''; //rec[this.options.name];
 			var pd = this.cachepd();
 			var choices = pd.choices || [];
-			var ul = $('<ul class="e2l-nonlist" />');
+			var ul = $('<ul />');
 			$.each(choices, function() {
 				// grumble..
 				var rand = Math.ceil(Math.random()*10000000);
