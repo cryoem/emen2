@@ -726,7 +726,7 @@ class DBODB(EMEN2DB):
 			return []
 
 		# Note: children/parents used to be handled specially,
-		#	but now they are considered "more or less" regular params, with slightly tweaked indexes
+		#	but now they are considered "more or less" regular params, 
 
 		# Process the items
 		for name, updrec in enumerate(items, start=1):
@@ -799,9 +799,9 @@ class DBODB(EMEN2DB):
 				ind[param].append((crec.name, crec.get(param), orec.get(param)))
 
 		# These are complex changes, so pass them off to different reindex method
-		# _reindex_relink does nothing for base DBODB; see RelateDB
 		parents = ind.pop('parents', None)
 		children = ind.pop('children', None)
+		# If the BTree supports permissions...
 		self._reindex_relink(parents, children, namemap=namemap, indexonly=indexonly, ctx=ctx, txn=txn)
 
 		for k,v in ind.items():
@@ -1096,7 +1096,6 @@ class RelateDB(DBODB):
 
 		# print "Add links:", add
 		# print "Remove links:", remove
-
 		p_add = collections.defaultdict(set)
 		p_remove = collections.defaultdict(set)
 		c_add = collections.defaultdict(set)
@@ -1121,14 +1120,18 @@ class RelateDB(DBODB):
 			# print "New items:", nmi
 			for name in names-nmi:
 				# Get and modify the item directly w/o Context:
-				#	Linking only requires write permissions on ONE of the items
-				# This might be changed in the future.
-				rec = self.get(name, filt=False, txn=txn)
-				rec.__dict__['parents'] -= p_remove[rec.name]
-				rec.__dict__['parents'] |= p_add[rec.name]
-				rec.__dict__['children'] -= c_remove[rec.name]
-				rec.__dict__['children'] |= c_add[rec.name]
-				self.put(rec.name, rec, txn=txn)
+				# Linking only requires write permissions 
+				# on ONE of the items. This might be changed
+				# in the future.
+				try:
+					rec = self.get(name, filt=False, txn=txn)
+					rec.__dict__['parents'] -= p_remove[rec.name]
+					rec.__dict__['parents'] |= p_add[rec.name]
+					rec.__dict__['children'] -= c_remove[rec.name]
+					rec.__dict__['children'] |= c_add[rec.name]
+					self.put(rec.name, rec, txn=txn)
+				except emen2.db.exceptions.SecurityError, e:
+					print "No permission to modify %s..."%name
 
 		for k,v in p_remove.items():
 			if v:
