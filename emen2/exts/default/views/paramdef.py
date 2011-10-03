@@ -132,7 +132,7 @@ class ParamDefs(View):
 		self.ctxt['pages'] = pages
 		
 		# Children
-		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="paramdef", root="root", recurse=-1)
+		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="paramdef", root="root", recurse=-1, id='sitemap')
 
 		self.set_context_item('q',q)
 		self.set_context_item("paramdefs", paramdefs)

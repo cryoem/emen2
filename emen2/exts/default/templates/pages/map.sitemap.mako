@@ -12,4 +12,4 @@
 
 <h1>Site Map</h1>
 
-${relmap.traverse(tree, root, recnames, recurse, mode=mode, keytype=keytype, expandable=expandable)}
+${relmap.traverse(tree, root, recnames, recurse, mode=mode, keytype=keytype, expandable=expandable, id='sitemap')}

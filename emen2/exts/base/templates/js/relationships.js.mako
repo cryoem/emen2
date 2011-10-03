@@ -34,8 +34,7 @@
 			// Load all the parents and children
 			var item = caches[this.options.keytype][this.options.name];
 			var names = item.children.concat(item.parents);
-			// This has to be a copy; the original gets emptied somewhere in the callback
-			var names2 = names.slice()
+			names = $.checkcache(this.options.keytype, names);
 
 			// Always empty the element before a rebuild, and place a spinner
 			this.element.empty();
@@ -44,16 +43,17 @@
 			// Cache rendered views for all the items
 			// ian: todo: replace this with a InfoBox pre-cache method
 			// Filter for what we need
-			names = $.checkcache(this.options.keytype, names);
 			$.jsonRPC.call('get', {names:names, keytype:this.options.keytype}, function(items) {
 				$.updatecache(items)
+				var found = $.map(items, function(k){return k.name});
+				
 				// Records need a second callback for pretty rendered text
 				if (self.options.keytype == 'record') {
 					// var names2 = $.checkcache('recnames', names2); ???
-					$.jsonRPC.call('renderview', [names2], function(recnames) {
+					$.jsonRPC.call('renderview', [found], function(recnames) {
 						$.each(recnames, function(k,v) {caches['recnames'][k] = v})
 						self._build();
-					})
+					});
 				} else {
 					self._build();
 				}
@@ -79,7 +79,13 @@
 				this.element.append('<h4>Relationships</h4>');
 				var label = 'parent';
 				if (parents.length > 1) {label = 'parents'}		
-				this.element.append('<p>This record has '+this.build_summary(parents, 'parents')+' and '+this.build_summary(children, 'children')+'. Select <span class="e2l-a e2-permissions-all">all</span> or <span class="e2l-a e2-permissions-none">none</span></p>');
+				this.element.append(' \
+					<p>This record has '+
+					this.build_summary(parents, 'parents')+
+					' and '+
+					this.build_summary(children, 'children')+
+					'. Select <span class="e2l-a e2-permissions-all">all</span> \
+					or <span class="e2l-a e2-permissions-none">none</span></p>');
 			}
 			
 			// Select by rectype
@@ -121,13 +127,14 @@
 			var ce = [];
 			$.each(ct, function(k,v) {
 				var rd = caches['recorddef'][k] || {};
+				var rddesc = rd['desc_short'] || k;
 				var adds = '';
 				if (v.length > 1) {adds='s'}
-				ce.push(v.length+' '+rd.desc_short+' <span data-checked="checked" data-reltype="'+label+'" data-rectype="'+k+'" class="e2l-small e2l-a e2-relationships-rectype">(toggle)</span>');
+				ce.push(v.length+' '+rddesc+' <span data-checked="checked" data-reltype="'+label+'" data-rectype="'+k+'" class="e2l-small e2l-a e2-relationships-rectype">(toggle)</span>');
 			});
 			
 			var pstr = '';
-			if (!value) {
+			if (ce.length == 0) {
 				pstr = '<span>no '+label+'</span>';
 			} else if (ce.length == 1) {
 				pstr = '<span>'+ce.join(', ')+' '+label+'</span>';
@@ -144,36 +151,36 @@
 				header.prepend('<input data-level="'+level+'" type="button" value="+" /> ');
 			}
 			$('input:button', header).BrowseControl({
-				name: this.options.name,
-				keytype: this.options.keytype
+				root: this.options.name,
+				keytype: this.options.keytype,
+				cb: function(browse, name) {
+					self.add(level, name);
+				}
 			}).click(function(){
 				$(this).BrowseControl('show');
 			})
-			
-			//click(function() {
-			//	var level = $(this).attr('data-level');
-			//	console.log("Add...", level);
-			//});
 
 			var d = $('<div data-level="'+level+'"></div>');
 			for (var i=0;i<items.length;i++) {
-				d.append(this.build_item(level, items[i]))
+				d.append(this.build_item(level, items[i], false))
 			}
 			return $('<div></div>').append(header, d);
 		},
 		
-		build_item: function(level, name) {
+		build_item: function(level, name, retry) {
+			// retry parameter indiciates try again to find item if not in cache.
 			return $('<div></div>').InfoBox({
 				keytype: this.options.keytype,
 				name: name,
 				selectable: this.options.edit,
+				retry: retry,
 				input: ['checkbox', level, true]				
 			});
 		},
 		
 		build_controls: function() {
 			var self = this;
-			// ian: todo: move "Select all or none" to a template utility function
+			// ian: todo: move "Select all or none" to a template function (utils.js)
 			var controls = $(' \
 				<ul class="e2l-options"> \
 					<li> \
@@ -207,6 +214,15 @@
 			this.options.controls.append(controls);
 		},
 		
+		add: function(level, name) {
+			var boxes = $('div[data-level='+level+']', this.element);
+			if ($('.e2-infobox[data-name='+name+']', boxes).length) {
+				return
+			}
+			var box = this.build_item(level, name, true);
+			boxes.prepend(box);
+		},
+		
 		save: function(e) {
 			e.preventDefault();
 			this.element.submit();
@@ -218,13 +234,14 @@
 	})
 	
 	
+	// Browse for an item
 	$.widget('emen2.BrowseControl', {
 		options: {
 			root: null,
 			keytype: null,
 			action: 'view',
 			controls: true,
-			cb: function() {}
+			cb: function(self, name) {}
 		},
 		
 		_create: function() {
@@ -253,40 +270,101 @@
 
 			// Build the dialog
 			this.dialog = $('<div class="e2-browse" />');
+			this.dialog.append(' \
+				<div class="e2l-cf e2-browse-header" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
+					<div class="e2-browse-parents e2l-float-left" style="width:249px;"> Parents </div> \
+					<div class="e2-browse-action e2l-float-left" style="width:249px;">Current Item</div> \
+					<div class="e2-browse-children e2l-float-left" style="width:249px;"> Children </div> \
+				</div> \
+				<div class="e2l-cf e2-browse-map" style="position:relative" />');
 
-			var p = $(' \
-					<div class="e2l-cf" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
-						<div class="e2-browser-parents e2l-float-left" style="width:249px;"> Parents </div> \
-						<div class="e2-browser-action e2l-float-left" style="width:249px;">&nbsp;</div> \
-						<div class="e2-browser-children e2l-float-left" style="width:249px;"> Children </div> \
-					</div>');
+			this.build_select();
 
-
-			var parents = $('<div class="e2-map e2l-float-left" style="width:250px"/>');
-			parents.MapControl({
-				root: this.options.name, 
-				keytype: this.options.keytype, 
-				mode: 'parents',
-				show: true
-			});			
-			
-			var children = $('<div class="e2-map e2l-float-left" />');
-			children.MapControl({
-				root: this.options.name, 
-				keytype: this.options.keytype, 
-				mode: 'children',
-				show: true
-			});			
-						
-			this.dialog.append(p, parents, children);
+			this.reroot(this.options.root);
 
 			// Show the dialog
 			this.dialog.attr("title", "Relationship Browser");
 			this.dialog.dialog({
-				width: 1200,
-				height: 400
+				modal: true,
+				width: 800,
+				height: 600
 			});			
 		},
+		
+		reroot: function(name) {
+			var self = this;
+			this.options.root = name;
+			$('input[name=value]', this.dialog).val(name);
+			
+			var cb = function(w, elem, rel1, rel2) {
+				self.reroot(rel2);
+			}
+			
+			var parents = $('<div class="e2-map e2l-float-left" style="position:absolute;left:0px;width:250px;">&nbsp;</span>');
+			parents.MapControl({
+				root: name, 
+				keytype: this.options.keytype, 
+				mode: 'parents',
+				skiproot: true,
+				show: true,
+				cb: cb
+			});			
+			
+			// The parents needs a spinner -- the MapControl one doesn't work right
+			parents.append($.spinner(true));
+
+			var children = $('<div class="e2-map e2l-float-left" style="position:absolute;left:250px;" />');
+			children.MapControl({
+				root: name, 
+				keytype: this.options.keytype, 
+				mode: 'children',
+				show: true,
+				cb: cb
+			});
+			
+			var input = $('input[name=value]', this.dialog);
+			var val = input.val();
+			input.focus();
+			if (val.toString() == this.options.root.toString()) {
+				$('input[name=submit]', this.dialog).val('Select');
+			}
+			
+			$('.e2-browse-map', this.dialog).empty();
+			$('.e2-browse-map', this.dialog).append(parents, children);
+		},
+		
+		build_select: function() {
+			var self = this;
+			var controls = $(' \
+				<span> \
+					<input style="margin-left:16px;width:120px;" type="text" name="value" value="" /> \
+					<input style="margin-right:16px" type="submit" name="submit" value="Select" /> \
+				</span>');
+			
+			$('input[name=value]', controls).bind('keyup', function(e) {
+				$('input[name=submit]', self.dialog).val('Go To');
+			});
+			
+			$('input[name=submit]', controls).click(function(e) {
+				var val = $('input[name=value]', self.dialog).val();
+				if (val.toString()==self.options.root.toString()) {
+					self.select(val);
+				} else {
+					self.reroot(val);
+				}
+			});
+				
+			var action = $('.e2-browse-action', this.dialog);
+			action.empty();
+			action.append(controls);
+		},
+		
+		select: function(name) {
+			var self = this;
+			this.options.cb(self, name)
+			this.dialog.dialog('close');
+		}
+		
 	});
 	
 	
@@ -295,22 +373,23 @@
 		options: {
 			root: null,
 			keytype: null,
-			mode: 'children',
+			mode: null,
 			expandable: true,
 			show: false,
 			attach: false,
-			cb: function(key){console.log('Clicked:', key)}
+			skiproot: false,
+			cb: null,
 		},
 
 		_create: function() {
 			var self = this;
 			this.built = 0;
 
-			this.options.mode = $.checkopt(this, 'mode');
+			this.options.mode = $.checkopt(this, 'mode', 'children');
 			this.options.root = $.checkopt(this, 'root');
-			this.options.keytype = $.checkopt(this, 'keytype', 'record');	
+			this.options.keytype = $.checkopt(this, 'keytype', 'record');
 
-			this.element.addClass('e2-map-'+this.options.mode);
+			this.element.addClass('e2-map-'+this.options.mode);			
 			if (this.options.attach) {
 				this.attach(this.element);
 			} else if (this.options.show) {
@@ -319,12 +398,139 @@
 		},
 	
 		build: function() {
+			var self = this;
 			this.element.empty();
+			if (this.options.skiproot) {
+				// Expand directly off this.element
+				this.element.attr('data-name', this.options.root);
+				this.expand(this.element, this.options.root);
+			} else {
+				// Build a root element, then expand it
+				this.build_root(this.element, this.options.root);
+			}
+		},
+		
+		// Build a tree root
+		build_root: function(elem, name) {
+			var self = this;
+			var name = (name == null) ? elem.attr('data-name') : name;
+			if (!caches[this.options.keytype][name]) {
+				// make a pass through this.getnames if we don't have this cached already
+				this.getviews([name], function(){self.build_root(elem, name)});
+				return
+			}
+
 			var root = $('<ul></ul>');
-			root.append('<li><a data-key='+this.options.root+'>'+this.getname(this.options.root)+'</a>'+$.e2image('bg-open.'+this.options.mode+'.png', '+', 'e2-map-expand')+'</li>')
+			root.append(' \
+				<li data-name="'+name+'"> \
+					<a href="#">'+this.getname(this.options.root)+'</a>'+
+					$.e2image('bg-open.'+this.options.mode+'.png', '+', 'e2-map-expand')+
+				'</li>');
 			this.element.append(root);
 			this.attach(root);
-			this.expand(root.find('li'));
+			this.expand(root.find('li'));			
+		},
+		
+		// Draw a branch
+		build_tree: function(elem, name) {
+			// elem is usually an li that will have the new ul added
+			// name can be specified, or parsed from data-name			
+			var self = this;
+			var name = (name == null) ? elem.attr('data-name') : name; 
+			
+			// Remove any spinners
+			elem.find('img.e2l-spinner').remove();
+						
+			// Set the image to expanded
+			var img = elem.find('img.e2-map-expand');
+			img.addClass('e2-map-expanded');
+			img.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg-close.'+this.options.mode+'.png');
+			
+			// The new ul
+			var ul = $('<ul data-name="'+name+'"></ul>');
+
+			// lower-case alpha sort...
+			var sortby = {};
+			$.each(caches[this.options.mode][name], function() {
+				sortby[this] = self.getname(this);
+			});
+			var sortkeys = $.sortstrdict(sortby);
+			sortkeys.reverse();			
+	
+			// If there are no children, hide the expand image
+			if (sortkeys.length == 0) {
+				img.remove();
+			}
+			
+			// Build each child item
+			$.each(sortkeys, function() {
+				var li = $(' \
+					<li data-name="'+this+'"> \
+						<a href="'+EMEN2WEBROOT+'/'+self.options.keytype+'/'+this+'/">'
+							+self.getname(this)+
+						'</a> \
+					</li>');
+				if (caches[self.options.mode][this] && self.options.expandable) {
+					var expand = $($.e2image('bg-open.'+self.options.mode+'.png', caches[self.options.mode][this].length, 'e2-map-expand'))
+					li.append(expand);
+				}
+				ul.append(li);
+			});
+			elem.find('ul').remove();
+
+			// don't forget to adjust top
+			elem.append(ul);
+			var h = ul.siblings('a').height();
+			ul.css('margin-top', -h);
+			ul.css('min-height', h);
+			// Adjust the heights and bind the img events
+			this.attach(ul);
+		},		
+
+		// rebuild a branch
+		expand: function(elem, name) {
+			// elem is the LI
+			var self = this;
+			var name = (name == null) ? elem.attr('data-name') : name; 
+
+			// Show activity indicator
+			var img = elem.children('img');
+			img.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/spinner.gif'); 
+			
+			// Remove any current children
+			elem.find('ul').remove();
+
+			// We use rel.child.tree because we want to grab 2 levels of children/parents
+			// 	to determine if each child is itself expandable...
+			var method = "rel.child.tree";
+			if (this.options.mode == "parents") {method = "rel.parent.tree"}
+			$.jsonRPC.call(method, {names:name, recurse:2, keytype:this.options.keytype}, function(tree){
+				// Cache the result. This should be filtered for permissions
+				$.each(tree, function(k,v) {caches[self.options.mode][k] = v});				
+				// Get the items and/or rendered names, then build the tree
+				// ... don't forget to use a .slice()'d copy!
+				var names = (tree[name] || []).slice();
+				names.push(name);
+				names.push(self.options.root);
+				self.getviews(names, function(){self.build_tree(elem)});
+			});				
+		},
+		
+		// expand/contract a branch		
+		toggle: function(elem) {
+			// elem is the expand image element
+			var self = this;
+			var elem = $(elem);
+			
+			if (elem.hasClass('e2-map-expanded')) {
+				// Contract this branch
+				elem.removeClass('e2-map-expanded');
+				elem.siblings('ul').remove();
+				elem.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg-open.'+this.options.mode+'.png');
+			} else {
+				// Expand this branch
+				this.expand(elem.parent());
+			}			
 		},
 		
 		attach: function(root) {
@@ -335,29 +541,42 @@
 				var h = elem.siblings('a').height();
 				elem.css('margin-top', -h);
 				elem.css('min-height', h);
-			});			
+			});	
+					
 			$('img.e2-map-expand', root).click(function() {self.toggle(this)});
+			
+			if (this.options.cb) {
+				$('a', root).click(function(e) {
+					e.preventDefault();
+					var elem = $(e.target).parent();
+					var rel1 = elem.parent().attr('data-name');
+					var rel2 = elem.attr('data-name');
+					self.options.cb(self, elem, rel1, rel2);
+				});
+			}
 		},
 
 		// cache items that we need, then go to the callback
-		getviews: function(keys, cb) {
+		getviews: function(names, cb) {
 			var self = this;
-			if (self.options.keytype == "record") {
-				$.jsonRPC.call("record.render", [keys, null, "recname"], function(recnames){
-					$.each(recnames, function(k,v) {caches['recnames'][k]=v});
+			var names = $.checkcache(this.options.keytype, names);
+			if (names.length == 0) {
+				cb();
+				return
+			}
+			$.jsonRPC.call('get', {names: names, keytype: this.options.keytype}, function(items) {
+				$.updatecache(items);
+				if (self.options.keytype == 'record') {
+					// For records, we also want to render the names..
+					var found = $.map(items, function(k){return k.name});
+					$.jsonRPC.call('record.render', [found], function(recnames) {
+						$.each(recnames, function(k,v) {caches['recnames'][k]=v});
+						cb();
+					});
+				} else {
 					cb();
-				});					
-			} else if (self.options.keytype == "recorddef") {
-				$.jsonRPC.call("recorddef.get", [keys], function(rds){
-					$.updatecache(rds)
-					cb();
-				});											
-			} else if (self.options.keytype == "paramdef") {
-				$.jsonRPC.call("paramdef.get", [keys], function(pds){
-					$.updatecache(pds)
-					cb();
-				});						
-			}			
+				}
+			});		
 		},
 		
 		// more type-specific handling..
@@ -372,98 +591,12 @@
 		},
 		
 		// rebuild all branches for key
-		refresh: function(key) {
+		refresh: function(name) {
 			var self = this;
-			$('a[data-key='+key+']', this.dialog).each(function() {
+			$('a[data-name='+name+']', this.dialog).each(function() {
 				self.expand($(this).parent());
 			});
-		},
-
-		// The following methods use 'elem' as the first argument
-		// This should be a 'ul' with a data-parent
-		
-		// expand/contract a branch		
-		toggle: function(elem) {
-			// elem is the expand image element			
-			var self = this;
-			var elem = $(elem);
-			// pass the img's parent LI to this.expand
-			if (elem.hasClass('e2-map-expanded')) {
-				elem.removeClass('e2-map-expanded');
-				elem.siblings('ul').remove();
-				elem.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg-open.'+this.options.mode+'.png');
-			} else {
-				this.expand(elem.parent());
-			}			
-		},
-		
-		// rebuild a branch
-		// todo: use items.parents, items.children
-		expand: function(elem) {
-			// elem is the LI
-			var self = this;
-			var key = elem.children('a').attr('data-key');
-			var img = elem.children('img');
-			img.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/spinner.gif'); 
-
-			// remove current ul..
-			elem.find('ul').remove();
-
-			var method = "rel.child.tree";
-			if (this.options.mode == "parents") {
-				method = "rel.parent.tree";
-			}
-			
-			$.jsonRPC.call(method, [key, 2, null, this.options.keytype], function(tree){
-				// put these in the cache..
-				$.each(tree, function(k,v) {caches[self.options.mode][k]=v});				
-				self.getviews(tree[key], function(){self.buildtree(elem)});
-			});				
-		},
-
-		// draw a branch.. elem is the LI
-		buildtree: function(elem) {
-			var self = this;
-			var newl = $('<ul></ul>');
-			var key = elem.find('a').attr('data-key');
-			var img = elem.find('img');
-			img.addClass('e2-map-expanded');
-			img.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg-close.'+this.options.mode+'.png');
-			
-			// lower-case alpha sort...
-			var sortby = {};
-			$.each(caches[this.options.mode][key], function() {
-				sortby[this] = self.getname(this);
-			});
-			var sortkeys = $.sortstrdict(sortby);
-			sortkeys.reverse();			
-
-			if (sortkeys.length == 0) {
-				//img.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg-close.'+this.options.mode+'.png');
-				img.remove();
-			}
-						
-			$.each(sortkeys, function() {
-				var line = $('<li> \
-					<a data-key="'+this+'" data-parent="'+key+'" href="'+EMEN2WEBROOT+'/'+self.options.keytype+'/'+this+'/">'+self.getname(this)+'</a> \
-					</li>');
-
-				if (caches[self.options.mode][this] && self.options.expandable) {
-					var expand = $($.e2image('bg-open.'+self.options.mode+'.png', caches[self.options.mode][this].length, 'e2-map-expand'))
-					line.append(expand);
-				}
-				newl.append(line);
-			});
-			elem.find('ul').remove();
-						
-			// don't forget to adjust top
-			elem.append(newl);
-			var h = newl.siblings('a').height();
-			newl.css('margin-top', -h);
-			newl.css('min-height', h);
-			// this.bind_ul(newl);
-			this.attach(newl);
-		}
+		}		
 	});
 })(jQuery);
 

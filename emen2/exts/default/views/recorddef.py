@@ -135,7 +135,7 @@ class RecordDefs(View):
 		self.title = pages['labels'].get(action)
 		self.set_context_item('pages',pages)
 
-		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="recorddef", root="root", recurse=-1)
+		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="recorddef", root="root", recurse=-1, id='sitemap')
 
 		count = {}
 		if action != 'tree':

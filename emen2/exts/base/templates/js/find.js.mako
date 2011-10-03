@@ -9,13 +9,14 @@
 			body: null,
 			autolink: false,
 			selectable: false,
+			retry: true,
 			input: ['radio', '', false],
 			cb: function(self, e) {} 
 		},
 		
 		_create: function() {
 			var self = this;
-			this.tryget = false;
+			this.retry = 0;
 			this.built = 0;
 			this.build();
 		},
@@ -24,11 +25,20 @@
 			var self = this;
 			if (this.built) {return}
 
-			// Can't build for items that don't exist
-			if (this.options.name == null) {return}
-
 			var item = caches[this.options.keytype][this.options.name];
-			if (!item && this.options.name) {
+			if (!item) {
+				// Can't build for items that don't exist
+				if (this.options.name == null) {
+					return
+				}
+				// We aren't going to try, or hit retry limit..
+				if (!this.options.retry || this.retry > 1) {
+					// console.log("not going to retry:", this.options.name, "attempt:", this.retry);
+					return
+				}
+				// console.log("Retry to get:", this.options.name, "attempt:", this.retry);
+				this.retry += 1;
+				// console.log("Trying to get:", this.options.keytype, this.options.name);
 				$.jsonRPC.call('get', {
 					keytype: this.options.keytype,
 					names: this.options.name

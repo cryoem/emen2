@@ -1,6 +1,7 @@
 # $Id$
 import urllib
 import time
+import collections
 
 # Standard View imports
 import emen2.db.config
@@ -31,6 +32,7 @@ class RecordBase(View):
 			raise RecordNotFoundError, name
 
 		self.name = self.rec.name
+		recnames = self.db.renderview([self.rec])
 
 		# Find if this record is in the user's bookmarks
 		bookmarks = []
@@ -64,7 +66,9 @@ class RecordBase(View):
 			self.ctxt['NOTIFY'].append('Record marked as published data')
 		if 'authenticated' in self.rec.get('groups',[]):
 			self.ctxt['NOTIFY'].append('Any authenticated user can access this record')
-		
+		if 'anon' in self.rec.get('groups', []):
+			self.ctxt['NOTIFY'].append('Anyone may access this record anonymously')
+			
 		
 		# Parent map
 		if parents:
@@ -75,25 +79,13 @@ class RecordBase(View):
 
 		# Children
 		# TODO: Finish getting rid of HTMLTab
-		if children:
-			children = self.db.getchildren(self.name)
-			self.childgroups = self.db.groupbyrectype(children)
-			pages = {
-				'classname':'main',
-				'content':{},
-				'labels':{'main':'<span data-name="%s" class="e2-view">%s</span>'%(self.name, recnames.get(self.rec.name))},
-				'href':	{'main':'%s/record/%s/'%(CVars.webroot,self.name)},
-				'active': 'main',
-				'order': ['main']
-			}
-			for k,v in self.childgroups.items():
-				pages["order"].append(k)
-				pages["labels"][k] = "%s (%s)"%(k,len(v))
-				pages["content"][k] = ""
-				pages["href"][k] = '%s/record/%s/children/%s/'%(CVars.webroot, self.name, k)
-
-		else:
-			pages = None
+		pages = collections.OrderedDict()
+		pages.uris = {}
+		pages['main'] = recnames.get(self.rec.name, self.rec.name)
+		pages.uris['main'] = self.routing.reverse('Record/view', name=self.rec.name)
+		for k,v in self.db.groupbyrectype(self.rec.children).items():
+			pages[k] = "%s (%s)"%(k,len(v))
+			pages.uris[k] = self.routing.reverse('Record/children', name=self.rec.name, childtype=k)
 
 
 		# Update context
@@ -102,9 +94,9 @@ class RecordBase(View):
 			recs = {str(self.name):self.rec},
 			recdef = self.recdef,
 			title = "Record: %s: %s (%s)"%(self.rec.rectype, recnames.get(self.rec.name), self.name),
+			pages = pages,
 			recnames = recnames,
 			displaynames = displaynames,
-			pages = pages,
 			parentmap = parentmap,
 			viewtype = "defaultview",
 			edit = False,
@@ -221,7 +213,6 @@ class Record(RecordBase):
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$')
 	def new(self, name=None, rectype=None, _copy=False, _private=False, **kwargs):
-		self.init(name=name, children=False)
 		self.template = '/pages/record.new'
 		viewtype = 'mainview'
 
@@ -230,6 +221,10 @@ class Record(RecordBase):
 			inherit = [int(name)]
 		except:
 			inherit = []
+
+		recnames = self.db.renderview(inherit)
+		parentrec = self.db.getrecord(name)
+		parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=3)
 
 		if _private:
 			newrec = self.db.newrecord(rectype)
@@ -242,6 +237,7 @@ class Record(RecordBase):
 				newrec.update(rec)
 			
 		if self.request_method == 'post' and kwargs:
+			print kwargs
 			newrec.update(kwargs)
 			newrec = self.db.putrecord(newrec)
 			if newrec:
@@ -250,12 +246,15 @@ class Record(RecordBase):
 				self.error('Did not save record')
 			return
 
-
 		recdef = self.db.getrecorddef(newrec.rectype)
 		rendered = self.db.renderview(newrec, edit=True, viewtype=viewtype)
 
 		self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
 		self.update_context(
+			displaynames = {},
+			parentmap = parentmap,
+			recnames = recnames,
+			rec = parentrec,
 			recdef = recdef,
 			newrec = newrec,
 			viewtype = viewtype,
@@ -275,7 +274,7 @@ class Record(RecordBase):
 		query = self.routing.execute('Query/embed', db=self.db, c=c)
 		self.ctxt['table'] = query
 		self.ctxt['q'] = {}
-		self.ctxt["pages"].setactive(childtype)
+		self.ctxt["pages"].active = childtype
 
 
 	#@write

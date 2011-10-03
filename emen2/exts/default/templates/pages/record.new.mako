@@ -41,7 +41,7 @@
 <div class="e2-tab e2-editbar" id="e2-editbar-newrecord" data-group="newrecord">
 
 	<ul class="e2l-cf">
-		<li data-tab="newrecord"><a>Change Protocol ${buttons.caret()}</a></li>
+		## <li data-tab="newrecord"><a>Change Protocol ${buttons.caret()}</a></li>
 		<li data-tab="info" class="e2-tab-active"><a>Info ${buttons.caret()}</a></li>
 		<li data-tab="permissions"><a>Permissions ${buttons.caret()}</a></li>
 	</ul>
@@ -52,7 +52,7 @@
 	
 	<div data-tab="info" class="e2-tab-active">
 		<p>
-			You are creating a new <a href="">${recdef.desc_short}</a> record as a child of <a href="">${recnames.get(rec.name, rec.name)}</a>
+			You are creating a new <a href="${ctxt.reverse('RecordDef/main', name=recdef.name)}">${recdef.desc_short}</a> record as a child of <a href="${ctxt.reverse('Record/view', name=rec.name)}">${recnames.get(rec.name, rec.name)}</a>
 		</p>
 		${markdown.markdown('<strong>Protocol description:</strong>\n'+recdef.desc_long)}
 	</div>

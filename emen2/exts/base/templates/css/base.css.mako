@@ -22,7 +22,7 @@ begin with one of the following prefixes:
 a,
 .e2l-a
 {
-	color: <%self:LINK />;
+	color: #0000EE; /* <%self:LINK />; */
 	text-decoration: none;
 	cursor: pointer;
 }
@@ -146,7 +146,6 @@ h4 .e2l-label {
 table.e2l-shaded tbody tr:nth-of-type(odd) {
 	background: #eee;
 }
-
 /* e2l-kv: Simple two column tables */
 table.e2l-kv td:first-child {
 	width:250px;
@@ -251,6 +250,11 @@ h4
 .e2-tab div.e2-tab-active {
 	display:block;
 }
+/* e2l-shaded is the same background as .e2-tab... */
+.e2-tab-active table.e2l-shaded {
+	background: white;
+}
+
 
 
 /* e2-switcher: Simple tab widget */
@@ -490,7 +494,8 @@ textarea.e2l-fw {
 /* root element */
 
 .e2-map ul:first-child {
-	margin-left:0px;
+	margin-left: 0px;
+	margin-top: 0px;
 }
 
 .e2-map.e2-map-parents ul:first-child {

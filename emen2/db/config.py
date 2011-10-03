@@ -220,7 +220,7 @@ class DBOptions(optparse.OptionParser):
 		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'security.log'), 'a', 0))
 
 		g.params.CONFIG_LOADED = True
-		emen2.VERSION = g.params.VERSION
+		# emen2.VERSION = g.params.VERSION
 
 
 
@@ -229,7 +229,7 @@ g = lambda: gg
 class CVars(object):
 	g = g()
 	dbname = g.claim('customization.EMEN2DBNAME', 'EMEN2')
-	version = g.claim('params.VERSION')
+	version = emen2.VERSION # g.claim('params.VERSION')
 	webroot = g.claim('network.EMEN2WEBROOT', '')
 	exturi = g.claim('network.EMEN2EXTURI', '')
 

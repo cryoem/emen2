@@ -415,7 +415,7 @@
 
 			// Copy permissions
 			if (this.options.permissions) {
-				$('input:checked', this.options.permissions).each(function(){
+				$('input:checked, input.e2-permissions-hidden', this.options.permissions).each(function(){
 					var i = $(this);
 					var cloned = $('<input type="hidden" />');
 					cloned.attr('name', i.attr('name'));

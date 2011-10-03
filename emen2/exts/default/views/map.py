@@ -32,7 +32,7 @@ class Map(View):
 
 
 	@View.add_matcher(r'^/map/(?P<keytype>\w+)/(?P<root>\w+)/(?P<mode>\w+)/$', name='embed')
-	def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", expandable=True):
+	def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", expandable=True, id=''):
 		self.template = '/pages/map'
 		self.title = 'Sitemap'
 		self.root = root
@@ -77,15 +77,16 @@ class Map(View):
 			rds = self.db.getrecorddef(stack)
 			for rd in rds:
 				recnames[rd.name] = rd.desc_short
-
-		self.set_context_item('mode',self.mode)
-		self.set_context_item('root',self.root)
-		self.set_context_item('tree',self.tree)
-		self.set_context_item('recurse',self.recurse)
-		self.set_context_item('recnames',recnames)
-		self.set_context_item('keytype',keytype)
-		self.set_context_item('parents',parents)
-		self.set_context_item('expandable',expandable)
+		
+		self.set_context_item('mode', self.mode)
+		self.set_context_item('root', self.root)
+		self.set_context_item('tree', self.tree)
+		self.set_context_item('recurse', self.recurse)
+		self.set_context_item('recnames', recnames)
+		self.set_context_item('keytype', keytype)
+		self.set_context_item('parents', parents)
+		self.set_context_item('expandable', expandable)
+		self.set_context_item('id', id)
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

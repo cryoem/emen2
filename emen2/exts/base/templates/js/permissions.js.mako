@@ -123,6 +123,9 @@
 				});
 				div.append(d);
 			}
+			
+			// We have to put in one last empty element
+			div.append('<input type="hidden" name="'+param+'" value="" class="e2-permissions-hidden" />');
 
 			ret.append(header, div);
 			return ret
