@@ -20,6 +20,7 @@
 		},
 		
 		rebuild: function() {
+			// Clear out and rebuild
 			this.built = 0;
 			this.build();
 		},
@@ -29,38 +30,43 @@
 		},
 		
 		build: function() {
+			// Cache items before real build..
 			if (this.built) {return}
 			var self = this;
+
+			// Always empty the element before a rebuild, and place a spinner
+			this.element.empty();
+			this.element.addClass('e2-relationships');
+			this.element.append($.e2spinner(true));
+			
 			// Load all the parents and children
 			var item = caches[this.options.keytype][this.options.name];
 			var names = item.children.concat(item.parents);
 			names = $.checkcache(this.options.keytype, names);
-
-			// Always empty the element before a rebuild, and place a spinner
-			this.element.empty();
-			this.element.append($.spinner(true));
 			
 			// Cache rendered views for all the items
 			// ian: todo: replace this with a InfoBox pre-cache method
-			// Filter for what we need
+
+			// 1. Get the related items
 			$.jsonRPC.call('get', {names:names, keytype:this.options.keytype}, function(items) {
 				$.updatecache(items)
 				var found = $.map(items, function(k){return k.name});
 				
-				// Records need a second callback for pretty rendered text
+				// 2a. Records need a second callback for pretty rendered text
 				if (self.options.keytype == 'record') {
-					// var names2 = $.checkcache('recnames', names2); ???
 					$.jsonRPC.call('renderview', [found], function(recnames) {
 						$.each(recnames, function(k,v) {caches['recnames'][k] = v})
 						self._build();
 					});
 				} else {
+					// 2b. No additional items needed.
 					self._build();
 				}
 			});
 		}, 
 		
 		_build: function() {
+			// Real build method
 			this.built = 1;
 			var self = this;
 
@@ -74,22 +80,45 @@
 			
 			// Build a textual summary
 			if (this.options.summary && this.options.keytype == 'record') {
-				var p = this.build_summary(parents)
-				var c = this.build_summary(children)
-				this.element.append('<h4>Relationships</h4>');
-				var label = 'parent';
-				if (parents.length > 1) {label = 'parents'}		
-				this.element.append(' \
-					<p>This record has '+
-					this.build_summary(parents, 'parents')+
-					' and '+
-					this.build_summary(children, 'children')+
-					'. Select <span class="e2l-a e2-permissions-all">all</span> \
-					or <span class="e2l-a e2-permissions-none">none</span></p>');
+				this.element.append(this.build_summary(parents, children));
 			}
 			
+			// Add the items
+			this.element.append(this.build_level('Parents', 'parents', parents));
+			this.element.append(this.build_level('Children', 'children', children));
+			
+			if (this.options.controls) {
+				this.build_controls();
+			}
+
+
+			// Show all the infoboxes...
+			// $('.e2-relationships-infobox', this.element).InfoBox('show');
+
+			// Do this here to find items in both the summary and options
+			// $('.e2-select-all').click(function(){$('input:checkbox', self.element).attr('checked', 'checked')});
+			// $('.e2-select-none').click(function() {$('input:checkbox', self.element).attr('checked', null)});			
+		},
+		
+		build_summary: function(parents, children) {
+			// Make a descriptive summary of the parent and child relationships
+			var summary = $('<div class="e2-relationships-summary"></div>')
+			var p = this.build_summary_label(parents);
+			var c = this.build_summary_label(children);
+
+			summary.append('<h4>Relationships</h4>');
+			var label = 'parent';
+			if (parents.length > 1) {label = 'parents'}		
+			summary.append(' \
+				<p>This record has '+
+				this.build_summary_label(parents, 'parents')+
+				' and '+
+				this.build_summary_label(children, 'children')+
+				'. Select <span class="e2l-a e2-permissions-all">all</span> \
+				or <span class="e2l-a e2-permissions-none">none</span></p>');
+			
 			// Select by rectype
-			$('.e2-relationships-rectype', this.element).click(function() {
+			$('.e2-relationships-rectype', summary).click(function() {
 				var state = $(this).attr('data-checked');
 				if (state=='checked') {
 					$(this).attr('data-checked', '');
@@ -102,21 +131,11 @@
 				var reltype = $(this).attr('data-reltype');
 				$('.e2-infobox[data-rectype='+rectype+'] input', self.element).attr('checked', state);
 			});
-			
-			// Add the items
-			this.element.append(this.build_level('Parents', 'parents', parents));
-			this.element.append(this.build_level('Children', 'children', children));
-			
-			if (this.options.controls) {
-				this.build_controls();
-			}
-
-			// Do this here to find items in both the summary and options
-			$('.e2-permissions-all').click(function(){$('input:checkbox', self.element).attr('checked', 'checked')});
-			$('.e2-permissions-none').click(function() {$('input:checkbox', self.element).attr('checked', null)});			
+			return summary		
 		},
 		
-		build_summary: function(value, label) {
+		build_summary_label: function(value, label) {
+			// Ugly text and markup manipulation to build descriptive summaries of records/rectypes
 			var ct = {}
 			$.each(value, function(k,v){
 				var r = caches['record'][v] || {};
@@ -130,9 +149,12 @@
 				var rddesc = rd['desc_short'] || k;
 				var adds = '';
 				if (v.length > 1) {adds='s'}
-				ce.push(v.length+' '+rddesc+' <span data-checked="checked" data-reltype="'+label+'" data-rectype="'+k+'" class="e2l-small e2l-a e2-relationships-rectype">(toggle)</span>');
+				ce.push(v.length+' '+rddesc+
+					' <span data-checked="checked" data-reltype="'+label+
+					'" data-rectype="'+k+
+					'" class="e2l-small e2l-a e2-relationships-rectype">(toggle)</span>');
 			});
-			
+
 			var pstr = '';
 			if (ce.length == 0) {
 				pstr = '<span>no '+label+'</span>';
@@ -154,7 +176,7 @@
 				root: this.options.name,
 				keytype: this.options.keytype,
 				tool: 'browse',
-				cb_browse: function(browse, name) {
+				selected: function(browse, name) {
 					self.add(level, name);
 				}
 			}).click(function(){
@@ -170,12 +192,17 @@
 		
 		build_item: function(level, name, retry) {
 			// retry parameter indiciates try again to find item if not in cache.
-			return $('<div></div>').InfoBox({
+			return $('<div class="e2-relationships-infobox"></div>').InfoBox({
 				keytype: this.options.keytype,
 				name: name,
 				selectable: this.options.edit,
 				retry: retry,
-				input: ['checkbox', level, true]				
+				input: ['checkbox', level, true],
+				selected: function(w, e) {
+					var selectcount = $('input:checkbox:checked', self.element).length;
+					var unselectcount = $('input:checkbox:not(:checked)', self.element).length;
+					$('.e2-select-count').SelectControl('count', selectcount, unselectcount);
+				}
 			});
 		},
 		
@@ -184,17 +211,13 @@
 			// ian: todo: move "Select all or none" to a template function (utils.js)
 			var controls = $(' \
 				<ul class="e2l-options"> \
-					<li> \
-						Select \
-						<span class="e2-permissions-all e2l-a">all</span> \
-						or <span class="e2-permissions-none e2l-a">none</span> \
-					</li> \
+					<li>'+$.e2selectcontrol()+'</li> \
 				</ul> \
 				<ul class="e2l-controls"> \
 					<li><input type="submit" value="Save relationships" /></li> \
 				</ul>');
 
-			// <li><span class="e2-relationships-advanced e2l-a">'+$.caret('up')+'Advanced</span></li> \
+			// <li><span class="e2-relationships-advanced e2l-a">'+$.e2caret('up')+'Advanced</span></li> \
 			// <ul class="e2l-advanced e2l-hide"> \
 			// 	<li><input type="button" value="Remove a parent from selected records" /></li> \
 			// 	<li><input type="button" value="Remove a child from selected records" /></li> \
@@ -206,7 +229,7 @@
 			$('input:submit', controls).click(function(e){self.save(e)});
 
 			$('.e2-relationships-advanced', controls).click(function(){
-				$.caret('toggle', self.options.controls);
+				$.e2caret('toggle', self.options.controls);
 				$('.e2l-controls', self.options.controls).toggle();
 				$('.e2l-advanced', self.options.controls).toggle();
 			});
@@ -244,7 +267,8 @@
 			controls: false,
 			embed: false,
 			tool: 'none',
-			cb_browse: function(self, name) {}
+			// events
+			selected: function(self, name) {}
 		},
 		
 		_create: function() {
@@ -308,6 +332,7 @@
 		},
 		
 		build_controls: function() {
+			var self = this;
 			var controls = $('.e2-browse-controls', this.dialog);
 			controls.append(' \
 				<p>Current tool:</p> \
@@ -338,7 +363,7 @@
 			$('.e2-browse-action', this.dialog).html('&nbsp;');
 
 			// What happens when a map item is clicked..
-			this.mapcb = function(w, e, elem, rel1, rel2){};
+			this.mapselect = function(w, e, elem, rel1, rel2){};
 			
 			if (tool == 'browse') {
 				this.build_browse();
@@ -352,10 +377,8 @@
 			this.options.root = name;
 			$('input[name=value]', this.dialog).val(name);
 			
-			// Outer-callback is to handle tool switches
-			var cb = function(w, e, elem, rel1, rel2) {
-				self.mapcb(w, e, elem, rel1, rel2);
-			}
+			// Selected callback is an "outer callback" to pass off to this.mapselect
+			var cb = function(w, e, elem, rel1, rel2) {self.mapselect(w, e, elem, rel1, rel2)}
 			
 			var parents = $('<div class="e2-map e2l-float-left" style="position:absolute;left:0px;width:250px;">&nbsp;</span>');
 			parents.MapControl({
@@ -364,11 +387,11 @@
 				mode: 'parents',
 				skiproot: true,
 				show: true,
-				cb: cb
+				selected: cb
 			});			
 			
 			// The parents needs a spinner -- the MapControl one doesn't work right
-			parents.append($.spinner(true));
+			parents.append($.e2spinner(true));
 
 			var children = $('<div class="e2-map e2l-float-left" style="position:absolute;left:250px;" />');
 			children.MapControl({
@@ -376,7 +399,7 @@
 				keytype: this.options.keytype, 
 				mode: 'children',
 				show: true,
-				cb: cb
+				selected: cb
 			});
 			
 			// var input = $('input[name=value]', this.dialog);
@@ -393,7 +416,7 @@
 		build_move: function() {
 			var self = this;
 			// When an element is clicked, make it draggable
-			this.mapcb = function(w, e, elem, rel1, rel2){
+			this.mapselect = function(w, e, elem, rel1, rel2){
 				e.preventDefault();
 				var a = elem.children('a');
 				a.toggleClass('e2-browse-selected');
@@ -478,7 +501,7 @@
 			$('input[name=submit]', controls).click(function(e) {
 				var val = $('input[name=value]', self.dialog).val();
 				if (val.toString()==self.options.root.toString()) {
-					self.options.cb_browse(self, val);
+					self.options.selected(self, val);
 					self.dialog.dialog('close');
 				} else {
 					self.reroot(val);
@@ -488,7 +511,7 @@
 			var action = $('.e2-browse-action', this.dialog);
 			action.append(controls);
 			
-			this.mapcb = function(w, e, elem, rel1, rel2){
+			this.mapselect = function(w, e, elem, rel1, rel2){
 				e.preventDefault();
 				self.reroot(rel2);
 			};			
@@ -506,7 +529,7 @@
 			show: false,
 			attach: false,
 			skiproot: false,
-			cb: null,
+			selected: null,
 		},
 
 		_create: function() {
@@ -673,12 +696,12 @@
 					
 			$('img.e2-map-expand', root).click(function() {self.toggle(this)});
 			
-			if (this.options.cb) {
+			if (this.options.selected) {
 				$('a', root).click(function(e) {
 					var elem = $(e.target).parent();
 					var rel1 = elem.parent().attr('data-name');
 					var rel2 = elem.attr('data-name');
-					self.options.cb(self, e, elem, rel1, rel2);
+					self.options.selected(self, e, elem, rel1, rel2);
 				});
 			}
 		},

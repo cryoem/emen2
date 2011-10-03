@@ -86,7 +86,7 @@
 		options: {
 			q: null,
 			show: true,
-			cb: function(self, q){self.query_bookmark(self, q)}
+			query: function(self, q){self.query_bookmark(self, q)}
 		},
 				
 		_create: function() {
@@ -202,7 +202,7 @@
 			$('.e2-find-paramdef', this.container).FindControl({keytype: 'paramdef'});
 
 			var save = $('<div class="e2l-controls"> \
-				'+$.spinner(true)+' \
+				'+$.e2spinner(true)+' \
 				<input type="button" value="Query" name="save" class="e2l-save" /></div>');				
 			this.container.append(save);
 			$('input[name=save]', this.container).bind("click", function(e){self.query()});			
@@ -280,7 +280,7 @@
 		
 		query: function() {
 			var newq = this.getquery();
-			this.options.cb(this, newq);
+			this.options.query(this, newq);
 		},
 		
 		addconstraint: function(param, cmp, value) {
@@ -454,8 +454,8 @@
 			var ul = $('.e2-tab ul', this.element);
 			
 			// Statistics
-			ul.append('<li data-tab="stats"><span class="e2l-a"><span class="e2-query-length">Records</span>'+$.caret()+'</span></li>');
-			ul.append('<li data-tab="controls"><span class="e2l-a">Query '+$.caret()+'</span></li>')
+			ul.append('<li data-tab="stats"><span class="e2l-a"><span class="e2-query-length">Records</span>'+$.e2caret()+'</span></li>');
+			ul.append('<li data-tab="controls"><span class="e2l-a">Query '+$.e2caret()+'</span></li>')
 
 			// Row count
 			var count = $('<select name="count" class="e2l-small"></select>');
@@ -474,7 +474,7 @@
 			ul.append('<li class="e2l-float-right e2-query-pages"></li>');
 
 			// Activity spinner
-			ul.append('<li class="e2l-float-right e2-query-activity"><span>'+$.spinner(false)+'</span></li>');
+			ul.append('<li class="e2l-float-right e2-query-activity"><span>'+$.e2spinner(false)+'</span></li>');
 			
 			// Create new record
 			// if (this.options.rectype && this.options.parent != null) {
@@ -500,7 +500,7 @@
 				page.QueryControl({
 					q: self.options.q,
 					keywords: false,
-					cb: function(test, newq) {self.query(newq)} 
+					query: function(test, newq) {self.query(newq)} 
 				});	
 			});
 			

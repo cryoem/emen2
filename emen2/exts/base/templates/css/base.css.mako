@@ -113,6 +113,12 @@ h4 .e2l-label {
 	margin-right: 0px;
 	padding-bottom:10px;
 }
+/*.e2l-advanced, 
+.e2l-options
+{
+	font-size:10pt;
+}
+*/
 
 /* e2l-spinner: Activity indicator */
 
@@ -538,6 +544,12 @@ textarea.e2l-fw {
 	background:none
 }
 
+
+/***** e2-select: Selection helper *****/
+
+.e2-select-count {
+	display:block;
+}
 
 /***** e2-browse: Relationship Editor and Selector *****/
 

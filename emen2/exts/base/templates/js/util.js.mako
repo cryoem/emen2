@@ -12,19 +12,24 @@ window.log = function(){
 // Utility Methods
 (function($){
 
+	// Some simple templating methods..
+	$.e2static = function(name) {
+		return EMEN2WEBROOT+'/static-'+VERSION+'/'+name
+	}
+	
 	$.e2image = function(name, alt, cls) {
 		alt = alt || '';
 		cls = cls || '';
-		return '<img src="'+EMEN2WEBROOT+'/static-'+VERSION+'/images/'+name+'" class="'+cls+'" alt="'+alt+'" />'		
+		return '<img src="'+$.e2static('images/'+name)+'" class="'+cls+'" alt="'+alt+'" />'		
 	}
 
-	$.spinner = function(show) {
+	$.e2spinner = function(show) {
 		var cls = 'e2l-spinner e2l-hide';
 		if (show) {cls = 'e2l-spinner'}
 		return $.e2image('spinner.gif', 'Loading', cls);
 	}
 	
-	$.caret = function(state, elem) {
+	$.e2caret = function(state, elem) {
 		// Create or toggle a caret up/down icon
 		var caret = [];
 		if (elem) {
@@ -37,15 +42,8 @@ window.log = function(){
 		if (state == 'toggle') {
 			if (caret.attr('data-state')=='up') {state='down'} else {state='up'}
 		}		
-		var up = EMEN2WEBROOT+'/static-'+VERSION+'/images/caret_up.png';
-		var down = EMEN2WEBROOT+'/static-'+VERSION+'/images/caret_down.png';
-		if (state == 'up') {
-			caret.attr('src', up);
-			caret.attr('data-state', 'up');
-		} else if (state == 'down') {
-			caret.attr('src', down);
-			caret.attr('data-state', 'down')
-		}
+		caret.attr('src', $.e2static('images/caret_'+state+'.png'));
+		caret.attr('data-state', state);
 		if (elem){return}
 		return $('<div />').append(caret).html()
 	}
@@ -252,6 +250,64 @@ window.log = function(){
 	//  fit in any other files..
 	///////////////////////////////////////////////////
  
+	// Select utility
+	$.widget('emen2.SelectControl', {
+		options: {
+			root: null,
+			selected: 'input[name]:checkbox:checked',
+			all: 'input[name]:checkbox',
+			show: true
+		},
+		
+		_create: function() {
+			this.built = 0;
+			if (this.options.show) {
+				this.build();
+			}
+		},
+		
+		build: function() {
+			if (this.built) {return}
+			this.built = 1;
+			var self = this;
+			
+			this.element.empty();			
+			var controls = $(' \
+				<li> \
+					Select \
+					<span class="e2l-a e2-select-all">all</span> \
+					 or \
+					<span class="e2l-a e2-select-none">none</span> \
+					<span class="e2-select-count"></span> \
+				</li>');
+				
+			$('.e2-select-all', controls).click(function() {
+				$('input:checkbox', self.options.root).attr('checked', 'checked');
+				self.update();
+			});
+			$('.e2-select-none', controls).click(function() {
+				$('input:checkbox', self.options.root).attr('checked', null);
+				self.update();
+			});
+				
+			this.element.append(controls);
+		},
+		
+		selectnone: function() {
+			
+		},
+		
+		selectall: function() {
+		},
+		
+		update: function() {
+			var selected = $(this.options.selected, this.options.root);
+			var all = $(this.options.all, this.options.root);
+			var txt = '('+selected.length+' of '+all.length+' selected)';
+			$('.e2-select-count', this.element).html(txt);
+		}
+	});
+
 	// EMEN2 Tabs
 	// Works somewhat like jQuery-UI Tabs -- uses
 	//		basically the same markup
@@ -449,7 +505,7 @@ window.log = function(){
 			
 			//$('img.star', this.element).
 			this.element.empty();
-			this.element.append($.spinner(false));
+			this.element.append($.e2spinner(false));
 			
 			$.jsonRPC.call('rel.child', [this.options.parent, 1, 'bookmarks'], function(children) {
 				$.jsonRPC.call('record.get', [children], function(recs) {
@@ -508,7 +564,7 @@ window.log = function(){
 		// 		if ($('#siblings', self.popup).length) {
 		// 			return
 		// 		}
-		// 		var sibs = $('<div class="e2-siblings">'+$.spinner()+'</div>');
+		// 		var sibs = $('<div class="e2-siblings">'+$.e2spinner()+'</div>');
 		// 		self.popup.append(sibs);
 		// 		$.jsonRPC.call("getsiblings", [rec.name, rec.rectype], function(siblings) {
 		// 			$.jsonRPC.call("renderview", [siblings, null, "recname"], function(recnames) {

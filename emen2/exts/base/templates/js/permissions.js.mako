@@ -23,87 +23,122 @@
 		},
 		
 		build: function() {
+			// Cache items before real build..
+			if (this.built) {return}
 			var self = this;
+
+			// Add the e2-permissions class
+			this.element.empty();
+			this.element.addClass('e2-permissions');
+			this.element.append($.e2spinner());
+
+			// Complicated callback chain...
+			// 1. Get the item...
 			var item = caches[this.options.keytype][this.options.name];
-			if (!item) {
-				var args = {}
-				args['keytype'] = this.options.keytype;
-				args['names'] = this.options.name;
-				$.jsonRPC.call('get', {'keytype':this.options.keytype, 'names':this.options.name}, function(item) {
-					caches[item.keytype][item.name] = item;
-					self._build();
+			$.jsonRPC.call('get', {'keytype':this.options.keytype, 'names':this.options.name}, function(item) {
+				$.updatecache([item]);
+
+				// 2. Get all the users before we draw the infoboxes
+				var users = [];
+				$.each(item['permissions'] || [], function(k, v) {users = users.concat(v)});
+				users = $.checkcache('user', users);
+				$.jsonRPC.call('getuser', [users], function(users) {
+					$.updatecache(users);
+					
+					// 3. ... also get groups ...
+					var groups = item['groups'] || [];
+					groups = $.checkcache('group', groups);
+					$.jsonRPC.call('getgroup', [groups], function(groups) {					
+						$.updatecache(groups)
+
+						// 4. Finally call real build method
+						self._build();
+					});	
 				});
-			} else {
-				this._build();
-			}
+			});
 		},
 		
 		_build: function() {
+			// Real build method
+			this.built = 1;
 			var self = this;
 			var permissions = caches[this.options.keytype][this.options.name]['permissions'] || [];
 			var groups = caches[this.options.keytype][this.options.name]['groups'] || [];
+
+			// Remove anything that is bound
 			this.element.empty();
 
-			this.element.append(this._build_level('Groups', 'groups', groups, 'group'));
-			this.element.append(this._build_level('Read-only', 'read', permissions[0]));
-			this.element.append(this._build_level('Comment', 'comment', permissions[1]));
-			this.element.append(this._build_level('Write', 'write', permissions[2]));
-			this.element.append(this._build_level('Owners', 'admin', permissions[3]));
-			
+			// Build the controls
 			if (this.options.controls) {
-				var controls = $(' \
-					<ul class="e2l-options"> \
-						<li>Select <span class="e2l-a e2-permissions-all">all</span> or <span class="e2l-a e2-permissions-none">none</span><br /></li> \
-						<li><span class="e2-permissions-advanced e2l-a">'+$.caret('up')+'Advanced</span></li> \
-				 	</ul> \
-					<ul class="e2l-advanced e2l-hide"> \
-				 		<li><input type="button" name="add" value="Add selection to children" /></li> \
-			 			<li><input type="button" name="remove" value="Remove selection from children" /></li> \
-				 		<li><input type="button" name="overwrite" value="Overwrite children with selection" /></li> \
-					 	<li><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label><br /></li> \
-					</ul> \
-					<ul class="e2l-controls"> \
-						<li><input type="button" name="save" value="Save permissions" /></li> \
-					</ul>');
-
-
-				$('.e2-permissions-advanced', controls).click(function(){
-					$.caret('toggle', self.options.controls);
-					$('.e2l-controls', self.options.controls).toggle();
-					$('.e2l-advanced', self.options.controls).toggle();
-				});
-				
-				$('.e2-permissions-all', controls).click(function(){$('input:checkbox', self.element).attr('checked', 'checked')});
-				$('.e2-permissions-none', controls).click(function() {$('input:checkbox', self.element).attr('checked', null)});				
-
-				$('input[name=add]', controls).click(function(){self.save('add')})
-				$('input[name=remove]', controls).click(function(){self.save('remove')})
-				$('input[name=overwrite]', controls).click(function(){self.save('overwrite')})
-				$('input[name=save]', controls).click(function(){self.save()});
-				
-				this.options.controls.append(controls);
-			}			
-		},
-		
-		_build_level: function(lab, level, l, keytype) {
-			var self = this;
-			var param = 'permissions.'+level;
-			var keytype = (keytype || 'user');
-			if (level == 'groups') {
-				param = 'groups'
+				this.build_controls();
 			}
 
-			var ret = $('<div></div>')
+			// Build the permissions levels
+			this.element.append(this.build_level('Groups', 'groups', groups, 'group'));
+			this.element.append(this.build_level('Read-only', 'read', permissions[0]));
+			this.element.append(this.build_level('Comment', 'comment', permissions[1]));
+			this.element.append(this.build_level('Write', 'write', permissions[2]));
+			this.element.append(this.build_level('Owners', 'admin', permissions[3]));
 			
+			// Show all the infoboxes...
+			$('.e2-permissions-infobox', this.element).InfoBox('show');
+			
+		},
+		
+		build_controls: function() {
+			var self = this;
+			var controls = $(' \
+				<ul class="e2l-options"> \
+					<li class="e2-select"></li> \
+					<li><span class="e2-permissions-advanced e2l-a">'+$.e2caret('up')+'Advanced</span></li> \
+			 	</ul> \
+				<ul class="e2l-advanced e2l-hide"> \
+			 		<li><input type="button" name="add" value="Add selection to children" /></li> \
+		 			<li><input type="button" name="remove" value="Remove selection from children" /></li> \
+			 		<li><input type="button" name="overwrite" value="Overwrite children with selection" /></li> \
+				 	<li><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label><br /></li> \
+				</ul> \
+				<ul class="e2l-controls"> \
+					<li><input type="button" name="save" value="Save permissions" /></li> \
+				</ul>');
+
+			// Selection control
+			$('.e2-select', controls).SelectControl({root: this.element});
+			
+			// Show/hide advanced options
+			$('.e2-permissions-advanced', controls).click(function(){
+				$.e2caret('toggle', self.options.controls);
+				$('.e2l-controls', self.options.controls).toggle();
+				$('.e2l-advanced', self.options.controls).toggle();
+			});
+			
+			// Action buttons
+			$('input[name=add]', controls).click(function(){self.save('add')})
+			$('input[name=remove]', controls).click(function(){self.save('remove')})
+			$('input[name=overwrite]', controls).click(function(){self.save('overwrite')})
+			$('input[name=save]', controls).click(function(){self.save()});
+			
+			this.options.controls.append(controls);			
+		},
+
+		build_level: function(lab, level, items, keytype) {
+			// Build a header, controls, and infoboxes for a group of items
+			var self = this;
+			var keytype = (level == 'groups') ? 'group' : 'user';
+			var param = (level == 'groups') ? 'groups' : 'permissions.'+level;
+
+			var ret = $('<div></div>')			
 			var header = $('<h4>'+lab+'</h4>');
+
 			if (this.options.edit) {
 				var add = $('<input type="button" data-level="'+level+'" data-keytype="'+keytype+'" value="+" class="e2l-float-left" style="margin-right:10px" /> ');
+				// Find control. Callback adds item to the correct box.
 				var minimum = 2;
 				if (keytype=='group'){minimum=0}
 				add.FindControl({
 					keytype: keytype,
 					minimum: minimum,
-					cb: function(w, value) {
+					selected: function(w, value) {
 						var level = w.element.attr('data-level');
 						self.add(level, value);
 					}
@@ -113,41 +148,52 @@
 
 			var div = $('<div class="e2l-cf"></div>');
 			div.attr('data-level', level);
-			for (var i=0;i<l.length;i++) {
-				var d = $('<div></div>');
-				d.InfoBox({
-					keytype: keytype,
-					name: l[i],
-					selectable: true,
-					input: ['checkbox', param, true]
-				});
-				div.append(d);
-			}
 			
+			// Add the infoboxes
+			for (var i=0;i<items.length;i++) {
+				div.append(this.build_item(level, items[i], keytype));
+			}
+
 			// We have to put in one last empty element
 			div.append('<input type="hidden" name="'+param+'" value="" class="e2-permissions-hidden" />');
-
 			ret.append(header, div);
 			return ret
 		},
 		
-		add: function(level, name) {
-			var keytype = 'user';
-			var param = 'permissions.'+level;
-			if (level=='groups') {
-				keytype = 'group';
-				param = 'groups';
-			}
+		build_item: function(level, name) {
+			// Build the infobox for an item
+			var self = this;
+			var keytype = (level == 'groups') ? 'group' : 'user';
+			var param = (level == 'groups') ? 'groups' : 'permissions.'+level;
 
-			var level = $('div[data-level='+level+']');
-			var d = $('<div></div>');
+			// Update the select count when built or checked..
+			var cb = function() {$('.e2-select', self.options.controls).SelectControl('update')}
+
+			// User infobox
+			// Show is false -- we need to attach to DOM before
+			// the built() callback will work correctly.
+			var d = $('<div class="e2-permissions-infobox"></div>');
 			d.InfoBox({
+				show: false,
 				keytype: keytype,
 				name: name,
 				selectable: true,
-				input: ['checkbox', param, true]
+				input: ['checkbox', param, true],
+				selected: cb,
+				built: cb
 			});
-			level.append(d);
+			return d
+		},
+		
+		add: function(level, name) {
+			var self = this;
+			var lvl = $('div[data-level='+level+']');
+			if ($('div[data-name='+name+']', lvl).length) {
+				return
+			}
+			var item = this.build_item(level, name);
+			lvl.append(item);
+			item.InfoBox('show');
 		},
 		
 		save: function(action) {

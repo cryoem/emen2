@@ -192,7 +192,7 @@
 			var self = this;
 			// Provide some loading feedback
 			this.element.empty();
-			this.element.append($.spinner(true));
+			this.element.append($.e2spinner(true));
 			
 			// Get the RecordDef for typicalchildren and prettier display
 			$.jsonRPC.call("findrecorddef", {'record':[this.options.parent]}, function(rd) {
@@ -237,7 +237,7 @@
 			$('input[name=other]', this.element).FindControl({
 				keytype: 'recorddef',
 				value: rd.name,
-				cb: function(widget, value) {
+				selected: function(widget, value) {
 					self.add('related', value);
 				}
 			});
@@ -760,7 +760,7 @@
 			button.FindControl({
 				keytype: 'user',
 				minimum: 2,
-				cb: function(test, name){self.add_item(name)}
+				selected: function(test, name){self.add_item(name)}
 			});
 			return button			
 		}

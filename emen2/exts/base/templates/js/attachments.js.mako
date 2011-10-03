@@ -4,8 +4,7 @@
 			name: null,
 			edit: false,
 			show: true,
-			controls: null,
-			cb: function(self) {}
+			controls: null
 		},
 				
 		_create: function() {
@@ -95,7 +94,7 @@
 						<li><input type="file" name="filedata" /></li> \
 					</ul> \
 					<ul class="e2l-controls"> \
-						<li>'+$.spinner()+'<input name="save" type="submit" value="Upload Attachment" /></li> \
+						<li>'+$.e2spinner()+'<input name="save" type="submit" value="Upload Attachment" /></li> \
 					</ul> \
 				</form>');
 				
@@ -119,7 +118,7 @@
 				keytype: 'paramdef',
 				vartype: ['binary'],
 				minimum: 0,
-				cb: function(self, value) {
+				selected: function(self, value) {
 					$('#e2-attachments-param').val(value);
 					self.element.html(value);
 				}

@@ -11,19 +11,29 @@
 			selectable: false,
 			retry: true,
 			input: ['radio', '', false],
-			cb: function(self, e) {} 
+			show: true,
+			// events
+			built: function(self) {},
+			selected: function(self, e) {}
 		},
 		
 		_create: function() {
 			var self = this;
 			this.retry = 0;
 			this.built = 0;
+			if (this.options.show) {
+				this.show();
+			}
+		},
+		
+		show: function(e) {
 			this.build();
 		},
 		
 		build: function() {
 			var self = this;
 			if (this.built) {return}
+			this.built = 1;
 
 			var item = caches[this.options.keytype][this.options.name];
 			if (!item) {
@@ -132,13 +142,14 @@
 			// Put it all together..
 			this.element.append(img, input, h4, p);
 			
+			// Select the element
 			this.element.click(function(e) {
 				self.toggle(e);
-				self.options.cb(self, e);
+				self.options.selected(self, e);
 			});
 			
 			// $('time.e2-timeago', this.element).timeago();
-			this.built = 1;
+			this.options.built();
 		},
 		
 		toggle: function(e) {
@@ -169,7 +180,7 @@
 			modal: true,
 			vartype: null,
 			minimum: 2,
-			cb: function(self, value){self.element.val(value)}
+			selected: function(self, value){self.element.val(value)}
 		},
 				
 		_create: function() {
@@ -238,7 +249,7 @@
 				height: 600
 			});
 			
-			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append($.spinner());		
+			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append($.e2spinner());		
 		},
 	
 		show: function(e) {
@@ -254,7 +265,7 @@
 
 		select: function(name) {
 			//this.elem.val(name);
-			this.options.cb(this, name);
+			this.options.selected(this, name);
 			this.dialog.dialog('close');		
 		},
 	

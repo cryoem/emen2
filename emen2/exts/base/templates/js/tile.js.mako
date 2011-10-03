@@ -91,7 +91,7 @@
 			controls.append('<h4 class="e2l-label">Boxes</h4>\
 				<input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /> \
 				<input type="button" name="newset" value="New Set" /><br /> \
-				'+$.spinner(false)+' \
+				'+$.e2spinner(false)+' \
 				<input type="button" name="saveall" class="e2l-save" value="Save All" /> \
 				');
 			controls.find("input[name=bigger]").click(function() {
@@ -377,7 +377,7 @@
 			colorcontrols.append(pen, hide, colorpicker);
 
 			var actions = $('<td />');
-			actions.append($.spinner(), save1, remove);					
+			actions.append($.e2spinner(), save1, remove);					
 
 			var boxheader = $('<tr data-label="'+label+'" />');
 			
@@ -615,7 +615,7 @@
 		show: function() {
 			var self = this;
 			if (this.options.mode == "cached") {
-				this.element.append($.spinner());
+				this.element.append($.e2spinner());
 				$.ajax({
 					type: 'POST',
 					url: EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/check/',
