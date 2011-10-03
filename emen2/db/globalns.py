@@ -39,36 +39,24 @@ class Hier(collections.MutableMapping):
 	hier = {}
 
 	@classmethod
-	def from_dict(cls, dct):
-		self = cls()
-		self._root = self
-		cls.hier = dict_merge(cls.hier, dct, dict_type=cls, root=self)
+	def from_dict(cls, dct, name=''):
+		self = cls()#name=name)
+		for key, value in dct.items():
+			if hasattr(value, 'items'):
+				value = cls.from_dict(value)
+			self[key] = value
+			print 'key', 'value'
+
 		return self
 
 	#######################
-	# Instance Attributes #
-	#######################
+	# Instance Attributes 
 
 	def to_dict(self):
 		return self._values
 
-	def __init__(self, name='', values=None):
-		# "name" and "values" are for developers only
-		self._create = False
-		self._name = name
-		self._root = self
-
-		# find the value associated with the current object
-		self._values = self.hier
-		if values is not None and '.' not in name:
-			self._values = values
-		else:
-			for segment in self._name.split('.'):
-				item = self._values.get(segment)
-				if hasattr(item, 'items'):
-					self._values = item
-				elif name != '':
-					raise ValueError('no such item: %r' % self._name)
+	def __init__(self):
+		self._values = {}
 
 	def __repr__(self):
 		return '%s().from_dict(%r)' % (self.__class__.__name__, self._values)
@@ -80,15 +68,10 @@ class Hier(collections.MutableMapping):
 		except AttributeError:
 			if name.startswith('_'): raise
 			else:
-				result = self.getattr(name, default=_Null, prefix=self._name)
-				if isinstance(result, self.__class__):
-					result._create = self._create
+				result = self.getattr(name, default=_Null)
 
 		if result is _Null:
-			if self._create:
-				self.setattr(name, {})
-			else:
-				raise
+			raise
 		return result
 
 	def __setattr__(self, name, value):
@@ -99,12 +82,13 @@ class Hier(collections.MutableMapping):
 			self.setattr(name, value)
 
 	def getattr(self, name, default=None, prefix=''):
-		result = self._values.get(name, _Null)
+		name = name.split('.', 1)
+		cur = self._values.get(name.pop(0), _Null)
+		while name:
+			cur = cur.getattr(name.pop(0), default)
+		result = cur
 		if result is _Null and default is not _Null:
 			result = default
-		#elif hasattr(result, 'items'):
-		#	if prefix == '': result = self.__class__(name)
-		#	else: result = self.__class__('%s.%s' % (prefix, name))
 		return result
 
 	def __getitem__(self, name):
@@ -113,16 +97,21 @@ class Hier(collections.MutableMapping):
 			raise KeyError('Item %r not found' % name)
 		return result
 
-	def setattr(self, name, value, options=None):
+	def setattr(self, name, value):
 		name = name.split('.')
+
+		if hasattr(value, 'items'):
+			value = self.from_dict(value)
 
 		values = self._values
 		for seg in name[:-1]:
-			values = values.setdefault(seg, {})
+			values.setdefault(seg, {})
+			values = values[seg]
+
 		values[name[-1]] = value
 
 	def __setitem__(self, name, value):
-		self._values[name] = value
+		self.setattr(name, value)
 
 	def __delitem__(self, name):
 		del self._values[name]
@@ -192,20 +181,6 @@ class GlobalNamespace(Hier):
 		return Claim(self, name, default, validator)
 	def watch(self, name, default=None):
 		return Watch(self, name, default)
-
-	_events = collections.defaultdict(list)
-	def register_event(self, var):
-		'''events shouldn't modify the state of the GlobalNamespace!!!'''
-		var = '.'.join([self._name, var])
-		def _inner(cb):
-			self._events[var].append(cb)
-			return cb
-		return _inner
-
-	def _trigger_event(self, var, value, read=False, write=False):
-		var = '.'.join([self._name, var])
-		for cb in self._events.get(var, []):
-			cb(value, read=read, write=write)
 
 
 	@inst
@@ -352,7 +327,7 @@ class GlobalNamespace(Hier):
 		self = cls()
 
 		if data:
-			self.log("Loading config: %s"%fn)
+			#self.log("Loading config: %s"%fn)
 
 			# treat EMEN2DBHOME specially
 			self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
@@ -368,9 +343,9 @@ class GlobalNamespace(Hier):
 				options = b.pop('options', {})	  # get options for the dictionary
 				self.__yaml_files[fn].append(key)
 
-				self.from_dict(data)
 				for key2, value in b.iteritems():
 					self.__yaml_keys[key].append(key2)
+					print key, '.', key2, '--', value, options
 					self.setattr('.'.join([key,key2]), value, options)
 
 			# load alternate config files
@@ -429,20 +404,17 @@ class GlobalNamespace(Hier):
 
 	#@classmethod
 	def setattr(self, name, value, options=None):
-		if not name in self.__all__:
-			self.__all__.append(name)
 
 		self.check_locked()
 		if name.startswith('_') or not self.__locked:
 			Hier.setattr(self, name, value)
 			if options is not None:
-				print 'options given:', options
-				parent, key = name.rpartition('.')[::2]
-				print 'added to:', parent, 'for', key
-				parent = self._root.getattr(parent)
+	#			print 'options given:', options
+				key = name.rpartition('.')[-1]
+	#			print 'added to:', self, 'for', key
 				for option in options:
-					parent.__options[option].add(key)
-					print parent.__options
+					self.__options[option].add(key)
+	#				print self.__options
 
 
 		else: raise LockedNamespaceError, 'cannot change locked namespace'
@@ -453,12 +425,10 @@ class GlobalNamespace(Hier):
 		if name.endswith('___'):
 			name = name.partition('___')[-1]
 		if self.__options.has_key('private'):
-			parent, key = name.rpartition('.')[::2]
-			parent = self._root.getattr(parent)
-			if key in parent.__options['private']:
+			key = name.rpartition('.')[-1]
+			if key in self.__options['private']:
 				return default
 		result = Hier.getattr(self, name, default=default, *args, **kwargs)
-		self._trigger_event(name, result, read=True)
 		return result
 
 
