@@ -45,7 +45,7 @@ class Hier(collections.MutableMapping):
 			if hasattr(value, 'items'):
 				value = cls.from_dict(value)
 			self[key] = value
-			print 'key', 'value'
+			print 'key', key, 'value', value
 
 		return self
 
@@ -108,6 +108,7 @@ class Hier(collections.MutableMapping):
 			values.setdefault(seg, {})
 			values = values[seg]
 
+		print name, value
 		values[name[-1]] = value
 
 	def __setitem__(self, name, value):
@@ -327,32 +328,35 @@ class GlobalNamespace(Hier):
 		self = cls()
 
 		if data:
-			#self.log("Loading config: %s"%fn)
+		#	#self.log("Loading config: %s"%fn)
 
-			# treat EMEN2DBHOME specially
+		#	# treat EMEN2DBHOME specially
 			self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
 			self.paths.root = self.EMEN2DBHOME
+			self.from_dict(data)
 
-			for k,v in data.pop('paths', {}).items():
-				setattr(self.paths, k, v)
+		#	for k,v in data.pop('paths', {}).items():
+		#		setattr(self.paths, k, v)
 
-			# process data
-			self._create = True
-			for key in data:
-				b = data[key]
-				options = b.pop('options', {})	  # get options for the dictionary
-				self.__yaml_files[fn].append(key)
+		#	# process data
+		#	self._create = True
+		#	for key in data:
+		#		b = data[key]
+		#		options = b.pop('options', {})	  # get options for the dictionary
+		#		self.__yaml_files[fn].append(key)
 
-				for key2, value in b.iteritems():
-					self.__yaml_keys[key].append(key2)
-					print key, '.', key2, '--', value, options
-					self.setattr('.'.join([key,key2]), value, options)
+		#		self.setattr(key, {})
+		#		self.getattr(key).from_dict(b)
+		#		for key2, value in b.iteritems():
+		#			self.__yaml_keys[key].append(key2)
+		#			print key, '.', key2, '--', value, options
+		#			#self.setattr('.'.join([key,key2]), value, options)
 
-			# load alternate config files
-			# for fn in self.paths.CONFIGFILES:
-			#	fn = os.path.abspath(fn)
-			#	if os.path.exists(fn):
-			#		cls.from_file(fn=fn)
+		#	# load alternate config files
+		#	# for fn in self.paths.CONFIGFILES:
+		#	#	fn = os.path.abspath(fn)
+		#	#	if os.path.exists(fn):
+		#	#		cls.from_file(fn=fn)
 
 		return self
 
