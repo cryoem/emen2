@@ -124,12 +124,11 @@ class DBOptions(optparse.OptionParser):
 
 
 	def load_config(self, **kw):
-		g = emen2.db.globalns.GlobalNamespace()
-		self.config = g
-		if g.getattr('CONFIG_LOADED', False):
+		self.__class__.config = gg
+		if self.config.getattr('CONFIG_LOADED', False):
 			return
 		else:
-			return self.load_config_force(g, **kw)
+			return self.load_config_force(self.config, **kw)
 
 
 	def load_config_force(self, g, **kw):
