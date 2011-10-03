@@ -718,7 +718,7 @@ class DBODB(EMEN2DB):
 		return ret[0]
 
 
-	def cputs(self, items, clone=False, commit=True, indexonly=False, ctx=None, txn=None):
+	def cputs(self, items, commit=True, indexonly=False, ctx=None, txn=None):
 
 		t = emen2.db.database.gettime()
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
@@ -751,10 +751,7 @@ class DBODB(EMEN2DB):
 				cp.add('name')
 
 			# Update the item.
-			if clone:
-				cp |= orec.clone(updrec, vtm=vtm, t=t)
-			else:
-				cp |= orec.update(updrec, vtm=vtm, t=t)
+			cp |= orec.update(updrec, vtm=vtm, t=t)
 			orec.validate()
 
 			# If values changed, cache those, and add to the commit list
@@ -994,11 +991,6 @@ class RelateDB(DBODB):
 			visited[k] &= allr
 
 		return visited
-
-
-	def relink(self, parent, child, ctx=None, txn=None):
-		raise NotImplementedError
-		pass
 
 
 	# def pcrelink(self, remove, add, keytype="record", ctx=None, txn=None):

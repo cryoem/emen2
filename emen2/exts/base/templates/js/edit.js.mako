@@ -226,9 +226,11 @@
 			}
 			
 			// Child protocols
-			if (rd.children.length) {
-				this.element.append(this.build_level('Related protocols', 'related', rd.children));
-			}
+			// if (rd.children.length) {
+			var related = rd.children.slice();
+			related.push(rd.name);
+			this.element.append(this.build_level('Related protocols', 'related', related));
+			//}
 			
 			this.element.append('<p><input type="button" name="other" value="Browse other protocols" /></p>')
 			

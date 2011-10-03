@@ -28,7 +28,7 @@
 		<ul class="e2l-cf">
 			<li class="e2-tab-active"><span>${label}</span></li>
 		</ul>
-		<div class="e2-tab-active" id="${cls}-main">${caller.body()}</div>
+		<div class="e2-tab-active e2l-cf" id="${cls}-main">${caller.body()}</div>
 	</div>			
 </%def>
 

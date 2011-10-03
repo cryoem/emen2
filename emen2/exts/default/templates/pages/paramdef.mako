@@ -10,6 +10,8 @@
 <%block name="js_ready">
 	${parent.js_ready()}
 	$('#e2-relationships').RelationshipControl({});
+	console.log('lol');
+	$('.e2-map').MapControl({'attach':true});
 </%block>
 
 <%block name="precontent">

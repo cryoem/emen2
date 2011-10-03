@@ -806,7 +806,7 @@ class DB(object):
 				print "Warning: root user already exists. Resetting password."
 			rootpw, rootemail = getpw(rootpw=rootpw, rootemail=rootemail)
 			root = {'name':'root','email':rootemail, 'password':rootpw}
-			db.put([root], keytype='user', clone=True)
+			db.put([root], keytype='user')
 
 			loader = emen2.db.load.Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
 			loader.load()
@@ -2227,15 +2227,14 @@ class DB(object):
 	# This was incorrectly tagged as an admin method
 	@publicmethod("put", write=True)
 	@ol('items')
-	def put(self, items, keytype='record', clone=False, ctx=None, txn=None):
+	def put(self, items, keytype='record', ctx=None, txn=None):
 		'''Get the children of the object as a tree
 
 			:param names: the IDs for which the children are to be retrieved
 			:param keytype: What kind of objects the IDs refer to
-			:param clone: ???
 		'''
 
-		return self.bdbs.keytypes[keytype].cputs(items, clone=clone, ctx=ctx, txn=txn)
+		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
 
 	# This was incorrectly tagged as an admin method
 	@publicmethod("new")
@@ -2366,10 +2365,33 @@ class DB(object):
 		return self.bdbs.keytypes[keytype].pcunlink(parent, child, ctx=ctx, txn=txn)
 
 
-	#@publicmethod('rel.relink', write=True)
-	# not implemented
-	def relink(self, parent, child, keytype='record', ctx=None, txn=None):
-		return self.bdbs.keytypes[keytype].relink(parent, child, ctx=ctx, txn=txn)
+	@publicmethod('rel.relink', write=True)
+	def relink(self, removerels=None, addrels=None, keytype='record', ctx=None, txn=None):
+		# Uses the new .parents/.children attributes to do this simply
+		removerels = removerels or []
+		addrels = addrels or []
+		remove = collections.defaultdict(set)
+		add = collections.defaultdict(set)
+
+		# grumble.. Temporary hack. If keytype == record, convert everything to ints.
+		if keytype == 'record':
+			removerels = [(int(x), int(y)) for x,y in removerels]
+			addrels = [(int(x), int(y)) for x,y in addrels]
+
+		for parent, child in removerels:
+			remove[parent].add(child)
+		for parent, child in addrels:
+			add[parent].add(child)
+			
+		# print "Adding:", add
+		# print "Removing:", remove
+		items = set(remove.keys()) | set(add.keys())
+		items = self.get(items, keytype=keytype, filt=False, ctx=ctx, txn=txn)
+		for item in items:
+			item.children -= remove[item.name]
+			item.children |= add[item.name]
+
+		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
 
 
 

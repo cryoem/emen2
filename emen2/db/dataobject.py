@@ -107,38 +107,38 @@ class BaseDBObject(object, DictMixin):
 		return "<%s %s at %x>" % (self.__class__.__name__, self.name, id(self))
 
 
-	def clone(self, update, vtm=None, t=None):
-		if not self._ctx.checkadmin():
-			self.error('Warning! Only an admin may clone items!', e=emen2.db.exceptions.SecurityError)
-			
-		vtm, t = self._vtmtime(vtm, t)
-		cp = set()
-
-		# Make a copy of the protected items
-		# Usually: creator, creationtime, modifyuser, modifytime, uri, name, keytype
-		protected = {}
-		skip = self.param_required | set(['name', 'keytype', 'uri'])
-
-		for k,v in update.items():
-			if k not in self.param_all or k in skip:
-				continue
-			elif k == 'comments':
-				# Comments has a _set_comments, but it works differently
-				pass
-			elif getattr(self, '_set_%s'%k, None):
-				continue
-			if v:
-				protected[k] = v
-
-		# Set items in the normal way
-		for k,v in update.items():
-			cp |= self.__setitem__(k, v, vtm=vtm, t=t)
-
-		# print "Updating %s with protected:"%self.name, protected.keys()
-		self.__dict__.update(protected)
-		cp |= set(protected.keys())
-
-		return cp
+	# def clone(self, update, vtm=None, t=None):
+	# 	if not self._ctx.checkadmin():
+	# 		self.error('Warning! Only an admin may clone items!', e=emen2.db.exceptions.SecurityError)
+	# 		
+	# 	vtm, t = self._vtmtime(vtm, t)
+	# 	cp = set()
+	# 
+	# 	# Make a copy of the protected items
+	# 	# Usually: creator, creationtime, modifyuser, modifytime, uri, name, keytype
+	# 	protected = {}
+	# 	skip = self.param_required | set(['name', 'keytype', 'uri'])
+	# 
+	# 	for k,v in update.items():
+	# 		if k not in self.param_all or k in skip:
+	# 			continue
+	# 		elif k == 'comments':
+	# 			# Comments has a _set_comments, but it works differently
+	# 			pass
+	# 		elif getattr(self, '_set_%s'%k, None):
+	# 			continue
+	# 		if v:
+	# 			protected[k] = v
+	# 
+	# 	# Set items in the normal way
+	# 	for k,v in update.items():
+	# 		cp |= self.__setitem__(k, v, vtm=vtm, t=t)
+	# 
+	# 	# print "Updating %s with protected:"%self.name, protected.keys()
+	# 	self.__dict__.update(protected)
+	# 	cp |= set(protected.keys())
+	# 
+	# 	return cp
 
 
 	def update(self, update, vtm=None, t=None):

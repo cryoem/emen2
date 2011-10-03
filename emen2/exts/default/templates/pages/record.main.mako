@@ -279,8 +279,6 @@
 			<li><a href="${EMEN2WEBROOT}/query/name==${rec.name}/attachments/">View / Download all attachments</a></li>
 			<li><a href="${EMEN2WEBROOT}/query/children.name.${rec.name}*/attachments/">View / Download all attachments in children</a></li>
 			<li><a href="${EMEN2WEBROOT}/sitemap/${rec.name}/">Child tree</a></li>
-			<li><a href="${EMEN2WEBROOT}/sitemap/${rec.name}/?recurse=3">Child tree (Semi-expanded)</a></li>
-			<li><a href="${EMEN2WEBROOT}/sitemap/${rec.name}/?recurse=-1">Child tree (Expanded)</a></li>
 			% if rec.isowner():
 				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/delete/">Delete this record</a></li>
 			% endif

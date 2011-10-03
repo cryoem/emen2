@@ -241,6 +241,8 @@
 			keytype: null,
 			action: 'view',
 			controls: true,
+			embed: false,
+			tool: 'none',
 			cb: function(self, name) {}
 		},
 		
@@ -251,7 +253,7 @@
 			this.options.mode = $.checkopt(this, 'mode');
 			this.options.root = $.checkopt(this, 'root');
 			this.options.keytype = $.checkopt(this, 'keytype', 'record');
-
+	
 			this.element.click(function(e){self.show(e)});
 			if (this.options.show) {
 				this.show();
@@ -271,24 +273,73 @@
 			// Build the dialog
 			this.dialog = $('<div class="e2-browse" />');
 			this.dialog.append(' \
+				<div class="e2-browse-controls"></div> \
 				<div class="e2l-cf e2-browse-header" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
 					<div class="e2-browse-parents e2l-float-left" style="width:249px;"> Parents </div> \
-					<div class="e2-browse-action e2l-float-left" style="width:249px;">Current Item</div> \
+					<div class="e2-browse-action e2l-float-left" style="width:249px;">&nbsp;</div> \
 					<div class="e2-browse-children e2l-float-left" style="width:249px;"> Children </div> \
 				</div> \
 				<div class="e2l-cf e2-browse-map" style="position:relative" />');
 
-			this.build_select();
+			// build the switcher...
+			if (this.options.controls) {
+				var controls = $('.e2-browse-controls', this.dialog);
+				controls.append(' \
+					<p>Current tool:</p> \
+					<ul> \
+						<li> \
+							<input id="e2-browse-tool-none" type="radio" name="settool" value="none" checked /> \
+							<label for="e2-browse-tool-none">None (links open normally)</label> \
+						</li> \
+						<li> \
+							<input id="e2-browse-tool-browse" type="radio" name="settool" value="browse" /> \
+							<label for="e2-browse-tool-browse">Re-center map when clicked</label> \
+						</li> \
+						<li> \
+							<input id="e2-browse-tool-move" type="radio" name="settool" value="move" /> \
+							<label for="e2-browse-tool-move">Select items &amp; drag to move them</label> \
+						</li> \
+					</ul>');
+				$('input[name=settool]', controls).change(function() {
+					var tool = $(this).val();
+					self.settool(tool);
+				});
+			}
 
+			// Set the tools..
+			this.settool(this.options.tool);
+
+			// Refresh the map area
 			this.reroot(this.options.root);
 
-			// Show the dialog
-			this.dialog.attr("title", "Relationship Browser");
-			this.dialog.dialog({
-				modal: true,
-				width: 800,
-				height: 600
-			});			
+			// Embed or show the dialog
+			if (this.options.embed) {
+				this.element.append(this.dialog);
+			} else {
+				// Show the dialog
+				this.dialog.attr("title", "Relationship Browser");
+				this.dialog.dialog({
+					modal: true,
+					width: 800,
+					height: 600
+				});			
+			}
+		},
+		
+		settool: function(tool) {
+			$('input[name=tool]', this.dialog).val(tool);
+			
+			// Empty current tool areas
+			$('.e2-browse-action', this.dialog).html('&nbsp;');
+
+			// What happens when a map item is clicked..
+			this.mapcb = function(w, e, elem, rel1, rel2){};
+			
+			if (tool == 'browse') {
+				this.build_browse();
+			} else if (tool == 'move') {
+				this.build_move();
+			}
 		},
 		
 		reroot: function(name) {
@@ -296,8 +347,9 @@
 			this.options.root = name;
 			$('input[name=value]', this.dialog).val(name);
 			
-			var cb = function(w, elem, rel1, rel2) {
-				self.reroot(rel2);
+			// Outer-callback is to handle tool switches
+			var cb = function(w, e, elem, rel1, rel2) {
+				self.mapcb(w, e, elem, rel1, rel2);
 			}
 			
 			var parents = $('<div class="e2-map e2l-float-left" style="position:absolute;left:0px;width:250px;">&nbsp;</span>');
@@ -322,18 +374,91 @@
 				cb: cb
 			});
 			
-			var input = $('input[name=value]', this.dialog);
-			var val = input.val();
-			input.focus();
-			if (val.toString() == this.options.root.toString()) {
-				$('input[name=submit]', this.dialog).val('Select');
-			}
+			// var input = $('input[name=value]', this.dialog);
+			// var val = input.val();
+			// input.focus();
+			// if (val.toString() == this.options.root.toString()) {
+			// 	$('input[name=submit]', this.dialog).val('Select');
+			// }
 			
 			$('.e2-browse-map', this.dialog).empty();
 			$('.e2-browse-map', this.dialog).append(parents, children);
 		},
 		
-		build_select: function() {
+		build_move: function() {
+			var self = this;
+			// When an element is clicked, make it draggable
+			this.mapcb = function(w, e, elem, rel1, rel2){
+				e.preventDefault();
+				var a = elem.children('a');
+				a.toggleClass('e2-browse-selected');
+				a.draggable({
+					addClasses: false,
+					helper: function(e, ui){return self.helper_move(self, e, ui)}
+				});
+			};
+		},
+
+		helper_move: function(self, e, ui) {
+			// Set droppables when I start dragging..
+			// this could be made simpler...
+			// be careful with binding of 'self'
+			$('li[data-name] > a:not(.e2-browse-selected)', self.dialog).droppable({
+				tolerance: 'pointer',
+				addClasses: false,
+				hoverClass: "e2-browse-hover",
+				activeClass: "e2-browse-active",
+				drop: function(e, ui) {
+					self.helper_drop(self, this, e, ui);
+				}
+			});
+			var selected = $('.e2-browse-selected', self.dialog);
+			return '<div class="e2-browse-helper">Moving '+selected.length+' '+self.options.keytype+'s</div>'
+		},
+		
+		helper_drop: function(self, dropped, e, ui) {
+			var removerels = [];
+			var addrels = [];
+			
+			var newparent = $(dropped).parent().attr('data-name');
+			$('.e2-browse-selected', self.dialog).each(function() {
+				var li = $(this).parent();
+				var child = li.attr('data-name')
+				var parent = li.parent().attr('data-name');
+				removerels.push([parent, child]);
+				addrels.push([newparent, child]);
+			});
+
+			var txt = 'Please be careful moving items. There is no "undo." \nKeep multiple-item moves as simple as possible, \
+				\n\te.g. moving siblings together to a new parent.\n\nRemoving these relationships ('+removerels.length+'):\n\n';			
+			for (var i=0;i<removerels.length;i++) {
+				var p = caches['recnames'][removerels[i][0]];
+				var c = caches['recnames'][removerels[i][1]];
+				txt += p+' -> '+c+'\n';
+			}
+			txt += '\nAnd adding these relationships ('+addrels.length+'):\n\n';
+			for (var i=0;i<addrels.length;i++) {
+				var p = caches['recnames'][addrels[i][0]];
+				var c = caches['recnames'][addrels[i][1]];
+				txt += p+' -> '+c+'\n';
+			}
+
+			if (!confirm(txt)) {return}
+
+			$.jsonRPC.call('rel.relink', {removerels: removerels, addrels: addrels, keytype: self.options.keytype}, function (){
+				alert("Move was successful. Please reload the page to see the changes.");
+			});
+		},
+		
+		helper_confirm: function() {
+
+		},
+		
+		helper_success: function() {
+			
+		},
+
+		build_browse: function() {
 			var self = this;
 			var controls = $(' \
 				<span> \
@@ -348,23 +473,22 @@
 			$('input[name=submit]', controls).click(function(e) {
 				var val = $('input[name=value]', self.dialog).val();
 				if (val.toString()==self.options.root.toString()) {
-					self.select(val);
+					self.options.cb(self, name)
+					self.dialog.dialog('close');
 				} else {
 					self.reroot(val);
 				}
 			});
-				
+
 			var action = $('.e2-browse-action', this.dialog);
-			action.empty();
 			action.append(controls);
-		},
-		
-		select: function(name) {
-			var self = this;
-			this.options.cb(self, name)
-			this.dialog.dialog('close');
-		}
-		
+			
+			this.mapcb = function(w, e, elem, rel1, rel2){
+				e.preventDefault();
+				console.log("reroot:", rel2);
+				self.reroot(rel2);
+			};			
+		},		
 	});
 	
 	
@@ -547,11 +671,10 @@
 			
 			if (this.options.cb) {
 				$('a', root).click(function(e) {
-					e.preventDefault();
 					var elem = $(e.target).parent();
 					var rel1 = elem.parent().attr('data-name');
 					var rel2 = elem.attr('data-name');
-					self.options.cb(self, elem, rel1, rel2);
+					self.options.cb(self, e, elem, rel1, rel2);
 				});
 			}
 		},

@@ -64,7 +64,7 @@ a:hover,
 /* Unselectable elements */
 .e2l-a,
 .e2l-unselect,
-.e2-infobox
+.e2-infobox h4
 {
 	-webkit-user-select: none;
 	-moz-user-select: none;	
@@ -258,6 +258,9 @@ h4
 
 
 /* e2-switcher: Simple tab widget */
+.e2-tab-switcher {
+	margin-bottom:20px;
+}
 .e2-tab-switcher > ul > li {
 	border: solid 1px #ccc;
 	border-bottom: none;
@@ -502,11 +505,6 @@ textarea.e2l-fw {
 	float:right;
 }
 
-.e2-map-hover {
-	background:orange;
-	padding:0px;
-}
-
 /* Backgrounds */
 .e2-map.e2-map-children li {
 	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-F.children.png') repeat-y;	
@@ -538,6 +536,29 @@ textarea.e2l-fw {
 }
 .e2-map:first-child > ul:first-child > li:first-child {
 	background:none
+}
+
+
+/***** e2-browse: Relationship Editor and Selector *****/
+
+.e2-browse-active {
+	background-color:#eee !important;
+}
+
+.e2-browse-hover {
+	background-color: #999 !important;
+}
+
+.e2-browse-selected {
+	background-color: orange !important;
+}
+
+.e2-browse-helper {
+	z-index: 1000;
+	width:200px;
+	background:white;
+	padding:5px;
+	border:solid red 2px;
 }
 
 
@@ -584,6 +605,8 @@ textarea.e2l-fw {
 	position:relative;
 	border-bottom:solid 1px #ccc;
 }
+
+
 
 
 /***** e2-box: Boxer *****/
