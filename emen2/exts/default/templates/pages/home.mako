@@ -4,47 +4,22 @@
 <%namespace name="pages_user_util" file="/pages/user.util"  /> 
 
 
-
-
 <h1>
 	${pages_user_util.page_title(user, False)} 
 	<span class="e2l-label"><a href="${EMEN2WEBROOT}/user/${user.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
 </h1>
 
 <div class="e2l-cf">
-
 	<div class="e2l-float-left">
 		${pages_user_util.page_userrec(user, False)}
-	</div>
-	
+	</div>	
 	<div class="e2l-float-right">
 		${pages_user_util.page_photo(user, False)}
 	</div>
-
-
 </div>
 
 
 <br />
-
-
-
-<%
-ctsearch = [[None, ctroot]]
-rn = {}
-while ctsearch:
-	parent, child = ctsearch.pop()
-	if parent == None:
-		rn[child] = recnames.get(child,'child')		
-	else:
-		rn[child] = rn.get(parent,parent) + " / " + recnames.get(child,child)
-
-	n = [(child,j) for j in childtree.get(child, [])]
-	ctsearch.extend(n)
-%>
-
-
-
 
 % if banner:
 	<h1>
@@ -62,9 +37,21 @@ while ctsearch:
 % endif
 
 
-
-
 <h1>Projects</h1>
+
+<%
+ctsearch = [[None, ctroot]]
+rn = {}
+while ctsearch:
+	parent, child = ctsearch.pop()
+	if parent == None:
+		rn[child] = recnames.get(child,'child')		
+	else:
+		rn[child] = rn.get(parent,parent) + " / " + recnames.get(child,child)
+
+	n = [(child,j) for j in childtree.get(child, [])]
+	ctsearch.extend(n)
+%>
 
 % for name, recname in sorted(rn.items(), key=operator.itemgetter(1)):
 	<a href="${EMEN2WEBROOT}/record/${name}/">${recname|x}</a><br />

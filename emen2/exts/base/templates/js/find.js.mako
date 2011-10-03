@@ -66,7 +66,7 @@
 			} else if (this.options.keytype == 'record') {
 				var recname = caches['recnames'][item.name];
 				title = $.trim(recname || item.rectype);
-				body = item.name + ' ('+item.rectype+')';
+				body = item.rectype+', '+item.name+', created: '+item.creationtime.substr(0,10);
 				this.element.attr('data-rectype', item.rectype);
 			} else if (this.options.keytype == 'binary') {
 				title = item.filename;

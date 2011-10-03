@@ -32,7 +32,7 @@ class Map(View):
 
 
 	@View.add_matcher(r'^/map/(?P<keytype>\w+)/(?P<root>\w+)/(?P<mode>\w+)/$', name='embed')
-	def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", expandable=True, id=''):
+	def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", rectype=None, expandable=True, id=''):
 		self.template = '/pages/map'
 		self.title = 'Sitemap'
 		self.root = root
@@ -53,7 +53,7 @@ class Map(View):
 
 		# add 1 to recurse to get enough info to draw the next level
 		if self.mode == "children":
-			self.tree = self.db.getchildtree(self.root, recurse=self.recurse+2, keytype=self.keytype)
+			self.tree = self.db.getchildtree(self.root, recurse=self.recurse+2, keytype=self.keytype, rectype=rectype)
 			# get one level of parents as well..
 			parents = self.db.getparents(self.root, keytype=self.keytype)
 		else:

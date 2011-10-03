@@ -153,7 +153,8 @@
 			$('input:button', header).BrowseControl({
 				root: this.options.name,
 				keytype: this.options.keytype,
-				cb: function(browse, name) {
+				tool: 'browse',
+				cb_browse: function(browse, name) {
 					self.add(level, name);
 				}
 			}).click(function(){
@@ -240,10 +241,10 @@
 			root: null,
 			keytype: null,
 			action: 'view',
-			controls: true,
+			controls: false,
 			embed: false,
 			tool: 'none',
-			cb: function(self, name) {}
+			cb_browse: function(self, name) {}
 		},
 		
 		_create: function() {
@@ -283,27 +284,7 @@
 
 			// build the switcher...
 			if (this.options.controls) {
-				var controls = $('.e2-browse-controls', this.dialog);
-				controls.append(' \
-					<p>Current tool:</p> \
-					<ul> \
-						<li> \
-							<input id="e2-browse-tool-none" type="radio" name="settool" value="none" checked /> \
-							<label for="e2-browse-tool-none">None (links open normally)</label> \
-						</li> \
-						<li> \
-							<input id="e2-browse-tool-browse" type="radio" name="settool" value="browse" /> \
-							<label for="e2-browse-tool-browse">Re-center map when clicked</label> \
-						</li> \
-						<li> \
-							<input id="e2-browse-tool-move" type="radio" name="settool" value="move" /> \
-							<label for="e2-browse-tool-move">Select items &amp; drag to move them</label> \
-						</li> \
-					</ul>');
-				$('input[name=settool]', controls).change(function() {
-					var tool = $(this).val();
-					self.settool(tool);
-				});
+				this.build_controls();
 			}
 
 			// Set the tools..
@@ -324,6 +305,30 @@
 					height: 600
 				});			
 			}
+		},
+		
+		build_controls: function() {
+			var controls = $('.e2-browse-controls', this.dialog);
+			controls.append(' \
+				<p>Current tool:</p> \
+				<ul> \
+					<li> \
+						<input id="e2-browse-tool-none" type="radio" name="settool" value="none" checked /> \
+						<label for="e2-browse-tool-none">None (links open normally)</label> \
+					</li> \
+					<li> \
+						<input id="e2-browse-tool-browse" type="radio" name="settool" value="browse" /> \
+						<label for="e2-browse-tool-browse">Re-center map when clicked</label> \
+					</li> \
+					<li> \
+						<input id="e2-browse-tool-move" type="radio" name="settool" value="move" /> \
+						<label for="e2-browse-tool-move">Select items &amp; drag to move them</label> \
+					</li> \
+				</ul>');
+			$('input[name=settool]', controls).change(function() {
+				var tool = $(this).val();
+				self.settool(tool);
+			});
 		},
 		
 		settool: function(tool) {
@@ -473,7 +478,7 @@
 			$('input[name=submit]', controls).click(function(e) {
 				var val = $('input[name=value]', self.dialog).val();
 				if (val.toString()==self.options.root.toString()) {
-					self.options.cb(self, name)
+					self.options.cb_browse(self, val);
 					self.dialog.dialog('close');
 				} else {
 					self.reroot(val);
@@ -485,7 +490,6 @@
 			
 			this.mapcb = function(w, e, elem, rel1, rel2){
 				e.preventDefault();
-				console.log("reroot:", rel2);
 				self.reroot(rel2);
 			};			
 		},		
