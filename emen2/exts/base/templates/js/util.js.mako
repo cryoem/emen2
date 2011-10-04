@@ -222,7 +222,7 @@ window.log = function(){
 	
 	// Default error message dialog.
 	// This gives the user some feedback if an RPC request fails.
-	$.error_dialog = function(title, text, method, data) {
+	$.e2error = function(title, text, method, data) {
 		var error = $('<div title="'+title+'" />');
 		error.append('<p>'+text+'</p>');
 		var debug = $('<div class="e2-error-debug e2l-hide"/>');

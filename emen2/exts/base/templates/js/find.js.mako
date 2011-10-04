@@ -296,8 +296,17 @@
 			if (this.options.vartype) {
 				query['vartype'] = this.options.vartype;
 			}
-				
-			$.jsonRPC.call('find'+this.options.keytype, query, function(items) {
+			
+			// Abort any open requests
+			if (this.request) {
+				if (this.request.readyState != 4) {
+					this.request.abort();
+					this.request = null;
+				}
+			}
+			
+			// New request
+			this.request = $.jsonRPC.call('find'+this.options.keytype, query, function(items) {
 				$('.e2l-spinner', self.dialog.dialog('widget')).hide();				
 				self.resultsarea.empty();
 				var l = items.length;
