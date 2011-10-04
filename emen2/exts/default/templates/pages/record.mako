@@ -19,7 +19,6 @@
 	${parent.js_inline()}
 	${buttons.tocache(rec)}
 	caches['recnames'] = ${jsonrpc.jsonutil.encode(recnames)};
-	caches['displaynames'] = ${jsonrpc.jsonutil.encode(displaynames)};
 </%block>
 
 

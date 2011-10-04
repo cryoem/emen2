@@ -66,13 +66,6 @@ class RecordDef(View):
 
 		###############
 
-		displaynames = {}
-		try:
-			creator = self.db.getuser(recdef.creator, filt=False)
-			displaynames[recdef.creator] = creator.displayname
-		except:
-			pass
-
 		self.update_context(dict(
 			parentmap = parentmap.get_data(),
 			title = title,
@@ -82,7 +75,6 @@ class RecordDef(View):
 			keytype = "recorddef",
 			mapmode = mapmode,
 			recdef = recdef,
-			displaynames = displaynames,
 			key = self.name,
 			create = create
 			))

@@ -70,8 +70,6 @@
 
 		caches['children'] = {};
 		caches['parents'] = {};
-		caches['displaynames'] = {};
-		caches['groupnames'] = {};
 		caches['recnames'] = {};
 			
 		<%block name="js_inline" />

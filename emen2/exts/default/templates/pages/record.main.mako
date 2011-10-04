@@ -220,9 +220,9 @@
 		<li data-tab="comments" class="e2l-float-right">
 			<a href="#comments">
 				% if rec.get('modifytime'):	
-					${displaynames.get(rec.get('modifyuser'), '(%s)'%rec.get('modifyuser'))} @ ${rec.get('modifytime', '')[:10]}
+					${rec.get('modifyuser')} @ ${rec.get('modifytime', '')[:10]}
 				% else:
-					${displaynames.get(rec.get('creator'), '(%s)'%rec.get('creator'))} @ ${rec.get('creationtime', '')[:10]}
+					${rec.get('creator')} @ ${rec.get('creationtime', '')[:10]}
 				% endif
 			
 				<span id="e2l-editbar-historycount">

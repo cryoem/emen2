@@ -1,5 +1,5 @@
 <%inherit file="/page" />
-<%namespace name="pages_user_util" file="/pages/user.util"  /> 
+<%namespace name="pages_user_util" file="/pages/user"  /> 
 
 
 <p>

@@ -44,6 +44,7 @@ def _iffalse(exp, val):
 
 
 <%def name="countries()">
+	<option value=""></option>
 	<option value="Afghanistan">Afghanistan</option>
 	<option value="Albania">Albania</option>
 	<option value="Algeria">Algeria</option>

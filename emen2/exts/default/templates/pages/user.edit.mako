@@ -1,6 +1,6 @@
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
-<%namespace name="user_util" file="/pages/user.util" /> 
+<%namespace name="user_util" file="/pages/user" /> 
 
 <h1>${user_util.page_title(user, True)}</h1>
 

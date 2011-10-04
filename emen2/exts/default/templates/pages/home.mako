@@ -1,7 +1,7 @@
 <%! import operator %>
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
-<%namespace name="pages_user_util" file="/pages/user.util"  /> 
+<%namespace name="pages_user_util" file="/pages/user"  /> 
 
 
 <h1>

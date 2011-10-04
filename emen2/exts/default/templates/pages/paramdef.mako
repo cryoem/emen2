@@ -47,7 +47,7 @@
 
 	<tr>
 		<td>Created:</td>
-		<td>${displaynames.get(paramdef.creator,"(%s)"%(paramdef.creator))} (<a href="${EMEN2WEBROOT}/user/${paramdef.creator}">${paramdef.creator}</a>) @ ${paramdef.creationtime}</td>
+		<td>${paramdef.creator)} (<a href="${EMEN2WEBROOT}/user/${paramdef.creator}">${paramdef.creator}</a>) @ ${paramdef.creationtime}</td>
 	</tr>
 
 	<tr>

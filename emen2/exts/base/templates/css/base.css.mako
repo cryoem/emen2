@@ -94,9 +94,13 @@ h4 .e2l-label {
 	padding: 5px;
 	margin-bottom:10px;
 }
-.e2l-alert > li.e2l-error {
+
+input.e2l-error, 
+.e2l-alert > li.e2l-error
+{
 	border: solid 2px <%self:REMOVED />;
 }
+
 
 /* e2l-controls: Control boxes */
 .e2l-options, 

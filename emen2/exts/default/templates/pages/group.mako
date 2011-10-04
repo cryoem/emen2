@@ -1,7 +1,7 @@
 <%! import jsonrpc.jsonutil %>
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  />
-<%namespace name="pages_user_util" file="/pages/user.util"  />
+<%namespace name="pages_user_util" file="/pages/user"  />
 
 <%block name="js_inline">
 	${parent.js_inline()}

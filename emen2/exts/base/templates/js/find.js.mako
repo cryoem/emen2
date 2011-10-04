@@ -10,7 +10,7 @@
 			autolink: false,
 			selectable: false,
 			retry: true,
-			input: ['radio', '', true],
+			input: ['radio', '', false],
 			show: true,
 			// events
 			built: function(self) {},

@@ -6,7 +6,7 @@
 		<table class="login" cellpadding="0" cellspacing="0">
 			<tr>
 				<td>Email:</td>
-				<td><input tabindex="1" type="text" name="name" value="" /></td>
+				<td><input tabindex="1" type="text" name="name" value="" autofocus /></td>
 			</tr>
 			<tr>
 				<td>Password:</td>

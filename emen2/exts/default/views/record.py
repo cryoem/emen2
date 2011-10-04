@@ -23,7 +23,6 @@ class RecordBase(View):
 	def init(self, name=None, children=True, parents=True, **kwargs):
 		"""Main record rendering."""
 		recnames = {}
-		displaynames = {}
 		
 		# Get record..
 		try:
@@ -54,9 +53,6 @@ class RecordBase(View):
 		# User display names
 		# These are generally displayed: creator, modifyuser, comments.
 		getusers = set([self.rec.get('creator'), self.rec.get('modifyuser')])
-		# getusers |= set([i[0] for i in self.rec.get('comments',[])])
-		for user in self.db.getuser(getusers):
-			displaynames[user.name] = user.displayname
 
 
 		# Some warnings/alerts
@@ -96,7 +92,6 @@ class RecordBase(View):
 			title = "Record: %s: %s (%s)"%(self.rec.rectype, recnames.get(self.rec.name), self.name),
 			pages = pages,
 			recnames = recnames,
-			displaynames = displaynames,
 			parentmap = parentmap,
 			viewtype = "defaultview",
 			edit = False,
@@ -251,7 +246,6 @@ class Record(RecordBase):
 
 		self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
 		self.update_context(
-			displaynames = {},
 			parentmap = parentmap,
 			recnames = recnames,
 			rec = parentrec,

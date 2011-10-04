@@ -29,7 +29,7 @@ import markdown
 
 <table class="e2l-kv">
 	<tr><td>Name:</td><td>${recdef.name}</td></tr>		
-	<tr><td>Created:</td><td><a href="${EMEN2WEBROOT}/user/${recdef.creator}/">${displaynames.get(recdef.creator, recdef.creator)}</a> @ ${recdef.creationtime}</td></tr>
+	<tr><td>Created:</td><td><a href="${EMEN2WEBROOT}/user/${recdef.creator}/">${recdef.creator}</a> @ ${recdef.creationtime}</td></tr>
 	<tr><td>Owner:</td><td>${recdef.owner}</td></tr>
 
 	<tr>

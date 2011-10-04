@@ -53,7 +53,7 @@
 
 	<li class="e2l-float-right nohover">
 		<form method="get" action="${EMEN2WEBROOT}/query/">
-			<input type="text" name="q" size="8" placeholder="Search" id="e2-header-search" />
+			<input type="search" name="q" size="8" placeholder="Search" id="e2-header-search" />
 		</form>
 	</li>
 

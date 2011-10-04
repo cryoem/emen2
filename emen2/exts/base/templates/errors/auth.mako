@@ -3,4 +3,6 @@
 
 <h1>${error}</h1>
 
-${login.login(location=location)}
+% if not USER or USER == 'anonymous':
+	${login.login(location=location)}
+% endif

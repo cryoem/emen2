@@ -51,8 +51,6 @@ class ParamDef(View):
 		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='paramdef', root=self.name, mode='parents', recurse=3)
 		
 		creator = self.db.getuser(paramdef.creator) or {}
-		displaynames = {}
-		displaynames[paramdef.creator] = creator.get('displayname', paramdef.creator)
 
 		units = set()
 		if paramdef and paramdef.property:
@@ -65,7 +63,6 @@ class ParamDef(View):
 			edit = edit,
 			new = new,
 			paramdef = paramdef,
-			displaynames = displaynames,
 			keytype = "paramdef",
 			key = self.name,
 			create = create
