@@ -6,7 +6,8 @@
 			keytype: null,
 			edit: null,
 			summary: null,
-			show: true
+			show: true,
+			// events: saved
 		},
 
 		_create: function() {
@@ -45,8 +46,6 @@
 			names = $.checkcache(this.options.keytype, names);
 			
 			// Cache rendered views for all the items
-			// ian: todo: replace this with a InfoBox pre-cache method
-
 			// 1. Get the related items
 			$.jsonRPC.call('get', {names:names, keytype:this.options.keytype}, function(items) {
 				$.updatecache(items)
@@ -91,13 +90,8 @@
 				this.build_controls();
 			}
 
-
 			// Show all the infoboxes...
-			// $('.e2-relationships-infobox', this.element).InfoBox('show');
-
-			// Do this here to find items in both the summary and options
-			// $('.e2-select-all').click(function(){$('input:checkbox', self.element).attr('checked', 'checked')});
-			// $('.e2-select-none').click(function() {$('input:checkbox', self.element).attr('checked', null)});			
+			$('.e2-relationships-infobox', this.element).InfoBox('show');
 		},
 		
 		build_summary: function(parents, children) {
@@ -191,18 +185,22 @@
 		},
 		
 		build_item: function(level, name, retry) {
-			// retry parameter indiciates try again to find item if not in cache.
+			var self = this;
+			// Retry parameter indiciates try again to find item if not in cache.			
+			// Do not show immediately -- need to be in DOM for built() callback
+
+			// Update the select count when built or checked..
+			var cb = function() {$('.e2-select', self.options.controls).SelectControl('update')}
+
 			return $('<div class="e2-relationships-infobox"></div>').InfoBox({
+				show: false,
 				keytype: this.options.keytype,
 				name: name,
 				selectable: this.options.edit,
 				retry: retry,
 				input: ['checkbox', level, true],
-				selected: function(w, e) {
-					var selectcount = $('input:checkbox:checked', self.element).length;
-					var unselectcount = $('input:checkbox:not(:checked)', self.element).length;
-					$('.e2-select-count').SelectControl('count', selectcount, unselectcount);
-				}
+				selected: cb,
+				built: cb
 			});
 		},
 		
@@ -211,30 +209,25 @@
 			// ian: todo: move "Select all or none" to a template function (utils.js)
 			var controls = $(' \
 				<ul class="e2l-options"> \
-					<li>'+$.e2selectcontrol()+'</li> \
+					<li class="e2-select" /> \
 				</ul> \
 				<ul class="e2l-controls"> \
 					<li><input type="submit" value="Save relationships" /></li> \
 				</ul>');
 
-			// <li><span class="e2-relationships-advanced e2l-a">'+$.e2caret('up')+'Advanced</span></li> \
-			// <ul class="e2l-advanced e2l-hide"> \
-			// 	<li><input type="button" value="Remove a parent from selected records" /></li> \
-			// 	<li><input type="button" value="Remove a child from selected records" /></li> \
-			// 	<li><input type="button" value="Add a parent to selected records" /></li> \
-			// 	<li><input type="button" value="Add a child to selected records" /></li> \
-			// 	<li><input type="button" value="Delete selected records" /></li> \
-			// </ul> \
+			// Selection control
+			$('.e2-select', controls).SelectControl({root: this.element});
 
+			// Save form
 			$('input:submit', controls).click(function(e){self.save(e)});
 
+			// Show/hide advanced options
 			$('.e2-relationships-advanced', controls).click(function(){
 				$.e2caret('toggle', self.options.controls);
 				$('.e2l-controls', self.options.controls).toggle();
 				$('.e2l-advanced', self.options.controls).toggle();
 			});
 			
-			// The select all / none callbacks are added at the end of build
 			this.options.controls.append(controls);
 		},
 		
@@ -245,6 +238,7 @@
 			}
 			var box = this.build_item(level, name, true);
 			boxes.prepend(box);
+			box.InfoBox('show');
 		},
 		
 		save: function(e) {
@@ -255,9 +249,10 @@
 		cache: function() {
 			return caches[this.options.keytype][this.options.name];
 		}
-	})
+	});
 	
 	
+	////////////////////////////
 	// Browse for an item
 	$.widget('emen2.BrowseControl', {
 		options: {
@@ -268,7 +263,8 @@
 			embed: false,
 			tool: 'none',
 			// events
-			selected: function(self, name) {}
+			selected: function(self, name) {},
+			moved: function() {},
 		},
 		
 		_create: function() {
@@ -519,7 +515,8 @@
 	});
 	
 	
-	// Relationship BROWSER
+	////////////////////////////	
+	// Display a map
     $.widget("emen2.MapControl", {		
 		options: {
 			root: null,
@@ -529,7 +526,10 @@
 			show: false,
 			attach: false,
 			skiproot: false,
-			selected: null,
+			// events
+			// collapsed: null,
+			// expanded: null,
+			selected: null
 		},
 
 		_create: function() {
