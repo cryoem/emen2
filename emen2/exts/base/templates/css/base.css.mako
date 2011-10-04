@@ -376,7 +376,9 @@ h4
 	border-bottom:solid 1px #ddd;
 }
 .e2-infobox h4 {
-	border-bottom: none;
+/*	white-space:nowrap;
+	overflow-x: hidden;
+*/	border-bottom: none;
 	margin-top: 0px;
 	margin-left: 50px;
 	margin-bottom: 5px;

@@ -4,7 +4,8 @@
 			name: null,
 			edit: false,
 			show: true,
-			controls: null
+			controls: null,
+			// events: saved..
 		},
 				
 		_create: function() {
@@ -17,6 +18,10 @@
 		},
 
 		show: function() {
+			this.build();
+		},
+
+		build: function() {
 			// Find binaries attached to the named record
 			var self = this;
 			$.jsonRPC.call("binary.find", {'record':self.options.name}, 
@@ -30,16 +35,16 @@
 					if (users.length) {
 						$.jsonRPC.call('user.get', [users], function(users) {
 							$.updatecache(users);
-							self.build();
+							self._build();
 						});
 					} else {
-						self.build();
+						self._build();
 					}
 				}
-			);
-		},		
+			);			
+		},
 
-		build: function() {
+		_build: function() {
 			if (this.built) {return}
 			this.built = 1;
 			
@@ -52,29 +57,37 @@
 			// Build the items
 			$.each(this.bdomap, function(k,v) {
 				self.element.append(self.build_level(k,k,v))
-			})
+			});
 
 			this.element.append(dialog);
 
 			if (this.options.controls) {
 				this.build_controls();
 			}
+			$('.e2-attachments-infobox').InfoBox('show');
+
 		},
 
 		build_level: function(label, level, items) {
 			var self = this;
 			var pd = caches['paramdef'][level];
 			if (pd) {label = pd.desc_short}
+
+			// Update the select count when built or checked..
+			var cb = function() {$('.e2-select', self.options.controls).SelectControl('update')}
 			
 			var header = $('<h4>'+label+'</h4>');
 			var d = $('<div class="e2l-cf e2l-fw"></div>');
 			$.each(items, function() {
-				var infobox = $('<div />');
-				infobox.InfoBox({
+				// Like other InfoBoxes, don't show until appended to DOM
+				var infobox = $('<div class="e2-attachments-infobox" />').InfoBox({
+					show: false,
 					name: this,
 					keytype: 'binary',
 					selectable: self.options.edit,
-					input: ['checkbox',level,true]
+					input: ['checkbox',level,true],
+					built: cb,
+					selected: cb
 				});
 				d.append(infobox);
 			});
@@ -90,6 +103,7 @@
 					<input type="hidden" name="param" id="e2-attachments-param" value="file_binary" /> \
 					<input type="hidden" name="location" value="'+EMEN2WEBROOT+'/record/'+this.options.name+'#attachments" /> \
 					<ul class="e2l-options"> \
+						<li class="e2-select" /> \
 						<li><span class="e2l-a e2l-label e2-attachments-target">Regular Attachment</span></li> \
 						<li><input type="file" name="filedata" /></li> \
 					</ul> \
@@ -97,6 +111,9 @@
 						<li>'+$.e2spinner()+'<input name="save" type="submit" value="Upload Attachment" /></li> \
 					</ul> \
 				</form>');
+
+			// Selection control
+			$('.e2-select', controls).SelectControl({root: this.element});
 				
 			// <li><input class="e2l-float-left e2l-save" name="remove" type="button" value="Remove Selected Attachments" /></li> \
 			
@@ -106,7 +123,6 @@
 			//	 if (!$(this).val()) {return}
 			// 	$('#e2-attachments-upload', self.element).submit();
 			// });
-
 			// Submit button causes file selection then upload when value changes
 			// $('input[name=save]', controls).click(function(e) {
 			//	$('input[name=filedata]', self.element).click();

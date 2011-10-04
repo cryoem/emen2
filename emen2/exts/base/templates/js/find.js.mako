@@ -10,7 +10,7 @@
 			autolink: false,
 			selectable: false,
 			retry: true,
-			input: ['radio', '', false],
+			input: ['radio', '', true],
 			show: true,
 			// events
 			built: function(self) {},
@@ -169,10 +169,8 @@
 		
 	});
 	
-	
 	// Search for users, groups, parameters, etc..
     $.widget("emen2.FindControl", {
-
 		options: {
 			show: false,
 			keytype: 'user',
