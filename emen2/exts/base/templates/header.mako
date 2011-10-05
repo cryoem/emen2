@@ -43,10 +43,10 @@
 	% if ADMIN:
 		<li><a href="${EMEN2WEBROOT}/">Admin ${buttons.caret()}</a>
 			<ul>
-				<li><a href="">Account Requests</a></li>
-				<li><a href="">User Administration</a></li>
-				<li><a href="">Configuration</a></li>
-				<li><a href="">Backup</a></li>
+				<li><a href="${ctxt.reverse('Users/queue')}">Account Requests</a></li>
+				<li><a href="${ctxt.reverse('Users/admin')}">User Administration</a></li>
+				## <li><a href="">Configuration</a></li>
+				## <li><a href="">Backup</a></li>
 			</ul>
 		</li>
 	% endif

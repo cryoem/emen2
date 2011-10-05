@@ -1,96 +1,62 @@
 <%inherit file="/page" />
-<%namespace name="pages_user_util" file="/pages/user"  /> 
+<%namespace name="forms" file="/forms"  /> 
 
-<%block name="js_inline">
-	${parent.js_inline()}
-
-	// Approve / Reject Users
-	function admin_approveuser_form(elem) {
-		var approve=[];
-		var reject=[];
-		var form=$(elem.form);
-		$('input:checked', form).each(function() {
-			if ($(this).val() == "true") {
-				approve.push($(this).attr("name"));
-			} else {
-				reject.push($(this).attr("name"));
-			}
-		});
-
-		if (approve.length > 0) {
-			$.jsonRPC.call("user.queue.approve",[approve],
-				function(names) {
-					//var names = [];
-					//$.each(data, function(){names.push(this.name)});
-					$.notify("Approved users: "+names);
-					for (var i=0;i<names.length;i++) {
-						$(".userqueue_"+names[i]).remove();
-					}
-					var count=parseInt($("#admin_userqueue_count").html());
-					count -= names.length;
-					$("#admin_userqueue_count").html(String(count))
-				}
-			);
-		};
-
-		if (reject.length > 0) {
-			$.jsonRPC.call("user.queue.reject",[reject],
-				function(names) {
-					//var names = [];
-					//$.each(data, function(){names.push(this.name)});				
-					$.notify("Rejected users: "+names);
-					for (var i=0;i<names.length;i++) {
-						$(".userqueue_"+names[i]).remove();
-					}
-					var count=parseInt($("#admin_userqueue_count").html());
-					count -= names.length;
-					$("#admin_userqueue_count").html(String(count));							
-				}
-			);
-		};
-	}
-
-	function admin_userstate_form(elem) {
-		var enable=[];
-		var disable=[];
-		var form=$(elem.form);
-		$('input:checked', form).each(function() {
-			var un=$(this).attr("name");
-			var unv=parseInt($(this).val());
-			if (unv == 0 &&  admin_userstate_cache[un] != unv) {
-				enable.push(un);
-			}
-			if (unv == 1 &&  admin_userstate_cache[un] != unv) {
-				disable.push(un);
-			}
-		});
-
-		if (enable.length > 0) {
-			$.jsonRPC.call("user.enable",[enable],
-				function(data) {
-					if (data) {
-						$.notify("Enabled users: "+data);
-						for (var i=0;i<data.length;i++) {
-							admin_userstate_cache[data[i]]=0;
-						}
-					}
-				}
-			)
-		}
-
-		if (disable.length > 0) {
-			$.jsonRPC.call("user.disable",[disable],
-				function(data) {
-					if (data) {
-						$.notify("Disabled users: "+data);
-						for (var i=0;i<data.length;i++) {
-							admin_userstate_cache[data[i]]=1;
-						}					
-					}
-				}
-			);
-		}	
-	}
+<%block name="js_ready">
+	${parent.js_ready()}
+	
+	$('input[name=all]').click(function(){
+		$('input[value='+$(this).val()+']').attr('checked', true);
+	});
 </%block>
 
-${pages_user_util.userqueue(admin_queue,0)}
+<h1>${title} (${len(queue)})</h1>
+
+<form method="post" action="${ctxt.reverse('Users/queue')}">
+
+<table class="e2l-shaded">
+	<thead>
+		<tr>
+
+			<th style="width:16px">
+				<input type="radio" name="all" value="approve" />
+			</th>
+			<th style="width:16px">
+				<input type="radio" name="all" value="reject" />
+			</th>
+			
+			<th>Email</th>
+			<th>Name</th>
+			<th>Comments</th>
+			<th>Additional details</th>
+		</tr>
+	</thead>
+	
+	<tbody>
+		% for user in queue:
+			<tr>
+				<td><input type="radio" name="actions.${user.name}" value="approve" ${forms.ifchecked(actions.get(user.name)=='approve')} /></td>
+				<td><input type="radio" name="actions.${user.name}" value="reject" ${forms.ifchecked(actions.get(user.name)=='reject')} /></td>
+
+				<td>${user.email}</td>
+				<td>${user.signupinfo.get('name_last', '')}, ${user.signupinfo.get('name_first', '')} ${user.signupinfo.get('name_middle', '')}</td>
+				<td>${user.signupinfo.get('comments', '')}</td>
+				<td>
+					<%
+					details = {}
+					for k in set(user.signupinfo.keys())-set(['email','name_first','name_middle','name_last','comments']):
+						details[k] = user.signupinfo[k]
+					%>
+					% for k,v in sorted(details.items()):
+						${k}: ${v}, 
+					% endfor				
+				</td>
+			</tr>
+		% endfor
+	</tbody>
+</table>
+
+<ul class="e2l-controls">
+	<li><input type="submit" value="Accept checked users" /></li>
+</u>
+
+</form>

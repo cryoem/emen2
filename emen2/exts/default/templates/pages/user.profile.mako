@@ -15,7 +15,7 @@
 
 			<tr>
 				<td>Middle Name:</td>
-				<td><input name="name_middle" type="text" value="${kwargs.get('name_middle','')}" required /></td>
+				<td><input name="name_middle" type="text" value="${kwargs.get('name_middle','')}" /></td>
 			</tr>
 
 			<tr>

@@ -2650,14 +2650,15 @@ class DB(object):
 
 	@publicmethod("user.queue.approve", write=True, admin=True)
 	@ol('names')
-	def approveuser(self, names, secret=None, ctx=None, txn=None):
+	def approveuser(self, names, secret=None, reject=None, filt=True, ctx=None, txn=None):
 		"""(Admin Only) Approve account in user queue.
 
 		:param names: New user approval queue name(s)
+		:keyword secret: User secret for self-approval
 		:return: Approved User name(s)
 		"""
 		# Get users from the new user approval queue
-		newusers = self.bdbs.newuser.cgets(names, ctx=ctx, txn=txn)
+		newusers = self.bdbs.newuser.cgets(names, filt=filt, ctx=ctx, txn=txn)
 		cusers = []
 
 		# This will also check if the current username or email is in use
@@ -2708,7 +2709,7 @@ class DB(object):
 			user.getdisplayname()
 			ctxt = {'name':user.name, 'displayname':user.displayname}
 			template = '/email/adduser.approved'
-			if g.user_autoapprove:
+			if self.user_autoapprove:
 				template = '/email/adduser.autoapproved'
 			sendmail(user.email, template=template, ctxt=ctxt)
 
@@ -2726,7 +2727,7 @@ class DB(object):
 		"""
 		#@action
 		emails = {}
-		users = self.bdbs.newuser.cgets(names, filt=False, ctx=ctx, txn=txn)
+		users = self.bdbs.newuser.cgets(names, filt=filt, ctx=ctx, txn=txn)
 		for user in users:
 			emails[user.name] = user.email
 

@@ -200,7 +200,7 @@ class NewUser(View):
 		try:
 			user = self.db.newuser(name=name, password=op1, email=email)
 			user.setsignupinfo(kwargs)
-			# self.db.adduser(user)
+			self.db.adduser(user)
 
 		except Exception, e:
 			self.ctxt['ERRORS'].append('There was a problem creating your account: %s'%e)
@@ -209,20 +209,39 @@ class NewUser(View):
 			self.template = "/simple"
 			self.ctxt['content'] = '''
 				<h1>New User Request</h1>
-				<p>Your request for a new account is being processed. You will be notified via email when it is approved.</p>
+				<p>
+					Your request for a new account is being processed. 
+					You will be notified via email when it is approved.
+				</p>
 				<p>Email: %s</p>
-				'''%(user.name,user.email)
+				'''%(user.email)
 
 
-	# @View.add_matcher(r'^/users/queue/$', view='Users', name='queue')	
-	# def queue(self, action=None, name=None, **kwargs):
-	# 	self.template='/pages/users.queue'
-	# 
-	# 	admin_queue = {}
-	# 	for i in self.db.getuserqueue():
-	# 		admin_queue[i]=self.db.getqueueduser(i)
-	# 
-	# 	self.set_context_items({"admin_queue":admin_queue})
+	@View.add_matcher(r'^/users/queue/$', view='Users', name='queue')	
+	def queue(self, action=None, name=None, **kwargs):
+		self.template='/pages/users.queue'	
+		self.title = 'Users awaiting approval'
+
+		actions = kwargs.pop('actions', {})
+		self.ctxt['actions'] = actions
+
+		if self.request_method == 'post':
+			# I don't care for this format, but it's a limitation of
+			# HTML input elements. I couldn't get the radio buttons 
+			# to more closely match the emen2 API.
+			reject = set(k for k,v in actions.items() if v=='reject')
+			approve = set(k for k,v in actions.items() if v=='approve')
+			if reject:
+				self.db.rejectuser(reject)
+			if approve:
+				self.db.approveuser(approve)
+
+			if kwargs.get('location'):
+				self.headers['Location'] = kwargs.get('location')
+
+
+		queue = self.db.getqueueduser(self.db.getuserqueue())
+		self.ctxt['queue'] = queue
 
 
 

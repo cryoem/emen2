@@ -3,4 +3,4 @@
 
 <h1>${title}</h1>
 
-<p>${err.msg | h}</p>
+<p>${error | h}</p>

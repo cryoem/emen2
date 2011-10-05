@@ -1,6 +1,10 @@
 <%! import jsonrpc.jsonutil %>
 <%namespace name="buttons" file="/buttons"  />
 
+
+## JavaScript for client-side initial validation and error
+## reporting for New User form
+
 <%def name="newuser_js_ready(minimum=6)">
 	var invalid = ${jsonrpc.jsonutil.encode(invalid)};
 	var country = ${jsonrpc.jsonutil.encode(kwargs.get('country','United States'))};
@@ -33,6 +37,8 @@
 	});	
 </%def>
 
+
+## Required fields for New User form
 
 <%def name="newuser_required(kwargs)">
 	<%buttons:singlepage label='Account Details'>

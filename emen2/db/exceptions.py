@@ -7,24 +7,26 @@
 # 		return repr(self.value)
 
 class SecurityError(Exception):
-    "Security Error"
+    "Security error"
 
 class SessionError(KeyError):
-    "Session Expired"
+    "Session expired"
 
 class AuthenticationError(ValueError):
-    "Invalid Account Name or Password"
+    "Invalid account name or password"
 
 class ExistingAccount(ValueError):
-	"This Account Name or Email is already in use"
+	"This account name or email is already in use"
 
 class DisabledUserError(ValueError):
-    "Disabled User"
+    "Disabled user"
 
 class ValidationError(ValueError):
-	"""Validation Error"""
+	"""Validation error"""
 
 class TimeError(Exception):
 	"""Operation timed out"""
+
+
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,36 +1,38 @@
 <%!
-checked = 'checked="checked"'
-selected = 'selected="selected"'
 
-def _iftrue(exp, val):
+def f_iftrue(exp, val):
 	if exp:
 		return val
 	return ''
 	
-def _iffalse(exp, val):
+def f_iffalse(exp, val):
 	if not exp:
 		return val
 	return ''	
+
+def test(echo):
+	return echo
+
 %>
 
 
-<%def name="iftrue(exp, value)">${_iftrue(exp, value)}</%def>
+<%def name="iftrue(exp, value)">${f_iftrue(exp, value)}</%def>
 
-<%def name="iffalse(exp, value)">${_iffalse(exp, value)}</%def>
+<%def name="iffalse(exp, value)">${f_iffalse(exp, value)}</%def>
 
-<%def name="ifchecked(exp)">${_iftrue(exp, checked)}</%def>
+<%def name="ifchecked(exp=None)">${f_iftrue(exp, 'checked="checked"')}</%def>
 
-<%def name="ifselected(exp)">${_iftrue(exp, selected)}</%def>
 
 <%def name="input(name, value, type='text', chk=False)">
 	% if type=='text':
 		<input type="${type}" name="${name}" value="${value}" />
 	% elif type=='checkbox':
-		<input type="${type}" name="${name}" value="${value}" ${_iftrue(chk, checked)}/>	
+		<input type="${type}" name="${name}" value="${value}" ${f_iftrue(chk, checked)}/>	
 	% elif type=='radio':
-		<input type="${type}" name="${name}" value="${value}" ${_iftrue(chk, checked)}/>	
+		<input type="${type}" name="${name}" value="${value}" ${f_iftrue(chk, checked)}/>	
 	% endif
 </%def>
+
 
 <%def name="select(name, value, values=None)">
 	<% values = values or [] %>

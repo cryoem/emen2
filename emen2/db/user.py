@@ -531,6 +531,11 @@ class NewUserDB(emen2.db.btrees.DBODB):
 		txn = kwargs.get('txn', None)
 		newuser = super(NewUserDB, self).new(*args, **kwargs)
 
+		# Check if any pending accounts have this email address
+		for k,v in self.items(txn=txn):
+			if newuser.email == v.email:
+				raise emen2.db.exceptions.ExistingAccount, emen2.db.exceptions.ExistingAccount.__doc__
+
 		# Check if this email already exists
 		indemail = self.dbenv.user.getindex('email', txn=txn)
 		if self.dbenv.user.exists(newuser.name, txn=txn) or indemail.get(newuser.email, txn=txn):

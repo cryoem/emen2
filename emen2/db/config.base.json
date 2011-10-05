@@ -80,10 +80,10 @@
 
 	"users":{
 		// Automatically approve new user accounts
-		//"USER_AUTOAPPROVE": false,
+		"USER_AUTOAPPROVE": false,
 		
 		// New users will be added to these groups
-		//"GROUP_DEFAULTS": ["create"]		
+		"GROUP_DEFAULTS": ["create"]		
 	},
 
 	// Some basic settings and interface strings

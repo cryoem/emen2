@@ -19,6 +19,10 @@ class MethodNotSupported(HTTPResponseCode):
 	code = 501
 
 
+class HTTPCancelledResponse(HTTPResponseCode):
+	code = 500
+	
+
 class HTTP200Response(HTTPResponseCode):
 	code = 200
 
