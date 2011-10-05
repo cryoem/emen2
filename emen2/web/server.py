@@ -172,8 +172,8 @@ def start_emen2():
 
 		vl = emen2.web.view.ViewLoader()
 		vl.load_extensions()
-		vl.load_redirects()
-		vl.routes_from_g()
+		# vl.load_redirects()
+		# vl.routes_from_g()
 
 		rl = ResourceLoader(root)
 		server.load_resources(rl)
