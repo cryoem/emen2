@@ -414,7 +414,6 @@ class TestResource(object):
 	isLeaf = True
 
 	def render(self, request):
-		# print "Render: %s"%request.path		
 		deferred = pool.runtxn(self.render_action, args=request.args)
 		deferred.addCallback(self.render_cb, request)
 		deferred.addErrback(self.render_eb, request)
@@ -426,12 +425,10 @@ class TestResource(object):
 		return result
 
 	def render_cb(self, result, request):
-		# print "Callback"
 		request.write(result)
 		request.finish()
 
 	def render_eb(self, failure, request):
-		# print "Failure:", failure
 		request.write('failure!')
 		request.finish()	
 
@@ -509,11 +506,6 @@ class JSONRPCResource(jsonrpc.server.JSON_RPC):
 		deferred.addCallback(self._cbRender, request)
 		deferred.addErrback(self._ebRender, request, contents.id if hasattr(contents, 'id') else None)
 		return twisted.web.static.server.NOT_DONE_YET
-
-	# def _rundb_action(self, db=None, *args, **kwargs):
-	# 	print "DB:"
-	# 	print db
-	# 	return self._action()
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

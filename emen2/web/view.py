@@ -134,7 +134,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 		lambda self, value: self.ctxt.set('template', value))
 
 
-	def __init__(self, *args, **blargh):
+	def __init__(self, db=None, *args, **blargh):
 		'''\
 		request_method is the HTTP method
 		request_headers are the request headers
@@ -142,6 +142,9 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 		'''	
 				
 		super(TemplateView, self).__init__()
+
+		# 
+		self.db = db
 
 		# Response headers
 		self._headers = {}
@@ -164,10 +167,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 
 		# ETags
 		self.etag = None
-	
-	
-	def _bind_db(self, db=None, request=None):
-		self.db = db
+
 	
 	def _before_render(self, *args, **kwargs):
 		pass

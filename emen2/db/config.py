@@ -199,6 +199,7 @@ class DBOptions(optparse.OptionParser):
 		# Use an OrderedDict to preserve the order
 		g.extensions.EXTS = collections.OrderedDict()
 		for ext in exts:
+			print 'Looking for ext:', ext
 			name, path = self.resolve_ext(ext, g.paths.EXTPATHS)
 			g.extensions.EXTS[name] = path
 
@@ -219,7 +220,6 @@ class DBOptions(optparse.OptionParser):
 		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'security.log'), 'a', 0))
 
 		g.params.CONFIG_LOADED = True
-		# emen2.VERSION = g.params.VERSION
 
 
 

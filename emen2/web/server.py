@@ -30,22 +30,12 @@ config = emen2.db.config.g()
 
 
 
-def addSlash(request):
-	# Modified from twisted.web.static
-    qs = ''
-    qindex = request.uri.find('?')
-    if qindex != -1:
-        qs = request.uri[qindex:]
-
-    return "%s/%s"%((request.uri.split('?')[0]), qs)
-
-
 ##### Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool #####		
 
 class DBPool(object):
 	running = False
 	
-	def __init__(self, min=0, max=1):
+	def __init__(self, min=0, max=5):
 		# Minimum and maximum number of threads
 		self.min = min
 		self.max = max
@@ -74,15 +64,13 @@ class DBPool(object):
 		if db is not self.dbs.get(tid):
 			raise Exception('Wrong connection for thread')
 		if db:
-			# db.close
+			# db.close()
 			del self.dbs[tid]
 
 	def rundb(self, call, *args, **kwargs):
 		return twisted.internet.threads.deferToThread(self._rundb, call, *args, **kwargs)
 
 	def _rundb(self, call, *args, **kwargs):
-		print "_rundb:"
-		print call, args, kwargs
 		db = self.connect()
 		result = call(db=db, *args, **kwargs)
 		return result
@@ -98,11 +86,6 @@ class DBPool(object):
 
 		
 
-##### pool and reactor #####
-
-pool = DBPool()
-reactor = twisted.internet.reactor		
-
 ##### Routing Resource #####
 
 class Router(twisted.web.resource.Resource):
@@ -113,6 +96,8 @@ class Router(twisted.web.resource.Resource):
 		if path in self.children:
 			return self.children[path]
 
+		# Add a final slash. 
+		# Most of the view matchers expect this.
 		path = request.path
 		if not path:
 			path = '/'
@@ -136,6 +121,14 @@ class Router(twisted.web.resource.Resource):
 		return 'Not found'
 	
 		
+
+##### pool and reactor #####
+
+pool = DBPool()
+reactor = twisted.internet.reactor		
+
+
+##### Server ######
 
 class EMEN2Server(object):
 	# Use HTTPS?
@@ -218,9 +211,9 @@ class EMEN2Server(object):
 def start_emen2():
 	# Start the EMEN2Server and load the View resources
 	with EMEN2Server().start() as (server, root):
+		print 'ViewLoader'
 		vl = emen2.web.view.ViewLoader()
-		vl.load_extensions()
-
+		vl.load_extensions()		
 
 if __name__ == "__main__":
 	start_emen2()
