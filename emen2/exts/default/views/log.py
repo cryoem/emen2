@@ -3,8 +3,8 @@
 import functools
 import collections
 import os.path
+
 import emen2.db.config
-g = emen2.db.config.g()
 from emen2.web.view import View, AdminView
 from emen2.util.decorators import cast_arguments
 from emen2.util.loganalyzer import AccessLogFile, AccessLogLine
@@ -103,7 +103,8 @@ class LogAnalysis(View):#AdminView):
 	def _getlines(self, file_, logclass, start, end, reverse=True, index=None):
 		lines, errors = [],[]
 
-		with file(os.path.join(g.paths.LOGPATH, file_)) as f:
+		logpath = emen2.db.config.get('paths.LOGPATH')
+		with file(os.path.join(logpath, file_)) as f:
 			extra = lambda x:x
 			if reverse: extra = Reverser
 
@@ -113,7 +114,7 @@ class LogAnalysis(View):#AdminView):
 					elif start <= n:
 						lines.append(line)
 				except Exception, e:
-					g.error(e)
+					emen2.db.log.error(e)
 					errors.append('problem, line: %r' % line)
 
 		logfile = logclass(*lines, index=index)

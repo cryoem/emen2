@@ -14,10 +14,7 @@ import tempfile
 
 import emen2.db.btrees
 import emen2.db.dataobject
-
 import emen2.db.config
-g = emen2.db.config.g()
-
 
 
 # ian: todo: better job at cleaning up broken files..
@@ -66,7 +63,7 @@ def write_binary(infile, ctx=None, txn=None):
 
 	md5sum = m.hexdigest()
 	# print "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum)
-	g.info("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
+	# emen2.db.log.info("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
 
 	return tmpfilepath, filesize, md5sum
 
@@ -200,8 +197,9 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 		datekey = "%04d%02d%02d"%(year, mon, day)
 
-		mp = [x for x in sorted(g.paths.BINARYPATH.keys()) if str(x)<=datekey]
-		base = g.paths.BINARYPATH[mp[-1]]
+		binarypaths = emen2.db.config.get('paths.BINARYPATH')
+		mp = [x for x in sorted(binarypaths.keys()) if str(x)<=datekey]
+		base = binarypaths[mp[-1]]	
 
 		basepath = "%s/%04d/%02d/%02d/"%(base, year, mon, day)
 		filepath = os.path.join(basepath, "%05X"%counter)

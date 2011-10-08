@@ -6,8 +6,6 @@ import re
 
 import emen2.db.datatypes
 import emen2.db.config
-g = emen2.db.config.g()
-CVars = emen2.db.config.CVars
 
 # Convenience
 ci = emen2.util.listops.check_iterable
@@ -87,7 +85,8 @@ class Macro(object):
 		if not self.markup:
 			return unicode(value)		
 		if self.table:
-			value = '<a href="%s/record/%s/">%s</a>'%(CVars.webroot, self.rec.name, value)
+			webroot = emen2.db.config.get('network.EMEN2WEBROOT')
+			value = '<a href="%s/record/%s/">%s</a>'%(webroot, self.rec.name, value)
 		return unicode(value)
 
 
@@ -216,7 +215,8 @@ class macro_img(Macro):
 				bdoo = self.engine.db.getbinary(i, filt=False)
 				fname = bdoo.get("filename")
 				bname = bdoo.get("filepath")
-				ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="" />'%(CVars.webroot,i[4:], fname, height, width))
+				webroot = emen2.db.config.get('network.EMEN2WEBROOT')
+				ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="" />'%(webroot,i[4:], fname, height, width))
 			except (KeyError, AttributeError, emen2.db.exceptions.SecurityError):
 				ret.append("(Error: %s)"%i)
 
@@ -315,11 +315,12 @@ class macro_renderchildren(Macro):
 	"""renderchildren macro"""
 		
 	def process(self, macro, params, rec):
+		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		r = self.engine.db.renderview(self.engine.db.getchildren(rec.name), viewtype=params or "recname") #ian:mustfix
 
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
-			l = """<li><a href="%s/record/%s">%s</a></li>"""%(CVars.webroot, k, v or k)
+			l = """<li><a href="%s/record/%s">%s</a></li>"""%(webroot, k, v or k)
 			hrefs.append(l)
 
 		return "<ul>%s</ul>"%("\n".join(hrefs))
@@ -355,11 +356,12 @@ class macro_renderchildrenoftype(Macro):
 		
 	def process(self, macro, params, rec):
 		# print macro, params
+		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		r = self.engine.db.renderview(self.engine.db.getchildren(rec.name, rectype=params))
 
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
-			l = """<li><a href="%s/record/%s">%s</a></li>"""%(CVars.webroot, k, v or k)
+			l = """<li><a href="%s/record/%s">%s</a></li>"""%(webroot, k, v or k)
 			hrefs.append(l)
 
 		return "<ul>%s</ul>"%("\n".join(hrefs))
@@ -430,7 +432,7 @@ class macro_thumbnail(Macro):
 	"""tile thumb macro"""
 	
 	def process(self, macro, params, rec):
-
+		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		format = "jpg"
 		defaults = ["file_binary_image", "thumb", "jpg"]
 		params = (params or '').split(",")
@@ -442,9 +444,10 @@ class macro_thumbnail(Macro):
 		bdos = rec.get(defaults[0])
 		if not hasattr(bdos,"__iter__"):
 			bdos = [bdos]
-
+		
+		
 		return "".join(['<img src="%s/download/%s/%s.%s.%s?size=%s&amp;format=%s" alt="" />'%(
-				CVars.webroot, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos
+				webroot, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos
 				)])
 
 

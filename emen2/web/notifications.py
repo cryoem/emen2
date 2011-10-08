@@ -5,11 +5,9 @@ import twisted.internet.defer
 import thread
 import threading
 import emen2.web.events
-import emen2.db.config
 import emen2.db.proxy
 import Queue
 import collections
-config = emen2.db.config.g()
 
 class NotificationHandler(object):
 	_notifications_by_ctxid = {}

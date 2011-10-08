@@ -27,7 +27,6 @@ except ImportError:
 
 
 import emen2.db.config
-config = emen2.db.config.g()
 
 
 ##### Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool #####		
@@ -132,20 +131,6 @@ reactor = twisted.internet.reactor
 ##### Server ######
 
 class EMEN2Server(object):
-	# Use HTTPS?
-	EMEN2HTTPS = False # config.claim('network.EMEN2HTTPS', False, lambda v: isinstance(v, bool))
-
-	# Which port to receive HTTPS request?
-	EMEN2PORT_HTTPS = 436 # config.claim('network.EMEN2PORT_HTTPS', 443, lambda v: isinstance(v, (int,long)))
-
-	# How many threads to load, defaults to :py:func:`multiprocessing.cpu_count`+1
-	NUMTHREADS = 1 # config.claim('network.NUMTHREADS', multiprocessing.cpu_count()+1, lambda v: (v < (multiprocessing.cpu_count()*2)) )
-
-	# Which port to listen on
-	PORT = 8080 # config.watch('network.EMEN2PORT', 8080)
-
-	# Where to find the SSL info
-	SSLPATH = '' # config.claim('paths.SSLPATH', '', validator=lambda v: isinstance(v, (str, unicode)))
 
 	def __init__(self, port=None, dbo=None):
 		# Configuration options
@@ -154,6 +139,10 @@ class EMEN2Server(object):
 		self.dbo.add_option('--https', action="store_true", help="Use HTTPS")
 		self.dbo.add_option('--httpsport', type="int", help="HTTPS Port")
 		(self.options, self.args) = self.dbo.parse_args()
+		
+		self.EMEN2PORT = emen2.db.config.get('network.EMEN2PORT')
+		self.EMEN2HTTPS = False
+		self.EMEN2PORT_HTTPS = 436
 
 		# Update the configuration
 		if self.options.port or port:
@@ -166,11 +155,13 @@ class EMEN2Server(object):
 			self.EMEN2PORT_HTTPS = self.options.httpsport
 
 
+
+
 	@contextlib.contextmanager
 	def start(self):
 		'''Run the server main loop'''
 		
-		# config.info('starting EMEN2 version: %s'%config.CVars.version)
+		# emen2.db.log.info('starting EMEN2 version: %s'%emen2.db.config.get('params.VERSION')
 
 		# Routing resource. This will look up request.uri in the routing table
 		# and return View resources.
@@ -182,7 +173,7 @@ class EMEN2Server(object):
 		import emen2.web.view
 		root.putChild('jsonrpc', emen2.web.resource.JSONRPCResource())
 		root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
-		root.putChild('static-%s'%emen2.db.config.CVars.version, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
+		root.putChild('static-%s'%emen2.db.config.get('params.VERSION'), twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
 		root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
 
@@ -191,7 +182,7 @@ class EMEN2Server(object):
 		site = twisted.web.server.Site(root)
 		
 		# Setup the Twisted reactor to listen on web port
-		reactor.listenTCP(self.PORT, site)
+		reactor.listenTCP(self.EMEN2PORT, site)
 
 		# Setup the Twisted reactor to listen on the SSL port
 		if self.EMEN2HTTPS and ssl:
@@ -213,6 +204,8 @@ def start_emen2():
 		import emen2.web.view
 		vl = emen2.web.view.ViewLoader()
 		vl.load_extensions()		
+
+
 
 if __name__ == "__main__":
 	start_emen2()

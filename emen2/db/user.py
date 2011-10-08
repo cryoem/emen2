@@ -12,10 +12,6 @@ import emen2.db.btrees
 import emen2.db.exceptions
 import emen2.db.dataobject
 
-import emen2.db.config
-g = emen2.db.config.g()
-
-
 # DBO that contains a password and email address
 class BaseUser(emen2.db.dataobject.BaseDBObject):
 

@@ -15,9 +15,8 @@ import traceback
 import os
 
 import emen2.db.config
-g = emen2.db.config.g()
+import emen2.db.log
 import emen2.util.listops
-
 
 try:
 	import emen2.db.bulk
@@ -298,7 +297,7 @@ class EMEN2DB(object):
 		"""Write key/value, with txn."""
 		if key in self.cache:
 			raise KeyError, "Cannot modify read-only item %s"%key			
-		g.log.msg('COMMIT', "%s.put: %s"%(self.filename, key))
+		emen2.db.log.msg('COMMIT', "%s.put: %s"%(self.filename, key))
 		return self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)
 
 
@@ -306,7 +305,7 @@ class EMEN2DB(object):
 	def truncate(self, txn=None, flags=0):
 		"""Truncate BDB (e.g. 'drop table')"""
 		self.bdb.truncate(txn=txn)
-		g.log.msg('COMMIT', "%s.truncate"%self.filename)
+		emen2.db.log.msg('COMMIT', "%s.truncate"%self.filename)
 
 
 	# Also dangerous!
@@ -315,7 +314,7 @@ class EMEN2DB(object):
 			raise KeyError, "Cannot delete read-only item %s"%key
 		if self.bdb.exists(self.dumpkey(key), txn=txn):
 			ret = self.bdb.delete(self.dumpkey(key), txn=txn, flags=flags)
-			g.log.msg('COMMIT', "%s.delete: %s"%(self.filename, key))
+			emen2.db.log.msg('COMMIT', "%s.delete: %s"%(self.filename, key))
 			return ret
 
 
@@ -475,7 +474,7 @@ class IndexDB(EMEN2DB):
 
 		cursor.close()
 
-		g.log.msg('INDEX', "%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
+		emen2.db.log.msg('INDEX', "%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
 		return delindexitems
 
 
@@ -506,7 +505,7 @@ class IndexDB(EMEN2DB):
 
 		cursor.close()
 
-		g.log.msg('INDEX', "%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
+		emen2.db.log.msg('INDEX', "%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
 		return addindexitems
 
 
@@ -603,7 +602,7 @@ class DBODB(EMEN2DB):
 			val = 0
 		val = int(val)
 		self.sequencedb.put(key, str(val+delta), txn=txn)
-		g.log.msg('COMMIT', "%s.sequence: %s"%(self.filename, val+delta))
+		emen2.db.log.msg('COMMIT', "%s.sequence: %s"%(self.filename, val+delta))
 		return val
 
 
@@ -775,7 +774,7 @@ class DBODB(EMEN2DB):
 		for crec in crecs:
 			self.put(crec.name, crec, txn=txn)
 
-		g.info("Committed %s items"%(len(crecs)))
+		emen2.db.log.info("Committed %s items"%(len(crecs)))
 
 		return crecs
 
@@ -1146,7 +1145,7 @@ class RelateDB(DBODB):
 	# Search tree-like indexes (e.g. parents/children)
 	##############################
 
-	maxrecurse = g.claim('params.MAXRECURSE', 50)
+	maxrecurse = emen2.db.config.get('params.MAXRECURSE', 50)
 	def dfs(self, key, rel='children', recurse=1, ctx=None, txn=None):
 		# Return a dict of results as well as the nodes visited (saves time)
 		if recurse == -1:

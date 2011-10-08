@@ -34,10 +34,7 @@ import emen2.web.resource
 import emen2.web.notifications
 
 import emen2.db.config
-g = emen2.db.config.g()
-
-import emen2.web.config
-CVars = emen2.web.config.CVars
+import emen2.db.log
 
 
 # Exported classes
@@ -83,15 +80,16 @@ class TemplateContext(collections.MutableMapping):
 		self[name] = value
 
 
-	host = g.watch('network.EMEN2HOST', 'localhost')
-	port = g.watch('network.EMEN2PORT', 80)
+	host = emen2.db.config.get('network.EMEN2HOST', 'localhost')
+	port = emen2.db.config.get('network.EMEN2PORT', 80)
 
 	def reverse(self, _name, *args, **kwargs):
 		"""Create a URL given a view Name and arguments"""
 		
 		full = kwargs.pop('_full', False)
+		webroot = emen2.db.config.get('network.EMEN2WEBROOT', '')
 
-		result = '%s/%s'%(CVars.webroot, emen2.web.routing.reverse(_name, *args, **kwargs))
+		result = '%s/%s'%(webroot, emen2.web.routing.reverse(_name, *args, **kwargs))
 		result = result.replace('//','/')
 		if full:
 			result = 'http://%s:%s%s' % (self.host, self.port, result)
@@ -196,7 +194,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 
 	def get_data(self):
 		'''Render the template'''
-		return g.templates.render_template(self.template, self.ctxt)
+		return emen2.db.config.templates.render_template(self.template, self.ctxt)
 
 
 	#### Metadata manipulation #####
@@ -258,11 +256,11 @@ class View(TemplateView):
 			HOST = getattr(ctx, 'host', None),
 			USER = user,
 			ADMIN = admin,
-			EMEN2WEBROOT = CVars.webroot,
-			EMEN2DBNAME = CVars.dbname,
-			EMEN2LOGO = CVars.logo,
-			BOOKMARKS = CVars.bookmarks,
-			VERSION = CVars.version
+			EMEN2WEBROOT = emen2.db.config.get('network.EMEN2WEBROOT'),
+			EMEN2DBNAME = emen2.db.config.get('customization.EMEN2DBNAME'),
+			EMEN2LOGO = emen2.db.config.get('customization.EMEN2LOGO'),
+			BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', {}),
+			VERSION = emen2.db.config.get('params.VERSION')
 		))
 		
 
@@ -327,9 +325,9 @@ class AuthView(ViewPlugin):
 ###### III. View loader #####
 
 class ViewLoader(object):
-	routing_table = g.claim('config.ROUTING', {})
-	redirects = g.claim('config.REDIRECTS', {})
-	extensions = g.watch('extensions.EXTS')
+	routing_table = emen2.db.config.get('config.ROUTING', {})
+	redirects = emen2.db.config.get('config.REDIRECTS', {})
+	extensions = emen2.db.config.get('extensions.EXTS')
 
 	def view_callback(self, pwd, pth, mtch, name, ext, failures=None, extension_name=None):
 		if name == '__init__':
@@ -350,14 +348,14 @@ class ViewLoader(object):
 		try:
 			__import__(modulename)
 		except BaseException, e:
-			g.info(e)
+			# emen2.db.log.info(e)
 			level = 'ERROR'
 			msg[1] = "FAILED:"
 			failures.append(viewname)
-			g.log.print_exception()
+			# emen2.db.log.print_exception()
 
 		msg.append(filpath+ext)
-		g.log.msg(level, ' '.join(msg))
+		emen2.db.log.msg(level, ' '.join(msg))
 
 
 	def __init__(self):
@@ -376,7 +374,7 @@ class ViewLoader(object):
 	def load_extension(self, ext, path):
 		# We'll be adding the extension paths with a low priority..
 		pth = list(reversed(sys.path))
-		g.info('Loading extension %s: %s' % (ext, path))
+		emen2.db.log.info('Loading extension %s: %s' % (ext, path))
 
 		# ...add ext path to the python module search
 		pythondir = os.path.join(path, 'python')

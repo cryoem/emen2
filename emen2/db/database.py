@@ -33,7 +33,7 @@ except ImportError:
 
 # EMEN2 Config
 import emen2.db.config
-g = emen2.db.config.g()
+import emen2.db.log
 
 # EMEN2 Core
 import emen2.db.datatypes
@@ -89,16 +89,6 @@ set_lg_regionmax 1048576
 set_lg_max 8388608
 set_lg_bsize 2097152
 """
-
-# inst for instantiate
-inst = lambda x:x()
-is_str = lambda x: hasattr(x, 'upper')
-@inst
-class CVars(emen2.db.config.CVars):
-	MAILADMIN = g.claim('mailsettings.MAILADMIN', default="", validator=is_str)
-	MAILHOST = g.claim('mailsettings.MAILHOST', default="", validator=is_str)
-	TIMESTR = g.claim('params.TIMESTR', default="%Y/%m/%d %H:%M:%S", validator=is_str)
-
 
 def fakemodules():
 	import imp
@@ -168,8 +158,8 @@ def getctime():
 
 
 def gettime():
-	""":return: Current database time, as string in format %s"""%CVars.TIMESTR
-	return time.strftime(CVars.TIMESTR)
+	""":return: Current database time, as string in format %s"""%emen2.db.config.get('params.TIMESTR', "%Y/%m/%d %H:%M:%S")
+	return time.strftime(emen2.db.config.get('params.TIMESTR', "%Y/%m/%d %H:%M:%S"))
 
 
 
@@ -238,7 +228,7 @@ def error(e=None, msg='', warning=False):
 	if not msg:
 		msg = e.__doc__
 	if warning:
-		g.warn(msg)
+		emen2.db.log.warn(msg)
 	else:
 		raise e(msg)
 
@@ -259,18 +249,21 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 	"""
 	# ctx and txn arguments don't do anything. I accept them because it's a force of habit to include them.
 
-	if not CVars.MAILADMIN:
-		g.warn("Couldn't get mail config: No admin email set")
+	mailadmin = emen2.db.config.get('mailsettings.MAILADMIN')
+	mailhost = emen2.db.config.get('mailsetings.MAILHOST')
+
+	if not mailadmin:
+		emen2.db.log.warn("Couldn't get mail config: No admin email set")
 		return
-	if not CVars.MAILHOST:
-		g.warn("Couldn't get mail config: No SMTP Server")
+	if not mailhost:
+		emen2.db.log.warn("Couldn't get mail config: No SMTP Server")
 		return
 
 	ctxt = ctxt or {}
 	ctxt["recipient"] = recipient
-	ctxt["MAILADMIN"] = CVars.MAILADMIN
-	ctxt["EMEN2DBNAME"] = CVars.dbname
-	ctxt["EMEN2EXTURI"] = CVars.exturi
+	ctxt["MAILADMIN"] = mailadmin
+	ctxt["EMEN2DBNAME"] = emen2.db.config.get('customization.EMEN2DBNAME', 'EMEN2')
+	ctxt["EMEN2EXTURI"] = emen2.db.config.get('network.EMEN2EXTURI', '')
 
 	if not recipient:
 		return
@@ -278,25 +271,25 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 	if msg:
 		msg = email.mime.text.MIMEText(msg)
 		msg['Subject'] = subject
-		msg['From'] = CVars.MAILADMIN
+		msg['From'] = mailadmin
 		msg['To'] = recipient
 		msg = msg.as_string()
 
 	elif template:
 		try:
-			msg = g.templates.render_template(template, ctxt)
+			msg = emen2.db.config.templates.render_template(template, ctxt)
 		except Exception, e:
-			g.warn('Could not render template %s: %s'%(template, e))
+			emen2.db.log.warn('Could not render template %s: %s'%(template, e))
 			return
 	else:
 		raise ValueError, "No message to send!"
 
 	# Actually send the message
-	s = smtplib.SMTP(CVars.MAILHOST)
+	s = smtplib.SMTP(mailhost)
 	s.set_debuglevel(1)
-	s.sendmail(CVars.MAILADMIN, [CVars.MAILADMIN, recipient], msg)
-	g.info('Mail sent: %s -> %s'%(CVars.MAILADMIN, recipient))
-	# g.error('Could not send email: %s'%e, e=e)
+	s.sendmail(mailadmin, [mailadmin, recipient], msg)
+	emen2.db.log.info('Mail sent: %s -> %s'%(mailadmin, recipient))
+	# emen2.db.log.error('Could not send email: %s'%e, e=e)
 	# raise e
 
 	return recipient
@@ -315,17 +308,18 @@ class EMEN2DBEnv(object):
 	txncounter = 0
 
 	# From global configuration
-	cachesize = g.claim('BDB.CACHESIZE', 1024)
-	path = g.claim('EMEN2DBHOME')
-	create = g.claim('params.CREATE', False)
-	snapshot = g.claim('params.SNAPSHOT', True)
+	cachesize = emen2.db.config.get('BDB.CACHESIZE', 1024) # g.claim('BDB.CACHESIZE', 1024)
+	path = emen2.db.config.get('EMEN2DBHOME') # g.claim('EMEN2DBHOME')
+	create = emen2.db.config.get('params.CREATE') # g.claim('params.CREATE', False)
+	snapshot = emen2.db.config.get('params.SNAPSHOT') # g.claim('params.SNAPSHOT', True)
 
 	# paths from global configuration
-	LOGPATH = g.watch('paths.LOGPATH')
-	LOG_ARCHIVE = g.claim('paths.LOG_ARCHIVE')
-	TILEPATH = g.claim('paths.TILEPATH')
-	TMPPATH = g.claim('paths.TMPPATH')
-	SSLPATH = g.watch('paths.SSLPATH')
+	LOGPATH = emen2.db.config.get('paths.LOGPATH') # g.watch('paths.LOGPATH')
+	LOG_ARCHIVE = emen2.db.config.get('paths.LOG_ARCHIVE') # g.claim('paths.LOG_ARCHIVE')
+	TILEPATH = emen2.db.config.get('paths.TILEPATH') # g.claim('paths.TILEPATH')
+	TMPPATH = emen2.db.config.get('paths.TMPPATH') # g.claim('paths.TMPPATH')
+	SSLPATH = emen2.db.config.get('paths.SSLPATH') # g.watch('paths.SSLPATH')
+
 
 	def __init__(self, path=None, maintenance=False, snapshot=False, create=False):
 		"""EMEN2 Database Environment.
@@ -376,7 +370,7 @@ class EMEN2DBEnv(object):
 		global DBENV
 
 		if DBENV == None:
-			g.info("Opening Database Environment: %s"%self.path)
+			emen2.db.log.info("Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
 
 			if snapshot or self.snapshot:
@@ -506,7 +500,7 @@ class EMEN2DBEnv(object):
 
 		configpath = os.path.join(self.path,"DB_CONFIG")
 		if not os.path.exists(configpath):
-			g.info("Installing default DB_CONFIG file: %s"%configpath)
+			emen2.db.log.info("Installing default DB_CONFIG file: %s"%configpath)
 			f = open(configpath, "w")
 			f.write(DB_CONFIG)
 			f.close()
@@ -518,20 +512,20 @@ class EMEN2DBEnv(object):
 		sys.stdout.flush()
 
 		tx_max = self.dbenv.get_tx_max()
-		g.info("Open transactions: %s"%tx_max)
+		emen2.db.log.info("Open transactions: %s"%tx_max)
 
 		txn_stat = self.dbenv.txn_stat()
-		g.info("Transaction stats: ")
+		emen2.db.log.info("Transaction stats: ")
 		for k,v in txn_stat.items():
-			g.info("\t%s: %s"%(k,v))
+			emen2.db.log.info("\t%s: %s"%(k,v))
 
 		log_archive = self.dbenv.log_archive()
-		g.info("Archive: %s"%log_archive)
+		emen2.db.log.info("Archive: %s"%log_archive)
 
 		lock_stat = self.dbenv.lock_stat()
-		g.info("Lock stats: ")
+		emen2.db.log.info("Lock stats: ")
 		for k,v in lock_stat.items():
-			g.info("\t%s: %s"%(k,v))
+			emen2.db.log.info("\t%s: %s"%(k,v))
 
 
 	####################################
@@ -551,7 +545,7 @@ class EMEN2DBEnv(object):
 			flags = 0
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags) #
-		# g.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
+		# emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
 		#try:
 		type(self).txncounter += 1
@@ -587,7 +581,7 @@ class EMEN2DBEnv(object):
 		"""
 
 		txn = self.txnlog.get(txnid, txn)
-		# g.log.msg('TXN', "TXN ABORT --> %s"%txn)
+		# emen2.db.log.msg('TXN', "TXN ABORT --> %s"%txn)
 
 		if txn:
 			txn.abort()
@@ -607,7 +601,7 @@ class EMEN2DBEnv(object):
 		"""
 
 		txn = self.txnlog.get(txnid, txn)
-		# g.log.msg('TXN', "TXN COMMIT --> %s"%txn)
+		# emen2.db.log.msg('TXN', "TXN COMMIT --> %s"%txn)
 
 		if txn != None:
 			txn.commit()
@@ -642,12 +636,12 @@ class EMEN2DBEnv(object):
 		outpath = self.LOG_ARCHIVE
 
 		if checkpoint:
-			g.info("Log Archive: Checkpoint")
+			emen2.db.log.info("Log Archive: Checkpoint")
 			self.dbenv.txn_checkpoint()
 
 		archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_ABS)
 
-		g.info("Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
+		emen2.db.log.info("Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
 
 		if not os.access(outpath, os.F_OK):
 			os.makedirs(outpath)
@@ -661,7 +655,7 @@ class EMEN2DBEnv(object):
 		outpaths = []
 		for archivefile in archivefiles:
 			dest = os.path.join(outpath, os.path.basename(archivefile))
-			g.info('Log Archive: %s -> %s'%(archivefile, dest))
+			emen2.db.log.info('Log Archive: %s -> %s'%(archivefile, dest))
 			shutil.copy(archivefile, dest)
 			outpaths.append(dest)
 
@@ -678,7 +672,7 @@ class EMEN2DBEnv(object):
 
 
 		for removefile in removefiles:
-			g.info('Log Archive: Removing %s'%(removefile))
+			emen2.db.log.info('Log Archive: Removing %s'%(removefile))
 			os.unlink(removefile)
 
 		return removefiles
@@ -686,12 +680,12 @@ class EMEN2DBEnv(object):
 
 
 class DB(object):
-	extensions = g.watch('extensions.EXTS')
+	extensions = emen2.db.config.get('extensions.EXTS') # g.watch('extensions.EXTS')
 	sync_contexts = threading.Event()
 
 	def __init__(self, path=None, create=False):
 		"""Initialize DB.
-		Default path is g.EMEN2DBHOME, which checks $EMEN2DBHOME and program arguments.
+		Default path is config.EMEN2DBHOME, which checks $EMEN2DBHOME and program arguments.
 
 		:keyword path: Directory containing EMEN2 Database Environment.
 		"""
@@ -987,8 +981,7 @@ class DB(object):
 							task(self, ctx=ctx, txn=txn)
 					except Exception, e:
 						txn.abort()
-						g.error('Exception in periodic_operations:', e)
-						traceback.print_exc(file=g.log)
+						emen2.db.log.error('Exception in periodic_operations:', e)
 					else:
 						txn.commit()
 					finally:
@@ -1009,7 +1002,7 @@ class DB(object):
 	#
 	# 		# Delete any expired contexts
 	# 		if context.time + (context.maxidle or 0) < newtime:
-	# 			g.info("Expire context (%s) %d" % (ctxid, time.time() - context.time))
+	# 			emen2.db.log.info("Expire context (%s) %d" % (ctxid, time.time() - context.time))
 	# 			self.bdbs.context.delete(ctxid, txn=txn)
 
 
@@ -1071,7 +1064,7 @@ class DB(object):
 			newcontext = emen2.db.context.Context(username=user.name, host=host)
 
 		self.bdbs.context.put(newcontext.name, newcontext, txn=txn)
-		g.log.msg('SECURITY', "Login succeeded: %s -> %s" % (name, newcontext.name))
+		emen2.db.log.msg('SECURITY', "Login succeeded: %s -> %s" % (name, newcontext.name))
 
 		return newcontext.name
 
@@ -1149,7 +1142,7 @@ class DB(object):
 
 		# If no ctxid was found, it's an expired context and has already been cleaned out.
 		if not context:
-			g.error("Session expired for %s"%ctxid)
+			emen2.db.log.security("Session expired for %s"%ctxid)
 			raise SessionError, "Session expired"
 
 		# ian: todo: check referenced groups, referenced records... (complicated.): #groups
@@ -2519,7 +2512,7 @@ class DB(object):
 
 		else:
 			# Email changed.
-			g.log.msg("SECURITY","Changing email for %s"%user.name)
+			emen2.db.log.msg("SECURITY","Changing email for %s"%user.name)
 			self.bdbs.user.cputs([user], txn=txn)
 
 			# Send the user an email to acknowledge the change
@@ -2544,7 +2537,7 @@ class DB(object):
 		user.setpassword(oldpassword, newpassword, secret=secret)
 
 		# ian: todo: evaluate to use put/cput..
-		g.log.msg("SECURITY", "Changing password for %s"%user.name)
+		emen2.db.log.msg("SECURITY", "Changing password for %s"%user.name)
 		self.bdbs.user.put(user.name, user, txn=txn)
 
 		#@postprocess
@@ -2574,7 +2567,7 @@ class DB(object):
 		ctxt = {'secret': user._secret[2]}
 		sendmail(user.email, template='/email/password.reset', ctxt=ctxt)
 
-		g.log.msg('SECURITY', "Setting resetpassword secret for %s"%user.name)
+		emen2.db.log.msg('SECURITY', "Setting resetpassword secret for %s"%user.name)
 
 
 
@@ -2641,8 +2634,10 @@ class DB(object):
 		return users
 
 
-	group_defaults = g.claim('users.GROUP_DEFAULTS', ["create"])
-	user_autoapprove = g.claim('users.USER_AUTOAPPROVE', False)
+	group_defaults = emen2.db.config.get('users.GROUP_DEFAULTS', ['create'])
+	# g.claim('users.GROUP_DEFAULTS', ["create"])
+	user_autoapprove = emen2.db.config.get('users.USER_AUTOAPPROVE', False)
+	# g.claim('users.USER_AUTOAPPROVE', False)
 
 	@publicmethod("user.queue.approve", write=True, admin=True)
 	@ol('names')
@@ -2944,7 +2939,7 @@ class DB(object):
 					rec.addumask(prec["permissions"])
 					rec.addgroup(prec["groups"])
 			except (KeyError, emen2.db.exceptions.SecurityError), inst:
-				g.warn("Couldn't get inherited permissions from record %s: %s"%(inherit, inst))
+				emen2.db.log.warn("Couldn't get inherited permissions from record %s: %s"%(inherit, inst))
 
 			rec["parents"] |= inherit
 

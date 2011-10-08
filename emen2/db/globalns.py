@@ -175,6 +175,7 @@ class GlobalNamespace(Hier):
 
 	def claim(self, name, default=None, validator=None):
 		return Claim(self, name, default, validator)
+
 	def watch(self, name, default=None):
 		return Watch(self, name, default)
 

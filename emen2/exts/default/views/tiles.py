@@ -5,10 +5,9 @@ import math
 import json
 
 import jsonrpc.jsonutil
-import emen2.web.thumbs
 
 import emen2.db.config
-g = emen2.db.config.g()
+import emen2.web.thumbs
 from emen2.web.view import View
 
 
@@ -77,7 +76,8 @@ class Tiles(View):
 		
 				
 	def get_data(self):
-		filepath = os.path.join(g.paths.TILEPATH, self.bid.replace(":",".")+".tile")
+		tilepath = emen2.db.config.get('paths.TILEPATH')
+		filepath = os.path.join(tilepath, self.bid.replace(":",".")+".tile")
 		ret = get_tile(filepath, int(self.level), int(self.x), int(self.y))
 		self.set_header("Content-Type", "image/jpeg")
 		return ret
@@ -106,7 +106,8 @@ class PSpec1D(View):
 
 
 	def get_data(self):
-		filepath = os.path.join(g.paths.TILEPATH, self.bid.replace(":",".")+".radial.txt")
+		tilepath = emen2.db.config.get('paths.TILEPATH')
+		filepath = os.path.join(tilepath, self.bid.replace(":",".")+".radial.txt")
 
 		# if not os.access(filepath, os.F_OK):
 		# raise ValueError, "Could not access cached spatial frequency data"
@@ -150,7 +151,8 @@ class TilesCheck(View):
 		bname = bdoo.get('filename')
 		ipath = bdoo.get('filepath')
 		bdocounter = bdoo.get('name')
-		filepath = os.path.join(g.paths.TILEPATH, self.bid.replace(":",".")+".tile")
+		tilepath = emen2.db.config.get('paths.TILEPATH')
+		filepath = os.path.join(tilepath, self.bid.replace(":",".")+".tile")
 
 		if self.rebuild or not os.access(filepath,os.R_OK):
 			try:

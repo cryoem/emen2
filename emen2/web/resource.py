@@ -74,7 +74,7 @@ class EMEN2Resource(object):
 		method = method or self.render_action
 
 		# Update request details
-		self.request_method = request.method
+		self.request_method = request.method.lower()
 		self.request_headers = request.getAllHeaders()
 		self.request_location = request.path
 
@@ -97,7 +97,7 @@ class EMEN2Resource(object):
 		
 		# Use the EMEN2 DB thread pool.
 		deferred = emen2.web.server.pool.rundb(
-			self._render_dbtxn,
+			self._render_db,
 			method,
 			ctxid = ctxid,
 			host = host,
@@ -110,7 +110,7 @@ class EMEN2Resource(object):
 		return twisted.web.static.server.NOT_DONE_YET				
 		
 
-	def _render_dbtxn(self, method, db=None, ctxid=None, host=None, args=None):
+	def _render_db(self, method, db=None, ctxid=None, host=None, args=None):
 		# Render method inside a DB transaction using auth token ctxid
 		self.db = db
 		# The DBProxy context manager will open a transaction, and abort
@@ -119,6 +119,7 @@ class EMEN2Resource(object):
 			self.db._setContext(ctxid,host)
 			getattr(self, '_before_action', lambda x:x)() # temp workaround
 			result = method(self, **args)
+
 		return result
 		
 

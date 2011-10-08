@@ -25,8 +25,6 @@ import emen2.db.config
 import emen2.db.exceptions
 import emen2.util.listops
 import emen2.db.exceptions
-g = emen2.db.config.g()
-CVars = emen2.db.config.CVars
 
 # Convenience
 ci = emen2.util.listops.check_iterable
@@ -69,6 +67,7 @@ class Vartype(object):
 	# After pre-processing values into markup
 	def _render(self, value):
 		# Note: Value should already be escaped!
+		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		label = ''
 		editmarkup = 'data-name="%s" data-param="%s"'%(self.name, self.pd.name)
 		
@@ -81,7 +80,7 @@ class Vartype(object):
 
 		# Empty value
 		if not value:
-			label = '<img src="%s/static/images/blank.png" class="e2l-label" alt="No value" />'%CVars.webroot
+			label = '<img src="%s/static/images/blank.png" class="e2l-label" alt="No value" />'%webroot
 			if self.edit:
 				return '<%s class="%s" %s>%s</%s>'%(self.elem, self.elem_class, editmarkup, label, self.elem)
 			return '<%s></%s>'%(self.elem, self.elem)
@@ -89,7 +88,7 @@ class Vartype(object):
 
 		# Tables have links to the record
 		if self.table:
-			value = ['<a href="%s/record/%s">%s</a>'%(CVars.webroot, self.name, i) for i in value]
+			value = ['<a href="%s/record/%s">%s</a>'%(webroot, self.name, i) for i in value]
 			
 		# Iterable parameters
 		if self.pd.iter:	
@@ -99,7 +98,7 @@ class Vartype(object):
 			# Editable..
 			# Are we showing the edit label?
 			# if self.showlabel:
-			#	lis.append('<li><span class="e2-edit e2l-label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%CVars.webroot)
+			#	lis.append('<li><span class="e2-edit e2l-label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%webroot)
 			# Put the editing widget together
 			return '<ul class="%s" %s>%s</ul>'%(self.elem_class, editmarkup, "\n".join(lis))
 
@@ -324,7 +323,9 @@ class vt_text(vt_string):
 	"""Freeform text, with word indexing."""
 	elem = 'div'
 
-	unindexed_words = g.claim('UNINDEXED_WORDS', {"in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"})
+	# unindexed_words = g.claim('UNINDEXED_WORDS', )
+	unindexed_words = {"in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"}
+	
 	def reindex(self, items):
 		"""(Internal) calculate param index updates for vartype == text"""
 		addrefs = collections.defaultdict(list)
@@ -510,6 +511,7 @@ class vt_binary(Vartype):
 
 
 	def process(self, value):
+		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		value = ci(value)
 		if not self.markup:
 			return value
@@ -519,7 +521,7 @@ class vt_binary(Vartype):
 			if self.table:
 				value = ['%s'%(cgi.escape(i.filename)) for i in v]
 			else:
-				value = ['<a href="%s/download/%s/%s">%s</a>'%(CVars.webroot, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
+				value = ['<a href="%s/download/%s/%s">%s</a>'%(webroot, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
 
 		except (ValueError, TypeError):
 			value = ['Error getting binary %s'%i for i in value]
@@ -560,6 +562,7 @@ class vt_user(Vartype):
 		
 
 	def process(self, value):
+		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		value = ci(value)
 		update_username_cache(self.engine, value)
 
@@ -571,7 +574,7 @@ class vt_user(Vartype):
 			if self.table or not self.markup:
 				lis.append(dn)
 			else:
-				lis.append('<a href="%s/user/%s">%s</a>'%(CVars.webroot, i, dn))
+				lis.append('<a href="%s/user/%s">%s</a>'%(webroot, i, dn))
 
 		return lis
 
@@ -676,6 +679,7 @@ class vt_comments(Vartype):
 		return value
 
 	def process(self, value):
+		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		value = ci(value)
 		users = [i[0] for i in value]
 		update_username_cache(self.engine, users)
@@ -689,7 +693,7 @@ class vt_comments(Vartype):
 			if self.table or not self.markup:
 				t = '%s @ %s: %s'%(user, time, comment)
 			else:
-				t = '<h4><a href="%s/user/%s">%s</a> @ %s</h4>%s'%(CVars.webroot, user, dn, time, comment)
+				t = '<h4><a href="%s/user/%s">%s</a> @ %s</h4>%s'%(webroot, user, dn, time, comment)
 			lis.append(t)
 
 		return lis

@@ -1,10 +1,5 @@
 # $Id$
-# Standard View imports
-import emen2.db.config
-g = emen2.db.config.g()
 from emen2.web.view import View
-###
-
 
 @View.register
 class Help(View):

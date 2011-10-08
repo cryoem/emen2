@@ -2,7 +2,7 @@
 # db = emen2.db.opendb()
 # 
 # import emen2.db.database
-# tmpl = emen2.db.database.g.templates.get_template('/raw')
+# tmpl = emen2.db.config.g.templates.get_template('/raw')
 
 # print emen2.db.database.g.templates
 # print tmpl.render(content='test')

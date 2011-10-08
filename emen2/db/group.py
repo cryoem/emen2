@@ -10,9 +10,6 @@ import emen2.db.btrees
 import emen2.db.dataobject
 import emen2.db.exceptions
 
-import emen2.db.config
-g = emen2.db.config.g()
-
 
 class Group(emen2.db.dataobject.PermissionsDBObject):
 	"""Groups of users. These can be set in individual Records to provide access to members of a group.

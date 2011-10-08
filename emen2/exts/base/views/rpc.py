@@ -68,10 +68,10 @@ class JSONRPCProxy(View):
 				return self.q.get()
 		elif rpcrequest.method not in db._publicmethods:
 			try:
-				# g.debug('method \'pub.%s\' called' % rpcrequest.method)
+				# emen2.db.log.debug('method \'pub.%s\' called' % rpcrequest.method)
 				methodresult = emen2.web.events.EventRegistry().event('pub.%s' % rpcrequest.method)(self.ctxid, request.getClientIP(), db=db, *rpcrequest.args, **rpcrequest.kwargs)
 			except Exception, e:
-				# g.error('Exception:', e)
+				# emen2.db.log.error('Exception:', e)
 				print e
 				import traceback
 				traceback.print_exc()

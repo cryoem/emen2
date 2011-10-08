@@ -5,11 +5,6 @@ import textwrap
 import emen2.db.btrees
 import emen2.db.dataobject
 
-import emen2.db.config
-g = emen2.db.config.g()
-
-
-
 
 # ian: todo: make this a classmethod of RecordDef ?
 

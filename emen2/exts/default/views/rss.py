@@ -1,14 +1,8 @@
 # $Id$
 from emen2.web.view import View
-from emen2.web import routing
-from emen2.web import responsecodes
 import time
 import datetime
 import calendar
-import emen2.db.config
-g = emen2.db.config.g()
-import emen2.web.config
-CVars = emen2.web.config.CVars
 
 
 class Item(object):
@@ -59,7 +53,7 @@ class RSS(View):
 			days = 0
 			for c in range(self._amount):
 				dys = calendar.mdays[((datetime.date.today().month - c) % 12) + 1]
-				g.info(dys)
+				# emen2.db.log.info(dys)
 				days += dys
 			delta = datetime.timedelta(days=days)
 		elif self._unit == 'd':
@@ -75,8 +69,8 @@ class RSS(View):
 		return self.render()
 
 	def render(self):
-		g.info('begin -> %r' % self._begin)
-		g.info('end -> %r' % self._end)
+		# emen2.db.log.info('begin -> %r' % self._begin)
+		# emen2.db.log.info('end -> %r' % self._end)
 		query = [['modifytime', 'gt', self._begin]]
 		if self._end is not None:
 			query.append(['modifytime', 'lte', self._end])
@@ -86,6 +80,6 @@ class RSS(View):
 		for x in recs:
 			items.append(Item(x.name, x))
 		self.set_context_item('items', items)
-		self.title = '%s Record Feed - %s to %s' % (CVars.dbname, self._begin, self._end)
+		self.title = '%s Record Feed - %s to %s' % (emen2.db.config.get('customization.EMEN2DBNAME', 'EMEN2'), self._begin, self._end)
 		return View.get_data(self)
 __version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -13,8 +13,6 @@ import emen2.db.exceptions
 import emen2.db.dataobject
 import emen2.util.listops as listops
 
-import emen2.db.config
-g = emen2.db.config.g()
 
 
 class Record(emen2.db.dataobject.PermissionsDBObject):

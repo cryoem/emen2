@@ -2,14 +2,10 @@
 from operator import itemgetter
 import time
 
-# Standard View imports
+import emen2.db.exceptions
 import emen2.db.config
-g = emen2.db.config.g()
-import emen2.web.config
-CVars = emen2.web.config.CVars
 from emen2.web.view import View
 
-import emen2.db.exceptions
 
 
 @View.register
@@ -37,9 +33,11 @@ class Home(View):
 	def init(self):
 			self.title = 'Home'
 			self.template = '/pages/home'
+			bookmarks = emen2.db.config.get('bookmarks.BOOKMARKS', {})
 			
 			# Get the banner/welcome message
-			banner = None # CVars.bookmarks.get('BANNER', 0)
+			banner = emen2.db.config.get('customization.EMEN2LOGO')
+
 			try:
 				user, groups = self.db.checkcontext()
 			except (emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.SessionError), inst:
@@ -48,7 +46,7 @@ class Home(View):
 				self.set_context_item("msg",str(inst))
 
 			if user == "anonymous":
-				banner = CVars.bookmarks.get('BANNER_NOAUTH', banner)
+				banner = bookmarks.get('BANNER_NOAUTH', banner)
 
 			try:
 				banner = self.db.getrecord(banner)
@@ -65,7 +63,7 @@ class Home(View):
 			admin = False
 
 			# childtree = self.routing.execute('Map/embed', db=self.db, root=0, recurse=2, rectype=["group","project"], id="projectmap")
-			ctroot = CVars.bookmarks.get("GROUPS",0)
+			ctroot = bookmarks.get('GROUPS', 0)
 			rn, childtree = self.db.renderchildtree(ctroot, recurse=2, rectype=["group","project"])
 			recnames = {}
 			recnames.update(rn)

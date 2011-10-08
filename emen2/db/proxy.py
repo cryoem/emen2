@@ -12,8 +12,6 @@ import functools
 import inspect
 
 from emen2.util import listops
-import emen2.db.config
-g = emen2.db.config.g()
 
 
 # ian: The main DB class was cleaned up alot. I am going to merge the
@@ -25,7 +23,7 @@ def publicmethod(*args, **kwargs):
 	"""Decorator for public admin API database method"""
 	def _inner(func):
 		# print "Registering ", func.func_name
-		emen2.db.proxy.DBProxy._register_publicmethod(func, *args, **kwargs)
+		DBProxy._register_publicmethod(func, *args, **kwargs)
 		return func
 	return _inner
 

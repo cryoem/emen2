@@ -8,9 +8,7 @@ import re
 import traceback
 import operator
 
-import emen2.db.config
-g = emen2.db.config.g()
-
+import emen2.db.datatypes
 
 class BaseDBObject(object, DictMixin):
 	__metaclass__ = ABCMeta
@@ -437,7 +435,7 @@ class BaseDBObject(object, DictMixin):
 			msg = e.__doc__
 
 		if warning:
-			g.warn(msg)
+			emen2.db.log.warn(msg)
 		elif e:
 			raise e(msg)
 

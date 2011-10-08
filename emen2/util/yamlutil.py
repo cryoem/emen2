@@ -3,12 +3,11 @@
 from __future__ import with_statement, print_function
 import yaml
 import jsonrpc.jsonutil
-from emen2.db.config import g, DBOptions
-g = g()
+import emen2.db.config
 import getpass
 
 #g.logger.set_state('CRITICAL')
-parser = DBOptions()
+parser = emen2.db.config.DBOptions()
 parser.add_option('--flowstyle', dest='flowstyle', action='store', default='full', help='yaml flowstyle to use: ')
 parser.add_option('-f', '--file', dest='file', action='store')
 parser.add_option('-k', '--key', dest='keys', action='append')
@@ -31,15 +30,15 @@ if v.file is not None: kwargs['file'] = v.file
 if v.keys is not None: kwargs['kg'] = v.keys
 if v.set:
 	if len(args) != 2: raise ValueError, 'wrong number of arguments'
-	g.setattr(args[0], yaml.safe_load(args[1]))
+	emen2.db.config.globalns.setattr(args[0], yaml.safe_load(args[1]))
 
 if v.get:
-	val = g.getattr(v.get)
+	val = emen2.db.config.globalns.getattr(v.get)
 	if v.json: print(jsonrpc.jsonutil.encode(val))
 	else: print(val)
 
 else:
-	out = g.to_yaml(**kwargs)
+	out = emen2.db.config.globalns.to_yaml(**kwargs)
 	if v.ofile and v.file is None:
 		with file(v.ofile, 'w') as f:
 			f.write(out)

@@ -4,11 +4,10 @@ import operator
 import copy
 import urllib
 
-# Standard View imports
 import emen2.util.listops
-import emen2.db.config
-g = emen2.db.config.g()
 from emen2.web.view import View
+
+
 
 
 cmp_order = [".is.", "==", ".not.", "!=", ".contains.", ".gte.", ">=", ".lte.", "<=", ".gt.", ">", ".lt.", "<", ".any.", '.none.', '.noop.', '.name.']

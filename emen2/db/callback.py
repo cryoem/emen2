@@ -1,10 +1,7 @@
 # $Id$
-
 import collections
 
-
 import emen2.db.config
-g = emen2.db.config.g()
 
 class Message(object):
 	modes = set(['enter', 'exit', 'other'])
@@ -17,8 +14,8 @@ class Message(object):
 
 
 class MessageQueue(object):
-	g._callbacks = collections.defaultdict(lambda: collections.defaultdict(list))
-	_callbacks = g._callbacks
+	emen2.db.config.globalns._callbacks = collections.defaultdict(lambda: collections.defaultdict(list))
+	_callbacks = emen2.db.config.globalns._callbacks
 
 	@classmethod
 	def register(cls, message, mode):

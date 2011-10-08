@@ -1,17 +1,12 @@
 # $Id$
-import emen2.web.view
-from emen2.web import routing
 import collections
 import jsonrpc.jsonutil
 
-
-import emen2.db.config
-g = emen2.db.config.g()
-
+from emen2.web.view import View
 
 # for python >= 2.6
-@emen2.web.view.View.register
-class ReverseURI(emen2.web.view.View):
+@View.register
+class ReverseURI(View):
 	# for python < 2.6 do this:
 
 	__matcher__ = dict(

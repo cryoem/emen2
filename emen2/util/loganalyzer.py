@@ -5,8 +5,8 @@ import time
 import datetime
 import collections
 import itertools
-import emen2.db.config
-g= emen2.db.config.g()
+
+
 # Host Name N/A HTTP AUTH        Time Finished      ["Method Name]  Path      [Protocol"] Response  Size
 #                 USERID                                                                    Code   (bytes)
 # 127.0.0.1  -      -     [Thu May 21 12:43:46 2009] "GET           /rec/  HTTP/-.-"     200     9714
@@ -144,7 +144,7 @@ class AccessLogLine(object, UserDict.DictMixin):
 		kwargs = {}
 		yield _Munger(kwargs)
 		self = cls(**kwargs)
-		g.log.msg(level, self)
+		# emen2.db.log.msg(level, self)
 
 	def __init__(self, *args, **kwargs):
 		self._d = {}

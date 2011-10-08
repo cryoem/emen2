@@ -2,10 +2,6 @@
 import collections
 
 from emen2.web.view import View
-import emen2.db.config
-import emen2.web.config
-CVars = emen2.web.config.CVars
-
 
 
 @View.register

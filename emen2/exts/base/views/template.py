@@ -1,9 +1,8 @@
 # $Id$
 import itertools
-#from emen2.web import templating
+
 from emen2.web.view import View
 import emen2.db.config
-g = emen2.db.config.g()
 
 
 
@@ -20,9 +19,9 @@ class TemplateRender(View):
 	'''
 
 	@View.add_matcher(r'^/tmpl/(?P<template>.+)/$', name='main')
-	@View.add_matcher(r'^/tmpl-%s/(?P<template>.+)/$'%emen2.db.config.CVars.version, name='main/version')
+	@View.add_matcher(r'^/tmpl-%s/(?P<template>.+)/$'%emen2.db.config.get('params.VERSION'), name='main/version')
 	def init(self, template='/simple', **kwargs):
-		makot = g.templates.get_template(template)
+		makot = emen2.db.config.templates.get_template(template)
 
 		self.set_context_item('inherit', False)
 		if (self.db and self.db._getctx().checkadmin()) or getattr(makot.module, 'public', False):
@@ -47,7 +46,7 @@ class TemplateRender(View):
 # 	'''Static files'''
 # 	
 # 	@View.add_matcher(r'^/static/(?P<filename>.+)', name='main')
-# 	@View.add_matcher(r'^/static-%s/(?P<filename>.+)'%emen2.db.config.CVars.version, name='main/version')		
+# 	@View.add_matcher(r'^/static-%s/(?P<filename>.+)'%emen2.db.config.get('params.VERSION'), name='main/version')		
 # 	def init(self, filename):
 # 		self.filename = emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')		 
 # 		

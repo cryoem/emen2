@@ -1,12 +1,8 @@
 # $Id$
-# Standard View imports
-import emen2.db.config
-g = emen2.db.config.g()
-from emen2.web.view import View
-###
-
-import random
 import time
+
+from emen2.web.view import View
+
 
 @View.register
 class Groups(View):
@@ -26,8 +22,6 @@ class Groups(View):
 			return
 
 		self.set_context_item("groups",groups)
-
-
 
 
 

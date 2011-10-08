@@ -12,10 +12,7 @@ import emen2.db
 import emen2.db.btrees
 import emen2.db.exceptions
 import emen2.db.proxy
-
 import emen2.db.config
-g = emen2.db.config.g()
-
 
 # These do not use BaseDBObject since they are completely internal to the DB
 

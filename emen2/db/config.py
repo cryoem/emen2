@@ -10,11 +10,15 @@ import urlparse
 
 import jsonrpc.jsonutil
 import emen2.db.debug
+
+##### Global Namespace #####
+
 import emen2.db.globalns
-gg = emen2.db.globalns.GlobalNamespace()
+globalns = emen2.db.globalns.GlobalNamespace()
 
 
-# Try to load Mako Templating engine
+##### Mako template lookup #####
+
 import mako
 import mako.lookup
 
@@ -29,6 +33,11 @@ class AddExtLookup(mako.lookup.TemplateLookup):
 		tmpl = self.get_template(name)
 		return tmpl.render(**ctxt)
 
+# Mako Template Loader
+templates = AddExtLookup(input_encoding='utf-8')
+
+
+##### Get filename relative to a Python module #####
 
 def get_filename(package, resource):
 	'''Get the absolute path to a file inside a given Python package'''
@@ -37,15 +46,31 @@ def get_filename(package, resource):
 	return os.path.join(d, resource)
 
 
+##### Get and set configuration values #####
+
 def defaults():
 	parser = DBOptions()
 	parser.parse_args()
 	return parser
 
 
+# "g." makes for hard to maintain code.
+# Use: 
+# 	import emen2.db.config
+# 	emen2.db.config.get(key)
+
+def get(key, default=None):
+	return globalns.watch(key, default=default).get()
+
+
+# This will eventually help lock 
+# the configuration for setting	
+def set(key, value):
+	pass
 
 
 
+##### Default OptionParser #####
 
 class DBOptions(optparse.OptionParser):
 
@@ -74,8 +99,8 @@ class DBOptions(optparse.OptionParser):
 		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
 		group.add_option('--version', action='store_true', help="EMEN2 Version")
 		group.add_option('--help', action="help", help="Print help message")
-		# group.add_option('--enableroot', action="store_true", help="Enable root account. You will be prompted for an email and password.")
 		group.add_option('--nosnapshot', action="store_false", dest="snapshot", default=True, help="Disable Berkeley DB Multiversion Concurrency Control (Snapshot)")
+		# group.add_option('--enableroot', action="store_true", help="Enable root account. You will be prompted for an email and password.")
 		self.add_option_group(group)
 
 
@@ -92,12 +117,6 @@ class DBOptions(optparse.OptionParser):
 		return db
 
 
-	def getpath(self, pathname):
-		# ian: todo: dynamically resolve pathnames for DB dirs
-		return os.path.join(gg.EMEN2DBHOME, gg.getattr(pathname))
-
-
-
 	def resolve_ext(self, ext, extpaths):
 		# Find the path to the extension
 		path, name = os.path.split(ext)
@@ -106,7 +125,7 @@ class DBOptions(optparse.OptionParser):
 		if path:
 			paths = filter(os.path.isdir, [ext])
 		else:
-			# Search g.EXTPATHS for a directory matching the ext name
+			# Search EXTPATHS for a directory matching the ext name
 			paths = []
 			for p in filter(os.path.isdir, extpaths):
 				for sp in os.listdir(p):
@@ -114,7 +133,7 @@ class DBOptions(optparse.OptionParser):
 						paths.append(os.path.join(p, sp))
 
 		if not paths:
-			self.config.info('Couldn\'t find extension %s'%ext)
+			globalns.info('Couldn\'t find extension %s'%ext)
 			return '', ''
 			# continue
 
@@ -124,16 +143,19 @@ class DBOptions(optparse.OptionParser):
 
 
 	def load_config(self, **kw):
-		self.__class__.config = gg
-		if self.config.getattr('CONFIG_LOADED', False):
+		if globalns.getattr('CONFIG_LOADED', False):
 			return
-		else:
-			return self.load_config_force(self.config, **kw)
+		
+		# with globalns:
+		self._load_config(globalns, **kw)
+		globalns.CONFIG_LOADED = True
 
 
-	def load_config_force(self, g, **kw):
+	def _load_config(self, g, **kw):
 		# Default settings
 		default_config = get_filename('emen2', 'db/config.base.json')
+
+		# A class method that loads a JSON file into the GlobalNS
 		g.from_file(default_config)
 
 		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
@@ -166,20 +188,17 @@ class DBOptions(optparse.OptionParser):
 			os.makedirs(g.paths.LOGPATH)
 
 		# Bind main logging method
-		g.log = emen2.db.debug.DebugState(output_level=loglevel,
-											logfile=file(os.path.join(g.paths.LOGPATH, 'log.log'), 'a', 0),
-											get_state=False,
-											quiet = self.values.quiet)
+		# logger = emen2.db.debug.DebugState(
+		# 	output_level=loglevel,
+		# 	logfile=file(os.path.join(g.paths.LOGPATH, 'log.log'), 'a', 0),
+		# 	get_state=False,
+		# 	quiet = self.values.quiet)
+		# Write out WEB and SECURITY messages to dedicated log files
+		# logger.add_output(['WEB'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'access.log'), 'a', 0))
+		# logger.add_output(['SECURITY'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'security.log'), 'a', 0))
+		# emen2.db.log.logger = logger
 
-		# Bind other logging methods
-		g.info = functools.partial(g.log.msg, 'INFO')
-		g.init = functools.partial(g.log.msg, 'INIT')
-		g.error = functools.partial(g.log.msg, 'ERROR')
-		g.warn = functools.partial(g.log.msg, 'WARNING')
-		g.debug = functools.partial(g.log.msg, 'DEBUG')
 
-		# Mako Template Loader
-		g.templates = AddExtLookup(input_encoding='utf-8')
 
 		# Extend the python module path
 		if getattr(g.paths, 'PYTHONPATH', []):
@@ -204,7 +223,7 @@ class DBOptions(optparse.OptionParser):
 		for ext in exts:
 			name, path = self.resolve_ext(ext, g.paths.EXTPATHS)
 			g.extensions.EXTS[name] = path
-			g.templates.directories.insert(0, os.path.join(path, 'templates'))
+			templates.directories.insert(0, os.path.join(path, 'templates'))
 
 		# Enable/disable snapshot
 		g.params.SNAPSHOT = self.values.snapshot
@@ -215,21 +234,8 @@ class DBOptions(optparse.OptionParser):
 		# Enable root user?
 		# g.ENABLEROOT = self.values.enableroot or False
 
-		# Write out WEB and SECURITY messages to dedicated log files
-		g.log.add_output(['WEB'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'access.log'), 'a', 0))
-		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'security.log'), 'a', 0))
-
-		# g.CONFIG_LOADED = True
 
 
-
-g = lambda: gg
-
-class CVars(object):
-	g = g()
-	dbname = g.claim('customization.EMEN2DBNAME', 'EMEN2')
-	version = emen2.VERSION
-	webroot = g.claim('network.EMEN2WEBROOT', '')
-	exturi = g.claim('network.EMEN2EXTURI', '')
+g = lambda: globalns
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

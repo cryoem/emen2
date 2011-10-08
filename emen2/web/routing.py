@@ -14,9 +14,6 @@ import emen2.web.events
 from emen2.web import responsecodes
 from emen2.util import listops
 
-import emen2.db.config
-g = emen2.db.config.g()
-
 
 def resolve(name=None, path=None):
 	"""Resolve a route using either a route name or path URI.

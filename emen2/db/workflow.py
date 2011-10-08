@@ -8,9 +8,6 @@ import re
 import weakref
 
 import emen2.db.btrees
-import emen2.db.config
-g = emen2.db.config.g()
-
 
 # ian: todo: currently deprecated until this is rewritten
 

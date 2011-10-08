@@ -4,12 +4,9 @@ import time
 import collections
 
 # Standard View imports
-import emen2.db.config
-from emen2.web.view import View
-
-import emen2.web.config
 import emen2.util.listops as listops
 import emen2.web.responsecodes
+from emen2.web.view import View
 
 
 class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):

@@ -1,9 +1,5 @@
 # $Id$
 # Standard View imports
-import emen2.db.config
-g = emen2.db.config.g()
-import emen2.web.config
-CVars = emen2.web.config.CVars
 from emen2.web.view import View
 
 
@@ -115,18 +111,7 @@ class RecordDefs(View):
 		self.template='/pages/recorddefs.%s'%action
 		self.set_context_item('create',self.db.checkcreate())
 
-		pages = {
-			'classname':'main',
-			'labels':{'tree':"Protocol Ontology", 'name':'Protocols by Name', 'count':'Protocols by Number of Records'},
-			'content':{'main':""},
-			'href':	{'tree': '%s/recorddefs/tree/'%CVars.webroot, 'name': '%s/recorddefs/name/'%CVars.webroot, 'count': '%s/recorddefs/count/'%CVars.webroot},
-			'order': ['tree', 'name', 'count']
-		}
-
-		pages['active'] = action
-		self.title = pages['labels'].get(action)
-		self.set_context_item('pages',pages)
-
+		# 	'labels':{'tree':"Protocol Ontology", 'name':'Protocols by Name', 'count':'Protocols by Number of Records'},
 		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="recorddef", root="root", recurse=-1, id='sitemap')
 
 		count = {}
