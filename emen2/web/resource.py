@@ -3,6 +3,9 @@
 import time
 import random
 import traceback
+import collections
+import functools
+import Queue
 
 import twisted.internet
 import twisted.web.static
@@ -10,6 +13,8 @@ import twisted.web.resource
 import twisted.python.failure
 
 import jsonrpc.jsonutil
+import jsonrpc.server
+
 import mako.exceptions
 
 # emen2 imports
@@ -19,12 +24,7 @@ import emen2.util.loganalyzer
 import emen2.web.events
 import emen2.web.routing
 import emen2.web.responsecodes
-
 import emen2.web.server
-
-
-def cookie_expire_time(self):
-	return time.strftime("%a, %d-%b-%Y %H:%M:%S PST", time.localtime(time.time()+604800))
 
 
 # Special thanks to this Dave Peticolas's blog post for 
@@ -49,9 +49,21 @@ class EMEN2Resource(object):
 
 	isLeaf = True
 	events = emen2.web.events.EventRegistry()
-	
-	# Backwards compatibility
 	routing = emen2.web.routing
+
+	def __init__(self):
+		# HTTP Method
+		self.request_method = 'get'
+		
+		# Request headers
+		self.request_headers = {}
+
+		# Request location
+		self.request_location = ''
+
+		# HTTP ETags (cache control)
+		self.etag = None
+		
 	
 	##### Resource interface #####
 	
@@ -60,6 +72,11 @@ class EMEN2Resource(object):
 		# The default is to run a supplied method (or default: render_action)
 		# wrapped in a DB transaction from the DBPool.
 		method = method or self.render_action
+
+		# Update request details
+		self.request_method = request.method
+		self.request_headers = request.getAllHeaders()
+		self.request_location = request.path
 
 		# Parse and filter the request arguments
 		args = self.parse_args(request)
@@ -79,7 +96,7 @@ class EMEN2Resource(object):
 		t = time.time()
 		
 		# Use the EMEN2 DB thread pool.
-		deferred = emen2.web.server.pool.runtxn(
+		deferred = emen2.web.server.pool.rundb(
 			self._render_dbtxn,
 			method,
 			ctxid = ctxid,
@@ -93,7 +110,7 @@ class EMEN2Resource(object):
 		return twisted.web.static.server.NOT_DONE_YET				
 		
 
-	def _render_dbtxn(self, method, ctxid=None, host=None, args=None):
+	def _render_dbtxn(self, method, db=None, ctxid=None, host=None, args=None):
 		# Render method inside a DB transaction using auth token ctxid
 		self.db = db
 		# The DBProxy context manager will open a transaction, and abort
@@ -388,6 +405,115 @@ class EMEN2Resource(object):
 		else: raise ValueError, "No such slot"
 
 
+
+##### Test Resource #####
+
+class TestResource(object):
+	# The Resource specification for leaf nodes 
+	# only requires render() and isLeaf = True
+	isLeaf = True
+
+	def render(self, request):
+		# print "Render: %s"%request.path		
+		deferred = pool.runtxn(self.render_action, args=request.args)
+		deferred.addCallback(self.render_cb, request)
+		deferred.addErrback(self.render_eb, request)
+		request.notifyFinish().addErrback(self._request_broken, request, deferred)		
+		return twisted.web.static.server.NOT_DONE_YET			
+
+	def render_action(self, *args, **kwargs):
+		result = '%s %s %s'%(time.strftime('%Y/%m/%d %H:%M:%S'), args, kwargs)
+		return result
+
+	def render_cb(self, result, request):
+		# print "Callback"
+		request.write(result)
+		request.finish()
+
+	def render_eb(self, failure, request):
+		# print "Failure:", failure
+		request.write('failure!')
+		request.finish()	
+
+	def _request_broken(self, failure, request, deferred):
+		# The errback will be called, but not the callback.
+		deferred.cancel()
+
+
+
+##### XML-RPC and JSON-RPC Resources #####
+
+class XMLRPCResource(object):
+	pass
+
+
+class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
+
+	q = Queue.Queue()
+
+	def processcontent(self, content, request):
+		# Get the host from request
+		# Get the ctxid from the post or querystring arguments
+		ctxid, host = request.getCookie('ctxid'), request.getClientIP()
+		ctxid = content.get('ctxid', ctxid)
+		if 'params' in content:
+			params = content['params']
+			if hasattr(params, 'get'):
+				ctxid = params.pop('ctxid', ctxid)
+		self.ctxid = ctxid
+		self.host = request.getClientIP()
+		return content
+
+
+	def callmethod(self, request, rpcrequest, db=None, ctxid=None, **kw):
+		# Lookup the method and call
+		if rpcrequest.method.startswith('_'):
+			raise emen2.web.responsecodes.ForbiddenError, 'Method not accessible'
+
+		elif rpcrequest.method == 'pp':
+			return self.q.put((rpcrequest.args, rpcrequest.kwargs))
+
+		elif rpcrequest.method == 'gg':
+			return self.q.get()
+
+		elif rpcrequest.method not in db._publicmethods:
+			e = emen2.web.events.EventRegistry().event('pub.%s'%rpcrequest.method)
+			methodresult = e(self.ctxid, request.getClientIP(), db=db, *rpcrequest.args, **rpcrequest.kwargs)
+
+		else:
+			# Start the DB with a write transaction
+			db._starttxn(write=db._checkwrite(rpcrequest.method))
+			with db._autoclean():
+				_method = rpcrequest.method.rpartition('.')[2]
+				if _method == 'login':
+					rpcrequest.kwargs['host'] = self.host
+
+				db._setContext(self.ctxid, self.host)
+				methodresult = db._callmethod(rpcrequest.method, rpcrequest.args, rpcrequest.kwargs)
+
+				if _method in set(['login', 'logout']):
+					request.addCookie('ctxid', methodresult or '')
+
+		return methodresult		
+
+
+class JSONRPCResource(jsonrpc.server.JSON_RPC):
+	eventhandler = JSONRPCServerEvents
+
+	def _defer(self, request, contents):
+		# Use the DB pool
+		deferred = emen2.web.server.pool.rundb(
+			self._action,
+			request=request,
+			contents=contents)
+		deferred.addCallback(self._cbRender, request)
+		deferred.addErrback(self._ebRender, request, contents.id if hasattr(contents, 'id') else None)
+		return twisted.web.static.server.NOT_DONE_YET
+
+	# def _rundb_action(self, db=None, *args, **kwargs):
+	# 	print "DB:"
+	# 	print db
+	# 	return self._action()
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

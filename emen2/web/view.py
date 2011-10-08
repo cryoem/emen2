@@ -35,7 +35,10 @@ import emen2.web.notifications
 
 import emen2.db.config
 g = emen2.db.config.g()
+
+import emen2.web.config
 CVars = emen2.web.config.CVars
+
 
 # Exported classes
 __all__ = ['TemplateView', 'View', 'ViewPlugin', 'AdminView', 'AuthView']
@@ -131,23 +134,14 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 		lambda self, value: self.ctxt.set('template', value))
 
 
-	def __init__(self, db=None, basectxt=None, **blargh):
+	def __init__(self, *args, **blargh):
 		'''\
 		request_method is the HTTP method
 		request_headers are the request headers
 		request_location is the request URI
 		'''	
 				
-		super(TemplateView, self).__init__(self)
-		
-		# HTTP Method and HTTP ETags (cache control)
-		self.request_method = 'get'
-		
-		# Request headers
-		self.request_headers = {}
-
-		# Request location
-		self.request_location = ''
+		super(TemplateView, self).__init__()
 
 		# Response headers
 		self._headers = {}
@@ -167,7 +161,6 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 			REQUEST_LOCATION = self.request_location,
 			REQUEST_HEADERS = self.request_headers
 		))
-		self.ctxt.update(basectxt or {})
 
 		# ETags
 		self.etag = None
@@ -176,6 +169,9 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 	def _bind_db(self, db=None, request=None):
 		self.db = db
 	
+	def _before_render(self, *args, **kwargs):
+		pass
+		
 	# def notify(self, msg):
 	# 	self.events.event('notify')(id(self), msg)
 
@@ -253,7 +249,7 @@ class View(TemplateView):
 	notifications = emen2.web.notifications.NotificationHandler()
 
 	def _before_action(self, *arrghs, **blarrghs):
-		'''Undocumented. Perform an action, inside the transaction,
+		'''Private/undocumented. Perform an action, inside the transaction,
 		before the render action. This is a temporary workaround and
 		may change in the future.'''
 		

@@ -25,18 +25,9 @@ try:
 except ImportError:
 	ssl = None
 
-import emen2.web.notifications
-import emen2.web.view
 import emen2.db.config
 config = emen2.db.config.g()
 
-# EMEN2 Resources. To be migrated.
-import emen2.web.resource
-import emen2.web.resources.jsonrpcresource
-# import emen2.web.resources.downloadresource
-# import emen2.web.resources.uploadresource
-# import emen2.web.resources.xmlrpcresource
-# import emen2.web.resources.jsonrpcresource
 
 
 def addSlash(request):
@@ -70,8 +61,8 @@ class DBPool(object):
 		self.threadpool = twisted.python.threadpool.ThreadPool(self.min, self.max)
 
 	def connect(self):
+		# print '# threads: %s'%len(self.dbs)
 		tid = self.threadID()
-		print '# threads: %s'%len(self.dbs)
 		db = self.dbs.get(tid)
 		if not db:
 			db = emen2.db.opendb()
@@ -90,6 +81,8 @@ class DBPool(object):
 		return twisted.internet.threads.deferToThread(self._rundb, call, *args, **kwargs)
 
 	def _rundb(self, call, *args, **kwargs):
+		print "_rundb:"
+		print call, args, kwargs
 		db = self.connect()
 		result = call(db=db, *args, **kwargs)
 		return result
@@ -109,42 +102,6 @@ class DBPool(object):
 
 pool = DBPool()
 reactor = twisted.internet.reactor		
-
-##### Test Resource #####
-
-class TestResource(object):
-	# The Resource specification for leaf nodes 
-	# only requires render() and isLeaf = True
-	isLeaf = True
-
-	def render(self, request):
-		# print "Render: %s"%request.path		
-		deferred = pool.runtxn(self.render_action, args=request.args)
-		deferred.addCallback(self.render_cb, request)
-		deferred.addErrback(self.render_eb, request)
-		request.notifyFinish().addErrback(self._request_broken, request, deferred)		
-		return twisted.web.static.server.NOT_DONE_YET			
-		
-	def render_action(self, *args, **kwargs):
-		result = '%s %s %s'%(time.strftime('%Y/%m/%d %H:%M:%S'), args, kwargs)
-		return result
-		
-	def render_cb(self, result, request):
-		# print "Callback"
-		request.write(result)
-		request.finish()
-	
-	def render_eb(self, failure, request):
-		# print "Failure:", failure
-		request.write('failure!')
-		request.finish()	
-
-	def _request_broken(self, failure, request, deferred):
-		# The errback will be called, but not the callback.
-		deferred.cancel()
-
-		
-
 
 ##### Routing Resource #####
 
@@ -218,6 +175,11 @@ class EMEN2Server(object):
 	@contextlib.contextmanager
 	def start(self):
 		'''Run the server main loop'''
+
+		import emen2.web.view
+		import emen2.web.notifications
+		import emen2.web.resource
+
 		config.info('starting EMEN2 version: %s' % emen2.db.config.CVars.version)
 
 		# Routing resource. This will look up request.uri in the routing table
@@ -225,8 +187,8 @@ class EMEN2Server(object):
 		root = Router()
 		yield self, root
 
-		# These resources will be migrated to EMEN2Resources 
-		# root.putChild('jsonrpc', jsonrpc.server.JSON_RPC().customize(emen2.web.resources.jsonrpcresource.e2jsonrpc))
+		# Child resources that do not go through the Router.
+		root.putChild('jsonrpc', emen2.web.resource.JSONRPCResource())
 		root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('static-%s'%emen2.db.config.CVars.version, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
