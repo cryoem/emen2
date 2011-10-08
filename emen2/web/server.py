@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # $Id$
 
+raise Exception("Testing")
+
 import sys
 import thread
 import os.path
