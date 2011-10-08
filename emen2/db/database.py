@@ -446,9 +446,9 @@ class EMEN2DBEnv(object):
 		for k,v in self.keytypes.items():
 			print "Closing", v
 			v.close()
-		print "Closing dbenv"
+		# print "Closing dbenv"
 		self.dbenv.close()
-		print "Done closing dbenv"
+		# print "Done closing dbenv"
 
 
 	####################################
@@ -695,16 +695,14 @@ class DB(object):
 
 		:keyword path: Directory containing EMEN2 Database Environment.
 		"""
+		
 		# Open the database
 		self.bdbs = EMEN2DBEnv(path=path, create=create)
 
 		# Load built in ParamDefs/RecordDefs
 		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
 
-		# Load extensions:
-		# 	any ParamDefs/RecordDefs from JSON
-		# 	any Mako templates
-		# 	optionally, any web views
+		# Load extensions
 		for ext, path in self.extensions.items():
 			self.load_extension(ext, path)
 
@@ -722,10 +720,16 @@ class DB(object):
 			self.setup()
 
 
-	def load_json(self, infile):
-		ctx = emen2.db.context.SpecialRootContext(db=self)
+	def load_extension(self, ext, path):
+		# ParamDefs/RecordDefs from JSON
+		for j in sorted(glob.glob(os.path.join(path, 'json', '*.json'))):
+			self.load_json(infile=j)
+		# Add extension to Mako Templates search path
 
-		# print "Loading... %s"%infile
+
+	def load_json(self, infile):
+		# Create a root context to load the items
+		ctx = emen2.db.context.SpecialRootContext(db=self)
 		loader = emen2.db.load.BaseLoader(infile=infile)
 
 		for item in loader.loadfile(keytype='paramdef'):
@@ -735,14 +739,6 @@ class DB(object):
 		for item in loader.loadfile(keytype='recorddef'):
 			rd = self.bdbs.recorddef.dataclass(ctx=ctx, **item)
 			self.bdbs.recorddef.addcache(rd)
-
-
-	def load_extension(self, ext, path):
-		# ParamDefs/RecordDefs from JSON
-		for j in glob.glob(os.path.join(path, 'json', '*.json')):
-			self.load_json(infile=j)
-		# Add extension to Mako Templates search path
-		g.templates.directories.insert(0, os.path.join(path, 'templates'))
 
 
 	def __str__(self):
@@ -759,14 +755,14 @@ class DB(object):
 	####################################
 
 	@classmethod
-	def opendb(cls, name=None, password=None, db=None):
+	def opendb(cls, name=None, password=None, db=None, admin=False):
 		import emen2.db.proxy
 		# Use self or create new instance..
 		db = db or cls()
 		proxy = emen2.db.proxy.DBProxy(db=db)
 		if name:
 			proxy._login(name, password)
-		else:
+		elif admin:
 			ctx = emen2.db.context.SpecialRootContext()
 			ctx.refresh(db=proxy)
 			proxy._ctx = ctx
@@ -1058,9 +1054,6 @@ class DB(object):
 		:exception: AuthenticationError, SessionError, KeyError
 		"""
 
-		print "Login!!"
-		print name, password, host
-		
 		# Make an anonymous Context
 		if name == "anonymous":
 			newcontext = emen2.db.context.AnonymousContext(host=host)

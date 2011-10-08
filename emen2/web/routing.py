@@ -48,6 +48,7 @@ def execute(_execute_name, db=None, *args, **kwargs):
 	"""
 	view, method = Router.resolve(name=_execute_name)
 	view = view(db=db)
+	view._before_action()
 	method(view, *args, **kwargs)
 	return view
 	

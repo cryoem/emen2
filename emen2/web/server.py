@@ -25,9 +25,9 @@ try:
 except ImportError:
 	ssl = None
 
+
 import emen2.db.config
 config = emen2.db.config.g()
-
 
 
 ##### Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool #####		
@@ -51,11 +51,12 @@ class DBPool(object):
 		self.threadpool = twisted.python.threadpool.ThreadPool(self.min, self.max)
 
 	def connect(self):
+		import emen2.db.database
 		# print '# threads: %s'%len(self.dbs)
 		tid = self.threadID()
 		db = self.dbs.get(tid)
 		if not db:
-			db = emen2.db.opendb()
+			db = emen2.db.database.DB.opendb()
 			self.dbs[tid] = db
 		return db
 
@@ -156,7 +157,7 @@ class EMEN2Server(object):
 
 		# Update the configuration
 		if self.options.port or port:
-			config.EMEN2PORT = self.options.port or port
+			self.EMEN2PORT = self.options.port or port
 
 		if self.options.https:
 			self.EMEN2HTTPS = self.options.https
@@ -168,12 +169,8 @@ class EMEN2Server(object):
 	@contextlib.contextmanager
 	def start(self):
 		'''Run the server main loop'''
-
-		import emen2.web.view
-		import emen2.web.notifications
-		import emen2.web.resource
-
-		config.info('starting EMEN2 version: %s' % emen2.db.config.CVars.version)
+		
+		# config.info('starting EMEN2 version: %s'%config.CVars.version)
 
 		# Routing resource. This will look up request.uri in the routing table
 		# and return View resources.
@@ -181,6 +178,8 @@ class EMEN2Server(object):
 		yield self, root
 
 		# Child resources that do not go through the Router.
+		import emen2.web.resource
+		import emen2.web.view
 		root.putChild('jsonrpc', emen2.web.resource.JSONRPCResource())
 		root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('static-%s'%emen2.db.config.CVars.version, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
@@ -211,7 +210,7 @@ class EMEN2Server(object):
 def start_emen2():
 	# Start the EMEN2Server and load the View resources
 	with EMEN2Server().start() as (server, root):
-		print 'ViewLoader'
+		import emen2.web.view
 		vl = emen2.web.view.ViewLoader()
 		vl.load_extensions()		
 

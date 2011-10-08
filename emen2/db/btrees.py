@@ -41,7 +41,6 @@ class EMEN2DB(object):
 	# Sort keys numerically, if possible (keytype is d/f)
 	cfunc = True
 	extension = 'bdb'
-	
 
 	def __init__(self, filename, keytype=None, datatype=None, dataclass=None, dbenv=None, autoopen=True):
 		"""Main BDB DB wrapper"""
@@ -54,8 +53,8 @@ class EMEN2DB(object):
 
 		# Cached items
 		self.cache = {}
-		self.cache_parents = collections.defaultdict(set) # temporary patch
-		self.cache_children = collections.defaultdict(set) # temporary patch
+		# self.cache_parents = collections.defaultdict(set) # temporary patch
+		# self.cache_children = collections.defaultdict(set) # temporary patch
 		
 		# Indexes
 		self.index = {}

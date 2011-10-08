@@ -8,8 +8,6 @@ import emen2.db.config
 from emen2.web.view import View
 
 import emen2.web.config
-CVars = emen2.web.config.CVars
-
 import emen2.util.listops as listops
 import emen2.web.responsecodes
 
@@ -83,7 +81,6 @@ class RecordBase(View):
 			pages[k] = "%s (%s)"%(k,len(v))
 			pages.uris[k] = self.routing.reverse('Record/children', name=self.rec.name, childtype=k)
 
-
 		# Update context
 		self.ctxt.update(
 			rec = self.rec,
@@ -142,7 +139,7 @@ class Record(RecordBase):
 			try:
 				rec.update(kwargs)
 				self.db.putrecord(rec)
-				self.headers['Location'] = '%s/record/%s/'%(CVars.webroot, name)
+				self.headers['Location'] = self.routing.reverse('Record/view', name=name)
 			except Exception, e:
 				self.ctxt['ERRORS'].append(e)
 				
@@ -236,7 +233,8 @@ class Record(RecordBase):
 			newrec.update(kwargs)
 			newrec = self.db.putrecord(newrec)
 			if newrec:
-				self.redirect('%s/record/%s/'%(CVars.webroot, newrec.name))
+				path = self.routing.reverse('Record/main', name=newrec.name)
+				self.redirect(path)
 			else:
 				self.error('Did not save record')
 			return

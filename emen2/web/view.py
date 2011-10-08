@@ -109,15 +109,7 @@ class TemplateContext(collections.MutableMapping):
 ###NOTE: This class should not access the db in any way, such activity is carried out by
 ###		the View class below.
 class TemplateView(emen2.web.resource.EMEN2Resource):
-	'''An EMEN2Resource class that renders a result using a template.
-
-	Attributes:
-		title
-		template
-		ctxt
-		preinit
-		etag
-	'''
+	'''An EMEN2Resource class that renders a result using a template.'''
 	
 	# Registration methods moved to the new EMEN2resource
 
@@ -169,7 +161,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 		self.etag = None
 
 	
-	def _before_render(self, *args, **kwargs):
+	def _before_action(self, *args, **kwargs):
 		pass
 		
 	# def notify(self, msg):

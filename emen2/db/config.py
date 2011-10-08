@@ -86,9 +86,9 @@ class DBOptions(optparse.OptionParser):
 		return r1, r2
 
 
-	def opendb(self, name=None, password=None):
+	def opendb(self, *args, **kwargs):
 		import emen2.db.database
-		db = emen2.db.database.DB.opendb(name=name, password=password)
+		db = emen2.db.database.DB.opendb(*args, **kwargs)
 		return db
 
 
@@ -178,6 +178,9 @@ class DBOptions(optparse.OptionParser):
 		g.warn = functools.partial(g.log.msg, 'WARNING')
 		g.debug = functools.partial(g.log.msg, 'DEBUG')
 
+		# Mako Template Loader
+		g.templates = AddExtLookup(input_encoding='utf-8')
+
 		# Extend the python module path
 		if getattr(g.paths, 'PYTHONPATH', []):
 			pp = g.paths.PYTHONPATH
@@ -199,12 +202,9 @@ class DBOptions(optparse.OptionParser):
 		# Use an OrderedDict to preserve the order
 		g.extensions.EXTS = collections.OrderedDict()
 		for ext in exts:
-			print 'Looking for ext:', ext
 			name, path = self.resolve_ext(ext, g.paths.EXTPATHS)
 			g.extensions.EXTS[name] = path
-
-		# Mako Template Loader
-		g.templates = AddExtLookup(input_encoding='utf-8')
+			g.templates.directories.insert(0, os.path.join(path, 'templates'))
 
 		# Enable/disable snapshot
 		g.params.SNAPSHOT = self.values.snapshot
@@ -219,7 +219,7 @@ class DBOptions(optparse.OptionParser):
 		g.log.add_output(['WEB'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'access.log'), 'a', 0))
 		g.log.add_output(['SECURITY'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'security.log'), 'a', 0))
 
-		g.params.CONFIG_LOADED = True
+		# g.CONFIG_LOADED = True
 
 
 
@@ -228,7 +228,7 @@ g = lambda: gg
 class CVars(object):
 	g = g()
 	dbname = g.claim('customization.EMEN2DBNAME', 'EMEN2')
-	version = emen2.VERSION # g.claim('params.VERSION')
+	version = emen2.VERSION
 	webroot = g.claim('network.EMEN2WEBROOT', '')
 	exturi = g.claim('network.EMEN2EXTURI', '')
 

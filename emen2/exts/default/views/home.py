@@ -37,9 +37,9 @@ class Home(View):
 	def init(self):
 			self.title = 'Home'
 			self.template = '/pages/home'
-
+			
 			# Get the banner/welcome message
-			banner = CVars.bookmarks.get('BANNER', 0)
+			banner = None # CVars.bookmarks.get('BANNER', 0)
 			try:
 				user, groups = self.db.checkcontext()
 			except (emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.SessionError), inst:
