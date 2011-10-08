@@ -56,7 +56,7 @@ class ParamDef(View):
 		if paramdef and paramdef.property:
 			units = self.db.getpropertyunits(paramdef.property)
 
-		self.update_context(dict(
+		self.ctxt.update(dict(
 			parentmap = parentmap,
 			title = title,
 			editable = editable,

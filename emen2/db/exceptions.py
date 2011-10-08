@@ -1,32 +1,32 @@
 # $Id$
 
-# class EMEN2Error(Exception):
-# 	def __init__(self, value):
-# 		self.value = value
-# 	def __str__(self):
-# 		return repr(self.value)
 
+# Security Errors
 class SecurityError(Exception):
-    "Security error"
+	"Security error"
+	code = 401
 
-class SessionError(KeyError):
-    "Session expired"
+class SessionError(SecurityError):
+	"Session expired"
 
-class AuthenticationError(ValueError):
-    "Invalid account name or password"
+class AuthenticationError(SecurityError):
+	"Invalid account name or password"
 
-class ExistingAccount(ValueError):
-	"This account name or email is already in use"
+class DisabledUserError(SecurityError):
+	"Disabled user"
 
-class DisabledUserError(ValueError):
-    "Disabled user"
 
+# Validation Errors
 class ValidationError(ValueError):
 	"""Validation error"""
 
+class ExistingKey(ValueError):
+	"This account name or email is already in use"
+
+
+# Time out
 class TimeError(Exception):
 	"""Operation timed out"""
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

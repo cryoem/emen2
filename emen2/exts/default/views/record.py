@@ -85,7 +85,7 @@ class RecordBase(View):
 
 
 		# Update context
-		self.update_context(
+		self.ctxt.update(
 			rec = self.rec,
 			recs = {str(self.name):self.rec},
 			recdef = self.recdef,
@@ -126,7 +126,7 @@ class Record(RecordBase):
 		rendered = self.db.renderview(self.rec, viewtype=viewtype, edit=self.rec.writable())
 
 		#######################################
-		self.update_context(
+		self.ctxt.update(
 			viewtype = viewtype,
 			rendered = rendered,
 			sibling = sibling,
@@ -245,7 +245,7 @@ class Record(RecordBase):
 		rendered = self.db.renderview(newrec, edit=True, viewtype=viewtype)
 
 		self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
-		self.update_context(
+		self.ctxt.update(
 			parentmap = parentmap,
 			recnames = recnames,
 			rec = parentrec,

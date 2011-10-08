@@ -56,7 +56,7 @@
 		// HTTPS port. You will need to place the SSL certificate and key files in the SSL directory
 		"EMEN2HTTPS": 0,
 
-		// The hostname of the EMEN2 installation, for reversing to a full URL
+		// The hostname of the EMEN2 installation, for reversing to a full URI
 		"EMEN2HOST": "localhost",
 
 		// The EMEN2 URI root -- e.g., "/testserver" or "http://ncmidb.bcm.edu/challenge". Useful for running behind a reverse proxy.

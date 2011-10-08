@@ -502,7 +502,7 @@ class UserDB(emen2.db.btrees.DBODB):
 		# Check  if this email already exists
 		indemail = self.getindex('email', txn=txn)
 		if indemail.get(user.email, txn=txn):
-			raise emen2.db.exceptions.ExistingAccount
+			raise emen2.db.exceptions.ExistingKey
 
 		return user
 
@@ -534,12 +534,12 @@ class NewUserDB(emen2.db.btrees.DBODB):
 		# Check if any pending accounts have this email address
 		for k,v in self.items(txn=txn):
 			if newuser.email == v.email:
-				raise emen2.db.exceptions.ExistingAccount, emen2.db.exceptions.ExistingAccount.__doc__
+				raise emen2.db.exceptions.ExistingKey, emen2.db.exceptions.ExistingKey.__doc__
 
 		# Check if this email already exists
 		indemail = self.dbenv.user.getindex('email', txn=txn)
 		if self.dbenv.user.exists(newuser.name, txn=txn) or indemail.get(newuser.email, txn=txn):
-			raise emen2.db.exceptions.ExistingAccount, emen2.db.exceptions.ExistingAccount.__doc__
+			raise emen2.db.exceptions.ExistingKey, emen2.db.exceptions.ExistingKey.__doc__
 
 		return newuser
 

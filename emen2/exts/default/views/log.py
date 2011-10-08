@@ -166,7 +166,7 @@ class LogAnalysis(View):#AdminView):
 
 
 		print linefilter, jsfilter
-		self.update_context(
+		self.ctxt.update(
 			sort=sort, errors=errors, name=name,
 
 			title='Access Log',

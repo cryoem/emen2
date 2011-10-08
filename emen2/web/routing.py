@@ -38,7 +38,7 @@ def resolve(name=None, path=None):
 	# Render the View
 	print view	
 	"""
-	return URLRegistry.resolve(name=name, path=path)
+	return Router.resolve(name=name, path=path)
 
 
 
@@ -46,42 +46,43 @@ def execute(_execute_name, db=None, *args, **kwargs):
 	"""Find and execute a route by name.
 	The route name (e.g. 'Home/main') must be the first positional argument.
 	"""
-	cb, matched = URLRegistry.resolve(name=_execute_name)
-	matched.update(kwargs)
-	view = cb(db=db)(*args, **kwargs)
+	view, method = Router.resolve(name=_execute_name)
+	view = view(db=db)
+	method(view, *args, **kwargs)
 	return view
 	
 	
-def execute_path(_execute_path, db=None, *args, **kwargs):
-	"""Find and execute a route by a path URI.
-	The route path (e.g. '/home/') must be the first positional argument.
-	"""	
-	cb, matched = URLRegistry.resolve(path=_execute_path)
-	matched.update(kwargs)
-	view = cb(db=db)(*args, **kwargs)
-	return view
+# def execute_path(_execute_path, db=None, *args, **kwargs):
+# 	"""Find and execute a route by a path URI.
+# 	The route path (e.g. '/home/') must be the first positional argument.
+# 	"""	
+# 	cb, matched = Router.resolve(path=_execute_path)
+# 	matched.update(kwargs)
+# 	view = cb(db=db)(*args, **kwargs)
+# 	return view
 
 
 
 def reverse(*args, **kwargs):
-	return URLRegistry.reverse(*args, **kwargs)
+	return Router.reverse(*args, **kwargs)
 	
 
 def add(*args, **kwargs):
 	pass	
 	
 
-class URL(object):
+class Route(object):
 	"""Private"""
 	
-	def __init__(self, name, matcher, cb):
-		# print "URL:", name, matcher, cb
+	def __init__(self, name, matcher, cls=None, method=None):
+		# print "Route:", name, matcher, cb
 		self.name = name
 		if not hasattr(matcher, 'match'):
 			matcher = re.compile(matcher)
 		self.matcher = matcher
-		self.cb = cb
-
+		self.cls = cls
+		self.method = method
+		
 	def match(self, path):
 		result = None
 		match = self.matcher.match(path)
@@ -90,13 +91,15 @@ class URL(object):
 		return result
 
 
+
+
 @emen2.util.registry.Registry.setup
-class URLRegistry(emen2.util.registry.Registry):
+class Router(emen2.util.registry.Registry):
 	"""Private"""
 	
 	_prepend = ''
 	events = emen2.web.events.EventRegistry()
-	child_class = URL
+	child_class = Route
 
 	def __init__(self, prepend='', default=True):
 		self._prepend = prepend or self._prepend
@@ -121,6 +124,11 @@ class URLRegistry(emen2.util.registry.Registry):
 	# Find a match for a path
 	@classmethod
 	def resolve(cls, path=None, name=None):
+		"""Resolve a route by either request path or route name. 
+		Returns (class, method) of the matching route. 
+		Keywords found in the match will be bound to the method.
+		"""
+		
 		if (not path and not name) or (path and name):
 			raise ValueError, "You must specify either a path or a name"
 
@@ -128,54 +136,54 @@ class URLRegistry(emen2.util.registry.Registry):
 		# Return a callback and found arguments
 		result = None, None
 
-		# Look at all the URLs in the registry
-		for url in cls.registry.values():
+		# Look at all the routes in the registry
+		for route in cls.registry.values():
 			# Return a result if found
-			# print "Checking:", url.name
+			# print "Checking:", route.name
 			if path:
-				tmp = url.match(path)
+				tmp = route.match(path)
 				if tmp != None:
-					return url.cb, tmp
+					return route.cls, partial(route.method, **tmp)
 			elif name:
-				if name == url.name:
-					return url.cb, {}
+				if name == route.name:
+					return route.cls, route.method
 
 		raise responsecodes.NotFoundError(path or name)
 
 
 	# Test resolve a route
 	@classmethod
-	def is_reachable(cls, url):
-		cb, groups = cls.resolve(url)
+	def is_reachable(cls, route):
+		cb, groups = cls.resolve(route)
 		return cb != None and groups != None
 
 
 	# Registration
 	@classmethod
-	def register(cls, url):
-		'''Add a URL object to the registry.  If a URL with the same "name" is already
+	def register(cls, route):
+		'''Add a Route object to the registry.  If a Route with the same "name" is already
 		registered, merge the two into the previously registered one.
 
-		@returns true if a url was already registered with the same name
+		@returns true if a Route was already registered with the same name
 		'''
 		p = cls()
-		url = emen2.util.registry.Registry.register(p, url)
-		cls.events.event('web.routing.url.register')(url)
-		return url
+		route = emen2.util.registry.Registry.register(p, route)
+		cls.events.event('web.routing.route.register')(route)
+		return route
 
 
 	# Reverse lookup
 	@classmethod
 	def reverse(cls, *args, **kwargs):
-		'''reverse: take a name and arguments, and return a url'''
+		'''Take a route name and arguments, and return a Route'''
 		result = '/error'
 		name = args[0].split('/',1)
 		if len(name) == 1:
 			name.append('main')
 		name = '/'.join(name)
-		url = cls.get(name, None)
-		if url:
-			result = cls._reverse_helper(url.matcher, *args, **kwargs)
+		route = cls.get(name, None)
+		if route:
+			result = cls._reverse_helper(route.matcher, *args, **kwargs)
 			result = str.join('', (cls._prepend, result))
 		return result
 
@@ -203,7 +211,7 @@ class NoReverseMatch(Exception):
 
 
 class MatchChecker(object):
-	"Class used in reverse RegexURLPattern lookup."
+	"Class used in reverse lookup."
 	def __init__(self, args, kwargs):
 		self.args = emen2.util.datastructures.IndexedListIterator( (str(x) for x in args) )
 		self.kwargs = dict(  ( x, str(y) ) for x, y in kwargs.items()  )
@@ -254,9 +262,9 @@ def force_unicode(string):
 if __name__ == '__main__':
 	from emen2.util.datastructures import doubledict
 	print doubledict()
-	a = URL('test', GET=('asda(?P<asdasd>sd)', lambda *args, **kwargs: (args, kwargs)))
+	a = Route('test', GET=('asda(?P<asdasd>sd)', lambda *args, **kwargs: (args, kwargs)))
 	print a.match('asdasd')[1].groupdict()
-	ur = URLRegistry();ur.register(a)
+	ur = Router();ur.register(a)
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

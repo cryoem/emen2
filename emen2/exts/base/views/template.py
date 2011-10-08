@@ -5,6 +5,8 @@ from emen2.web.view import View
 import emen2.db.config
 g = emen2.db.config.g()
 
+
+
 @View.register
 class TemplateRender(View):
 	'''Renders a template given its path.  To be usable, the template must set public to true in the global namespace.
@@ -17,22 +19,14 @@ class TemplateRender(View):
 			<%def name='mimetype()'></%def>: set the mime type
 	'''
 
-	@View.add_matcher(r'^/tmpl/(?P<template>.+)/', name='main')
-	@View.add_matcher(r'^/tmpl-%s/(?P<template>.+)/'%emen2.db.config.CVars.version, name='main/version')
+	@View.add_matcher(r'^/tmpl/(?P<template>.+)/$', name='main')
+	@View.add_matcher(r'^/tmpl-%s/(?P<template>.+)/$'%emen2.db.config.CVars.version, name='main/version')
 	def init(self, template='/simple', **kwargs):
 		makot = g.templates.get_template(template)
 
 		self.set_context_item('inherit', False)
 		if (self.db and self.db._getctx().checkadmin()) or getattr(makot.module, 'public', False):
-			try:
-				mimetype = makot.get_def('mimetype').render().strip()
-			except AttributeError:
-				mimetype = None
-
 			self.template = template
-			if mimetype is not None:
-				self.mimetype = mimetype
-
 			self.headers = getattr(makot.module, 'headers', {})
 
 		else:
@@ -40,5 +34,27 @@ class TemplateRender(View):
 
 		# self.etag = '"%s"' % template.mtime
 
+
+
+
+
+
+
+# import twisted.web.static
+# 
+# @View.register
+# class Static(View):
+# 	'''Static files'''
+# 	
+# 	@View.add_matcher(r'^/static/(?P<filename>.+)', name='main')
+# 	@View.add_matcher(r'^/static-%s/(?P<filename>.+)'%emen2.db.config.CVars.version, name='main/version')		
+# 	def init(self, filename):
+# 		self.filename = emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')		 
+# 		
+# 	def render_cb(self, result, request, t=0):
+# 		a = twisted.web.static.NoRangeStaticProducer(request, open(self.filename))
+# 		a.start()
+# 		
+		
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

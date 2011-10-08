@@ -6,4 +6,4 @@
 
 <h1>The page you have requested cannot be found.</h1>
 
-The requested URL ${msg | h} was not found on this server.
+The requested resource ${msg | h} was not found on this server.

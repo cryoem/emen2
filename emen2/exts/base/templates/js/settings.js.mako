@@ -22,6 +22,6 @@ var VERSION=${jsonrpc.jsonutil.encode(VERSION)};
 var valid_properties=${jsonrpc.jsonutil.encode(properties)};
 var valid_vartypes=${jsonrpc.jsonutil.encode(vtm.getvartypes())};
 
-var reverse_url='${ctxt.reverse('ReverseURL_alt')}';
+var reverse_uri='${ctxt.reverse('ReverseURI_alt')}';
 
 

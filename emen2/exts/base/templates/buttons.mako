@@ -3,6 +3,7 @@
 
 <%def name="newtabs(tabs, cls='')">
 	<%
+		tabs = tabs or {}
 		if not hasattr(tabs, 'items'):
 			tabs = {'main':tabs}
 		active = getattr(tabs, 'active', 'main')

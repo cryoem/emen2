@@ -11,7 +11,7 @@ g = emen2.db.config.g()
 
 # for python >= 2.6
 @emen2.web.view.View.register
-class ReverseURL(emen2.web.view.View):
+class ReverseURI(emen2.web.view.View):
 	# for python < 2.6 do this:
 
 	__matcher__ = dict(

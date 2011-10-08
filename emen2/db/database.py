@@ -1058,6 +1058,9 @@ class DB(object):
 		:exception: AuthenticationError, SessionError, KeyError
 		"""
 
+		print "Login!!"
+		print name, password, host
+		
 		# Make an anonymous Context
 		if name == "anonymous":
 			newcontext = emen2.db.context.AnonymousContext(host=host)

@@ -1,91 +1,203 @@
 #!/usr/bin/env python
 # $Id$
 
-raise Exception("Testing")
-
 import sys
 import thread
 import os.path
 import atexit
 import multiprocessing
+import functools
+import contextlib
+import threading
+import thread
+import time
+
 import twisted.internet
 import twisted.web.static
 import twisted.web.server
 import twisted.internet.reactor
+import twisted.python.threadpool
+
+import jsonrpc.server
 
 try:
 	from twisted.internet import ssl
 except ImportError:
 	ssl = None
 
-import emen2.web.resources.threadpool
+import emen2.web.notifications
+import emen2.web.view
 import emen2.db.config
-#import emen2.web.templating
 config = emen2.db.config.g()
 
-# Load EMEN2 Twisted Resources
-import emen2.web.resources.uploadresource
-import emen2.web.resources.downloadresource
-import emen2.web.resources.publicresource
-import emen2.web.resources.xmlrpcresource
+# EMEN2 Resources. To be migrated.
+import emen2.web.resource
 import emen2.web.resources.jsonrpcresource
-import jsonrpc.server
-import contextlib
+# import emen2.web.resources.downloadresource
+# import emen2.web.resources.uploadresource
+# import emen2.web.resources.xmlrpcresource
+# import emen2.web.resources.jsonrpcresource
 
 
-class ResourceLoader(object):
-	def __init__(self, root, **resources):
-		self.root = root
-		self.add_resources(**resources)
+def addSlash(request):
+	# Modified from twisted.web.static
+    qs = ''
+    qindex = request.uri.find('?')
+    if qindex != -1:
+        qs = request.uri[qindex:]
 
-	def add_resource(self, path, resource):
-		level, msg = 'DEBUG', ['RESOURCE', 'LOADED:', '%s to %s']
-		try: self.root.putChild(path, resource)
+    return "%s/%s"%((request.uri.split('?')[0]), qs)
+
+
+##### Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool #####		
+
+class DBPool(object):
+	running = False
+	
+	def __init__(self, min=0, max=1):
+		# Minimum and maximum number of threads
+		self.min = min
+		self.max = max
+		
+		# All connections, hashed by Thread ID
+		self.dbs = {}
+		
+		# Generate Thread ID
+		self.threadID = thread.get_ident
+
+		# Connect to reactor
+		self.reactor = twisted.internet.reactor
+		self.threadpool = twisted.python.threadpool.ThreadPool(self.min, self.max)
+
+	def connect(self):
+		tid = self.threadID()
+		print '# threads: %s'%len(self.dbs)
+		db = self.dbs.get(tid)
+		if not db:
+			db = emen2.db.opendb()
+			self.dbs[tid] = db
+		return db
+
+	def disconnect(self, db):
+		tid = self.threadID()
+		if db is not self.dbs.get(tid):
+			raise Exception('Wrong connection for thread')
+		if db:
+			# db.close
+			del self.dbs[tid]
+
+	def rundb(self, call, *args, **kwargs):
+		return twisted.internet.threads.deferToThread(self._rundb, call, *args, **kwargs)
+
+	def _rundb(self, call, *args, **kwargs):
+		db = self.connect()
+		result = call(db=db, *args, **kwargs)
+		return result
+
+	def runtxn(self, call, *args, **kwargs):
+		return twisted.internet.threads.deferToThread(self._runtxn, call, *args, **kwargs)
+	
+	def _runtxn(self, call, *args, **kwargs):
+		db = self.connect()
+		with db:
+			result = call(db=db, *args, **kwargs)
+		return result
+
+		
+
+##### pool and reactor #####
+
+pool = DBPool()
+reactor = twisted.internet.reactor		
+
+##### Test Resource #####
+
+class TestResource(object):
+	# The Resource specification for leaf nodes 
+	# only requires render() and isLeaf = True
+	isLeaf = True
+
+	def render(self, request):
+		# print "Render: %s"%request.path		
+		deferred = pool.runtxn(self.render_action, args=request.args)
+		deferred.addCallback(self.render_cb, request)
+		deferred.addErrback(self.render_eb, request)
+		request.notifyFinish().addErrback(self._request_broken, request, deferred)		
+		return twisted.web.static.server.NOT_DONE_YET			
+		
+	def render_action(self, *args, **kwargs):
+		result = '%s %s %s'%(time.strftime('%Y/%m/%d %H:%M:%S'), args, kwargs)
+		return result
+		
+	def render_cb(self, result, request):
+		# print "Callback"
+		request.write(result)
+		request.finish()
+	
+	def render_eb(self, failure, request):
+		# print "Failure:", failure
+		request.write('failure!')
+		request.finish()	
+
+	def _request_broken(self, failure, request, deferred):
+		# The errback will be called, but not the callback.
+		deferred.cancel()
+
+		
+
+
+##### Routing Resource #####
+
+class Router(twisted.web.resource.Resource):
+	isLeaf = False
+
+	# Find a resource or view
+	def getChildWithDefault(self, path, request):
+		if path in self.children:
+			return self.children[path]
+
+		path = request.path
+		if not path:
+			path = '/'
+		if path[-1] != "/":
+			path = "%s/"%path
+		request.path = path
+		
+		try:
+			view, method = emen2.web.routing.resolve(path=request.path)
 		except:
-			msg[1], level = 'FAILED.', 'CRITICAL'
-			del msg[2]
-		else:
-			msg[2] %= (path, resource)
-		config.log.msg(level, ' '.join(msg))
+			return self
+			
+		# This may move into routing.Router in the future.
+		view = view()
+		view.render = functools.partial(view.render, method=method)
+		return view
+		
 
-	def add_resources(self, **resources):
-		for k,v in resources.items():
-			self.add_resource(k,v)
-
-
-def allHeadersReceived(self, *a, **kw):
-	'''hack for allowing 100-Continue to work.......
-		not sure if this is the right method to override....'''
-	req = self.requests[-1]
-	req.parseCookies()
-	if req.requestHeaders.getRawHeaders('Expect') == ['100-continue']:
-		self.transport.write('HTTP/1.1 100-Continue\n\n')
-	self.persistent = self.checkPersistence(req, self._version)
-	req.gotLength(self.length)
-
+	# Resource was not found
+	def render(self, request):
+		return 'Not found'
+	
+		
 
 class EMEN2Server(object):
-	#: Use HTTPS?
-	EMEN2HTTPS = config.claim('network.EMEN2HTTPS', False, lambda v: isinstance(v, bool))
+	# Use HTTPS?
+	EMEN2HTTPS = False # config.claim('network.EMEN2HTTPS', False, lambda v: isinstance(v, bool))
 
-	#: Which port to receive HTTPS request?
-	EMEN2PORT_HTTPS = config.claim('network.EMEN2PORT_HTTPS', 443, lambda v: isinstance(v, (int,long)))
+	# Which port to receive HTTPS request?
+	EMEN2PORT_HTTPS = 436 # config.claim('network.EMEN2PORT_HTTPS', 443, lambda v: isinstance(v, (int,long)))
 
-	#: Where to find the SSL info
-	SSLPATH = config.claim('paths.SSLPATH', '', validator=lambda v: isinstance(v, (str, unicode)))
+	# How many threads to load, defaults to :py:func:`multiprocessing.cpu_count`+1
+	NUMTHREADS = 1 # config.claim('network.NUMTHREADS', multiprocessing.cpu_count()+1, lambda v: (v < (multiprocessing.cpu_count()*2)) )
 
-	#: Extra resources to load
-	EXTRARESOURCES = config.claim('config.RESOURCESPECS', {}, lambda v: isinstance(v, dict))
+	# Which port to listen on
+	PORT = 8080 # config.watch('network.EMEN2PORT', 8080)
 
-	#: How many threads to load, defaults to :py:func:`multiprocessing.cpu_count`+1
-	NUMTHREADS = config.claim('network.NUMTHREADS', multiprocessing.cpu_count()+1, lambda v: (v < (multiprocessing.cpu_count()*2)) )
-
-	#: Which port to listen on
-	PORT = config.watch('network.EMEN2PORT', 8080)
-
+	# Where to find the SSL info
+	SSLPATH = '' # config.claim('paths.SSLPATH', '', validator=lambda v: isinstance(v, (str, unicode)))
 
 	def __init__(self, port=None, dbo=None):
-		# Options
+		# Configuration options
 		self.dbo = dbo or emen2.db.config.DBOptions()
 		self.dbo.add_option('--port', type="int", help="Web server port")
 		self.dbo.add_option('--https', action="store_true", help="Use HTTPS")
@@ -107,78 +219,45 @@ class EMEN2Server(object):
 	def start(self):
 		'''Run the server main loop'''
 		config.info('starting EMEN2 version: %s' % emen2.db.config.CVars.version)
-		root = emen2.web.resources.publicresource.PublicView()
+
+		# Routing resource. This will look up request.uri in the routing table
+		# and return View resources.
+		root = Router()
 		yield self, root
 
+		# These resources will be migrated to EMEN2Resources 
+		# root.putChild('jsonrpc', jsonrpc.server.JSON_RPC().customize(emen2.web.resources.jsonrpcresource.e2jsonrpc))
+		root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
+		root.putChild('static-%s'%emen2.db.config.CVars.version, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
+		root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
+		root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
+
+		# The Twisted Web server protocol factory,
+		#  with our Routing resource as root
 		site = twisted.web.server.Site(root)
-		site.protocol.allHeadersReceived = allHeadersReceived
+		
+		# Setup the Twisted reactor to listen on web port
+		reactor.listenTCP(self.PORT, site)
 
-		twisted.internet.reactor.listenTCP(self.PORT, site)
-		config.info('Listening on port %d ...'%self.PORT)
-
+		# Setup the Twisted reactor to listen on the SSL port
 		if self.EMEN2HTTPS and ssl:
-			twisted.internet.reactor.listenSSL(
+			reactor.listenSSL(
 				self.EMEN2PORT_HTTPS,
 				site,
 				ssl.DefaultOpenSSLContextFactory(
 					os.path.join(self.SSLPATH, "server.key"),
 					os.path.join(self.SSLPATH, "server.crt")
-					)
-				)
+					))
 
-		twisted.internet.reactor.suggestThreadPoolSize(self.NUMTHREADS)
+		# config._locked = True
+		reactor.run()
 
-		config._locked = True
-		twisted.internet.reactor.run()
-
-
-
-	def load_resources(self, rl):
-		for path, mod in self.EXTRARESOURCES.items():
-			try:
-				mod = __import__(mod)
-				rl.add_resource(path, getattr(mod, path))
-			except ImportError:
-				config.error('failed to attach resource %r to path %r' % (mod, path))
-				if config.DEBUG:
-					config.log.print_exception()
-
-		rl.add_resources(
-			static = twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')),
-			download = emen2.web.resources.downloadresource.DownloadResource(),
-			upload = emen2.web.resources.uploadresource.UploadResource(),
-			RPC2 = emen2.web.resources.xmlrpcresource.RPCResource(format="xmlrpc"),
-			jsonrpc = jsonrpc.server.JSON_RPC().customize(emen2.web.resources.jsonrpcresource.e2jsonrpc),
-		)
-		rl.add_resource('static-%s'%emen2.db.config.CVars.version, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
-		rl.add_resource('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
-		rl.add_resource('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
-
-
-
-#NOTE: this MUST be imported here
-#import emen2.web.viewloader
 
 def start_emen2():
+	# Start the EMEN2Server and load the View resources
 	with EMEN2Server().start() as (server, root):
-		# This has to go first for metaclasses
-		# to register before the templates are cached.
-		import emen2.db.database
-
-		# Load views and templates
-		import emen2.web.view
-		import emen2.web.notifications
-		notifications = emen2.web.notifications.NotificationHandler()
-		notifications.start()
-		#thread.start_new_thread(notifications.sort_notifications, ())
-
 		vl = emen2.web.view.ViewLoader()
 		vl.load_extensions()
-		# vl.load_redirects()
-		# vl.routes_from_g()
-
-		rl = ResourceLoader(root)
-		server.load_resources(rl)
 
 
 if __name__ == "__main__":
@@ -186,4 +265,3 @@ if __name__ == "__main__":
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
-

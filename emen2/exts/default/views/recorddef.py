@@ -66,7 +66,7 @@ class RecordDef(View):
 
 		###############
 
-		self.update_context(dict(
+		self.ctxt.update(dict(
 			parentmap = parentmap.get_data(),
 			title = title,
 			editable = editable,
