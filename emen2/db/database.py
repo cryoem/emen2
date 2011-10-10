@@ -2804,6 +2804,8 @@ class DB(object):
 		'''Get user information.
 		Information may be limited to name and id if the user
 		requested additional privacy.
+		
+		Examples:
 
 		:param names: User name(s), Record(s), or Record name(s)
 		:keyword filt: Ignore failures
