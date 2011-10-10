@@ -102,6 +102,11 @@ input.e2l-error,
 }
 
 
+.e2l-nonlist {
+	list-style:none;
+	padding-left:0px;
+}
+
 /* e2l-controls: Control boxes */
 .e2l-options, 
 .e2l-advanced,
@@ -158,6 +163,7 @@ table.e2l-shaded tbody tr:nth-of-type(odd) {
 }
 /* e2l-kv: Simple two column tables */
 table.e2l-kv td:first-child {
+	vertical-align: top;
 	width:250px;
 }
 

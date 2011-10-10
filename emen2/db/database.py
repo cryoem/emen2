@@ -4205,7 +4205,7 @@ class DB(object):
 				if overwrite_groups:
 					crec['groups'] = addgroups
 				elif addgroups:
-					crec.addgroups(addgroups)
+					crec.addgroup(addgroups)
 				
 				crecs.append(crec)
 				

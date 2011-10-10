@@ -136,10 +136,11 @@ class Record(RecordBase):
 			try:
 				rec.update(kwargs)
 				self.db.putrecord(rec)
-				self.headers['Location'] = self.routing.reverse('Record/view', name=name)
+				self.redirect(self.routing.reverse('Record/view', name=name))
+				return
 			except Exception, e:
 				self.ctxt['ERRORS'].append(e)
-				
+			
 		self.view(name=name)
 		self.ctxt["edit"] = True
 
@@ -230,8 +231,10 @@ class Record(RecordBase):
 			newrec.update(kwargs)
 			newrec = self.db.putrecord(newrec)
 			if newrec:
-				path = self.routing.reverse('Record/main', name=newrec.name)
-				self.redirect(path)
+				self.redirect(self.routing.reverse('Record/view', name=newrec.name))
+				return
+				# path = self.routing.reverse('Record/main', name=newrec.name)
+				# self.redirect(path)
 			else:
 				self.error('Did not save record')
 			return
@@ -385,6 +388,15 @@ class Record(RecordBase):
 	# 
 	# 	self.set_context_item("bdo",bdo)
 	
+
+
+
+
+@View.register
+class Records(View):
+	pass
+
+
 
 
 # moved from db...
