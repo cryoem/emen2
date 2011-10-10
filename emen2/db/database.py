@@ -1088,7 +1088,9 @@ class DB(object):
 
 	@publicmethod("auth.login", write=True)
 	def login(self, name="anonymous", password="", host=None, ctx=None, txn=None):
-		'''Login. Returns auth token (ctxid), or fails with AuthenticationError.
+		'''Login. 
+		
+		Returns auth token (ctxid), or fails with AuthenticationError.
 
 		Examples:
 		
@@ -1329,7 +1331,7 @@ class DB(object):
 		:keyparam names: 
 		:keyparam table:
 		:keyparam stats:
-		:return: A dictionary containing the original query arguments and the result in 'names'
+		:return: A dictionary containing the original query arguments, and the result in the 'names' key
 		:exception KeyError: Broken constraint
 		:exception ValidationError: Broken constraint
 		:exception SecurityError: Unable to access specified RecordDefs or other constraint parameters.
@@ -2090,7 +2092,9 @@ class DB(object):
 	# query should replace this... also, make two methods instead of changing return format
 	@publicmethod("record.find.byvalue")
 	def findvalue(self, param, query='', count=True, showchoices=True, limit=100, ctx=None, txn=None):
-		'''Find values for a parameter. This is mostly used for interactive UI elements: e.g. combobox.
+		'''Find values for a parameter. 
+		
+		This is mostly used for interactive UI elements: e.g. combobox.
 		More detailed results can be returned by using db.query directly.
 		
 		Examples:
