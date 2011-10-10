@@ -1,4 +1,5 @@
 # $Id$
+'''EMEN2: An object-oriented scientific database.'''
 
 def opendb(*args, **kwargs):
 	'''Helper method for opening DB with default options'''

@@ -1,10 +1,6 @@
 # $Id$
 '''Database support for Binary attachments.
 
-Methods:
-	write_binary: Write data to temporary storage, return
-		the file path, size, and MD5 checksum
-
 Classes:
 	Binary: Binary (attachment) Database Object
 	BinaryDB: BTree for storing and access Binary instances

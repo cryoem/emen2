@@ -449,7 +449,7 @@ window.log = function(){
 						
 			var self = this;
 			var bookmarks = [];
-			$.jsonRPC.call('rel.child', [this.options.parent, 1, 'bookmarks'], function(children) {
+			$.jsonRPC.call('rel.children', [this.options.parent, 1, 'bookmarks'], function(children) {
 				children.sort();
 				var brec = null;
 				if (children.length > 0) {
@@ -508,7 +508,7 @@ window.log = function(){
 			this.element.empty();
 			this.element.append($.e2spinner(false));
 			
-			$.jsonRPC.call('rel.child', [this.options.parent, 1, 'bookmarks'], function(children) {
+			$.jsonRPC.call('rel.children', [this.options.parent, 1, 'bookmarks'], function(children) {
 				$.jsonRPC.call('record.get', [children], function(recs) {
 					if (recs.length == 0) {
 						var rec = {'rectype':'bookmarks', 'bookmarks': [], 'parents': [self.options.parent]};

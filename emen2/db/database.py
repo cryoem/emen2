@@ -2,10 +2,8 @@
 '''Main database module
 
 Functions:
-	fakemodules: Backwards compat support for module names
 	clock: Time a method's execution time
 	check_output: Run a command and read the output
-	DB_close: Close all databases
 	getctime: Local ctime
 	gettime: Formatted time
 	ol: Decorator to make sure a method argument is iterable
@@ -14,7 +12,7 @@ Functions:
 	sendmail: Send an email
 
 Classes:
-	EMEN2DBEnv: Manage Berkeley DB Database Environment
+	EMEN2DBEnv: Manage an EMEN2 Database Environment
 	DB: Main database class
 
 '''
@@ -102,18 +100,18 @@ DBENV = None
 basestring = (str, unicode)
 
 # ian: todo: move this to EMEN2DBEnv
-DB_CONFIG = """\
+DB_CONFIG = '''\
 # Don't touch these
 set_lg_dir log
 set_data_dir data
 set_lg_regionmax 1048576
 set_lg_max 8388608
 set_lg_bsize 2097152
-"""
+'''
 
 
-def fakemodules():
-	'''Backwards compatibility for old module/class names'''
+def _fakemodules():
+	'''Backwards compatibility for old module/class names.'''
 	import imp
 	Database = imp.new_module("Database")
 	Database.dataobjects = imp.new_module("dataobjects")
@@ -128,21 +126,21 @@ def fakemodules():
 	sys.modules["emen2.Database.dataobjects.group"] = emen2.db.group
 	sys.modules["emen2.Database.dataobjects.workflow"] = emen2.db.workflow
 
-fakemodules()
+_fakemodules()
 
 
 ##### Utility methods #####
 
 def clock(times, key=0, t=0, limit=60):
-	"""A timing method for controlling timeouts to prevent hanging.
-	On operations that might take a long time, call this at each step
+	'''A timing method for controlling timeouts to prevent hanging.
+	On operations that might take a long time, call this at each step.
 
 	:param times: Keep track of multiple times, e.g. debugging
 	:keyword key: Use this key in the times dictionary
 	:keyword t: Time at start of operation
 	:keyword limit: Maximum amount of time allowed in this timing dict
 	:return: Time elapsed since start of operation (float)
-	"""
+	'''
 	t2 = time.time()
 	if not times.get(key):
 		times[key] = 0
@@ -153,10 +151,10 @@ def clock(times, key=0, t=0, limit=60):
 
 
 def check_output(args, **kwds):
-	"""Run a command using Popen and return the stdout.
+	'''Run a command using Popen and return the stdout.
 
 	:return: stdout from the program after exit (str)
-	"""
+	'''
 	kwds.setdefault("stdout", subprocess.PIPE)
 	kwds.setdefault("stderr", subprocess.STDOUT)
 	p = subprocess.Popen(args, **kwds)
@@ -164,29 +162,33 @@ def check_output(args, **kwds):
 
 
 # @atexit.register
-def DB_Close(*args, **kwargs):
-	"""Close all open DBs"""
-	for i in EMEN2DBEnv.opendbs.keys():
-		i.close()
+# def DB_Close(*args, **kwargs):
+# 	'''Close all open DBs'''
+# 	for i in EMEN2DBEnv.opendbs.keys():
+# 		i.close()
 
 
 # ian: todo: make these express GMT, then localize using a user preference
 def getctime():
-	""":return: Current database time, as float in seconds since the epoch"""
+	''':return: Current database time, as float in seconds since the epoch.'''
 	return time.time()
 
 
 def gettime():
-	""":return: Current database time, as string in format %s"""%emen2.db.config.get('params.TIMESTR', "%Y/%m/%d %H:%M:%S")
+	''':return: Current database time, as string in format "%s".'''%emen2.db.config.get('params.TIMESTR', "%Y/%m/%d %H:%M:%S")
 	return time.strftime(emen2.db.config.get('params.TIMESTR', "%Y/%m/%d %H:%M:%S"))
 
 
-# Use introspection to handle accepting single or iterable items
-# It will look through the calling args/kwargs and convert ol=keyword
-# to an iterable before passing to the public method.
-# It will also transform the return value in the same way
-# This will be easier in Python 2.7 using inspect.getcallargs.
 def ol(name, output=True):
+	'''Use method argument introspection to convert an argument value to a list.
+	If the value was originally a list, return a list. If it was not, return
+	a single value.
+	
+	:param name: Argument name to transform to list.
+	:keyword output: Transform output.
+	'''
+	# This will be easier in Python 2.7 using inspect.getcallargs.
+	
 	def wrap(f):
 		olpos = inspect.getargspec(f).args.index(name)
 
@@ -213,8 +215,8 @@ def ol(name, output=True):
 	return wrap
 
 
-# Limit the number of items returned by a query result
 def limit_result_length(default=None):
+	'''Limit the number of items returned by a query result.'''
 	ns = dict(func = None)
 	def _inner(*a, **kw):
 		func = ns.get('func')
@@ -238,11 +240,11 @@ def limit_result_length(default=None):
 
 # Error handler
 def error(e=None, msg='', warning=False):
-	"""Error handler.
+	'''Error handler.
 
 	:keyword msg: Error message; default is Excpetion's docstring
 	:keyword e: Exception class; default is ValidationError
-	"""
+	'''
 	if e == None:
 		e = SecurityError
 	if not msg:
@@ -257,14 +259,14 @@ def error(e=None, msg='', warning=False):
 ##### Email #####
 
 def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, txn=None):
-	"""(Semi-internal) Send an email. You can provide either a template or a message subject and body.
+	'''(Semi-internal) Send an email. You can provide either a template or a message subject and body.
 
 	:param recipient: Email recipient
 	:keyword msg: Message text, or
 	:keyword template: ... Template name
 	:keyword ctxt: ... Dictionary to pass to template
 	:return: Email recipient, or None if no message was sent
-	"""
+	'''
 	# ctx and txn arguments don't do anything. I accept them because it's a force of habit to include them.
 
 	mailadmin = emen2.db.config.get('mailsettings.MAILADMIN')
@@ -318,6 +320,8 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 # ian: todo: have DBEnv and all BDBs in here --
 #	DB should just be methods for dealing with this dbenv "core"
 class EMEN2DBEnv(object):
+	'''Manage an EMEN2 Database Environment.'''
+
 	# Manage open btrees
 	opendbs = weakref.WeakKeyDictionary()
 
@@ -339,12 +343,15 @@ class EMEN2DBEnv(object):
 
 
 	def __init__(self, path=None, maintenance=False, snapshot=False, create=False):
-		"""EMEN2 Database Environment.
-		The DB files are accessible as attributes, and indexes are loaded in self.index.
+		'''EMEN2 Database Environment.
+		
+		Each database object table will be available in self.keytypes[keytype].
 
-		:keyword path: Directory containing EMEN2 Database Environment.
+		:keyword path: Directory containing environment.
+		:keyword maintenance: Open the environment in maintenance mode.
 		:keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
-		"""
+		:keyword create: Create the environment if it does not already exist.
+		'''
 
 		self.keytypes =  {}
 
@@ -412,15 +419,17 @@ class EMEN2DBEnv(object):
 
 
 	def getdbenv(self):
+		'''Return the Berkeley DB DBEnv handle.'''
 		return self.dbenv
 
 
-	def __getitem__(self, key, default):
+	def __getitem__(self, key, default=None):
+		'''Handle dictionary gets with self.keytypes.'''
 		return self.keytypes.get(key, default)
 
 
 	def init(self):
-		"""Open the databases"""
+		'''Open the databases.'''
 
 		# Authentication
 		self.context = emen2.db.context.ContextDB(path="context", dbenv=self)
@@ -449,13 +458,12 @@ class EMEN2DBEnv(object):
 
 	# ian: todo: make this nicer.
 	def close(self):
-		"""Close the Database Environment"""
+		'''Close the Database Environment'''
+		
 		for k,v in self.keytypes.items():
 			print "Closing", v
 			v.close()
-		# print "Closing dbenv"
 		self.dbenv.close()
-		# print "Done closing dbenv"
 
 
 	##### Load Extensions #####
@@ -464,7 +472,7 @@ class EMEN2DBEnv(object):
 	##### Utility methods #####
 
 	def checkdirs(self):
-		"""Check that all necessary directories referenced from config file exist."""
+		'''Check that all necessary directories exist.'''
 
 		checkpath = os.access(self.path, os.F_OK)
 		checkconfig = os.access(os.path.join(self.path, 'DB_CONFIG'), os.F_OK)
@@ -516,7 +524,7 @@ class EMEN2DBEnv(object):
 
 
 	def stat():
-		"""List some statistics about the Database Environment."""
+		'''Print some statistics about the environment.'''
 
 		sys.stdout.flush()
 
@@ -540,12 +548,12 @@ class EMEN2DBEnv(object):
 	##### Transaction management #####
 
 	def newtxn(self, parent=None, write=False):
-		"""Start a new transaction.
+		'''Start a new transaction.
 
 		:keyword parent: Open new txn as a child of this parent txn
 		:keyword write: Transaction will be likely to write data; turns off Berkeley DB Snapshot
 		:return: New transaction
-		"""
+		'''
 
 		flags = bsddb3.db.DB_TXN_SNAPSHOT
 		if write:
@@ -565,13 +573,13 @@ class EMEN2DBEnv(object):
 
 
 	def txncheck(self, txnid=0, write=False, txn=None):
-		"""Check a transaction status, or create a new transaction.
+		'''Check a transaction status, or create a new transaction.
 
 		:keyword txnid: Transaction ID
 		:keyword write: See newtxn
 		:keyword txn: An existing open transaction
 		:return: Open transaction
-		"""
+		'''
 
 		txn = self.txnlog.get(txnid, txn)
 		if not txn:
@@ -580,12 +588,12 @@ class EMEN2DBEnv(object):
 
 
 	def txnabort(self, txnid=0, txn=None):
-		"""Abort transaction.
+		'''Abort transaction.
 
 		:keyword txnid: Transaction ID
 		:keyword txn: An existing open transaction
 		:exception: KeyError if transaction was not found
-		"""
+		'''
 
 		txn = self.txnlog.get(txnid, txn)
 		# emen2.db.log.msg('TXN', "TXN ABORT --> %s"%txn)
@@ -600,12 +608,12 @@ class EMEN2DBEnv(object):
 
 
 	def txncommit(self, txnid=0, txn=None):
-		"""Commit a transaction.
+		'''Commit a transaction.
 
 		:keyword txnid: Transaction ID
 		:keyword txn: An existing open transaction
 		:exception: KeyError if transaction was not found
-		"""
+		'''
 
 		txn = self.txnlog.get(txnid, txn)
 		# emen2.db.log.msg('TXN', "TXN COMMIT --> %s"%txn)
@@ -624,7 +632,7 @@ class EMEN2DBEnv(object):
 
 
 	def checkpoint(self, txn=None):
-		"""Checkpoint the Database Environment"""
+		'''Checkpoint the database environment.'''
 		return self.dbenv.txn_checkpoint()
 
 
@@ -632,11 +640,11 @@ class EMEN2DBEnv(object):
 	##### Backup / restore #####
 
 	def log_archive(self, remove=True, checkpoint=False, txn=None):
-		"""Archive completed log files.
+		'''Archive completed log files.
 
 		:keyword remove: Remove the log files after moving them to the backup location
 		:keyword checkpoint: Run a checkpoint first; this will allow more files to be archived
-		"""
+		'''
 
 		outpath = self.LOG_ARCHIVE
 
@@ -655,7 +663,7 @@ class EMEN2DBEnv(object):
 
 
 	def _log_archive(self, archivefiles, outpath, remove=False):
-		"""(Internal) Backup database log files"""
+		'''(Internal) Backup database log files'''
 
 		outpaths = []
 		for archivefile in archivefiles:
@@ -688,19 +696,20 @@ class EMEN2DBEnv(object):
 class DB(object):
 	'''EMEN2 Database
 	
-	This method controls access to the public API methods.
-	
+	This class provides access to the public API methods.
 	'''
 
 	extensions = emen2.db.config.get('extensions.EXTS') # g.watch('extensions.EXTS')
 	sync_contexts = threading.Event()
 
 	def __init__(self, path=None, create=False):
-		"""Initialize DB.
+		'''EMEN2 Database.
+		
 		Default path is config.EMEN2DBHOME, which checks $EMEN2DBHOME and program arguments.
 
-		:keyword path: Directory containing EMEN2 Database Environment.
-		"""
+		:keyword path: Directory containing an EMEN2 Database Environment.
+		:keyword create: Create the environment if it does not already exist.
+		'''
 		
 		# Open the database
 		self.bdbs = EMEN2DBEnv(path=path, create=create)
@@ -727,6 +736,8 @@ class DB(object):
 
 
 	def load_extension(self, ext, path):
+		'''Load an extension.'''
+		
 		# ParamDefs/RecordDefs from JSON
 		for j in sorted(glob.glob(os.path.join(path, 'json', '*.json'))):
 			self.load_json(infile=j)
@@ -734,6 +745,8 @@ class DB(object):
 
 
 	def load_json(self, infile):
+		'''Load and cache a JSON file containing database objects.'''
+		
 		# Create a root context to load the items
 		ctx = emen2.db.context.SpecialRootContext(db=self)
 		loader = emen2.db.load.BaseLoader(infile=infile)
@@ -752,14 +765,27 @@ class DB(object):
 
 
 	# def __del__(self):
-	# 	"""Close DB when deleted"""
+	# 	'''Close DB when deleted'''
 	# 	self.bdbs.close()
 
 
 	##### Open or create new database #####
 	
 	@classmethod
-	def opendb(cls, name=None, password=None, db=None, admin=False):
+	def opendb(cls, name=None, password=None, admin=False, db=None):
+		'''Class method to open a database. Returns a DBProxy, with either a
+		user context (name and password specified), an administrative context
+		(admin is True), or no context.
+		
+		When DB and DBProxy are merged, this will be deprecated.
+		
+		:keyparam name: Username
+		:keyparam password: Password
+		:keyparam admin: Open DBProxy with administrative context
+		:keyparam db: Use an existing DB instance.
+		'''
+		
+		# Import here to avoid issues with publicmethod.
 		import emen2.db.proxy
 		# Use self or create new instance..
 		db = db or cls()
@@ -774,10 +800,12 @@ class DB(object):
 
 
 	def setup(self, rootpw=None, rootemail=None):
-		"""Initialize a new DB.
+		'''Initialize a new DB.
+		
 		@keyparam rootpw Root Account Password
 		@keyparam rootemail Root Account email
-		"""
+		'''
+		
 		import pwd
 		import platform
 
@@ -816,15 +844,16 @@ class DB(object):
 	##### Utility methods #####
 
 	def _sudo(self, username=None, ctx=None, txn=None):
-		print "Temporarily granting user %s administrative privileges"
+		'''(Internal) Create an admin context for performing actions that require admin privileges.'''
+		# print "Temporarily granting user %s administrative privileges"
 		ctx = emen2.db.context.SpecialRootContext()
 		ctx.refresh(db=self, username=username)
 		return ctx
 
 
 	def _findrecorddefnames(self, names, ctx=None, txn=None):
-		"""(Internal) Find referenced recorddefs."""
-
+		'''(Internal) Find referenced recorddefs.'''
+		
 		recnames, recs, rds = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
 		rds = set(rds)
 		rds |= set([i.rectype for i in recs])
@@ -835,8 +864,8 @@ class DB(object):
 
 
 	def _findparamdefnames(self, names, ctx=None, txn=None):
-		"""(Internal) Find referenced paramdefs."""
-
+		'''(Internal) Find referenced paramdefs.'''
+		
 		recnames, recs, params = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
 		params = set(params)
 		if recnames:
@@ -850,8 +879,7 @@ class DB(object):
 
 
 	def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
-		"""(Internal) Find referenced users/binaries."""
-
+		'''(Internal) Find referenced users/binaries.'''
 		recnames, recs, values = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
 		values = set(values)
 		# print "getting recs"
@@ -903,7 +931,10 @@ class DB(object):
 
 
 	def _mapcommit(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
-		"""(Internal) Get keytype items, run a method with *args **kwargs, and commit.
+		'''(Internal) Get keytype items, run a method with *args **kwargs, and commit.
+
+		This method is used to get a bunch of database objects, run each instance's 
+		specified method and commit.
 
 		:param keytype: DBO keytype
 		:param names: DBO names
@@ -911,7 +942,7 @@ class DB(object):
 		:param *args: method args
 		:param *kwargs: method kwargs
 		:return: Results of commit/puts
-		"""
+		'''
 
 		items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
 		for item in items:
@@ -920,6 +951,8 @@ class DB(object):
 
 
 	def _mapcommit_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
+		'''(Internal) See _mapcommit.'''
+
 		if names is None:
 			names = default
 		ol, names = listops.oltolist(names)
@@ -930,12 +963,12 @@ class DB(object):
 
 
 	def _run_macro(self, macro, names, ctx=None, txn=None):
-		"""(Internal) Run a macro over a set of Records.
+		'''(Internal) Run a macro over a set of Records.
 
 		:param macro: Macro in view format: $@macro(args)
 		:param names: Record names
 		:return: Macro keytype ('d'/'s'/'f'/None), and dict of processed Records
-		"""
+		'''
 		recs = {}
 		mrecs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
 
@@ -974,8 +1007,8 @@ class DB(object):
 	#     to justify that :)
 
 	def periodic_operations(self):
-		"""(Internal) Maintenance task scheduler.
-		Eventually this will be replaced with a more complete system."""
+		'''(Internal) Maintenance task scheduler.
+		Eventually this will be replaced with a more complete system.'''
 		ctx = emen2.db.context.SpecialRootContext(db=self)
 		first_run = True
 		while 1:
@@ -998,7 +1031,7 @@ class DB(object):
 
 	# ian: todo: hard: finish
 	# def cleanupcontexts(self, ctx=None, txn=None):
-	# 	"""(Internal) Clean up sessions that have been idle too long."""
+	# 	'''(Internal) Clean up sessions that have been idle too long.'''
 	# 	newtime = getctime()
 	# 	for ctxid, context in self.bdbs.context.items(txn=txn):
 	# 		# If the item is in the cache, use the current last-access time..
@@ -1019,20 +1052,30 @@ class DB(object):
 
 	@publicmethod("version")
 	def checkversion(self, program="API", ctx=None, txn=None):
-		"""Returns current version of API or specified program.
+		'''Returns current version of API or specified program.
+
+		Examples:
+
+		>>> db.version()
+		2.0rc7
 
 		:keyword program: Check version for this program (API, emen2client, etc.)
 		:return: Version string
-		"""
+		'''
 		return VERSIONS.get(program)
 
 
 	@publicmethod("time")
 	def gettime(self, ctx=None, txn=None):
-		"""Get current time.
+		'''Get current time.
+
+		Examples:
+
+		>>> db.time()
+		2011/10/10 14:23:11
 
 		:return: Current time string, YYYY/MM/DD HH:MM:SS
-		"""
+		'''
 
 		return gettime()
 
@@ -1042,14 +1085,19 @@ class DB(object):
 
 	@publicmethod("auth.login", write=True)
 	def login(self, name="anonymous", password="", host=None, ctx=None, txn=None):
-		"""Login. Returns auth token (ctxid), or fails with AuthenticationError, SessionError, or KeyError.
+		'''Login. Returns auth token (ctxid), or fails with AuthenticationError, SessionError, or KeyError.
 
-		:keyword name: Account name
+		Examples:
+		
+		>>> db.auth.login(name='my.account@example.com', password='foobar')
+		654067667525479cba8eb2940a3cf745de3ce608
+				
+		:keyword name: Account name or email address
 		:keyword password: Account password
-		:keyword host: Bind auth token to this host (usually set by the proxy)
+		:keyword host: Bind auth token to this host. Set by proxy.
 		:return: Auth token (ctxid)
 		:exception: AuthenticationError, SessionError, KeyError
-		"""
+		'''
 
 		# Make an anonymous Context
 		if name == "anonymous":
@@ -1075,6 +1123,7 @@ class DB(object):
 
 	@publicmethod("auth.login_compat", write=True)
 	def _login(self, *args, **kwargs):
+		'''Compatibility with older login method.'''
 		return self.login(*args, **kwargs)
 
 
@@ -1082,7 +1131,13 @@ class DB(object):
 	### this doesn't work until DB restart (the context isn't immediately cleared)
 	@publicmethod("auth.logout", write=True)
 	def logout(self, ctx=None, txn=None):
-		"""Logout."""
+		'''Delete context and logout.
+		
+		Examples:
+		
+		>>> db.auth.logout()
+		None
+		'''
 		self.contexts_cache.pop(ctx.name, None)
 		self.bdbs.context.delete(ctx.name, txn=txn)
 		self.sync_contexts.set()
@@ -1090,49 +1145,70 @@ class DB(object):
 
 	@publicmethod("auth.check.context")
 	def checkcontext(self, ctx=None, txn=None):
-		"""Return basic information about the current Context.
+		'''Return basic information about the current Context.
+
+		Examples:
+		
+		>>> db.auth.check.context()
+		(ian, set(['admin', 'authenticated']))
 
 		:return: (Context User name, set of Context groups)
-		"""
+		'''
 		return ctx.username, ctx.groups
 
 
 	@publicmethod("auth.check.admin")
 	def checkadmin(self, ctx=None, txn=None):
-		"""Checks if the user has global write access.
+		'''Checks if the user has global write access.
+
+		Examples:
+		
+		>>> db.auth.check.admin()
+		True
 
 		:return: True if user is an admin
-		"""
+		'''
 		return ctx.checkadmin()
 
 
 	@publicmethod("auth.check.readadmin")
 	def checkreadadmin(self, ctx=None, txn=None):
-		"""Checks if the user has global read access.
+		'''Checks if the user has global read access.
+
+		Examples:
+		
+		>>> db.auth.check.readadmin()
+		True
 
 		:return: True if user is a read admin
-		"""
+		'''
 		return ctx.checkreadadmin()
 
 
 	@publicmethod("auth.check.create")
 	def checkcreate(self, ctx=None, txn=None):
-		"""Check for permission to create records.
+		'''Check for permission to create records.
+
+		Examples:
+
+		>>> db.auth.check.create()
+		True
 
 		:return: True if the user can create records
-		"""
+		'''
 		return ctx.checkcreate()
 
 
 	def _getcontext(self, ctxid, host, ctx=None, txn=None):
-		"""(Internal and DBProxy) Takes a ctxid key and returns a Context.
+		'''(Internal and DBProxy) Takes a ctxid key and returns a Context.
+		
 		Note: The host provided must match the host in the Context
 
 		:param ctxid: ctxid
 		:param host: host
 		:return: Context
 		:exception: SessionError
-		"""
+		'''
 
 		# Check for any scheduled actions
 		# self.periodic_operations(ctx=ctx, txn=txn)
@@ -1191,7 +1267,64 @@ class DB(object):
 			ctx=None,
 			txn=None,
 			**kwargs):
-		"""Query"""
+		'''General query.
+		
+		Constraints are provided in the following format:
+			[param, operator, value]
+
+		Operation and value are optional. An arbitrary number of constraints may be given.
+		
+		Operators:
+			is			or		==
+			not			or		!=
+			gt			or		>
+			lt			or		<
+			gte			or		>=
+			lte			or		<=
+			any
+			none
+			contains
+			contains_w_empty
+			noop
+			name
+						
+		Examples constraints:
+			[name, '==', 136]
+			['creator', '==', 'ian']
+			[['modifytime', '>=', '2011'], ['name_pi', 'contains', 'steve']]
+			
+		For record names, parameter names, and protocol names, a '*' can be used to also match children, e.g:
+			[['children', 'name', '136*'], ['rectype', '==', 'image_capture*']]
+		Will match all children of record 136, recursively, for any child protocol of image_capture.
+		
+		The result will be a dictionary containing all the original query arguments, plus:
+			names:	Names of records found
+			length:	Number of records found
+			recs:	"Stub records," dictionaries that contain the matching value for each constraint
+			stats:	Query statistics, e.g. the number of records for each RecordDef
+			time:	Execution time
+		
+		Examples:
+		
+		>>> db.record.query()
+		{'names':[1,2], length: 2, stats: {...}, time: 0.001, ...}
+		
+		>>> db.record.query(c=[['creator', '==', 'ian']], )
+		{'names':[1,2], length: 2, 'recs':{1:{'creator':'ian'}, 2:{'creator':'ian'}}, stats: {...}, time: 0.001, ...}
+		
+		:keyparam c: Constraints
+		:keyparam boolmode: AND / OR for each constraint
+		:keyparam ignorecase: Ignore case when comparing strings
+		:keyparam subset: Restrict search to a subset of records
+		:keyparam pos: Return results starting from (sorted record name) position
+		:keyparam count: Return a limited number of results
+		:keyparam sortkey: Sort returned records by this param. Default is creationtime.
+		:keyparam reverse: Reverse results
+		:keyparam names: 
+		:keyparam table:
+		:keyparam stats:
+		:return: A dictionary containing the original query arguments and the result in 'names'
+		'''
 
 		##### Step 0. Setup
 		times = {}
@@ -1383,7 +1516,7 @@ class DB(object):
 
 
 	def _query(self, searchparam, comp, value, names=None, recs=None, ctx=None, txn=None):
-		"""(Internal) index-based search. See DB.query()
+		'''(Internal) index-based search. See DB.query()
 
 		:param searchparam: Param
 		:param comp: Comparison method
@@ -1391,7 +1524,7 @@ class DB(object):
 		:keyword names: Record names (used in some query operations)
 		:keyword recs: Record cache dict, by name
 		:return: Record names returned by query operation, or None
-		"""
+		'''
 
 		if recs == None:
 			recs = {}
@@ -1511,7 +1644,7 @@ class DB(object):
 
 
 	def _query_sort(self, sortkey, names, recs=None, rendered=False, c=None, ctx=None, txn=None):
-		"""(Internal) Sort Records by sortkey
+		'''(Internal) Sort Records by sortkey
 
 		:param sortkey:
 		:param names:
@@ -1519,7 +1652,7 @@ class DB(object):
 		:keyword rendered: Compare using 'rendered' value
 		:param c: Query constraints; used for checking items in cache
 		:return: Sortkey keytype ('s'/'d'/'f'/None), and {name:value} of values that can be sorted
-		"""
+		'''
 		# No work necessary if sortkey is creationtime
 		if sortkey in ['creationtime', 'name', 'recid']:
 			return 's', {}
@@ -1602,11 +1735,11 @@ class DB(object):
 
 
 	def _query_cmps(self, comp, ignorecase=1):
-		"""(Internal) Return the list of query constraint operators.
+		'''(Internal) Return the list of query constraint operators.
 
 		:keyword ignorecase: Use case-insensitive comparison methods
 		:return: Dict of query methods
-		"""
+		'''
 		# y is search argument, x is the record's value
 		cmps = {
 			"==": lambda y,x:x == y,
@@ -1648,6 +1781,8 @@ class DB(object):
 	##### Other query methods #####
 
 	def _boolmode_collapse(self, rets, boolmode):
+		'''(Internal) Perform bool operation on results.'''
+		
 		if not rets:
 			rets = [set()]
 		if boolmode == 'AND':
@@ -1659,27 +1794,56 @@ class DB(object):
 
 	@publicmethod("recorddef.find")
 	def findrecorddef(self, *args, **kwargs):
-		"""Find a RecordDef, by general search string, or by name/desc_short/desc_long/mainview.
+		'''Find a RecordDef, by general search string, or by searching attributes.
+		
+		Keywords can be combined.
 
-		:param query: Contained in any item below
-		:keyword name: ... contains in name
-		:keyword desc_short: ... contains in short description
-		:keyword desc_long: ... contains in long description
-		:keyword mainview: ... contains in mainview
+		Examples:
+
+		>>> db.recorddef.find(query='CCD')
+		[<RecordDef ccd>, <RecordDef image_capture>]
+
+		>>> db.recorddef.find(name='image_capture*')
+		[<RecordDef ccd>, <RecordDef scan>, <RecordDef micrograph>, ...]
+
+		>>> db.recorddef.find(mainview='freezing apparatus')
+		[<RecordDef freezing], <RecordDef vitrobot>, <RecordDef gatan_cp3>, ...]
+
+		>>> db.recorddef.find(record=[1,2,3])
+		[<RecordDef folder>, <RecordDef project>]
+			
+		>>> db.recorddef.find(name='project*', record='136*')
+		[<RecordDef folder>, <RecordDef project>, <RecordDef subproject>, ...]
+
+		:keyword query: Matches any of the following:
+		:keyword name: ... contained in name (* for recursive)
+		:keyword desc_short: ... contained in short description
+		:keyword desc_long: ... contained in long description
+		:keyword mainview: ... contained in mainview
 		:keyword record: Referenced in Record name(s)
 		:keyword limit: Limit number of results
 		:keyword boolmode: AND / OR for each search constraint
 		:return: RecordDefs
-		"""
+		'''
 		return self._find_pdrd(self._findrecorddefnames, keytype='recorddef', *args, **kwargs)
 
 
 	@publicmethod("paramdef.find")
 	def findparamdef(self, *args, **kwargs):
-		"""Find a ?RecordDef?, by general search string, or by name/desc_short/desc_long/mainview.
+		'''Find a ParamDef, by general search string, or by searching attributes.
+
+		Keywords can be combined.
+		
+		Examples:
+		
+		>>> db.paramdef.find(query='temperature')
+		[<ParamDef temperature>, <ParamDef temperature_ambient>, <ParamDef temperature_cryoholder>, ...]
+
+		>>> db.paramdef.find(vartype=binary, record='136*')
+		[<ParamDef file_binary>, <ParamDef file_binary_image>, <ParamDef person_photo>, ...]
 
 		:param query: Contained in any item below
-		:keyword name: ... contains in name
+		:keyword name: ... contains in name (* for recursive)
 		:keyword desc_short: ... contains in short description
 		:keyword desc_long: ... contains in long description
 		:keyword vartype: ... is of vartype(s)
@@ -1687,21 +1851,24 @@ class DB(object):
 		:keyword limit: Limit number of results
 		:keyword boolmode: AND / OR for each search constraint
 		:return: RecordDefs
-		"""
+		'''
 		return self._find_pdrd(self._findparamdefnames, keytype='paramdef', *args, **kwargs)
 
+
 	def _find_pdrd_vartype(self, vartype, items):
-			ret = set()
-			vartype = listops.check_iterable(vartype)
-			for item in items:
-				if item.vartype in vartype:
-					ret.add(item.name)
-			return ret
+		'''(Internal) Find RecordDef based on vartype.'''
+		ret = set()
+		vartype = listops.check_iterable(vartype)
+		for item in items:
+			if item.vartype in vartype:
+				ret.add(item.name)
+		return ret
 
 
 	@limit_result_length
 	def _find_pdrd(self, cb, query=None, childof=None, boolmode="AND", keytype="paramdef", record=None, vartype=None, ctx=None, txn=None, **qp):
-		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
+		'''(Internal) Find ParamDefs or RecordDefs based on **qp constraints.'''
+		
 		rets = []
 		# This can still be done much better
 		names, items = zip(*self.bdbs.keytypes[keytype].items(ctx=ctx, txn=txn))
@@ -1733,7 +1900,20 @@ class DB(object):
 	@publicmethod("user.find")
 	@limit_result_length
 	def finduser(self, query=None, record=None, boolmode="AND", limit=None, ctx=None, txn=None, **kwargs):
-		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
+		'''Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
+
+		Keywords can be combined.
+		
+		Examples:
+
+		>>> db.user.find(name_last='rees')
+		[<User ian>, <User kay>, ...]
+
+		>>> db.user.find(record=136)
+		[<User ian>, <User steve>, ...]
+
+		>>> db.user.find(email='bcm.edu', record='137*')
+		[<User ian>, <User wah>, <User mike>, ...]
 
 		:keyword query: Contained in any item below
 		:keyword email: ... contains in email
@@ -1745,7 +1925,7 @@ class DB(object):
 		:keyword limit: Limit number of results
 		:keyword boolmode: AND / OR for each search constraint
 		:return: Users
-		"""
+		'''
 		rets = []
 		if query == '':
 			allnames = self.bdbs.user.names(ctx=ctx, txn=txn)
@@ -1791,14 +1971,24 @@ class DB(object):
 
 	@publicmethod("group.find")
 	def findgroup(self, query=None, record=None, limit=None, boolmode='AND', ctx=None, txn=None):
-		"""Find a group.
+		'''Find a group.
+		
+		Keywords can be combined.
+		
+		Examples:
+		
+		>>> db.group.find(query='authenticated')
+		[<Group authenticated>]
+			
+		>>> db.group.find(record=136)
+		[<Group authenticated>, <Group ncmiusers>]
 
 		:keyword query: Find in Group's name or displayname
 		:keyword record: Referenced in Record name(s)
 		:keyword limit: Limit number of results
 		:keyword boolmode: AND / OR for each search constraint
 		:return: Groups
-		"""
+		'''
 		# No real indexes yet (small). Just get everything and sort directly.
 		items = self.bdbs.group.cgets(self.bdbs.group.names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 		ditems = listops.dictbykey(items, 'name')
@@ -1834,8 +2024,18 @@ class DB(object):
 	# Warning: This can be SLOW!
 	@publicmethod("binary.find")
 	def findbinary(self, query=None, record=None, limit=None, boolmode='AND', ctx=None, txn=None, **kwargs):
-		"""Find a binary by filename.
+		'''Find a binary by filename.
+		
+		Keywords can be combined.
+		
+		Examples:
+		
+		>>> db.binary.find(filename='dm3')
+		[<Binary 2011... test.dm3.gz>, <Binary 2011... test2.dm3.gz>]
 
+		>>> db.binary.find(record=136)
+		[<Binary 2011... presentation.ppt>, <Binary 2011... retreat_photo.jpg>, ...]
+		
 		:keyword query: Contained in any item below
 		:keyword name: ... Binary name
 		:keyword filename: ... filename
@@ -1843,7 +2043,7 @@ class DB(object):
 		:keyword limit: Limit number of results
 		:keyword boolmode: AND / OR for each search constraint (default: AND)
 		:return: Binaries
-		"""
+		'''
 		# @keyword min_filesize
 		# @keyword max_filesize
 		def searchfilenames(filename, txn):
@@ -1881,17 +2081,32 @@ class DB(object):
 	# query should replace this... also, make two methods instead of changing return format
 	@publicmethod("record.find.byvalue")
 	def findvalue(self, param, query='', count=True, showchoices=True, limit=100, ctx=None, txn=None):
-		"""Find values for a parameter. This is mostly used for interactive UI elements: e.g. combobox.
-		More detailed results can be performed using db.query.
+		'''Find values for a parameter. This is mostly used for interactive UI elements: e.g. combobox.
+		More detailed results can be returned by using db.query directly.
+		
+		Examples:
+		
+		>>> db.record.find.byvalue('name_pi')
+		[['wah', 124], ['steve', 89], ['ian', 43]], ...]
 
-		:param str param: Parameter to search
-		:param str query: Value to match
-		:keyword bool count: Return count of matches, otherwise return names
-		:keyword bool showchoices: Include any defined param 'choices'
-		:keyword int limit: Limit number of results
+		>>> db.record.find.byvalue('name_pi', count=False)
+		[['wah', [1,2,3,...]], ['steve', [7,8,9...]], ['ian', [10,11,...]]], ...]
+
+		>>> db.record.find.byvalue('ccd_id', limit=2)
+		[['Gatan 4k', 182845], ['Gatan 10k', 48181]]
+
+		>>> db.record.find.byvalue('tem_magnification', showchoices=True, limit=10)
+		[[10, ...], [20, ...], [60, ...], [100, ...], ...]
+
+		:param param: Parameter to search
+		:keyword query: Value to match
+		:keyword count: Return count of matches, otherwise return names
+		:keyword showchoices: Include any defined 'choices'. These will preceede other results.
+		:keyword limit: Limit number of results
 		:return: [[matching value, count], ...] if count is True, otherwise
 				[[matching value, [name, ...]], ...]
-		"""
+		'''
+		
 		pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
 		q = self.query(c=[[param, "contains_w_empty", query]], ignorecase=1, recs=True, ctx=ctx, txn=txn)
 		inverted = collections.defaultdict(set)
@@ -1926,10 +2141,22 @@ class DB(object):
 	@publicmethod("record.find.byrectype")
 	@ol('names', output=False)
 	def getindexbyrectype(self, names, ctx=None, txn=None):
-		"""Get Record names by RecordDef.
+		'''Get Record names by RecordDef.
+		
+		Examples:
+
+		>>> db.record.find.byrectype('ccd')
+		set([4180, 4513, 4514, ...])
+			
+		>>> db.record.find.byrectype('image_capture*')
+		set([141, 142, 4180, ...])
+
+		>>> db.record.find.byrectype(['scan','micrograph'])
+		set([141, 142, 262153, ...])
+		
 		:param names: RecordDef name(s)
 		:return: Set of Record names
-		"""
+		'''
 		rds = self.bdbs.recorddef.cgets(names, ctx=ctx, txn=txn)
 		ind = self.bdbs.record.getindex("rectype", txn=txn)
 		ret = set()
@@ -1941,10 +2168,19 @@ class DB(object):
 	@publicmethod("record.group.byrectype")
 	@ol('names')
 	def groupbyrectype(self, names, ctx=None, txn=None):
-		"""Group Records by RecordDef.
+		'''Group Record(s) by RecordDef.
+		
+		Examples:
+		
+		>>> db.record.group.byrectype([136,137,138])
+		{u'project': set([137]), u'subproject': set([138]), u'group': set([136])}
+		
+		>>> db.record.group.byrectype([<Record instance 1>, <Record instance 2>])
+		{u'all_microscopes': set([1]), u'folder': set([2])}
+		
 		:param names: Record name(s) or Record(s)
 		:return: Dictionary of Record names by RecordDef
-		"""
+		'''
 		return self.bdbs.record.groupbyrectype(names, ctx=ctx, txn=txn)
 
 
@@ -1952,16 +2188,24 @@ class DB(object):
 	##### Record Rendering #####
 
 	#@remove?
-	@publicmethod("record.render.child.tree")
+	@publicmethod("record.render.children")
 	def renderchildtree(self, name, recurse=3, rectype=None, ctx=None, txn=None):
-		"""Convenience method used by some clients to render a bunch of
+		'''(Deprecated) Convenience method used by some clients to render a bunch of
 		records and simple relationships.
 
+		Examples:
+		
+		>>> db.record.render.children(0, recurse=1, rectype=["group"])
+		(
+			{0: u'EMEN2', 136: u'NCMI', 358307: u'Visitors'}, 
+			{0: set([136, 358307])}
+		)
+
 		:param name: Record name
-		:keyword recurse: Recurse level
-		:keyword rectype: Restrict to these rectypes ('*' notation allowed)
+		:keyword recurse: Recursion depth
+		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
 		:return: (Dictionary of rendered views {Record.name:view}, Child tree dictionary)
-		"""
+		'''
 		def find_endpoints(tree):
 			return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
 
@@ -1982,6 +2226,7 @@ class DB(object):
 
 
 	def _make_tables(self, recdefs, rec, builtinparams, builtinparamsshow, markup, ctx, txn):
+		'''(Internal) Find "out-of-band" parameters.'''
 		# move built in params to end of table
 		#par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
 		par = [p for p in recdefs.get(rec.rectype).paramsK if p not in builtinparams]
@@ -1993,8 +2238,38 @@ class DB(object):
 	@publicmethod("record.render")
 	@ol('names')
 	def renderview(self, names, viewdef=None, viewtype='recname', edit=False, markup=True, table=False, mode=None, vtm=None, ctx=None, txn=None):
-		"""Render views.
-		Note: if 'names' is not iterable, will return a string instead of dictionary
+		'''Render record(s).
+
+		For each record, render the view given either by the viewdef keyword, 
+		or the viewtype keyword in the record's protocol. The default action 
+		is to render the "recname" view.
+		
+		The keywords markup, edit, and table affect rendering. markup=True
+		will cause HTML to be returned and, with edit=True, editable parameters
+		wrapped in elements with the "e2-edit" class. If table=True, the results
+		will differ slightly. Each result will be a list of elements, representing
+		each parameter defined in the view, and an additional 'header' item in the
+		returned dictionary. Both edit and table will imply markup=True.
+		
+		The special view 'dicttable' will returned a markup=True result with each
+		record parameter/value pair rendered as a two-column HTML table.
+		
+		Examples:
+
+		>>> db.record.render([0, 136, 137])
+		{0: u'EMEN2', 136: u'NCMI', 137: u'A Project'}
+		
+		>>> db.record.render([0, 136], viewtype="mainview")
+		{0: u'<p>Folder: EMEN2</p>...', 136: u'<h1><span class="e2-paramdef">Group</span>: NCMI</h1>...'}
+		
+		>>> db.record.render([0, 136], viewdef="$$creator $$creationtime")
+		{0: u'<p><a href="/user/root">Admin</a> 2007/07/23 10:30:22</p>', 136: u'<p><a href="/user/ian">Rees, Ian</a> 2008/07/05</p>'}
+		
+		>>> db.record.render(0, viewtype="defaultview", edit=True, markup=True)
+		u'<p>Folder: <span class="e2-edit" data-name="0" data-param="name_folder">EMEN2</span>...'
+
+		>>> db.record.render([0], viewtype="tabularview", table=True, markup=True)
+		{0: [u'<a href="/record/0">EMEN2</a>'], 'headers': {u'folder': [[u'Folder name', u'$', u'name_folder', None]]})}
 
 		:param names: Record name(s)
 		:keyword viewdef: View definition
@@ -2004,7 +2279,8 @@ class DB(object):
 		:keyword table: Return table format (this may go into a separate method) (default=False)
 		:keyword mode: Deprecated, no effect.
 		:return: Dictionary of {Record.name: rendered view}
-		"""
+		'''
+		
 		if viewtype == "tabularview":
 			table = True
 
@@ -2158,13 +2434,14 @@ class DB(object):
 
 
 	def _dicttable_view(self, params, paramdefs={}, markup=False, ctx=None, txn=None):
-		"""(Internal) Create an HTML table for rendering.
+		'''(Internal) Create an HTML table for rendering.
 
 		:param params: Use these ParamDef names
 		:keyword paramdefs: ParamDef cache
 		:keyword markup: Use HTML Markup (default=False)
 		:return: HTML table of params
-		"""
+		'''
+		
 		if markup:
 			dt = ['''<table class="e2l-kv" cellspacing="0" cellpadding="0">
 					<thead><th>Parameter</th><th>Value</th></thead>
@@ -2196,29 +2473,78 @@ class DB(object):
 	@publicmethod("get")
 	@ol('names')
 	def get(self, names, keytype='record', filt=True, ctx=None, txn=None):
-		'''Get an object
+		'''Get item(s).
 
-			:param names: the IDs for which the children are to be retrieved
-			:param keytype: What kind of objects the IDs refer to
+		This method is effectively the same as:
+			db.<keytype>.get(items)
+
+		>>> db.get(0)
+		<Record 0, folder>
+		
+		>>> db.get([0, 136])
+		[<Record 0, folder>, <Record 136, group>]
+
+		>>> db.get('creator', keytype='paramdef')
+		<ParamDef creator>
+		
+		>>> db.get(['ian', 'steve'], keytype='user')
+		[<User ian>, <User steve>]
+
+		:param names: Item name(s)
+		:keyword keytype: Item keytype
+		:return: Database items
 		'''
 
 		return self.bdbs.keytypes[keytype].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
-	# This was incorrectly tagged as an admin method
 	@publicmethod("put", write=True)
 	@ol('items')
 	def put(self, items, keytype='record', ctx=None, txn=None):
-		'''Get the children of the object as a tree
+		'''Put item(s).
 
-			:param names: the IDs for which the children are to be retrieved
-			:param keytype: What kind of objects the IDs refer to
+		This method is effectively the same as:
+			db.<keytype>.put(items)
+
+		Examples:
+		
+		>>> db.put({'rectype':'folder', 'name_folder':'Test', 'parents':[0]})
+		<Record 499203, folder>
+
+		>>> db.put([<Record 0, folder>, <Record 136, group])
+		[<Record 0, folder>]
+		
+		>>> db.put({'name': 'silly_name', 'vartype':'string', 'desc_short':'Silly name'}, keytype='paramdef')
+		<ParamDef silly_name>
+
+		:param items: Item(s) to commit
+		:keyword keytype: Item keytype
+		:return: Any items that were modified and committed
 		'''
 
 		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
 
-	# This was incorrectly tagged as an admin method
 	@publicmethod("new")
 	def new(self, *args, **kwargs):
+		'''Create a new item.
+		
+		This method is effectively the same as:
+			db.<keytype>.new(*args, **kwargs)
+
+		The keytype keyword is required. See the db.<keytype>.new methods for
+		other arguments and keywords.
+		
+		Examples:
+		
+		>>> db.new(rectype='folder', keytype='record')
+		<Record None, folder>
+		
+		>>> db.new(name='sillier_name', vartype='string', keytype='paramdef')
+		<ParamDef sillier_name>
+
+		:keyword keytype:
+		:return: New, uncommitted item
+		'''
+		
 		keytype = kwargs.pop('keytype', 'record')
 		return dict(
 			user = self.newuser,
@@ -2234,69 +2560,137 @@ class DB(object):
 	##### Relationships #####
 
 	# This is a new method -- might need some testing.
-	@publicmethod("rel.sibling")
+	@publicmethod("rel.siblings")
 	def getsiblings(self, name, rectype=None, keytype="record", ctx=None, txn=None, **kwargs):
-		'''Get the siblings of the object as a tree
+		'''Get the siblings of the object as a tree.
+		
+		Siblings are any items that share a common parent.
 
-			:param names: the IDs for which the children are to be retrieved
-			:param recurse: how many levels of children to retrieve
-			:param rectype: filter by rectype (Not Implemented?)
-			:param keytype: What kind of objects the IDs refer to
+		Examples:
+
+		>>> db.rel.siblings(136, rectype='group')
+		set([136, 358307])
+		
+		>>> db.rel.siblings('creationtime', keytype='paramdef')
+		set([u'website', u'date_start', u'name_first', u'observed_by', ...])
+		
+		>>> db.rel.siblings('ccd', keytype='recorddef')
+		set([u'ccd', u'micrograph', u'ddd', u'stack', u'scan'])
+
+		:param names: Item name(s)
+		:keyword recurse: Recursion depth
+		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
+		:keyword keytype: Item keytype
+		:return: All items that share a common parent
 		'''
 
 		return self.bdbs.keytypes[keytype].siblings(name, rectype=rectype, ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.parent.tree")
+	@publicmethod("rel.parents.tree")
 	@ol('names', output=False)
 	def getparenttree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
 		'''Get the parents of the object as a tree
 
-			:param names: the IDs for which the children are to be retrieved
-			:param recurse: how many levels of children to retrieve
-			:param rectype: filter by rectype (Not Implemented?)
-			:param keytype: What kind of objects the IDs refer to
+		This method is the same as as db.rel(rel='parents', tree=True, *args, **kwargs)
+
+		Examples:
+
+		>>> db.rel.parents.tree(46604, recurse=-1)
+		{136: set([0]), 46604: set([136])}		
+		
+		>>> db.rel.parents.tree([46604, 74547], recurse=-1)
+		{136: set([0]), 74547: set([136]), 46604: set([136])}
+
+		>>> db.rel.parents.tree([46604, 74547], recurse=-1, rectype='group')
+		{74547: set([136]), 46604: set([136])}
+
+		>>> db.rel.parents.tree('ccd', recurse=2, keytype='recorddef')
+		{'ccd': set([u'image_capture']), u'image_capture': set([u'tem'])}
+		
+		:param names: Item name(s)
+		:keyword recurse: Recursion depth
+		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
+		:keyword keytype: Item keytype
 		'''
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', tree=True, ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.child.tree")
+	@publicmethod("rel.children.tree")
 	@ol('names', output=False)
 	def getchildtree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
 		'''Get the children of the object as a tree
 
-			:param names: the IDs for which the children are to be retrieved
-			:param recurse: how many levels of children to retrieve
-			:param rectype: filter by rectype (Not Implemented?)
-			:param keytype: What kind of objects the IDs refer to
+		This method is the same as as db.rel(rel='children', tree=True, *args, **kwargs)
+
+		Examples:
+		
+		>>> db.rel.children.tree(0, rectype='group')
+		{0: set([136, 358307])}
+		
+		>>> db.rel.children.tree([46604, 74547], rectype='subproject')
+		{74547: set([75585, 270211, ...]), 46604: set([380432, 57474, ...])}
+		
+		>>> db.rel.children.tree(136, recurse=2, rectype=['project*'])
+		{432645: set([449391]), 268295: set([268296]), 299528: set([460329, 299529]), ...}
+
+		:param names: Item name(s)
+		:keyword recurse: Recursion depth
+		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
+		:keyword keytype: Item keytype
 		'''
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', tree=True, ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.parent")
+	@publicmethod("rel.parents")
 	@ol('names')
 	def getparents(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
 		'''Get the parents of an object
 
-			:param names: the IDs for which the children are to be retrieved
-			:param recurse: how many levels of children to retrieve
-			:param rectype: filter by rectype (Not Implemented?)
-			:param keytype: What kind of objects the IDs refer to
+		This method is the same as as db.rel(rel='parents', tree=False, *args, **kwargs)
 
-			'''
+		Examples:
+		
+		>>> db.rel.parents(0)
+		set([])
+		
+		>>> db.rel.parents(46604, recurse=-1)
+		set([136, 0])
+		
+		>>> db.getparents('ccd', recurse=-1, keytype='recorddef')
+		set([u'image_capture', u'experiments', u'root', u'tem'])
+
+		:param names: Item name(s)
+		:keyword recurse: Recursion depth
+		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
+		:keyword param keytype: Item keytype
+		'''
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.child")
+	@publicmethod("rel.children")
 	@ol('names')
 	def getchildren(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
-		'''Get the children of an object
+		'''Get the children of an object.
+		
+		This method is the same as db.rel(rel='children', tree=False, *args, **kwargs)
 
-		:param names: the IDs for which the children are to be retrieved
-		:param recurse: how many levels of children to retrieve
-		:param rectype: filter by rectype (Not Implemented?)
-		:param keytype: What kind of objects the IDs refer to
+		>>> db.rel.children(0)
+		set([136, 358307, 270940])
+		
+		>>> db.rel.children(0, recurse=2)
+		set([2, 4, 268295, 260104, ...])
+		
+		>>> db.rel.children(0, recurse=2, rectype=["project*"])
+		set([344513, 432645, 237313, 260104, ...])
+		
+		>>> db.rel.children('root', keytype='paramdef')
+		set([u'core', u'descriptive_information', ...])
 
+		:param names: Item name(s)
+		:keyword recurse: Recursion depth
+		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
+		:keyword keytype: Item keytype
 		'''
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', ctx=ctx, txn=txn, **kwargs)
 
@@ -2304,25 +2698,38 @@ class DB(object):
 	@publicmethod("rel.rel")
 	@ol('names')
 	def rel(self, names, keytype="record", recurse=1, rel="children", tree=False, ctx=None, txn=None, **kwargs):
-		"""Get relationships. See the RelateDB.rel()"""
+		'''Get relationships.
+		
+		Examples:
+		
+		See also rel.children(), rel.parents(), rel.children.tree(), rel.parents.tree().
+		
+		:param names: Item name(s)
+		:keyword keytype: Item keytype
+		:keyword recurse: Recursion depth
+		:keyword rel: Relationship type: children, parents
+		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
+		:keyword tree: Return tree
+		'''
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel=rel, tree=tree, ctx=ctx, txn=txn, **kwargs)
 
 
 	@publicmethod('rel.pclink', write=True)
 	def pclink(self, parent, child, keytype='record', ctx=None, txn=None):
 		'''Link a parent object with a child
+		
+		Examples:
+		
+		>>> db.rel.pclink(0, 46604)
+		None
+		
+		>>> db.rel.pclink('physical_property', 'temperature', keytype='paramdef')
+		None
 
-		:param parent: the ID of the parent object
-		:param child: the ID of the child object
-		:param keytype: the kind of object being linked
-
-		Keytype can be one of:
-
-			- record
-			- recorddef
-			- paramdef
+		:param parent: Parent name
+		:param child: Child name
+		:param keytype: Item type
 		'''
-
 		return self.bdbs.keytypes[keytype].pclink(parent, child, ctx=ctx, txn=txn)
 
 
@@ -2330,21 +2737,35 @@ class DB(object):
 	def pcunlink(self, parent, child, keytype='record', ctx=None, txn=None):
 		'''Remove a parent-child link
 
-		:param parent: the ID of the parent record
-		:param child: the ID of the child record
-		:param keytype: the kind of object being linked
+		Examples:
+		
+		>>> db.rel.pcunlink(0, 46604)
+		None
+		
+		>>> db.rel.pcunlink('physical_property', 'temperature', keytype='paramdef')
+		None
 
-		Keytype can be one of:
-
-			- record
-			- recorddef
-			- paramdef
+		:param parent: Parent name
+		:param child: Child name
+		:keyword keytype: Item type
 		'''
 		return self.bdbs.keytypes[keytype].pcunlink(parent, child, ctx=ctx, txn=txn)
 
 
 	@publicmethod('rel.relink', write=True)
 	def relink(self, removerels=None, addrels=None, keytype='record', ctx=None, txn=None):
+		'''Add and remove a number of parent-child relationships at once.
+		
+		Examples:
+		
+		>>> db.rel.relink([0,136], [100, 136])
+		None
+		
+		:keyword removerels: Relationships to remove. Can be a single or list of tuples.
+		:keyword addrels: Relationships to add. Can be a single or list of tuples.
+		:keyword keytype: Item keytype
+		'''
+		
 		# Uses the new .parents/.children attributes to do this simply
 		removerels = removerels or []
 		addrels = addrels or []
@@ -2380,62 +2801,62 @@ class DB(object):
 	@publicmethod("user.get")
 	@ol('names')
 	def getuser(self, names, filt=True, ctx=None, txn=None):
-		"""Get user information.
+		'''Get user information.
 		Information may be limited to name and id if the user
 		requested additional privacy.
 
 		:param names: User name(s), Record(s), or Record name(s)
 		:keyword filt: Ignore failures
 		:return: User(s)
-		"""
+		'''
 		return self.bdbs.user.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
 	@publicmethod("user.names")
 	def getusernames(self, names=None, ctx=None, txn=None):
-		""":return: Set of all User names."""
+		''':return: Set of all User names.'''
 		return self.bdbs.user.names(names=names, ctx=ctx, txn=txn)
 
 
 	@publicmethod("user.put", write=True)
 	@ol('items')
 	def putuser(self, items, ctx=None, txn=None):
-		"""Allow a User to change some of their account settings.
+		'''Allow a User to change some of their account settings.
 
 		:param items: User(s)
 		:return: Updated User(s)
-		"""
+		'''
 		return self.bdbs.user.cputs(items, ctx=ctx, txn=txn)
 
 
 	@publicmethod("user.disable", write=True, admin=True)
 	def disableuser(self, names, ctx=None, txn=None):
-		"""(Admin Only) Disable a User.
+		'''(Admin Only) Disable a User.
 
 		:param names: User name(s)
 		:keyword filt: Ignore failures
 		:return: List of names disabled
-		"""
+		'''
 		return self._mapcommit('user', names, 'disable', ctx=ctx, txn=txn)
 
 
 	@publicmethod("user.enable", write=True, admin=True)
 	def enableuser(self, names, ctx=None, txn=None):
-		"""(Admin Only) Re-enable a User.
+		'''(Admin Only) Re-enable a User.
 
 		:param names: User name(s)
 		:keyword filt: Ignore failures
-		"""
+		'''
 		return self._mapcommit('user', names, 'enable', ctx=ctx, txn=txn)
 
 
 	@publicmethod("user.setprivacy", write=True)
 	def setprivacy(self, state, names=None, ctx=None, txn=None):
-		"""Set privacy level.
+		'''Set privacy level.
 
 		:param state: 0, 1, or 2, in increasing level of privacy.
 		:keyword names: User names to modify (admin only)
-		"""
+		'''
 		# This is a modification of _mapcommit to allow if names=None
 		# ctx.username will be used as the default.
 		return self._mapcommit_ol('user', names, 'setprivacy', ctx.username, ctx, txn, state)
@@ -2450,7 +2871,7 @@ class DB(object):
 	
 	@publicmethod("user.setemail", write=True)
 	def setemail(self, email, secret=None, password=None, name=None, ctx=None, txn=None):
-		"""Change a User's email address.
+		'''Change a User's email address.
 		This will require you to verify that you own the account by
 		responding with an auth token sent to that address.
 
@@ -2464,7 +2885,7 @@ class DB(object):
 		:param str name: User name (default is current Context user)
 
 		:exception: :py:class:`SecurityError <emen2.db.exceptions.SecurityError>` if the password and/or auth token are wrong
-		"""
+		'''
 		#@action
 		# Get the record.
 		# Keep the existing email address to see if it changes.
@@ -2510,13 +2931,13 @@ class DB(object):
 
 	@publicmethod("auth.setpassword", write=True)
 	def setpassword(self, oldpassword, newpassword, secret=None, name=None, ctx=None, txn=None):
-		"""Change password.
+		'''Change password.
 		Note: This method only takes a single User name.
 
 		:param oldpassword:
 		:param newpassword:
 		:keyword name: User name (default is current Context user)
-		"""
+		'''
 		#@action
 		# Try to authenticate using either the password OR the secret!
 		# Note: The password will be hidden if ctx.username != user.name
@@ -2535,14 +2956,14 @@ class DB(object):
 
 	@publicmethod("auth.resetpassword", write=True)
 	def resetpassword(self, name, ctx=None, txn=None):
-		"""Reset User password.
+		'''Reset User password.
 		This is accomplished by sending a password reset token to the
 		User's currently registered email address.
 		Note: This method only takes a single User name.
 
 		:keyword name: User name, or User Email
 		:keyword secret:
-		"""
+		'''
 		#@action
 		user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
 		user.resetpassword()
@@ -2564,7 +2985,7 @@ class DB(object):
 
 	@publicmethod("user.queue.names", admin=True)
 	def getuserqueue(self, names=None, ctx=None, txn=None):
-		""":return: Set of names of Users in the new user queue."""
+		''':return: Set of names of Users in the new user queue.'''
 		return self.bdbs.newuser.names(names=names, ctx=ctx, txn=txn)
 
 
@@ -2572,17 +2993,17 @@ class DB(object):
 	@publicmethod("user.queue.get", admin=True)
 	@ol('names')
 	def getqueueduser(self, names, ctx=None, txn=None):
-		"""(Admin Only) Get users from the new user approval queue.
+		'''(Admin Only) Get users from the new user approval queue.
 
 		:param names: New user queue name(s)
 		:return: User(s) from new user queue
-		"""
+		'''
 		return self.bdbs.newuser.cgets(names, ctx=ctx, txn=txn)
 
 
 	@publicmethod("user.queue.new")
 	def newuser(self, name, password, email, ctx=None, txn=None):
-		"""Create a new User.
+		'''Create a new User.
 
 		:param name: Desired account name
 		:param password: Password
@@ -2590,21 +3011,21 @@ class DB(object):
 		:return: New User
 		:exception: KeyError if there is already a user
 			or pending user with this name
-		"""
+		'''
 		return self.bdbs.newuser.new(name=name, password=password, email=email, ctx=ctx, txn=txn)
 
 
 	@publicmethod("user.queue.put", write=True)
 	@ol('users')
 	def adduser(self, users, ctx=None, txn=None):
-		"""Add a new User.
+		'''Add a new User.
 		Note: This only adds the user to the new user queue. The
 		account must be processed by an administrator before it
 		becomes active.
 
 		:param users: New User(s)
 		:return: New User(s)
-		"""
+		'''
 		users = self.bdbs.newuser.cputs(users, ctx=ctx, txn=txn)
 
 		if self.user_autoapprove:
@@ -2629,12 +3050,12 @@ class DB(object):
 	@publicmethod("user.queue.approve", write=True, admin=True)
 	@ol('names')
 	def approveuser(self, names, secret=None, reject=None, filt=True, ctx=None, txn=None):
-		"""(Admin Only) Approve account in user queue.
+		'''(Admin Only) Approve account in user queue.
 
 		:param names: New user approval queue name(s)
 		:keyword secret: User secret for self-approval
 		:return: Approved User name(s)
-		"""
+		'''
 		# Get users from the new user approval queue
 		newusers = self.bdbs.newuser.cgets(names, filt=filt, ctx=ctx, txn=txn)
 		cusers = []
@@ -2697,12 +3118,12 @@ class DB(object):
 	@publicmethod("user.queue.reject", write=True, admin=True)
 	@ol('names')
 	def rejectuser(self, names, filt=True, ctx=None, txn=None):
-		"""(Admin Only) Remove a user from the new user queue.
+		'''(Admin Only) Remove a user from the new user queue.
 
 		:param names: New user name(s) to reject
 		:keyword filt: Ignore failures
 		:return: Rejected user name(s)
-		"""
+		'''
 		#@action
 		emails = {}
 		users = self.bdbs.newuser.cgets(names, filt=filt, ctx=ctx, txn=txn)
@@ -2726,40 +3147,40 @@ class DB(object):
 
 	@publicmethod("group.names")
 	def getgroupnames(self, names=None, ctx=None, txn=None):
-		""":return: Set of all Group names."""
+		''':return: Set of all Group names.'''
 		return self.bdbs.group.names(names=names, ctx=ctx, txn=txn)
 
 
 	@publicmethod("group.get")
 	@ol('names')
 	def getgroup(self, names, filt=True, ctx=None, txn=None):
-		"""Get a Group.
+		'''Get a Group.
 
 		:param names: Group name(s)
 		:keyword filt: Ignore failures
 		:return: Group(s)
-		"""
+		'''
 		return self.bdbs.group.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
 	@publicmethod("group.new")
 	def newgroup(self, name, ctx=None, txn=None):
-		"""Construct a new Group.
+		'''Construct a new Group.
 
 		:param name: Group name
 		:return: New Group
-		"""
+		'''
 		return self.bdbs.group.new(name=name, ctx=ctx, txn=txn)
 
 
 	@publicmethod("group.put", write=True, admin=True)
 	@ol('items')
 	def putgroup(self, items, ctx=None, txn=None):
-		"""Add or update Group(s).
+		'''Add or update Group(s).
 
 		:param items: Group(s)
 		:return: Updated Group(s)
-		"""
+		'''
 		return self.bdbs.group.cputs(items, ctx=ctx, txn=txn)
 
 
@@ -2768,27 +3189,27 @@ class DB(object):
 
 	@publicmethod("paramdef.vartypes")
 	def getvartypenames(self, ctx=None, txn=None):
-		""":return: Set of all available vartypes."""
+		''':return: Set of all available vartypes.'''
 		vtm = emen2.db.datatypes.VartypeManager()
 		return set(vtm.getvartypes())
 
 
 	@publicmethod("paramdef.properties")
 	def getpropertynames(self, ctx=None, txn=None):
-		""":return: Set of all available properties."""
+		''':return: Set of all available properties.'''
 		vtm = emen2.db.datatypes.VartypeManager()
 		return set(vtm.getproperties())
 
 
 	@publicmethod("paramdef.units")
 	def getpropertyunits(self, name, ctx=None, txn=None):
-		"""Returns a list of recommended units for a particular property.
+		'''Returns a list of recommended units for a particular property.
 		Other units may be used if they can be converted to the property's
 		default units.
 
 		:param name: Property name
 		:return: Set of recommended units for property.
-		"""
+		'''
 		if not name:
 			return set()
 		vtm = emen2.db.datatypes.VartypeManager()
@@ -2798,42 +3219,42 @@ class DB(object):
 
 	@publicmethod("paramdef.new")
 	def newparamdef(self, name, vartype, ctx=None, txn=None):
-		"""Construct a new ParamDef.
+		'''Construct a new ParamDef.
 
 		:param name: ParamDef name
 		:param vartype: ParamDef vartype
 		:keyword inherit:
 		:return: New ParamDef
-		"""
+		'''
 		return self.bdbs.paramdef.new(name=name, vartype=vartype, ctx=ctx, txn=txn)
 
 
 	@publicmethod("paramdef.put", write=True)
 	@ol('items')
 	def putparamdef(self, items, ctx=None, txn=None):
-		"""Add or update ParamDef(s).
+		'''Add or update ParamDef(s).
 
 		:param items: ParamDef(s)
 		:return: Updated ParamDef(s)
-		"""
+		'''
 		return self.bdbs.paramdef.cputs(items, ctx=ctx, txn=txn)
 
 
 	@publicmethod("paramdef.get")
 	@ol('names')
 	def getparamdef(self, names, filt=True, ctx=None, txn=None):
-		"""Get ParamDefs.
+		'''Get ParamDefs.
 
 		:param names: ParamDef name(s) and/or Record name(s)
 		:keyword filt: Ignore failures
 		:return: ParamDef(s)
-		"""
+		'''
 		return self.bdbs.paramdef.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
 	@publicmethod("paramdef.names")
 	def getparamdefnames(self, names=None, ctx=None, txn=None):
-		""":return: Set of all ParamDef names."""
+		''':return: Set of all ParamDef names.'''
 		return self.bdbs.paramdef.names(names=names, ctx=ctx, txn=txn)
 
 
@@ -2842,19 +3263,19 @@ class DB(object):
 	
 	@publicmethod("recorddef.new")
 	def newrecorddef(self, name, mainview, ctx=None, txn=None):
-		"""Construct a new RecordDef.
+		'''Construct a new RecordDef.
 
 		:param name: RecordDef name
 		:param mainview: RecordDef mainview
 		:return: New RecordDef
-		"""
+		'''
 		return self.bdbs.recorddef.new(name=name, mainview=mainview, ctx=ctx, txn=txn)
 
 
 	@publicmethod("recorddef.put", write=True)
 	@ol('items')
 	def putrecorddef(self, items, ctx=None, txn=None):
-		"""Add or update RecordDef(s).
+		'''Add or update RecordDef(s).
 		Note: RecordDef mainviews should
 		never be changed once used, since this will change the meaning of
 		data already in the database, but sometimes changes of appearance
@@ -2862,25 +3283,25 @@ class DB(object):
 
 		:param items: RecordDef(s)
 		:return: Updated RecordDef(s)
-		"""
+		'''
 		return self.bdbs.recorddef.cputs(items, ctx=ctx, txn=txn)
 
 
 	@publicmethod("recorddef.get")
 	@ol('names')
 	def getrecorddef(self, names, filt=True, ctx=None, txn=None):
-		"""Get RecordDef(s).
+		'''Get RecordDef(s).
 
 		:param names: RecordDef name(s), and/or Record ID(s)
 		:keyword filt: Ignore failures
 		:return: RecordDef(s)
-		"""
+		'''
 		return self.bdbs.recorddef.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
 	@publicmethod("recorddef.names")
 	def getrecorddefnames(self, names=None, ctx=None, txn=None):
-		""":return: All RecordDef names."""
+		''':return: All RecordDef names.'''
 		return self.bdbs.recorddef.names(names=names, ctx=ctx, txn=txn)
 
 
@@ -2890,22 +3311,22 @@ class DB(object):
 	@publicmethod("record.get")
 	@ol('names')
 	def getrecord(self, names, filt=True, ctx=None, txn=None):
-		"""Get Record(s).
+		'''Get Record(s).
 
 		:param names: Record name(s)
 		:keyword filt: Ignore failures
 		:return: Record(s)
-		"""
+		'''
 		return self.bdbs.record.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
 	@publicmethod("record.new")
 	def newrecord(self, rectype, inherit=None, ctx=None, txn=None):
-		"""Construct a new Record.
+		'''Construct a new Record.
 
 		:param rectype: RecordDef
 		:keyword inherit: Inherit permissions from an existing Record
-		"""
+		'''
 		rec = self.bdbs.record.new(rectype=rectype, ctx=ctx, txn=txn)
 
 		#@postprocess
@@ -2932,36 +3353,36 @@ class DB(object):
 	@publicmethod("record.delete", write=True)
 	@ol('names')
 	def deleterecord(self, names, ctx=None, txn=None):
-		"""Unlink and hide a record; it is still accessible to owner.
+		'''Unlink and hide a record; it is still accessible to owner.
 		Records are never truly deleted, just hidden.
 
 		:param name: Record name(s) to delete
 		:return: Deleted Record(s)
-		"""
+		'''
 		self.bdbs.record.delete(names, ctx=ctx, txn=txn)
 
 
 	@publicmethod("record.addcomment", write=True)
 	@ol('names')
 	def addcomment(self, names, comment, ctx=None, txn=None):
-		"""Add comment to a record.
+		'''Add comment to a record.
 		Requires comment permissions on that Record.
 
 		:param name: Record name(s)
 		:param comment: Comment text
 		:return: Updated Record(s)
-		"""
+		'''
 		return self._mapcommit('record', names, 'addcomment', ctx, txn, comment)
 
 
 	@publicmethod("record.find.comments")
 	@ol('names', output=False)
 	def getcomments(self, names, filt=True, ctx=None, txn=None):
-		"""Get comments from Records.
+		'''Get comments from Records.
 
 		:param names: Record name(s)
 		:return: A list of comments, with the Record ID as the first item@[[recid, username, time, comment], ...]
-		"""
+		'''
 		recs = self.bdbs.record.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 		#@postprocess
@@ -2985,34 +3406,34 @@ class DB(object):
 	@publicmethod("record.update", write=True)
 	@ol('names')
 	def putrecordvalues(self, names, update, ctx=None, txn=None):
-		"""Convenience method to update Records.
+		'''Convenience method to update Records.
 
 		:param names: Record name(s)
 		:param update: Update Records with this dictionary
 		:return: Updated Record(s)
-		"""
+		'''
 		return self._mapcommit('record', names, 'update', ctx, txn, update)
 
 
 	@publicmethod("record.validate")
 	@ol('items')
 	def validaterecord(self, items, ctx=None, txn=None):
-		"""Check that a record will validate before committing.
+		'''Check that a record will validate before committing.
 
 		:param items: Record(s)
 		:return: Validated Record(s)
-		"""
+		'''
 		return self.bdbs.record.validate(items, ctx=ctx, txn=txn)
 
 
 	@publicmethod("record.put", write=True)
 	@ol('items')
 	def putrecord(self, items, ctx=None, txn=None):
-		"""Add or update Record.
+		'''Add or update Record.
 
 		:param items: Record(s)
 		:return: Updated Record(s)
-		"""
+		'''
 		return self.bdbs.record.cputs(items, ctx=ctx, txn=txn)
 
 
@@ -3023,49 +3444,49 @@ class DB(object):
 	@publicmethod("record.adduser", write=True)
 	@ol('names')
 	def addpermission(self, names, users, level=0, ctx=None, txn=None):
-		"""Add users to a Record's permissions.
+		'''Add users to a Record's permissions.
 
 		:param names: Record name(s)
 		:param users: User name(s) to add
 		:keyword level: Permissions level; 0=read, 1=comment, 2=write, 3=owner
 		:return: Updated Record(s)
-		"""
+		'''
 		return self._mapcommit('record', names, 'adduser', ctx, txn, users)
 
 
 	@publicmethod("record.removeuser", write=True)
 	@ol('names')
 	def removepermission(self, names, users, ctx=None, txn=None):
-		"""Remove users from a Record's permissions.
+		'''Remove users from a Record's permissions.
 
 		:param names: Record name(s)
 		:param users: User name(s) to remove
 		:return: Updated Record(s)
-		"""
+		'''
 		return self._mapcommit('record', names, 'removeuser', ctx, txn, users)
 
 
 	@publicmethod("record.addgroup", write=True)
 	@ol('names')
 	def addgroup(self, names, groups, ctx=None, txn=None):
-		"""Add groups to a Record's permissions.
+		'''Add groups to a Record's permissions.
 
 		:param names: Record name(s)
 		:param groups: Group name(s) to add
 		:return: Updated Record(s)
-		"""
+		'''
 		return self._mapcommit('record', names, 'addgroup', ctx, txn, groups)
 
 
 	@publicmethod("record.removegroup", write=True)
 	@ol('names')
 	def removegroup(self, names, groups, ctx=None, txn=None):
-		"""Remove groups from a Record's permissions.
+		'''Remove groups from a Record's permissions.
 
 		:param names: Record name(s)
 		:param groups: Group name(s)
 		:return: Updated Record(s)
-		"""
+		'''
 		return self._mapcommit('record', names, 'removegroup', ctx, txn, groups)
 
 
@@ -3074,18 +3495,18 @@ class DB(object):
 	@publicmethod("record.setpermissions_compat", write=True)
 	@ol('names')
 	def setpermissions(self, names, addumask=None, addgroups=None, removeusers=None, removegroups=None, recurse=None, overwrite_users=False, overwrite_groups=False, filt=True, ctx=None, txn=None):
-		"""Update a Record's permissions.
+		'''Update a Record's permissions.
 
 		:param names: Record name(s)
 		:keyword addumask:
 		:keyword addgroups:
 		:keyword removeusers:
 		:keyword removegroups:
-		:keyword recurse:
+		:keyword recurse: Recursion depth
 		:keyword overwrite_users:
 		:keyword overwrite_groups:
 		:keyword filt:
-		"""
+		'''
 		
 		recs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
 		crecs = []
@@ -3131,7 +3552,7 @@ class DB(object):
 	@publicmethod("binary.get")
 	@ol('names')
 	def getbinary(self, names=None, filt=True, ctx=None, txn=None):
-		"""Get Binaries.
+		'''Get Binaries.
 
 		:param names: Either a list of recids and/or binary names or either of the two
 		:type names: string or list of strings
@@ -3139,7 +3560,7 @@ class DB(object):
 		:exception: KeyError if Binary not found
 		:exception: SecurityError if insufficient permissions
 		:return: A binary if given is a single binary, otherwise a list of binaries
-		"""
+		'''
 		# This call to findbinary is a deprecated feature
 		# that remains for backwards compat
 		bdos, recnames, other = listops.typepartition(names, str, int)
@@ -3150,17 +3571,17 @@ class DB(object):
 
 	@publicmethod("binary.new")
 	def newbinary(self, ctx=None, txn=None):
-		"""Construct a new Binary.
+		'''Construct a new Binary.
 		This doesn't do anything until committed with a file data source.
 
 		:return: New Binary
-		"""
+		'''
 		return self.bdbs.binary.new(name=None, ctx=ctx, txn=txn)
 
 
 	@publicmethod("binary.put", write=True)
 	def putbinary(self, item, infile=None, filename=None, record=None, param='file_binary', ctx=None, txn=None):
-		"""Add or update a Binary (file attachment).
+		'''Add or update a Binary (file attachment).
 		Note: This currently only takes a single item.
 
 		:param item: Binary or dictionary
@@ -3170,7 +3591,7 @@ class DB(object):
 		:keyword record: ... the Record name, or new Record, to use
 		:keyword param: ... Record param to use
 			for the reference to the Binary name
-		"""
+		'''
 
 		# Preprocess
 		if not item:
@@ -3247,36 +3668,36 @@ class DB(object):
 
 	# @publicmethod
 	# def getworkflownames(self, name=None, ctx=None, txn=None):
-	# 	"""This will return an (ordered) list of workflow objects
-	# 	for the given context (user)."""
+	# 	'''This will return an (ordered) list of workflow objects
+	# 	for the given context (user).'''
 	#	return self.bdbs.workflow.get(name).names(ctx=ctx, txn=txn)
 	#
 	#
 	# @publicmethod
 	# @ol('names')
 	# def getworkflow(self, names, ctx=None, txn=None):
-	# 	"""Return a workflow by names."""
+	# 	'''Return a workflow by names.'''
 	#	return self.bdbs.workflow.get(name).cgets(names, ctx=ctx, txn=txn))
 	#
 	#
 	# @publicmethod
 	# def newworkflow(self, ctx=None, txn=None):
-	# 	"""Return an initialized workflow instance."""
+	# 	'''Return an initialized workflow instance.'''
 	# 	return self.bdbs.workflow.new(ctx=ctx, txn=txn)
 	#
 	#
 	# @publicmethod
 	# @ol('items')
 	# def putworkflow(self, items, ctx=None, txn=None):
-	# 	"""This appends a new workflow object to the user's list.
-	# wfid will be assigned by this function and returned"""
+	# 	'''This appends a new workflow object to the user's list.
+	# wfid will be assigned by this function and returned'''
 	#	return self.bdbs.workflow.get(name).cputs(items, ctx=ctx, txn=txn)
 	#
 	#
 	# @publicmethod
 	# @ol('names')
 	# def delworkflowitem(self, names, ctx=None, txn=None):
-	# 	"""This will remove a single workflow object based on wfid"""
+	# 	'''This will remove a single workflow object based on wfid'''
 	#	return self.bdbs.workflow.get(name).delete(names, ctx=ctx, txn=txn)
 
 

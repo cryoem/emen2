@@ -651,10 +651,10 @@
 			// Remove any current children
 			elem.find('ul').remove();
 
-			// We use rel.child.tree because we want to grab 2 levels of children/parents
+			// We use rel.children.tree because we want to grab 2 levels of children/parents
 			// 	to determine if each child is itself expandable...
-			var method = "rel.child.tree";
-			if (this.options.mode == "parents") {method = "rel.parent.tree"}
+			var method = "rel.children.tree";
+			if (this.options.mode == "parents") {method = "rel.parents.tree"}
 			$.jsonRPC.call(method, {names:name, recurse:2, keytype:this.options.keytype}, function(tree){
 				// Cache the result. This should be filtered for permissions
 				$.each(tree, function(k,v) {caches[self.options.mode][k] = v});				
