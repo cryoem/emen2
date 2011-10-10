@@ -102,7 +102,9 @@ class DBOptions(optparse.OptionParser):
 	def __init__(self, *args, **kwargs):
 		kwargs["add_help_option"] = False
 		loginopts = kwargs.pop('loginopts', False)
-		super(DBOptions, self).__init__(*args, **kwargs)
+
+		optparse.OptionParser.__init__(self, *args, **kwargs)
+		# super(DBOptions, self).__init__(*args, **kwargs)
 
 		dbhomehelp = """EMEN2 Database Environment
 		[default: $EMEN2DBHOME, currently "%s"]"""%os.getenv('EMEN2DBHOME')
@@ -130,7 +132,8 @@ class DBOptions(optparse.OptionParser):
 
 
 	def parse_args(self, lc=True, *args, **kwargs):
-		r1, r2 = super(DBOptions, self).parse_args(*args, **kwargs)
+		r1, r2 = optparse.OptionParser.parse_args(self, *args, **kwargs)
+		# r1, r2 = super(DBOptions, self).parse_args(*args, **kwargs)
 		if lc:
 			self.load_config()
 		return r1, r2
