@@ -1,3 +1,10 @@
+# $Id$
+'''Dump database contents
+
+Classes:
+	Dumper
+'''
+
 import os
 import time
 import tarfile
@@ -6,8 +13,10 @@ import string
 import random
 import shutil
 
-import emen2.db.config
 import jsonrpc.jsonutil
+
+# EMEN2 imports
+import emen2.db.config
 import emen2.util.listops
 
 

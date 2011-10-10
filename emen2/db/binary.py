@@ -1,4 +1,14 @@
 # $Id$
+'''Database support for Binary attachments.
+
+Methods:
+	write_binary: Write data to temporary storage, return
+		the file path, size, and MD5 checksum
+
+Classes:
+	Binary: Binary (attachment) Database Object
+	BinaryDB: BTree for storing and access Binary instances
+'''
 
 import time
 import re
@@ -12,6 +22,7 @@ import hashlib
 import cStringIO
 import tempfile
 
+# EMEN2 imports
 import emen2.db.btrees
 import emen2.db.dataobject
 import emen2.db.config
@@ -63,7 +74,7 @@ def write_binary(infile, ctx=None, txn=None):
 
 	md5sum = m.hexdigest()
 	# print "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum)
-	# emen2.db.log.info("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
+	emen2.db.log.info("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
 
 	return tmpfilepath, filesize, md5sum
 
@@ -144,10 +155,10 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		filename = value
 		filename = "".join([i for i in filename if i.isalpha() or i.isdigit() or i in '.()-=_'])
 		if filename.upper() in ['..', '.', 'CON', 'PRN', 'AUX', 'NUL',
-										'COM1', 'COM2', 'COM3', 'COM4', 'COM5',
-										'COM6', 'COM7', 'COM8', 'COM9', 'LPT1',
-										'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6',
-										'LPT7', 'LPT8', 'LPT9']:
+									'COM1', 'COM2', 'COM3', 'COM4', 'COM5',
+									'COM6', 'COM7', 'COM8', 'COM9', 'LPT1',
+									'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6',
+									'LPT7', 'LPT8', 'LPT9']:
 			filename = "renamed."+filename
 		value = unicode(filename)
 		return self._set(key, value, self.isowner())

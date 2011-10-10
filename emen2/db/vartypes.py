@@ -1,4 +1,11 @@
 # $Id$
+'''Vartypes (data types)
+
+Classes:
+	Vartype
+	vt_*: A number of built-in data types
+
+'''
 
 import cgi
 import operator
@@ -20,6 +27,7 @@ except ImportError:
 	except ImportError:
 		markdown = None
 
+# EMEN2 imports
 import emen2.db.datatypes
 import emen2.db.config
 import emen2.db.exceptions

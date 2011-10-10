@@ -1,11 +1,20 @@
 # $Id$
+'''EMEN2 Macros
+
+Classes:
+	Macro: Base Macro
+	macro_*: A number of macros included by default
+
+'''
 
 import operator
 import cgi
 import re
 
+# EMEN2 imports
 import emen2.db.datatypes
 import emen2.db.config
+
 
 # Convenience
 ci = emen2.util.listops.check_iterable

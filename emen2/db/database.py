@@ -1,4 +1,23 @@
 # $Id$
+'''Main database module
+
+Functions:
+	fakemodules: Backwards compat support for module names
+	clock: Time a method's execution time
+	check_output: Run a command and read the output
+	DB_close: Close all databases
+	getctime: Local ctime
+	gettime: Formatted time
+	ol: Decorator to make sure a method argument is iterable
+	limit_result_length: Limit the number of items returned
+	error: Error handler
+	sendmail: Send an email
+
+Classes:
+	EMEN2DBEnv: Manage Berkeley DB Database Environment
+	DB: Main database class
+
+'''
 
 import threading
 import atexit
@@ -31,6 +50,7 @@ try:
 except ImportError:
 	markdown = None
 
+# EMEN2 imports
 # EMEN2 Config
 import emen2.db.config
 import emen2.db.log
@@ -43,7 +63,7 @@ import emen2.db.macros
 import emen2.db.proxy
 import emen2.db.load
 
-# DBObjects
+# EMEN2 DBObjects
 import emen2.db.dataobject
 import emen2.db.record
 import emen2.db.binary
@@ -54,14 +74,15 @@ import emen2.db.context
 import emen2.db.group
 import emen2.db.workflow
 
-# Utilities
+# EMEN2 Utilities
 import emen2.util.listops as listops
 import jsonrpc.jsonutil
 
-# Exceptions
+# EMEN2 Exceptions
 from emen2.db.exceptions import *
 
-# Conveniences
+
+##### Conveniences #####
 publicmethod = emen2.db.proxy.publicmethod
 
 # Version names
@@ -90,7 +111,9 @@ set_lg_max 8388608
 set_lg_bsize 2097152
 """
 
+
 def fakemodules():
+	'''Backwards compatibility for old module/class names'''
 	import imp
 	Database = imp.new_module("Database")
 	Database.dataobjects = imp.new_module("dataobjects")
@@ -108,8 +131,7 @@ def fakemodules():
 fakemodules()
 
 
-
-# Utility methods
+##### Utility methods #####
 
 def clock(times, key=0, t=0, limit=60):
 	"""A timing method for controlling timeouts to prevent hanging.
@@ -130,7 +152,6 @@ def clock(times, key=0, t=0, limit=60):
 	return t2
 
 
-
 def check_output(args, **kwds):
 	"""Run a command using Popen and return the stdout.
 
@@ -149,18 +170,15 @@ def DB_Close(*args, **kwargs):
 		i.close()
 
 
-
 # ian: todo: make these express GMT, then localize using a user preference
 def getctime():
 	""":return: Current database time, as float in seconds since the epoch"""
 	return time.time()
 
 
-
 def gettime():
 	""":return: Current database time, as string in format %s"""%emen2.db.config.get('params.TIMESTR', "%Y/%m/%d %H:%M:%S")
 	return time.strftime(emen2.db.config.get('params.TIMESTR', "%Y/%m/%d %H:%M:%S"))
-
 
 
 # Use introspection to handle accepting single or iterable items
@@ -195,6 +213,7 @@ def ol(name, output=True):
 	return wrap
 
 
+# Limit the number of items returned by a query result
 def limit_result_length(default=None):
 	ns = dict(func = None)
 	def _inner(*a, **kw):
@@ -217,6 +236,7 @@ def limit_result_length(default=None):
 	return result
 
 
+# Error handler
 def error(e=None, msg='', warning=False):
 	"""Error handler.
 
@@ -234,9 +254,7 @@ def error(e=None, msg='', warning=False):
 
 
 
-###############################
-# Email
-###############################
+##### Email #####
 
 def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, txn=None):
 	"""(Semi-internal) Send an email. You can provide either a template or a message subject and body.
@@ -295,8 +313,7 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 	return recipient
 
 
-
-
+##### EMEN2 Database Environment #####
 
 # ian: todo: have DBEnv and all BDBs in here --
 #	DB should just be methods for dealing with this dbenv "core"
@@ -337,16 +354,13 @@ class EMEN2DBEnv(object):
 		if not self.path:
 			raise ValueError, "No path specified; check $EMEN2DBHOME and config.json files"
 
-		#########################
 		# Check that all the needed directories exist
 		self.checkdirs()
 
-		#########################
-		# txn info
+		# Txn info
 		self.txnid = 0
 		self.txnlog = {}
 
-		#########################
 		# Cache the vartypes that are indexable
 		vtm = emen2.db.datatypes.VartypeManager()
 		self.indexablevartypes = set()
@@ -355,7 +369,6 @@ class EMEN2DBEnv(object):
 			if y.keytype:
 				self.indexablevartypes.add(y.getvartype())
 
-		#########################
 		# Open DB environment; check if global DBEnv has been opened yet
 		ENVOPENFLAGS = \
 			bsddb3.db.DB_CREATE | \
@@ -369,6 +382,7 @@ class EMEN2DBEnv(object):
 
 		global DBENV
 
+		# Open the Database Environment
 		if DBENV == None:
 			emen2.db.log.info("Opening Database Environment: %s"%self.path)
 			DBENV = bsddb3.db.DBEnv()
@@ -392,7 +406,6 @@ class EMEN2DBEnv(object):
 
 		self.dbenv = DBENV
 
-		#########################
 		# Open Databases
 		if not maintenance:
 			self.init()
@@ -445,14 +458,10 @@ class EMEN2DBEnv(object):
 		# print "Done closing dbenv"
 
 
-	####################################
-	# Load Extensions
-	####################################
+	##### Load Extensions #####
 
 
-	####################################
-	# Utility methods
-	####################################
+	##### Utility methods #####
 
 	def checkdirs(self):
 		"""Check that all necessary directories referenced from config file exist."""
@@ -528,9 +537,7 @@ class EMEN2DBEnv(object):
 			emen2.db.log.info("\t%s: %s"%(k,v))
 
 
-	####################################
-	# Transaction management
-	####################################
+	##### Transaction management #####
 
 	def newtxn(self, parent=None, write=False):
 		"""Start a new transaction.
@@ -622,9 +629,7 @@ class EMEN2DBEnv(object):
 
 
 
-	###########################
-	# Backup / restore
-	###########################
+	##### Backup / restore #####
 
 	def log_archive(self, remove=True, checkpoint=False, txn=None):
 		"""Archive completed log files.
@@ -678,8 +683,15 @@ class EMEN2DBEnv(object):
 		return removefiles
 
 
+##### Main Database Class #####
 
 class DB(object):
+	'''EMEN2 Database
+	
+	This method controls access to the public API methods.
+	
+	'''
+
 	extensions = emen2.db.config.get('extensions.EXTS') # g.watch('extensions.EXTS')
 	sync_contexts = threading.Event()
 
@@ -744,10 +756,8 @@ class DB(object):
 	# 	self.bdbs.close()
 
 
-	####################################
-	# Open or create new database
-	####################################
-
+	##### Open or create new database #####
+	
 	@classmethod
 	def opendb(cls, name=None, password=None, db=None, admin=False):
 		import emen2.db.proxy
@@ -803,9 +813,7 @@ class DB(object):
 
 
 
-	###############################
-	# Utility methods
-	###############################
+	##### Utility methods #####
 
 	def _sudo(self, username=None, ctx=None, txn=None):
 		print "Temporarily granting user %s administrative privileges"
@@ -946,9 +954,7 @@ class DB(object):
 
 
 
-	###############################
-	# Events
-	###############################
+	##### Events #####
 
 	# ian: todo: hard: flesh this out into a proper cron system,
 	# with a registration model; right now just runs cleanupcontext
@@ -1032,9 +1038,7 @@ class DB(object):
 
 
 
-	###############################
-	# Login and Context Management
-	###############################
+	##### Login and Context Management #####
 
 	@publicmethod("auth.login", write=True)
 	def login(self, name="anonymous", password="", host=None, ctx=None, txn=None):
@@ -1169,9 +1173,7 @@ class DB(object):
 
 
 
-	###############################
-	# Query
-	###############################
+	##### Query #####
 
 	@publicmethod("record.query")
 	def query(self,
@@ -1191,8 +1193,7 @@ class DB(object):
 			**kwargs):
 		"""Query"""
 
-		############################
-		# Setup
+		##### Step 0. Setup
 		times = {}
 		t0 = time.time()
 		t = time.time()
@@ -1215,8 +1216,8 @@ class DB(object):
 
 		recs = collections.defaultdict(dict)
 
-		############################
-		# Step 1: Run constraints
+
+		##### Step 1: Run constraints
 		t = clock(times, 0, t0)
 
 		for searchparam, comp, value in _cc:
@@ -1228,8 +1229,7 @@ class DB(object):
 				getattr(names, boolops[boolmode])(constraintmatches)
 
 
-		############################
-		# Step 2: Filter permissions. If no constraint, use all records..
+		##### Step 2: Filter permissions. If no constraint, use all records..
 		t = clock(times, 1, t)
 
 		if names == None:
@@ -1242,8 +1242,8 @@ class DB(object):
 			# Filter
 			names = self.bdbs.record.names(names or set(), ctx=ctx, txn=txn)
 
-		############################
-		# Step 3: Run constraints that include macros or "value is empty"
+
+		##### Step 3: Run constraints that include macros or "value is empty"
 		t = clock(times, 2, t)
 
 		for searchparam, comp, value in _cm:
@@ -1251,8 +1251,8 @@ class DB(object):
 			if constraintmatches != None:
 				getattr(names, boolops[boolmode])(constraintmatches)
 
-		############################
-		# Step 4: Generate stats on rectypes (do this before other sorting..)
+
+		##### Step 4: Generate stats on rectypes (do this before other sorting..)
 		t = clock(times, 3, t)
 
 		rectypes = collections.defaultdict(int)
@@ -1268,8 +1268,8 @@ class DB(object):
 			for name, rec in recs.iteritems():
 				rectypes[rec.get('rectype')] += 1
 
-		############################
-		# Step 5: Sort and slice to the right range
+
+		##### Step 5: Sort and slice to the right range
 		# This processes the values for sorting:
 		#	running any macros, rendering any user names, checking indexes, etc.
 		t = clock(times, 4, t)
@@ -1300,8 +1300,8 @@ class DB(object):
 		if count > 0:
 			names = names[pos:pos+count]
 
-		############################
-		# Step 6: Rendered....
+
+		##### Step 6: Rendered....
 		# This is purely a convenience to save a callback
 		t = clock(times, 5, t)
 
@@ -1347,8 +1347,7 @@ class DB(object):
 			table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
 
 
-		############################
-		# Step 7: Fix for output
+		##### Step 7: Fix for output
 		t = clock(times, 6, t)
 
 		stats = {}
@@ -1646,9 +1645,7 @@ class DB(object):
 
 
 
-	###############################
-	# Other query methods
-	###############################
+	##### Other query methods #####
 
 	def _boolmode_collapse(self, rets, boolmode):
 		if not rets:
@@ -1924,9 +1921,7 @@ class DB(object):
 
 
 
-	#########################
-	# Grouping
-	#########################
+	##### Grouping #####
 
 	@publicmethod("record.find.byrectype")
 	@ol('names', output=False)
@@ -1954,9 +1949,7 @@ class DB(object):
 
 
 
-	#############################
-	# Record Rendering
-	#############################
+	##### Record Rendering #####
 
 	#@remove?
 	@publicmethod("record.render.child.tree")
@@ -2193,13 +2186,11 @@ class DB(object):
 
 
 
-	#########################################################################
 	#************************************************************************
 	#*	Start: BDB Methods
 	#*	Most of these methods are just wrappers for the various
 	#* 	BDB/BTree methods.
 	#************************************************************************
-	#########################################################################
 
 	# This was incorrectly tagged as an admin method
 	@publicmethod("get")
@@ -2240,9 +2231,7 @@ class DB(object):
 
 
 
-	###############################
-	# Relationships
-	###############################
+	##### Relationships #####
 
 	# This is a new method -- might need some testing.
 	@publicmethod("rel.sibling")
@@ -2453,12 +2442,12 @@ class DB(object):
 
 
 
-	##########
+	#####
 	# User Email / Password
 	# These methods sometimes use put instead of cput because they need to modify
 	# the user's secret auth token.
-	#########
-
+	#####
+	
 	@publicmethod("user.setemail", write=True)
 	def setemail(self, email, secret=None, password=None, name=None, ctx=None, txn=None):
 		"""Change a User's email address.
@@ -2571,9 +2560,7 @@ class DB(object):
 
 
 
-	###############################
-	# New Users
-	###############################
+	##### New Users #####
 
 	@publicmethod("user.queue.names", admin=True)
 	def getuserqueue(self, names=None, ctx=None, txn=None):
@@ -2735,9 +2722,7 @@ class DB(object):
 
 
 
-	##########################
-	# Groups
-	##########################
+	##### Groups #####
 
 	@publicmethod("group.names")
 	def getgroupnames(self, names=None, ctx=None, txn=None):
@@ -2779,9 +2764,7 @@ class DB(object):
 
 
 
-	#########################
-	# section: paramdefs
-	#########################
+	##### ParamDefs #####
 
 	@publicmethod("paramdef.vartypes")
 	def getvartypenames(self, ctx=None, txn=None):
@@ -2855,10 +2838,8 @@ class DB(object):
 
 
 
-	#########################
-	# section: recorddefs
-	#########################
-
+	##### RecordDefs #####
+	
 	@publicmethod("recorddef.new")
 	def newrecorddef(self, name, mainview, ctx=None, txn=None):
 		"""Construct a new RecordDef.
@@ -2903,10 +2884,8 @@ class DB(object):
 		return self.bdbs.recorddef.names(names=names, ctx=ctx, txn=txn)
 
 
-
-	#########################
-	# section: records
-	#########################
+	
+	##### Records #####
 
 	@publicmethod("record.get")
 	@ol('names')
@@ -3001,9 +2980,7 @@ class DB(object):
 
 
 
-	###############################
-	# Record Updates
-	###############################
+	##### Record Updates #####
 
 	@publicmethod("record.update", write=True)
 	@ol('names')
@@ -3040,10 +3017,8 @@ class DB(object):
 
 
 
-	###############################
-	# Record Permissions
-	###############################
-
+	##### Record Permissions #####
+	
 	# These map to the normal Record methods
 	@publicmethod("record.adduser", write=True)
 	@ol('names')
@@ -3151,10 +3126,8 @@ class DB(object):
 				
 
 
-	###############################
-	# Binaries
-	###############################
-
+	##### Binaries #####
+	
 	@publicmethod("binary.get")
 	@ol('names')
 	def getbinary(self, names=None, filt=True, ctx=None, txn=None):
@@ -3266,9 +3239,9 @@ class DB(object):
 		'Utitlity method to ensure the server is up'
 		return 'pong'
 
-	#########################
-	# section: workflow
-	#########################
+
+
+	##### Workflow ##### 
 
 	# Workflows are currently turned off, need to be fixed.
 

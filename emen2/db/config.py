@@ -1,4 +1,16 @@
 # $Id$
+'''This module manages EMEN2 configurations and options.
+
+Methods:
+	get_filename(package, resource)
+	defaults()
+	get(key, default=None)
+	set(key, value)
+
+Classes:
+	DBOptions
+		
+'''
 
 import os
 import sys
@@ -9,16 +21,24 @@ import threading
 import urlparse
 
 import jsonrpc.jsonutil
-import emen2.db.debug
 
-##### Global Namespace #####
-
+# EMEN2 imports
+# NOTHING else should import emen2.db.globalns.
+# It is a PRIVATE module.
 import emen2.db.globalns
 globalns = emen2.db.globalns.GlobalNamespace()
+
+# Note:
+# 	Be very careful about importing EMEN2 modules here!
+# 	This module is loaded by many others, it can create circular
+# 	dependencies very easily!
+
+# import emen2.db.debug
 
 
 ##### Mako template lookup #####
 
+# try:
 import mako
 import mako.lookup
 
@@ -35,6 +55,11 @@ class AddExtLookup(mako.lookup.TemplateLookup):
 
 # Mako Template Loader
 templates = AddExtLookup(input_encoding='utf-8')
+
+# ian: todo:
+# Module level 'get_template' and 'render_template' that
+# check if the Mako module is available before calling
+# templates.get_template/render_template
 
 
 ##### Get filename relative to a Python module #####
@@ -77,7 +102,7 @@ class DBOptions(optparse.OptionParser):
 	def __init__(self, *args, **kwargs):
 		kwargs["add_help_option"] = False
 		loginopts = kwargs.pop('loginopts', False)
-		optparse.OptionParser.__init__(self, *args, **kwargs)
+		super(DBOptions, self).__init__(*args, **kwargs)
 
 		dbhomehelp = """EMEN2 Database Environment
 		[default: $EMEN2DBHOME, currently "%s"]"""%os.getenv('EMEN2DBHOME')
@@ -105,7 +130,7 @@ class DBOptions(optparse.OptionParser):
 
 
 	def parse_args(self, lc=True, *args, **kwargs):
-		r1, r2 = optparse.OptionParser.parse_args(self,  *args, **kwargs)
+		r1, r2 = super(DBOptions, self).parse_args(*args, **kwargs)
 		if lc:
 			self.load_config()
 		return r1, r2
@@ -145,30 +170,34 @@ class DBOptions(optparse.OptionParser):
 	def load_config(self, **kw):
 		if globalns.getattr('CONFIG_LOADED', False):
 			return
-		
+
+		# Eventually 'with' will unlock/lock the globalns
 		# with globalns:
 		self._load_config(globalns, **kw)
 		globalns.CONFIG_LOADED = True
 
 
 	def _load_config(self, g, **kw):
-		# Default settings
+		# 'g' is the global GlobalNamespace instance
+		
+		# Default configuration
 		default_config = get_filename('emen2', 'db/config.base.json')
 
-		# A class method that loads a JSON file into the GlobalNS
+		# Load a JSON file into the GlobalNS
 		g.from_file(default_config)
 
-		# Find EMEN2DBHOME and set to g.EMEN2DBHOME
+		# Look for EMEN2DBHOME and set to g.EMEN2DBHOME
 		g.EMEN2DBHOME = self.values.home or os.getenv("EMEN2DBHOME")
 
 		# Load other specified config files
-		for fil in self.values.configfile or []:
-			g.from_file(fil)
+		for f in self.values.configfile or []:
+			g.from_file(f)
 
 		# Load any config file in EMEN2DBHOME
 		g.from_file(os.path.join(g.EMEN2DBHOME, "config.json"))
 		g.from_file(os.path.join(g.EMEN2DBHOME, "config.yml"))
 
+		# You must specify EMEN2DBHOME
 		if not g.getattr('EMEN2DBHOME', False):
 			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
 
@@ -181,12 +210,11 @@ class DBOptions(optparse.OptionParser):
 		elif self.values.loglevel:
 			loglevel = self.values.loglevel
 
-		# ian: this shouldn't be automatic
-		# a directory inside emen2dbhome will be created if --create is specified
 		# Make sure paths to log files exist
 		if not os.path.exists(g.paths.LOGPATH):
 			os.makedirs(g.paths.LOGPATH)
 
+		# todo: see emen2.db.log
 		# Bind main logging method
 		# logger = emen2.db.debug.DebugState(
 		# 	output_level=loglevel,
@@ -197,8 +225,6 @@ class DBOptions(optparse.OptionParser):
 		# logger.add_output(['WEB'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'access.log'), 'a', 0))
 		# logger.add_output(['SECURITY'], emen2.db.debug.Filter(os.path.join(g.paths.LOGPATH, 'security.log'), 'a', 0))
 		# emen2.db.log.logger = logger
-
-
 
 		# Extend the python module path
 		if getattr(g.paths, 'PYTHONPATH', []):
@@ -235,7 +261,5 @@ class DBOptions(optparse.OptionParser):
 		# g.ENABLEROOT = self.values.enableroot or False
 
 
-
-g = lambda: globalns
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

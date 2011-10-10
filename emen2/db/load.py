@@ -1,3 +1,11 @@
+# $Id$
+'''Load a dumped database
+
+Classes:
+	BaseLoader
+	Loader
+'''
+
 import os
 import sys
 import time
@@ -9,6 +17,8 @@ import collections
 import getpass
 
 import jsonrpc.jsonutil
+
+# EMEN2 imports
 import emen2.util.listops
 
 def random_password(N):

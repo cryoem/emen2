@@ -1,4 +1,14 @@
 # $Id$
+'''Vartype, Property, and Macro managers
+
+Classes:
+	VartypeManager:
+		= Registers available Vartypes, Properties, and Macros
+		- Helper methods for access, validating, and rendering parameters
+		- This class may be replaced in the future, by moving it to the 
+			appropriate Vartype/Property/Macro classes.
+'''
+
 import re
 import cgi
 

@@ -1,4 +1,14 @@
 # $Id$
+'''User Database Objects
+
+Classes:
+	BaseUser
+	NewUser
+	User
+	UserDB
+	NewUserDB
+
+'''
 
 import time
 import operator
@@ -8,6 +18,7 @@ import re
 import weakref
 import traceback
 
+# EMEN2 imports
 import emen2.db.btrees
 import emen2.db.exceptions
 import emen2.db.dataobject

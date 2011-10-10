@@ -1,6 +1,14 @@
 # $Id$
+'''Callback
+
+Classes:
+	Message
+	MessageQueue
+'''
+
 import collections
 
+# EMEN2 imports
 import emen2.db.config
 
 class Message(object):

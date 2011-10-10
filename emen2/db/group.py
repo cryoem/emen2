@@ -1,4 +1,12 @@
 # $Id$
+'''Group Database Objects
+
+Classes:
+	Group: Represents a group of users, each with certain permissions
+	GroupDB: BTree for storing Groups
+
+'''
+
 import time
 import operator
 import hashlib
@@ -6,6 +14,7 @@ import random
 import re
 import weakref
 
+# EMEN2 imports
 import emen2.db.btrees
 import emen2.db.dataobject
 import emen2.db.exceptions

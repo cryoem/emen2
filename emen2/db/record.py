@@ -1,4 +1,12 @@
 # $Id$
+'''Record Database Objects
+
+Classes:
+	Record
+	RecordDB
+	
+'''
+
 import time
 import UserDict
 import collections
@@ -7,6 +15,7 @@ import weakref
 import copy
 import re
 
+# EMEN2 imports
 import emen2.db.btrees
 import emen2.db.datatypes
 import emen2.db.exceptions

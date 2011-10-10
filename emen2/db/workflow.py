@@ -1,4 +1,11 @@
 # $Id$
+'''Workflow
+
+Classes:
+	Workflow
+	WorkflowDB
+
+'''
 
 import time
 import operator
@@ -7,6 +14,7 @@ import random
 import re
 import weakref
 
+# EMEN2 imports
 import emen2.db.btrees
 
 # ian: todo: currently deprecated until this is rewritten
@@ -35,26 +43,9 @@ class WorkFlow(emen2.db.dataobject.BaseDBObject):
 
 
 
-	#################################
-	# WorkFlow methods
-	#################################
-
-
-	#################################
-	# Validation methods
-	#################################
-
-
-
-
-
-
-
 
 class WorkFlowDB(emen2.db.btrees.DBODB):
 	dataclass = WorkFlow
-
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,4 +1,14 @@
 # $Id$
+'''Security and authentication
+
+Classes:
+	Context: Database Object for storing a login
+	AnonymousContext: Special Context for anonymous users
+	SpecialRootContext: Special Context for root
+	ContextDB: BTree subclass for storing Contexts
+
+'''
+
 import time
 import operator
 import hashlib
@@ -7,15 +17,15 @@ import re
 import weakref
 import traceback
 
-import emen2
-import emen2.db
+# EMEN2 imports
+import emen2.db.database
 import emen2.db.btrees
 import emen2.db.exceptions
 import emen2.db.proxy
 import emen2.db.config
 
-# These do not use BaseDBObject since they are completely internal to the DB
 
+# Contexts do not use BaseDBObject since they are completely internal to the DB
 class Context(object):
 	"""Defines a database context (like a session). After a user is authenticated
 	a Context is created, and used for subsequent access."""

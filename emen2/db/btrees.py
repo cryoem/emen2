@@ -1,10 +1,15 @@
 # $Id$
-"""
-Core Database classes
-These serve as wrappers around Berkeley DB / bsddb3 DB's.
-"""
+'''Berkeley-DB BTree subclasses used for storing EMEN2 Database Objects
 
-import cPickle as pickle
+Classes:
+	EMEN2DB: Base Berkeley-DB BTree subclass
+	IndexDB: Index database
+	IndexKeysDB: Index-index database
+	DBODB: Base Database Object BTree 
+	RelateDB: DBODB that supports parent-child relationships
+
+'''
+
 import sys
 import time
 import weakref
@@ -13,7 +18,9 @@ import copy
 import bsddb3
 import traceback
 import os
+import cPickle as pickle
 
+# EMEN2 imports
 import emen2.db.config
 import emen2.db.log
 import emen2.util.listops

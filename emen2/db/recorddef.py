@@ -1,7 +1,16 @@
 # $Id$
+'''RecordDef (Protocol) classes
+
+Classes:
+	RecordDef
+	RecordDefDB
+	
+'''
+
 import re
 import textwrap
 
+# EMEN2 imports
 import emen2.db.btrees
 import emen2.db.dataobject
 

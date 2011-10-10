@@ -1,14 +1,27 @@
 # $Id$
+'''Base classes for EMEN2 Database Objects
+
+Classes:
+	BaseDBObject: Base EMEN2 Database Object
+	PermissionsDBObject: Database Object with 'permissions' access controls
+
+'''
+
 import re
-from abc import ABCMeta, abstractmethod, abstractproperty
-from UserDict import DictMixin
 import collections
 import copy
 import re
 import traceback
 import operator
 
+from abc import ABCMeta, abstractmethod, abstractproperty
+from UserDict import DictMixin
+
+# EMEN2 datatypes.
+# This is just used to get the current database time.
+# This may be changed in the future.
 import emen2.db.datatypes
+
 
 class BaseDBObject(object, DictMixin):
 	__metaclass__ = ABCMeta

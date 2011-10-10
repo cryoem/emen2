@@ -1,4 +1,9 @@
 # $Id$
+'''Proxy for accessing EMEN2 API methods
+
+Classes:
+	DBProxy
+'''
 
 from __future__ import with_statement
 
@@ -11,13 +16,13 @@ import weakref
 import functools
 import inspect
 
+# EMEN2 imports
 from emen2.util import listops
-
 
 # ian: The main DB class was cleaned up alot. I am going to merge the
 # DBProxy functionality into it to remove one layer of abstraction.
 
-# Warning: This module is very sensitive to changes. Please test thoroughly before committing!!
+##### Warning: This module is very sensitive to changes. Please test thoroughly before committing!! #####
 
 def publicmethod(*args, **kwargs):
 	"""Decorator for public admin API database method"""

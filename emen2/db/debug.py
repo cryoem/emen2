@@ -1,7 +1,6 @@
 # $Id$
-
 '''
-classes:
+Classes:
 	Output: represents an individual output stream which logs certain specified states
 		- Headless: skips the header information and just logs the message
 		- Min: represents one which logs everything greater than a specified state
@@ -15,6 +14,7 @@ classes:
 
 	Filter: subclass of file, used to be use to strip headers off of access.log, unused
 '''
+
 from __future__ import with_statement
 
 import functools

@@ -1,9 +1,13 @@
 # $Id$
-##########################################################
+'''Direct access of globalns.py and the GlobalNamespace class are deprecated.
+Use the get() and set() functions in emen2.db.config instead.
+'''
+
 from __future__ import with_statement
 
 import itertools
 import collections
+
 def dict_merge(dct1, dct2):
 	commonkeys = set(dct1) & set(dct2)
 	newkeys = set(dct2) - commonkeys
@@ -23,7 +27,12 @@ def dict_merge(dct1, dct2):
 	return dct1
 
 
-class _Null: pass
+
+class _Null:
+	pass
+
+
+
 class Hier(collections.MutableMapping):
 	####################
 	# Class Attributes #
@@ -123,14 +132,16 @@ class Hier(collections.MutableMapping):
 ##########################################################
 
 
-'''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
+# '''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
+# 
+# NOTE: access globals this way:
+# import emen2.globalns
+# g = emen2.globalns.GlobalNamespace('')
+# g.<varname> accesses the variable
+# g.<varname> = <value> sets a variable in a threadsafe manner.
+# '''
+# Direct access is deprecated. Use emen2.db.config: get and set
 
-NOTE: access globals this way:
-import emen2.globalns
-g = emen2.globalns.GlobalNamespace('')
-g.<varname> accesses the variable
-g.<varname> = <value> sets a variable in a threadsafe manner.
-'''
 
 import re
 import collections
@@ -160,17 +171,25 @@ import jsonrpc.jsonutil
 class LoggerStub(debug.DebugState):
 	def __init__(self, *args):
 		debug.DebugState.__init__(self, output_level='DEBUG', logfile=None, get_state=False, logfile_state=None, just_print=True)
-	def swapstdout(self): pass
+
+	def swapstdout(self):
+		pass
+
 	def capturestdout(self):
 		print 'cannot capture stdout'
-	def closestdout(self): pass
+
+	def closestdout(self):
+		pass
+
 	def msg(self, sn, *args, **k):
 		sn = self.debugstates.get_name(self.debugstates[sn])
 		print u'   %s:%s :: %s' % (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, self.print_list(args))
 
-log = LoggerStub()
 
+log = LoggerStub()
 inst = lambda x:x()
+
+
 class GlobalNamespace(Hier):
 
 	def claim(self, name, default=None, validator=None):
@@ -195,23 +214,30 @@ class GlobalNamespace(Hier):
 		for cb in cls._events.get(var, []):
 			cb(value, read=read, write=write)
 
-
 	@inst
 	class paths(object):
 		attrs = []
 		__root = ['']
-		@property
-		def root(self): return self.__root[0]
-		@root.setter
-		def root(self, v): self.__root.insert(0, v)
-		def get_roots(self): return self.__root[:]
 
-		def update(self, path): self.root = path
+		@property
+		def root(self):
+			return self.__root[0]
+
+		@root.setter
+		def root(self, v):
+			self.__root.insert(0, v)
+			
+		def get_roots(self):
+			return self.__root[:]
+
+		def update(self, path):
+			self.root = path
 
 		def __delattr__(self, name):
 			try:
 				self.attrs.remove(name)
-			except ValueError: pass
+			except ValueError:
+				pass
 			object.__delattr__(self, name)
 
 		def __setattr__(self, name, value):
@@ -220,14 +246,18 @@ class GlobalNamespace(Hier):
 
 		def __getattribute__(self, name):
 			value = object.__getattribute__(self, name)
-			if name.startswith('_') or name in set(['attrs', 'root']): return value
+			if name.startswith('_') or name in set(['attrs', 'root']):
+				return value
 			else:
 				if isinstance(value, (str, unicode)):
-					if value.startswith('/'): pass
+					if value.startswith('/'):
+						pass
 					else: value = os.path.join(self.root, value)
 				elif hasattr(value, '__iter__'):
-					if hasattr(value, 'items'): value = dictWrapper(value, self.root)
-					else: value = listWrapper(value, self.root)
+					if hasattr(value, 'items'):
+						value = dictWrapper(value, self.root)
+					else:
+						value = listWrapper(value, self.root)
 			if value is _Null:
 				raise AttributeError('Attribute %r not found' % name)
 			return value
@@ -241,6 +271,7 @@ class GlobalNamespace(Hier):
 	@property
 	def EMEN2DBHOME(self):
 		return self.__vardict.get('EMEN2DBHOME')
+
 	@EMEN2DBHOME.setter
 	def EMEN2DBHOME(self, value):
 		self.setattr('EMEN2DBHOME', value)
@@ -251,15 +282,14 @@ class GlobalNamespace(Hier):
 		try:
 			cls.__locked
 			#print 'ns __locked 0', cls.__locked
-		except AttributeError: cls.__locked = False
+		except AttributeError:
+			cls.__locked = False
 		return cls.__locked
 		#print 'ns __locked 1', cls.__locked
-
 
 	@property
 	def _locked(self):
 		return self.check_locked()
-
 
 	@_locked.setter
 	def _locked(self, value):
@@ -273,15 +303,14 @@ class GlobalNamespace(Hier):
 		self.__tmpdict = emen2.util.datastructures.AttributeDict()
 		return self.__tmpdict
 
-
 	def __exit__(self, exc_type, exc_value, tb):
 		newitems = set(self.__tmpdict) - set(self.__vardict)
 		if newitems:
 			self.__vardict.update(x for x in self.__tmpdict.iteritems() if x[0] in newitems)
 			skipped = set(self.__tmpdict) - newitems
-			if skipped: self.log.msg('WARNING', 'skipped items: %r' % skipped)
+			if skipped:
+				self.log.msg('WARNING', 'skipped items: %r' % skipped)
 		del self.__tmpdict
-
 
 	@classmethod
 	def __unlock(cls):
@@ -298,21 +327,23 @@ class GlobalNamespace(Hier):
 		debug = lambda *a, **k: log.msg('DEBUG', *a, **k)
 	)
 
-
-
 	@classmethod
 	def load_data(cls, fn, data):
 		fn = os.path.abspath(fn)
 		if fn and os.access(fn, os.F_OK):
 			ext = fn.rpartition('.')[2]
-			with open(fn, "r") as f: data = f.read()
+			with open(fn, "r") as f:
+				data = f.read()
 
 			loadfunc = {'json': json.loads}
 			try:
 				loadfunc['yml'] = yaml.safe_load
-			except AttributeError: pass
+			except AttributeError:
+				pass
 
-			def fail(*a): raise NotImplementedError, "No loader for %s files found" % ext.upper()
+			def fail(*a):
+				raise NotImplementedError, "No loader for %s files found" % ext.upper()
+
 			loadfunc = loadfunc.get( fn.rpartition('.')[2], fail )
 
 			if ext.lower() == 'json':
@@ -322,7 +353,8 @@ class GlobalNamespace(Hier):
 
 		elif hasattr(data, 'upper'):
 			loadfunc = json.loads
-			if yaml: load_func = yaml.safe_load
+			if yaml:
+				load_func = yaml.safe_load
 			data = loadfunc(data)
 
 		return data
@@ -402,14 +434,13 @@ class GlobalNamespace(Hier):
 			if hasattr(path, 'json_equivalent'): path = path.json_equivalent()
 			_dict['paths'][key] = path
 		return dict(_dict)
+
 	def json_equivalent(self):
 		return dict(self._values)
-
 
 	#@classmethod
 	#def setattr(self, name, value):
 	#	self.__addattr(name, value)
-
 
 	#def __setattr__(self, name, value):
 	#	self._trigger_event(name, value, write=True)
@@ -423,12 +454,11 @@ class GlobalNamespace(Hier):
 		if not hasattr(name, 'split'):
 			name = '.'.join(name)
 		return self.getattr(name)
+		
 	def __setitem__(self, name, value):
 		if not hasattr(name, 'split'):
 			name = '.'.join(name)
 		return self.setattr(name, value)
-
-
 
 	#@classmethod
 	def setattr(self, name, value, options=None):
@@ -443,8 +473,6 @@ class GlobalNamespace(Hier):
 			Hier.setattr(self, name, value)
 		else: raise LockedNamespaceError, 'cannot change locked namespace'
 
-
-
 	def getattr(self, name, default=None, *args, **kwargs):
 		if name.endswith('___'):
 			name = name.partition('___')[-1]
@@ -455,12 +483,10 @@ class GlobalNamespace(Hier):
 		self._trigger_event(name, result, read=True)
 		return result
 
-
 	@classmethod
 	def keys(cls):
 		private = cls.__options['private']
 		return [k for k in cls.__vardict.keys() if k not in private]
-
 
 	@classmethod
 	def getprivate(cls, name):
@@ -469,10 +495,8 @@ class GlobalNamespace(Hier):
 		result = Hier.getattr(self, name)
 		return result
 
-
 	def update(self, dict):
 		self.__vardict.update(dict)
-
 
 	def reset(self):
 		self.__class__.__vardict = {}
@@ -644,7 +668,9 @@ def json_strip_comments(data):
 	data = r.sub("", data)
 	data = re.sub("\s//.*\n", "", data)
 	return data
-class LockedNamespaceError(TypeError): pass
+	
+class LockedNamespaceError(TypeError):
+	pass
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

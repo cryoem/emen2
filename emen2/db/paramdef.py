@@ -1,10 +1,17 @@
 # $Id$
+'''Parameter Database Objects
+
+Classes:
+	ParamDef
+	ParamDefDB
+
+'''
 
 import functools
 import time
 
+# EMEN2 imports
 import emen2.util.listops
-
 import emen2.db.btrees
 import emen2.db.dataobject
 import emen2.db.magnitude
