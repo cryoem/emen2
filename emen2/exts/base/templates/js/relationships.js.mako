@@ -181,6 +181,9 @@
 			for (var i=0;i<items.length;i++) {
 				d.append(this.build_item(level, items[i], false))
 			}
+			
+			d.append('<input type="hidden" name="'+level+'" value="" class="e2-relationships-hidden" />');
+			
 			return $('<div></div>').append(header, d);
 		},
 		

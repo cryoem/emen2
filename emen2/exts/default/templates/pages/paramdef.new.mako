@@ -3,7 +3,7 @@
 <%namespace name="buttons" file="/buttons"  /> 
 <%namespace name="forms" file="/forms"  /> 
 
-<form method="post" action="${ctxt.reverse('ParamDef/edit', name=paramdef.name)}">
+<form method="post" action="${ctxt.reverse('ParamDef/new', name=paramdef.name)}">
 
 <h1>
 	${title}

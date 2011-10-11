@@ -52,7 +52,7 @@
 	
 	<div data-tab="info" class="e2-tab-active">
 		<p>
-			You are creating a new <a href="${ctxt.reverse('RecordDef/main', name=recdef.name)}">${recdef.desc_short}</a> record as a child of <a href="${ctxt.reverse('Record/view', name=rec.name)}">${recnames.get(rec.name, rec.name)}</a>
+			You are creating a new <a href="${ctxt.reverse('RecordDef/main', name=recdef.name)}">${recdef.desc_short}</a> record as a child of <a href="${ctxt.reverse('Record/main', name=rec.name)}">${recnames.get(rec.name, rec.name)}</a>
 		</p>
 		${markdown.markdown('<strong>Protocol description:</strong>\n'+recdef.desc_long)}
 	</div>

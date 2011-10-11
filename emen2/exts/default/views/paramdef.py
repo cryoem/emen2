@@ -7,11 +7,10 @@ from emen2.web.view import View
 @View.register
 class ParamDef(View):
 
-	@View.add_matcher(r'^/paramdef/(?P<name>.+)/$')
+	@View.add_matcher(r'^/paramdef/(?P<name>\w+)/$')
 	def main(self, name=None):
-		self.template = '/pages/paramdef'
-		
-		paramdef = self.db.getparamdef(name)
+		self.template = '/pages/paramdef.main'
+		self.paramdef = self.db.getparamdef(name, filt=False)
 
 		editable = 0
 		if self.db.checkadmin():
@@ -21,20 +20,23 @@ class ParamDef(View):
 		if self.db.checkcreate():
 			create = 1
 		
-		self.title = "Parameter: %s"%paramdef.desc_short
+		self.title = "Parameter: %s"%self.paramdef.desc_short
 
-		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='paramdef', root=paramdef.name, mode='parents', recurse=3)
+		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='paramdef', root=self.paramdef.name, mode='parents', recurse=3)
 
 		units = set()
-		if paramdef and paramdef.property:
-			units = self.db.getpropertyunits(paramdef.property)
+		if self.paramdef and self.paramdef.property:
+			units = self.db.getpropertyunits(self.paramdef.property)
 
 		vartypes = self.db.getvartypenames()
 
+		properties = self.db.getpropertynames()
+
 		self.ctxt.update(dict(
-			paramdef = paramdef,
+			paramdef = self.paramdef,
 			create = create,
 			vartypes = vartypes,
+			properties = properties,
 			editable = editable,
 			edit = False,
 			new = False,
@@ -42,21 +44,40 @@ class ParamDef(View):
 			))
 
 
-	@View.add_matcher(r'^/paramdef/(?P<name>.+)/edit/$')
+	@View.add_matcher(r'^/paramdef/(?P<name>\w+)/edit/$')
 	def edit(self, name, **kwargs):
 		if self.request_method == 'post':			
-			paramdef = self.db.getparamdef(name)
+			paramdef = self.db.getparamdef(name, filt=False)
 			paramdef.update(kwargs)
 			pd = self.db.putparamdef(paramdef)
 			if pd:
-				self.redirect(self.routing.reverse('ParamDef/view', name=pd.name))
+				self.redirect(self.routing.reverse('ParamDef/main', name=pd.name))
 				return
 				
 		self.main(name=name)
+		self.template = '/pages/paramdef.edit'
 		self.ctxt['edit'] = True
+		self.title = 'Edit Parameter: %s'%self.paramdef.desc_short
 		
+		
+	@View.add_matcher(r'^/paramdef/(?P<name>\w+)/new/$')
+	def new(self, name, **kwargs):
+		if self.request_method == 'post':
+			vartype = kwargs.pop('vartype', None)			
+			paramdef = self.db.newparamdef(name, vartype=vartype)
+			paramdef.update(kwargs)
+			pd = self.db.putparamdef(paramdef)
+			if pd:
+				self.redirect(self.routing.reverse('ParamDef/main', name=pd.name))
+				return
 
-
+		self.main(name=name)
+		self.template = '/pages/paramdef.new'
+		self.paramdef.parents = set([self.paramdef.name])
+		self.paramdef.children = set()
+		self.ctxt['edit'] = True
+		self.ctxt['new'] = True
+		self.title = 'New Parameter based on: %s'%self.paramdef.desc_short
 
 
 @View.register

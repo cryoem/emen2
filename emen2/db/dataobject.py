@@ -282,7 +282,7 @@ class BaseDBObject(object, DictMixin):
 	def _setrel(self, key, value):		
 		# Filter out changes to permissions on records
 		# that we can't access...
-		value = set(value or [])
+		value = set(emen2.util.listops.check_iterable(value))
 		orig = self.get(key)
 		changed = orig ^ value
 		# Get all of the changed items that we can access

@@ -73,7 +73,7 @@ class RecordBase(View):
 		pages = collections.OrderedDict()
 		pages.uris = {}
 		pages['main'] = recnames.get(self.rec.name, self.rec.name)
-		pages.uris['main'] = self.routing.reverse('Record/view', name=self.rec.name)
+		pages.uris['main'] = self.routing.reverse('Record/main', name=self.rec.name)
 		for k,v in self.db.groupbyrectype(self.rec.children).items():
 			pages[k] = "%s (%s)"%(k,len(v))
 			pages.uris[k] = self.routing.reverse('Record/children', name=self.rec.name, childtype=k)
@@ -102,7 +102,7 @@ class RecordBase(View):
 class Record(RecordBase):
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
-	def view(self, name=None, sibling=None):
+	def main(self, name=None, sibling=None):
 		self.init(name=name)
 		self.template = '/pages/record.main'
 
@@ -136,7 +136,7 @@ class Record(RecordBase):
 			try:
 				rec.update(kwargs)
 				self.db.putrecord(rec)
-				self.redirect(self.routing.reverse('Record/view', name=name))
+				self.redirect(self.routing.reverse('Record/main', name=name))
 				return
 			except Exception, e:
 				self.ctxt['ERRORS'].append(e)
@@ -231,7 +231,7 @@ class Record(RecordBase):
 			newrec.update(kwargs)
 			newrec = self.db.putrecord(newrec)
 			if newrec:
-				self.redirect(self.routing.reverse('Record/view', name=newrec.name))
+				self.redirect(self.routing.reverse('Record/main', name=newrec.name))
 				return
 				# path = self.routing.reverse('Record/main', name=newrec.name)
 				# self.redirect(path)

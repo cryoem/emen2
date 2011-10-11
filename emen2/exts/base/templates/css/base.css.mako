@@ -18,6 +18,12 @@ begin with one of the following prefixes:
 	not part of a particular widget
 */
 
+/* Paragraphs and uls have an irritating default margin */
+ul {
+	margin-top: 0px;
+	margin-bottom: 0px;
+}
+
 /* Basic link styling */
 a,
 .e2l-a
