@@ -13,7 +13,8 @@ Functions:
 	commit
 '''
 
-# Logging methods
+
+import traceback
 import functools
 
 logger = None
@@ -39,3 +40,6 @@ debug = functools.partial(msg_backwards, level='DEBUG')
 security = functools.partial(msg_backwards, level='SECURITY')
 index = functools.partial(msg_backwards, level='INDEX')
 commit = functools.partial(msg_backwards, level='COMMIT')
+
+def print_exception():
+	traceback.print_exc()

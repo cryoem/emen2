@@ -352,7 +352,7 @@ class ViewLoader(object):
 			level = 'ERROR'
 			msg[1] = "FAILED:"
 			failures.append(viewname)
-			# emen2.db.log.print_exception()
+			emen2.db.log.print_exception()
 
 		msg.append(filpath+ext)
 		emen2.db.log.msg(level, ' '.join(msg))
