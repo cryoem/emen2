@@ -7,25 +7,11 @@ from emen2.web.view import View
 @View.register
 class ParamDef(View):
 
-	@View.add_matcher(r'^/paramdef/(?P<name>\w+)/$')
-	def init(self,name=None, action=None, new=0):
+	@View.add_matcher(r'^/paramdef/(?P<name>.+)/$')
+	def main(self, name=None):
 		self.template = '/pages/paramdef'
-		self.name = name
-		self.action = action
-
-		paramdef = self.db.getparamdef(self.name)
-		edit = 0
-		new = 0
-		mapmode = "parents"
-
-		if self.action == "edit": edit=1
-
-		if self.action == "new":
-			new = 1
-			edit = 1
-
-		if self.action == "map":
-			mapmode = "children"
+		
+		paramdef = self.db.getparamdef(name)
 
 		editable = 0
 		if self.db.checkadmin():
@@ -35,40 +21,40 @@ class ParamDef(View):
 		if self.db.checkcreate():
 			create = 1
 		
-		title = "Parameter: %s"%paramdef.desc_short
+		self.title = "Parameter: %s"%paramdef.desc_short
 
-		if edit:
-			self.template = '/pages/paramdef.edit'
-			title = "Parameter Editor: %s"%paramdef.desc_short
-			if new:
-				title = "Parameter Creator: New parameter based on %s"%paramdef.desc_short
-
-
-		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='paramdef', root=self.name, mode='parents', recurse=3)
-		
-		creator = self.db.getuser(paramdef.creator) or {}
+		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='paramdef', root=paramdef.name, mode='parents', recurse=3)
 
 		units = set()
 		if paramdef and paramdef.property:
 			units = self.db.getpropertyunits(paramdef.property)
 
+		vartypes = self.db.getvartypenames()
+
 		self.ctxt.update(dict(
-			parentmap = parentmap,
-			title = title,
-			editable = editable,
-			edit = edit,
-			new = new,
 			paramdef = paramdef,
-			keytype = "paramdef",
-			key = self.name,
-			create = create
+			create = create,
+			vartypes = vartypes,
+			editable = editable,
+			edit = False,
+			new = False,
+			parentmap = parentmap
 			))
 
 
 	@View.add_matcher(r'^/paramdef/(?P<name>.+)/edit/$')
 	def edit(self, name, **kwargs):
-		pass
-
+		if self.request_method == 'post':			
+			paramdef = self.db.getparamdef(name)
+			paramdef.update(kwargs)
+			pd = self.db.putparamdef(paramdef)
+			if pd:
+				self.redirect(self.routing.reverse('ParamDef/view', name=pd.name))
+				return
+				
+		self.main(name=name)
+		self.ctxt['edit'] = True
+		
 
 
 
