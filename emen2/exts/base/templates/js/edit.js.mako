@@ -541,7 +541,6 @@
 			var defaults = {
 				'html':'text',
 				'time':'datetime',
-				'date':'datetime',
 				'history':'none',
 				'uri':'none',
 				'recid':'none',
@@ -614,7 +613,7 @@
 		
 		build_item: function(val) {
 			var pd = this.cachepd();
-			return '<input type="text" name="'+this.options.prefix+pd.name+'" value="'+(val || '')+'" />';
+			return '<input type="text" name="'+this.options.prefix+pd.name+'" value="'+(val || '')+'" autocomplete="off" />';
 		},
 		
 		build_add: function(e) {
@@ -659,6 +658,8 @@
 			var self = this;
 			var pd = this.cachepd();
 			var container = $('<span class="e2-edit-container" />');
+
+			var editw = $('<input type="text" name="'+this.options.prefix+pd.name+'" value="'+(val || '')+'" autocomplete="off" />');
 			if (pd.property) {
 				var realedit = '<input class="e2-edit-val" type="hidden" name="'+this.options.prefix+pd.name+'" value="'+(val || '')+'" />';
 				var editw = $('<input class="e2-edit-unitsval" type="text" value="'+(val || '')+'" />');
@@ -667,8 +668,28 @@
 				units.change(function(){self.sethidden()});
 				container.append(editw, units, realedit);
 			} else {
-				container.append('<input type="text" name="'+this.options.prefix+pd.name+'" value="'+(val || '')+'" />');
+				container.append(editw);
 			}
+			
+			var param = pd.name;
+			editw.autocomplete({
+				minLength: 0,
+				source: function(request, response) {
+					$.jsonRPC.call("findvalue", [param, request.term], function(ret) {
+						var r = $.map(ret, function(item) {
+							return {
+								label: item[0] + " (" + item[1] + " records)",
+								value: item[0]
+							}
+						});
+						response(r);			
+					});
+				}
+			});
+			//editw.click(function() {
+			//	$(this).autocomplete('search');
+			//});			
+			
 			return container
 		},
 
@@ -813,7 +834,7 @@
 	// Coordinate
     $.widget("emen2edit.coordinate", $.emen2.EditBase, {
 		build_item: function(val) {
-			return 'Edit Groups...'
+			return 'Edit coordinates...'
 		}
 	});	
 
@@ -833,17 +854,40 @@
 	// Rectype
     $.widget("emen2edit.rectype", $.emen2.EditBase, {
 		build_item: function(val) {
-			return 'Edit rectype...'
+			return 'Rectype is not editable!'
 		}
 	});	
 
-	// Datetime
+	// Date Time
     $.widget("emen2edit.datetime", $.emen2.EditBase, {
 		build_item: function(val) {
-			return 'Edit datetime...'
+			var e = $('<input type="text" name="'+this.options.prefix+this.options.param+'" value="'+val+'" />');
+			e.datetimepicker({
+				showButtonPanel: true,
+				changeMonth: true,
+				changeYear: true,
+				showAnim: '',
+				dateFormat: 'yy/mm/dd'
+			});
+			return e
+		}
+	});	
+
+	// Date
+    $.widget("emen2edit.date", $.emen2.EditBase, {
+		build_item: function(val) {
+			var e = $('<input type="text" name="'+this.options.prefix+this.options.param+'" value="'+val+'" />');
+			e.datepicker({
+				showButtonPanel: true,
+				changeMonth: true,
+				changeYear: true,
+				showAnim: '',
+				dateFormat: 'yy/mm/dd'
+			});
+			return e
 		}
 	});
-	
+		
 	// WIDGET HINTS
 	$.widget('emen2edit.checkbox', $.emen2.EditBase, {
 		build_item: function(val) {

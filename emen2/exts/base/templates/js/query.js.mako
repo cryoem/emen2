@@ -481,7 +481,7 @@
 			
 			// Create new record
 			// if (this.options.rectype && this.options.parent != null) {
-			if (true) {
+			if (this.options.create && this.options.rectype != null && this.options.parent != null) {
 				var create = $(' \
 					<li class="e2l-float-right"> \
 						<span><input class="e2l-small" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="button" value="New '+this.options.rectype+'" /></span> \
@@ -682,7 +682,7 @@
 
 			// Build the check boxes for selecting records
 			// tr.append('<th><input type="checkbox" /></th>');
-			tr2.append('<th />');
+			// tr2.append('<th />');
 
 			// Build the rest of the column headers
 			$.each(headers, function() {
@@ -707,12 +707,14 @@
 			});
 
 			// Connect the sort and edit buttons
-			$('button[name=sort]', tr2).click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
+			$('button[name=sort]', tr2).click(function(e){
+				e.preventDefault();
+				self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))
+			});
 			
 			// Append the title row and control row
 			$('thead', t).append(tr, tr2);
 		},
-		
 		
 		rebuild_tbody: function() {
 			// Rebuild the table body
@@ -742,54 +744,6 @@
 			// This was a easonably fast way to do this
 			$('tbody', t).empty();
 			$('tbody', t).append(rows.join(''));		
-		},
-		
-		event_edit: function(e, param) {
-			// alert('Not Implemented');
-			
-			// Why is this event triggering a form submission?
-			// e.preventDefault();
-			// 
-			// // Get the param for this column
-			// var elem = $(e.target).parent();
-			// var key = elem.attr('data-name');
-			// 
-			// // Attach editing controls to all the items
-			// // var items = $('.e2-edit[data-param='+key+']', this.element);
-			// //items.EditControl({
-			// //	show: true
-			// //});
-			// 
-			// // Get the form element, and set the target..
-			// var form = $('.e2-query-tableform', this.element);
-			// form.MultiEditControl({
-			// 	selector: '.e2-edit[data-param='+key+']'
-			// });
-			// form.MultiEditControl('show');
-			// Event handler for "Edit" column
-			// 	if (this.options.q['count'] > 100) {
-			// 		var check = confirm('Editing tables with more than 100 rows may use excessive resources. Continue?');
-			// 		if (check==false) {return}
-			// 	}
-			// 	var self = this;
-			// 
-			// 	//e.stopPropagation();
-			// 	// ugly hack..
-			// 	var t = $(e.target);
-			// 	var key = t.parent().attr('data-name');
-			// 	if (key==null) {
-			// 		t = $(e.target).parent();
-			// 		var key = t.parent().attr('data-name');				
-			// 	}
-			// 	var selector = '#tbody .e2-edit';
-			// 	if (key) {
-			// 		selector = '#tbody .e2-edit[data-param='+key+']'
-			// 	}			
-			// 	t.MultiEditControl({
-			// 		show: true,
-			// 		selector: selector,
-			// 		cb_save: function(caller){self.query()}
-			// 	});
 		}
 	});	
 	

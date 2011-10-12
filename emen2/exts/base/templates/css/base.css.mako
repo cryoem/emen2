@@ -680,6 +680,13 @@ textarea.e2l-fw {
 	overflow-y: auto;
 }
 
+/* css for timepicker */
+.ui-timepicker-div .ui-widget-header{ margin-bottom: 8px; }
+.ui-timepicker-div dl{ text-align: left; }
+.ui-timepicker-div dl dt{ height: 25px; }
+.ui-timepicker-div dl dd{ margin: -25px 0 10px 65px; }
+.ui-timepicker-div td { font-size: 90%; }
+
 /* IE 6 doesn't support max-height
  * we use height instead, but this forces the menu to always be this tall
 * html .ui-autocomplete {
