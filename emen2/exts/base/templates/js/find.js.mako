@@ -55,11 +55,19 @@
 				}, function(item) {
 					if (!item) {return}
 					caches[item.keytype][item.name] = item;
-					self.build();
+					self._build();
 				});
 				return
 			}
-
+			
+			this._build();
+			
+		}, 
+		
+		_build: function() {
+			var self = this;
+			var item = caches[this.options.keytype][this.options.name];
+			
 			// ian: todo: This could be refactored somewhat
 			var title = '';
 			var body = '';

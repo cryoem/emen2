@@ -324,6 +324,7 @@
 			name: null,
 			selector: null,
 			controls: null,
+			prefix: false
 		},
 				
 		_create: function() {
@@ -345,8 +346,8 @@
 			this.build();
 			if (this.options.controls) {
 				$('input', this.options.controls).hide();
-				$('input[name=comments]', this.options.controls).show();
-				$('input[name=save]', this.options.controls).show();
+				$('.e2-edit-comments', this.options.controls).show();
+				$('.e2-edit-save', this.options.controls).show();
 			}			
 		},
 	
@@ -354,7 +355,7 @@
 			$(this.options.selector).EditControl('hide');
 			if (this.options.controls) {
 				$('input', this.options.controls).hide();
-				$('input[name=show]', this.options.controls).show();
+				$('.e2-edit-show', this.options.controls).show();
 			}
 		},
 		
@@ -389,20 +390,27 @@
 			var self = this;			
 			
 			// Build the individual editing controls
-			$(this.options.selector).EditControl({});
+			$(this.options.selector).EditControl({
+				prefix: this.options.prefix
+			});
 
 			$('input[type=submit]', this.element).click(function(e){self.save(e)});
 
 			// Build overall controls
 			if (this.options.controls) {
+				var placeholder = 'Reason for changes';
+				if (this.options.prefix) {
+					placeholder = 'Reason for changes; this comment will be added to all changed records.'
+				}
+				
 				var controls = $(' \
-					<textarea class="e2l-fw" name="comments" placeholder="Reason for changes"></textarea> \
+					<textarea class="e2l-fw" name="comments" placeholder="'+placeholder+'"></textarea> \
 					<ul class="e2l-controls"> \
-						<li><input type="button" name="save" value="Save" /></li> \
+						<li><input type="button" class="e2-edit-save" value="Save" /></li> \
 					</ul>');
-				$('input[name=show]', controls).click(function() {self.show()})
-				$('input[name=cancel]', controls).click(function() {self.hide()})
-				$('input[name=save]', controls).click(function(e){self.save(e)})
+				$('.e2-edit-show', controls).click(function() {self.show()})
+				$('.e2-edit-cancel', controls).click(function() {self.hide()})
+				$('.e2-edit-save', controls).click(function(e){self.save(e)})
 				this.options.controls.append(controls);
 			}
 		},
@@ -447,13 +455,21 @@
 		options: {
 			show: true,
 			name: null,
-			param: null
+			param: null,
+			prefix: null
 		},
 				
 		_create: function() {
 			// Parse options from element attributes if available		
 			this.options.name = $.checkopt(this, 'name');
 			this.options.param = $.checkopt(this, 'param');
+
+			if (this.options.prefix) {
+				this.options.prefix = this.options.name + '.';
+			} else {
+				this.options.prefix = '';
+			}
+		
 			this.built = 0;
 
 			if (this.options.show) {
@@ -461,7 +477,9 @@
 			}
 		},
 	
-		show: function() {			
+		show: function() {	
+			var self = this;
+					
 			// Get the Record if it isn't cached
 			if (caches['record'][this.options.name] == null) {
 				$.jsonRPC.call("getrecord", [this.options.name], function(rec) {
@@ -479,7 +497,7 @@
 				});
 				return
 			}
-
+			
 			// Build the control
 			this.build();
 			
@@ -518,18 +536,6 @@
 			}
 			this.editor = new cls(this.options, this.dialog);
 		},		
-
-		// save: function(e) {
-		// 	var self = this;
-		// 	var p = {}
-		// 	p[this.options.param] = this.getval();
-		// 	$.jsonRPC.call("putrecordvalues", [this.options.name, p], function(rec) {
-		// 		$.record_update(rec);
-		// 		self.hide();
-		// 	}, function(e) {
-		// 		$.error_dialog(e.statusText, e.getResponseHeader('X-Error'), this.jsonRPCMethod, this.data);
-		// 	});
-		// },
 		
 		controlhints: function(vt) {
 			var defaults = {
@@ -608,7 +614,7 @@
 		
 		build_item: function(val) {
 			var pd = this.cachepd();
-			return '<input type="text" name="'+pd.name+'" value="'+(val || '')+'" />';
+			return '<input type="text" name="'+this.options.prefix+pd.name+'" value="'+(val || '')+'" />';
 		},
 		
 		build_add: function(e) {
@@ -654,14 +660,14 @@
 			var pd = this.cachepd();
 			var container = $('<span class="e2-edit-container" />');
 			if (pd.property) {
-				var realedit = '<input class="e2-edit-val" type="hidden" name="'+pd.name+'" value="'+(val || '')+'" />';
+				var realedit = '<input class="e2-edit-val" type="hidden" name="'+this.options.prefix+pd.name+'" value="'+(val || '')+'" />';
 				var editw = $('<input class="e2-edit-unitsval" type="text" value="'+(val || '')+'" />');
 				var units = this.build_units();
 				editw.change(function(){self.sethidden()});
 				units.change(function(){self.sethidden()});
 				container.append(editw, units, realedit);
 			} else {
-				container.append('<input type="text" name="'+pd.name+'" value="'+(val || '')+'" />');
+				container.append('<input type="text" name="'+this.options.prefix+pd.name+'" value="'+(val || '')+'" />');
 			}
 			return container
 		},
@@ -693,7 +699,7 @@
     $.widget("emen2edit.choice", $.emen2.EditBase, {
 		build_item: function(val) {
 			var choices = this.cachepd().choices;
-			var editw = $('<select name="'+this.cachepd().name+'"></select>');
+			var editw = $('<select name="'+this.options.prefix+this.cachepd().name+'"></select>');
 			editw.append('<option></option>');
 			for (var i=0;i<choices.length;i++){
 				var choice = $('<option value="'+choices[i]+'">'+choices[i]+'</option>');
@@ -720,14 +726,14 @@
 	// User editor
     $.widget("emen2edit.user", $.emen2.EditBase, {
 		build_iter: function(val) {
-			val = val || [];
+			val = val || [];			
 			var ul = $('<div class="e2-edit-iterul e2l-cf" />');
 			for (var i=0;i<val.length;i++) {
 				var control = this.build_item(val[i]);
 				ul.append(control);
 			}
 			// Add a final empty element to detect empty result..
-			var empty = $('<input type="hidden" name="'+this.options.param+'" value="" />');
+			var empty = $('<input type="hidden" name="'+this.options.prefix+this.options.param+'" value="" />');
 			this.element.addClass('e2l-fw');
 			return $('<div />').append(ul, this.build_add(), empty);
 		},
@@ -738,12 +744,8 @@
 				keytype: 'user',
 				name: val,
 				selectable: true,
-				input: ['checkbox', this.options.param, true]
+				input: ['checkbox', this.options.prefix+this.options.param, true]
 			});
-			// d.append('<input type="hidden" name="'+this.options.param+'" value="'+val+'" />');
-			// d.click(function() {
-			// 	$(this).remove();
-			// })
 			return d
 		},
 		
@@ -862,7 +864,7 @@
 				// grumble..
 				var rand = Math.ceil(Math.random()*10000000);
 				var id = 'e2-edit-radio-'+rand;
-				var input = '<input type="radio" name="'+self.options.param+'" value="'+this+'" id="'+id+'"/><label for="'+id+'">'+this+'</label>';
+				var input = '<input type="radio" name="'+self.options.prefix+self.options.param+'" value="'+this+'" id="'+id+'"/><label for="'+id+'">'+this+'</label>';
 				ul.append($('<li/>').append(input));
 			});
 			return ul

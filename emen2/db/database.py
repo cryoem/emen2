@@ -2414,7 +2414,7 @@ class DB(object):
 			_edit = edit
 			if edit == "auto":
 				_edit = rec.writable()
-
+				
 			a = groupviews.get(key)
 			vs = []
 

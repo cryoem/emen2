@@ -264,6 +264,12 @@ class Record(RecordBase):
 		self.ctxt["childtype"] = childtype
 		c = [['children', 'name', name], ['rectype', '==', childtype]]
 		query = self.routing.execute('Query/embed', db=self.db, c=c)
+
+		# ian: awful hack
+		query.request_location = self.request_location
+		query.ctxt['REQUEST_LOCATION'] = self.request_location
+		
+		
 		self.ctxt['table'] = query
 		self.ctxt['q'] = {}
 		self.ctxt["pages"].active = childtype
@@ -394,9 +400,33 @@ class Record(RecordBase):
 
 @View.register
 class Records(View):
-	pass
 
+	@View.add_matcher("^/records/edit/$")	
+	def edit(self, *args, **kwargs):
+		location = kwargs.pop('_location', None)
+		comments = kwargs.pop('comments', '')
 
+		# import pprint
+		# pprint.pprint(kwargs)
+
+		if self.request_method == 'post':
+			for k,v in kwargs.items():
+				v['name'] = k
+
+			recs = self.db.putrecord(kwargs.values())
+			if comments:
+				for rec in recs:
+					rec.addcomment(comments)
+				self.db.putrecord(recs)
+
+			if location:
+				self.redirect(location)
+				return
+		
+			self.template = '/simple'
+			self.ctxt['content'] = "Saved %s records"%(len(recs))
+		
+		
 
 
 # moved from db...

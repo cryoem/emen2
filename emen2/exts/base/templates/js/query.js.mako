@@ -457,6 +457,9 @@
 			ul.append('<li data-tab="stats"><span class="e2l-a"><span class="e2-query-length">Records</span>'+$.e2caret()+'</span></li>');
 			ul.append('<li data-tab="controls"><span class="e2l-a">Query '+$.e2caret()+'</span></li>')
 
+			// Edit
+			ul.append('<li data-tab="edit"><span class="e2l-a">Edit '+$.e2caret()+'</span></li>')
+
 			// Row count
 			var count = $('<select name="count" class="e2l-small"></select>');
 			count.append('<option value="">Rows</option>');
@@ -504,11 +507,27 @@
 				});	
 			});
 			
+			
+			tab.TabControl('setcb', 'edit', function(page) {
+				var form = $('form.e2-query-tableform');
+				form.MultiEditControl({
+					selector: '.e2-edit',
+					controls: page,
+					prefix: true
+				});
+				form.MultiEditControl('show');
+			});
+			tab.TabControl('sethidecb', 'edit', function(page) {
+				var form = $('form.e2-query-tableform');				
+				form.MultiEditControl('hide');	
+			});
+			
+			
 			// Set the control values from the current query state
 			this.update_controls();
 
 			// Rebind to table header controls
-			// this.rebuild_thead();
+			this.rebuild_thead();
 		},
 
 		
@@ -662,7 +681,7 @@
 			var tr2 = $('<tr />');
 
 			// Build the check boxes for selecting records
-			tr.append('<th><input type="checkbox" /></th>');
+			// tr.append('<th><input type="checkbox" /></th>');
 			tr2.append('<th />');
 
 			// Build the rest of the column headers
@@ -672,12 +691,6 @@
 				}
 				var iw = $('<th>'+this[0]+'</th>');
 				var bw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');			
-
-				// If the column is editable, build an edit button
-				//if (this[1] == "$" && $.inArray(this[2],immutable)==-1) {
-				//	var editable = $('<button name="edit" class="e2l-float-right">'+$.e2image('edit.png', 'Edit')+'</button>');
-				//	bw.append(editable);
-				//}
 
 				// Build the sort button
 				var direction = 'able';
@@ -695,7 +708,6 @@
 
 			// Connect the sort and edit buttons
 			$('button[name=sort]', tr2).click(function(){self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))});
-			$('button[name=edit]', tr2).click(function(e){self.event_edit(e)});						
 			
 			// Append the title row and control row
 			$('thead', t).append(tr, tr2);
@@ -719,7 +731,7 @@
 			// Build each row
 			for (var i=0;i<names.length;i++) {
 				var row = [];
-				row.push('<td><input type="checkbox" data-name="'+names[i]+'" /></td>');
+				// row.push('<td><input type="checkbox" data-name="'+names[i]+'" /></td>');
 				for (var j=0;j<headers.length;j++) {
 					row.push('<td>'+self.options.q['table'][names[i]][j]+'</td>');
 				}
@@ -733,7 +745,27 @@
 		},
 		
 		event_edit: function(e, param) {
-			alert('Not Implemented');
+			// alert('Not Implemented');
+			
+			// Why is this event triggering a form submission?
+			// e.preventDefault();
+			// 
+			// // Get the param for this column
+			// var elem = $(e.target).parent();
+			// var key = elem.attr('data-name');
+			// 
+			// // Attach editing controls to all the items
+			// // var items = $('.e2-edit[data-param='+key+']', this.element);
+			// //items.EditControl({
+			// //	show: true
+			// //});
+			// 
+			// // Get the form element, and set the target..
+			// var form = $('.e2-query-tableform', this.element);
+			// form.MultiEditControl({
+			// 	selector: '.e2-edit[data-param='+key+']'
+			// });
+			// form.MultiEditControl('show');
 			// Event handler for "Edit" column
 			// 	if (this.options.q['count'] > 100) {
 			// 		var check = confirm('Editing tables with more than 100 rows may use excessive resources. Continue?');

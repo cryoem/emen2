@@ -51,15 +51,15 @@ class EMEN2Resource(object):
 	events = emen2.web.events.EventRegistry()
 	routing = emen2.web.routing
 
-	def __init__(self):
+	def __init__(self, request_location='', request_headers=None, request_method='get'):
 		# HTTP Method
-		self.request_method = 'get'
+		self.request_method = request_method
 		
 		# Request headers
-		self.request_headers = {}
+		self.request_headers = request_headers or {}
 
 		# Request location
-		self.request_location = ''
+		self.request_location = request_location
 
 		# HTTP ETags (cache control)
 		self.etag = None
@@ -77,6 +77,10 @@ class EMEN2Resource(object):
 		self.request_method = request.method.lower()
 		self.request_headers = request.getAllHeaders()
 		self.request_location = request.path
+		# In the future the base ctxt will just have a ref to the view..
+		self.ctxt['REQUEST_METHOD'] = self.request_method
+		self.ctxt['REQUEST_HEADERS'] = self.request_headers
+		self.ctxt['REQUEST_LOCATION'] = self.request_location
 
 		# Parse and filter the request arguments
 		args = self.parse_args(request)
