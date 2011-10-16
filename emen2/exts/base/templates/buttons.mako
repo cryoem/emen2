@@ -85,6 +85,11 @@
 	
 	if autolink:
 		link = '%s/%s/%s/'%(EMEN2WEBROOT, item.get('keytype'), item.get('name'))
+
+
+	src = "%s/static/images/gears.png"%EMEN2WEBROOT
+	title = title or item.get('desc_short') or item.get('name')
+	body = ''
 		
 	if item.get('keytype') == 'user':
 		src = "%s/static/images/nophoto.png"%EMEN2WEBROOT
@@ -97,10 +102,9 @@
 		src = "%s/static/images/group.png"%EMEN2WEBROOT
 		title = title or item.get('displayname') or item.get('name')
 		body = body or '%s members'%sum([len(i) for i in item.get('permissions',[])])
-	else:
-		src = "%s/static/images/gears.png"%EMEN2WEBROOT
-		title = title or item.get('desc_short') or item.get('name')
-		body = body or ''
+	elif item.get('keytype') == 'paramdef':
+		body = '%s (%s)'%(item.name, item.vartype)
+
 	%>
 	<div class="e2-infobox" data-name="${item.get('name')}" data-keytype="${item.get('keytype')}">
 

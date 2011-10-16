@@ -9,17 +9,8 @@ class ParamDef(View):
 
 	@View.add_matcher(r'^/paramdef/(?P<name>\w+)/$')
 	def main(self, name=None):
-		self.template = '/pages/paramdef.main'
 		self.paramdef = self.db.getparamdef(name, filt=False)
-
-		editable = 0
-		if self.db.checkadmin():
-			editable = 1
-
-		create = 0
-		if self.db.checkcreate():
-			create = 1
-		
+		self.template = '/pages/paramdef.main'
 		self.title = "Parameter: %s"%self.paramdef.desc_short
 
 		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='paramdef', root=self.paramdef.name, mode='parents', recurse=3)
@@ -34,10 +25,10 @@ class ParamDef(View):
 
 		self.ctxt.update(dict(
 			paramdef = self.paramdef,
-			create = create,
+			create = self.db.checkcreate(),
+			editable = self.paramdef.writable(),
 			vartypes = vartypes,
 			properties = properties,
-			editable = editable,
 			edit = False,
 			new = False,
 			parentmap = parentmap
@@ -105,7 +96,6 @@ class ParamDefs(View):
 
 	@View.add_matcher(r'^/paramdefs/$')
 	def init(self, action=None, q=None):
-		self.title = 'Parameters'
 		
 		if action == None or action not in ["vartype", "name", "tree", "property"]:
 			action = "tree"
@@ -116,13 +106,12 @@ class ParamDefs(View):
 		else:
 			paramdefs = self.db.getparamdef(self.db.getparamdefnames())
 
-		self.template = '/pages/paramdefs.%s'%action
 
 		# Tab Switcher
 		pages = collections.OrderedDict()
 		pages['tree'] = 'Parameter ontology'
 		pages['name'] = 'Parameters by name'
-		pages['vartype'] = 'Parameters by vartype'
+		pages['vartype'] = 'Parameters by data type'
 		pages['property'] = 'Parameters by property'
 		uris = {}
 		for k in pages:
@@ -130,6 +119,9 @@ class ParamDefs(View):
 		pages.uris = uris
 		pages.active = action
 		self.ctxt['pages'] = pages
+
+		self.template = '/pages/paramdefs.%s'%action		
+		self.title = pages.get(action)
 		
 		# Children
 		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="paramdef", root="root", recurse=-1, id='sitemap')

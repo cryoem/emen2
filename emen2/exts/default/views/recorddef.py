@@ -1,6 +1,8 @@
 # $Id$
-# Standard View imports
+import collections
+
 from emen2.web.view import View
+
 
 
 @View.register
@@ -14,66 +16,36 @@ class RecordDef(View):
 
 	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/edit/$')	
 	def edit(self, *args, **kwargs):
-		pass
+		if self.request_method == 'post':			
+			recorddef = self.db.recorddef(name, filt=False)
+			recorddef.update(kwargs)
+			rd = self.db.recorddef(recorddef)
+			if rd:
+				self.redirect(self.routing.reverse('RecordDef/main', name=rd.name))
+				return
+				
+		self.main(name=name)
+		self.template = '/pages/recorddef.edit'
+		self.ctxt['edit'] = True
+		self.title = 'Edit Protocol: %s'%self.paramdef.desc_short
+
 
 	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/$')	
-	def init(self, name=None, action=None, new=0):
+	def main(self, name=None):
+		self.recorddef = self.db.getrecorddef(name, filt=False)
 		self.template = '/pages/recorddef'
-		self.name = name
-		self.action = action
+		self.title = "Protocol: %s"%self.recorddef.desc_short
 
-		recdef = self.db.getrecorddef(self.name, filt=False)
-
-		edit = 0
-		new = 0
-		mapmode = "parents"
-
-		if self.action=="edit":
-			edit = 1
-
-		if self.action=="new":
-			new = 1
-			edit = 1
-
-		if self.action=="map":
-			mapmode = "children"
-
-		ctxuser = self.db.checkcontext()[0]
-		editable = 0
-		if self.db.checkadmin() or ctxuser in [recdef.owner, recdef.creator]:
-			editable = 1
-
-		create = 0
-		if self.db.checkcreate():
-			create = 1
-
-		title = "Protocol Viewer: %s"%self.name
-
-		if edit:
-			self.template='/pages/recorddef.edit'
-			title = "Protocol Editor: %s"%self.name
-			if new:
-				title = "Protocol Creator: New protocol based on %s"%self.name
-
-
-		###############
-
-		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='recorddef', root=self.name, mode='parents', recurse=3)
-
-		###############
+		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='recorddef', root=self.recorddef.name, mode='parents', recurse=3)
 
 		self.ctxt.update(dict(
-			parentmap = parentmap.get_data(),
-			title = title,
-			editable = editable,
-			edit = edit,
-			new = new,
-			keytype = "recorddef",
-			mapmode = mapmode,
-			recdef = recdef,
-			key = self.name,
-			create = create
-			))
+			parentmap = parentmap,
+			editable = self.recorddef.writable(),
+			create = self.db.checkcreate(),
+			recorddef = self.recorddef,
+			edit = False,
+			new = False,
+		))
 
 
 
@@ -97,7 +69,6 @@ class RecordDefs(View):
 
 	@View.add_matcher(r'^/recorddefs/$')
 	def init(self, action=None, q=None):
-
 		if action == None or action not in ["tree", "name", "count"]:
 			action = "tree"
 
@@ -107,22 +78,39 @@ class RecordDefs(View):
 		else:
 			recorddefs = self.db.getrecorddef(self.db.getrecorddefnames())
 
+		# Tab Switcher
+		pages = collections.OrderedDict()
+		pages['tree'] = 'Protocol ontology'
+		pages['name'] = 'Protocols by name'
+		pages['count'] = 'Protocols by number of records'
+		uris = {}
+		for k in pages:
+			uris[k] = self.routing.reverse('RecordDefs/%s'%k)
+		pages.uris = uris
+		pages.active = action
+		self.ctxt['pages'] = pages
 
-		self.template='/pages/recorddefs.%s'%action
-		self.set_context_item('create',self.db.checkcreate())
+		self.template = '/pages/recorddefs.%s'%action		
+		self.title = pages.get(action)
 
-		# 	'labels':{'tree':"Protocol Ontology", 'name':'Protocols by Name', 'count':'Protocols by Number of Records'},
+		# Children
 		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="recorddef", root="root", recurse=-1, id='sitemap')
 
+		# Record counts
 		count = {}
 		if action != 'tree':
 			for pd in recorddefs:
 				count[pd.name] = len(self.db.getindexbyrectype(pd.name))
 
-		self.set_context_item('q', q)
+		self.set_context_item('q',q)
 		self.set_context_item('count', count)
 		self.set_context_item("recorddefs", recorddefs)
 		self.set_context_item("childmap", childmap)
+		self.set_context_item('create', self.db.checkcreate())
+
+
+
+
 
 
 

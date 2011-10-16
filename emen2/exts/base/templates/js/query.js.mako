@@ -521,8 +521,7 @@
 				var form = $('form.e2-query-tableform');				
 				form.MultiEditControl('hide');	
 			});
-			
-			
+						
 			// Set the control values from the current query state
 			this.update_controls();
 
@@ -678,19 +677,16 @@
 			var immutable = ["creator","creationtime","modifyuser","modifytime","history","name","rectype","keytype","parents","children"];
 			
 			var tr = $('<tr />');
-			var tr2 = $('<tr />');
 
 			// Build the check boxes for selecting records
 			// tr.append('<th><input type="checkbox" /></th>');
-			// tr2.append('<th />');
 
 			// Build the rest of the column headers
 			$.each(headers, function() {
 				if (this[3] == null) {
 					this[3]=''
 				}
-				var iw = $('<th>'+this[0]+'</th>');
-				var bw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');			
+				var iw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" >'+this[0]+'</th>');
 
 				// Build the sort button
 				var direction = 'able';
@@ -700,20 +696,19 @@
 				}
 				
 				var sortable = $('<button name="sort" class="e2l-float-right">'+$.e2image('sort_'+direction+'.png', 'Sort')+'</button>');
-				bw.append(sortable);				
+				iw.append(sortable);				
 
 				tr.append(iw);
-				tr2.append(bw);
 			});
 
 			// Connect the sort and edit buttons
-			$('button[name=sort]', tr2).click(function(e){
+			$('button[name=sort]', tr).click(function(e){
 				e.preventDefault();
 				self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))
 			});
 			
 			// Append the title row and control row
-			$('thead', t).append(tr, tr2);
+			$('thead', t).append(tr);
 		},
 		
 		rebuild_tbody: function() {

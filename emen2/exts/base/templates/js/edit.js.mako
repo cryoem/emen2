@@ -785,14 +785,14 @@
 				minimum: 2,
 				selected: function(test, name){self.add_item(name)}
 			});
-			return button			
+			return button
 		}
 	});	
 
 	// Text editor
     $.widget("emen2edit.text", $.emen2.EditBase, {
 		build_item: function(val) {
-			var editw = $('<textarea style="width:100%" name="'+this.cachepd().name+'" rows="20">'+(val || '')+'</textarea>');
+			var editw = $('<textarea style="width:100%" name="'+this.cachepd().name+'" rows="10">'+(val || '')+'</textarea>');
 			this.element.addClass('e2l-fw');
 			return editw
 		}	

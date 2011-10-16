@@ -116,7 +116,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 
 	# Basic properties
 	title = property(
-		lambda self: self.ctxt.get('title', 'No Title'), 
+		lambda self: self.ctxt.get('title'), 
 		lambda self, value: self.ctxt.set('title',value))
 
 	template = property(
@@ -152,7 +152,8 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 			NOTIFY = self._notify,
 			ERRORS = self._errors,
 			REQUEST_LOCATION = self.request_location,
-			REQUEST_HEADERS = self.request_headers
+			REQUEST_HEADERS = self.request_headers,
+			title = 'No Title'
 		))
 
 		# ETags
