@@ -52,6 +52,7 @@ class BaseLoader(object):
 					else:
 						yield item
 	
+	
 
 class Loader(BaseLoader):
 	def load(self, overwrite=False):
@@ -70,8 +71,9 @@ class Loader(BaseLoader):
 		existing_paramdefs = self.db.getparamdefnames()
 		existing_recorddefs = self.db.getrecorddefnames()
 
-		##########################
-		# PARAMDEFS
+
+		##### PARAMDEFS #####
+		
 		pds = []
 		for pd in self.loadfile(self.infile, keytype='paramdef'):
 			pdc[pd.get('name')] |= set(pd.pop('parents', []))
@@ -80,15 +82,15 @@ class Loader(BaseLoader):
 				continue
 			pds.append(pd)
 
-		self.db.put(pds, keytype='paramdef', clone=True)
+		self.db.put(pds, keytype='paramdef')
 
 		# Put the saved relationships back in..
 		for k, v in pdc.items():
 			for v2 in v: self.db.pclink(v2, k, keytype='paramdef')
 
 
-		##########################
-		# USERS
+		##### USERS #####
+		
 		users = []			
 		for user in self.loadfile(self.infile, keytype='user'):
 			if user.get('name') in existing_usernames and not overwrite:
@@ -110,21 +112,22 @@ class Loader(BaseLoader):
 
 			users.append(user)
 
-		self.db.put(users, keytype='user', clone=True)
+		self.db.put(users, keytype='user')
 
-		##########################
-		# GROUPS
+
+		##### GROUPS #####
+		
 		groups = []
 		for group in self.loadfile(self.infile, keytype='group'):
 			if group.get('name') in existing_groupnames and not overwrite:
 				continue
 			groups.append(group)
 
-		self.db.put(groups, keytype='group', clone=True)
+		self.db.put(groups, keytype='group')
 
 
-		##########################
-		# RECORDDEFS
+		##### RECORDDEFS #####
+
 		rds = []
 		for rd in self.loadfile(self.infile, keytype='recorddef'):
 			rdc[rd.get('name')] |= set(rd.pop('parents', []))
@@ -133,15 +136,15 @@ class Loader(BaseLoader):
 				continue
 			rds.append(rd)
 
-		self.db.put(rds, keytype='recorddef', clone=True)
+		self.db.put(rds, keytype='recorddef')
 
 		for k, v in rdc.items():
 			for v2 in v: self.db.pclink(v2, k, keytype='recorddef')
 
 
-		##########################
-		# RECORDS
-		# loaded in chunks of 100
+		##### RECORDS #####
+
+		# loaded in chunks of 1000
 		chunk = []
 		for rec in self.loadfile(self.infile, keytype='record'):
 			chunk.append(rec)
@@ -157,8 +160,8 @@ class Loader(BaseLoader):
 				self.db.pclink(namemap[k], namemap[v2])
 
 
-		##########################
-		# BDOS
+		##### BDOS #####
+		
 		# for bdo in self.loadfile(self.infile, keytype='binary'):
 		# 	# BDO names have colons -- this can cause issues on filesystems, so we change : -> . and back again
 		# 	infile = bdo['name'].replace(":",".")
@@ -183,7 +186,7 @@ class Loader(BaseLoader):
 			names.append(rec.get('name'))
 			rec['name'] = None
 
-		recs = self.db.put(chunk, keytype='record', clone=True)
+		recs = self.db.put(chunk, keytype='record')
 
 		for oldname, newname in zip(names, [rec.name for rec in recs]):
 			namemap[oldname] = newname

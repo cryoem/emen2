@@ -329,17 +329,17 @@ class EMEN2DBEnv(object):
 	txncounter = 0
 
 	# From global configuration
-	cachesize = emen2.db.config.get('BDB.CACHESIZE', 1024) # g.claim('BDB.CACHESIZE', 1024)
-	path = emen2.db.config.get('EMEN2DBHOME') # g.claim('EMEN2DBHOME')
-	create = emen2.db.config.get('params.CREATE') # g.claim('params.CREATE', False)
-	snapshot = emen2.db.config.get('params.SNAPSHOT') # g.claim('params.SNAPSHOT', True)
+	cachesize = emen2.db.config.get('BDB.CACHESIZE', 1024)
+	path = emen2.db.config.get('EMEN2DBHOME')
+	create = emen2.db.config.get('params.CREATE')
+	snapshot = emen2.db.config.get('params.SNAPSHOT')
 
 	# paths from global configuration
-	LOGPATH = emen2.db.config.get('paths.LOGPATH') # g.watch('paths.LOGPATH')
-	LOG_ARCHIVE = emen2.db.config.get('paths.LOG_ARCHIVE') # g.claim('paths.LOG_ARCHIVE')
-	TILEPATH = emen2.db.config.get('paths.TILEPATH') # g.claim('paths.TILEPATH')
-	TMPPATH = emen2.db.config.get('paths.TMPPATH') # g.claim('paths.TMPPATH')
-	SSLPATH = emen2.db.config.get('paths.SSLPATH') # g.watch('paths.SSLPATH')
+	LOGPATH = emen2.db.config.get('paths.LOGPATH')
+	LOG_ARCHIVE = emen2.db.config.get('paths.LOG_ARCHIVE')
+	TILEPATH = emen2.db.config.get('paths.TILEPATH')
+	TMPPATH = emen2.db.config.get('paths.TMPPATH')
+	SSLPATH = emen2.db.config.get('paths.SSLPATH')
 
 
 	def __init__(self, path=None, maintenance=False, snapshot=False, create=False):
@@ -699,7 +699,7 @@ class DB(object):
 	This class provides access to the public API methods.
 	'''
 
-	extensions = emen2.db.config.get('extensions.EXTS') # g.watch('extensions.EXTS')
+	extensions = emen2.db.config.get('extensions.EXTS')
 	sync_contexts = threading.Event()
 
 	def __init__(self, path=None, create=False):
@@ -826,7 +826,7 @@ class DB(object):
 			return rootpw, rootemail
 
 
-		db = self.opendb(db=self)
+		db = self.opendb(db=self, admin=True)
 		with db:
 			#if self.bdbs.enableroot:
 			root = db.getuser('root')

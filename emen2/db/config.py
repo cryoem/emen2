@@ -238,6 +238,12 @@ class DBOptions(optparse.OptionParser):
 
 		# Add any specified extensions
 		g.paths.EXTPATHS.append(get_filename('emen2', 'exts'))
+		if os.getenv('EMEN2EXTPATHS'):
+			for path in filter(None, os.getenv('EMEN2EXTPATHS','').split(":")):
+				print '... adding path %s'%path
+				g.paths.EXTPATHS.append(path)
+				
+
 
 		# Load the default extensions
 		# I plan to add a flag to disable automatic loading.

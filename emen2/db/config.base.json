@@ -99,7 +99,7 @@
 	},
 
 	"extensions":{
-		"EXTS": ["default"]
+		"EXTS": []
 	},
 
 	// Bookmarks to some key records.

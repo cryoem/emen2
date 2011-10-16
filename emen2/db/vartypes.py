@@ -331,7 +331,6 @@ class vt_text(vt_string):
 	"""Freeform text, with word indexing."""
 	elem = 'div'
 
-	# unindexed_words = g.claim('UNINDEXED_WORDS', )
 	unindexed_words = {"in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"}
 	
 	def reindex(self, items):
