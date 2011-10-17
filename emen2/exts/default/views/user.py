@@ -17,7 +17,7 @@ HASH_USERNAME = True
 class User(View):
 
 	@View.add_matcher("^/user/(?P<name>[\w\- ]+)/$")
-	def init(self, name=None):
+	def main(self, name=None):
 		self.template = "/pages/user.view"
 		self.user = self.db.getuser(name, filt=False)
 
@@ -30,7 +30,7 @@ class User(View):
 
 	@View.add_matcher("^/user/(?P<name>[\w\- ]+)/edit/$")
 	def edit(self, name=None, **kwargs):
-		self.init(name=name)
+		self.main(name=name)
 		self.template = "/pages/user.edit"
 		
 		if self.db.checkcontext()[0] != self.user.name and not self.ctxt['ADMIN']:
@@ -97,7 +97,7 @@ class User(View):
 class Users(View):
 
 	@View.add_matcher(r'^/users/$')	
-	def init(self, q=None):
+	def main(self, q=None):
 		self.template = "/pages/users"
 		self.title = "User Directory"
 

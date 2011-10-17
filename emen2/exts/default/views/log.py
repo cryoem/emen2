@@ -50,7 +50,7 @@ class Reverser(object):
 		except EOFError: raise StopIteration
 
 # class TableJS(emen2.web.templating.BaseJS):
-# 	def init(self):
+# 	def main(self):
 # 		super(TableJS, self).init()
 # 		self.files = '%s/static/js/jquery/jquery.dataTables.js' % g.EMEN2WEBROOT
 # 		self.files = '%s/static/js/jquery/jquery.accordion.js' % g.EMEN2WEBROOT

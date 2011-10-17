@@ -74,28 +74,8 @@ class ParamDef(View):
 @View.register
 class ParamDefs(View):
 
-	@View.add_matcher(r'^/paramdefs/vartype/$')
-	def vartype(self, *args, **kwargs):
-		return self.init(action='vartype', *args, **kwargs)
-
-
-	@View.add_matcher(r'^/paramdefs/tree/$')
-	def tree(self, *args, **kwargs):
-		return self.init(action='tree', *args, **kwargs)
-
-
-	@View.add_matcher(r'^/paramdefs/property/$')
-	def property(self, *args, **kwargs):
-		return self.init(action='property', *args, **kwargs)
-		
-		
-	@View.add_matcher(r'^/paramdefs/name/$')
-	def name(self, *args, **kwargs):
-		return self.init(action='name', *args, **kwargs)
-		
-
 	@View.add_matcher(r'^/paramdefs/$')
-	def init(self, action=None, q=None):
+	def main(self, action=None, q=None):
 		
 		if action == None or action not in ["vartype", "name", "tree", "property"]:
 			action = "tree"
@@ -130,6 +110,28 @@ class ParamDefs(View):
 		self.set_context_item("paramdefs", paramdefs)
 		self.set_context_item("childmap", childmap)
 		self.set_context_item('create',self.db.checkcreate())
+
+
+	@View.add_matcher(r'^/paramdefs/vartype/$')
+	def vartype(self, *args, **kwargs):
+		return self.main(action='vartype', *args, **kwargs)
+
+
+	@View.add_matcher(r'^/paramdefs/tree/$')
+	def tree(self, *args, **kwargs):
+		return self.main(action='tree', *args, **kwargs)
+
+
+	@View.add_matcher(r'^/paramdefs/property/$')
+	def property(self, *args, **kwargs):
+		return self.main(action='property', *args, **kwargs)
+		
+		
+	@View.add_matcher(r'^/paramdefs/name/$')
+	def name(self, *args, **kwargs):
+		return self.main(action='name', *args, **kwargs)
+		
+
 
 
 

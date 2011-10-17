@@ -20,7 +20,7 @@ class TemplateRender(View):
 
 	@View.add_matcher(r'^/tmpl/(?P<template>.+)/$', name='main')
 	@View.add_matcher(r'^/tmpl-%s/(?P<template>.+)/$'%emen2.db.config.get('params.VERSION'), name='main/version')
-	def init(self, template='/simple', **kwargs):
+	def main(self, template='/simple', **kwargs):
 		makot = emen2.db.config.templates.get_template(template)
 
 		self.set_context_item('inherit', False)
@@ -47,7 +47,7 @@ class TemplateRender(View):
 # 	
 # 	@View.add_matcher(r'^/static/(?P<filename>.+)', name='main')
 # 	@View.add_matcher(r'^/static-%s/(?P<filename>.+)'%emen2.db.config.get('params.VERSION'), name='main/version')		
-# 	def init(self, filename):
+# 	def main(self, filename):
 # 		self.filename = emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')		 
 # 		
 # 	def render_cb(self, result, request, t=0):

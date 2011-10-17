@@ -61,7 +61,7 @@ class Tiles(View):
 	mimetype = "image/jpeg"
 
 	@View.add_matcher(r'^/tiles/(?P<bid>.+)/image/$', view='Tiles', name='image')	
-	def init(self, bid=None, **kwargs):
+	def main(self, bid=None, **kwargs):
 		self.bid=bid
 		if self.bid == None:
 			return "No Binary ID supplied."
@@ -91,7 +91,7 @@ class PSpec1D(View):
 	mimetype = "image/jpeg"
 
 	@View.add_matcher(r'^/tiles/(?P<bid>.+)/1d/$', view='Tiles', name='pspec1d')
-	def init(self, bid=None, **kwargs):
+	def main(self, bid=None, **kwargs):
 		self.bid=bid
 		if self.bid == None:
 			return "No Binary ID supplied."
@@ -139,7 +139,7 @@ class PSpec1D(View):
 class TilesCheck(View):
 
 	@View.add_matcher(r'^/tiles/(?P<bid>.+)/check/$', view='Tiles', name='check')	
-	def init(self, bid=None):
+	def main(self, bid=None):
 		self.bid = bid
 		self.rebuild = False
 		View.init(self)
@@ -180,7 +180,7 @@ class TilesCheck(View):
 class TilesCreate(View):
 
 	@View.add_matcher(r'^/tiles/(?P<bid>.+)/create/$', view='Tiles', name='create')
-	def init(self,bid=None):
+	def main(self,bid=None):
 		self.bid=bid
 
 	def get_data(self):

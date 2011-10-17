@@ -30,7 +30,7 @@ class Home(View):
 
 	@View.add_matcher(r'^/$', view='Root', name='main')
 	@View.add_matcher(r'^/home/$')
-	def init(self):
+	def main(self):
 			self.title = 'Home'
 			self.template = '/pages/home'
 			bookmarks = emen2.db.config.get('bookmarks.BOOKMARKS', {})

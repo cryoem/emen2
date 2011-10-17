@@ -54,21 +54,21 @@ class RecordDefs(View):
 
 	@View.add_matcher(r'^/recorddefs/name/$')
 	def name(self, *args, **kwargs):
-		return self.init(action='name', *args, **kwargs)
+		return self.main(action='name', *args, **kwargs)
 
 
 	@View.add_matcher(r'^/recorddefs/count/$')
 	def count(self, *args, **kwargs):
-		return self.init(action='count', *args, **kwargs)
+		return self.main(action='count', *args, **kwargs)
 
 
 	@View.add_matcher(r'^/recorddefs/tree/$')
 	def tree(self, action=None, q=None):
-		return self.init(action='tree', *args, **kwargs)
+		return self.main(action='tree', *args, **kwargs)
 
 
 	@View.add_matcher(r'^/recorddefs/$')
-	def init(self, action=None, q=None):
+	def main(self, action=None, q=None):
 		if action == None or action not in ["tree", "name", "count"]:
 			action = "tree"
 

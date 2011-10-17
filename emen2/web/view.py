@@ -160,7 +160,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 		self.etag = None
 
 	
-	def _before_action(self, *args, **kwargs):
+	def init(self, *arrgghs, **blarrgghs):
 		pass
 		
 	# def notify(self, msg):
@@ -239,10 +239,9 @@ class View(TemplateView):
 
 	notifications = emen2.web.notifications.NotificationHandler()
 
-	def _before_action(self, *arrghs, **blarrghs):
-		'''Private/undocumented. Perform an action, inside the transaction,
-		before the render action. This is a temporary workaround and
-		may change in the future.'''
+	def init(self, *args, **kwargs):
+		'''Run this before the requested view method.'''
+		super(View, self).init(*args, **kwargs)
 		
 		user = {}
 		admin = False

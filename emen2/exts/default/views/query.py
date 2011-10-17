@@ -93,7 +93,7 @@ class TooManyFiles(Exception):
 @View.register
 class Query(View):
 
-	def init(self, path=None, q=None, c=None, **kwargs):
+	def initq(self, path=None, q=None, c=None, **kwargs):
 		self.template = '/pages/query.main'
 		self.title = "Query"
 		if q:
@@ -107,7 +107,7 @@ class Query(View):
 	@View.add_matcher(r'^/query/$', name='main')
 	@View.add_matcher(r'^/query/(?P<path>.*)/$', name='query')
 	def main(self, path=None, q=None, c=None):
-		self.init(path, q, c)
+		self.initq(path, q, c)
 		self.q['count'] = 100
 		self.q['table'] = True
 		self.q['stats'] = True
@@ -123,7 +123,7 @@ class Query(View):
 
 	@View.add_matcher(r'^/query/(?P<path>.*)/edit/$', name='edit')
 	def edit(self, path=None, q=None, c=None):
-		self.init(path, q, c)
+		self.initq(path, q, c)
 		self.template = '/pages/query.edit'
 		self.q = self.db.query(**self.q)
 		self.set_context_item('q', self.q)
@@ -132,7 +132,7 @@ class Query(View):
 	# /download/ can't be in the path because of a emen2resource.getchild issue
 	@View.add_matcher(r'^/query/(?P<path>.*)/attachments/$', name='attachments')
 	def attachments(self, path=None, q=None, c=None, confirm=False):
-		self.init(path, q, c)
+		self.initq(path, q, c)
 		self.template = '/pages/query.files'
 		self.q = self.db.query(**self.q)
 		self.set_context_item('q', self.q)

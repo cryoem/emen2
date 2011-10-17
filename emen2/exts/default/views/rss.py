@@ -28,7 +28,7 @@ class RSS(View):
 				'M': ('Minute','%M'),
 				'S': ('Second','%S')}
 
-	def init(self, begin='', end='', amount='', unit='', *a, **kw):
+	def main(self, begin='', end='', amount='', unit='', *a, **kw):
 		self.template = '/pages/rss'
 		self.mimetype = 'text/xml; charset=UTF-8'
 		print self.mimetype

@@ -57,6 +57,9 @@ window.log = function(){
 	$.checkcache = function(keytype, items) {
 		var ret = [];
 		$.each(items, function(i,v) {
+			if (v == 'None' || v == null) {
+				return
+			}
 			var item = caches[keytype][v];
 			if (item==null && $.inArray(v,ret)==-1) {ret.push(v)}
 		});

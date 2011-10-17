@@ -21,7 +21,7 @@ class Map(View):
 
 	@View.add_matcher(r'^/sitemap/$', name='root')
 	@View.add_matcher(r'^/sitemap/(?P<root>\w+)/$')
-	def init(self, root=0, *args, **kwargs):
+	def main(self, root=0, *args, **kwargs):
 		self.embed(root=root, *args, **kwargs)
 		self.template = '/pages/map.sitemap'
 

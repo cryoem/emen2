@@ -117,11 +117,14 @@ class EMEN2Resource(object):
 	def _render_db(self, method, db=None, ctxid=None, host=None, args=None):
 		# Render method inside a DB transaction using auth token ctxid
 		self.db = db
+		
 		# The DBProxy context manager will open a transaction, and abort
 		# on an uncaught exception.
 		with self.db:
 			self.db._setContext(ctxid,host)
-			getattr(self, '_before_action', lambda x:x)() # temp workaround
+			# Any View init method is run inside the transaction
+			self.init()
+			# getattr(self, '_before_action', lambda x:x)() # temp workaround			
 			result = method(self, **args)
 
 		return result

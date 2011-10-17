@@ -8,7 +8,7 @@ from emen2.web.view import View
 class Groups(View):
 
 	@View.add_matcher(r'^/groups/$')
-	def init(self,q=None):
+	def main(self,q=None):
 		self.template="/pages/groups"
 		self.title = "Group Directory"
 		self.set_context_item("q","")
@@ -29,7 +29,7 @@ class Groups(View):
 class Group(View):
 	
 	@View.add_matcher(r'^/group/(?P<groupname>[\w\- ]+)/$')
-	def init(self, groupname=None):
+	def main(self, groupname=None):
 		group = self.db.getgroup(groupname)
 		admin = group.isowner()
 		edit = False

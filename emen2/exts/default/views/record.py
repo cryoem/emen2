@@ -15,7 +15,8 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 
 
 class RecordBase(View):
-	def init(self, name=None, children=True, parents=True, **kwargs):
+
+	def initr(self, name=None, children=True, parents=True, **kwargs):
 		"""Main record rendering."""
 		recnames = {}
 		
@@ -103,7 +104,7 @@ class Record(RecordBase):
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
 	def main(self, name=None, sibling=None):
-		self.init(name=name)
+		self.initr(name=name)
 		self.template = '/pages/record.main'
 
 		# Siblings
@@ -258,7 +259,7 @@ class Record(RecordBase):
 	@View.add_matcher('^/record/(?P<name>\d+)/children/(?P<childtype>\w+)/$')
 	def children(self, name=None, childtype=None):
 		"""Main record rendering."""
-		self.init(name=name)
+		self.initr(name=name)
 		self.template = "/pages/record.table"
 		self.ctxt["create"] = self.db.checkcreate()
 		self.ctxt["childtype"] = childtype
@@ -280,7 +281,7 @@ class Record(RecordBase):
 	def delete(self, commit=False, name=None):
 		"""Main record rendering."""
 
-		self.init(name=name)
+		self.initr(name=name)
 		self.template = "/pages/record.delete"
 		self.title = "Delete Record"
 
@@ -303,7 +304,7 @@ class Record(RecordBase):
 		if revision:
 			revision = revision.replace("+", " ")
 
-		self.init(name=name, parents=True, children=True)
+		self.initr(name=name, parents=True, children=True)
 		self.template = "/pages/record.history"
 
 
@@ -333,7 +334,7 @@ class Record(RecordBase):
 	def email(self, name=None):
 		"""Main record rendering."""
 
-		self.init(name=name)
+		self.initr(name=name)
 		self.template = "/pages/record.email"
 		self.title = "Users referenced by record %s"%(self.name)
 
@@ -363,7 +364,7 @@ class Record(RecordBase):
 
 	# @View.add_matcher(r'^/record/(?P<name>\d+)/publish/$')
 	# def publish(self, name=None):
-	# 	self.init(name=name)
+	# 	self.initr(name=name)
 	# 	self.template = '/pages/record.publish'
 	# 	self.title = 'Publish Records'
 	# 
@@ -381,7 +382,7 @@ class Record(RecordBase):
 
 	# @View.add_matcher(r'^/record/(?P<name>\d+)/boxer/$')
 	# def boxer(self, name=None):
-	# 	self.init(name=name)
+	# 	self.initr(name=name)
 	# 	self.template = '/pages/boxer'
 	# 	self.title = "web.boxer (EXPERIMENTAL!)"
 	# 

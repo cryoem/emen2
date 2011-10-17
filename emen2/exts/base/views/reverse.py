@@ -15,7 +15,7 @@ class ReverseURI(View):
 		alt=r'^/url/$'
 	)
 
-	def init(self, arg='', name=None, arguments='', kwargs='', exe=False):
+	def main(self, arg='', name=None, arguments='', kwargs='', exe=False):
 		self.make_raw()
 		self.set_header('content-type', 'application/json')
 

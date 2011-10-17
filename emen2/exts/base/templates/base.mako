@@ -64,7 +64,7 @@
 
 		caches['user'] = {};
 		caches['group'] = {};
-		caches['record'] = {};
+		caches['record'] = {'None':{}};
 		caches['paramdef'] = {};
 		caches['recorddef'] = {};
 		caches['binary'] = {};

@@ -6,7 +6,7 @@ class Error(View):
 
 	@View.add_matcher('/error/')
 	@View.provides('error_handler')
-	def init(self, error='', location='/', **kwargs):
+	def main(self, error='', location='/', **kwargs):
 		self.template = '/errors/error'
 		self.title = 'Error'
 		self.set_context_item("error", error)
