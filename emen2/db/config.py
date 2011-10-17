@@ -9,7 +9,7 @@ Methods:
 
 Classes:
 	DBOptions
-		
+
 '''
 
 import os
@@ -80,7 +80,7 @@ def defaults():
 
 
 # "g." makes for hard to maintain code.
-# Use: 
+# Use:
 # 	import emen2.db.config
 # 	emen2.db.config.get(key)
 
@@ -88,8 +88,8 @@ def get(key, default=None):
 	return globalns.watch(key, default=default).get()
 
 
-# This will eventually help lock 
-# the configuration for setting	
+# This will eventually help lock
+# the configuration for setting
 def set(key, value):
 	pass
 
@@ -182,7 +182,7 @@ class DBOptions(optparse.OptionParser):
 
 	def _load_config(self, g, **kw):
 		# 'g' is the global GlobalNamespace instance
-		
+
 		# Default configuration
 		default_config = get_filename('emen2', 'db/config.base.json')
 

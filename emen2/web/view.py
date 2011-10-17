@@ -13,7 +13,7 @@ II. View Plugins
 
 III. View loader
 	- class :py:class:`ViewLoader`
-	
+
 '''
 
 import sys
@@ -45,7 +45,7 @@ __all__ = ['TemplateView', 'View', 'ViewPlugin', 'AdminView', 'AuthView']
 
 class TemplateContext(collections.MutableMapping):
 	'''Template Context'''
-	
+
 	def __init__(self, base=None):
 		self.__base = {}
 		self.__dict = self.__base.copy()
@@ -85,7 +85,7 @@ class TemplateContext(collections.MutableMapping):
 
 	def reverse(self, _name, *args, **kwargs):
 		"""Create a URL given a view Name and arguments"""
-		
+
 		full = kwargs.pop('_full', False)
 		webroot = emen2.db.config.get('network.EMEN2WEBROOT', '')
 
@@ -101,14 +101,14 @@ class TemplateContext(collections.MutableMapping):
 			result = result.replace('?', '/?', 1)
 
 		return result
-		
+
 
 
 ###NOTE: This class should not access the db in any way, such activity is carried out by
 ###		the View class below.
 class TemplateView(emen2.web.resource.EMEN2Resource):
 	'''An EMEN2Resource class that renders a result using a template.'''
-	
+
 	# Registration methods moved to the new EMEN2resource
 
 	# A list of methods to call during init (with self)
@@ -129,16 +129,16 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 		request_method is the HTTP method
 		request_headers are the request headers
 		request_location is the request URI
-		'''	
-				
+		'''
+
 		super(TemplateView, self).__init__()
 
-		# 
+		#
 		self.db = db
 
 		# Response headers
 		self._headers = {}
-		
+
 		# Notifications and errors
 		self._notify = []
 		self._errors = []
@@ -159,10 +159,9 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 		# ETags
 		self.etag = None
 
-	
 	def init(self, *arrgghs, **blarrgghs):
 		pass
-		
+
 	# def notify(self, msg):
 	# 	self.events.event('notify')(id(self), msg)
 
@@ -172,7 +171,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 	def __unicode__(self):
 		'''Render the View into a string that can be sent to the client'''
 		return unicode(self.get_data())
-	
+
 	def __str__(self):
 		'''Render the View, encoded as UTF-8'''
 		return unicode(self.get_data()).encode('utf-8', 'replace')
@@ -188,7 +187,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 		self.ctxt['errmsg'] = msg
 
 	def redirect(self, location):
-		'''Redirect by setting Location header and 
+		'''Redirect by setting Location header and
 		using the redirect template'''
 		self.headers['Location'] = location.replace('//','/')
 		self.template = '/redirect'
@@ -202,7 +201,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 
 	# HTTP header manipulation
 	headers = property(
-		fget=lambda self: self._headers, 
+		fget=lambda self: self._headers,
 		fdel=lambda self: self._headers.clear())
 
 	@headers.setter
@@ -242,7 +241,6 @@ class View(TemplateView):
 	def init(self, *args, **kwargs):
 		'''Run this before the requested view method.'''
 		super(View, self).init(*args, **kwargs)
-		
 		user = {}
 		admin = False
 		ctx = getattr(self.db, '_getctx', lambda:None)()
@@ -262,12 +260,12 @@ class View(TemplateView):
 			BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', {}),
 			VERSION = emen2.db.config.get('params.VERSION')
 		))
-		
+
 
 	# def notify(self, msg):
 	# 	if self.ctxid is not None:
 	# 		self.events.event('notify')(self.ctxid, msg)
-	# 
+	#
 	# def get_data(self, *a, **kw):
 	# 	# Get notifications if the user has a ctxid
 	# 	if self.ctxid is not None:
@@ -379,7 +377,7 @@ class ViewLoader(object):
 		# ...add ext path to the python module search
 		pythondir = os.path.join(path, 'python')
 		if os.path.exists(pythondir):
-			pth.insert(-1,pythondir)		
+			pth.insert(-1,pythondir)
 
 		# ...load views
 		viewdir = os.path.join(path, 'views')
@@ -406,7 +404,7 @@ class ViewLoader(object):
 	# 	for fro,v in self.redirects.iteritems():
 	# 		to, kwargs = v
 	# 		emen2.web.resources.publicresource.PublicView.register_redirect(fro, to, **kwargs)
-	
+
 
 	# def reload_views(self, view=None):
 	# 	reload(view)

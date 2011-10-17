@@ -133,7 +133,7 @@ class Hier(collections.MutableMapping):
 
 
 # '''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
-# 
+#
 # NOTE: access globals this way:
 # import emen2.globalns
 # g = emen2.globalns.GlobalNamespace('')
@@ -199,20 +199,6 @@ class GlobalNamespace(Hier):
 		return Watch(self, name, default)
 
 	_events = collections.defaultdict(list)
-	@classmethod
-	def register_event(cls, var):
-		'''events shouldn't modify the state of the GlobalNamespace!!!'''
-		def _inner(cb):
-			cls._events[var].append(cb)
-			if var in cls.__vardict:
-				cb(cls.__vardict[var], read=True)
-			return cb
-		return _inner
-
-	@classmethod
-	def _trigger_event(cls, var, value, read=False, write=False):
-		for cb in cls._events.get(var, []):
-			cb(value, read=read, write=write)
 
 	@inst
 	class paths(object):
@@ -226,7 +212,7 @@ class GlobalNamespace(Hier):
 		@root.setter
 		def root(self, v):
 			self.__root.insert(0, v)
-			
+
 		def get_roots(self):
 			return self.__root[:]
 
@@ -270,7 +256,7 @@ class GlobalNamespace(Hier):
 
 	@property
 	def EMEN2DBHOME(self):
-		return self.__vardict.get('EMEN2DBHOME')
+		return self.getattr('EMEN2DBHOME')
 
 	@EMEN2DBHOME.setter
 	def EMEN2DBHOME(self, value):
@@ -299,18 +285,6 @@ class GlobalNamespace(Hier):
 		elif bool(value) == False:
 			raise LockedNamespaceError, 'cannot unlock %s' % cls.__name__
 
-	def __enter__(self):
-		self.__tmpdict = emen2.util.datastructures.AttributeDict()
-		return self.__tmpdict
-
-	def __exit__(self, exc_type, exc_value, tb):
-		newitems = set(self.__tmpdict) - set(self.__vardict)
-		if newitems:
-			self.__vardict.update(x for x in self.__tmpdict.iteritems() if x[0] in newitems)
-			skipped = set(self.__tmpdict) - newitems
-			if skipped:
-				self.log.msg('WARNING', 'skipped items: %r' % skipped)
-		del self.__tmpdict
 
 	@classmethod
 	def __unlock(cls):
@@ -454,7 +428,7 @@ class GlobalNamespace(Hier):
 		if not hasattr(name, 'split'):
 			name = '.'.join(name)
 		return self.getattr(name)
-		
+
 	def __setitem__(self, name, value):
 		if not hasattr(name, 'split'):
 			name = '.'.join(name)
@@ -480,26 +454,7 @@ class GlobalNamespace(Hier):
 			if name in self.__options['private']:
 				return default
 		result = Hier.getattr(self, name, default=default, *args, **kwargs)
-		self._trigger_event(name, result, read=True)
 		return result
-
-	@classmethod
-	def keys(cls):
-		private = cls.__options['private']
-		return [k for k in cls.__vardict.keys() if k not in private]
-
-	@classmethod
-	def getprivate(cls, name):
-		if name.startswith('___'):
-			name = name.partition('___')[-1]
-		result = Hier.getattr(self, name)
-		return result
-
-	def update(self, dict):
-		self.__vardict.update(dict)
-
-	def reset(self):
-		self.__class__.__vardict = {}
 
 
 
@@ -668,7 +623,7 @@ def json_strip_comments(data):
 	data = r.sub("", data)
 	data = re.sub("\s//.*\n", "", data)
 	return data
-	
+
 class LockedNamespaceError(TypeError):
 	pass
 

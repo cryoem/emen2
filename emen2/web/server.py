@@ -29,19 +29,19 @@ except ImportError:
 import emen2.db.config
 
 
-##### Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool #####		
+##### Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool #####
 
 class DBPool(object):
 	running = False
-	
+
 	def __init__(self, min=0, max=5):
 		# Minimum and maximum number of threads
 		self.min = min
 		self.max = max
-		
+
 		# All connections, hashed by Thread ID
 		self.dbs = {}
-		
+
 		# Generate Thread ID
 		self.threadID = thread.get_ident
 
@@ -77,14 +77,14 @@ class DBPool(object):
 
 	def runtxn(self, call, *args, **kwargs):
 		return twisted.internet.threads.deferToThread(self._runtxn, call, *args, **kwargs)
-	
+
 	def _runtxn(self, call, *args, **kwargs):
 		db = self.connect()
 		with db:
 			result = call(db=db, *args, **kwargs)
 		return result
 
-		
+
 
 ##### Routing Resource #####
 
@@ -96,7 +96,7 @@ class Router(twisted.web.resource.Resource):
 		if path in self.children:
 			return self.children[path]
 
-		# Add a final slash. 
+		# Add a final slash.
 		# Most of the view matchers expect this.
 		path = request.path
 		if not path:
@@ -104,28 +104,27 @@ class Router(twisted.web.resource.Resource):
 		if path[-1] != "/":
 			path = "%s/"%path
 		request.path = path
-		
+
 		try:
 			view, method = emen2.web.routing.resolve(path=request.path)
 		except:
 			return self
-			
+
 		# This may move into routing.Router in the future.
 		view = view()
 		view.render = functools.partial(view.render, method=method)
 		return view
-		
+
 
 	# Resource was not found
 	def render(self, request):
 		return 'Not found'
-	
-		
+
+
 
 ##### pool and reactor #####
 
 pool = DBPool()
-reactor = twisted.internet.reactor		
 
 
 ##### Server ######
@@ -139,7 +138,7 @@ class EMEN2Server(object):
 		self.dbo.add_option('--https', action="store_true", help="Use HTTPS")
 		self.dbo.add_option('--httpsport', type="int", help="HTTPS Port")
 		(self.options, self.args) = self.dbo.parse_args()
-		
+
 		self.EMEN2PORT = emen2.db.config.get('network.EMEN2PORT')
 		self.EMEN2HTTPS = False
 		self.EMEN2PORT_HTTPS = 436
@@ -160,28 +159,23 @@ class EMEN2Server(object):
 	@contextlib.contextmanager
 	def start(self):
 		'''Run the server main loop'''
-		
+
 		# emen2.db.log.info('starting EMEN2 version: %s'%emen2.db.config.get('params.VERSION')
 
 		# Routing resource. This will look up request.uri in the routing table
 		# and return View resources.
 		root = Router()
-		yield self, root
 
-		# Child resources that do not go through the Router.
-		import emen2.web.resource
-		import emen2.web.view
-		root.putChild('jsonrpc', emen2.web.resource.JSONRPCResource())
-		root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
-		root.putChild('static-%s'%emen2.db.config.get('params.VERSION'), twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
-		root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
-		root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
+		# yield (self,root) to body of with statement 
+		# allows this code to be more readable
+		yield self, root
 
 		# The Twisted Web server protocol factory,
 		#  with our Routing resource as root
 		site = twisted.web.server.Site(root)
-		
+
 		# Setup the Twisted reactor to listen on web port
+		reactor = twisted.internet.reactor
 		reactor.listenTCP(self.EMEN2PORT, site)
 
 		# Setup the Twisted reactor to listen on the SSL port
@@ -203,7 +197,17 @@ def start_emen2():
 	with EMEN2Server().start() as (server, root):
 		import emen2.web.view
 		vl = emen2.web.view.ViewLoader()
-		vl.load_extensions()		
+		vl.load_extensions()
+
+		# Child resources that do not go through the Router.
+		import emen2.web.resource
+		import emen2.web.view
+		root.putChild('jsonrpc', emen2.web.resource.JSONRPCResource())
+		root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
+		root.putChild('static-%s'%emen2.db.config.get('params.VERSION'), twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
+		root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
+		root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
+
 
 
 
