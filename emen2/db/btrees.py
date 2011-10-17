@@ -244,8 +244,7 @@ class EMEN2DB(object):
 			# raise KeyError
 			return
 
-		print "Adding %s to cache"%item.name
-
+		# print "Adding %s to cache"%item.name
 		# print "Checking parents/children for %s"%item.name
 		item.parents |= self.getindex('parents', txn=txn).get(item.name)
 		item.children |= self.getindex('children', txn=txn).get(item.name)

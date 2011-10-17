@@ -1,5 +1,5 @@
 (function($) {
-	
+		
 	// Comments Widget
     $.widget("emen2.CommentsControl", {
 		options: {
@@ -528,7 +528,7 @@
 			var cls;
 			if (pd.controlhint) {
 				cls = $.emen2edit[pd.controlhint];
-			} else if ($.emen2edit[pd.vartype]) {
+			} else {
 				cls = $.emen2edit[this.controlhints(pd.vartype)];
 			}
 			if (!cls) {
@@ -539,7 +539,8 @@
 		
 		controlhints: function(vt) {
 			var defaults = {
-				'html':'text',
+				'text':'textarea',
+				'html':'textarea',
 				'time':'datetime',
 				'history':'none',
 				'uri':'none',
@@ -790,12 +791,12 @@
 	});	
 
 	// Text editor
-    $.widget("emen2edit.text", $.emen2.EditBase, {
+	$.widget("emen2edit.textarea", $.emen2.EditBase, {
 		build_item: function(val) {
 			var editw = $('<textarea style="width:100%" name="'+this.cachepd().name+'" rows="10">'+(val || '')+'</textarea>');
 			this.element.addClass('e2l-fw');
 			return editw
-		}	
+		}
 	});
 	
 	// Binary Editor

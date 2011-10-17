@@ -44,7 +44,7 @@
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.json.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.jsonrpc.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.ui.timepicker-addon.js"></script>
-		## <script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.timeago.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.timeago.js"></script>
 
 		## Base EMEN2 widgets
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/util.js"></script>

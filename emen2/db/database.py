@@ -17,6 +17,7 @@ Classes:
 
 '''
 
+import datetime
 import threading
 import atexit
 import collections
@@ -1082,6 +1083,15 @@ class DB(object):
 
 		return gettime()
 
+
+	@publicmethod('time.difference')
+	def timedifference(self, t1, t2=None, ctx=None, txn=None):
+		t1 = emen2.db.vartypes.parse_datetime(t1)[0]
+		if t2:			
+			t2 = emen2.db.vartypes.parse_datetime(t2)[0]
+		else:
+			t2 = datetime.datetime.now()
+		return t2 - t1
 
 
 	##### Login and Context Management #####
@@ -3266,12 +3276,15 @@ class DB(object):
 		
 		users = self.bdbs.newuser.cputs(users, ctx=ctx, txn=txn)
 		user_autoapprove = emen2.db.config.get('users.USER_AUTOAPPROVE', False)
-
+		
 		if user_autoapprove:
 			# print "Autoapproving........"
 			rootctx = self._sudo()
 			rootctx.db._txn = txn
 			self.approveuser([user.name for user in users], ctx=rootctx, txn=txn)
+
+		elif ctx.checkadmin():
+			self.approveuser([user.name for user in users], ctx=ctx, txn=txn)
 
 		else:
 			# Send account request email

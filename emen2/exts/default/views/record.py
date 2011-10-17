@@ -142,7 +142,7 @@ class Record(RecordBase):
 			except Exception, e:
 				self.ctxt['ERRORS'].append(e)
 			
-		self.view(name=name)
+		self.main(name=name)
 		self.ctxt["edit"] = True
 
 

@@ -196,13 +196,13 @@ class DBOptions(optparse.OptionParser):
 		for f in self.values.configfile or []:
 			g.from_file(f)
 
-		# Load any config file in EMEN2DBHOME
-		g.from_file(os.path.join(g.EMEN2DBHOME, "config.json"))
-		g.from_file(os.path.join(g.EMEN2DBHOME, "config.yml"))
-
 		# You must specify EMEN2DBHOME
 		if not g.getattr('EMEN2DBHOME', False):
 			raise ValueError, "No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h"
+
+		# Load any config file in EMEN2DBHOME
+		g.from_file(os.path.join(g.EMEN2DBHOME, "config.json"))
+		g.from_file(os.path.join(g.EMEN2DBHOME, "config.yml"))
 
 		# Set default log levels
 		loglevel = g.getattr('LOG_LEVEL', 'INFO')
