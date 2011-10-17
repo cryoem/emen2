@@ -59,8 +59,8 @@ class EMEN2DB(object):
 
 		# Cached items
 		self.cache = {}
-		# self.cache_parents = collections.defaultdict(set) # temporary patch
-		# self.cache_children = collections.defaultdict(set) # temporary patch
+		self.cache_parents = collections.defaultdict(set) # temporary patch
+		self.cache_children = collections.defaultdict(set) # temporary patch
 		
 		# Indexes
 		self.index = {}
@@ -244,7 +244,8 @@ class EMEN2DB(object):
 			# raise KeyError
 			return
 
-		# print "Adding %s to cache"%item.name
+		print "Adding %s to cache"%item.name
+
 		# print "Checking parents/children for %s"%item.name
 		item.parents |= self.getindex('parents', txn=txn).get(item.name)
 		item.children |= self.getindex('children', txn=txn).get(item.name)
@@ -254,26 +255,24 @@ class EMEN2DB(object):
 				i = pickle.loads(self.cache[unicode(child)])
 				i.parents.add(item.name)
 				self.cache[unicode(i.name)] = pickle.dumps(i)
+
 		for parent in item.parents:
 			if self.cache.get(parent):
 				i = pickle.loads(self.cache[unicode(parent)])
 				i.children.add(item.name)
 				self.cache[unicode(i.name)] = pickle.dumps(i)
 
-		# self.cache_parents[item.name] |= item.parents
-		# self.cache_children[item.name] |= item.children
-		# for parent in item.parents:
-		# 	self.cache_children[parent].add(item.name)
-		# for child in item.children:
-		# 	self.cache_parents[child].add(item.name)
-		# 
-		# item.parents |= self.cache_parents[item.name]
-		# item.children |= self.cache_children[item.name]
 		
-		# print self.cache_parents
-		# print self.cache_children
-		# print "... parents:  ", item.parents
-		# print "... children: ", item.children
+		self.cache_parents[item.name] |= item.parents
+		self.cache_children[item.name] |= item.children
+		for parent in item.parents:
+			self.cache_children[parent].add(item.name)
+		for child in item.children:
+			self.cache_parents[child].add(item.name)
+
+		item.parents |= self.cache_parents[item.name]
+		item.children |= self.cache_children[item.name]
+
 		self.cache[unicode(item.name)] = pickle.dumps(item)
 
 
@@ -926,7 +925,11 @@ class RelateDB(DBODB):
 		remove = set()
 		add = set()
 		for key in (i for i in names if isinstance(i, basestring)):
-			newkey = self.typekey(key.replace('*', ''))
+			try:
+				newkey = self.typekey(key.replace('*', ''))
+			except:
+				raise KeyError, "Invalid key: %s"%key
+				
 			if key.endswith('*'):
 				add |= self.children([newkey], recurse=-1, ctx=ctx, txn=txn).get(newkey, set())
 			remove.add(key)
@@ -1158,12 +1161,24 @@ class RelateDB(DBODB):
 		if recurse == -1:
 			recurse = self.maxrecurse
 
+
+		# Cached items..
+		if rel == 'children':
+			cache = self.cache_children
+		elif rel == 'parents':
+			cache = self.cache_parents
+		else:
+			cache = {}
+
 		# Get the index, and create a cursor (slightly faster)
 		rel = self.getindex(rel, txn=txn)
 		cursor = rel.bdb.cursor(txn=txn)
-
+		
 		# Starting items
 		new = rel.get(key, cursor=cursor)
+		if key in self.cache:
+			new |= cache.get(key, set())
+
 		stack = [new]
 		result = {key: new}
 		visited = set()
@@ -1176,6 +1191,9 @@ class RelateDB(DBODB):
 			stack.append(set())
 			for key in stack[x] - visited:
 				new = rel.get(key, cursor=cursor)
+				if key in self.cache:
+					new |= cache.get(key, set())
+				
 				if new:
 					stack[x+1] |= new #.extend(new)
 					result[key] = new
@@ -1184,11 +1202,6 @@ class RelateDB(DBODB):
 		visited |= stack[-1]
 		cursor.close()
 		return result, visited
-
-
-
-
-
 
 
 

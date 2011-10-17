@@ -240,7 +240,6 @@ class DBOptions(optparse.OptionParser):
 		g.paths.EXTPATHS.append(get_filename('emen2', 'exts'))
 		if os.getenv('EMEN2EXTPATHS'):
 			for path in filter(None, os.getenv('EMEN2EXTPATHS','').split(":")):
-				print '... adding path %s'%path
 				g.paths.EXTPATHS.append(path)
 				
 
