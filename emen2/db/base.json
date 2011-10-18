@@ -35,6 +35,10 @@
 {"modifyuser": "root", "immutable": true, "name": "contact", "keytype": "paramdef", "parents": ["core"], "vartype": "none", "desc_short": "Contact Information"}
 {"modifyuser": "root", "name": "date_occurred", "keytype": "paramdef", "parents": ["core"], "vartype": "datetime", "desc_short": "Date occurred", "desc_long": "The date the experiment is carried out"}
 {"name": "deleted", "keytype": "paramdef","parents": ["core"], "vartype": "boolean", "desc_short": "Deleted Record"}
+{"name": "date_start", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Start"}
+{"name": "date_end", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "End"}
+
+
 
 // Common User Profile parameters
 {"name": "name_first", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "First name"}

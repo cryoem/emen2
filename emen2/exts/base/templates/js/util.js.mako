@@ -160,6 +160,18 @@ window.log = function(){
 			//dataType: "json"
 			});
 	}
+	
+	$.ISODateString = function(d) {
+	    function pad(n){
+	        return n<10 ? '0'+n : n
+	    }
+	    return d.getUTCFullYear()+'-'
+	    + pad(d.getUTCMonth()+1)+'-'
+	    + pad(d.getUTCDate())+'T'
+	    + pad(d.getUTCHours())+':'
+	    + pad(d.getUTCMinutes())+':'
+	    + pad(d.getUTCSeconds())+'Z'
+	}
 
 	// The '___' argument format is deprecated for now.
 	// $.get_url = function(name, args, kwargs) {
