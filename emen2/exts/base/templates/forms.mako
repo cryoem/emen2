@@ -22,6 +22,8 @@ def test(echo):
 
 <%def name="ifchecked(exp=None)">${f_iftrue(exp, 'checked="checked"')}</%def>
 
+<%def name="ifselected(exp=None)">${f_iftrue(exp, 'selected="selected"')}</%def>
+
 
 <%def name="input(name, value, type='text', chk=False)">
 	% if type=='text':
