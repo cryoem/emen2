@@ -41,7 +41,7 @@ class Context(object):
 		self.db = None
 		self.setdb(db)
 
-		self.name = hashlib.sha1(unicode(username) + unicode(host) + unicode(t) + unicode(random.random())).hexdigest()
+		self.name = emen2.db.database.getrandomid()
 
 		# validated user instance, w/ user record, displayname, groups
 		self.user = user or {}

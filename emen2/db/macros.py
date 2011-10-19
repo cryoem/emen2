@@ -7,6 +7,7 @@ Classes:
 
 '''
 
+import random
 import operator
 import cgi
 import re
@@ -325,7 +326,7 @@ class macro_renderchildren(Macro):
 		
 	def process(self, macro, params, rec):
 		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
-		r = self.engine.db.renderview(self.engine.db.getchildren(rec.name), viewtype=params or "recname") #ian:mustfix
+		r = self.engine.db.renderview(self.engine.db.getchildren(rec.name), viewname=params or "recname") #ian:mustfix
 
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
@@ -475,10 +476,21 @@ class macro_checkbox(Macro):
 		
 	def process(self, macro, params, rec):
 		args = parse_args(params)
-		return self._process(*args)
+		return self._process(rec, *args)
 		
-	def _process(self, param, value, label=None, *args, **kwargs):
-		return '<input type="checkbox" name="%s" data-param="%s" value="%s" /> <label for="">%s</label>'%(param, param, value, label or value)
+	def _process(self, rec, param, value, label=None, *args, **kwargs):
+		checked = ''
+		if value in ci(rec.get(param)):
+			checked = 'checked="checked"'
+
+		# grumble..
+		labelid = 'e2-edit-checkbox-%032x'%random.getrandbits(128)
+
+		# Need to put in a hidden input element so that empty sets will still be submitted.
+		return '''
+			<input id="%s" type="checkbox" name="%s" data-param="%s" value="%s" %s />
+			<label for="%s">%s</label>
+			<input type="hidden" name="%s" value="" />'''%(labelid, param, param, value, checked, labelid, label or value, param)
 
 	def macro_name(self, macro, params):
 		return "Checkbox:", params			

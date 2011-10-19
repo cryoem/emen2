@@ -158,7 +158,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 			if action == self._secret[0] and args == self._secret[1]:
 				return
 
-		secret = hashlib.sha1(str(self.name) + str(id(self)) + str(time.time()) + str(random.random())).hexdigest()
+		import emen2.db.database
+		secret = emen2.db.database.getrandomid()
 		self.__dict__['_secret'] = (action, args, secret, time.time())
 
 

@@ -67,7 +67,6 @@
 	"params":{
 		"BLOCKLENGTH": 100000,
 		"VERSION": 20100929,
-		// "TIMESTR": "%Y/%m/%d %H:%M:%S",
 		"MAXRECURSE": 50,
 		"MAXIDLE": 604800,
 		"SNAPSHOT": 1

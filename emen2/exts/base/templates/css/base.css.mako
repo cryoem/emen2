@@ -356,6 +356,13 @@ h4
 	display:inline-block;
 }
 
+/***** e2-newrecord: New Record *****/
+.e2-newrecord-desc_long {
+	margin:0px;
+	padding:5px;
+	background: #eee;
+	border:solid 1px #ccc;
+}
 
 /***** e2-query: Query Results *****/
 .e2-query .e2-query-table ul {

@@ -37,6 +37,7 @@ import shutil
 import glob
 import email
 import email.mime.text
+import random
 
 # Berkeley DB
 # Note: the 'bsddb' module is not sufficient.
@@ -169,6 +170,11 @@ def check_output(args, **kwds):
 # 		i.close()
 
 
+def getrandomid():
+	'''Generate a random ID'''
+	return '%032x'%random.getrandbits(128)
+
+
 # ian: todo: make these express GMT, then localize using a user preference
 def getctime():
 	''':return: Current database time, as float in seconds since the epoch.'''
@@ -176,8 +182,8 @@ def getctime():
 
 
 def gettime():
-	''':return: Current database time, as string in format "%s".'''%emen2.db.config.get('params.TIMESTR', "%Y/%m/%d %H:%M:%S")
-	return time.strftime(emen2.db.config.get('params.TIMESTR', "%Y/%m/%d %H:%M:%S"))
+	'''Returns the current database UTC time in ISO 8601 format'''
+	return datetime.datetime.utcnow().replace(microsecond=0).isoformat()+'Z'
 
 
 def ol(name, output=True):
@@ -1086,9 +1092,9 @@ class DB(object):
 
 	@publicmethod('time.difference')
 	def timedifference(self, t1, t2=None, ctx=None, txn=None):
-		t1 = emen2.db.vartypes.parse_datetime(t1)[0]
+		t1 = emen2.db.vartypes.parse_iso8601(t1)[0]
 		if t2:			
-			t2 = emen2.db.vartypes.parse_datetime(t2)[0]
+			t2 = emen2.db.vartypes.parse_iso8601(t2)[0]
 		else:
 			t2 = datetime.datetime.now()
 		return t2 - t1
@@ -2273,11 +2279,11 @@ class DB(object):
 
 	@publicmethod("record.render")
 	@ol('names')
-	def renderview(self, names, viewdef=None, viewtype='recname', edit=False, markup=True, table=False, mode=None, vtm=None, ctx=None, txn=None):
+	def renderview(self, names, viewname='recname', viewdef=None, edit=False, markup=True, table=False, mode=None, vtm=None, ctx=None, txn=None):
 		'''Render record(s).
 
 		For each record, render the view given either by the viewdef keyword, 
-		or the viewtype keyword in the record's protocol. The default action 
+		or the viewname keyword in the record's protocol. The default action 
 		is to render the "recname" view.
 		
 		The keywords markup, edit, and table affect rendering. markup=True
@@ -2295,21 +2301,21 @@ class DB(object):
 		>>> db.renderview([0, 136, 137])
 		{0: u'EMEN2', 136: u'NCMI', 137: u'A Project'}
 		
-		>>> db.renderview([0, 136], viewtype="mainview")
+		>>> db.renderview([0, 136], viewname="mainview")
 		{0: u'<p>Folder: EMEN2</p>...', 136: u'<h1><span class="e2-paramdef">Group</span>: NCMI</h1>...'}
 		
 		>>> db.renderview([0, 136], viewdef="$$creator $$creationtime")
 		{0: u'<p><a href="/user/root">Admin</a> 2007/07/23 10:30:22</p>', 136: u'<p><a href="/user/ian">Rees, Ian</a> 2008/07/05</p>'}
 		
-		>>> db.renderview(0, viewtype="defaultview", edit=True, markup=True)
+		>>> db.renderview(0, viewname="defaultview", edit=True, markup=True)
 		u'<p>Folder: <span class="e2-edit" data-name="0" data-param="name_folder">EMEN2</span>...'
 
-		>>> db.renderview([0], viewtype="tabularview", table=True, markup=True)
+		>>> db.renderview([0], viewname="tabularview", table=True, markup=True)
 		{0: [u'<a href="/record/0">EMEN2</a>'], 'headers': {u'folder': [[u'Folder name', u'$', u'name_folder', None]]})}
 
 		:param names: Record name(s)
 		:keyword viewdef: View definition
-		:keyword viewtype: Use this view from the Record's RecordDdef (default='recname')
+		:keyword viewname: Use this view from the Record's RecordDdef (default='recname')
 		:keyword edit: Render with editing HTML markup; use 'auto' for autodetect. (default=False)
 		:keyword markup: Render with HTML markup (default=True)
 		:keyword table: Return table format (this may go into a separate method) (default=False)
@@ -2320,10 +2326,10 @@ class DB(object):
 		:exception SecurityError:
 		'''
 		
-		if viewtype == "tabularview":
+		if viewname == "tabularview":
 			table = True
 
-		if viewtype == 'recname' and not viewdef:
+		if viewname == 'recname' and not viewdef:
 			markup = False
 
 		if edit:
@@ -2345,7 +2351,8 @@ class DB(object):
 		recs.extend(self.bdbs.record.cgets(names, ctx=ctx, txn=txn))
 
 		for newrec in newrecs:
-			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)#.update(newrec)
+			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
+			#.update(newrec)
 			rec.update(newrec)
 			recs.append(rec)
 
@@ -2361,18 +2368,18 @@ class DB(object):
 			if markup and markdown:
 				viewdef = markdown.markdown(viewdef)
 			groupviews[None] = viewdef
-		elif viewtype == "dicttable":
+		elif viewname == "dicttable":
 			for rec in recs:
 				groupviews[rec.name] = self._make_tables(recdefs, rec, builtinparams, builtinparamsshow, markup, ctx=ctx, txn=txn)
 		else:
 			for rd in recdefs.values():
 				rd["views"]["mainview"] = rd.mainview
 
-				if viewtype in ["tabularview","recname"]:
-					v = rd.views.get(viewtype, rd.name)
+				if viewname in ["tabularview","recname"]:
+					v = rd.views.get(viewname, rd.name)
 
 				else:
-					v = rd.views.get(viewtype, rd.mainview)
+					v = rd.views.get(viewname, rd.mainview)
 					if markdown:
 						v = markdown.markdown(v)
 
@@ -2418,7 +2425,7 @@ class DB(object):
 			key = rec.rectype
 			if viewdef:
 				key = None
-			elif viewtype == "dicttable":
+			elif viewname == "dicttable":
 				key = rec.name
 
 			_edit = edit

@@ -167,7 +167,7 @@ class TestDB(unittest.TestCase):
 		rec['address_city'] = 'Test Address'
 		rec = self.db.putrecord(rec)
 
-		r_view = self.db.renderview(rec.name, viewtype='mainview', markup=False)
+		r_view = self.db.renderview(rec.name, viewname='mainview', markup=False)
 		self.assertEqual(r_view, '{name_folder} {address_city}'.format(**rec))
 
 	def test_putrecorddef_invalidname(self):

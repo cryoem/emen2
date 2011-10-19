@@ -69,7 +69,7 @@
 
 <form id="e2-edit" data-name="None" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/new/${newrec.rectype}/" >
 
-	<div id="rendered" class="e2-view" data-viewtype="${viewtype}">
+	<div id="rendered" class="e2-view" data-viewname="${viewname}">
 		${rendered}
 	</div>
 	

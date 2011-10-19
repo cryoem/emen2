@@ -621,10 +621,10 @@ class DBODB(EMEN2DB):
 		"""Return a new instance of the type of item this DB stores.."""
 		txn = kwargs.pop('txn', None) # don't pass the txn..
 		name = kwargs.get('name')
-		if name:
-			if self.exists(name, txn=txn):
-				raise KeyError, "%s already exists"%name
-		return self.dataclass(*args, **kwargs)
+		item = self.dataclass(*args, **kwargs)
+		if self.exists(item.name, txn=txn):
+			raise KeyError, "%s already exists"%name
+		return item
 
 
 

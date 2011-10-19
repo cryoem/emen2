@@ -99,9 +99,9 @@ window.log = function(){
 		$(selector).each(function() {
 			var elem = $(this);
 			var name = parseInt(elem.attr('data-name'));
-			var viewtype = elem.attr('data-viewtype');
+			var viewname = elem.attr('data-viewname');
 			var edit = elem.attr('data-edit');
-			$.jsonRPC.call("renderview", {'names':name, 'viewtype': viewtype, 'edit': edit}, function(view) {
+			$.jsonRPC.call("renderview", {'names':name, 'viewname': viewname, 'edit': edit}, function(view) {
 				elem.html(view);
 				//$('.e2-edit', elem).EditControl({});
 			},

@@ -160,9 +160,117 @@
 		}
 	});	
 	
+	// Create a new record in a dialog box
+	$.widget('emen2.NewRecordControl', {
+		options: {
+			parent: null,
+			rectype: null,
+			show: false,
+			action: null,
+			modal: true
+		},
+		
+		_create: function() {
+			// Todo: If self.options.rectype is null, 
+			//		show the NewRecordChooserControl
+			//		based on the parent
+			var self = this;
+			this.built = 0;
+			this.options.rectype = $.checkopt(this, 'rectype');
+			this.options.parent = $.checkopt(this, 'parent');
+			if (this.options.show) {
+				this.show();
+			} else {
+				this.element.click(function(e){self.show(e)})
+			}
+		},
+		
+		show: function(e) {
+			this.build();
+			if (this.options.modal) {
+				this.dialog.dialog('open');
+			}
+		},
+		
+		build: function() {
+			if (this.built) {return}
+			this.built = 1;
+			
+			var self = this;
+			this.dialog = $('<div>Loading...</div>');
+			this.dialog.attr('title','New record');
+			
+			if (this.options.modal) {
+				// grumble... get the viewport dimensions..
+				// 'auto' won't work because the content
+				// is added by the callbacks
+				var w = $(window).width() * 0.8;
+				var h = $(window).height() * 0.8;
+
+				this.dialog.dialog({
+					modal: this.options.modal,
+					autoOpen: false,
+					width: w,
+					height: h
+				});
+			} else {
+				this.element.append(this.dialog);
+			}			
+
+			$.jsonRPC.call('getrecorddef', [[self.options.rectype]], function(rds) {
+				$.updatecache(rds);
+				$.jsonRPC.call('newrecord', {'rectype':self.options.rectype, 'inherit':self.options.parent}, function(rec) {
+					// console.log("New record:", rec);
+					caches['record']['None'] = rec;
+					$.jsonRPC.call('renderview', {'names':rec, 'viewname':'mainview', 'edit':true}, function(rendered) {
+						self._build(rendered);
+					});				
+				});
+			});
+			// self._build();
+
+		},
+		
+		_build: function(rendered) {
+			this.dialog.empty();
+			
+			// Show the recorddef long description
+			var rd = caches['recorddef'][this.options.rectype];
+			var desc = $.trim(rd.desc_long).replace('\n','<br /><br />'); // hacked in line breaks
+			var desc = $('<p class="e2-newrecord-desc_long">'+desc+'</p>');
+			//<strong>Protocol description:</strong>
+
+			// Set the dialog title to show the record type and parent recname
+			if (this.options.modal) {
+				this.dialog.dialog('option', 'title', 'New '+rd.desc_short+', child of '+this.options.parent);
+			}
+
+			// Create the form
+			var form = $('<form method="post" data-name="None" />');
+			// ...add the rectype and parents as hidden inputs...
+			form.append('<input type="hidden" name="parents" value="'+this.options.parent+'" /><input type="hidden" name="rectype" value="'+this.options.rectype+'" />')
+			// ...content
+			form.append(rendered);
+			// ...controls
+			form.append('<ul class="e2l-controls"><li><input type="submit" value="Save" /></li></ul>');
+
+			// Set the form action
+			var action = this.options.action || EMEN2WEBROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/';
+			form.attr('action',action);
+
+			this.dialog.append(desc, form);
+			
+			// Add the editing control after it's in the DOM
+			form.MultiEditControl({
+				show: true				
+			});
+
+		}
+	});
+	
 	
 	// Select a Protocol for a new record
-	$.widget('emen2.NewRecordControl', {
+	$.widget('emen2.NewRecordChooserControl', {
 		options: {
 			parent: null,
 			rectype: null,
@@ -220,7 +328,6 @@
 			this.element.empty();
 			
 			// Children suggested by RecordDef.typicalchld
-			// todo: -> this.build_leve(label, level, items);
 			if (rd.typicalchld.length) {
 				this.element.append(this.build_level('Suggested protocols for children', 'typicalchld', rd.typicalchld))
 			}
@@ -602,19 +709,23 @@
 		},
 		
 		build_iter: function(val) {
-			val = val || [];
+			if (!val) {val == []}
+			var pd = this.cachepd();
 			var ul = $('<ul class="e2-edit-iterul" />');
 			for (var i=0;i<val.length+1;i++) {
 				var control = this.build_item(val[i]);
 				ul.append($('<li />').append(control));
 			}
+			// Must append a hidden element...
+			var hidden = '';
+			// $('<input type="hidden" name="'+this.options.prefix+pd.name+'" value="" />');
 			this.element.addClass('e2l-fw');
-			return $('<div />').append(ul, this.build_add());
+			return $('<div />').append(ul, hidden, this.build_add());
 		},
 		
 		build_item: function(val) {
 			var pd = this.cachepd();
-			return '<input type="text" name="'+this.options.prefix+pd.name+'" value="'+(val || '')+'" autocomplete="off" />';
+			return '<input type="text" name="'+this.options.prefix+pd.name+'" value="'+val+'" autocomplete="off" />';
 		},
 		
 		build_add: function(e) {
@@ -634,9 +745,11 @@
 		},
 		
 		cacheval: function() {
-			var rec = caches['record'][this.options.name]
+			var rec = caches['record'][this.options.name];
 			if (!rec) {return null}
-			return rec[this.options.param];
+			var val = rec[this.options.param];
+			if (val==null) {val=''}
+			return val
 		},
 		
 		cachepd: function() {
@@ -660,10 +773,10 @@
 			var pd = this.cachepd();
 			var container = $('<span class="e2-edit-container" />');
 
-			var editw = $('<input type="text" name="'+this.options.prefix+pd.name+'" value="'+(val || '')+'" autocomplete="off" />');
+			var editw = $('<input type="text" name="'+this.options.prefix+pd.name+'" value="'+val+'" autocomplete="off" />');
 			if (pd.property) {
-				var realedit = '<input class="e2-edit-val" type="hidden" name="'+this.options.prefix+pd.name+'" value="'+(val || '')+'" />';
-				var editw = $('<input class="e2-edit-unitsval" type="text" value="'+(val || '')+'" />');
+				var realedit = '<input class="e2-edit-val" type="hidden" name="'+this.options.prefix+pd.name+'" value="'+val+'" />';
+				var editw = $('<input class="e2-edit-unitsval" type="text" value="'+val+'" />');
 				var units = this.build_units();
 				editw.change(function(){self.sethidden()});
 				units.change(function(){self.sethidden()});
@@ -793,7 +906,7 @@
 	// Text editor
 	$.widget("emen2edit.textarea", $.emen2.EditBase, {
 		build_item: function(val) {
-			var editw = $('<textarea style="width:100%" name="'+this.cachepd().name+'" rows="10">'+(val || '')+'</textarea>');
+			var editw = $('<textarea style="width:100%" name="'+this.cachepd().name+'" rows="10">'+val+'</textarea>');
 			this.element.addClass('e2l-fw');
 			return editw
 		}
@@ -892,7 +1005,13 @@
 	// WIDGET HINTS
 	$.widget('emen2edit.checkbox', $.emen2.EditBase, {
 		build_item: function(val) {
-			return '<input type="checkbox" />'
+			var n = this.options.prefix+this.options.param;
+			var edit = $('<input type="checkbox" name="'+n+'" value="True" />');
+			//<input type="hidden" name="'+n+'" value="" />');
+			if (val) {
+				$('input:checkbox', edit).attr('checked',true);
+			}
+			return edit
 		}
 	});
 	
@@ -900,17 +1019,19 @@
     $.widget("emen2edit.radio", $.emen2.EditBase, {
 		build_item: function(val) {
 			var self = this;
-			var rec = caches['record'][self.option.name];
-			var val = ''; //rec[this.options.name];
 			var pd = this.cachepd();
 			var choices = pd.choices || [];
 			var ul = $('<ul />');
-			$.each(choices, function() {
+			$.each(choices, function(k,v) {
 				// grumble..
 				var rand = Math.ceil(Math.random()*10000000);
 				var id = 'e2-edit-radio-'+rand;
-				var input = '<input type="radio" name="'+self.options.prefix+self.options.param+'" value="'+this+'" id="'+id+'"/><label for="'+id+'">'+this+'</label>';
-				ul.append($('<li/>').append(input));
+				var input = $('<input type="radio" name="'+self.options.prefix+self.options.param+'" value="'+v+'" id="'+id+'"/>');
+				if (val == v) {
+					input.attr('checked',true);
+				}
+				var label = '<label for="'+id+'">'+v+'</label>';
+				ul.append($('<li/>').append(input, label));
 			});
 			return ul
 		}

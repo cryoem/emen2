@@ -50,7 +50,7 @@ class Home(View):
 
 			try:
 				banner = self.db.getrecord(banner)
-				render_banner = self.db.renderview(banner, viewtype="banner")
+				render_banner = self.db.renderview(banner, viewname="banner")
 			except Exception, inst:
 				banner = None
 				render_banner = ""

@@ -11,10 +11,10 @@
 	var ptest = ${jsonrpc.jsonutil.encode(rec.ptest())}
 	
 	// Change View
-	$('#e2-editbar-record [data-viewtype]').click(function(){
+	$('#e2-editbar-record [data-viewname]').click(function(){
 		var target = $("#rendered");
-		var viewtype = $(this).attr('data-viewtype') || 'recname';
-		target.attr("data-viewtype", viewtype);
+		var viewname = $(this).attr('data-viewname') || 'recname';
+		target.attr("data-viewname", viewname);
 		$.rebuild_views("#rendered");
 	});
 
@@ -65,7 +65,7 @@
 	
 	// New record editor
 	tab.TabControl('setcb', 'new', function(page) {
-		page.NewRecordControl({
+		page.NewRecordChooserControl({
 			parent: rec.name,
 			controls: page
 		});
@@ -193,7 +193,7 @@
 
 		## Table View
 		<li>
-			<span class="e2l-a" data-viewtype="dicttable"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></span>
+			<span class="e2l-a" data-viewname="dicttable"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></span>
 		</li>
 
 		## Siblings
@@ -269,7 +269,7 @@
 		<h4>Views</h4>
 		<ul>
 		% for i in sorted(set(recdef.views.keys()+['mainview', 'dicttable'])):
-			<li class="e2l-a" data-viewtype="${i}">${nicenames.get(i, i)}</li>	
+			<li class="e2l-a" data-viewname="${i}">${nicenames.get(i, i)}</li>	
 		% endfor
 		</ul>
 
@@ -310,7 +310,7 @@
 
 ## Main rendered record
 <form id="e2-edit" method="post" data-name="${rec.name}" action="${EMEN2WEBROOT}/record/${rec.name}/edit/">
-	<div id="rendered" class="e2-view" data-viewtype="${viewtype}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
+	<div id="rendered" class="e2-view" data-viewname="${viewname}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
 		${rendered}
 	</div>
 </form>

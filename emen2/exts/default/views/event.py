@@ -19,7 +19,7 @@ class Event(View):
 		self.set_context_item("events",events)
 		self.set_context_item("rec",self.rec)
 		self.set_context_item("recnames",self.db.renderview(allrecs))
-		self.set_context_item("rendered",self.db.renderview(self.rec, viewtype="mainview"))
+		self.set_context_item("rendered",self.db.renderview(self.rec, viewname="mainview"))
 
 
 

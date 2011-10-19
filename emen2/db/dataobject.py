@@ -13,6 +13,8 @@ import copy
 import re
 import traceback
 import operator
+import hashlib
+
 
 from abc import ABCMeta, abstractmethod, abstractproperty
 from UserDict import DictMixin
@@ -427,7 +429,8 @@ class BaseDBObject(object, DictMixin):
 	def validate_name(self, name):
 		"""Validate the name of this object"""
 		if not name:
-			self.error("No name specified")
+			name = emen2.db.database.getrandomid()
+			# self.error("No name specified")
 			
 		# have to compile since flags= is a Python 2.7+ keyword
 		r = re.compile('[\w-]', re.UNICODE)

@@ -88,7 +88,7 @@ class RecordBase(View):
 			pages = pages,
 			recnames = recnames,
 			parentmap = parentmap,
-			viewtype = "defaultview",
+			viewname = "defaultview",
 			edit = False,
 			key = self.name,
 			keytype = "record",
@@ -113,16 +113,16 @@ class Record(RecordBase):
 		sibling = int(sibling)
 		siblings = self.db.getsiblings(sibling, rectype=self.rec.rectype)
 
-		viewtype = "defaultview"
+		viewname = "defaultview"
 		if not self.recdef.views.get("defaultview"):
-			viewtype = "mainview"
+			viewname = "mainview"
 
 		# Render main view
-		rendered = self.db.renderview(self.rec, viewtype=viewtype, edit=self.rec.writable())
+		rendered = self.db.renderview(self.rec, viewname=viewname, edit=self.rec.writable())
 
 		#######################################
 		self.ctxt.update(
-			viewtype = viewtype,
+			viewname = viewname,
 			rendered = rendered,
 			sibling = sibling,
 			siblings = sorted(siblings)
@@ -205,7 +205,7 @@ class Record(RecordBase):
 	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$')
 	def new(self, name=None, rectype=None, _copy=False, _private=False, **kwargs):
 		self.template = '/pages/record.new'
-		viewtype = 'mainview'
+		viewname = 'mainview'
 
 		inherit = None
 		try:
@@ -241,7 +241,7 @@ class Record(RecordBase):
 			return
 
 		recdef = self.db.getrecorddef(newrec.rectype)
-		rendered = self.db.renderview(newrec, edit=True, viewtype=viewtype)
+		rendered = self.db.renderview(newrec, edit=True, viewname=viewname)
 
 		self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
 		self.ctxt.update(
@@ -250,7 +250,7 @@ class Record(RecordBase):
 			rec = parentrec,
 			recdef = recdef,
 			newrec = newrec,
-			viewtype = viewtype,
+			viewname = viewname,
 			rendered = rendered
 		)
 			

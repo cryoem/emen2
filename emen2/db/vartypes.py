@@ -395,7 +395,7 @@ class vt_datetime(vt_string):
 	def validate(self, value):
 		ret = []
 		for i in ci(value):
-		 	i = unicode(parse_datetime(value)[1]).strip() or None
+			i = parse_iso8601(value, result='datetime')
 			if i:
 				ret.append(i)
 		return self._rci(ret)
@@ -408,8 +408,7 @@ class vt_date(vt_datetime):
 	def validate(self, value):
 		ret = []
 		for i in ci(value):
-			i = unicode(i).strip()
-			parse_date(i)
+			i = parse_iso8601(i, result='date')
 			if i:
 				ret.append(i)
 		return self._rci(ret)
@@ -422,8 +421,7 @@ class vt_time(vt_datetime):
 	def validate(self, value):
 		ret = []
 		for i in ci(value):
-			i = unicode(i).strip()			
-			parse_time(i)
+			i = parse_iso8601(i, result='time')
 			if i:
 				ret.append(i)
 		return self._rci(ret)
@@ -791,94 +789,95 @@ def update_username_cache(engine, values):
 
 
 
-"""Following based on public domain code by Paul Harrison, 2006; modified by Ian"""
+# """Following based on public domain code by Paul Harrison, 2006; modified by Ian"""
+# 
+# time_formats = [
+# 	'%H:%M:%S',
+# 	'%H:%M',
+# 	'%H'
+# 	]
+# 
+# date_formats = [
+# 	'%Y %m %d',
+# 	'%Y %m',
+# 	'%Y'
+# 	]
+# 
+# # Foramts to check [0] and return [1] in order of priority
+# # (the return value will be used for the internal database value for consistency)
+# # The DB will return the first format that validates.
+# 
+# datetime_formats = [
+# 	['%Y %m %d %H:%M:%S','%Y/%m/%d %H:%M:%S'],
+# 	['%Y %m %d %H:%M','%Y/%m/%d %H:%M'],
+# 	['%Y %m %d %H', '%Y/%m/%d %H'],
+# 	['%Y %m %d', '%Y/%m/%d'],
+# 	['%Y %m','%Y/%m'],
+# 	['%Y','%Y'],
+# 	['%m %Y','%Y/%m'],
+# 	['%d %m %Y','%Y/%m/%d'],
+# 	['%d %m %Y %H:%M:%S','%Y/%m/%d %H:%M:%S'],
+# 	['%m %d %Y','%Y/%m/%d'],
+# 	['%m %d %Y %H:%M:%S','%Y/%m/%d %H:%M:%S']
+# 	]
+# 
+# 
+# 
+# def parse_datetime(string):
+# 	"""Return a tuple: datetime instance, and validated output"""
+# 	string = (string or '').strip()
+# 	if not string:
+# 		return None, None
+# 
+# 	string = string.replace('/',' ').replace('-',' ').replace(',',' ').split(".")
+# 	msecs = 0
+# 	if len(string) > 1:
+# 		msecs = int(string.pop().ljust(6,'0'))
+# 	string = ".".join(string)
+# 
+# 	for format, output in datetime_formats:
+# 		try:
+# 			string = datetime.datetime.strptime(string, format)
+# 			return string, datetime.datetime.strftime(string, output)
+# 		except ValueError, inst:
+# 			pass
+# 
+# 	raise ValidationError()
+# 
+# 
+# 
+# def parse_time(string):
+# 	string = string.strip().split(".")
+# 	msecs = 0
+# 	if len(string) > 1:
+# 		msecs = int(string.pop().ljust(6,'0'))
+# 	string = ".".join(string)
+# 
+# 	for format in time_formats:
+# 		try:
+# 			return datetime.datetime.strptime(string, format).time(), string
+# 		except ValueError, inst:
+# 			pass
+# 
+# 	raise ValidationError()
+# 
+# 
+# def parse_date(string):
+# 	string = string.strip()
+# 	if not string: return None, None
+# 
+# 	string = string.replace('/',' ').replace('-',' ').replace(',',' ')
+# 
+# 	for format in date_formats:
+# 		try:
+# 			return datetime.datetime.strptime(string, format).date(), string
+# 		except ValueError:
+# 			pass
+# 	raise ValidationError()
 
-time_formats = [
-	'%H:%M:%S',
-	'%H:%M',
-	'%H'
-	]
-
-date_formats = [
-	'%Y %m %d',
-	'%Y %m',
-	'%Y'
-	]
-
-# Foramts to check [0] and return [1] in order of priority
-# (the return value will be used for the internal database value for consistency)
-# The DB will return the first format that validates.
-
-datetime_formats = [
-	['%Y %m %d %H:%M:%S','%Y/%m/%d %H:%M:%S'],
-	['%Y %m %d %H:%M','%Y/%m/%d %H:%M'],
-	['%Y %m %d %H', '%Y/%m/%d %H'],
-	['%Y %m %d', '%Y/%m/%d'],
-	['%Y %m','%Y/%m'],
-	['%Y','%Y'],
-	['%m %Y','%Y/%m'],
-	['%d %m %Y','%Y/%m/%d'],
-	['%d %m %Y %H:%M:%S','%Y/%m/%d %H:%M:%S'],
-	['%m %d %Y','%Y/%m/%d'],
-	['%m %d %Y %H:%M:%S','%Y/%m/%d %H:%M:%S']
-	]
 
 
-
-def parse_datetime(string):
-	"""Return a tuple: datetime instance, and validated output"""
-	string = (string or '').strip()
-	if not string:
-		return None, None
-
-	string = string.replace('/',' ').replace('-',' ').replace(',',' ').split(".")
-	msecs = 0
-	if len(string) > 1:
-		msecs = int(string.pop().ljust(6,'0'))
-	string = ".".join(string)
-
-	for format, output in datetime_formats:
-		try:
-			string = datetime.datetime.strptime(string, format)
-			return string, datetime.datetime.strftime(string, output)
-		except ValueError, inst:
-			pass
-
-	raise ValidationError()
-
-
-
-def parse_time(string):
-	string = string.strip().split(".")
-	msecs = 0
-	if len(string) > 1:
-		msecs = int(string.pop().ljust(6,'0'))
-	string = ".".join(string)
-
-	for format in time_formats:
-		try:
-			return datetime.datetime.strptime(string, format).time(), string
-		except ValueError, inst:
-			pass
-
-	raise ValidationError()
-
-
-def parse_date(string):
-	string = string.strip()
-	if not string: return None, None
-
-	string = string.replace('/',' ').replace('-',' ').replace(',',' ')
-
-	for format in date_formats:
-		try:
-			return datetime.datetime.strptime(string, format).date(), string
-		except ValueError:
-			pass
-	raise ValidationError()
-
-
-def parse_iso8601(d):
+def parse_iso8601(d, result=None):
 	"""Simple ISO 8601 Format parser"""
 	# [YYYY][MM][DD]T[hh][mm]
 	# 2007-03-01T13:00:00Z
@@ -905,12 +904,23 @@ def parse_iso8601(d):
 	r['second'] = dt[4:6]
 
 	r2 = {}
-	r2['tz'] = tz
+	# r2['tz'] = tz
 	keys = ['year','month','day', 'hour','minute','second']
 	for key in keys:
 		if r.get(key):
 			r2[key] = int(r.get(key))
-	return r2
+
+	
+	r3 = datetime.datetime(**r2)
+	
+	if result == 'datetime':
+		return r3.isoformat()+'Z'
+	elif result == 'date':
+		return r3.isoformat()[:10]
+	
+	return r3
+	
+	
 	
 	
 def parse_iso8601duration(d):
@@ -962,7 +972,20 @@ def parse_iso8601duration(d):
 
 
 if __name__ == "__main__":
-	pass
+
+	print parse_iso8601('2011-10-16T02:00:00Z', result='datetime')
+	print parse_iso8601('2011-10-16T02:00:00', result='datetime')
+	# print parse_iso8601('2007-03-01T13:00:00Z', result='datetime')
+	# print parse_iso8601('2007-03-01T13:00:00Z', result='date')
+	# print parse_iso8601('2007-03-01T13:00:00Z')
+	# print parse_iso8601('2007-03-01T13:00:00')
+	# print parse_iso8601('2007-03-01T13:00')
+	# print parse_iso8601('2007-03-01T13')
+	# print parse_iso8601('2007-03-01T')
+	# print parse_iso8601('2007-03-01')
+	# print parse_iso8601('2007-03')
+	# print parse_iso8601('2007')
+
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

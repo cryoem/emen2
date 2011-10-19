@@ -169,8 +169,9 @@ class NewUser(View):
 			
 		elif HASH_USERNAME:
 			# Generate a random username.
-			name = '%s%s%s'%(kwargs.get('name_last',''), time.time(), random.random())
-			name = hashlib.md5(name).hexdigest()
+			# name = '%s%s%s'%(kwargs.get('name_last',''), time.time(), random.random())
+			# name = hashlib.md5(name).hexdigest()
+			name = emen2.db.database.getrandomid()
 
 		else:
 			# Make a copy of REQUIRED and add name_first and name_last
