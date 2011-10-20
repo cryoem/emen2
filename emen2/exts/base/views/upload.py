@@ -16,35 +16,42 @@ import emen2.db.config
 
 from emen2.web.view import View
 
-@View.register
-class Upload(View):
+class Uploader(View):	
+	def parse_content(self, request):		
+		# Look for filename; if PUT, add a reference to the request.content file handle.
+		postargs = {}
 	
-	# def parse_content(self, request):		
-	# 	# Look for filename; if PUT, add a reference to the request.content file handle.
-	# 	postargs = {}
-	# 
-	# 	# Get the file name and data
-	# 	if request.getHeader('X-Filename'):
-	# 		postargs['filename'] = request.getHeader('X-Filename')
-	# 
-	# 	if request.method == "PUT":
-	# 		postargs['infile'] = request.content
-	# 
-	# 	elif request.method == "POST":
-	# 		request.content.seek(0)
-	# 		content = request.content.read(1000)
-	# 		b = re.compile("filename=\"(.+)\"")
-	# 		try:
-	# 			postargs['filename'] = b.findall(content)[0]
-	# 		except:
-	# 			pass
-	# 
-	# 	return postargs
+		# Get the file name and data
+		if request.getHeader('X-Filename'):
+			postargs['filename'] = request.getHeader('X-Filename')
+	
+		if request.method == "PUT":
+			postargs['infile'] = request.content
+	
+		elif request.method == "POST":
+			print "Parsing request content..."
+			request.content.seek(0)
+			content = request.content.read()
+			b = re.compile("filename=\"(.+)\"")
+			try:
+				postargs['filename'] = b.findall(content)
+			except:
+				pass
+	
+		print "parsed out...", postargs
+		return postargs
 
+
+
+
+@View.register
+class Upload(Uploader):
 
 	@View.add_matcher('^/upload/(?P<record>.+)/$')
-	def main(self, filename, filedata, record=None, param='file_binary'):
-		print "Uploading:", filename
+	def main(self, *args, **kwargs):
+		print "Uploading:"
+		filedata = kwargs.get('filedata')
+		print "Filedata lenghts:", map(len, filedata)
 
 
 

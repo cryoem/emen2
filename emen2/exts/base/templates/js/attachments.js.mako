@@ -1,10 +1,48 @@
 (function($) {
+	
+    $.widget("emen2.UploadControl", {
+		options: {
+			modal: true
+		},
+				
+		_create: function() {
+			this.built = 0;			
+			this.build();
+			var self = this;
+			this.element.submit(function(e) {
+				self.submit(e);
+			})
+		},
+		
+		submit: function(e) {
+			e.preventDefault();
+			var fileinput = $('input:file', this.element);
+			var files = fileinput[0].files;
+			console.log(files);
+		},
+
+		build: function() {
+			this.dialog = $('<div>Loading...</div>');
+			this.dialog.attr('title','Upload Progress');
+			if (this.options.modal) {
+				$('body').append(this.dialog);
+				this.dialog.dialog({
+					width: 600,
+					height: 600,
+					autoOpen: false
+				});
+			}
+		}
+	});
+	
+	
     $.widget("emen2.AttachmentControl", {
 		options: {
 			name: null,
 			edit: false,
 			show: true,
 			controls: null,
+			multiple: true,
 			// events: saved..
 		},
 				
@@ -105,7 +143,7 @@
 					<ul class="e2l-options"> \
 						<li class="e2-select" /> \
 						<li><span class="e2l-a e2l-label e2-attachments-target">Regular Attachment</span></li> \
-						<li><input type="file" name="filedata" /></li> \
+						<li><input type="file" name="filedata" multiple required /></li> \
 					</ul> \
 					<ul class="e2l-controls"> \
 						<li>'+$.e2spinner()+'<input name="save" type="submit" value="Upload Attachment" /></li> \
@@ -127,7 +165,7 @@
 			// $('input[name=save]', controls).click(function(e) {
 			//	$('input[name=filedata]', self.element).click();
 			//	e.preventDefault();
-			// });			
+			// });	
 
 			// Change the selected param for upload..
 			$('.e2-attachments-target', controls).FindControl({
@@ -141,6 +179,15 @@
 			});
 			
 			this.options.controls.append(controls);
+
+			$('#e2-attachments-upload').UploadControl({
+				
+			});
+			// $('#e2-attachments-upload').submit(function(e) {
+			// 	e.preventDefault();
+			// 	console.log(e);
+			// })
+			
 		},
 
 		// Utility methods --
