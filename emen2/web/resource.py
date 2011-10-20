@@ -39,13 +39,13 @@ class UploadFile(object):
 		self.infile = infile
 		self.record = record
 		self.param = param
-	
+
 	def __repr__(self):
 		return str(self.__dict__)
 
 
 
-# Special thanks to this Dave Peticolas's blog post for 
+# Special thanks to this Dave Peticolas's blog post for
 # helping sort out my deferred cancel/callback/errback situation:
 # http://krondo.com/?p=2601
 
@@ -56,11 +56,11 @@ class EMEN2Resource(object):
 	"""
 	# Subclasses should do the following:
 	# 	- Register using View.register as a decorator
-	# 
+	#
 	# 	- Decorate methods with @View.add_matcher(matcher), where matcher is:
 	# 		- A Regular Expression representing the url which matches the class
 	# 		- A list of Regular Expressions to match against
-	# 
+	#
 	# 	- Optionally define data output methods:
 	# 		- define a method named get_data in order to return data for web browsers
 	# 		- define a method named get_json in order to return a json representation of the view
@@ -72,7 +72,7 @@ class EMEN2Resource(object):
 	def __init__(self, request_location='', request_headers=None, request_method='get'):
 		# HTTP Method
 		self.request_method = request_method
-		
+
 		# Request headers
 		self.request_headers = request_headers or {}
 
@@ -81,13 +81,13 @@ class EMEN2Resource(object):
 
 		# Any uploaded files
 		self.request_files = []
-		
+
 		# HTTP ETags (cache control)
 		self.etag = None
-		
-	
+
+
 	##### Resource interface #####
-	
+
 	def render(self, request, method=None):
 		# Override self._render to change how the result is returned
 		# The default is to run a supplied method (or default: render_action)
@@ -119,7 +119,7 @@ class EMEN2Resource(object):
 	def _render(self, request, method, ctxid=None, host=None, args=None):
 		# Setup deferred rendering using a DB transaction.
 		t = time.time()
-		
+
 		# Use the EMEN2 DB thread pool.
 		deferred = emen2.web.server.pool.rundb(
 			self._render_db,
@@ -127,40 +127,40 @@ class EMEN2Resource(object):
 			ctxid = ctxid,
 			host = host,
 			args = args)
-		
+
 		# Callbacks
 		deferred.addCallback(self.render_cb, request, t=t)
 		deferred.addErrback(self.render_eb, request, t=t)
-		request.notifyFinish().addErrback(self._request_broken, request, deferred)		
-		return twisted.web.static.server.NOT_DONE_YET				
-		
+		request.notifyFinish().addErrback(self._request_broken, request, deferred)
+		return twisted.web.static.server.NOT_DONE_YET
+
 
 	def _render_db(self, method, db=None, ctxid=None, host=None, args=None):
 		# Render method inside a DB transaction using auth token ctxid
 		self.db = db
-		
+
 		# The DBProxy context manager will open a transaction, and abort
 		# on an uncaught exception.
 		with self.db:
 			self.db._setContext(ctxid,host)
 			# Any View init method is run inside the transaction
 			self.init()
-			# getattr(self, '_before_action', lambda x:x)() # temp workaround			
+			# getattr(self, '_before_action', lambda x:x)() # temp workaround
 			result = method(self, **args)
 
 		return result
-		
+
 
 	def render_action(self, *args, **kwargs):
 		'''Default render method'''
 		return 'Rendered %s'%self.__class__.name
-		
+
 
 	##### Callbacks #####
-	
+
 	def render_cb(self, result, request, t=0, **_):
 		# If a result was passed, use that. Otherwise use str(self).
-		# Note: the template rendering will occur here, 
+		# Note: the template rendering will occur here,
 		# 	outside of the DB transaction.
 		if result == None:
 			result = str(self)
@@ -178,7 +178,7 @@ class EMEN2Resource(object):
 
 		[request.setHeader(key, str(headers[key])) for key in headers]
 
-		# If X-Ctxid (auth token) was supplied as a header, 
+		# If X-Ctxid (auth token) was supplied as a header,
 		# set the client's cookie. This is is used by login, logout
 		# and opening a web browser from desktop clients with ?ctxid as
 		# a querystring argument.
@@ -189,13 +189,13 @@ class EMEN2Resource(object):
 		# Send result to client
 		if result is not None:
 			request.write(result)
-			
-		# Close the request and write to log	
+
+		# Close the request and write to log
 		request.finish()
 		self.events.event('web.request.succeed')(request, setctxid, headers, result)
 
-	
-	def render_eb(self, failure, request, t=0, **_):		
+
+	def render_eb(self, failure, request, t=0, **_):
 		# Error callback
 		e, data = '', ''
 		headers = {}
@@ -229,7 +229,7 @@ class EMEN2Resource(object):
 		# General error
 		except BaseException, e:
 			data = self.render_error(request.uri, e)
-			
+
 		# Write the response
 		headers.update(getattr(e, 'headers', {}))
 		request.setResponseCode(getattr(e, 'code', 500))
@@ -238,7 +238,7 @@ class EMEN2Resource(object):
 
 		request.finish()
 		self.events.event('web.request.fail')(request, headers.get('X-Ctxid'), headers, data)
-	
+
 
 	##### Error handlers #####
 
@@ -251,8 +251,8 @@ class EMEN2Resource(object):
 	def render_error_security(self, location, e):
 		return mako.exceptions.html_error_template().render()
 		# return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
-		
-		
+
+
 	def render_error_response(self, location, e):
 		return mako.exceptions.html_error_template().render()
 		# return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
@@ -265,7 +265,7 @@ class EMEN2Resource(object):
 
 
 	def _request_canceller(self, deferred, *args, **kwargs):
-	 	# Do nothing -- my deferreds don't support cancellation at the moment
+		# Do nothing -- my deferreds don't support cancellation at the moment
 		pass
 		# Create a failure to pass to the errback
 		# failure = twisted.python.failure.Failure(exc_value=Exception("Cancelled request"))
@@ -277,7 +277,7 @@ class EMEN2Resource(object):
 	def parse_args(self, request):
 		# Massage the post and querystring arguments
 
-		# Parse the content body for additional args: 
+		# Parse the content body for additional args:
 		# Upload (twisted is broken), JSON POST, etc.
 		args = self.parse_content(request)
 
@@ -289,7 +289,7 @@ class EMEN2Resource(object):
 			args[k] = v
 
 		# Unicode.. grumble.. Web forms will submit UTF-8 encoded data; decode that
-		args = self.parse_coerce_unicode(args) 
+		args = self.parse_coerce_unicode(args)
 
 		# HTTP arguments with '.' will be turned into dicts, e.g. 'child.key' -> child['key']
 		args = self.parse_args_dict(args)
@@ -303,7 +303,7 @@ class EMEN2Resource(object):
 		# ->
 		# {'root': 1, 'child': {'key2': 2, key1: {'subkey1': 3, 'subkey2': 4}}}
 		newargs = {}
-		# Sort by key length so child dictionaries are created in order	
+		# Sort by key length so child dictionaries are created in order
 		for k,v in sorted(args.items(), key=lambda x:len(x[0])):
 			if '.' in k:
 				cur = newargs
@@ -364,7 +364,7 @@ class EMEN2Resource(object):
 
 				if len(datas) != len(fs):
 					raise ValueError, "Cannot upload empty file"
-				
+
 				# Move the data into the UploadFiles
 				for f, filedata in zip(fs, datas):
 					f.filedata = filedata
@@ -372,7 +372,7 @@ class EMEN2Resource(object):
 		# Make available to Views...
 		self.request_files = files
 		return args
-		
+
 		# Check for any JSON-encoded data in the POST body.
 		# You should remove this method in anything that handles
 		# big uploads.
@@ -395,7 +395,7 @@ class EMEN2Resource(object):
 			return args
 
 		elif keyname == 'filedata':
-			# See UploadResource. 
+			# See UploadResource.
 			# This requirement might be changed or dropped in the future.
 			return args
 
@@ -487,7 +487,7 @@ class EMEN2Resource(object):
 ##### Test Resource #####
 
 class TestResource(object):
-	# The Resource specification for leaf nodes 
+	# The Resource specification for leaf nodes
 	# only requires render() and isLeaf = True
 	isLeaf = True
 
@@ -495,8 +495,8 @@ class TestResource(object):
 		deferred = pool.runtxn(self.render_action, args=request.args)
 		deferred.addCallback(self.render_cb, request)
 		deferred.addErrback(self.render_eb, request)
-		request.notifyFinish().addErrback(self._request_broken, request, deferred)		
-		return twisted.web.static.server.NOT_DONE_YET			
+		request.notifyFinish().addErrback(self._request_broken, request, deferred)
+		return twisted.web.static.server.NOT_DONE_YET
 
 	def render_action(self, *args, **kwargs):
 		result = '%s %s %s'%(time.strftime('%Y/%m/%d %H:%M:%S'), args, kwargs)
@@ -508,7 +508,7 @@ class TestResource(object):
 
 	def render_eb(self, failure, request):
 		request.write('failure!')
-		request.finish()	
+		request.finish()
 
 	def _request_broken(self, failure, request, deferred):
 		# The errback will be called, but not the callback.
@@ -569,21 +569,16 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 				if _method in set(['login', 'logout']):
 					request.addCookie('ctxid', methodresult or '')
 
-		return methodresult		
+		return methodresult
+
+
+
+	def defer(self, method, *a, **kw):
+		# Use the DB pool
+		deferred = emen2.web.server.pool.rundb(method, *a, **kw)
+		return deferred
 
 
 class JSONRPCResource(jsonrpc.server.JSON_RPC):
 	eventhandler = JSONRPCServerEvents
-
-	def _defer(self, request, contents):
-		# Use the DB pool
-		deferred = emen2.web.server.pool.rundb(
-			self._action,
-			request=request,
-			contents=contents)
-		deferred.addCallback(self._cbRender, request)
-		deferred.addErrback(self._ebRender, request, contents.id if hasattr(contents, 'id') else None)
-		return twisted.web.static.server.NOT_DONE_YET
-
-
 __version__ = "$Revision$".split(":")[1][:-1].strip()
