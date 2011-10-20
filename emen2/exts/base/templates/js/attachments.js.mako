@@ -20,8 +20,6 @@
 			if (location.length) {
 				this.options.location = location.val();
 			}
-			console.log(this.options.action);
-			console.log(this.options.location);
 			
 			// Check that we have browser support for File API
 			if (window.File && window.FileReader && window.FileList && window.Blob) {
@@ -32,14 +30,14 @@
 			}
 
 			// If the browser supports it, bind to the form submission event.
-			this.element.submit(function(e) {
-				self.submit(e);
-			});
+			// this.element.submit(function(e) {
+			//	self.submit(e);
+			// });
 		},
 		
 		submit: function(e) {
 			var self = this;
-			e.preventDefault();
+			// e.preventDefault();
 
 			// Clear the table body
 			$('.e2-upload-table tbody', this.dialog).empty();
@@ -334,7 +332,7 @@
 					<ul class="e2l-options"> \
 						<li class="e2-select" /> \
 						<li><span class="e2l-a e2l-label e2-attachments-param">Regular Attachment</span></li> \
-						<li><input type="file" name="file_binary" multiple /></li> \
+						<li><input type="file" class="e2-attachments-fileinput" name="file_binary" multiple /></li> \
 					</ul> \
 					<ul class="e2l-controls"> \
 						<li>'+$.e2spinner()+'<input type="submit" value="Save attachments" /></li> \
@@ -343,14 +341,13 @@
 			// Selection control
 			$('.e2-select', controls).SelectControl({root: this.element});
 			
-			$('input:submit', controls).click(function(e){self.save(e)});
+			// $('input:submit', controls).click(function(e){self.save(e)});
 			
 			// Submit the form when this changes.
-			// $('input[name=filedata]', controls).change(function() {
-			//	 console.log("Got files:", $(this).val());
-			//	 if (!$(this).val()) {return}
-			// 	$('#e2-attachments-upload', self.element).submit();
-			// });
+			$('.e2-attachments-fileinput', controls).change(function(e) {
+				self.upload(e);
+			});
+			
 			// Submit button causes file selection then upload when value changes
 			// $('input[name=save]', controls).click(function(e) {
 			//	$('input[name=filedata]', self.element).click();
@@ -380,6 +377,11 @@
 		
 		save: function(e) {
 			this.element.submit();
+		},
+		
+		upload: function(e) {
+			this.element.UploadControl({});
+			this.element.UploadControl('submit');
 		},
 
 		// Utility methods --
