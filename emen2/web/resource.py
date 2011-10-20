@@ -1,11 +1,13 @@
 # $Id$
 
+import re
 import time
 import random
 import traceback
 import collections
 import functools
 import Queue
+import itertools
 
 import twisted.internet
 import twisted.web.static
@@ -21,10 +23,26 @@ import mako.exceptions
 import emen2.db.config
 import emen2.db.exceptions
 import emen2.util.loganalyzer
+import emen2.util.listops
 import emen2.web.events
 import emen2.web.routing
 import emen2.web.responsecodes
 import emen2.web.server
+
+
+
+
+class UploadFile(object):
+	def __init__(self, filename, filedata=None, infile=None, record=None, param='file_binary'):
+		self.filename = filename
+		self.filedata = filedata
+		self.infile = infile
+		self.record = record
+		self.param = param
+	
+	def __repr__(self):
+		return str(self.__dict__)
+
 
 
 # Special thanks to this Dave Peticolas's blog post for 
@@ -61,6 +79,9 @@ class EMEN2Resource(object):
 		# Request location
 		self.request_location = request_location
 
+		# Any uploaded files
+		self.request_files = []
+		
 		# HTTP ETags (cache control)
 		self.etag = None
 		
@@ -255,7 +276,10 @@ class EMEN2Resource(object):
 
 	def parse_args(self, request):
 		# Massage the post and querystring arguments
-		args = {}		
+
+		# Parse the content body for additional args: 
+		# Upload (twisted is broken), JSON POST, etc.
+		args = self.parse_content(request)
 
 		# Twisted provides all args as lists.
 		# If we only got one value, pop it
@@ -270,9 +294,6 @@ class EMEN2Resource(object):
 		# HTTP arguments with '.' will be turned into dicts, e.g. 'child.key' -> child['key']
 		args = self.parse_args_dict(args)
 
-		# Parse the content body for additional args: 
-		# Upload (twisted is broken), JSON POST, etc.
-		args.update(self.parse_content(request))
 		return args
 
 
@@ -302,6 +323,56 @@ class EMEN2Resource(object):
 
 
 	def parse_content(self, request):
+		'''This is called first, and should parse any content body for relevant View arguments.'''
+		# Look for filename; if PUT, add a reference to the request.content file handle.
+		files = []
+		args = request.args
+
+		if request.method == "PUT":
+			# The param?..
+			f = UploadFile(filename=request.getHeader('x-file-name'), param=request.getHeader('x-file-param'), infile=request.content)
+			files.append(f)
+
+
+		elif request.method == "POST":
+			# Fix Twisted's broken handling of multipart/form-data file uploads
+			# Look for name=...;filename=... pairs in the multipart data
+			request.content.seek(0)
+			content = request.content.read()
+			b = re.compile('name="(.+)"; filename="(.+)"')
+			r = []
+			try:
+				r = b.findall(content)
+			except:
+				pass
+
+			# Turn those pairs into UploadFile instances
+			for param, filename in r:
+				f = UploadFile(param=param, filename=filename)
+				files.append(f)
+
+			# And match those up with the parsed data
+			isbdo = lambda x:(len(x)==17 and x.startswith('bdo:')) or not x
+			for k, v in args.items():
+				fs = filter(lambda x:x.param == k, files)
+				if not fs:
+					continue
+
+				# Filter
+				bdos, datas = emen2.util.listops.filter_partition(isbdo, v)
+				args[k] = bdos
+
+				if len(datas) != len(fs):
+					raise ValueError, "Cannot upload empty file"
+				
+				# Move the data into the UploadFiles
+				for f, filedata in zip(fs, datas):
+					f.filedata = filedata
+
+		# Make available to Views...
+		self.request_files = files
+		return args
+		
 		# Check for any JSON-encoded data in the POST body.
 		# You should remove this method in anything that handles
 		# big uploads.
@@ -315,7 +386,6 @@ class EMEN2Resource(object):
 		# 		except:
 		# 			pass
 		# return postargs
-		return {}
 
 
 	def parse_coerce_unicode(self, args, keyname=''):

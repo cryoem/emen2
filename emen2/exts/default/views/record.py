@@ -132,15 +132,18 @@ class Record(RecordBase):
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$')
 	def edit(self, name=None, **kwargs):
-		if self.request_method == 'post' and kwargs:
+		if self.request_method == 'post':
 			rec = self.db.getrecord(name, filt=False)
 			try:
 				rec.update(kwargs)
 				self.db.putrecord(rec)
-				self.redirect(self.routing.reverse('Record/main', name=name))
-				return
+				self.redirect(self.routing.reverse('Record/main', name=name, anchor='attachments'))
 			except Exception, e:
 				self.ctxt['ERRORS'].append(e)
+			
+		# And files..
+		for f in self.request_files:
+			self.db.putbinary(None, infile=f.infile or f.filedata, filename=f.filename, record=name or f.record, param=f.param)	
 			
 		self.main(name=name)
 		self.ctxt["edit"] = True
@@ -226,19 +229,20 @@ class Record(RecordBase):
 		if _copy:
 			for rec in self.db.getrecord(inherit):
 				newrec.update(rec)
-			
-		if self.request_method == 'post' and kwargs:
-			print kwargs
+
+		# Save the new record
+		if self.request_method == 'post':
 			newrec.update(kwargs)
 			newrec = self.db.putrecord(newrec)
-			if newrec:
-				self.redirect(self.routing.reverse('Record/main', name=newrec.name))
-				return
-				# path = self.routing.reverse('Record/main', name=newrec.name)
-				# self.redirect(path)
-			else:
-				self.error('Did not save record')
+
+		if newrec.name:
+			# And upload any files..
+			for f in self.request_files:
+				self.db.putbinary(None, infile=f.infile or f.filedata, filename=f.filename, record=newrec.name, param=f.param)
+							
+			self.redirect(self.routing.reverse('Record/main', name=newrec.name))
 			return
+			
 
 		recdef = self.db.getrecorddef(newrec.rectype)
 		rendered = self.db.renderview(newrec, edit=True, viewname=viewname)

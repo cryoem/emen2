@@ -55,11 +55,11 @@
 	
 	// Attachments editor
 	tab.TabControl('setcb', 'attachments', function(page) {
-		page.AttachmentControl({
+		$('#e2-attachments', page).AttachmentControl({
 			name: rec.name,
 			edit: ptest[2] || ptest[3],
 			show: true,
-			controls: page
+			controls: $('#e2-attachments', page)
 		});
 	});
 	
@@ -257,7 +257,9 @@
 		<form id="e2-permissions" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/edit/permissions/"></form>
 	</div>
 	
-	<div data-tab="attachments"></div>
+	<div data-tab="attachments">
+		<form id="e2-attachments" method="post" enctype="multipart/form-data" action="${EMEN2WEBROOT}/record/${rec.name}/edit/"></form>
+	</div>
 	
 	<div data-tab="comments"></div>
 	

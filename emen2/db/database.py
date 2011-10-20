@@ -4338,12 +4338,17 @@ class DB(object):
 			item.filename = filename
 
 		# Check the record
+		try:
+			record = int(record)
+		except:
+			pass
+			
 		if isinstance(record, int):
 			item.record = record
 		elif record != None:
 			# record is a dict or new Record to commit.
 			rec = self.bdbs.record.cput(record, ctx=ctx, txn=txn)
-			item.record = rec.recid
+			item.record = rec.name
 
 		# ian: todo: sort out item.compressed..
 

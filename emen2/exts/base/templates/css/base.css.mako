@@ -364,6 +364,15 @@ h4
 	border:solid 1px #ccc;
 }
 
+
+/***** e2-upload: Upload Control *****/
+.e2-upload-table td {
+	height: 32px;
+}
+.e2-upload-action {
+	padding-left: 4px;
+	padding-right: 4px;
+}
 /***** e2-query: Query Results *****/
 .e2-query .e2-query-table ul {
 	list-style: none;
@@ -693,6 +702,9 @@ textarea.e2l-fw {
 .ui-timepicker-div dl dt{ height: 25px; }
 .ui-timepicker-div dl dd{ margin: -25px 0 10px 65px; }
 .ui-timepicker-div td { font-size: 90%; }
+
+/* Dialogs that aren't allowed to close */
+.e2-dialog-no-close .ui-dialog-titlebar-close {display: none }
 
 /* IE 6 doesn't support max-height
  * we use height instead, but this forces the menu to always be this tall

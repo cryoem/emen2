@@ -175,6 +175,10 @@ class Router(emen2.util.registry.Registry):
 	def reverse(cls, *args, **kwargs):
 		'''Take a route name and arguments, and return a Route'''
 		result = '/error'
+		anchor = kwargs.pop('anchor', '')
+		if anchor:
+			anchor = '#%s'%(anchor)
+		
 		name = args[0].split('/',1)
 		if len(name) == 1:
 			name.append('main')
@@ -183,7 +187,7 @@ class Router(emen2.util.registry.Registry):
 		if route:
 			result = cls._reverse_helper(route.matcher, *args, **kwargs)
 			result = str.join('', (cls._prepend, result))
-		return result
+		return result+anchor
 
 
 	@classmethod

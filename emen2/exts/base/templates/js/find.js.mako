@@ -89,7 +89,7 @@
 			} else if (this.options.keytype == 'binary') {
 				title = item.filename;
 				if (item.filesize) {
-					title = title+' ('+item.filesize+')';
+					title = title+' ('+$.convert_bytes(item.filesize)+')';
 				}
 				var user = item.creator;
 				body = 'Created by '+user+' on '+item.creationtime;
