@@ -18,7 +18,16 @@
 			e.preventDefault();
 			var fileinput = $('input:file', this.element);
 			var files = fileinput[0].files;
-			console.log(files);
+
+			$.each(files, function(file){
+				self.upload(file)
+			});
+
+		},
+
+		upload: function(file) {
+			var xhr = XMLHttpRequest();
+			console.log(xhr);
 		},
 
 		build: function() {
