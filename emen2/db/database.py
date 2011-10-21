@@ -2366,7 +2366,7 @@ class DB(object):
 
 		if viewdef:
 			if markup and markdown:
-				viewdef = markdown.markdown(viewdef)
+				viewdef = markdown.markdown(viewdef, ['tables'])
 			groupviews[None] = viewdef
 		elif viewname == "dicttable":
 			for rec in recs:
@@ -2381,7 +2381,7 @@ class DB(object):
 				else:
 					v = rd.views.get(viewname, rd.mainview)
 					if markdown:
-						v = markdown.markdown(v)
+						v = markdown.markdown(v, ['tables'])
 
 				groupviews[rd.name] = v
 

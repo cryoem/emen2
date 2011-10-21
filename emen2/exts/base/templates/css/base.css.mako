@@ -63,8 +63,7 @@ a:hover,
 
 /* Full width */
 .e2l-fw {
-	display:block;
-	width:100%;
+	width:100% !important;
 }
 
 /* Unselectable elements */
@@ -177,10 +176,6 @@ table.e2l-kv td:first-child {
 
 
 /***** These should go in style.css *****/
-
-table {
-	width:100%;
-}
 
 h1,
 h4
