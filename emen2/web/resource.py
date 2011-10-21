@@ -8,6 +8,7 @@ import collections
 import functools
 import Queue
 import itertools
+import tempfile
 
 import twisted.internet
 import twisted.web.static
@@ -33,12 +34,36 @@ import emen2.web.server
 
 
 class UploadFile(object):
-	def __init__(self, filename, filedata=None, infile=None, record=None, param='file_binary'):
+	def __init__(self, filename, filedata=None, fileobj=None, infile=None, record=None, param='file_binary'):
 		self.filename = filename
 		self.filedata = filedata
+		self.fileobj = fileobj
 		self.infile = infile
 		self.record = record
 		self.param = param
+		self.tmp = None
+
+	def writetmp(self):
+		if self.infile:
+			return self.infile
+			
+		print "Copying data to a temporary file..."
+		tmp = tempfile.NamedTemporaryFile(suffix=self.filename, delete=False)
+		filename = tmp.name
+		if self.filedata:
+			tmp.write(self.filedata)
+		elif self.fileobj:
+			self.fileobj.seek(0)
+			chunk = self.fileobj.read()
+			while chunk:
+				tmp.write(chunk)
+				chunk = self.fileobj.read()
+
+		tmp.close()
+		self.tmp = filename
+		print "...wrote %s"%filename
+		return filename
+
 
 	def __repr__(self):
 		return str(self.__dict__)
@@ -330,7 +355,7 @@ class EMEN2Resource(object):
 
 		if request.method == "PUT":
 			# The param?..
-			f = UploadFile(filename=request.getHeader('x-file-name'), param=request.getHeader('x-file-param'), infile=request.content)
+			f = UploadFile(filename=request.getHeader('x-file-name'), param=request.getHeader('x-file-param'), fileobj=request.content)
 			files.append(f)
 
 
