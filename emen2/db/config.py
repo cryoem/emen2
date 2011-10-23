@@ -1,5 +1,5 @@
 # $Id$
-'''This module manages EMEN2 configurations and options.
+"""This module manages EMEN2 configurations and options.
 
 Methods:
 	get_filename(package, resource)
@@ -10,7 +10,7 @@ Methods:
 Classes:
 	DBOptions
 
-'''
+"""
 
 import os
 import sys
@@ -65,7 +65,7 @@ templates = AddExtLookup(input_encoding='utf-8')
 ##### Get filename relative to a Python module #####
 
 def get_filename(package, resource):
-	'''Get the absolute path to a file inside a given Python package'''
+	"""Get the absolute path to a file inside a given Python package"""
 	d = os.path.dirname(sys.modules[package].__file__)
 	d = os.path.abspath(d)
 	return os.path.join(d, resource)

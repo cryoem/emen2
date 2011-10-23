@@ -1,11 +1,11 @@
-'''
+"""
 	def newuser(self, name, password, email, ctx=None, txn=None):
 	def newgroup(self, name, ctx=None, txn=None):
 	def newparamdef(self, name, vartype, ctx=None, txn=None):
 	def newrecorddef(self, name, mainview, ctx=None, txn=None):
 	def newrecord(self, rectype, inherit=None, ctx=None, txn=None):
 	def newbinary(self, ctx=None, txn=None):
-'''
+"""
 import emen2.db
 from twisted.trial import unittest
 import getpass

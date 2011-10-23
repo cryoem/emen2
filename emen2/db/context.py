@@ -1,13 +1,13 @@
 # $Id$
-'''Security and authentication
+"""Security and authentication
 
 Classes:
-	Context: Database Object for storing a login
+	Context: DBO for storing a login
 	AnonymousContext: Special Context for anonymous users
 	SpecialRootContext: Special Context for root
 	ContextDB: BTree subclass for storing Contexts
 
-'''
+"""
 
 import time
 import operator
@@ -37,7 +37,7 @@ class Context(object):
 	def __init__(self, db=None, username=None, user=None, groups=None, host=None, maxidle=604800, requirehost=False):
 		t = emen2.db.database.getctime()
 
-		# Points to Database object for this context
+		# Points to DBO for this context
 		self.db = None
 		self.setdb(db)
 

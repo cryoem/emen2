@@ -1,11 +1,11 @@
 # $Id$
-'''Group Database Objects
+"""Group DBOs
 
 Classes:
 	Group: Represents a group of users, each with certain permissions
 	GroupDB: BTree for storing Groups
 
-'''
+"""
 
 import time
 import operator
@@ -21,7 +21,7 @@ import emen2.db.exceptions
 
 
 class Group(emen2.db.dataobject.PermissionsDBObject):
-	'''Groups of users. 
+	"""Groups of users. 
 	
 	Provides the following attributes:
 		disabled, displayname, privacy
@@ -63,8 +63,8 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 	:attr displayname: Human readable display name
 	:attr disabled: Group is disabled
 	
-	'''
-	param_all = emen2.db.dataobject.PermissionsDBObject.param_all | set(['privacy', 'disabled', 'displayname'])
+	"""
+	attr_public = emen2.db.dataobject.PermissionsDBObject.attr_public | set(['privacy', 'disabled', 'displayname'])
 
 	def init(self, d):
 		super(Group, self).init(d)

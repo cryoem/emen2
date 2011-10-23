@@ -1,11 +1,11 @@
 # $Id$
-'''Vartypes (data types)
+"""Vartypes (data types)
 
 Classes:
 	Vartype
 	vt_*: A number of built-in data types
 
-'''
+"""
 
 import cgi
 import operator
@@ -269,7 +269,7 @@ class vt_recid(Vartype):
 
 @vtm.register_vartype('name')
 class vt_name(Vartype):
-	"""Database object name"""
+	"""DBO name"""
 
 	def validate(self, value):
 		ret = []
@@ -947,7 +947,7 @@ def parse_iso8601duration(d):
 
 	"""
 
-	regex = re.compile('''
+	regex = re.compile("""
 			(?P<type>.)
 			((?P<weeks>[0-9,]+)W)?
 			((?P<years>[0-9,]+)Y)?
@@ -958,7 +958,7 @@ def parse_iso8601duration(d):
 				((?P<minutes>[0-9,]+)M)?
 				((?P<seconds>[0-9,]+)S)?
 			)?
-			''', re.X)
+			""", re.X)
 	match = regex.search(d)
 	rd = {} # return date
 	

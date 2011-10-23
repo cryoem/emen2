@@ -1,5 +1,5 @@
 # $Id$
-'''Exceptions
+"""Exceptions
 
 Exceptions:
 	SecurityError
@@ -9,7 +9,7 @@ Exceptions:
 	ValidationError
 	ExistingKey
 	TimeError
-'''
+"""
 
 # Security Errors
 class SecurityError(Exception):

@@ -1,12 +1,12 @@
 # $Id$
 # This Python file is encoding:UTF-8 Encoded
-'''Properties -- types of physical properties (units)
+"""Properties -- types of physical properties (units)
 
 Classes:
 	Property
 	prop_*: A number of included Properties
 
-'''
+"""
 
 import sys
 import math

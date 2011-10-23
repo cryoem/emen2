@@ -1,11 +1,11 @@
 # $Id$
-'''Parameter Database Objects
+"""Parameter DBOs
 
 Classes:
 	ParamDef
 	ParamDefDB
 
-'''
+"""
 
 import functools
 import time
@@ -19,14 +19,14 @@ import emen2.db.magnitude
 
 
 class ParamDef(emen2.db.dataobject.BaseDBObject):
-	'''Parameters.
+	"""Parameters.
 	
 	Provides the following attributes:
 		desc_short, desc_long, vartype, choices, defaultunits, property, 
 		indexed, iter, immutable, property, indexed, controlhint
 	
 	This class repesents a particular piece of data, either an attribute on a
-	database object, or a parameter on a Record. Please be aware that several
+	DBO, or a parameter on a Record. Please be aware that several
 	attributes are effectively immutable, and cannot be easily changed after
 	a ParamDef is created because it would change the meaning of existing
 	recorded data or index formats. This is a subclass of BaseDBObject; see 
@@ -90,7 +90,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	it can only be changed by running a migration script.
 		
 	The indexed attribute will determine if a ParamDef is indexed or not (if
-	the database object type supports indexing.) If it will not be important
+	the DBO type supports indexing.) If it will not be important
 	to run frequent queries on the parameter, or if the parameter changes very
 	frequently, you might turn off indexing. This cannot be easily changed
 	after creation; doing so requires rebuilding the index.
@@ -114,11 +114,11 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	:attr immutable: ParamDef is locked
 	:attr controlhint: Hint for user-interface widget
 
-	'''
-	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(['immutable', 
+	"""
+	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(['immutable', 
 		'iter', 'desc_long', 'desc_short', 'choices', 'vartype',
 		'defaultunits', 'property', 'indexed', 'controlhint'])
-	param_required = set(['vartype'])
+	attr_required = set(['vartype'])
 
 
 	def init(self, d):

@@ -1,11 +1,11 @@
 # $Id$
-'''EMEN2 Macros
+"""EMEN2 Macros
 
 Classes:
 	Macro: Base Macro
 	macro_*: A number of macros included by default
 
-'''
+"""
 
 import random
 import operator
@@ -23,7 +23,7 @@ ValidationError = emen2.db.exceptions.ValidationError
 vtm = emen2.db.datatypes.VartypeManager
 
 # From http://stackoverflow.com/questions/2212933/python-regex-for-reading-csv-like-rows
-parser = r'''
+parser = r"""
     \s*                # Any whitespace.
     (                  # Start capturing here.
       [^,"']+?         # Either a series of non-comma non-quote characters.
@@ -37,7 +37,7 @@ parser = r'''
     )                  # Done capturing.
     \s*                # Allow arbitrary space before the comma.
     (?:,|$)            # Followed by a comma or the end of a string.
-    '''
+    """
 
 
 def parse_args(args):
@@ -487,10 +487,10 @@ class macro_checkbox(Macro):
 		labelid = 'e2-edit-checkbox-%032x'%random.getrandbits(128)
 
 		# Need to put in a hidden input element so that empty sets will still be submitted.
-		return '''
+		return """
 			<input id="%s" type="checkbox" name="%s" data-param="%s" value="%s" %s />
 			<label for="%s">%s</label>
-			<input type="hidden" name="%s" value="" />'''%(labelid, param, param, value, checked, labelid, label or value, param)
+			<input type="hidden" name="%s" value="" />"""%(labelid, param, param, value, checked, labelid, label or value, param)
 
 	def macro_name(self, macro, params):
 		return "Checkbox:", params			

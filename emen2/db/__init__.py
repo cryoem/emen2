@@ -1,8 +1,8 @@
 # $Id$
-'''EMEN2: An object-oriented scientific database.'''
+"""EMEN2: An object-oriented scientific database."""
 
 def opendb(*args, **kwargs):
-	'''Helper method for opening DB with default options'''
+	"""Helper method for opening DB with default options"""
 	import config
 	dbo = config.DBOptions(loginopts=True)
 	(options, args) = dbo.parse_args()

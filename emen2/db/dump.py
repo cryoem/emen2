@@ -1,9 +1,9 @@
 # $Id$
-'''Dump database contents
+"""Dump database contents
 
 Classes:
 	Dumper
-'''
+"""
 
 import os
 import time

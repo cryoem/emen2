@@ -1,5 +1,5 @@
 # $Id$
-'''User Database Objects
+"""User DBOs
 
 Classes:
 	BaseUser
@@ -8,7 +8,7 @@ Classes:
 	UserDB
 	NewUserDB
 
-'''
+"""
 
 import time
 import operator
@@ -26,8 +26,8 @@ import emen2.db.dataobject
 # DBO that contains a password and email address
 class BaseUser(emen2.db.dataobject.BaseDBObject):
 
-	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(['email', 'password'])
-	param_required = set(['email', 'password'])
+	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(['email', 'password'])
+	attr_required = set(['email', 'password'])
 	username = property(lambda s:s.name)
 
 	def init(self, d):
@@ -192,7 +192,7 @@ signupinfo = set(["name_first", "name_middle", "name_last", "comments",	"institu
 
 class NewUser(BaseUser):
 	# displayname, userrec, and groups are unset when committing, so they can skip validation.
-	param_all = BaseUser.param_all | set(['signupinfo'])
+	attr_public = BaseUser.attr_public | set(['signupinfo'])
 
 	def validate_create(self):
 		# Anyone can create a NewUSer
@@ -272,7 +272,7 @@ class User(BaseUser):
 	"""
 
 	# displayname, userrec, and groups are unset when committing, so they can skip validation.
-	param_all = BaseUser.param_all | set(['privacy', 'disabled', 'displayname', 'userrec', 'groups', 'record'])
+	attr_public = BaseUser.attr_public | set(['privacy', 'disabled', 'displayname', 'userrec', 'groups', 'record'])
 
 	# These get set during setContext and cleared before commit
 	userrec = property(lambda s:s._userrec)

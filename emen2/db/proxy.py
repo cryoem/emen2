@@ -1,9 +1,9 @@
 # $Id$
-'''Proxy for accessing EMEN2 API methods
+"""Proxy for accessing EMEN2 API methods
 
 Classes:
 	DBProxy
-'''
+"""
 
 from __future__ import with_statement
 
@@ -180,7 +180,7 @@ class DBProxy(object):
 	_txn_autoclean = False
 
 	def _autoclean(self):
-		'''set _txn_autoclean in order to allow the with statement to cleanup the txn'''
+		"""set _txn_autoclean in order to allow the with statement to cleanup the txn"""
 		self._txn_autoclean = True
 		return self
 
@@ -263,7 +263,7 @@ class DBProxy(object):
 	def _register_publicmethod(cls, func, apiname, write=False, admin=False, ext=False):
 		# print "Registering func: %s"%apiname
 		# if set([func.apiname, func.func_name]) & cls._allmethods():
-		# 	raise ValueError('''method %s already registered''' % name)
+		# 	raise ValueError("""method %s already registered""" % name)
 		setattr(func, 'apiname', apiname)
 		setattr(func, 'write', write)
 		setattr(func, 'admin', admin)

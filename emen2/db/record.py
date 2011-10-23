@@ -1,11 +1,11 @@
 # $Id$
-'''Record Database Objects
+"""Record DBOs
 
 Classes:
 	Record
 	RecordDB
 	
-'''
+"""
 
 import collections
 import copy
@@ -20,7 +20,7 @@ import emen2.util.listops as listops
 
 
 class Record(emen2.db.dataobject.PermissionsDBObject):
-	'''Database Record.
+	"""Database Record.
 	
 	Provides the following additional attributes:
 		rectype, history, comments
@@ -35,7 +35,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	cannot be changed after a Record is created, even by admins. However, this
 	functionality may be provided at some point in the future.
 	
-	Unlike most other database objects, Records allow arbitrary attributes
+	Unlike most other DBOs, Records allow arbitrary attributes
 	as long as they are valid EMEN2 Parameters. These are stored in the params
 	attribute, which is a dictionary with parameter names as keys.  The params
 	attribute is effectively private and not exported. Instead, it is part of 
@@ -98,9 +98,9 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	:attr comments: Comments log
 	:attr rectype: Associated RecordDef
 	
-	'''
-	param_all = emen2.db.dataobject.PermissionsDBObject.param_all | set(['comments', 'history', 'rectype'])
-	param_required = set(['rectype'])
+	"""
+	attr_public = emen2.db.dataobject.PermissionsDBObject.attr_public | set(['comments', 'history', 'rectype'])
+	attr_required = set(['rectype'])
 
 	# backwards compat
 	recid = property(lambda s:s.name) 
@@ -126,12 +126,12 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	##### Setters #####
 
 	def _set_comments(self, key, value, vtm=None, t=None):
-		'''Bind record['comments'] setter'''
+		"""Bind record['comments'] setter"""
 		return self.addcomment(value, t=t)
 
-	# in Record, params not in self.param_all are put in self.params{}.
+	# in Record, params not in self.attr_public are put in self.params{}.
 	def _setoob(self, key, value, vtm=None, t=None):
-		'''Set a parameter value.'''
+		"""Set a parameter value."""
 		# No change
 		if self.params.get(key) == value:
 			return set()
@@ -150,21 +150,21 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	##### Tweaks to mapping methods #####
 
 	def __getitem__(self, key, default=None):
-		'''Default behavior is similar to .get: return None as default'''
-		if key in self.param_all:
+		"""Default behavior is similar to .get: return None as default"""
+		if key in self.attr_public:
 			return getattr(self, key, default)
 		else:
 			return self.params.get(key, default)
 
 	def keys(self):
-		'''All retrievable keys for this record'''
-		return self.params.keys() + list(self.param_all)
+		"""All retrievable keys for this record"""
+		return self.params.keys() + list(self.attr_public)
 
 
 	##### Comments and history #####
 
 	def _addhistory(self, param, t=None):
-		'''Add an entry to the history log.'''
+		"""Add an entry to the history log."""
 		# Changes aren't logged on uncommitted records
 		if self.name < 0:
 			return
@@ -176,7 +176,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		self.history.append((unicode(self._ctx.username), unicode(t), unicode(param), self.params.get(param)))
 
 	def addcomment(self, value, vtm=False, t=None):
-		'''Add a comment. Any $$param="value" comments will be parsed and set as values.'''
+		"""Add a comment. Any $$param="value" comments will be parsed and set as values."""
 		
 		if not self.commentable():
 			self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.SecurityError)
@@ -218,7 +218,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		return cp
 
 	def revision(self, revision=None):
-		'''This will return information about the record's revision history'''
+		"""This will return information about the record's revision history"""
 
 		history = copy.copy(self.history)
 		comments = copy.copy(self.comments)
@@ -254,7 +254,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	##### Validation #####
 
 	def validate_name(self, name):
-		'''Validate the name of this object'''
+		"""Validate the name of this object"""
 		if name in ['None', None]:
 			return
 		try:
@@ -264,7 +264,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		return name
 
 	def validate(self, vtm=None, t=None):
-		'''Validate the record before committing.'''
+		"""Validate the record before committing."""
 		# Cut out any None's
 		pitems = self.params.items()
 		for k,v in pitems:
@@ -373,10 +373,10 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		return self.cputs(crecs, ctx=ctx, txn=txn)
 
 	def groupbyrectype(self, names, ctx=None, txn=None):
-		'''Group Records by Rectype. Filters for permissions.
+		"""Group Records by Rectype. Filters for permissions.
 		@param names Record(s) or Record name(s)
 		@return {rectype:set(record names)}
-		'''
+		"""
 		if not names:
 			return {}
 
@@ -425,10 +425,10 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		return ret
 
 	def filter(self, names, rectype=None, ctx=None, txn=None):
-		'''Filter for permissions.
+		"""Filter for permissions.
 		@param names Record name(s).
 		@return Readable Record names.
-		'''
+		"""
 
 		names = self.expand(names, ctx=ctx, txn=txn)
 

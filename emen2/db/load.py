@@ -1,10 +1,10 @@
 # $Id$
-'''Load a dumped database
+"""Load a dumped database
 
 Classes:
 	BaseLoader
 	Loader
-'''
+"""
 
 import os
 import sys

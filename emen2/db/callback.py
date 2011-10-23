@@ -1,10 +1,10 @@
 # $Id$
-'''Callback
+"""Callback
 
 Classes:
 	Message
 	MessageQueue
-'''
+"""
 
 import collections
 

@@ -1,10 +1,10 @@
 # $Id$
-'''Database support for Binary attachments.
+"""Database support for Binary attachments.
 
 Classes:
-	Binary: Binary (attachment) Database Object
+	Binary: Binary (attachment) DBO
 	BinaryDB: BTree for storing and access Binary instances
-'''
+"""
 
 import time
 import re
@@ -26,7 +26,7 @@ import emen2.db.exceptions
 
 
 class Binary(emen2.db.dataobject.BaseDBObject):
-	'''Binary file stored on disk and managed by EMEN2. 
+	"""Binary file stored on disk and managed by EMEN2. 
 	
 	Provides following attributes:
 		filename, record, md5, filesize, compress, filepath
@@ -56,7 +56,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 	When a Binary is retrieved from the database, the filepath property will
 	be accessible. This points to the physical file on disk containing the data.
 
-	These BaseDBObject methods are overridden:
+	These BaseDBObject methods are extended:
 
 		init			Set attributes
 		setContext		Check read permissions and bind Context
@@ -74,9 +74,9 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 	:attr compress: File is gzip compressed
 	:attr record: Associated Record
 	:property filepath: Path to the file on disk
-	'''
+	"""
 
-	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(["filename", "record", "compress", "filesize", "md5"])	
+	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["filename", "record", "compress", "filesize", "md5"])	
 	filepath = property(lamdba x:x._filepath)
 	
 	def init(self, d):
@@ -97,7 +97,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 			rec = self._ctx.db.getrecord(self.record, filt=False)
 			
 	def validate_name(self, name):
-		'''Validate the name of this object'''		
+		"""Validate the name of this object"""		
 		if name in ['None', None]:
 			return
 		return self.parse(name)['name']
@@ -151,9 +151,8 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		
 	@staticmethod
 	def parse(bdokey, counter=None):
-		'''Parse a 'bdo:2010010100001' type identifier into constituent parts
-		and resolve location in the filesystem
-		'''
+		"""Parse a 'bdo:2010010100001' type identifier into constituent parts
+		and resolve location in the filesystem."""
 
 		prot, _, bdokey = (bdokey or "").rpartition(":")
 		if not prot:
@@ -210,11 +209,19 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 
 class BinaryDB(emen2.db.btrees.DBODB):
+	"""DBODB for Binaries
+	
+	Extends:
+		update_sequence		Binaries are assigned a name based on date
+		openindex			Indexed by: filename (maybe md5 in future)
+		
+	"""
 	sequence = True
 	dataclass = Binary
 
 	# Update the database sequence.. Probably move this to the parent class.
 	def update_sequence(self, items, txn=None):
+		"""Assign a name based on date, and the counter for that day."""
 		# Which recs are new?
 		newrecs = [i for i in items if i.name < 0]
 		dkey = emen2.db.binary.Binary.parse('')

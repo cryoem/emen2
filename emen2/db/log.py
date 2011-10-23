@@ -1,5 +1,5 @@
 # $Id$
-'''EMEN2 logging
+"""EMEN2 logging
 
 Functions:
 	msg
@@ -11,7 +11,7 @@ Functions:
 	security
 	index
 	commit
-'''
+"""
 
 
 import traceback

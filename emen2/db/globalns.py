@@ -1,7 +1,7 @@
 # $Id$
-'''Direct access of globalns.py and the GlobalNamespace class are deprecated.
+"""Direct access of globalns.py and the GlobalNamespace class are deprecated.
 Use the get() and set() functions in emen2.db.config instead.
-'''
+"""
 
 from __future__ import with_statement
 
@@ -132,14 +132,14 @@ class Hier(collections.MutableMapping):
 ##########################################################
 
 
-# '''NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
+# """NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
 #
 # NOTE: access globals this way:
 # import emen2.globalns
 # g = emen2.globalns.GlobalNamespace('')
 # g.<varname> accesses the variable
 # g.<varname> = <value> sets a variable in a threadsafe manner.
-# '''
+# """
 # Direct access is deprecated. Use emen2.db.config: get and set
 
 
@@ -288,7 +288,7 @@ class GlobalNamespace(Hier):
 
 	@classmethod
 	def __unlock(cls):
-		'''unlock namespace (for internal/debug use only)'''
+		"""unlock namespace (for internal/debug use only)"""
 		cls.__locked = False
 
 
@@ -336,7 +336,7 @@ class GlobalNamespace(Hier):
 
 	@classmethod
 	def from_file(cls, fn=None, data=None):
-		'''Alternate constructor which initializes a GlobalNamespace instance from a YAML file'''
+		"""Alternate constructor which initializes a GlobalNamespace instance from a YAML file"""
 
 		if not (fn or data):
 			raise ValueError, 'Either a filename or json/yaml data must be supplied'
@@ -386,7 +386,7 @@ class GlobalNamespace(Hier):
 		return yaml.safe_dump(self.__dump_prep(keys, kg, file), default_flow_style=fs)
 
 	def __dump_prep(self, keys=None, kg=None, file=None):
-		'''store state as YAML'''
+		"""store state as YAML"""
 		if keys is not None:
 			keys = keys
 		elif kg is not None:

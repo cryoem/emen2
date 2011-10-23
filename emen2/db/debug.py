@@ -1,5 +1,5 @@
 # $Id$
-'''
+"""
 Classes:
 	Output: represents an individual output stream which logs certain specified states
 		- Headless: skips the header information and just logs the message
@@ -13,7 +13,7 @@ Classes:
 	debugDict: used by DebugState.instrument_class to log all attribute access of a class
 
 	Filter: subclass of file, used to be use to strip headers off of access.log, unused
-'''
+"""
 
 from __future__ import with_statement
 
@@ -43,18 +43,18 @@ def take(num, iter_):
 ################
 
 class Output(object):
-	'''Controls access to a paricular output stream
+	"""Controls access to a paricular output stream
 
 	Subclasses that will be used should be registered with register and created with factory
-	'''
+	"""
 
 	subclasses = {}
 	@classmethod
 	def register_subclass(cls, subcls):
-		'''A decorator for registering a subclass, uses subcls.__name__.lower() as a key in a lookup table
+		"""A decorator for registering a subclass, uses subcls.__name__.lower() as a key in a lookup table
 
 		:param class subcls: the class to be registered
-		:returns: the class passed in as subclass'''
+		:returns: the class passed in as subclass"""
 
 		if issubclass(subcls, cls):
 			cls.subclasses[subcls.__name__.lower()] = subcls
@@ -62,18 +62,18 @@ class Output(object):
 
 	@classmethod
 	def factory(cls, version=None, **kwargs):
-		'''Create an particular kind of instance of Output
+		"""Create an particular kind of instance of Output
 
 		:param str version: the lookup key for the subclass
 		:param kwargs: the arguments for the constructor of the desired class
-		'''
+		"""
 
 		cls = cls.subclasses.get(version.lower(), cls)
 		return cls(**kwargs)
 
 
 	def __init__(self, states=0, filename=None, file=None, modulename=None, **kwargs):
-		'''Constructor: don't override this method, override _init'''
+		"""Constructor: don't override this method, override _init"""
 		self._states = states
 		self._file = file or open(filename, 'a')
 		self._state_checked = False
@@ -81,7 +81,7 @@ class Output(object):
 		self._init(**kwargs)
 
 	def _not_if_closed(func):
-		'''decorator: turns methods on or off based on whether the underlying stream is closed'''
+		"""decorator: turns methods on or off based on whether the underlying stream is closed"""
 		@functools.wraps(func)
 		def _inner(self, *args, **kwargs):
 			result = None
@@ -106,32 +106,32 @@ class Output(object):
 
 	@_not_if_closed
 	def flush(self):
-		'''flush()
+		"""flush()
 
-		Flush the buffer'''
+		Flush the buffer"""
 		if not self._file.closed:
 			self._file.flush()
 
 	@_not_if_closed
 	def close(self):
-		'''close()
+		"""close()
 
-		Close the buffer'''
+		Close the buffer"""
 		if not self._file.closed:
 			self._file.close()
 
 	# subclass behavior modification hooks
 	@property
 	def closed(self):
-		'''Indicates whether the underlying stream is open or closed'''
+		"""Indicates whether the underlying stream is open or closed"""
 		return self._file.closed
 
 	def checkstate(self, state):
-		'''Determine whether current message should be logged
+		"""Determine whether current message should be logged
 
 		:param state: The current state of the Logger
 
-		This method should set self._state_checked to True if the message is to be logged'''
+		This method should set self._state_checked to True if the message is to be logged"""
 		result = False
 		if self._states is None: result = False
 		elif self._states == DebugState.debugstates.ALL: result = True
@@ -145,22 +145,22 @@ class Output(object):
 		self._states = None
 
 	def _init(self, **kwargs):
-		'''Initialize the instance, override this instead of __init__'''
+		"""Initialize the instance, override this instead of __init__"""
 		pass
 
 	def _preprocess(self, state, header, msg):
-		'''Called before the message is logged, allows for the displayed message to be changed as one likes
+		"""Called before the message is logged, allows for the displayed message to be changed as one likes
 
 
 		:param state: the current logging state
 		:param str header: the header of the current message
 		:param str msg: the text of the current message
-		:returns: a tuple (header, msg) containing the desired values of each'''
+		:returns: a tuple (header, msg) containing the desired values of each"""
 		return header, msg
 
 @Output.register_subclass
 class Min(Output):
-	'''prints any messages in a state higher than the one given'''
+	"""prints any messages in a state higher than the one given"""
 	def checkstate(self, state):
 		if self._states is None: result = False
 		else:
@@ -170,7 +170,7 @@ class Min(Output):
 
 
 class Bounded(Output):
-	'''prints any messages in a given range of states'''
+	"""prints any messages in a given range of states"""
 	def _init(self, max, **kwargs):
 		self._max = max
 	def checkstate(self, state):
@@ -182,7 +182,7 @@ class Bounded(Output):
 
 @Output.register_subclass
 class Headless(Output):
-	'''drops the header from messages'''
+	"""drops the header from messages"""
 	def _preprocess(self, state, header, msg):
 		return '', msg
 
@@ -207,7 +207,7 @@ class stderr(Min):
 
 
 class DebugState(object):
-	'''Handles logging etc..'''
+	"""Handles logging etc.."""
 	debugstates = emen2.util.datastructures.Enum(dict(
 		DEBUG=-1,
 		TXN=1,
@@ -294,7 +294,7 @@ class DebugState(object):
 		print 'closing stdout'
 
 	def __call__(self, *args, **k):
-		'''log with a state of -1'''
+		"""log with a state of -1"""
 		self.msg(-1, *args, **k)
 
 	def start_timer(self, key=''):
@@ -308,7 +308,7 @@ class DebugState(object):
 		return stime
 
 	def note_var(self, var):
-		'''log the value of a variable and return the variable'''
+		"""log the value of a variable and return the variable"""
 		self.msg('INFO', 'NOTED VAR:::', var)
 		return var
 
@@ -382,9 +382,9 @@ class DebugState(object):
 		raw_input('hit enter to continue...')
 
 	def interact(self, locals, *args):
-		'''\
+		"""\
 		start a interactive console in a given scope
-		'''
+		"""
 		interp = code.InteractiveConsole(locals)
 		interp.interact('Debugging')
 
@@ -398,9 +398,9 @@ class DebugState(object):
 
 
 	def debug_func(self, func):
-		'''\
+		"""\
 		decorator to print info about a function whenever it is called
-		'''
+		"""
 		@functools.wraps(func)
 		def _inner(*args, **kwargs):
 			self.msg('DEBUG', 'debugging state -> self._state: %r, self._log_state: %r' % (self._state, self._log_state) )

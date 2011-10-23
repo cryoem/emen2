@@ -1,11 +1,11 @@
 # $Id$
-'''RecordDef (Protocol) classes
+"""RecordDef (Protocol) classes
 
 Classes:
 	RecordDef
 	RecordDefDB
 	
-'''
+"""
 
 import re
 import textwrap
@@ -65,8 +65,8 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	@attr owner Current owner of RecordDef. May be different than creator. Gives permission to edit views.
 	"""
 
-	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short", "owner"])
-	param_required = set(['mainview'])
+	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short", "owner"])
+	attr_required = set(['mainview'])
 
 
 	def init(self, d):
@@ -169,7 +169,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	# ian: todo: critical!! setContext for RecordDef
 	# def setContext(self, ctx):
 		# def accessible(self):
-		# 	'''Does current Context allow access to this RecordDef?'''
+		# 	"""Does current Context allow access to this RecordDef?"""
 		# 	result = False
 		# 	if not self.private:
 		# 		result = True

@@ -1,11 +1,11 @@
 # $Id$
-'''Base classes for EMEN2 Database Objects
+"""Base classes for EMEN2 DBOs
 
 Classes:
-	BaseDBObject: Base EMEN2 Database Object
-	PermissionsDBObject: Database Object with additional access controls
+	BaseDBObject: Base EMEN2 DBO
+	PermissionsDBObject: DBO with additional access controls
 
-'''
+"""
 
 import re
 import collections
@@ -21,10 +21,10 @@ import emen2.db.datatypes
 # todo: Remove UserDict, just do all the methods myself?
 
 class BaseDBObject(object, UserDict.UserDict):
-	'''Base class for EMEN2 database objects.
+	"""Base class for EMEN2 DBOs.
 	
 	This class implements the mapping interface, and all the required base 
-	attributes for database objects:
+	attributes for DBOs:
 	
 		name, keytype, creator, creationtime, modifytime, modifyuser, uri
 		
@@ -46,11 +46,21 @@ class BaseDBObject(object, UserDict.UserDict):
 	
 	All attributes should also be valid EMEN2 parameters. The default behavior
 	for BaseDBObject and subclasses is to validate the attributes as parameters
-	when they are set or updated. Private attributes may be set by prefixing
-	with an underscore, but WILL NOT be part of the committed item (stripped 
-	out in __getstate__). They will not required validation, and can be used
-	to store temporary calculated state, e.g. a user's display name, or a cache
-	of a complicated permissions calculation.
+	when they are set or updated. When a DBO is exported (JSON, XML,
+	network proxy, etc.) only the attributes listed in cls.attr_public are
+	exported. Private attributes may be used by using an underscore
+	prefix -- but these WILL NOT BE SAVED, and discarded before committing. An
+	example of this behavior is the User._displayname attribute, which
+	is recalculated whenever the user is retreived from the database. However,
+	the dynamic _displayname attribute is still exported by creating a
+	displayname class property, and listing that in cls.attr_public. In this way
+	it is part of the public interface, even though it is a generated, read-only
+	attribute. Another example is the params attribute of Record. This is a
+	normal attribute, and read/set from within the class's methods, but is not 	
+	exported (it is instead copied into the regular export dictionary.)
+	
+	Required attributes can be specified using cls.attr_required. If any of
+	these are None, a ValidationError will be raised during commit.
 	
 	In addition to implementing the mapping interface, the following methods 
 	are required as part of the database interface:
@@ -59,10 +69,10 @@ class BaseDBObject(object, UserDict.UserDict):
 		setContext		Check read permission and bind to a Context
 		isowner			Check ownership permission
 		writable		Check write permission
-		delete			Delete item (used with BTree.delete)
-		rename			Rename item (used with BTree.rename)
+		delete			Prepare item for deletion
+		rename			Prepare item for renaming
 		
-	BaseDBObject also provides the following methods:
+	BaseDBObject also provides the following methods for extending/overriding:
 	
 		init			Subclass init
 		validate_create	Check permissions to create items
@@ -72,8 +82,9 @@ class BaseDBObject(object, UserDict.UserDict):
 		commit			Commit and return the updated item
 		error			Raise an Exception (default is ValidationError)
 		
-	All public methods are safe to override, but be aware of any important
-	default behaviors, particularly those related to security and validation.
+	All public methods are safe to override or extend, but be aware of any 
+	important default behaviors, particularly those related to security and 
+	validation.
 
 	Naturally, as with anything in Python, anyone with file or code-level 
 	access to the database can override security by accessing or committing
@@ -88,23 +99,25 @@ class BaseDBObject(object, UserDict.UserDict):
 	:attr modifytime: Time of last modification, ISO 8601 format
 	:attr uri: Reference to original item if imported
 
+	:classattr attr_public: Public (exported) attributes
+	:classattr attr_required: Required attributes
 	:property keytype: Key type (default is lower case class name)
 	
-	'''
-	param_all = set(['children', 'parents', 'keytype', 'creator', 
+	"""
+	attr_public = set(['children', 'parents', 'keytype', 'creator', 
 		'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
-	param_required = set()
+	attr_required = set()
 	keytype = property(lambda s:s.getkeytype())
 
 	def __init__(self, _d=None, **_k):
-		'''Initialize a new database object. 
+		"""Initialize a new DBO. 
 		
 		You may provide either a dictionary named (first argument or _d keyword,
 		or any extra keyword arguments.)
 		
 		Remove the ctx and use it for setContext. Finally, update with any left
 		over items from _d.
-		'''
+		"""
 
 		# Copy input and kwargs into one dict
 		_d = dict(_d or {})
@@ -148,23 +161,23 @@ class BaseDBObject(object, UserDict.UserDict):
 
 
 	def init(self, d):
-		'''Hook for subclass init.'''
+		"""Hook for subclass init."""
 		pass
 
 	def validate(self, vtm=None, t=None):
-		'''Validate.'''
+		"""Validate."""
 		pass
 
 	def getkeytype(self):
-		'''Return the keytype (record, user, group, paramdef, etc.).'''
+		"""Return the keytype (record, user, group, paramdef, etc.)."""
 		return self.__class__.__name__.lower()
 
 	def setContext(self, ctx):
-		'''Set permissions and create reference to active database.'''
+		"""Set permissions and create reference to active database."""
 		self.__dict__['_ctx'] = ctx
 
 	def changedparams(self, item=None):
-		'''Differences between two instances.'''
+		"""Differences between two instances."""
 		allkeys = set(self.keys() + item.keys())
 		return set(filter(lambda k:self.get(k) != item.get(k), allkeys))
 
@@ -175,7 +188,7 @@ class BaseDBObject(object, UserDict.UserDict):
 	# Lack of read access is handled in setContext (raise SecurityError)
 
 	def isowner(self):
-		'''Check ownership privileges on item.'''
+		"""Check ownership privileges on item."""
 		if self._ctx.checkadmin():
 			return True
 
@@ -185,7 +198,7 @@ class BaseDBObject(object, UserDict.UserDict):
 		return self._ctx.username == getattr(self, 'owner', None)
 
 	def writable(self, key=None):
-		'''Check write permissions.'''
+		"""Check write permissions."""
 		return self.isowner()
 
 
@@ -221,16 +234,16 @@ class BaseDBObject(object, UserDict.UserDict):
 		return self.__getitem__(key, default)
 
 	def has_key(self,key):
-		return key in self.param_all
+		return key in self.attr_public
 
 	def keys(self):
-		return list(self.param_all)
+		return list(self.attr_public)
 
 	def items(self):
 		pass
 
 	def update(self, update, vtm=None, t=None):
-		'''Dict-like update. Returns a set of keys that were updated.'''
+		"""Dict-like update. Returns a set of keys that were updated."""
 		vtm, t = self._vtmtime(vtm, t)
 		cp = set()
 
@@ -243,7 +256,7 @@ class BaseDBObject(object, UserDict.UserDict):
 	# Low level mapping methods
 	# Behave like dict.get(key) instead of db[key]
 	def __getitem__(self, key, default=None):
-		if key in self.param_all:
+		if key in self.attr_public:
 			return getattr(self, key, default)
 		elif default:
 			return default
@@ -262,7 +275,7 @@ class BaseDBObject(object, UserDict.UserDict):
 	# Check if there is a method for setting this key, 
 	# validate the value, set the value, and update the time stamp.
 	def __setitem__(self, key, value, vtm=None, t=None):
-		'''Validate and set an attribute or key.'''
+		"""Validate and set an attribute or key."""
 
 		cp = set()
 		if self.get(key) == value:
@@ -272,13 +285,13 @@ class BaseDBObject(object, UserDict.UserDict):
 		setter = getattr(self, '_set_%s'%key, None)
 		if setter:
 			pass
-		elif key in self.param_all:
+		elif key in self.attr_public:
 			# These cannot be directly modified (not even by admin)
 			# (Return quietly instead of SecurityError or KeyError)
 			return cp
 		else:
 			# Setter for parameters that are not explicitly listed as attributes
-			# in (param_all)
+			# in (attr_public)
 			# Default is to raise KeyError or ValidationError
 			# Record class will use this to set non-attribute parameters
 			setter = self._setoob
@@ -304,7 +317,7 @@ class BaseDBObject(object, UserDict.UserDict):
 	##### Real updates #####
 
 	def _set(self, key, value, check=None, vtm=None, t=None):
-		'''Actually set a value.'''
+		"""Actually set a value."""
 		# The default permission required to set a key
 		# is write permissions. Additionally, the default
 		# for write permissions is owners only.
@@ -318,7 +331,7 @@ class BaseDBObject(object, UserDict.UserDict):
 		return set([key])
 
 	def _setoob(self, key, value, vtm=None, t=None):
-		'''Handle params not found in self.param_all'''
+		"""Handle params not found in self.attr_public"""
 		self.error("Cannot set param %s in this way"%key, warning=True)
 		return set()
 
@@ -326,8 +339,8 @@ class BaseDBObject(object, UserDict.UserDict):
 	##### Update parents / children #####
 
 	def _setrel(self, key, value):
-		'''Set a relationship. 
-		Make sure we have permissions to edit the relationship.'''	
+		"""Set a relationship. 
+		Make sure we have permissions to edit the relationship."""	
 		# Filter out changes to permissions on records
 		# that we can't access...
 		value = set(emen2.util.listops.check_iterable(value))
@@ -366,8 +379,8 @@ class BaseDBObject(object, UserDict.UserDict):
 	##### Pickle methods #####
 
 	def __getstate__(self):
-		'''Context and other session-specific information should not be pickled. 
-		All private keys (starts with underscore) will be removed.'''
+		"""Context and other session-specific information should not be pickled. 
+		All private keys (starts with underscore) will be removed."""
 		odict = self.__dict__.copy() # shallow copy since we are removing keys
 		for key in odict.keys():
 			if key.startswith('_'):
@@ -379,13 +392,13 @@ class BaseDBObject(object, UserDict.UserDict):
 
 	# Check that we have permissions to create this type of item
 	def validate_create(self):
-		'''Can we create this type of item?'''
+		"""Can we create this type of item?"""
 		if not self._ctx.checkcreate():
 			raise emen2.db.exceptions.SecurityError, "No creation privileges"
 
 	# This is the main mechanism for validation.
 	def validate_param(self, key, value, vtm=None):
-		'''Validate a single parameter value.'''
+		"""Validate a single parameter value."""
 
 		# Check the cache for the param
 		vtm, t = self._vtmtime(vtm=vtm)
@@ -393,8 +406,8 @@ class BaseDBObject(object, UserDict.UserDict):
 		hit, pd = vtm.check_cache(cachekey)
 
 		# ian: todo: critical: no validation for params that do not have
-		#	a ParamDef if they are listed in self.param_all
-		if not hit and key in self.param_all:
+		#	a ParamDef if they are listed in self.attr_public
+		if not hit and key in self.attr_public:
 			return value
 
 		# ... otherwise, raise an Exception if the param isn't found.
@@ -421,7 +434,7 @@ class BaseDBObject(object, UserDict.UserDict):
 		return v
 
 	def validate_name(self, name):
-		'''Validate the name of this item.'''
+		"""Validate the name of this item."""
 		if not name:
 			name = emen2.db.database.getrandomid()
 			# self.error("No name specified")
@@ -439,16 +452,16 @@ class BaseDBObject(object, UserDict.UserDict):
 	##### Convenience methods #####
 
 	def _vtmtime(self, vtm=None, t=None):
-		'''Utility method to check/get a vartype manager and the current time.'''
+		"""Utility method to check/get a vartype manager and the current time."""
 		# Time stamps are now in ISO 8601 format.
 		vtm = vtm or emen2.db.datatypes.VartypeManager(db=self._ctx.db)
 		t = t or emen2.db.database.gettime()
 		return vtm, t
 
 	def error(self, msg='', e=None, warning=False):
-		'''Raise a ValidationError exception. 
+		"""Raise a ValidationError exception. 
 		If warning=True, pass the exception, but make a note in the log.
-		'''
+		"""
 		if e == None:
 			e = emen2.db.exceptions.ValidationError
 
@@ -461,16 +474,16 @@ class BaseDBObject(object, UserDict.UserDict):
 			raise e(msg)
 
 	def commit(self):
-		'''Commit the item and return the updated copy.'''
+		"""Commit the item and return the updated copy."""
 		return self._ctx.db.put([self], keytype=self.keytype)
 
 
 
 # A class for dbo's that have detailed ACL permissions.
 class PermissionsDBObject(BaseDBObject):
-	'''Database object with additional access control.
+	"""DBO with additional access control.
 	
-	This class is used for database objects that require finer grained control
+	This class is used for DBOs that require finer grained control
 	over reading and writing. For instance, Record and Group. It is a subclass
 	of BaseDBObject; see that class for additional documentation.
 	
@@ -519,11 +532,11 @@ class PermissionsDBObject(BaseDBObject):
 	:attr permissions: Access control list
 	:attr groups: Groups
 
-	'''
+	"""
 	
 	# Changes to permissions and groups, along with parents/children,
 	# are not logged.
-	param_all = BaseDBObject.param_all | set(['permissions', 'groups'])
+	attr_public = BaseDBObject.attr_public | set(['permissions', 'groups'])
 
 	def init(self, d):
 		super(PermissionsDBObject, self).init(d)
@@ -558,7 +571,7 @@ class PermissionsDBObject(BaseDBObject):
 	##### Permissions checking #####
 
 	def setContext(self, ctx):
-		'''Check read permissions and bind Context.'''
+		"""Check read permissions and bind Context."""
 		# Check if we can access this item..
 		self.__dict__['_ctx'] = ctx
 
@@ -587,11 +600,11 @@ class PermissionsDBObject(BaseDBObject):
 		return self._ptest[3]
 
 	def writable(self, key=None):
-		'''Returns whether this record can be written using the given context'''
+		"""Returns whether this record can be written using the given context"""
 		return any(self._ptest[2:])
 
 	def commentable(self):
-		'''Does user have level 1 permissions? Required to comment or link.'''
+		"""Does user have level 1 permissions? Required to comment or link."""
 		return any(self._ptest[1:])
 
 	def readable(self):
@@ -620,7 +633,7 @@ class PermissionsDBObject(BaseDBObject):
 		return [[unicode(y) for y in x] for x in value]		
 
 	def adduser(self, users, level=0, reassign=False):
-		'''Add a user to the record's permissions'''
+		"""Add a user to the record's permissions"""
 		if not users:
 			return
 
