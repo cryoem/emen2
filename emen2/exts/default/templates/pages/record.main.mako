@@ -154,7 +154,7 @@
 		<%
 		attachments = []
 		# cheap filtering....
-		for k in rec.getparamkeys():
+		for k in rec.keys():
 			v = rec[k]
 			if hasattr(v, "__iter__"):
 				attachments.extend(x for x in v if 'bdo:' in str(x))

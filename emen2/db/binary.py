@@ -22,87 +22,71 @@ import tempfile
 import emen2.db.btrees
 import emen2.db.dataobject
 import emen2.db.config
-
-
-# ian: todo: better job at cleaning up broken files..
-def write_binary(infile, ctx=None, txn=None):
-	"""(Internal) Behind the scenes -- read infile out to a temporary file.
-	The temporary file will be renamed to the final destination when everything else is cleared.
-	@keyparam infile
-	@keyparam dkey Binary Key -- see Binary.parse
-	@return Temporary file path, the file size, and an md5 digest.
-	"""
-	# ian: todo: allow import by using a filename.
-
-	# Get the basepath for the current storage area
-	dkey = emen2.db.binary.Binary.parse('')
-
-	closefd = True
-	if hasattr(infile, "read"):
-		# infile is a file-like object; do not close
-		closefd = False
-	else:
-		# string data..
-		infile = cStringIO.StringIO(infile)
-
-	# Make the directory
-	try:
-		os.makedirs(dkey["basepath"])
-	except OSError:
-		pass
-
-	# Write out file to temporary storage in the day's basepath
-	(fd, tmpfilepath) = tempfile.mkstemp(suffix=".upload", dir=dkey["basepath"])
-	m = hashlib.md5()
-	filesize = 0
-
-	with os.fdopen(fd, "w+b") as f:
-		for line in infile:
-			f.write(line)
-			m.update(line)
-			filesize += len(line)
-
-	if filesize == 0 and not ctx.checkadmin():
-		raise ValueError, "Empty file!"
-
-	if closefd:
-		infile.close()
-
-	md5sum = m.hexdigest()
-	# print "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum)
-	emen2.db.log.info("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum))
-
-	return tmpfilepath, filesize, md5sum
-
+import emen2.db.exceptions
 
 
 class Binary(emen2.db.dataobject.BaseDBObject):
-	"""This class defines a pointer to a binary file stored on disk. 
-	Contains the following metadata: ID, filename, associated record ID, filesize, md5 checksum, and if the file is compressed or not. 
-	The path to the file will be resolved dynamically when accessed based on the storage paths specified in the config.
+	'''Binary file stored on disk and managed by EMEN2. 
+	
+	Provides following attributes:
+		filename, record, md5, filesize, compress, filepath
+		
+	The Binary name has a specific format, bdo:YYYYMMDDXXXXX, where YYYYMMDD is 
+	date format and XXXXX is 5-char hex ID code of file for the day. In the
+	future, the name will be a URN scheme, where 'bdo' is an access protocol
+	and the name is dependent on the scheme.
 
-	@attr name Identifier of the form: bdo:YYYYMMDDXXXXX, where YYYYMMDD is date format and XXXXX is 5-char hex ID code of file for that day
-	@attr filename Filename
-	@attr filepath Path to file on disk (built from config file when retrieved from db)
-	@attr record Record ID associated with file
-	@attr filesize Size of file
-	@attr filepath Path to the file on disk; set by setContext
-	@attr md5 MD5 checksum of file
-	@attr compress File is gzip compressed
-	"""
+	The filename attribute is the original name of the uploaded file. The 
+	filesize attribute is the uncompressed size of the file, and the md5
+	attribute is the MD5 checksum of the uncompressed file. The filename may be
+	changed by an owner after a Binary is committed, but the contents (filesize 
+	and md5) cannot be changed.
 
-	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(["filename", "record", "compress", "filepath", "filesize", "md5"])	
+	File names are checked to prevent illegal characters, and names such as "."
+	and invalid file names on some platforms ("COM", "NUL", etc.).
 
+	If the file is stored compressed on disk, the compressed attribute will
+	contain either True (gzip compressed) or the compression scheme used.
+
+	Binaries are generally associated with a Record, stored in the record
+	attribute. Read permission on a Binary requires either ownership of the
+	item, or read permission on the associated Record. The owner of the Binary
+	can change which Record is associated.
+
+	When a Binary is retrieved from the database, the filepath property will
+	be accessible. This points to the physical file on disk containing the data.
+
+	These BaseDBObject methods are overridden:
+
+		init			Set attributes
+		setContext		Check read permissions and bind Context
+		validate_name	Check the access protocol (bdo:YYYYMMDDXXXXX)
+		validate		Check required attributes
+		
+	And the following method is provided:
+
+		parse			Parse name
+
+
+	:attr filename: File name
+	:attr filesize: Size of the uncompressed file
+	:attr md5: MD5 checksum of the uncompressed file
+	:attr compress: File is gzip compressed
+	:attr record: Associated Record
+	:property filepath: Path to the file on disk
+	'''
+
+	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(["filename", "record", "compress", "filesize", "md5"])	
+	filepath = property(lamdba x:x._filepath)
+	
 	def init(self, d):
 		self.__dict__['filename'] = None
 		self.__dict__['record'] = None
 		self.__dict__['md5'] = None
 		self.__dict__['filesize'] = None
 		self.__dict__['compress'] = False
-		self.__dict__['filepath'] = None
-		# ian: todo: handle filepath.
+		self._filepath = None
 		
-
 	def setContext(self, ctx):
 		super(Binary, self).setContext(ctx=ctx)
 		self.__dict__['filepath'] = self.parse(self.name).get('filepath')
@@ -112,37 +96,31 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		if self.record is not None:	
 			rec = self._ctx.db.getrecord(self.record, filt=False)
 			
-		
 	def validate_name(self, name):
-		"""Validate the name of this object"""		
+		'''Validate the name of this object'''		
 		if name in ['None', None]:
 			return
 		return self.parse(name)['name']
-
 
 	# filepath is set during setContext, and discarded during commit (todo)
 	def _set_filepath(self, key, value, vtm=None, t=None):
 		return set()
 
-
-	# These can only ever be set for new Binary, before commit	
+	# These immutable attributes only ever be set for a new Binary, before commit	
 	def _set_md5(self, key, value, vtm=None, t=None):
 		if self.name != None:
-			raise KeyError, "Cannot change a Binary's file attachment"
+			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
 		return self._set(key, value, self.isowner())
-
 
 	def _set_compress(self, key, value, vtm=None, t=None):
 		if self.name != None:
-			raise KeyError, "Cannot change a Binary's file attachment"
+			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
 		return self._set(key, value, self.isowner())
-
 
 	def _set_filesize(self, key, value, vtm=None, t=None):
 		if self.name != None:
-			raise KeyError, "Cannot change a Binary's file attachment"
+			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
 		return self._set(key, value, self.isowner())
-		
 
 	# These can be changed normally
 	def _set_filename(self, key, value, vtm=None, t=None):
@@ -159,26 +137,23 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		value = unicode(filename)
 		return self._set(key, value, self.isowner())
 	
-	
 	def _set_record(self, key, value, vtm=None, t=None):
 		return self._set(key, int(value), self.isowner())
-
 
 	# Validate
 	def validate(self, vtm=None, t=None):
 		if self.filesize <= 0:
-			raise ValueError, "No file specified"
+			raise emen2.db.exceptions.ValidationError, "No file specified"
 		if not self.filename or not self.md5 or not self.filesize >= 0:
-			raise ValueError, "Filename, filesize, and MD5 checksum are required"
+			raise emen2.db.exceptions.ValidationError, "Filename, filesize, and MD5 checksum are required"
 		if self.record is None:
-			raise ValueError, "Reference to a Record is required"
+			raise emen2.db.exceptions.ValidationError, "Reference to a Record is required"
 		
-
 	@staticmethod
 	def parse(bdokey, counter=None):
-		"""Parse a 'bdo:2010010100001' type identifier into constituent parts
-		to load from database and resolve location in the filesystem
-		"""
+		'''Parse a 'bdo:2010010100001' type identifier into constituent parts
+		and resolve location in the filesystem
+		'''
 
 		prot, _, bdokey = (bdokey or "").rpartition(":")
 		if not prot:
@@ -186,30 +161,39 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 		# ian: todo: implement other BDO protocols, e.g. references to uris
 		if prot not in ["bdo"]:
-			raise Exception, "Invalid binary storage protocol: %s"%prot
+			raise Exception, "Invalid binary protocol: %s"%prot
 
-		# Now process; must be 14 chars long..
 		if bdokey:
+			# Now process; must be 14 chars long..
 			year = int(bdokey[:4])
 			mon = int(bdokey[4:6])
 			day = int(bdokey[6:8])
 			if counter == None:
 				counter = int(bdokey[9:13],16)
 		else:
-			bdokey = emen2.db.database.gettime() # "2010/10/10 01:02:03"
+			# Timestamps are now in ISO8601 format
+			# e.g.: "2011-10-16T02:00:00Z"
+			bdokey = emen2.db.database.gettime() 
 			year = int(bdokey[:4])
 			mon = int(bdokey[5:7])
 			day = int(bdokey[8:10])
 			counter = counter or 0
 
+		# YYYYMMDD
 		datekey = "%04d%02d%02d"%(year, mon, day)
 
+		# Get the binary storage paths from config
 		binarypaths = emen2.db.config.get('paths.BINARYPATH')
+
+		# Find the last item matching the current date
 		mp = [x for x in sorted(binarypaths.keys()) if str(x)<=datekey]
 		base = binarypaths[mp[-1]]	
 
+		# Resolve the parsed bdo key to a directory (basepath) and file (filepath)
 		basepath = "%s/%04d/%02d/%02d/"%(base, year, mon, day)
 		filepath = os.path.join(basepath, "%05X"%counter)
+
+		# The BDO name (bdo:YYYYMMDDXXXXX)
 		name = "%s:%s%05X"%(prot, datekey, counter)
 
 		return {
@@ -223,7 +207,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 			"filepath":filepath,
 			"name":name
 			}
-
 
 
 class BinaryDB(emen2.db.btrees.DBODB):
@@ -247,8 +230,7 @@ class BinaryDB(emen2.db.btrees.DBODB):
 			newrec.__dict__['name'] = dkey['name']			
 			newrec.__dict__['filepath'] = dkey['filepath']
 
-		return {}
-			
+		return {}		
 
 	def openindex(self, param, txn=None):
 		if param == 'filename':

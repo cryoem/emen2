@@ -21,22 +21,56 @@ import emen2.db.exceptions
 
 
 class Group(emen2.db.dataobject.PermissionsDBObject):
-	"""Groups of users. These can be set in individual Records to provide access to members of a group.
+	'''Groups of users. 
 	
-	@attr name
-	@attr permissions
-	@attr groups
-	@attr disabled
-	@attr privacy
-	"""
+	Provides the following attributes:
+		disabled, displayname, privacy
+		
+	Groups are used in conjunction with permissions access control lists to 
+	share a set of permissions between many records. Some groups are also used
+	to provide role-based access, such as administrative rights, the right to
+	read published (public) records, the right to create records, etc. Groups 
+	are only slightly modified from the parent PermissionsDBOBject class; you
+	will find additional documentation there.
+	
+	When referenced in a Record's groups attribute, the Group's permissions
+	will be overlaid on top of the Record permissions. As such, if a user has
+	comment level permissions in a group, that user will have comment level
+	permissions in any Record that lists that group. All four permissions levels
+	will be checked in this way.
 
+	Like a Record, you must have administrative rights in a group to edit that
+	groups permissions list.
+
+	The displayname attribute serves a similar purpose to the User displayname
+	attribute; it provides a human-formatted description of the group (in some
+	cases, groups may have random, arbitrary, or cryptic names.) 
+	
+	The disabled attribute will disable the Group: it will not be active, and
+	Records will not inherit its permissions. 
+	
+	The privacy attribute will hide the members of the Group from non-members. 
+	Groups are private by default.
+	
+	The following methods are overridden:
+
+		init			Init disabled, displayname, and privacy
+		readable		Some special groups are readable by all
+		validate_create Only administrators are allowed to create groups
+
+
+	:attr privacy: Hide members from non-members
+	:attr displayname: Human readable display name
+	:attr disabled: Group is disabled
+	
+	'''
 	param_all = emen2.db.dataobject.PermissionsDBObject.param_all | set(['privacy', 'disabled', 'displayname'])
 
 	def init(self, d):
 		super(Group, self).init(d)
 		self.__dict__['disabled'] = False
 		self.__dict__['displayname'] = self.name
-		self.__dict__['privacy'] = False
+		self.__dict__['privacy'] = True
 	
 	
 	# Special groups are readable by anyone.

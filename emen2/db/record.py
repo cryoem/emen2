@@ -7,13 +7,8 @@ Classes:
 	
 '''
 
-import time
-import UserDict
 import collections
-import operator
-import weakref
 import copy
-import re
 
 # EMEN2 imports
 import emen2.db.btrees
@@ -25,47 +20,93 @@ import emen2.util.listops as listops
 
 
 class Record(emen2.db.dataobject.PermissionsDBObject):
-	"""This class encapsulates a single database record. In a sense this is an instance
-	of a particular RecordDef, however, note that it is not required to have a value for
-	every field described in the RecordDef, though this will usually be the case.
+	'''Database Record.
+	
+	Provides the following additional attributes:
+		rectype, history, comments
+		
+	This class represents a single database record. In a sense this is an
+	instance of a particular RecordDef, however, note that it is not required 
+	to have a value for every field described in the RecordDef, although this
+	will usually be the case. This class is a subclass of PermissionsDBObject
+	(and BaseDBObject); see these classes for additinal documentation.
 
-	To modify the params in a record use the normal obj[key]= or update() approaches.
-	Changes are not stored in the database until commit() is called. To examine params,
-	use obj[key]. There are a few special keys, handled differently:
-	creator, creationtime, permissions, comments, history, parents, children, groups
+	The RecordDef name is stored in the rectype attribute. Currently, this 
+	cannot be changed after a Record is created, even by admins. However, this
+	functionality may be provided at some point in the future.
+	
+	Unlike most other database objects, Records allow arbitrary attributes
+	as long as they are valid EMEN2 Parameters. These are stored in the params
+	attribute, which is a dictionary with parameter names as keys.  The params
+	attribute is effectively private and not exported. Instead, it is part of 
+	the mapping interface. Items can be set with __setitem__ 
+	(record['parameter'] = Value) or through an update(). When an item is
+	exported (e.g. JSON), the contents of param are in the regular dictionary
+	of attributes. Changes to these parameters are always logged in the history
+	log, described below, and will always trigger an update to the 
+	modification time.
 
-	Record instances must ONLY be created by the Database class through retrieval or
-	creation operations. self._ctx will store information about security and
-	storage for the record.
+	Records contain an integrated log of all changes over the entire history
+	of the record. In a sense, as in a physical lab notebook, an original value
+	can never be changed, only superceded. This log is stored in the history 
+	attribute, which is a list containing a tuple entry for every change made,
+	in the following format:
+		0	User
+		1	Time of change
+		2	Parameter changed
+		3	Previous parameter value
+	
+	The history log is immutable, even to admins, and is updated when the item
+	is committed. From a database standpoint, this is rather odd behavior. Such
+	tasks would generally be handled with an audit log of some sort. However, 
+	in this case, as an electronic representation of a Scientific lab notebook,
+	it is absolutely necessary that all historical values are permanently
+	preserved for any field, and there is no particular reason to store this
+	information in a separate file. Generally speaking, such changes should be
+	infrequent. When a value is edited, the user interface should generally
+	prompt the user for a comment describing the reason for the change. If
+	provided, the comment and the history log item will have the same timestamp.
 
-	Mechanisms for changing existing params are a bit complicated. In a sense, as in a
-	physical lab notebook, an original value can never be changed, only superceded.
-	All records have a 'magic' field called 'comments', which is an extensible array
-	of text blocks with immutable entries. 'comments' entries can contain new field
-	definitions, which will supercede the original definition as well as any previous
-	comments. Changing a field will result in a new comment being automatically generated
-	describing and logging the value change.
-
-	From a database standpoint, this is rather odd behavior. Such tasks would generally be
-	handled with an audit log of some sort. However, in this case, as an electronic
-	representation of a Scientific lab notebook, it is absolutely necessary
-	that all historical values are permanently preserved for any field, and there is no
-	particular reason to store this information in a separate file. Generally speaking,
-	such changes should be infrequent.
-
-	Naturally, as with anything in Python, anyone with code-level access to the database
-	can override this behavior by changing 'params' directly rather than using
-	the supplied access methods. There may be appropriate uses for this when constructing
-	a new Record before committing changes back to the database.
-	"""
+	Users also can store free-form textual comments in the comments attribute, 
+	either by setting the comments key (item['comments'] = 'Test') or through 
+	the  addcomment() method. Comments will stored as plain text, and usually 
+	displayed with Markdown-type formatting applied. Like the history log, 
+	comments are immutable once set, even to admins. Additionally, parameters
+	can be updated inside of a comment using the RecordDef view syntax: 
+		$$parameter="value"
+	
+	Each new comment is added to the comments list as a tuple with the format:
+		0	User
+		1	Time of comment
+		2	Comment text
 
 
-	# Protected params are history, "real" comments, rectype, and "_params"
+	The following methods are overridden:
+
+		init			Init the rectype, comments, and history
+		keys			Add parameter keys
+		validate		Check RecordDef
+		validate_name	Check the name is a positive integer
+		
+	And the following methods are provided:
+	
+		addcomment		Add a comment
+		revision		Calculate the record's values to a point in the past.
+
+	
+	:attr history: History log
+	:attr comments: Comments log
+	:attr rectype: Associated RecordDef
+	
+	'''
 	param_all = emen2.db.dataobject.PermissionsDBObject.param_all | set(['comments', 'history', 'rectype'])
 	param_required = set(['rectype'])
-	recid = property(lambda s:s.name)
+
+	# backwards compat
+	recid = property(lambda s:s.name) 
 
 	def init(self, d):
+		# Call PermissionsDBObject init
 		super(Record, self).init(d)
 
 		# rectype is required
@@ -78,38 +119,19 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 		# Access to RecordDef is checked during validate
 
-
-	#################################
-	# repr methods
-	#################################
-
-	def __repr__(self):
-		return "<%s name: %s at %x>" % (self.__class__.name, self.name, id(self))
-
-
-	def json_equivalent(self):
-		"""Returns a dictionary of current values"""
-		ret = {}
-		ret.update(self.params)
-		for i in self.param_all:
-			ret[i] = getattr(self, i, None)
-		return ret
-
-
 	def __repr__(self):
 		return "<%s %s, %s at %x>" % (self.__class__.__name__, self.name, self.rectype, id(self))
 
 
-	#################################
-	# Setters
-	#################################
+	##### Setters #####
 
 	def _set_comments(self, key, value, vtm=None, t=None):
+		'''Bind record['comments'] setter'''
 		return self.addcomment(value, t=t)
-
 
 	# in Record, params not in self.param_all are put in self.params{}.
 	def _setoob(self, key, value, vtm=None, t=None):
+		'''Set a parameter value.'''
 		# No change
 		if self.params.get(key) == value:
 			return set()
@@ -120,40 +142,29 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 			self.error(msg, e=emen2.db.exceptions.SecurityError)
 
 		self._addhistory(key, t=t)
-		# print ":: Setting param key/value", key, value
+		# Really set the value
 		self.params[key] = value
 		return set([key])
 
 
-	#################################
-	# mapping methods;
-	#		UserDict.DictMixin provides the remainder
-	#################################
+	##### Tweaks to mapping methods #####
 
 	def __getitem__(self, key, default=None):
-		"""Default behavior is similar to .get: return None as default"""
+		'''Default behavior is similar to .get: return None as default'''
 		if key in self.param_all:
 			return getattr(self, key, default)
 		else:
 			return self.params.get(key, default)
 
-
 	def keys(self):
-		"""All retrievable keys for this record"""
+		'''All retrievable keys for this record'''
 		return self.params.keys() + list(self.param_all)
 
 
-	def getparamkeys(self):
-		"""Returns parameter keys without special values like owner, creator, etc."""
-		return self.params.keys()
-
-
-
-	##########################
-	# Comments and history
-	##########################
+	##### Comments and history #####
 
 	def _addhistory(self, param, t=None):
+		'''Add an entry to the history log.'''
 		# Changes aren't logged on uncommitted records
 		if self.name < 0:
 			return
@@ -164,8 +175,9 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		vtm, t = self._vtmtime(t=t)
 		self.history.append((unicode(self._ctx.username), unicode(t), unicode(param), self.params.get(param)))
 
-
 	def addcomment(self, value, vtm=False, t=None):
+		'''Add a comment. Any $$param="value" comments will be parsed and set as values.'''
+		
 		if not self.commentable():
 			self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.SecurityError)
 			
@@ -205,9 +217,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 		return cp
 
-
 	def revision(self, revision=None):
-		"""This will return information about the record's revision history"""
+		'''This will return information about the record's revision history'''
 
 		history = copy.copy(self.history)
 		comments = copy.copy(self.comments)
@@ -240,14 +251,10 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		return bydate, paramcopy
 
 
-
-	#################################
-	# validation methods
-	#################################
-
+	##### Validation #####
 
 	def validate_name(self, name):
-		"""Validate the name of this object"""
+		'''Validate the name of this object'''
 		if name in ['None', None]:
 			return
 		try:
@@ -256,9 +263,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 			self.error("Name must be an integer")
 		return name
 
-
-
 	def validate(self, vtm=None, t=None):
+		'''Validate the record before committing.'''
 		# Cut out any None's
 		pitems = self.params.items()
 		for k,v in pitems:
@@ -266,27 +272,27 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 				del self.params[k]
 
 		# Check the rectype and any required parameters
+		# (Check the cache for the recorddef)
 		vtm, t = self._vtmtime(vtm=vtm, t=t)
 		cachekey = vtm.get_cache_key('recorddef', self.rectype)
 		hit, rd = vtm.check_cache(cachekey)
 
 		if not self.rectype:
-			self.error('attempted to commit a record without an associated protocol')
+			self.error('Protocol required')
 
 		if not hit:
 			try:
 				rd = self._ctx.db.getrecorddef(self.rectype, filt=False)
 			except KeyError:
-				self.error('no such protocol: %s' % self.rectype)
+				self.error('No such protocol: %s' % self.rectype)
 			vtm.store(cachekey, rd)
 
+		# This does rely somewhat on validators returning None if empty..
 		for param in rd.paramsR:
 			if self.get(param) == None:
-				self.error("%s is a required parameter"%(param))
+				self.error("Required parameter: %s"%(param))
 
 		self.__dict__['rectype'] = unicode(rd.name)
-
-
 
 
 
@@ -322,7 +328,6 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keytype=tp, datatype='d', dbenv=self.dbenv)
 		return ind
 
-
 	# Update the database sequence.. Probably move this to the parent class.
 	def update_sequence(self, items, txn=None):
 		# Which recs are new?
@@ -346,8 +351,6 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 		return namemap
 
-
-
 	def delete(self, names, ctx=None, txn=None):
 		recs = self.cgets(names, ctx=ctx, txn=txn)
 		crecs = []
@@ -369,13 +372,11 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 		return self.cputs(crecs, ctx=ctx, txn=txn)
 
-
-
 	def groupbyrectype(self, names, ctx=None, txn=None):
-		"""Group Records by Rectype. Filters for permissions.
+		'''Group Records by Rectype. Filters for permissions.
 		@param names Record(s) or Record name(s)
 		@return {rectype:set(record names)}
-		"""
+		'''
 		if not names:
 			return {}
 
@@ -407,7 +408,6 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 		return ret
 
-
 	# This builds UP instead of prunes DOWN; filter does the opposite..
 	def names(self, names=None, ctx=None, txn=None, **kwargs):
 		if names is not None:
@@ -424,12 +424,11 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 		return ret
 
-
 	def filter(self, names, rectype=None, ctx=None, txn=None):
-		"""Filter for permissions.
+		'''Filter for permissions.
 		@param names Record name(s).
 		@return Readable Record names.
-		"""
+		'''
 
 		names = self.expand(names, ctx=ctx, txn=txn)
 
@@ -461,10 +460,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 			if find:
 				find -= indg.get(group, set(), txn=txn)
 
-
 		return names - find
-
-
 
 
 

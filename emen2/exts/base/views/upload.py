@@ -38,8 +38,8 @@ class Upload(View):
 		print "Uploading to record %s"%record
 		ret = []
 		for f in self.request_files:
-			print "...", f
-			r = self.db.putbinary(None, infile=f.infile or f.filedata, filename=f.filename, record=record or f.record, param=f.param)		
+			f.record = record
+			r = self.db.putbinary(None, infile=f)
 			ret.append(r)
 			
 

@@ -1000,21 +1000,6 @@ class RelateDB(DBODB):
 		return visited
 
 
-	# def pcrelink(self, remove, add, keytype="record", ctx=None, txn=None):
-	# 	def conv(link):
-	# 		pkey, ckey = link
-	# 		if keytype=="record":
-	# 			return int(pkey), int(ckey)
-	# 		return unicode(pkey), unicode(ckey)
-	# 	remove = set(map(conv, remove))
-	# 	add = set(map(conv, add))
-	# 	common = remove & add
-	# 	remove -= common
-	# 	add -= common
-	# 	self._link("pcunlink", remove, keytype=keytype, ctx=ctx, txn=txn)
-	# 	self._link("pclink", add, keytype=keytype, ctx=ctx, txn=txn)
-
-
 	def pclink(self, parent, child, ctx=None, txn=None):
 		"""Create parent-child relationship"""
 		self._putrel(parent, child, mode='addrefs', ctx=ctx, txn=txn)

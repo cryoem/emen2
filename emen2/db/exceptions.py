@@ -1,7 +1,7 @@
 # $Id$
 '''Exceptions
 
-Classes:
+Exceptions:
 	SecurityError
 	SessionError
 	AuthenticationError
@@ -25,14 +25,12 @@ class AuthenticationError(SecurityError):
 class DisabledUserError(SecurityError):
 	"Disabled user"
 
-
 # Validation Errors
 class ValidationError(ValueError):
 	"""Validation error"""
 
 class ExistingKey(ValueError):
 	"This account name or email is already in use"
-
 
 # Time out
 class TimeError(Exception):

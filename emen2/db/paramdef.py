@@ -19,18 +19,105 @@ import emen2.db.magnitude
 
 
 class ParamDef(emen2.db.dataobject.BaseDBObject):
-	"""A Parameter for a value in a Record. Each record is a key/value set, where each key must be a valid ParamDef. Each ParamDef has several attributes (below), including a data type that calls a validator to check value sanity. Most parameters are indexed for queries; this can be disabled with the indexed attr. Generally, only descriptions and choices may be edited after creation, although an admin may make other changes. Be aware that changing vartype may be very destructive if the validators or index types are incompatible (use this carefully, or not at all if you are unsure).
+	'''Parameters.
+	
+	Provides the following attributes:
+		desc_short, desc_long, vartype, choices, defaultunits, property, 
+		indexed, iter, immutable, property, indexed, controlhint
+	
+	This class repesents a particular piece of data, either an attribute on a
+	database object, or a parameter on a Record. Please be aware that several
+	attributes are effectively immutable, and cannot be easily changed after
+	a ParamDef is created because it would change the meaning of existing
+	recorded data or index formats. This is a subclass of BaseDBObject; see 
+	that class for additional documentation.
+	
+	Each ParamDef has a vartype (data type), which provides a class for 
+	displaying and validating the attribute/parameter value. Vartypes are
+	defined as Vartype subclasses; see the vartypes module. Vartypes are usually 
+	able to handle loosely formatted data and clean it up (validate), or raise 
+	a ValidationError exception if it cannot be done, or if a value is invalid.
+	The validation methods are usually called whenever an attribute/parameter
+	is set on an item.
+	
+	The iter attribute is used in conjunction with the vartype to specify
+	whether the ParamDef stores a single value, or a list of values. Most
+	vartypes allow iter, but some do not. Check the specific Vartype class.
+	Vartypes are usually good at validating a single value into an iterable
+	value, but not the reverse. The vartype cannot be easily changed after 
+	creation; to do so requires running a migration script, which could require
+	changing or discarding data, and likely rebuilding indexes.
+	
+	When ParamDefs are displayed in certain contexts, such as being rendered
+	in a view or as a table header, the desc_short and desc_long attributes
+	are used to provide short and long descriptions, respectively, of the
+	ParamDef and its intended uses and requirements. The desc_short attribute
+	is required, desc_long is optional. Because they do not change the actual
+	values of recorded data, they can be edited (within reason) after creation.
+	
+	The choices attribute can be used to provide a default list of choices
+	when entering values. These are provided as suggestions for consistency
+	among users, and are usually combined with query results to give additional
+	common choices. However, for vartype 'choice', this attribute is enforced
+	as the only allowed values. Choices can be edited after creation.
+	
+	Editing widgets are usually determined by the vartype (this choice is
+	always up to that particular user interface.) However, some vartypes might
+	be edited in several different fashions, and a particular editing control
+	might be more effective than the default. In these cases, the controlhint
+	attribute can be used to describe a different editing widget. This is
+	totally implementation specific; it is only provided here as a string with
+	no additional validation. The controlhint can be changed after creation.
+	
+	If a ParamDef represents a particular measurable physical property (length,
+	volume, mass, pH, etc.) the property attribute can be set. Properties are
+	defined as subclasses of Property; see the properties module for available
+	classes. Properties provide additional methods for understanding units,
+	converting between different units or combinations of units (e.g. meters
+	to kilometers, degrees Celsius to Fahrenheit, etc.) and listing what units
+	are valid for a particular physical property. If a property is set, you can
+	usually set a parameter with units, such as:
+	
+		record['temperature_ambient'] = '72F'
 
-	@attr desc_short Short description. Shown in many places in the interface as the label for this ParamDef.
-	@attr desc_long Long description. Contains details about proper use of ParamDef.
-	@attr vartype Data type. This is used for validation, bounds checking, etc. Choice vartypes are limited to attr choices.
-	@attr choices A list of default values. If vartype="choice", values are restricted to this list.
-	@attr defaultunits Default units. If units are specified, property must also be specified.
-	@attr property A physical property, e.g. length, mass. Defines acceptable units and conversions.
-	@attr indexed If the vartype allows it, turn indexing on/off. Default is on.
-	"""
+	If the temperature_ambient ParamDef has the 'temperature' property and
+	'degC' as the defaultunits, the 72F would be converted to 22.2 degrees C,
+	and stored as float(22.2). The defaultunits attribute selects which of the 
+	acceptable units defined by the Property will be the default for this
+	ParamDef. See the Property class for additioal details. The property and 
+	defaultunits cannot be easily changed after creation; if the units change, 
+	or the change will require a change in stored Record values or  indexes, 
+	it can only be changed by running a migration script.
+		
+	The indexed attribute will determine if a ParamDef is indexed or not (if
+	the database object type supports indexing.) If it will not be important
+	to run frequent queries on the parameter, or if the parameter changes very
+	frequently, you might turn off indexing. This cannot be easily changed
+	after creation; doing so requires rebuilding the index.
+	
+	Finally, the immutable attribute is used to lock an parameter value. If 
+	set, no ParamDef of this type can be edited. This can be turned on/off after
+	creation, within reason.
+		
+	The following methods are overridden:
+		init		Initialize ParamDef attributes
+		validate	Check the vartype and property are valid
 
-	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(['immutable', 'iter', 'desc_long', 'desc_short', 'choices', 'vartype', 'defaultunits', 'property', 'indexed', 'controlhint'])
+	:attr desc_short: Short description of ParamDef
+	:attr desc_long: Long description of ParamDef and indended uses
+	:attr vartype: Data type
+	:attr choices: A list of suggested (or restricted) choices
+	:attr defaultunits: Default units for physical property
+	:attr property: Physical property
+	:attr indexed: Values are indexed
+	:attr iter: Values can be iterable
+	:attr immutable: ParamDef is locked
+	:attr controlhint: Hint for user-interface widget
+
+	'''
+	param_all = emen2.db.dataobject.BaseDBObject.param_all | set(['immutable', 
+		'iter', 'desc_long', 'desc_short', 'choices', 'vartype',
+		'defaultunits', 'property', 'indexed', 'controlhint'])
 	param_required = set(['vartype'])
 
 
@@ -71,7 +158,8 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	# Setters
 	#################################
 
-	# ParamDef does so much validation for other items, so everything is checked....
+	# ParamDef does so much validation for other items, 
+	# so everything is checked....
 	# Several values can only be changed by administrators.
 
 	def _set_choices(self, key, value, vtm=None, t=None):
@@ -169,7 +257,8 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	#	m = emen2.db.magnitude.mg(0, value)
 	#	# self.error("Invalid units: %s"%value)
 	# 	if value not in prop.units:
-	# 		self.error("Invalid defaultunits %s for property %s. Allowed: %s"%(value, self.property, ", ".join(prop.units)))
+	# 		self.error("Invalid defaultunits %s for property %s. 
+	# 			Allowed: %s"%(value, self.property, ", ".join(prop.units)))
 
 
 

@@ -15,11 +15,7 @@ import jsonrpc.jsonutil
 import emen2.web.resource
 from emen2.web.view import View
 import emen2.web.responsecodes
-import emen2.web.thumbs
 import emen2.db.exceptions
-import emen2.db.config
-
-
 
 
 @View.register

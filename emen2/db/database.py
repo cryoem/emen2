@@ -62,6 +62,7 @@ import emen2.db.properties
 import emen2.db.macros
 import emen2.db.proxy
 import emen2.db.load
+import emen2.db.handlers
 
 # EMEN2 DBObjects
 import emen2.db.dataobject
@@ -2273,7 +2274,7 @@ class DB(object):
 		#par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
 		par = [p for p in recdefs.get(rec.rectype).paramsK if p not in builtinparams]
 		par += builtinparamsshow
-		par += [p for p in rec.getparamkeys() if p not in par]
+		par += [p for p in rec.keys() if p not in par]
 		return self._dicttable_view(par, markup=markup, ctx=ctx, txn=txn)
 
 
@@ -4257,7 +4258,6 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		'''
-		
 		# This call to findbinary is a deprecated feature
 		# that remains for backwards compat
 		bdos, recnames, other = listops.typepartition(names, str, int)
@@ -4288,22 +4288,21 @@ class DB(object):
 
 
 	@publicmethod("binary.put", write=True)
-	def putbinary(self, item, infile=None, filename=None, record=None, param='file_binary', ctx=None, txn=None):
+	def putbinary(self, item, filename=None, filedata=None, record=None, param='file_binary', ctx=None, txn=None):
 		'''Add or update a Binary (file attachment).
 		
 		This method has a few more options than the other put() methods.
-
-		A filename, record target, and file data (infile keyword) are required for new binaries.
-		New binaries will usually leave the item parameter empty, and use the filename, infile,
-		record, and param keyword arguments to create the new binary and associate it with the
-		target record.
-
-		Uploads through HTTP will fill in the infile keyword using either the POST or PUT data.
+		
+		A Binary or EMEN2File instance (containing the file data, file name, md5, record target, param, etc.)
+		is required for new Binaries. Alternatively, you provide the filedata, record, param,
+		and filename keywords which will create an EMEN2File instance. This is useful for RPC calls, 
+		although it may not work well for very large files.
+		
 		The default parameter is 'file_binary,' but any parameter of datatype 'binary'
 		can be used. If the binary is iterable, it will be appended. If it is not iterable, the
 		previous value will be overwritten.
 
-		The contents of a binary cannot be changed after uploading. The file size and md5 checksum
+		The contents of a Binary cannot be changed after uploading. The file size and md5 checksum
 		will be calculated after the file is written to binary storage. Any attempt to change
 		the filesize or md5 will raise a SecurityError. Not even admin users may override this.
 
@@ -4311,87 +4310,73 @@ class DB(object):
 
 		Examples:
 		
-		>>> db.putbinary(None, filename='hello.txt', infile='Hello, world', record=0)
+		>>> db.putbinary(None, filename='hello.txt', filedata='Hello, world', record=0)
 		<Binary bdo:2011101000000>
 		
 		>>> db.putbinary({'name':'bdo:2011101000000', 'filename':'newfilename.txt'})
 		<Binary bdo:2011101000000>
 
-		>>> db.putbinary({'name':'bdo:2011101000000', 'filesize':123})
+		>>> db.putbinary({'name':'bdo:2011101000000', 'filedata':'Goodbye'})
 		SecurityError
 		
-		:param item: Binary or dict
-		:keyword infile: File-like object or string containing the data for a new Binary
+		:param item: Binary
 		:keyword filename: ... the filename to use
 		:keyword record: ... the Record name, or new Record, to use
 		:keyword param: ... Record param to use for the reference to the Binary name
 		:exception SecurityError:
 		:exception ValidationError:			
 		'''
-
-		# Preprocess
-		if not item:
+		
+		# EMEN2File can be converted to Binary..
+		
+		newfile = None
+		if not item.name:
+			# We're creating a new Binary
+			# infile = emen2.db.handlers.EMEN2File(filedata=filedata, filename=filename, record=record, param=param)
 			item = self.bdbs.binary.new(ctx=ctx, txn=txn)
-
-		# Convenience
-		if filename:
-			item.filename = filename
-
-		# Check the record
-		try:
-			record = int(record)
-		except:
-			pass
-			
-		if isinstance(record, int):
-			item.record = record
-		elif record != None:
-			# record is a dict or new Record to commit.
-			rec = self.bdbs.record.cput(record, ctx=ctx, txn=txn)
-			item.record = rec.name
-
-		# ian: todo: sort out item.compressed..
+			item.record = infile.record
+			item.filename = infile.filename			
+			# Write out the file to a temporary location
+			newfile, item.filesize, item.md5sum = infile.writebinary()
 
 		# Test that we can write to the record
 		rec = self.bdbs.record.cget(item.record, filt=False, ctx=ctx, txn=txn)
 		if not rec.writable():
 			raise SecurityError, "No write permissions for Record %s"%rec.name
 
-		newfile = None
-		if infile:
-			newfile, filesize, md5sum = emen2.db.binary.write_binary(infile=infile, ctx=ctx, txn=txn)
-			item.filesize = filesize
-			item.md5 = md5sum
-
-		# Commit the BDO to get a name.
+		# Commit the BDO. This will set the Binary's name.
 		bdo = self.bdbs.binary.cput(item, ctx=ctx, txn=txn)
 
-		#@postprocess
+		# Postprocess
 		# Update the record.
-		if bdo.name != item.name:
-			pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
+		if newfile:
+			# Get the record and paramdef
 			rec = self.bdbs.record.cget(bdo.record, filt=False, ctx=ctx, txn=txn)
-			if pd.vartype == 'binary':
-				if pd.iter:
-					v = rec.get(pd.name, [])
-					if bdo.name not in v:
-						v.append(bdo.name)
-						rec[pd.name] = v
-				else:
-					if bdo.name != rec.get(pd.name):
-						rec[pd.name] = bdo.name
-			else:
-				raise KeyError, "ParamDef %s does not accept files"%pd.name
+			pd = self.bdbs.paramdef.cget(infile.param, filt=False, ctx=ctx, txn=txn)
 
+			# Set the param to the BDO name, or append to the list
+			if pd.vartype != 'binary':
+				raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
+			
+			# If paramdef is iterable, append to param, otherwise set value
+			if pd.iter:
+				v = rec.get(pd.name, [])
+				if bdo.name not in v:
+					v.append(bdo.name)
+					rec[pd.name] = v
+			else:
+				if bdo.name != rec.get(pd.name):
+					rec[pd.name] = bdo.name
+
+			# Commit the record (recheck permissions, validation..)
 			self.bdbs.record.cputs([rec], ctx=ctx, txn=txn)
 
-		# Now move the file to the right location
-		if newfile:
+			# Check that we aren't overwriting an existing file
 			if os.path.exists(bdo.filepath):
 				raise SecurityError, "Cannot overwrite existing file!"
+
 			# print "Renaming file %s -> %s"%(newfile, bdo.filepath)
 			os.rename(newfile, bdo.filepath)
-
 
 		return bdo
 
