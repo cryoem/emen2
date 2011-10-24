@@ -566,6 +566,9 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 
 	def callmethod(self, request, rpcrequest, db=None, ctxid=None, **kw):
 		# Lookup the method and call
+		if not db:
+			raise Exception, "No DBProxy"
+			
 		if rpcrequest.method.startswith('_'):
 			raise emen2.web.responsecodes.ForbiddenError, 'Method not accessible'
 
@@ -589,23 +592,32 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 
 				db._setContext(self.ctxid, self.host)
 				methodresult = db._callmethod(rpcrequest.method, rpcrequest.args, rpcrequest.kwargs)
-
 				if _method in set(['login', 'logout']):
 					request.addCookie('ctxid', methodresult or '')
-
+		
 		return methodresult
 
+	# def defer(self, method, *a, **kw):
+	# 	print "Deferring to DB Pool"
+	# 	# Use the DB pool
+	# 	deferred = emen2.web.server.pool.rundb(method, *a, **kw)
+	# 	return deferred
 
-
-	def defer(self, method, *a, **kw):
-		# Use the DB pool
-		deferred = emen2.web.server.pool.rundb(method, *a, **kw)
-		return deferred
 
 
 class JSONRPCResource(jsonrpc.server.JSON_RPC):
 	eventhandler = JSONRPCServerEvents
 
+	# We can move this to ServerEvents later..
+	def _defer(self, request, contents):
+		# Use the DB pool
+		deferred = emen2.web.server.pool.rundb(
+			self._action,
+			request=request,
+			contents=contents)
+		deferred.addCallback(self._cbRender, request)
+		deferred.addErrback(self._ebRender, request, contents.id if hasattr(contents, 'id') else None)
+		return twisted.web.static.server.NOT_DONE_YET
 
 
 
