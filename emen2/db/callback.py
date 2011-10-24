@@ -11,6 +11,8 @@ import collections
 # EMEN2 imports
 import emen2.db.config
 
+# todo: docstrings
+
 class Message(object):
 	modes = set(['enter', 'exit', 'other'])
 	def __init__(self, name, mode, *data, **kwdata):

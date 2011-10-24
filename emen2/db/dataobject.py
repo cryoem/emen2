@@ -41,8 +41,8 @@ class BaseDBObject(object, UserDict.UserDict):
 	getkeytype().
 
 	The parents and children attributes are valid for classes that allow
-	relationships. These are treated specially when an item is committed: both 
-	the parent and the child will be updated.
+	relationships (RelateDB). These are treated specially when an item is 
+	committed: both the parent and the child will be updated.
 	
 	All attributes should also be valid EMEN2 parameters. The default behavior
 	for BaseDBObject and subclasses is to validate the attributes as parameters

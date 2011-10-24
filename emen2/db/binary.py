@@ -240,6 +240,7 @@ class BinaryDB(emen2.db.btrees.DBODB):
 		return {}		
 
 	def openindex(self, param, txn=None):
+		"""Index on filename (and possibly MD5 in the future.)"""
 		if param == 'filename':
 			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
 		else:

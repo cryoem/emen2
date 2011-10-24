@@ -44,7 +44,13 @@ import mako.lookup
 
 class AddExtLookup(mako.lookup.TemplateLookup):
 	"""This is a slightly modified TemplateLookup that
- 	adds '.mako' extension to all template names"""
+ 	adds '.mako' extension to all template names.
+
+	Extends TemplateLookup methods:
+		get_template		Adds '.mako' to filenames
+		render_template		""
+		
+	"""
 
 	def get_template(self, uri):
 		return super(AddExtLookup, self).get_template('%s.mako'%uri)
@@ -56,13 +62,15 @@ class AddExtLookup(mako.lookup.TemplateLookup):
 # Mako Template Loader
 templates = AddExtLookup(input_encoding='utf-8')
 
+
 # ian: todo:
 # Module level 'get_template' and 'render_template' that
 # check if the Mako module is available before calling
-# templates.get_template/render_template
+# templates.get_template/render_template, and provide
+# some kind of simple fallback for simple templates (e.g. email)
 
 
-##### Get filename relative to a Python module #####
+##### Module-level config methods #####
 
 def get_filename(package, resource):
 	"""Get the absolute path to a file inside a given Python package"""
@@ -71,27 +79,32 @@ def get_filename(package, resource):
 	return os.path.join(d, resource)
 
 
-##### Get and set configuration values #####
-
-def defaults():
-	parser = DBOptions()
-	parser.parse_args()
-	return parser
-
-
-# "g." makes for hard to maintain code.
+# "g." is DEPRECATED.
 # Use:
 # 	import emen2.db.config
 # 	emen2.db.config.get(key)
 
 def get(key, default=None):
+	"""Get a configuration value.
+	
+	:param key: Configuration key
+	:keyword default: Default value if key is not found
+	:return: Configuration value
+	
+	"""
 	return globalns.watch(key, default=default).get()
 
 
 # This will eventually help lock
 # the configuration for setting
 def set(key, value):
-	pass
+	"""Set a configuration value.
+
+	:param key: Configuration key
+	:param value: Configuration value
+
+	"""
+	raise NotImplementedError, "Soon."
 
 
 
