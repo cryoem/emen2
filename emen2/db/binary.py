@@ -76,8 +76,8 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 	:property filepath: Path to the file on disk
 	"""
 
-	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["filename", "record", "compress", "filesize", "md5"])	
-	filepath = property(lamdba x:x._filepath)
+	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["filename", "record", "compress", "filesize", "md5"])
+	filepath = property(lambda x:x._filepath)
 	
 	def init(self, d):
 		self.__dict__['filename'] = None

@@ -20,7 +20,7 @@ import emen2.db.datatypes
 
 # todo: Remove UserDict, just do all the methods myself?
 
-class BaseDBObject(object, UserDict.UserDict):
+class BaseDBObject(object, UserDict.DictMixin):
 	"""Base class for EMEN2 DBOs.
 	
 	This class implements the mapping interface, and all the required base 
