@@ -1,27 +1,9 @@
 <%inherit file="/page" />
 
 <%block name="css_inline">
-.chart {
-  margin-left: 42px;
-  font: 10px sans-serif;
-  shape-rendering: crispEdges;
-}
-
-.chart div {
-  background-color: steelblue;
-  text-align: right;
-  padding: 3px;
-  margin: 1px;
-  color: white;
-}
-
 .chart rect {
-  stroke: white;
   fill: steelblue;
-}
-
-.chart text.bar {
-  fill: white;
+  stroke: white;
 }
 </%block>
 
@@ -29,65 +11,90 @@
 
 <%block name="js_ready">
 
-var w = 280,
-    h = 280,
-    m = [10, 0, 20, 35], // top right bottom left
-    n = 100;
+var count = 50;
+var width = 800;
+var height = 500;
 
-var chart = d3.chart.scatter()
-    .width(w)
-    .height(h)
-    .domain([-.1, 1.1])
-    .tickFormat(function(d) { return ~~(d * 100); });
-
-var vis = d3.select("#chart")
-  .append("svg:svg")
-  .append("svg:g")
-    .attr("class", "scatter")
-    .attr("transform", "translate(" + m[3] + "," + m[0] + ")")
-    .data([{
-      x: d3.range(n).map(Math.random),
-      y: d3.range(n).map(Math.random),
-    }]);
-
-vis.append("svg:rect")
-    .attr("class", "box")
-    .attr("width", w)
-    .attr("height", h);
-
-vis.call(chart);
-
-chart.duration(1000);
-
-window.transition = function() {
-  vis.map(randomize).call(chart);
-};
-
-function randomize(d) {
-  d.x = d3.range(n).map(Math.random);
-  d.y = d3.range(n).map(Math.random);
-  return d;
+var data = []
+function next() {
+	var month = Math.floor(Math.random()*0.9);
+	var rectype = 'ccd';
+	var creator = 'ianrees';
+	var value = Math.random()*100;
+	return {creationtime:'2011/0'+month, rectype: rectype, creator: creator, value:value}
 }
+for (var i=0;i<count;i++) {data.push(next())}
+
+var w = width/count,
+	h = height;
+
+
+var x = d3.scale.linear()
+	.domain([0, 1])
+	.range([0, w]);
+
+var y = d3.scale.linear()
+	.domain([0, 100])
+	.rangeRound([0, h]);
+
+var chart = d3.select("#chart")
+  .append("svg:svg")
+    .attr("class", "chart")
+    .attr("width", width+100)
+    .attr("height", height+100);
+
+// Ticks
+chart.selectAll("line")
+    .data(y.ticks(10))
+  .enter().append("svg:line")
+    .attr("x1", 0)
+    .attr("x2", width)
+    .attr("y1", y)
+    .attr("y2", y)
+    .attr("stroke", "#ccc");
+
+
+
+// Draw items
+chart.selectAll("rect")
+    .data(data)
+  .enter().append("svg:rect")
+    .attr("x", function(d, i) { return x(i) - .5; })
+    .attr("y", function(d) { return h - y(d.value) - .5; })
+    .attr("width", w)
+    .attr("height", function(d) { return y(d.value); });
+
+
+// X axis
+chart.append("svg:line")
+	.attr('y1', height-1)
+	.attr('y2', height-1)
+    .attr("x1", 0)
+    .attr("x2", width)
+    .attr("stroke", "#000");
+
+
+chart.selectAll("text.rule")
+    .data(y.ticks(10))
+  .enter().append("svg:text")
+    .attr("class", "rule")
+    .attr("x", width)
+    .attr("y", y)
+	.attr('dx', 30)
+    .attr("dy", 3)
+    .attr("text-anchor", "middle")
+    .text(String);
+
+
 
 
 // Run a query
-var c = [["rectype","is","image_capture*"],["children","name","46604*"],["ctf_bfactor","any",""],["ctf_defocus_measured","any",""]];
-$.jsonRPC.call('query', {c:c}, function(q) {
-	console.log("returned");
-	var data = [4, 8, 15, 16, 23, 42];
-	var chart = d3.select("body")
-	  .append("div")
-	     .attr("class", "chart");
-
-	 chart.selectAll("div")
-			.data(data)
-		.enter().append("div")
-			.style("width", function(d) { return d * 10 + "px"; })
-			.text(function(d) { return d; });
-});
+// var c = [["rectype","is","image_capture*"],["children","name","46604*"],["ctf_bfactor","any",""],["ctf_defocus_measured","any",""]];
+// $.jsonRPC.call('query', {c:c}, function(q) {
+// });
 
 </%block>
 
 Test bar chart!
 
-<div id="#chart">Chart</div>
+<div id="chart"></div>
