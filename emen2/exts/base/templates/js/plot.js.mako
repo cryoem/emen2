@@ -4,7 +4,12 @@
 			q: null,
 			xparam: 'ctf_defocus_measured',
 			yparam: 'ctf_bfactor',
-			groupby: 'rectype'
+			xmin: null,
+			xmax: null,
+			ymin: null,
+			ymax: null,
+			groupby: 'rectype',
+			datekey: 'creationtime'
 		},
 
 		_create: function() {
@@ -16,23 +21,18 @@
 			if (this.built) {return}
 			var self = this;
 			this.built = 1;
-			this.element.append('<div id="fig">Figure</div>');
+			this.element.append('<div id="fig"></div>');
 			this.query(function(q){self.plot(q)})
 		},
 		
-		query: function(cb) {
-			// Run a query
-			// var c = [["rectype","is","image_capture*"],["children","name","46604*"],["ctf_bfactor","any",""],["ctf_defocus_measured","any",""]];
-			// $.jsonRPC.call('query', {c:c}, function(q) {
-			// });
-			// Run query and update plot
-			// Fake query results..
+		queryfake: function(cb) {
 			var count = 1000;
 			var data = [];
+			var rectypes = ['ccd','stack','micrograph'];
 			function next() {
-				var month = Math.floor(Math.random()*12);
+				var month = Math.floor(Math.random()*13);
 				var day = Math.floor(Math.random()*30)+1;
-				var rectype = 'ccd';
+				var rectype = rectypes[Math.floor(Math.random()*rectypes.length)];
 				var creator = 'ianrees';
 				var value = Math.random()*100;
 				var creationtime = new Date(2011, month, day);
@@ -42,7 +42,21 @@
 			var q = {'recs':data};
 			this.options.q = q;
 			// Run the callback
-			cb(q);
+			cb(q);			
+		},
+		
+		query: function(cb) {
+			// Run a query
+			// var c = [["rectype","is","image_capture*"],["children","name","46604*"],["ctf_bfactor","any",""],["ctf_defocus_measured","any",""]];
+			// var c = [['children', 'name', '46604*'], ['rectype'], ['creationtime']];
+			// $.jsonRPC.call('query', {c:c}, function(q) {
+			// 	cb(q['recs']);
+			// });
+			$.jsonRPC.call('getchildren', [136], function(recs){
+				$.jsonRPC.call('getrecord', [recs], function(recs){
+					cb(recs);					
+				})
+			})
 		},
 		
 		plot: function(q) {
@@ -56,36 +70,76 @@
 	
 	// Plot widgets
 	$.widget('emen2.Plot_datetime', $.emen2.PlotBase, {
-		plot: function(q) {			
+		plot: function(recs) {
+			// Options
+			var self = this;
+			this.options.bin = 'month';
+			
+			if (this.options.bin == 'year') {
+				var ft = d3.time.year;
+				var fts = d3.time.years;								
+			} else if (this.options.bin == 'month') {
+				var ft = d3.time.month;
+				var fts = d3.time.months;				
+			} else if (this.options.bin == 'day') {
+				var ft = d3.time.day;
+				var fts = d3.time.days;
+			} else {
+				alert('Unknown bin mode: ', this.options.bin);
+				return
+			}
+			
 			// Bin the data, group by label..
-			var data = q['recs'];
-			var binned = [];
-			var groupby = 'rectype';
-			var datekey = 'creationtime';
+			var dates = $.map(recs, function(d){return new Date(d[self.options.datekey])});
+			var xmin = this.options.xmin || ft(d3.min(dates));
+			var xmax = this.options.xmax || d3.max(dates);
+			var iv = fts(xmin, xmax);
+			console.log("x domain:", xmin, xmax);
 
-			// X axis is the datekey
-			// Y axis is the count of items for that date
+			// Group data
 			var groups = {};
-			$.each(data, function(i,d) {
-				var t = d3.time.month(d[datekey]);
-				var v = d[groupby];
-				// Create the item
-				if (groups[v]==null) {groups[v] = {}}
-				// Create the time entry
-				if (groups[v][t]==null) {groups[v][t] = {x:t, y:0}}
-				// Increment
-				groups[v][t].y += 1
+			$.each(recs, function(i,d) {
+				if (groups[d[self.options.groupby]]==null){groups[d[self.options.groupby]]=[]}
+				groups[d[self.options.groupby]].push(d);
+			});
+			var keys = d3.keys(groups);
+			
+			// Transform groups into right stack objects
+			// For each group...
+			var stacks = $.map(groups, function(v,k) {
+				var stack = [];
+				// ...for interval period...
+				for (var i=0;i<iv.length;i++) {
+					// ...filter the group
+					var found = v.filter(function(d) {
+						var dt = ft(new Date(d[self.options.datekey]));
+						if ((dt >= iv[i]) && (dt < iv[i+1] || !iv[i+1])) {
+							return true
+						}
+					});
+					stack.push({x:iv[i], y:found.length});
+				}
+				return [stack]
 			});
 
 			// Setup width, padding, and scales
-			var w = 960, // width
-			    h = 500, // height
-			    p = [20, 50, 30, 20], // padding
+			var w = this.element.width(),
+			    h = 700, // height
+			    p = [10,100,100,10], // padding.. set ranges
 			    x = d3.scale.ordinal().rangeRoundBands([0, w - p[1] - p[3]]),
 			    y = d3.scale.linear().range([0, h - p[0] - p[2]]),
 			    z = d3.scale.ordinal().range(["lightpink", "darkgray", "lightblue"]),
-			    format = d3.time.format("%Y/%m");
+			    format = d3.time.format("%Y-%m");
 	
+			// var t = $.map(d3.values(groups), function(d){return d3.values(d)});
+			var layout = d3.layout.stack()
+			var stacks = layout(stacks);
+
+			// var stacks = layout([d3.values(groups.ccd), d3.values(groups.micrograph), d3.values(groups.stack)]);
+
+			// Compute the x-domain (by date) and y-domain (by top).
+			x.domain(fts(xmin, xmax));
+		  	y.domain([0, d3.max(stacks[stacks.length - 1], function(d) { return d.y0 + d.y; })]);
 
 			// Create the SVG element
 			var svg = d3.select("#chart").append("svg:svg")
@@ -93,30 +147,43 @@
 			    .attr("height", h)
 			  .append("svg:g")
 			    .attr("transform", "translate(" + p[3] + "," + (h - p[2]) + ")");
-	
-			// Transpose the data into layers by cause.
-			var test = [];
-			var test2 = [];
-			for (var i=0;i<5;i++) {
-				var d = new Date(2011, i*2, 1);
-				var d2 = new Date(2011, i, 1);
-				test.push({x:d, y:i});
-				test2.push({x:d2, y:i*i});
-			}
-			var causes = d3.layout.stack()([test,test2]);
 
-			// Compute the x-domain (by date) and y-domain (by top).
-			x.domain(causes[0].map(function(d) { return d.x; }));
-			y.domain([0, d3.max(causes[causes.length - 1], function(d) { return d.y0 + d.y; })]);
-	
+			// // Add a label per date.
+			var label = svg.selectAll("text")
+			    .data(x.domain())
+			  .enter().append("svg:text")
+				.attr('transform','rotate(90)')
+			    .attr("y", function(d) { return -(x(d) + x.rangeBand() / 2) })
+			    .attr("x", "3em")
+				.attr("dy", "0.31em")
+			    .attr("text-anchor", "middle")
+			    .text(format);
+
+			// Add y-axis rules.
+			var rule = svg.selectAll("g.rule")
+			    .data(y.ticks(5))
+			  .enter().append("svg:g")
+			    .attr("class", "rule")
+			    .attr("transform", function(d) { return "translate(0," + -y(d) + ")"; });
+				
+			rule.append("svg:line")
+			    .attr("x2", w - p[1] - p[3])
+			    .style("stroke", function(d) { return "#ccc" })
+			    .style("stroke-opacity", function(d) { return d ? .7 : null; });
+				
+			rule.append("svg:text")
+			    .attr("x", w - p[1] - p[3] + 6)
+			    .attr("dy", ".35em")
+			    .text(d3.format(",d"));			
+
 			// Add a group for each cause.
 			var cause = svg.selectAll("g.cause")
-			    .data(causes)
+			    .data(stacks)
 			  .enter().append("svg:g")
 			    .attr("class", "cause")
 			    .style("fill", function(d, i) { return z(i); })
 			    .style("stroke", function(d, i) { return d3.rgb(z(i)).darker(); });
-	
+
 			// Add a rect for each date.
 			var rect = cause.selectAll("rect")
 			    .data(Object)
@@ -125,33 +192,7 @@
 			    .attr("y", function(d) { return -y(d.y0) - y(d.y); })
 			    .attr("height", function(d) { return y(d.y); })
 			    .attr("width", x.rangeBand());
-	
-			// // Add a label per date.
-			var label = svg.selectAll("text")
-			    .data(x.domain())
-			  .enter().append("svg:text")
-			    .attr("x", function(d) { return x(d) + x.rangeBand() / 2; })
-			    .attr("y", 6)
-			    .attr("text-anchor", "middle")
-			    .attr("dy", ".71em")
-			    .text(format);
-			// 	
-			// // Add y-axis rules.
-			// var rule = svg.selectAll("g.rule")
-			//     .data(y.ticks(5))
-			//   .enter().append("svg:g")
-			//     .attr("class", "rule")
-			//     .attr("transform", function(d) { return "translate(0," + -y(d) + ")"; });
-			// 	
-			// rule.append("svg:line")
-			//     .attr("x2", w - p[1] - p[3])
-			//     .style("stroke", function(d) { return d ? "#fff" : "#000"; })
-			//     .style("stroke-opacity", function(d) { return d ? .7 : null; });
-			// 	
-			// rule.append("svg:text")
-			//     .attr("x", w - p[1] - p[3] + 6)
-			//     .attr("dy", ".35em")
-			//     .text(d3.format(",d"));			
+
 		}
 	});
 
