@@ -15,3 +15,4 @@
 
 <h1>Date histogram</h1>
 <div id="chart"></div>
+
