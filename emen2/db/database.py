@@ -134,7 +134,7 @@ _fakemodules()
 
 ##### Utility methods #####
 
-def clock(times, key=0, t=0, limit=60):
+def clock(times, key=0, t=0, limit=180):
 	"""A timing method for controlling timeouts to prevent hanging.
 	On operations that might take a long time, call this at each step.
 

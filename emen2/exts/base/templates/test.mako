@@ -10,10 +10,9 @@
 
 <%block name="js_ready">
 	$("#chart").Plot_datetime({
-		xmin: new Date(2006,0,0)
+		xmin: new Date(2006,0,0),
 	});
 </%block>
 
-<h1>Date histogram</h1>
+<h1 style="text-align:center">Total NCMI Projects</h1>
 <div id="chart"></div>
-

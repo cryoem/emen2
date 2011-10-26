@@ -1,5 +1,9 @@
 <%inherit file="/css/colors.css" />
 
+body {
+	font-family: sans-serif;
+}
+
 /******************************************
  		Basic EMEN2 Layouts
 

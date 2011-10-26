@@ -9,7 +9,8 @@
 			ymin: null,
 			ymax: null,
 			groupby: 'rectype',
-			datekey: 'creationtime'
+			datekey: 'creationtime',
+			colors: d3.scale.category10()
 		},
 
 		_create: function() {
@@ -48,15 +49,17 @@
 		query: function(cb) {
 			// Run a query
 			// var c = [["rectype","is","image_capture*"],["children","name","46604*"],["ctf_bfactor","any",""],["ctf_defocus_measured","any",""]];
-			// var c = [['children', 'name', '46604*'], ['rectype'], ['creationtime']];
-			// $.jsonRPC.call('query', {c:c}, function(q) {
-			// 	cb(q['recs']);
-			// });
-			$.jsonRPC.call('getchildren', [136], function(recs){
-				$.jsonRPC.call('getrecord', [recs], function(recs){
-					cb(recs);					
-				})
+			var c = [['rectype', 'is', 'image_capture*'], ['creationtime']]
+			$.jsonRPC.call('query', {c:c}, function(q) {
+				cb(q['recs']);
 			})
+			
+
+			// $.jsonRPC.call('getchildren', {names:[114], recurse:-1, rectype:'image_capture*'}, function(recs){
+			// 	$.jsonRPC.call('getrecord', [recs], function(recs){
+			// 		cb(recs);					
+			// 	});
+			// });
 		},
 		
 		plot: function(q) {
@@ -89,17 +92,26 @@
 				return
 			}
 			
+
 			// Bin the data, group by label..
-			var dates = $.map(recs, function(d){return new Date(d[self.options.datekey])});
-			var xmin = this.options.xmin || ft(d3.min(dates));
-			var xmax = this.options.xmax || d3.max(dates);
+			var dates = $.map(recs, function(d){
+				d['_t'] = new Date(d[self.options.datekey]);
+				d['_ft'] = ft(d['_t']);
+				return d['_t']
+				});
+
+			//... why can't ft(xmin) be inside fts? arghh.
+			var xmin = (this.options.xmin == null) ? d3.min(dates) : this.options.xmin;
+			xmin = ft(xmin);
+			var xmax = (this.options.xmax == null) ? d3.max(dates) : this.options.xmax;
 			var iv = fts(xmin, xmax);
-			console.log("x domain:", xmin, xmax);
 
 			// Group data
 			var groups = {};
 			$.each(recs, function(i,d) {
-				if (groups[d[self.options.groupby]]==null){groups[d[self.options.groupby]]=[]}
+				if (groups[d[self.options.groupby]]==null){
+					groups[d[self.options.groupby]]=[]
+				}
 				groups[d[self.options.groupby]].push(d);
 			});
 			var keys = d3.keys(groups);
@@ -110,17 +122,22 @@
 				var stack = [];
 				// ...for interval period...
 				for (var i=0;i<iv.length;i++) {
-					// ...filter the group
+					// ...filter the group, count previous elements
+					var sum = 0;
 					var found = v.filter(function(d) {
-						var dt = ft(new Date(d[self.options.datekey]));
-						if ((dt >= iv[i]) && (dt < iv[i+1] || !iv[i+1])) {
+						if (d._t < iv[i]) {sum+=1}
+						if ((d._t >= iv[i]) && (d._t < iv[i+1] || !iv[i+1])) {
 							return true
 						}
 					});
-					stack.push({x:iv[i], y:found.length});
+					// if mode is area...
+					sum = 0;
+					stack.push({x:iv[i], y:sum+found.length});
 				}
 				return [stack]
 			});
+
+			console.log(this.options.colors);
 
 			// Setup width, padding, and scales
 			var w = this.element.width(),
@@ -128,8 +145,9 @@
 			    p = [10,100,100,10], // padding.. set ranges
 			    x = d3.scale.ordinal().rangeRoundBands([0, w - p[1] - p[3]]),
 			    y = d3.scale.linear().range([0, h - p[0] - p[2]]),
-			    z = d3.scale.ordinal().range(["lightpink", "darkgray", "lightblue"]),
-			    format = d3.time.format("%Y-%m");
+				//z = d3.scale.ordinal().range(this.options.colors),
+			    z = this.options.colors; 
+			    format = d3.time.format("%Y - %b");
 	
 			// var t = $.map(d3.values(groups), function(d){return d3.values(d)});
 			var layout = d3.layout.stack()
@@ -139,7 +157,9 @@
 
 			// Compute the x-domain (by date) and y-domain (by top).
 			x.domain(fts(xmin, xmax));
-		  	y.domain([0, d3.max(stacks[stacks.length - 1], function(d) { return d.y0 + d.y; })]);
+		  	y.domain([0, d3.max(stacks[stacks.length - 1], function(d) {return d.y0 + d.y})]);
+
+			// *** draw *** //
 
 			// Create the SVG element
 			var svg = d3.select("#chart").append("svg:svg")
@@ -148,9 +168,20 @@
 			  .append("svg:g")
 			    .attr("transform", "translate(" + p[3] + "," + (h - p[2]) + ")");
 
+
+			// Reduce the number of labels....
+			var xdtest = x.domain();
+			var xdtest2 = [];
+			for (var i=0;i<xdtest.length;i++) {
+				if (i%4==1) {
+					xdtest2.push(xdtest[i]);
+				}
+			}
+			// console.log(xdtest2);
+
 			// // Add a label per date.
 			var label = svg.selectAll("text")
-			    .data(x.domain())
+			    .data(xdtest2) //x.domain()
 			  .enter().append("svg:text")
 				.attr('transform','rotate(90)')
 			    .attr("y", function(d) { return -(x(d) + x.rangeBand() / 2) })
@@ -182,7 +213,7 @@
 			  .enter().append("svg:g")
 			    .attr("class", "cause")
 			    .style("fill", function(d, i) { return z(i); })
-			    .style("stroke", function(d, i) { return d3.rgb(z(i)).darker(); });
+			    .style("stroke", function(d, i) { return d3.rgb(z(i))}); // .darker()
 
 			// Add a rect for each date.
 			var rect = cause.selectAll("rect")
