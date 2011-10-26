@@ -60,6 +60,7 @@
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/relationships.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/query.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/tile.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/plot.js"></script>
 		## <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/calendar.js"></script>
 	</%block>
 
