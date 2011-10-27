@@ -52,9 +52,7 @@
 			var c = [['rectype', 'is', 'image_capture*'], ['creationtime']]
 			$.jsonRPC.call('query', {c:c}, function(q) {
 				cb(q['recs']);
-			})
-			
-
+			});
 			// $.jsonRPC.call('getchildren', {names:[114], recurse:-1, rectype:'image_capture*'}, function(recs){
 			// 	$.jsonRPC.call('getrecord', [recs], function(recs){
 			// 		cb(recs);					
@@ -72,7 +70,7 @@
 	});	
 	
 	// Plot widgets
-	$.widget('emen2.Plot_datetime', $.emen2.PlotBase, {
+	$.widget('emen2.PlotBar', $.emen2.PlotBase, {
 		plot: function(recs) {
 			// Options
 			var self = this;
@@ -88,56 +86,43 @@
 				var ft = d3.time.day;
 				var fts = d3.time.days;
 			} else {
-				alert('Unknown bin mode: ', this.options.bin);
-				return
+				var ft = function(i){return i}
+				var fts = function(i){return i}
 			}
-			
 
-			// Bin the data, group by label..
-			var dates = $.map(recs, function(d){
-				d['_t'] = new Date(d[self.options.datekey]);
-				d['_ft'] = ft(d['_t']);
-				return d['_t']
-				});
-
-			//... why can't ft(xmin) be inside fts? arghh.
-			var xmin = (this.options.xmin == null) ? d3.min(dates) : this.options.xmin;
+			// Bin the data, by groupby, then by datekey
+			var bins = {};
+			var bxs = []; // javascript is stupid, keys are strings
+			// var dates = $.map(recs, function(d){
+			recs.map(function(d) {
+				var bg = d[self.options.groupby];
+				var bx = new Date(d[self.options.datekey]);
+				bx = ft(bx);
+				if (bins[bg] == null) {
+					bins[bg] = {}
+				}
+				if (bins[bg][bx] == null) {
+					bxs.push(bx);
+					bins[bg][bx] = 0;
+				}
+				bins[bg][bx] += 1;
+			});
+			var keys = d3.keys(bins);
+			var xmin = (this.options.xmin == null) ? d3.min(bxs) : this.options.xmin;
 			xmin = ft(xmin);
-			var xmax = (this.options.xmax == null) ? d3.max(dates) : this.options.xmax;
-			var iv = fts(xmin, xmax);
+			var xmax = (this.options.xmax == null) ? d3.max(bxs) : this.options.xmax;
+			var bxs = fts(xmin, xmax);
 
-			// Group data
-			var groups = {};
-			$.each(recs, function(i,d) {
-				if (groups[d[self.options.groupby]]==null){
-					groups[d[self.options.groupby]]=[]
-				}
-				groups[d[self.options.groupby]].push(d);
-			});
-			var keys = d3.keys(groups);
-			
-			// Transform groups into right stack objects
-			// For each group...
-			var stacks = $.map(groups, function(v,k) {
+			// d3 wants lists, not dicts
+			var stacks = [];
+			keys.map(function(bg) {
 				var stack = [];
-				// ...for interval period...
-				for (var i=0;i<iv.length;i++) {
-					// ...filter the group, count previous elements
-					var sum = 0;
-					var found = v.filter(function(d) {
-						if (d._t < iv[i]) {sum+=1}
-						if ((d._t >= iv[i]) && (d._t < iv[i+1] || !iv[i+1])) {
-							return true
-						}
-					});
-					// if mode is area...
-					sum = 0;
-					stack.push({x:iv[i], y:sum+found.length});
-				}
-				return [stack]
+				bxs.map(function(bx) {
+					stack.push({x:bx, y:(bins[bg][bx] || 0)});
+				});
+				stacks.push(stack);
 			});
 
-			console.log(this.options.colors);
 
 			// Setup width, padding, and scales
 			var w = this.element.width(),
@@ -149,17 +134,14 @@
 			    z = this.options.colors; 
 			    format = d3.time.format("%Y - %b");
 	
-			// var t = $.map(d3.values(groups), function(d){return d3.values(d)});
 			var layout = d3.layout.stack()
 			var stacks = layout(stacks);
-
-			// var stacks = layout([d3.values(groups.ccd), d3.values(groups.micrograph), d3.values(groups.stack)]);
 
 			// Compute the x-domain (by date) and y-domain (by top).
 			x.domain(fts(xmin, xmax));
 		  	y.domain([0, d3.max(stacks[stacks.length - 1], function(d) {return d.y0 + d.y})]);
 
-			// *** draw *** //
+			// *** Draw! *** //
 
 			// Create the SVG element
 			var svg = d3.select("#chart").append("svg:svg")
@@ -167,7 +149,6 @@
 			    .attr("height", h)
 			  .append("svg:g")
 			    .attr("transform", "translate(" + p[3] + "," + (h - p[2]) + ")");
-
 
 			// Reduce the number of labels....
 			var xdtest = x.domain();
@@ -177,9 +158,8 @@
 					xdtest2.push(xdtest[i]);
 				}
 			}
-			// console.log(xdtest2);
 
-			// // Add a label per date.
+			// Add a label per date.
 			var label = svg.selectAll("text")
 			    .data(xdtest2) //x.domain()
 			  .enter().append("svg:text")

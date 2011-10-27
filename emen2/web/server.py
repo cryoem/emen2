@@ -1,24 +1,18 @@
 #!/usr/bin/env python
 # $Id$
 
-import sys
 import thread
 import os.path
-import atexit
-import multiprocessing
 import functools
 import contextlib
-import threading
-import thread
 import time
 
+# Twisted imports
 import twisted.internet
+import twisted.internet.reactor
 import twisted.web.static
 import twisted.web.server
-import twisted.internet.reactor
 import twisted.python.threadpool
-
-import jsonrpc.server
 
 try:
 	from twisted.internet import ssl
@@ -50,6 +44,7 @@ class DBPool(object):
 		self.threadpool = twisted.python.threadpool.ThreadPool(self.min, self.max)
 
 	def connect(self):
+		# Create a new database connection
 		import emen2.db.database
 		# print '# threads: %s'%len(self.dbs)
 		tid = self.threadID()
@@ -85,47 +80,9 @@ class DBPool(object):
 		return result
 
 
-
-##### Routing Resource #####
-
-class Router(twisted.web.resource.Resource):
-	isLeaf = False
-
-	# Find a resource or view
-	def getChildWithDefault(self, path, request):
-		if path in self.children:
-			return self.children[path]
-
-		# Add a final slash.
-		# Most of the view matchers expect this.
-		path = request.path
-		if not path:
-			path = '/'
-		if path[-1] != "/":
-			path = "%s/"%path
-		request.path = path
-
-		try:
-			view, method = emen2.web.routing.resolve(path=request.path)
-		except:
-			return self
-
-		# This may move into routing.Router in the future.
-		view = view()
-		view.render = functools.partial(view.render, method=method)
-		return view
-
-
-	# Resource was not found
-	def render(self, request):
-		return 'Not found'
-
-
-
 ##### pool and reactor #####
 
 pool = DBPool()
-
 
 ##### Server ######
 
@@ -153,9 +110,6 @@ class EMEN2Server(object):
 		if self.options.httpsport:
 			self.EMEN2PORT_HTTPS = self.options.httpsport
 
-
-
-
 	@contextlib.contextmanager
 	def start(self):
 		'''Run the server main loop'''
@@ -164,7 +118,8 @@ class EMEN2Server(object):
 
 		# Routing resource. This will look up request.uri in the routing table
 		# and return View resources.
-		root = Router()
+		import emen2.web.resource
+		root = emen2.web.resource.Router()
 
 		# yield (self,root) to body of with statement 
 		# allows this code to be more readable
@@ -195,20 +150,20 @@ class EMEN2Server(object):
 def start_emen2():
 	# Start the EMEN2Server and load the View resources
 	with EMEN2Server().start() as (server, root):
+		import jsonrpc.server
+		import emen2.web.resource
 		import emen2.web.view
+
+		# Load all View extensions		
 		vl = emen2.web.view.ViewLoader()
 		vl.load_extensions()
 
 		# Child resources that do not go through the Router.
-		import emen2.web.resource
-		import emen2.web.view
 		root.putChild('jsonrpc', emen2.web.resource.JSONRPCResource())
 		root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('static-%s'%emen2.db.config.get('params.VERSION'), twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
 		root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
-
-
 
 
 if __name__ == "__main__":

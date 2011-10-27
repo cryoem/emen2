@@ -69,6 +69,44 @@ class UploadFile(object):
 
 
 
+##### Routing Resource #####
+
+class Router(twisted.web.resource.Resource):
+	isLeaf = False
+
+	# Find a resource or view
+	def getChildWithDefault(self, path, request):
+		if path in self.children:
+			return self.children[path]
+
+		# Add a final slash.
+		# Most of the view matchers expect this.
+		path = request.path
+		if not path:
+			path = '/'
+		if path[-1] != "/":
+			path = "%s/"%path
+		request.path = path
+
+		try:
+			view, method = emen2.web.routing.resolve(path=request.path)
+		except:
+			return self
+
+		# This may move into routing.Router in the future.
+		view = view()
+		view.render = functools.partial(view.render, method=method)
+		return view
+
+
+	# Resource was not found
+	def render(self, request):
+		return 'Not found'
+
+
+
+##### Base EMEN2 Resource #####
+
 # Special thanks to this Dave Peticolas's blog post for
 # helping sort out my deferred cancel/callback/errback situation:
 # http://krondo.com/?p=2601

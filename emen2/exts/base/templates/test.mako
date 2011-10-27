@@ -9,7 +9,7 @@
 
 
 <%block name="js_ready">
-	$("#chart").Plot_datetime({
+	$("#chart").PlotBar({
 		xmin: new Date(2006,0,0),
 	});
 </%block>
