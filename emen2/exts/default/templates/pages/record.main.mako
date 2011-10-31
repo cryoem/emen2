@@ -106,6 +106,14 @@
 	
 </%block>
 
+<%block name="css_inline">
+	#content {
+		padding: 0px;
+	}
+	#rendered {
+		padding: 10px;
+	}
+</%block>
 
 
 
@@ -234,7 +242,7 @@
 			
 				<span id="e2l-editbar-commentcount">
 				% if comments:
-					<img id="e2l-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/comment-open.png" alt="Comments" />
+					<img id="e2l-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/comment.png" alt="Comments" />
 					${len(comments)}
 				% endif
 				</span>

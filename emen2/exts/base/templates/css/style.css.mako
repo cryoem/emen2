@@ -84,7 +84,7 @@ td
 #nav li:last-child ul {
 	right:0px;
 }
-#nav .logo {
+#nav #logo {
 	height:36px;
 }
 #nav input {
@@ -97,10 +97,16 @@ td
 
 /***** tweaks ********/
 
-table ul {
-	margin:0px;
-	padding:0px;
-	list-style:none;
+.e2-map-parents {
+	margin:20px;
+	margin-left: 0px;
+	margin-right: 0px;
+}
+.e2-tab-main > ul {
+	border:none;
+}
+.e2-tab-main > ul > li {
+	border:none;
 }
 
 

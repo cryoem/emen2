@@ -244,8 +244,8 @@
 			    .attr("width", barwidth);
 			
 
-		 	var this.downx = Math.NaN;
-		    var this.downscalex;
+		 	this.downx = Math.NaN;
+		    this.downscalex;
 			this.svg.on("mousedown", function(d) {
 				var p = d3.svg.mouse(self.svg[0][0]);
 				self.downx = self.x.invert(p[0]);

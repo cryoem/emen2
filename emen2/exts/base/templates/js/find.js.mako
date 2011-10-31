@@ -128,7 +128,7 @@
 			p.append(body);
 			
 			// Images
-			var img = $($.e2image('nophoto.png', 'Thumb', 'e2l-thumbnail'));
+			var img = $($.e2image('nophoto.png', '', 'e2l-thumbnail'));
 			if (this.options.keytype == 'user' && item.userrec['person_photo']) {
 				img.attr('src', EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/?size=thumb')
 			} else if (this.options.keytype == 'binary') {

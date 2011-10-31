@@ -88,7 +88,7 @@
 	// Some basic settings and interface strings
 	"customization":{
 		// Short string for database identification. This shows up several places in the UI
-		// "EMEN2DBNAME": "EMEN2",
+		"EMEN2DBNAME": "EMEN2",
 
 		// Logo in emen2/web/static/images to use
 		"EMEN2LOGO": "emen2logo-small.png",

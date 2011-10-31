@@ -1,7 +1,14 @@
 <%inherit file="/css/colors.css" />
 
+/* Set some default font and margins. */
 body {
 	font-family: sans-serif;
+}
+
+/* Paragraphs and uls have an irritating default margin */
+ul {
+	margin-top: 0px;
+	margin-bottom: 0px;
 }
 
 /******************************************
@@ -21,12 +28,6 @@ begin with one of the following prefixes:
 	These are styles that are 
 	not part of a particular widget
 */
-
-/* Paragraphs and uls have an irritating default margin */
-ul {
-	margin-top: 0px;
-	margin-bottom: 0px;
-}
 
 /* Basic link styling */
 a,
