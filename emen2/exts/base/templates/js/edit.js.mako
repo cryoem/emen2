@@ -186,6 +186,7 @@
 		},
 		
 		show: function(e) {
+			e.preventDefault();
 			this.build();
 			if (this.options.modal) {
 				this.dialog.dialog('open');
@@ -255,7 +256,7 @@
 			form.append('<ul class="e2l-controls"><li><input type="submit" value="Save" /></li></ul>');
 
 			// Set the form action
-			var action = this.options.action || EMEN2WEBROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/';
+			var action = this.options.action || this.element.attr('data-action') || EMEN2WEBROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/';
 			form.attr('action',action);
 
 			this.dialog.append(desc, form);
@@ -523,8 +524,6 @@
 		},
 		
 		save: function(e) {
-			e.preventDefault();
-			
 			// We need to import values from some other forms..
 			$("#e2-edit-copied", this.element).remove();
 			var copied = $('<div id="e2-edit-copied" style="display:none"></div>');
@@ -550,7 +549,8 @@
 			}
 
 			// Submit form
-			this.element.submit();
+			// e.preventDefault();			
+			// this.element.submit();
 		}
 	});
 
@@ -570,6 +570,7 @@
 			// Parse options from element attributes if available		
 			this.options.name = $.checkopt(this, 'name');
 			this.options.param = $.checkopt(this, 'param');
+			this.options.required = $.checkopt(this, 'required');
 
 			if (this.options.prefix) {
 				this.options.prefix = this.options.name + '.';
@@ -648,7 +649,6 @@
 			var defaults = {
 				'text':'textarea',
 				'html':'textarea',
-				'time':'datetime',
 				'history':'none',
 				'uri':'none',
 				'recid':'none',
@@ -712,20 +712,22 @@
 			if (!val) {val == []}
 			var pd = this.cachepd();
 			var ul = $('<ul class="e2-edit-iterul" />');
-			for (var i=0;i<val.length+1;i++) {
-				var control = this.build_item(val[i]);
+			for (var i=0; i<val.length+1; i++) {
+				var control = this.build_item(val[i], i);
 				ul.append($('<li />').append(control));
 			}
 			// Must append a hidden element...
-			var hidden = '';
+			// var hidden = '';
 			// $('<input type="hidden" name="'+this.options.prefix+pd.name+'" value="" />');
 			this.element.addClass('e2l-fw');
-			return $('<div />').append(ul, hidden, this.build_add());
+			return $('<div />').append(ul, this.build_add());
 		},
 		
-		build_item: function(val) {
+		build_item: function(val, index) {
 			var pd = this.cachepd();
-			return '<input type="text" name="'+this.options.prefix+pd.name+'" value="'+val+'" autocomplete="off" />';
+			var editw = $('<input type="text" name="'+this.options.prefix+pd.name+'" value="'+val+'" autocomplete="off" />');
+			if (this.options.required && !index) {editw.attr('required',true)}			
+			return editw
 		},
 		
 		build_add: function(e) {
@@ -737,7 +739,7 @@
 
 		add_item: function(val) {
 			var ul = $('.e2-edit-iterul', this.element);
-			ul.append($(this.options.iterwrap).append(this.build_item(val)));
+			ul.append($(this.options.iterwrap).append(this.build_item(val, -1)));
 		},
 		
 		getval: function() {
@@ -768,12 +770,15 @@
 
 	// Basic String editing widget
     $.widget("emen2edit.string", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			var self = this;
 			var pd = this.cachepd();
 			var container = $('<span class="e2-edit-container" />');
-
+			if (val==null){val=""}
+		
 			var editw = $('<input type="text" name="'+this.options.prefix+pd.name+'" value="'+val+'" autocomplete="off" />');
+			if (this.options.required && !index) {editw.attr('required',true)}
+			
 			if (pd.property) {
 				var realedit = '<input class="e2-edit-val" type="hidden" name="'+this.options.prefix+pd.name+'" value="'+val+'" />';
 				var editw = $('<input class="e2-edit-unitsval" type="text" value="'+val+'" />');
@@ -832,9 +837,11 @@
 	
 	// Single-choice widget
     $.widget("emen2edit.choice", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			var choices = this.cachepd().choices;
 			var editw = $('<select name="'+this.options.prefix+this.cachepd().name+'"></select>');
+			if (this.options.required && !index) {editw.attr('required',true)}
+			
 			editw.append('<option></option>');
 			for (var i=0;i<choices.length;i++){
 				var choice = $('<option value="'+choices[i]+'">'+choices[i]+'</option>');
@@ -847,8 +854,9 @@
 
 	// True-False
     $.widget("emen2edit.boolean", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			var editw = $('<select name="'+this.cachepd().name+'"><option selected="selected"></option><option>True</option><option>False</option></select>');
+			if (this.options.required && !index) {editw.attr('required',true)}
 			if (val === true) {
 				editw.val("True");
 			} else if (val === false) {
@@ -860,11 +868,11 @@
 	
 	// User editor
     $.widget("emen2edit.user", $.emen2.EditBase, {
-		build_iter: function(val) {
+		build_iter: function(val, index) {
 			val = val || [];			
 			var ul = $('<div class="e2-edit-iterul e2l-cf" />');
 			for (var i=0;i<val.length;i++) {
-				var control = this.build_item(val[i]);
+				var control = this.build_item(val[i], i);
 				ul.append(control);
 			}
 			// Add a final empty element to detect empty result..
@@ -873,7 +881,7 @@
 			return $('<div />').append(ul, this.build_add(), empty);
 		},
 
-		build_item: function(val) {
+		build_item: function(val, index) {
 			var d = $('<div />');
 			d.InfoBox({
 				keytype: 'user',
@@ -905,8 +913,9 @@
 
 	// Text editor
 	$.widget("emen2edit.textarea", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			var editw = $('<textarea style="width:100%" name="'+this.cachepd().name+'" rows="10">'+val+'</textarea>');
+			if (this.options.required && !index) {editw.attr('required',true)}			
 			this.element.addClass('e2l-fw');
 			return editw
 		}
@@ -914,7 +923,7 @@
 	
 	// Binary Editor
     $.widget("emen2edit.binary", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			return 'Edit Binary...'
 		},
 		sethidden: function() {
@@ -927,7 +936,7 @@
 	
 	// Group Editor
     $.widget("emen2edit.groups", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			return 'Edit Groups...'
 		},
 		sethidden: function() {
@@ -940,21 +949,21 @@
 	
 	// Comments
     $.widget("emen2edit.comments", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			return 'Edit Comments...'
 		}
 	});
 	
 	// Coordinate
     $.widget("emen2edit.coordinate", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			return 'Edit coordinates...'
 		}
 	});	
 
 	// Coordinate
     $.widget("emen2edit.percent", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			return 'Edit Percent...'
 		},
 		sethidden: function() {
@@ -967,21 +976,24 @@
 	
 	// Rectype
     $.widget("emen2edit.rectype", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			return 'Rectype is not editable!'
 		}
 	});	
 
 	// Date Time
     $.widget("emen2edit.datetime", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			var e = $('<input type="text" name="'+this.options.prefix+this.options.param+'" value="'+val+'" />');
+			if (this.options.required && !index) {e.attr('required',true)}
 			e.datetimepicker({
 				showButtonPanel: true,
 				changeMonth: true,
 				changeYear: true,
 				showAnim: '',
-				dateFormat: 'yy/mm/dd'
+				yearRange: 'c-100:c+100',
+				dateFormat: 'yy-mm-dd',
+				separator: 'T',
 			});
 			return e
 		}
@@ -989,14 +1001,16 @@
 
 	// Date
     $.widget("emen2edit.date", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			var e = $('<input type="text" name="'+this.options.prefix+this.options.param+'" value="'+val+'" />');
+			if (this.options.required && !index) {e.attr('required',true)}
 			e.datepicker({
 				showButtonPanel: true,
 				changeMonth: true,
 				changeYear: true,
 				showAnim: '',
-				dateFormat: 'yy/mm/dd'
+				yearRange: 'c-100:c+100',
+				dateFormat: 'yy-mm-dd'
 			});
 			return e
 		}
@@ -1004,9 +1018,11 @@
 		
 	// WIDGET HINTS
 	$.widget('emen2edit.checkbox', $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			var n = this.options.prefix+this.options.param;
 			var edit = $('<input type="checkbox" name="'+n+'" value="True" />');
+			if (this.options.required && !index) {editw.attr('required',true)}
+			
 			//<input type="hidden" name="'+n+'" value="" />');
 			if (val) {
 				$('input:checkbox', edit).attr('checked',true);
@@ -1017,7 +1033,7 @@
 	
 	// Radio buttons
     $.widget("emen2edit.radio", $.emen2.EditBase, {
-		build_item: function(val) {
+		build_item: function(val, index) {
 			var self = this;
 			var pd = this.cachepd();
 			var choices = pd.choices || [];
@@ -1027,6 +1043,7 @@
 				var rand = Math.ceil(Math.random()*10000000);
 				var id = 'e2-edit-radio-'+rand;
 				var input = $('<input type="radio" name="'+self.options.prefix+self.options.param+'" value="'+v+'" id="'+id+'"/>');
+				if (self.options.required && !index) {input.attr('required',true)}
 				if (val == v) {
 					input.attr('checked',true);
 				}

@@ -239,9 +239,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 	def keys(self):
 		return list(self.attr_public)
 
-	def items(self):
-		pass
-
 	def update(self, update, vtm=None, t=None):
 		"""Dict-like update. Returns a set of keys that were updated."""
 		vtm, t = self._vtmtime(vtm, t)

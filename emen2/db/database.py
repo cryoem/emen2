@@ -2390,11 +2390,11 @@ class DB(object):
 		pds = set()
 		for group, vd in groupviews.items():
 			for match in regex.finditer(vd):
-				if match.group('type') in ["#", "$", '*']:
+				if match.group('type') in ["#", "$", '!']:
 					pds.add(match.group('name'))
 
 				elif match.group('type') == '@':
-					t = time.time()
+					# t = time.time()
 					vtm.macro_preprocess(match.group('name'), match.group('args'), recs)
 
 		pds = listops.dictbykey(self.bdbs.paramdef.cgets(pds, ctx=ctx, txn=txn), 'name')
@@ -2442,14 +2442,14 @@ class DB(object):
 				s = match.group('sep') or ''
 				if t == '#':
 					v = vtm.name_render(pds[n])
-				elif t == '$' or t == '*':
-					t = time.time()
-					v = vtm.param_render(pds[n], rec.get(n), name=rec.name, edit=_edit, markup=markup, table=table)
-					pt[n].append(time.time()-t)
+				elif t == '$' or t == '!':
+					# t = time.time()
+					v = vtm.param_render(pds[n], rec.get(n), name=rec.name, edit=_edit, markup=markup, table=table, embedtype=t)
+					# pt[n].append(time.time()-t)
 				elif t == '@':
-					t = time.time()
+					# t = time.time()
 					v = vtm.macro_render(n, match.group('args'), rec, markup=markup, table=table)
-					mt[n].append(time.time()-t)
+					# mt[n].append(time.time()-t)
 				else:
 					continue
 

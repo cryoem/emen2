@@ -28,7 +28,7 @@
 		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/custom-theme/jquery-ui-1.8.16.custom.css" />
 		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/fullcalendar.css" />
 		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/tmpl-${VERSION}/css/base.css" />
-		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/tmpl-${VERSION}/css/style.css" />
+		## <link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/tmpl-${VERSION}/css/style.css" />
 	</%block>
 	
 	<style type="text/css">

@@ -338,8 +338,8 @@ class EMEN2DB(object):
 		:param item: Item to cache. Should be an instantiated DBObject.
 
 		"""
-		if not self.bdb:
-			raise Exception, "DB not open."
+		#if not self.bdb:
+		#	raise Exception, "DB not open."
 		
 		if item.name in self.cache:
 			# print "Warning: Item %s already in cache, skipping"%item.name

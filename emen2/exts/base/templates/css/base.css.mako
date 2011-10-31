@@ -86,6 +86,7 @@ h1 .e2l-label {
 	float:right;
 	font-size:12pt;
 	margin:10px;
+	margin-top:5px;
 }
 h4 .e2l-label {
 	font-weight: normal;
@@ -286,6 +287,7 @@ h4
 .e2-tab-switcher > ul > li {
 	border: solid 1px #ccc;
 	border-bottom: none;
+	padding:10px;
 	margin-right: 15px;
 	margin-bottom: -1px;
 }
@@ -295,6 +297,7 @@ h4
 	background: #eee;
 }
 .e2-tab-switcher li.e2-tab-active {
+	padding:10px;
 	background: #eee;
 }
 

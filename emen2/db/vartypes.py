@@ -58,7 +58,7 @@ class Vartype(object):
 
 
 	# This is the default HTML renderer for single-value items. It is important to cgi.escape the values!!
-	def render(self, value, name=0, edit=False, showlabel=False, markup=False, table=False):
+	def render(self, value, name=0, edit=False, showlabel=False, markup=False, table=False, embedtype=None):
 		# Store these for convenience
 		self.name = name
 		self.edit = edit
@@ -69,15 +69,19 @@ class Vartype(object):
 			self.edit = False
 
 		value = self.process(value)
-		return self._render(value)
+		return self._render(value, embedtype=embedtype)
 
 
 	# After pre-processing values into markup
-	def _render(self, value):
+	def _render(self, value, embedtype=None):
 		# Note: Value should already be escaped!
 		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		label = ''
-		editmarkup = 'data-name="%s" data-param="%s"'%(self.name, self.pd.name)
+		if embedtype == '!':
+			embedtype = 'data-required="True"'
+		else:
+			embedtype = ''
+		editmarkup = 'data-name="%s" data-param="%s" %s'%(self.name, self.pd.name, embedtype)
 		
 		if value and self.pd.defaultunits:
 			value = ['%s %s'%(i, self.pd.defaultunits) for i in value]
