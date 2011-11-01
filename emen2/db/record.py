@@ -366,8 +366,10 @@ class RecordDB(emen2.db.btrees.RelateDB):
 				rec["comments"] = "Record hidden"
 
 			rec['deleted'] = True
-			rec['children'] = set()
-			rec['parents'] = set()
+			print "delete parents and children?!!?"
+			rec.children = set()
+			rec.parents = set()
+			print rec.children, rec.parents
 			crecs.append(rec)
 
 		return self.cputs(crecs, ctx=ctx, txn=txn)

@@ -340,8 +340,15 @@ class BaseDBObject(object, UserDict.DictMixin):
 		Make sure we have permissions to edit the relationship."""	
 		# Filter out changes to permissions on records
 		# that we can't access...
-		value = set(emen2.util.listops.check_iterable(value))
+		value = emen2.util.listops.check_iterable(value)
+		value = set(value)
 		orig = self.get(key)
+
+		# ian: todo: temporary fix.. force record keys to be ints.
+		if self.keytype == 'record':
+			value = set(map(int, value))
+			orig = set(map(int, orig))
+			
 		changed = orig ^ value
 		# Get all of the changed items that we can access
 		# (KeyErrors will be checked later, during commit..)
