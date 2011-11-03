@@ -12,21 +12,19 @@ svg {
 
 <%block name="js_ready">
 	${parent.js_ready()}
-	var t = 'scatter';
-	// console.log(t);
-	if (t=='time') {
-		$("#chart").PlotTime({
-			'xkey':'creationtime',
-			'ykey':''		
+	var t = 'hist';
+	if (t=='hist') {
+		$("#chart").PlotHistogram({
+			'xkey':'creationtime'
 		});
 	} else if (t=='scatter') {	
 		$("#chart").PlotScatter({
-			//'xmin': 200,
-			//'xmax': 300,
-			//'ymin': 2.4,
-			//'ymax': 3.0,
-			'xkey':'ctf_bfactor',
-			'ykey':'ctf_defocus_measured'
+			'xkey':'ctf_defocus_measured',
+			'ykey':'ctf_bfactor',
+			'xmin': 0,
+			'xmax': 6,
+			'ymin': 0,
+			'ymax': 600
 		});
 	}
 </%block>
