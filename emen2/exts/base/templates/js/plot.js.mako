@@ -2,37 +2,29 @@
    $.widget('emen2.PlotBase', {
 		options: {
 			q: null,
+			// Axes
+			xkey: null,
+			ykey: null,
+			zkey: 'rectype',
+			// Bounds
 			xmin: null,
 			xmax: null,
 			ymin: null,
 			ymax: null,
-			xkey: null,
-			ykey: null,
-			zkey: 'rectype',
-			colors: d3.scale.category10()
+			// Display
+			colors: d3.scale.category10(),
+			padding: [10, 100, 100, 10],
+			width: null,
+			height: null,
 		},
 
 		_create: function() {
 			this.built = 0;
-			var width = this.element.width()-2;
-			var height = 600;
-			var p = [10,100,100,10]; // top padding, right padding, bottom padding, left padding
-			
+			this.options.width = $.checkopt(this, 'width', this.element.width()-2);
+			this.options.height = $.checkopt(this, 'height', 500);
 			this.build();
 		},
 		
-		fx: function(d) {
-			return d[this.options.xkey]
-		},
-		
-		fy: function(d) {
-			return d[this.options.ykey]
-		},
-		
-		fz: function(d) {
-			return d[this.options.zkey]
-		},
-
 		build: function() {
 			if (this.built) {return}
 			var self = this;
@@ -48,142 +40,191 @@
 				});
 			});
 		},
+
+		// Override the following methods
+		fx: function(d) {
+			// Return the X key value
+			return d[this.options.xkey]
+		},
 		
+		fy: function(d) {
+			// Return the Y key value
+			return d[this.options.ykey]
+		},
+		
+		fz: function(d) {
+			// Return the Z key value
+			return d[this.options.zkey]
+		},
+	
 		setup: function() {
-			
+			// Subclass init
 		},
 		
 		plot: function(q) {
-			// Override this to draw the plot
+			// Draw the plot
 		},
 		
 		controls: function() {
-			// Override this to draw the plot controls
+			// Draw the plot controls
 		},
 		
 		redraw: function() {
-			
+			// Update the plot
 		},
+
+		update_bounds: function(xmin, xmax, ymin, ymax) {
+			// Update bounds
+			this.options.xmin = (this.options.xmin == null) ? xmin : this.options.xmin;
+			this.options.xmax = (this.options.xmax == null) ? xmax : this.options.xmax;
+			this.options.ymin = (this.options.ymin == null) ? ymin : this.options.ymin;
+			this.options.ymax = (this.options.ymax == null) ? ymax : this.options.ymax;
+		},
+		
+		label: function(ticks, x1, x2, y1, y2) {
+			// Draw plot lines and labels
+			var format = d3.format('.3r');
+			var self = this;
+			// X labels
+			var xlabels = self.svg.selectAll("text.xlabel")
+				.data(ticks)
+				.enter()
+				.append("svg:text")
+				.attr("x", function(d) {return self.x(d)})
+				.attr("y", height-vmargin)
+				.attr('dy', '1.5em')
+			    .attr("text-anchor", "middle")
+				.text(d3.format('0.3r'))
+
+			var xticks = this.svg.selectAll("g.xtick")
+				.data(this.x.ticks(10))
+				.enter()
+				.append("svg:line")
+				.attr("x1", function(d) {return self.x(d)})
+				.attr("x2", function(d) {return self.x(d)})
+				.attr("y1", 0)
+				.attr("y2", height-vmargin)
+				.style("stroke", '#eee');
+
+			this.svg.append("svg:line")
+				.attr('x1', 0)
+				.attr('x2', width-hmargin)
+				.attr('y1',height-vmargin)
+				.attr('y2',height-vmargin)
+				.style("stroke", '#666');
+		}
 		
 	});	
 
 	$.widget('emen2.PlotScatter', $.emen2.PlotBase, {
 		query: function(cb) {
-			//419869
 			$.jsonRPC.call('getchildren', [419869], function(recs) {
 				$.jsonRPC.call('getrecord', [recs], function(recs) {
 					$.updatecache(recs);
 					cb(recs);
 				})
-			})
-			// var recs = [];
-			// for (var i=0;i<100;i++) {
-			// 	var rec = {'name':i, 'ctf_bfactor':Math.random()*1, 'ctf_defocus_measured':Math.random()*1, 'rectype':'ccd'}
-			// 	recs.push(rec);
-			// }
-			// return cb(recs)
+			});
 		},
 		
-		update_bounds: function(xmin, xmax, ymin, ymax) {
-			
-		},
-
 		plot: function(recs) {
 			var self = this;
-			var width = this.element.width()-2;
-			var height = 600;
-			var p = [10,10,100,100]; // top padding, left padding, bottom padding, right padding
-			var vmargin = p[0]+p[2];
-			var hmargin = p[1]+p[3];
+			var w = this.options.width - this.options.padding[1] + this.options.padding[3];
+			var h = this.options.height - this.options.padding[0] + this.options.padding[2];
 			
 			// Filter the records
 			recs = recs.filter(function(d){return (self.fx(d)!=null && self.fy(d)!=null)});
 			var bxs = recs.map(function(d) {return self.fx(d)});
 			var bys = recs.map(function(d) {return self.fy(d)});
 			
-			// Update bounds
-			this.options.xmin = (this.options.xmin == null) ? d3.min(bxs) : this.options.xmin;
-			this.options.xmax = (this.options.xmax == null) ? d3.max(bxs) : this.options.xmax;
-			this.options.ymin = (this.options.ymin == null) ? d3.min(bys) : this.options.ymin;
-			this.options.ymax = (this.options.ymax == null) ? d3.max(bys) : this.options.ymax;
+			this.update_bounds(d3.min(bxs), d3.max(bxs), d3.min(bys), d3.max(bys))
 			
 			// Plot
-			this.x = d3.scale.linear().domain([this.options.xmin, this.options.xmax]).nice().range([0,width-hmargin]);
-			this.y = d3.scale.linear().domain([this.options.ymin, this.options.ymax]).nice().range([0,height-vmargin]);
-			this.z = this.options.colors; 
+			this.x = d3.scale.linear()
+				.domain([this.options.xmin, this.options.xmax])
+				.nice()
+				.range([0,w]);
+			this.y = d3.scale.linear()
+				.domain([this.options.ymin, this.options.ymax])
+				.nice()
+				.range([0,h]);
+			this.z = this.options.colors;			
+			// console.log(w, h);
+			// console.log(this.options.xmin, this.options.xmax, this.options.ymin, this.options.ymax);
+			// console.log(this.x.range(), this.y.range());
 			
 			// Create the SVG element
 			this.svg = d3.select("#chart").append("svg:svg")
-			    .attr("width", width)
-			    .attr("height", height)
-			  .append("svg:g")
-				.attr("transform", 'translate('+p[1]+','+p[0]+')');
+				.attr("width", this.options.width)
+				.attr("height", this.options.height)
+				.append("svg:g")
+				.attr("transform", 'translate('+this.options.padding[1]+','+this.options.padding[0]+')');
 
 			// LINES AND LABELS
-			var ticksize = 8;
-			var format = d3.format('.3r');
-			// X labels
-			var xlabels = this.svg.selectAll("text.xlabel")
-				.data(this.x.ticks(10))
-				.enter()
-				.append("svg:text")
-					.attr("x", function(d) {return self.x(d)})
-					.attr("y", height-vmargin)
-					.attr('dy', '1.5em')
-				    .attr("text-anchor", "middle")
-					.text(d3.format('0.3r'))
-
-			var xticks = this.svg.selectAll("g.xtick")
-				.data(this.x.ticks(10))
-				.enter()
-				.append("svg:line")
-					.attr("x1", function(d) {return self.x(d)})
-					.attr("x2", function(d) {return self.x(d)})
-					.attr("y1", 0) //height-vmargin+(ticksize/2))
-					.attr("y2", height-vmargin) //height-vmargin-(ticksize/2))
-					.style("stroke", '#eee');
-							
-			this.svg.append("svg:line")
-					.attr('x1', 0)
-					.attr('x2', width-hmargin)
-					.attr('y1',height-vmargin)
-					.attr('y2',height-vmargin)
-					.style("stroke", '#666');			
+			// var format = d3.format('.3r');
+			// // X labels
+			// var xlabels = this.svg.selectAll("text.xlabel")
+			// 	.data(this.x.ticks(10))
+			// 	.enter()
+			// 	.append("svg:text")
+			// 		.attr("x", function(d) {return self.x(d)})
+			// 		.attr("y", height-vmargin)
+			// 		.attr('dy', '1.5em')
+			// 	    .attr("text-anchor", "middle")
+			// 		.text(d3.format('0.3r'))
+			// 
+			// var xticks = this.svg.selectAll("g.xtick")
+			// 	.data(this.x.ticks(10))
+			// 	.enter()
+			// 	.append("svg:line")
+			// 		.attr("x1", function(d) {return self.x(d)})
+			// 		.attr("x2", function(d) {return self.x(d)})
+			// 		.attr("y1", 0) //height-vmargin+(ticksize/2))
+			// 		.attr("y2", height-vmargin) //height-vmargin-(ticksize/2))
+			// 		.style("stroke", '#eee');
+			// 				
+			// this.svg.append("svg:line")
+			// 		.attr('x1', 0)
+			// 		.attr('x2', width-hmargin)
+			// 		.attr('y1',height-vmargin)
+			// 		.attr('y2',height-vmargin)
+			// 		.style("stroke", '#666');			
+			// 
+			// // Y labels
+			// var ylabels = this.svg.selectAll("text.ylabel")
+			// 	.data(this.y.ticks(10))
+			// 	.enter()
+			// 	.append("svg:text")
+			// 		.attr("x", width-hmargin)
+			// 		.attr("y", function(d) {return height-self.y(d)-vmargin})
+			// 		.attr('dx', 10)
+			// 		.attr('dy', '0.3em')
+			// 		.text(d3.format('0.3r'))
+			// 
+			// var yticks = this.svg.selectAll("g.tick")
+			// 	.data(this.y.ticks(10))
+			// 	.enter()
+			// 	.append("svg:line")
+			// 		.attr("x1", 0) //width-hmargin+(ticksize/2))
+			// 		.attr("x2", width-hmargin) //width-hmargin-(ticksize/2))
+			// 		.attr("y1", function(d) {return height-self.y(d)-vmargin})
+			// 		.attr("y2", function(d) {return height-self.y(d)-vmargin})
+			// 		.style("stroke", '#eee');
+			// 				
+			// this.svg.append("svg:line")
+			// 		.attr('x1', width-hmargin)
+			// 		.attr('x2', width-hmargin)
+			// 		.attr('y1', 0)
+			// 		.attr('y2',height-vmargin)
+			// 		.style("stroke", '#666');		
 			
-			// Y labels
-			var ylabels = this.svg.selectAll("text.ylabel")
-				.data(this.y.ticks(10))
-				.enter()
-				.append("svg:text")
-					.attr("x", width-hmargin)
-					.attr("y", function(d) {return height-self.y(d)-vmargin})
-					.attr('dx', 10)
-					.attr('dy', '0.3em')
-					.text(d3.format('0.3r'))
-
-			var yticks = this.svg.selectAll("g.tick")
-				.data(this.y.ticks(10))
-				.enter()
-				.append("svg:line")
-					.attr("x1", 0) //width-hmargin+(ticksize/2))
-					.attr("x2", width-hmargin) //width-hmargin-(ticksize/2))
-					.attr("y1", function(d) {return height-self.y(d)-vmargin})
-					.attr("y2", function(d) {return height-self.y(d)-vmargin})
-					.style("stroke", '#eee');
-							
-			this.svg.append("svg:line")
-					.attr('x1', width-hmargin)
-					.attr('x2', width-hmargin)
-					.attr('y1', 0)
-					.attr('y2',height-vmargin)
-					.style("stroke", '#666');		
-					
+			console.log(self.x(0))
+			
 			// Add a point for each item.
 			var rect = this.svg.selectAll("circle")
 			    .data(recs)
 			  .enter().append("svg:circle")
 			    .attr("cx", function(d,i) { return self.x(self.fx(d))})
-			    .attr("cy", function(d,i) { return height-self.y(self.fy(d))-vmargin})
+			    .attr("cy", function(d,i) { return self.y(self.fy(d))})
 				.attr('r', 3)
 				.style('fill', function(d,i) {return self.z(i)})
 				.attr('data-z', function(d,i) {return self.fz(d)})
@@ -386,15 +427,6 @@
 			    .attr("dy", ".35em")
 			    .text(d3.format(",d"));			
 
-		},
-		
-		redraw: function() {
-			// var d = this.x.domain();
-			// var t1 = d[0];
-			// var year = t1.getFullYear()+1;
-			// t1.setFullYear(year);
-			// console.log(d);
-			// this.x.transition().duration(1000).domain([d[0], d[1]]);
 		}
 	});
 
