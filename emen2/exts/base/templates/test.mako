@@ -4,6 +4,9 @@
 rect {
   shape-rendering:crispEdges;
 }
+svg {
+	border:solid red 1px;
+}
 </%block>
 
 

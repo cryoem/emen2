@@ -13,7 +13,7 @@
 			ymax: null,
 			// Display
 			colors: d3.scale.category10(),
-			padding: [10, 100, 100, 10],
+			padding: [50,50,50,50], // top, left, bottom, right
 			width: null,
 			height: null,
 		},
@@ -22,6 +22,7 @@
 			this.built = 0;
 			this.options.width = $.checkopt(this, 'width', this.element.width()-2);
 			this.options.height = $.checkopt(this, 'height', 500);
+			this.setup();			
 			this.build();
 		},
 		
@@ -29,7 +30,14 @@
 			if (this.built) {return}
 			var self = this;
 			this.built = 1;
-			this.setup();
+
+			// Create the SVG element
+			this.svg = d3.select("#chart").append("svg:svg")
+				.attr("width", this.options.width)
+				.attr("height", this.options.height)
+				.append("svg:g")
+				.attr("transform", 'translate('+this.options.padding[1]+','+this.options.padding[0]+')');
+
 			this.query(function(q){self.plot(q)});
 		},
 		
@@ -81,37 +89,55 @@
 			this.options.ymax = (this.options.ymax == null) ? ymax : this.options.ymax;
 		},
 		
-		label: function(ticks, x1, x2, y1, y2) {
+		draw_label: function(axis, format, ticks) {
 			// Draw plot lines and labels
-			var format = d3.format('.3r');
+			var format = format || d3.format('.3r');
+			var ticks = ticks || 10;
 			var self = this;
-			// X labels
-			var xlabels = self.svg.selectAll("text.xlabel")
-				.data(ticks)
+	
+			// axis is 'x', 'y'
+			var textanchor = 'middle';
+			var d1 = 0;
+			var d2 = '1.3em';
+			var scale = this[axis];
+			var otheraxis = 'y';
+			var otherscale = this[otheraxis]
+			if (axis == 'y') {
+				otheraxis = 'x';
+				otherscale = this[otheraxis];
+				d1 = '0.3em';
+				d2 = '0.3em';
+				textanchor = '';			
+			}
+			
+			// Draw labels for this axis
+			this.svg.selectAll("text.label"+axis)
+				.data(scale.ticks(ticks))
 				.enter()
 				.append("svg:text")
-				.attr("x", function(d) {return self.x(d)})
-				.attr("y", height-vmargin)
-				.attr('dy', '1.5em')
-			    .attr("text-anchor", "middle")
-				.text(d3.format('0.3r'))
+				.attr(axis, function(d) {return scale(d)})
+				.attr(otheraxis, otherscale.range()[1])
+				.attr('d'+axis, d1)
+				.attr('d'+otheraxis, d2)
+				.attr('text-anchor', textanchor)
+				.text(format)
 
-			var xticks = this.svg.selectAll("g.xtick")
-				.data(this.x.ticks(10))
+			this.svg.selectAll("g.tick"+axis)
+				.data(scale.ticks(ticks))
 				.enter()
 				.append("svg:line")
-				.attr("x1", function(d) {return self.x(d)})
-				.attr("x2", function(d) {return self.x(d)})
-				.attr("y1", 0)
-				.attr("y2", height-vmargin)
+				.attr(axis+"1", function(d) {return scale(d)})
+				.attr(axis+"2", function(d) {return scale(d)})
+				.attr(otheraxis+"1", 0)
+				.attr(otheraxis+"2", otherscale.range()[1])
 				.style("stroke", '#eee');
 
 			this.svg.append("svg:line")
-				.attr('x1', 0)
-				.attr('x2', width-hmargin)
-				.attr('y1',height-vmargin)
-				.attr('y2',height-vmargin)
-				.style("stroke", '#666');
+				.attr(axis+'1', 0)
+				.attr(axis+'2', scale.range()[1])
+				.attr(otheraxis+'1', otherscale.range()[1])
+				.attr(otheraxis+'2', otherscale.range()[1])
+				.style("stroke", 'black');
 		}
 		
 	});	
@@ -128,8 +154,8 @@
 		
 		plot: function(recs) {
 			var self = this;
-			var w = this.options.width - this.options.padding[1] + this.options.padding[3];
-			var h = this.options.height - this.options.padding[0] + this.options.padding[2];
+			var h = this.options.height - (this.options.padding[0] + this.options.padding[2]);
+			var w = this.options.width - (this.options.padding[1] + this.options.padding[3]);
 			
 			// Filter the records
 			recs = recs.filter(function(d){return (self.fx(d)!=null && self.fy(d)!=null)});
@@ -147,95 +173,25 @@
 				.domain([this.options.ymin, this.options.ymax])
 				.nice()
 				.range([0,h]);
-			this.z = this.options.colors;			
-			// console.log(w, h);
-			// console.log(this.options.xmin, this.options.xmax, this.options.ymin, this.options.ymax);
-			// console.log(this.x.range(), this.y.range());
-			
-			// Create the SVG element
-			this.svg = d3.select("#chart").append("svg:svg")
-				.attr("width", this.options.width)
-				.attr("height", this.options.height)
-				.append("svg:g")
-				.attr("transform", 'translate('+this.options.padding[1]+','+this.options.padding[0]+')');
+			this.z = this.options.colors;	
 
-			// LINES AND LABELS
-			// var format = d3.format('.3r');
-			// // X labels
-			// var xlabels = this.svg.selectAll("text.xlabel")
-			// 	.data(this.x.ticks(10))
-			// 	.enter()
-			// 	.append("svg:text")
-			// 		.attr("x", function(d) {return self.x(d)})
-			// 		.attr("y", height-vmargin)
-			// 		.attr('dy', '1.5em')
-			// 	    .attr("text-anchor", "middle")
-			// 		.text(d3.format('0.3r'))
-			// 
-			// var xticks = this.svg.selectAll("g.xtick")
-			// 	.data(this.x.ticks(10))
-			// 	.enter()
-			// 	.append("svg:line")
-			// 		.attr("x1", function(d) {return self.x(d)})
-			// 		.attr("x2", function(d) {return self.x(d)})
-			// 		.attr("y1", 0) //height-vmargin+(ticksize/2))
-			// 		.attr("y2", height-vmargin) //height-vmargin-(ticksize/2))
-			// 		.style("stroke", '#eee');
-			// 				
-			// this.svg.append("svg:line")
-			// 		.attr('x1', 0)
-			// 		.attr('x2', width-hmargin)
-			// 		.attr('y1',height-vmargin)
-			// 		.attr('y2',height-vmargin)
-			// 		.style("stroke", '#666');			
-			// 
-			// // Y labels
-			// var ylabels = this.svg.selectAll("text.ylabel")
-			// 	.data(this.y.ticks(10))
-			// 	.enter()
-			// 	.append("svg:text")
-			// 		.attr("x", width-hmargin)
-			// 		.attr("y", function(d) {return height-self.y(d)-vmargin})
-			// 		.attr('dx', 10)
-			// 		.attr('dy', '0.3em')
-			// 		.text(d3.format('0.3r'))
-			// 
-			// var yticks = this.svg.selectAll("g.tick")
-			// 	.data(this.y.ticks(10))
-			// 	.enter()
-			// 	.append("svg:line")
-			// 		.attr("x1", 0) //width-hmargin+(ticksize/2))
-			// 		.attr("x2", width-hmargin) //width-hmargin-(ticksize/2))
-			// 		.attr("y1", function(d) {return height-self.y(d)-vmargin})
-			// 		.attr("y2", function(d) {return height-self.y(d)-vmargin})
-			// 		.style("stroke", '#eee');
-			// 				
-			// this.svg.append("svg:line")
-			// 		.attr('x1', width-hmargin)
-			// 		.attr('x2', width-hmargin)
-			// 		.attr('y1', 0)
-			// 		.attr('y2',height-vmargin)
-			// 		.style("stroke", '#666');		
-			
-			console.log(self.x(0))
+			// Add the labels
+			this.draw_label('x');
+			this.draw_label('y');
 			
 			// Add a point for each item.
 			var rect = this.svg.selectAll("circle")
-			    .data(recs)
-			  .enter().append("svg:circle")
-			    .attr("cx", function(d,i) { return self.x(self.fx(d))})
-			    .attr("cy", function(d,i) { return self.y(self.fy(d))})
+				.data(recs)
+				.enter().append("svg:circle")
+				.attr("cx", function(d,i) { return self.x(self.fx(d))})
+				.attr("cy", function(d,i) { return self.y(self.fy(d))})
 				.attr('r', 3)
-				.style('fill', function(d,i) {return self.z(i)})
 				.attr('data-z', function(d,i) {return self.fz(d)})
-				// .attr('data-name', function(d){return d.name})
-				// .attr('data-x', function(d){return self.fx(d)})
-				// .attr('data-y', function(d){return self.fy(d)})
+				.style('fill', function(d,i) {return self.z(i)})
 		}
 	});
-	
 
-	// Plot widgets
+	// Time bar chart
 	$.widget('emen2.PlotTime', $.emen2.PlotBase, {
 		setup: function() {
 			// Additional options
@@ -260,7 +216,6 @@
 		},
 		
 		fx: function(d) {
-			console.log('fx?');
 			var bx = new Date(d[this.options.xkey]);
 			return this.d3x(bx)
 		},
@@ -358,7 +313,6 @@
 			var width = this.element.width()-2;
 			var height = 600;
 			var p = [10,100,100,10]; // top padding, right padding, bottom padding, left padding
-
 			var bins = this.group(recs);
 			
 			// Plot
@@ -366,13 +320,6 @@
 			this.y = d3.scale.linear().domain([this.options.ymin, this.options.ymax]).range([0,height-p[0]-p[2]]);
 			this.z = this.options.colors; 
 			var barwidth = width / d3.time.months(this.options.xmin, this.options.xmax).length;
-			
-			// Create the SVG element
-			this.svg = d3.select("#chart").append("svg:svg")
-			    .attr("width", width)
-			    .attr("height", height)
-			  .append("svg:g")
-				.attr("transform", 'translate('+p[3]+', -'+p[2]+')');
 
 			// Add a group for each cause.
 			var cause = this.svg.selectAll("g.cause")
@@ -392,40 +339,17 @@
 			    .attr("height", function(d) { return self.y(d.ysum) })
 			    .attr("width", barwidth);
 
-			// Add a label per date.
-			var label = this.svg.selectAll("text")
-				.data(this.x.ticks())
-				.enter().append("svg:text")
-			    .text(this.format);
-
-			if (this.options.xlabelorient == 'horizontal') {
-				label.attr("x", function(d) {return self.x(d)})
-					.attr("y", height)
-					.attr('dy', '1em')
-				    .attr("text-anchor", "middle")				
-			} else if (this.options.xlabelorient == 'vertical'){
-				label.attr('transform','rotate(90)')
-					.attr("y", function(d) {return -self.x(d)})
-					.attr("x", height)
-					.attr('dx', 6)
-			}
-
-			// // Add y-axis rules.
-			var rule = this.svg.selectAll("g.rule")
-			    .data(this.y.ticks(5))
-			  .enter().append("svg:g")
-			    .attr("class", "rule")
-			    .attr("transform", function(d) { return "translate(0," + (height-self.y(d)) + ")"; });
-			
-			rule.append("svg:line")
-			    .attr("x2", width - p[1] - p[3])
-			    .style("stroke", function(d) { return "white" })
-			    .style("stroke-opacity", function(d) { return d ? .3 : null; });
-				
-			rule.append("svg:text")
-			    .attr("x", width - p[1] - p[3] + 6)
-			    .attr("dy", ".35em")
-			    .text(d3.format(",d"));			
+			// if (this.options.xlabelorient == 'horizontal') {
+			// 	label.attr("x", function(d) {return self.x(d)})
+			// 		.attr("y", height)
+			// 		.attr('dy', '1em')
+			// 	    .attr("text-anchor", "middle")				
+			// } else if (this.options.xlabelorient == 'vertical'){
+			// 	label.attr('transform','rotate(90)')
+			// 		.attr("y", function(d) {return -self.x(d)})
+			// 		.attr("x", height)
+			// 		.attr('dx', 6)
+			// }
 
 		}
 	});
