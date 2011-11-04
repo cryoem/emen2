@@ -15,7 +15,8 @@
 			xticks: 10,
 			yticks: 10,
 			colors: d3.scale.category10(),
-			padding: [50,50,50,50], // top, left, bottom, right
+			// Padding: top, left, bottom, right
+			padding: [50,50,50,50], 
 			width: null,
 			height: null,
 			xformat: Object,
@@ -32,9 +33,14 @@
 			this.options.height = $.checkopt(this, 'height', 600);
 
 			// Axes
-			this.x = d3.scale.linear();
-			this.y = d3.scale.linear();
+			this.x = d3.scale.linear().domain([0,0]);
+			this.y = d3.scale.linear().domain([0,0]);
 			this.z = this.options.colors;	
+			this.xaxis = d3.svg.axis().scale(this.x).tickSize(1).tickSubdivide(true);
+			this.yaxis = d3.svg.axis().scale(this.y).tickSize(1).tickSubdivide(true).orient('right');
+			
+			// Events
+			this._drag = [0,0];
 
 			// Keys
 			this.xkeys = [];
@@ -56,13 +62,29 @@
 			var w = this.options.width - (this.options.padding[1] + this.options.padding[3]);
 			this.x.range([0,w]);
 			this.y.range([h,0]); // flip the coordinates on the Y axis
-			
+
 			// Create the SVG element
 			this.svg = d3.select("#chart").append("svg:svg")
 				.attr("width", this.options.width)
 				.attr("height", this.options.height)
 				.append("svg:g")
 				.attr("transform", 'translate('+this.options.padding[1]+','+this.options.padding[0]+')');
+
+			// Add the x-axis.
+			this.svg.append("svg:g")
+				.attr("class", "x axis")
+				.attr("transform", "translate(0," + h + ")")
+				.call(this.xaxis);
+
+			// Add the y-axis.
+			this.svg.append("svg:g")
+				.attr("class", "y axis")
+				.attr("transform", "translate(" + w + ",0)")
+				.call(this.yaxis);
+
+			this.plotarea = this.svg.append("svg:g")
+				.attr('class', 'e2-plot-area')
+				.call(d3.behavior.drag().on("drag", function(){self.redraw()}));
 
 			// Run the query and plot the result
 			this.query(function(q){self.plot(q)});
@@ -117,61 +139,6 @@
 			// Update the plot
 		},
 
-		draw_label: function(axis, format) {
-			// Draw plot lines and labels
-			// axis is 'x', 'y'
-			var format = format || d3.format('.3r');
-			var self = this;	
-			var textanchor = 'middle';
-			var scale = this[axis];
-			var otheraxis = 'y';
-			var otherscale = this[otheraxis];
-			var dx = 0;
-			var dy = '1.3em';
-			if (axis == 'y') {
-				otheraxis = 'x';
-				otherscale = this[otheraxis];
-				dx = '0.3em';
-				dy = '0.3em';
-				textanchor = 'start';
-			}
-			// Find the end point side of the other axis..
-			var offset = d3.max(otherscale.range());
-			// var offset = otherscale.range()[0];
-			var ticks = this.options[axis+'ticks'];
-
-			// Draw labels for this axis
-			this.svg.selectAll("text.label"+axis)
-				.data(scale.ticks(ticks))
-				.enter()
-				.append("svg:text")
-				.attr(axis, function(d) {return scale(d)})
-				.attr(otheraxis, offset) // hack
-				.attr('dx', dx)
-				.attr('dy', dy)
-				.attr('text-anchor', textanchor)
-				.text(this.options[axis+'format']);
-
-			// Rules
-			this.svg.selectAll("g.tick"+axis)
-				.data(scale.ticks(ticks))
-				.enter()
-				.append("svg:line")
-				.attr(axis+"1", function(d) {return scale(d)})
-				.attr(axis+"2", function(d) {return scale(d)})
-				.attr(otheraxis+"1", 0)
-				.attr(otheraxis+"2", offset)
-				.style("stroke", '#eee');
-
-			// Bold baseline
-			this.svg.append("svg:line")
-				.attr(axis+'1', 0)
-				.attr(axis+'2', d3.max(scale.range()))
-				.attr(otheraxis+'1', offset)
-				.attr(otheraxis+'2', offset)
-				.style("stroke", 'black');
-		},
-		
 		group: function(recs) {
 			// Histograms group on two axes and replace the X with totals
 			// See PlotHistogram
@@ -224,17 +191,18 @@
 
 	$.widget('emen2.PlotScatter', $.emen2.PlotBase, {
 		query: function(cb) {
-			// var c = [['rectype'], ['ctf_bfactor'], ['ctf_defocus_measured']];
-			// $.jsonRPC.call('query', [c], function(q) {
-			// 	console.log(q['recs'].length);
-			// 	cb(q['recs']);
-			// });
 			$.jsonRPC.call('getchildren', [419869], function(recs) {
 				$.jsonRPC.call('getrecord', [recs], function(recs) {
 					$.updatecache(recs);
 					cb(recs);
 				})
 			});
+			return
+			var c = [['rectype'], ['ctf_bfactor'], ['ctf_defocus_measured']];
+			$.jsonRPC.call('query', [c], function(q) {
+				cb(q['recs']);
+			});
+
 		},
 		
 		plot: function(recs) {
@@ -248,31 +216,38 @@
 			// Update the X and Y axis domains
 			this.x.domain([this.options.xmin, this.options.xmax]);
 			this.y.domain([this.options.ymin, this.options.ymax]);
+			this.svg.select(".x.axis").call(this.xaxis);
+			this.svg.select(".y.axis").call(this.yaxis);
 
-			// Add the labels
-			this.draw_label('x');
-			this.draw_label('y');
+			//
 			
 			// Add a group for each cause.
-			var groups = this.svg.selectAll("g.group")
+			var groups = this.plotarea.selectAll("g.group")
 				.data(this.zkeys)
 				.enter().append("svg:g")
-					.attr("class", "group")
-					.attr('data-bz', function(d,i) {return self.zkeys[i]})
-					.style("fill", function(d, i) {return self.z(i)})
-					.style("stroke", function(d, i) {return d3.rgb(self.z(i))});			
+				.attr("class", "group")
+				.attr('data-bz', function(d,i) {return self.zkeys[i]})
+				.style("fill", function(d, i) {return self.z(i)})
+				.style("stroke", function(d, i) {return d3.rgb(self.z(i))});			
 			
 			// Add a rect for each date.
 			var rect = groups.selectAll("circle")
 				.data(function(d){return d3.values(bins[d])})
 				.enter().append("svg:circle")
-					.attr("cx", function(d,i) {return self.x(self.fx(d))})
-					.attr("cy", function(d,i) {return self.y(self.fy(d))})
-					.attr('data-x', function(d) {return self.fx(d)})
-					.attr('data-y', function(d) {return self.fy(d)})					
-					.attr('data-z', function(d) {return self.fz(d)})
-					.attr("r", 3);					
+				.attr("cx", function(d,i) {return self.x(self.fx(d))})
+				.attr("cy", function(d,i) {return self.y(self.fy(d))})
+				.attr('data-x', function(d) {return self.fx(d)})
+				.attr('data-y', function(d) {return self.fy(d)})					
+				.attr('data-z', function(d) {return self.fz(d)})
+				.attr("r", 3);					
+		},
+		
+		redraw: function() {
+			this._drag = [this._drag[0]+d3.event.dx, this._drag[1]+d3.event.dy];
+			this.plotarea.attr('transform', 'translate('+this._drag[0]+','+this._drag[1]+')');
 		}
+		
+		
 	});
 	
 	$.widget('emen2.PlotHistogram', $.emen2.PlotBase, {

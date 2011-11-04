@@ -12,7 +12,7 @@ svg {
 
 <%block name="js_ready">
 	${parent.js_ready()}
-	var t = 'hist';
+	var t = 'scatter';
 	if (t=='hist') {
 		$("#chart").PlotHistogram({
 			'xkey':'creationtime'
