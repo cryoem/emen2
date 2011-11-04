@@ -48,7 +48,6 @@
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.timeago.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.fullcalendar.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/d3/d3.js" type="text/javascript"></script>
-		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/d3/d3.layout.js" type="text/javascript"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/d3/d3.time.js" type="text/javascript"></script>
 
 		## Base EMEN2 widgets

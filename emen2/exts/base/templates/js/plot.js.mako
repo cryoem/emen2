@@ -16,11 +16,9 @@
 			yticks: 10,
 			colors: d3.scale.category10(),
 			// Padding: top, left, bottom, right
-			padding: [50,50,50,50], 
+			padding: [10,10,50,50], 
 			width: null,
 			height: null,
-			xformat: Object,
-			yformat: Object,
 			// Bar chart / histogram options
 			cumulative: true,
 			stacked: true,
@@ -29,18 +27,9 @@
 
 		_create: function() {
 			this.built = 0;
-			this.options.width = $.checkopt(this, 'width', this.element.width()-2);
+			this.options.width = $.checkopt(this, 'width', this.element.width()); // -300
 			this.options.height = $.checkopt(this, 'height', 600);
-
-			// Axes
-			this.x = d3.scale.linear().domain([0,0]);
-			this.y = d3.scale.linear().domain([0,0]);
-			this.z = this.options.colors;	
-			this.xaxis = d3.svg.axis().scale(this.x).tickSize(1).tickSubdivide(true);
-			this.yaxis = d3.svg.axis().scale(this.y).tickSize(1).tickSubdivide(true).orient('right');
-			
-			// Events
-			this._drag = [0,0];
+			this.setup();			
 
 			// Keys
 			this.xkeys = [];
@@ -48,7 +37,6 @@
 			this.zkeys = [];
 			
 			// Setup and build
-			this.setup();			
 			this.build();
 		},
 		
@@ -56,6 +44,8 @@
 			if (this.built) {return}
 			var self = this;
 			this.built = 1;
+
+			// this.build_controls();
 
 			// Account for padding in the output ranges
 			var h = this.options.height - (this.options.padding[0] + this.options.padding[2]);
@@ -67,8 +57,9 @@
 			this.svg = d3.select("#chart").append("svg:svg")
 				.attr("width", this.options.width)
 				.attr("height", this.options.height)
+				.call(d3.behavior.zoom().on("zoom", function(){self.redraw()}))
 				.append("svg:g")
-				.attr("transform", 'translate('+this.options.padding[1]+','+this.options.padding[0]+')');
+				.attr("transform", 'translate('+this.options.padding[1]+','+this.options.padding[0]+')')
 
 			// Add the x-axis.
 			this.svg.append("svg:g")
@@ -83,56 +74,46 @@
 				.call(this.yaxis);
 
 			this.plotarea = this.svg.append("svg:g")
-				.attr('class', 'e2-plot-area')
-				.call(d3.behavior.drag().on("drag", function(){self.redraw()}));
+				.attr('class', 'e2-plot-area');
 
 			// Run the query and plot the result
 			this.query(function(q){self.plot(q)});
 		},
 		
-		query: function(cb) {
-			$.jsonRPC.call('getchildren', {names:136}, function(recs){
-				$.jsonRPC.call('getrecord', [recs], function(recs){
-					cb(recs);					
-				});
-			});
-		},
-
-		// Override the following methods
-		fx: function(d) {
-			// Return the X key value
-			return d[this.options.xkey]
-		},
-		
-		fy: function(d) {
-			// Return the Y key value
-			return d[this.options.ykey]
-		},
-		
-		fz: function(d) {
-			// Return the Z key value
-			return d[this.options.zkey]
-		},
-	
 		setup: function() {
-			// Subclass init
-			var dfunc = function(d) {
-				var bx = new Date(d[this.options.xkey]);
-				return bx
-			}
+			// Setup axes
+			var h = this.options.height - (this.options.padding[0] + this.options.padding[2]);
+			var w = this.options.width - (this.options.padding[1] + this.options.padding[3]);			
+			this.x = d3.scale.linear().domain([0,0]);
+			this.y = d3.scale.linear().domain([0,0]);
+			this.z = this.options.colors;
+
 			if (this.options.xkey == 'creationtime') {
-				this.fx = dfunc;
+				this.fx = function(d) {return new Date(d[this.options.xkey])};
 				this.x = d3.time.scale();
-				this.options.xformat = d3.time.format("%Y-%m-%d");
 			}
+						
+			this.xaxis = d3.svg.axis().scale(this.x).tickSize(-h,3,0).tickSubdivide(true);
+			this.yaxis = d3.svg.axis().scale(this.y).tickSize(-w,3,0).orient('right');
 		},
 		
 		plot: function(q) {
 			// Draw the plot
 		},
 		
-		controls: function() {
+		build_controls: function() {
 			// Draw the plot controls
+			var t = $(' \
+				<ul class="e2-plot-table"> \
+					<li><select name="xkey"><option value="">X Parameter</option></select></li> \
+					<li><select name="ykey"><option value="">Y Parameter</option></select></li> \
+					<li><select name="zkey"><option value="">Z Parameter</option></select></li> \
+					<li>X min: <input name="xmin" /></li> \
+					<li>X max: <input name="xmax" /></li> \
+					<li>Y min: <input name="ymin" /></li> \
+					<li>Y max: <input name="ymax" /></li> \
+				</ul>');
+			this.element.append(t);
 		},
 		
 		redraw: function() {
@@ -186,7 +167,32 @@
 			if (this.options.ymax==null) {this.options.ymax = ymax}
 			
 			return bins			
-		}		
+		},
+		
+		query: function(cb) {
+			$.jsonRPC.call('getchildren', {names:136}, function(recs){
+				$.jsonRPC.call('getrecord', [recs], function(recs){
+					cb(recs);					
+				});
+			});
+		},
+
+		// Override the following methods
+		fx: function(d) {
+			// Return the X key value
+			return d[this.options.xkey]
+		},
+		
+		fy: function(d) {
+			// Return the Y key value
+			return d[this.options.ykey]
+		},
+		
+		fz: function(d) {
+			// Return the Z key value
+			return d[this.options.zkey]
+		},
+			
 	});	
 
 	$.widget('emen2.PlotScatter', $.emen2.PlotBase, {
@@ -206,8 +212,7 @@
 		},
 		
 		plot: function(recs) {
-			var self = this;
-			
+			var self = this;			
 			// Filter the records
 			recs = recs.filter(function(d){return (self.fx(d)!=null && self.fy(d)!=null)});
 			// Group by Z key
@@ -216,11 +221,12 @@
 			// Update the X and Y axis domains
 			this.x.domain([this.options.xmin, this.options.xmax]);
 			this.y.domain([this.options.ymin, this.options.ymax]);
+
+			console.log(this.x.domain());
+
 			this.svg.select(".x.axis").call(this.xaxis);
 			this.svg.select(".y.axis").call(this.yaxis);
 
-			//
-			
 			// Add a group for each cause.
 			var groups = this.plotarea.selectAll("g.group")
 				.data(this.zkeys)
@@ -242,9 +248,18 @@
 				.attr("r", 3);					
 		},
 		
-		redraw: function() {
-			this._drag = [this._drag[0]+d3.event.dx, this._drag[1]+d3.event.dy];
-			this.plotarea.attr('transform', 'translate('+this._drag[0]+','+this._drag[1]+')');
+		redraw: function() {			
+			var scale = d3.event.scale;
+			var trans = d3.event.translate;
+
+			// I spent several hours attempting to do this myself
+			// before I looked at the source and saw the transform() method
+			// in the event......
+			d3.event.transform(this.x, this.y);
+
+			this.svg.select(".x.axis").call(this.xaxis);
+			this.svg.select(".y.axis").call(this.yaxis);
+			this.plotarea.attr('transform', 'matrix('+scale+' 0 0 '+scale+' '+trans[0]+' '+trans[1]+')');
 		}
 		
 		
@@ -252,38 +267,81 @@
 	
 	$.widget('emen2.PlotHistogram', $.emen2.PlotBase, {
 		group_bin: function(recs) {
-			var bins = this.group(recs);
-			var xks = d3.time[this.options.bin+'s'](this.options.xmin, this.options.xmax);// hack
-			var xbins = {};
-			
-			return bins			
-		},
-
-		setup: function() {
-			if (this.options.xkey != 'creationtime') {
-				return
-			}
-		
 			var self = this;
-			// Subclass init
-			var dfunc = function(d) {
-				var bx = new Date(d[self.options.xkey]);
-				return d3.time[self.options.bin](bx)
+			var bins = this.group(recs);
+			var sbins = {};
+			
+			// Get sorted ordinal names from date range
+			var xks = d3.time[this.options.bin+'s'](d3.time.month(this.options.xmin), this.options.xmax);
+			this.options.ymax = 0;
+			
+			// Setup the histogram
+			this.zkeys.map(function(z) {
+				sbins[z] = {};
+				xks.map(function(x) {
+					sbins[z][x] = {x:x, y:0, ysum:0, yoff:0}
+				})
+				d3.values(bins[z]).map(function(d) {
+					var x = d3.time.month(self.fx(d));
+					sbins[z][x].y += 1
+				});
+			});
+
+			// Cumulative
+			if (this.options.cumulative) {
+				this.zkeys.map(function(z) {
+					var ysum = 0;
+					xks.map(function(x) {
+						ysum += sbins[z][x].y || 0;
+						sbins[z][x].ysum = ysum;
+					});
+					console.log(ysum);
+					if (ysum > self.options.ymax) {self.options.ymax = ysum}
+				});
+			}
+			if (this.options.stacked) {
+				xks.map(function(x) {
+					var yoff = 0;
+					self.zkeys.map(function(z) {
+						sbins[z][x].yoff = yoff;
+						yoff += sbins[z][x].ysum;
+					});
+					if (yoff > self.options.ymax) {self.options.ymax = yoff}				
+				});
 			}
 
-			this.fx = dfunc;
-			this.x = d3.time.scale();
-			this.options.xformat = d3.time.format("%Y-%m-%d");
+			console.log(this.options.ymax);
 
+			return sbins			
 		},
-	
+
 		fx: function(d) {
 			var bx = new Date(d[this.options.xkey]);
-			return this.d3x(bx)
+			return d3.time.months(bx);
 		},
 
 		plot: function(recs) {
-			this.group_bin(recs);
+			var bins = this.group_bin(recs);
+
+			// // Add a group for each cause.
+			// var groups = this.plotarea.selectAll("g.group")
+			// 	.data(this.zkeys)
+			// 	.enter().append("svg:g")
+			// 	.attr("class", "group")
+			// 	.attr('data-bz', function(d,i) {return self.zkeys[i]})
+			// 	.style("fill", function(d, i) {return self.z(i)})
+			// 	.style("stroke", function(d, i) {return d3.rgb(self.z(i))});			
+			
+			// Add a rect for each date.
+			// var rect = groups.selectAll("circle")
+			// 	.data(function(d){return d3.values(bins[d])})
+			// 	.enter().append("svg:circle")
+			// 	.attr("cx", function(d,i) {return self.x(self.fx(d))})
+			// 	.attr("cy", function(d,i) {return self.y(self.fy(d))})
+			// 	.attr('data-x', function(d) {return self.fx(d)})
+			// 	.attr('data-y', function(d) {return self.fy(d)})					
+			// 	.attr('data-z', function(d) {return self.fz(d)})
+			// 	.attr("r", 3);			
 		}
 	});	
 	
