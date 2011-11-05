@@ -19,6 +19,8 @@
 			padding: [10,10,50,50], 
 			width: null,
 			height: null,
+			panx: true,
+			pany: true,
 			// Bar chart / histogram options
 			cumulative: true,
 			stacked: true,
@@ -50,6 +52,8 @@
 			// Account for padding in the output ranges
 			var h = this.options.height - (this.options.padding[0] + this.options.padding[2]);
 			var w = this.options.width - (this.options.padding[1] + this.options.padding[3]);
+			this.w = w;
+			this.h = h;
 			this.x.range([0,w]);
 			this.y.range([h,0]); // flip the coordinates on the Y axis
 
@@ -221,9 +225,6 @@
 			// Update the X and Y axis domains
 			this.x.domain([this.options.xmin, this.options.xmax]);
 			this.y.domain([this.options.ymin, this.options.ymax]);
-
-			console.log(this.x.domain());
-
 			this.svg.select(".x.axis").call(this.xaxis);
 			this.svg.select(".y.axis").call(this.yaxis);
 
@@ -272,46 +273,53 @@
 			var sbins = {};
 			
 			// Get sorted ordinal names from date range
-			var xks = d3.time[this.options.bin+'s'](d3.time.month(this.options.xmin), this.options.xmax);
+			var xkeys = d3.time[this.options.bin+'s'](d3.time.month(this.options.xmin), this.options.xmax);
+			this.xkeys = xkeys;
 			this.options.ymax = 0;
 			
 			// Setup the histogram
+			var ymax = 0;
 			this.zkeys.map(function(z) {
 				sbins[z] = {};
-				xks.map(function(x) {
-					sbins[z][x] = {x:x, y:0, ysum:0, yoff:0}
+				self.xkeys.map(function(x) {
+					sbins[z][x] = {x:x, y:0, y1:0, yoff:0}
 				})
 				d3.values(bins[z]).map(function(d) {
 					var x = d3.time.month(self.fx(d));
 					sbins[z][x].y += 1
+					sbins[z][x].y1 += 1
+					if (sbins[z][x].y > ymax) {ymax = sbins[z][x].y}
 				});
 			});
 
+			// Update the domain
+			this.options.ymin = 0;
+			this.options.ymax = ymax;
+
 			// Cumulative
+			// this.options.cumulative = false;
+			// this.options.stacked = false;
+			
 			if (this.options.cumulative) {
 				this.zkeys.map(function(z) {
 					var ysum = 0;
-					xks.map(function(x) {
+					self.xkeys.map(function(x) {
 						ysum += sbins[z][x].y || 0;
-						sbins[z][x].ysum = ysum;
+						sbins[z][x].y1 = ysum;
 					});
-					console.log(ysum);
 					if (ysum > self.options.ymax) {self.options.ymax = ysum}
 				});
 			}
 			if (this.options.stacked) {
-				xks.map(function(x) {
+				self.xkeys.map(function(x) {
 					var yoff = 0;
 					self.zkeys.map(function(z) {
 						sbins[z][x].yoff = yoff;
-						yoff += sbins[z][x].ysum;
+						yoff += sbins[z][x].y1;
 					});
 					if (yoff > self.options.ymax) {self.options.ymax = yoff}				
 				});
 			}
-
-			console.log(this.options.ymax);
-
 			return sbins			
 		},
 
@@ -321,28 +329,51 @@
 		},
 
 		plot: function(recs) {
+			var self = this;
 			var bins = this.group_bin(recs);
+			var w = this.options.width - (this.options.padding[1] + this.options.padding[3]);
+			var binwidth = (w / this.xkeys.length);
 
-			// // Add a group for each cause.
-			// var groups = this.plotarea.selectAll("g.group")
-			// 	.data(this.zkeys)
-			// 	.enter().append("svg:g")
-			// 	.attr("class", "group")
-			// 	.attr('data-bz', function(d,i) {return self.zkeys[i]})
-			// 	.style("fill", function(d, i) {return self.z(i)})
-			// 	.style("stroke", function(d, i) {return d3.rgb(self.z(i))});			
+			// this.zkeys = ['project'];
+			// Update the X and Y axis domains
+			this.x.domain([this.options.xmin, this.options.xmax]);
+			this.y.domain([this.options.ymin, this.options.ymax]);
+			this.svg.select(".x.axis").call(this.xaxis);
+			this.svg.select(".y.axis").call(this.yaxis);
 			
-			// Add a rect for each date.
-			// var rect = groups.selectAll("circle")
-			// 	.data(function(d){return d3.values(bins[d])})
-			// 	.enter().append("svg:circle")
-			// 	.attr("cx", function(d,i) {return self.x(self.fx(d))})
-			// 	.attr("cy", function(d,i) {return self.y(self.fy(d))})
-			// 	.attr('data-x', function(d) {return self.fx(d)})
-			// 	.attr('data-y', function(d) {return self.fy(d)})					
-			// 	.attr('data-z', function(d) {return self.fz(d)})
-			// 	.attr("r", 3);			
+			// // Add a group for each group.
+			var groups = this.plotarea.selectAll("g.group")
+				.data(this.zkeys)
+				.enter().append("svg:g")
+				.attr("class", "group")
+				.attr('data-bz', function(d,i) {return self.zkeys[i]})
+				.style("fill", function(d, i) {return self.z(i)})
+				.style("stroke", function(d, i) {return d3.rgb(self.z(i))});
+			
+			// Add recs for each bin in each group.
+			var rect = groups.selectAll("rect")
+				.data(function(d){return d3.values(bins[d])})
+				.enter().append("svg:rect")
+				.attr('x', function(d) {return self.x(d.x)})
+				.attr('y', function(d) {return self.y(d.y1)-(self.h-self.y(d.yoff))})
+				.attr('height', function(d) {return self.h-self.y(d.y1)})
+				// .attr("y", function(d) {return self.y(d.yoff)})
+				// .attr("height", function(d) {return self.h-self.y(d.y1)})
+				.attr("width", binwidth)
+				.attr('data-y', function(d) {return d.y})
+				.attr('data-y1', function(d) {return d.y1})
+				.attr('data-yoff', function(d) {return d.yoff});
+		},
+		
+		redraw: function() {			
+			d3.event.translate[1] = 0;
+			d3.event.transform(this.x);
+			var scale = d3.event.scale;
+			var trans = d3.event.translate;
+			this.svg.select(".x.axis").call(this.xaxis);
+			this.plotarea.attr('transform', 'matrix('+scale+' 0 0 1 '+trans[0]+' '+trans[1]+')');
 		}
+		
 	});	
 	
 })(jQuery);
