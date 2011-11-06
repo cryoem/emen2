@@ -2,7 +2,6 @@
 <%inherit file="/pages/record" />
 <%namespace name="buttons" file="/buttons"  /> 
 
-
 <%block name="js_ready">
 	${parent.js_ready()}
 
@@ -11,7 +10,7 @@
 	var ptest = ${jsonrpc.jsonutil.encode(rec.ptest())}
 	
 	// Change View
-	$('#e2-editbar-record [data-viewname]').click(function(){
+	$('#e2-editbar[data-group=record] [data-viewname]').click(function(){
 		var target = $("#rendered");
 		var viewname = $(this).attr('data-viewname') || 'recname';
 		target.attr("data-viewname", viewname);
@@ -25,9 +24,9 @@
 	$('.e2-tile').TileControl({'mode':'cached'});
 		
 	// Intialize the Tab controller
-	var tab = $("#e2-editbar-record");		
+	var tab = $(".e2-editbar[data-group=record]");		
 	tab.TabControl({
-		##absolute: true
+		## absolute: true
 	});
 
 	// Editor
@@ -106,19 +105,10 @@
 	
 </%block>
 
-<%block name="css_inline">
-	#content {
-		padding: 0px;
-	}
-	#rendered {
-		padding: 10px;
-	}
-</%block>
 
-
-
-<div class="e2-tab e2-editbar" id="e2-editbar-record" data-group="editbar">
-
+## The only way I can have the nice gradient is if I
+## put the tab ul and the page divs in separate containers...
+<div class="e2-tab e2-editbar" data-group="record">
 	<ul class="e2l-cf">
 
 		## Bookmarks
@@ -133,7 +123,7 @@
 				</span>		
 			</li>
 		% endif
-	
+
 		## Edit Record
 		% if rec.writable():
 			<li data-tab="edit">
@@ -190,7 +180,7 @@
 			"dicttable": "Key/value table (dicttable)",
 			"defaultview": "Default view"
 		}
-	
+
 		historycount = len(rec.get('history',[]))
 		historycount += len(filter(lambda x:x[2].startswith("LOG:"), rec.get('comments',[])))
 		lastitem = 'comments'
@@ -220,7 +210,7 @@
 				<a href="#siblings">${pos+1} of ${len(siblings)}</a>
 			</li>
 		% endif
-	
+
 		## Comments!
 		<%
 		comments = filter(lambda x:not x[2].startswith('LOG'), rec.get('comments', []))
@@ -232,27 +222,28 @@
 				% else:
 					${rec.get('creator')} @ ${rec.get('creationtime', '')[:10]}
 				% endif
-			
+		
 				<span id="e2l-editbar-historycount">
 				% if historycount:
 					<img id="e2l-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edits" />
 					${historycount}
 				% endif
 				</span>
-			
+		
 				<span id="e2l-editbar-commentcount">
 				% if comments:
 					<img id="e2l-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/comment.png" alt="Comments" />
 					${len(comments)}
 				% endif
 				</span>
-			
+		
 				${buttons.caret()}
 			</a>
 		</li>
 	</ul>
-	
-	
+</div>
+
+<div class="e2-tab" data-group="record">
 	<div data-tab="edit"></div>
 	
 	<div data-tab="new"></div>

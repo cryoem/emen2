@@ -1,16 +1,6 @@
 <%inherit file="/css/colors.css" />
 <%block name="BODY">#BBDAEE</%block>
 
-th {
-	font-weight:normal;
-	text-align:left;
-	border-right:solid 1px <%self:LIGHTEST />;
-}
-
-ul {
-	margin-top:0px;
-}
-
 /***** Layouts *****/
 
 /* body and top level containers */
@@ -20,34 +10,11 @@ body
 	font-family: arial, Verdana, Helvetica, sans-serif;
 	margin:0px;
 	padding:0px;
-	background: <%self:BODY />
 }
 
-/* Title and precontent set a background color */
-#container {
-	width:1000px;
-	margin-left:auto;
-	margin-right:auto;
+a, .e2l-a {
+	color: #202060;
 }
-#content {
-    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
-    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
-    box-sizing: border-box;         /* Opera/IE 8+ */
-	padding:10px;
-	padding-bottom:100px;
-	margin-bottom:20px;
-}
-#footer {
-	display:none;
-}
-
-
-#nav, #content, #footer, .e2-map {
-	background:white;
-}
-
-
-/******* TOP LEVEL ELEMENTS *******/
 
 img {
 	border: none;
@@ -63,20 +30,75 @@ td
 	padding: 4px;
 	vertical-align: top;
 }
+th {
+	font-weight:normal;
+	text-align:left;
+	border-right:solid 1px <%self:LIGHTEST />;
+}
+
+ul {
+	margin-top:0px;
+}
 
 
-/************* NAV BAR ************/
+/* Container elements: left-right margin */
+
+#precontent {
+	background: <%self:BODY />;
+	padding-top: 10px;
+}
+
+#nav ul,
+#precontent > .e2-map-main,
+#precontent > .e2-alert-main,
+#precontent > .e2-tab-main,
+#content,
+#rendered,
+#e2-editbar-record > ul,
+#e2-editbar-record > div
+{
+	width: 1000px;
+	margin-left: auto;
+	margin-right: auto;
+}
+.e2-map-main {
+	background: white;
+	padding: 4px;
+	font-size: 10pt;
+	-moz-border-radius: 8px;
+	-webkit-border-radius: 8px;
+}
+.e2l-narrow {
+
+}
+
+/* Basic layout */
+#content {
+	padding:10px;
+	padding-bottom:100px;
+	margin-bottom:20px;
+}
+
+#footer {
+	display:none;
+}
+
+
+
+/***** Nav bar *****/
 
 #nav {
+	background:white;
 	margin:0px;
+	border-bottom:solid 2px #ccc;
 }
-#nav a {
+#nav > ul a {
 	padding:8px;
 }
-#nav li ul {
+#nav > ul li ul {
 	padding:0px;
 }
-#nav li:last-child ul {
+#nav > ul li:last-child ul {
 	right:0px;
 }
 #nav #logo {
@@ -90,22 +112,24 @@ td
 
 
 
-/***** tweaks ********/
+/***** Main tabs ********/
 
-.e2-map-parents {
-	margin:20px;
-	margin-left: 0px;
-	margin-right: 0px;
-}
+
 .e2-tab-main > ul {
+	margin-top:10px;
 	border:none;
 }
+
 .e2-tab-main > ul > li {
+	padding:4px;
 	border:none;
+	-moz-border-radius-topright: 8px;
+	-moz-border-radius-topleft: 8px; 
+	-webkit-border-top-right-radius: 8px;
+	-webkit-border-top-left-radius: 8px;
 }
 
-
-/***** Control Styling ********/
+/***** Input control Styling ********/
 
 button,
 select,
@@ -156,6 +180,9 @@ input.e2l-cancel {
 	background-color: #eee;
 	color: #666;
 }
+
+
+
 
 
 <%!

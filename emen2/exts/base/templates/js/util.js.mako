@@ -124,7 +124,7 @@ window.log = function(){
 			});		
 		});
 		msg.append(killbutton);
-		$("#e2l-alert").append(msg); //.fadeIn();	
+		$("#container > .e2-alert").append(msg); //.fadeIn();	
 	}
 	
 	// Convert a byte count to human friendly

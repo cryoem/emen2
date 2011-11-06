@@ -4,13 +4,19 @@
 
 <%block name="css_inline">
 	${parent.css_inline()}
+	#content {
+		width: auto;
+		padding: 0px;
+	}
+	#rendered {
+		padding: 10px;
+	}
 </%block>
-
 
 ## Relationship Map
 <%block name="precontent">
 	${parent.precontent()}
-	${parentmap}		
+	<div class="e2-map-main">${parentmap}</div>
 </%block>
 
 

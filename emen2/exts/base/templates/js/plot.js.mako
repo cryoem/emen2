@@ -1,4 +1,30 @@
 (function($) {
+	$.widget('emen2.PlotControl', {
+		options: {
+			// Options are passed to the plot
+		},
+		
+		_create: function() {
+			this.built = 0;
+			this.build();
+		},
+		
+		build: function() {
+			var plot = $('<div class="e2-plot"></div>');
+			this.element.append(plot);
+			plot.PlotScatter({
+				'width': 1000,
+				'xkey': 'ctf_bfactor',
+				'ykey': 'ctf_defocus_measured'
+			});
+		},
+		
+		update: function(recs) {
+			
+		}
+
+	});
+	
    $.widget('emen2.PlotBase', {
 		options: {
 			q: null,
@@ -58,7 +84,8 @@
 			this.y.range([h,0]); // flip the coordinates on the Y axis
 
 			// Create the SVG element
-			this.svg = d3.select("#chart").append("svg:svg")
+			this.svg = d3.select('.e2-plot')
+				.append("svg:svg")
 				.attr("width", this.options.width)
 				.attr("height", this.options.height)
 				.call(d3.behavior.zoom().on("zoom", function(){self.redraw()}))

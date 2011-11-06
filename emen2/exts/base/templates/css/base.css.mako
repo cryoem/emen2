@@ -5,6 +5,10 @@ body {
 	font-family: sans-serif;
 }
 
+table {
+	width: 100%;
+}
+
 /* Paragraphs and uls have an irritating default margin */
 ul {
 	margin-top: 0px;
@@ -93,12 +97,12 @@ h4 .e2l-label {
 	float: right;
 }
 
-/* e2l-alert: Alerts, notifications, and errors */
-.e2l-alert {
+/* e2-alert: Alerts, notifications, and errors */
+.e2-alert {
 	list-style: none;
 	padding-left: 0px;
 }
-.e2l-alert > li {
+.e2-alert > li {
 	list-style: none;
 	padding-left: 0px;
 	border: solid 2px <%self:ADDED />;
@@ -107,7 +111,7 @@ h4 .e2l-label {
 }
 
 input.e2l-error, 
-.e2l-alert > li.e2l-error
+.e2-alert > li.e2l-error
 {
 	border: solid 2px <%self:REMOVED />;
 }
@@ -319,15 +323,15 @@ h4
 
 
 /* e2-editbar: Editing Bar */
-.e2-editbar > ul {
+.e2-editbar {
 	border-bottom: solid 1px #ccc;
 	background-image: -moz-linear-gradient(#fff, #fff, #eee);
 }
-.e2-editbar > ul > li {
+.e2-editbar ul > li {
 	border-right: solid 1px #ccc;
 	margin-bottom:-1px;
 }
-.e2-editbar > ul > li.e2l-float-right {
+.e2-editbar ul > li.e2l-float-right {
 	border-left: solid 1px #ccc;
 	border-right: none;
 }
@@ -338,7 +342,7 @@ h4
 	background: #eee;
 }
 .e2-editbar li.e2-tab-active {
-	background: #eee;
+	background: #f4f4f4;
 }
 .e2-editbar div.e2-tab-active {
 	display: block;
@@ -689,6 +693,31 @@ textarea.e2l-fw {
 	margin-right: 2px;
 	margin-bottom: 2px;
 }
+
+/***** Plots *****/
+
+path.line {
+  fill: none;
+  stroke: #666;
+  stroke-width: 1.5px;
+}
+
+path.area {
+  fill: #e7e7e7;
+}
+
+.axis {
+  shape-rendering: crispEdges;
+}
+.axis line {
+  stroke-opacity: .1;
+  stroke: #000;
+}
+.axis path {
+  fill: none;
+  stroke: #000;
+}
+
 
 
 /***** jQuery UI Overrides *****/

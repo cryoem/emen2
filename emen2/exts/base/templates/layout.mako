@@ -27,10 +27,13 @@
 	<%block name="header">
 		<%include file="/header" />
 	</%block>
+	
+	<div id="precontent">
 
 	## Alerts and notifications
 	<%block name="alert">
-		<ul id="e2l-alert" class="e2l-alert e2l-precontent">
+		<ul class="e2-alert e2-alert-main">
+			<li>Test</li>
 			% for msg in NOTIFY:
 			   <li>${msg}</li>
 			% endfor
@@ -47,6 +50,8 @@
 	<%block name="tabs">
 		${buttons.newtabs(pages or context.get('title','No Title'), cls='e2-tab-main')}
 	</%block>
+
+	</div>
 
 	<div id="content">
 		${next.body()}
