@@ -22,7 +22,7 @@ def resolve(name=None, path=None):
 	callable that will instantiate the View and run the View's method.
 
 	Example:
-	
+
 	# Get the callback
 	cb, kwargs = routing.resolve(path='/record/1')
 
@@ -33,7 +33,7 @@ def resolve(name=None, path=None):
 	view = cb(db=db)(**kwargs)
 
 	# Render the View
-	print view	
+	print view
 	"""
 	return Router.resolve(name=name, path=path)
 
@@ -48,12 +48,12 @@ def execute(_execute_name, db=None, *args, **kwargs):
 	view.init()
 	method(view, *args, **kwargs)
 	return view
-	
-	
+
+
 # def execute_path(_execute_path, db=None, *args, **kwargs):
 # 	"""Find and execute a route by a path URI.
 # 	The route path (e.g. '/home/') must be the first positional argument.
-# 	"""	
+# 	"""
 # 	cb, matched = Router.resolve(path=_execute_path)
 # 	matched.update(kwargs)
 # 	view = cb(db=db)(*args, **kwargs)
@@ -63,15 +63,15 @@ def execute(_execute_name, db=None, *args, **kwargs):
 
 def reverse(*args, **kwargs):
 	return Router.reverse(*args, **kwargs)
-	
+
 
 def add(*args, **kwargs):
-	pass	
-	
+	pass
+
 
 class Route(object):
 	"""Private"""
-	
+
 	def __init__(self, name, matcher, cls=None, method=None):
 		# print "Route:", name, matcher, cb
 		self.name = name
@@ -80,7 +80,7 @@ class Route(object):
 		self.matcher = matcher
 		self.cls = cls
 		self.method = method
-		
+
 	def match(self, path):
 		result = None
 		match = self.matcher.match(path)
@@ -94,7 +94,7 @@ class Route(object):
 @emen2.util.registry.Registry.setup
 class Router(emen2.util.registry.Registry):
 	"""Private"""
-	
+
 	_prepend = ''
 	events = emen2.web.events.EventRegistry()
 	child_class = Route
@@ -106,10 +106,10 @@ class Router(emen2.util.registry.Registry):
 	# Default route
 	def get_default(self):
 		return self._default
-	
+
 	def set_default(self, value):
 		self._default = bool(value)
-	
+
 	default = property(get_default, set_default)
 
 
@@ -122,11 +122,11 @@ class Router(emen2.util.registry.Registry):
 	# Find a match for a path
 	@classmethod
 	def resolve(cls, path=None, name=None):
-		"""Resolve a route by either request path or route name. 
-		Returns (class, method) of the matching route. 
+		"""Resolve a route by either request path or route name.
+		Returns (class, method) of the matching route.
 		Keywords found in the match will be bound to the method.
 		"""
-		
+
 		if (not path and not name) or (path and name):
 			raise ValueError, "You must specify either a path or a name"
 
@@ -178,7 +178,7 @@ class Router(emen2.util.registry.Registry):
 		anchor = kwargs.pop('anchor', '')
 		if anchor:
 			anchor = '#%s'%(anchor)
-		
+
 		name = args[0].split('/',1)
 		if len(name) == 1:
 			name.append('main')

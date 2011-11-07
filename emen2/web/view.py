@@ -116,7 +116,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 
 	# Basic properties
 	title = property(
-		lambda self: self.ctxt.get('title'), 
+		lambda self: self.ctxt.get('title'),
 		lambda self, value: self.ctxt.set('title',value))
 
 	template = property(
