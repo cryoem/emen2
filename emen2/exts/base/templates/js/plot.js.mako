@@ -2,6 +2,9 @@
 	$.widget('emen2.PlotControl', {
 		options: {
 			// Options are passed to the plot
+			// Options will be updated and changed through plot interactions
+			'xkey': 'ctf_bfactor',
+			'ykey': 'ctf_defocus_measured'
 		},
 		
 		_create: function() {
@@ -10,17 +13,124 @@
 		},
 		
 		build: function() {
-			var plot = $('<div class="e2-plot"></div>');
-			this.element.append(plot);
-			plot.PlotScatter({
-				'width': 1000,
-				'xkey': 'ctf_bfactor',
-				'ykey': 'ctf_defocus_measured'
+			this.build_plot();
+			this.build_controls();
+		},
+		
+		build_plot: function(opts) {
+			$('.e2-plot', this.element).remove();
+			var w = this.element.parent().width(); // hack
+			var plotelem = $('<div class="e2-plot e2l-float-left"></div>');
+			plotelem.width(w-300);
+			this.element.append(plotelem);
+			this.options.controls = this;
+			plotelem.PlotScatter(this.options);
+			this.plot = plotelem.data('PlotScatter');
+		},
+		
+		build_controls: function() {
+			var self = this;
+			var controls = $(' \
+				<ul class="e2-plot-controls"> \
+				</ul>');				
+			var x = $('<li data-controls="x"></li>');
+			var y = $('<li data-controls="y"></li>');
+			var z = $('<li data-controls="z"></li>');
+			controls.append(x, y, z);
+			controls.append('<li><input type="button" name="apply" value="Apply" class="e2l-float-right" /></li>');
+			this.element.append(controls);
+			$('input[name=apply]', controls).click(function(e) {self.apply()});
+			this.build_continuous('x');
+			this.build_continuous('y');
+			this.build_discrete('z');
+		},
+		
+		build_continuous: function(axis) {
+			var c = $('[data-controls='+axis+']');
+			c.append('<h4>'+axis.toUpperCase()+'</h4>');
+			c.append('<div>Param: <input type="text" value="'+this.plot.options[axis+'key']+'" style="width:150px"/></div>');
+			c.append('<div>Min: <input type="text" name="'+axis+'min" value="" class="e2-plot-bounds" /> Max: <input type="text" name="'+axis+'max" class="e2-plot-bounds" /></div>');
+			var bins = $('<div>Bin: </div>');
+			this.build_bins(bins);
+			c.append(bins);
+		},
+		
+		build_discrete: function(axis) {
+			var self = this;
+			var c = $('[data-controls='+axis+']');
+			c.append('<h4>'+axis.toUpperCase()+'</h4>');			
+			c.append('<div>Parameter: <input type="text" value="'+this.plot.options[axis+'key']+'" /></div>');
+			var table = $('<table cellpadding="0" cellpadding="0"><tbody></tbody></table>');
+			var tb = $('tbody', table);
+			var zkeys = ['ccd', 'scan'];
+			zkeys.map(function(z) {
+				var row = $('<tr></tr>');
+				// Show/hide
+				row.append('<td><input type="checkbox" checked="checked" name="'+z+'" /></td>');
+				// Name
+				row.append('<td>'+z+'</td>')
+				// Markers
+				var sel = $('<select name="'+axis+'marker"></select>');
+				var td = $('<td></td>');
+				self.build_markers(sel);
+				td.append(sel);
+				row.append(td);				
+				// Colors
+				row.append('<td>C</td>');
+				tb.append(row);
+			});
+			c.append(table);
+		},
+		
+		build_markers: function(sel) {
+			var markers = ['o', 'x', '+', '-'];
+			markers.map(function(m) {
+				sel.append('<option value="'+m+'">'+m+'</option>');
 			});
 		},
 		
-		update: function(recs) {
-			
+		build_bins: function(bins, vartype) {
+			var btime = ['second', 'minute', 'hour', 'day', 'month', 'year'];
+			var bsel = $('<select></select>');
+			bsel.append('<option value=""></option>');
+
+			var b = [5, 10, 20, 50, 100];
+			b.map(function(t) {
+				bsel.append('<option value="'+t+'">'+t+'</option>');
+			});			
+			bins.append(bsel);
+
+			bins.append(' or ');
+			if (vartype == 'time') {
+				var bsel2 = $('<select></select>');
+				btime.map(function(t) {
+					bsel2.append('<option value="'+t+'">'+t+'</option>');
+				});
+				bins.append(bsel2);
+			} else {
+				var bsel2 = $('<input type="text" class="e2-plot-bounds" />');
+				bins.append('width: ');
+				bins.append(bsel2);
+			}
+
+		},
+		
+		update: function() {
+			$('input[name=xmin]', this.element).val(this.plot.options.xmin);
+			$('input[name=xmax]', this.element).val(this.plot.options.xmax);
+			$('input[name=ymin]', this.element).val(this.plot.options.ymin);
+			$('input[name=ymax]', this.element).val(this.plot.options.ymax);
+		},
+		
+		apply: function() {
+			var opts = {};
+			$.extend(opts, this.plot.options);
+			opts.xmin = $('input[name=xmin]', this.element).val();
+			opts.xmax = $('input[name=xmax]', this.element).val();
+			opts.ymin = $('input[name=ymin]', this.element).val();
+			opts.ymax = $('input[name=ymax]', this.element).val();
+			this.options = opts;
+			this.build_plot();
 		}
 
 	});
@@ -56,8 +166,8 @@
 		_create: function() {
 			this.built = 0;
 			this.options.width = $.checkopt(this, 'width', this.element.width()); // -300
-			this.options.height = $.checkopt(this, 'height', 600);
-			this.setup();			
+			this.options.height = $.checkopt(this, 'height', 500);
+			this.setup();
 
 			// Keys
 			this.xkeys = [];
@@ -92,6 +202,12 @@
 				.append("svg:g")
 				.attr("transform", 'translate('+this.options.padding[1]+','+this.options.padding[0]+')')
 
+			// Background for plot
+			this.svg.append('svg:rect')
+				.attr('width', this.w)
+				.attr('height', this.h)
+				.attr('class', 'e2-plot-bg');
+
 			// Add the x-axis.
 			this.svg.append("svg:g")
 				.attr("class", "x axis")
@@ -104,8 +220,14 @@
 				.attr("transform", "translate(" + w + ",0)")
 				.call(this.yaxis);
 
-			this.plotarea = this.svg.append("svg:g")
-				.attr('class', 'e2-plot-area');
+			this.plotarea = this.svg.append("svg:svg")
+				.attr('x', 0)
+				.attr('y', 0)
+				.attr('width', this.w)
+				.attr('height', this.h)
+				.style('overflow', 'hidden')
+				.append('svg:g')
+				.attr('class', 'e2-plot-area')
 
 			// Run the query and plot the result
 			this.query(function(q){self.plot(q)});
@@ -288,9 +410,18 @@
 			this.svg.select(".x.axis").call(this.xaxis);
 			this.svg.select(".y.axis").call(this.yaxis);
 			this.plotarea.attr('transform', 'matrix('+scale+' 0 0 '+scale+' '+trans[0]+' '+trans[1]+')');
+
+			var xd = this.x.domain();
+			this.options.xmin = d3.min(xd);
+			this.options.xmax = d3.max(xd);
+			var yd = this.y.domain();
+			this.options.ymin = d3.min(yd);
+			this.options.ymax = d3.max(yd);
+			
+			if (this.options.controls) {
+				this.options.controls.update();
+			}			
 		}
-		
-		
 	});
 	
 	$.widget('emen2.PlotHistogram', $.emen2.PlotBase, {
@@ -347,7 +478,7 @@
 					if (yoff > self.options.ymax) {self.options.ymax = yoff}				
 				});
 			}
-			return sbins			
+			return sbins
 		},
 
 		fx: function(d) {

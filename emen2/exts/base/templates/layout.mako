@@ -32,8 +32,7 @@
 
 	## Alerts and notifications
 	<%block name="alert">
-		<ul class="e2-alert e2-alert-main">
-			<li>Test</li>
+		<ul class="e2-alert e2-alert-main" role="alert">
 			% for msg in NOTIFY:
 			   <li>${msg}</li>
 			% endfor
@@ -53,7 +52,7 @@
 
 	</div>
 
-	<div id="content">
+	<div id="content" role="main">
 		${next.body()}
 	</div>
 

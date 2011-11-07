@@ -1,6 +1,6 @@
 <%namespace name="buttons" file="/buttons"  />
 
-<div id="nav">
+<div id="nav" role="nav">
 	<ul class="e2l-menu e2l-cf">
 
 		<li>
@@ -52,7 +52,7 @@
 			</li>
 		% endif
 
-		<li class="e2l-float-right nohover">
+		<li class="e2l-float-right nohover" role="search">
 			<form method="get" action="${EMEN2WEBROOT}/query/">
 				## type="search"
 				<input type="text" name="q" size="8" placeholder="Search" id="e2-header-search" />

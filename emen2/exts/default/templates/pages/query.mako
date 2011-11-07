@@ -18,9 +18,11 @@
 
 	<div class="e2-query">
 
-		<div class="e2-tab e2-editbar">
-			<ul class="e2-query-header e2l-cf"></ul>
+		<div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tab">
+			<ul class="e2-query-header e2l-cf" role="tablist"></ul>
 		</div>
+		<div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tabpanel"></div>
+
 
 		## This form is used for editing table cells
 		<form class="e2-query-tableform" method="post" action="${ctxt.reverse('Records/edit')}">

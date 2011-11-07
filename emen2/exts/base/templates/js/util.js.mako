@@ -327,16 +327,26 @@ window.log = function(){
 	// EMEN2 Tabs
 	// Works somewhat like jQuery-UI Tabs -- uses
 	//		basically the same markup
+	// This control uses the role= attribute to identify components
+	// roles: tablist, tabpanel
 	$.widget('emen2.TabControl', {
 		options: {
 			active: 'e2-tab-active',
 			absolute: false,
 			cbs: {},
-			hidecbs: {}
+			hidecbs: {},
+			tabgroup: null
 		},
 		
 		_create: function() {
 			this.built = 0;
+			this.options.tabgroup = $.checkopt(this, 'tabgroup');
+			this.tablist = this.element.children('ul');
+			this.tabpanel = this.element;
+			var tablist = $('[data-tabgroup='+this.options.tabgroup+'][role=tablist]');
+			var tabpanel = $('[data-tabgroup='+this.options.tabgroup+'][role=tabpanel]');
+			if (tablist.length) {this.tablist = tablist}
+			if (tabpanel.length) {this.tabpanel = tabpanel}
 			this.build();
 		},
 
@@ -352,7 +362,7 @@ window.log = function(){
 		build: function() {
 			if (this.built){return}
 			var self = this;
-			$('li[data-tab]', this.element).click(function(e){
+			$('li[data-tab]', this.tablist).click(function(e){
 				var tab = $(this).attr('data-tab');
 				var hc = $(this).hasClass(self.options.active);
 				if (hc) {
@@ -376,10 +386,10 @@ window.log = function(){
 		
 		hide: function(tab) {
 			var self = this;
-			$('li.'+this.options.active, this.element).each(function() {
+			$('li.'+this.options.active, this.tablist).each(function() {
 				var t = $(this);
 				var tab = t.attr('data-tab');
-				var p = $('div[data-tab='+tab+']', self.element);
+				var p = $('[data-tab='+tab+']', self.tabpanel);
 				t.removeClass(self.options.active);
 				p.removeClass(self.options.active);
 				var cb = self.options.hidecbs[tab];
@@ -392,36 +402,36 @@ window.log = function(){
 		},
 
 		show: function(tab) {
-			var t = $('li[data-tab='+tab+']', this.element);
+			var t = $('li[data-tab='+tab+']', this.tablist);
 			if (!t.length) {
 				return
 			}
-			var p = $('div[data-tab='+tab+']', this.element);
+			var p = $('div[data-tab='+tab+']', this.tabpanel);
 			if (!p.length) {
 				var p = $('<div data-tab="'+tab+'"></div>');
-				this.element.append(p);
+				this.tabpanel.append(p);
 			}
 			
 			p.addClass('e2l-cf');
 
 			// Menu-style -- float above content
-			if (this.options.absolute) {
-				// Set the position
-				var pos = t.position();
-				var height = t.height();
-				var width = t.width();
-				p.css('position', 'absolute');
-				p.css('top', pos.top + height);
-
-				// Is it right aligned?
-				var align = t.css('float');				
-				if (align=='left') {
-					p.css('left', pos.left-1);					
-				} else {
-					var parentwidth = p.parent().width();
-					p.css('right', parentwidth-(width+pos.left)-2);
-				}
-			}
+			// if (this.options.absolute) {
+			// 	// Set the position
+			// 	var pos = t.position();
+			// 	var height = t.height();
+			// 	var width = t.width();
+			// 	p.css('position', 'absolute');
+			// 	p.css('top', pos.top + height);
+			// 
+			// 	// Is it right aligned?
+			// 	var align = t.css('float');				
+			// 	if (align=='left') {
+			// 		p.css('left', pos.left-1);					
+			// 	} else {
+			// 		var parentwidth = p.parent().width();
+			// 		p.css('right', parentwidth-(width+pos.left)-2);
+			// 	}
+			// }
 			
 			// Run any callbacks
 			var cb = this.options.cbs[tab];

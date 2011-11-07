@@ -478,17 +478,19 @@
 			ul.append(count);
 			
 			// Pages
-			ul.append('<li class="e2l-float-right e2-query-pages"></li>');
+			ul.append('<li data-tab="pages" class="e2l-float-right"></li>');
 
 			// Activity spinner
-			ul.append('<li class="e2l-float-right e2-query-activity"><span>'+$.e2spinner(false)+'</span></li>');
+			ul.append('<li data-tab="activity" class="e2l-float-right" style="display:none"><span>'+$.e2spinner(true)+'</span></li>');
 			
 			// Create new record
 			// if (this.options.rectype && this.options.parent != null) {
-			if (this.options.create && this.options.rectype != null && this.options.parent != null) {
+			if (1) { // (this.options.create && this.options.rectype != null && this.options.parent != null) {
 				var create = $(' \
-					<li class="e2l-float-right"> \
-						<span><input class="e2l-small" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" type="button" value="New '+this.options.rectype+'" /></span> \
+					<li data-tab="create" class="e2l-float-right"> \
+						<span> \
+							<input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
+						</span> \
 					</li>');
 				ul.append(create);
 			}			
@@ -597,7 +599,7 @@
 			this.update_controls();
 			this.rebuild_table();
 			this.options.q['stats'] = true;
-			$('.e2-query-activity .e2l-spinner', this.element).hide();					
+			$('[data-tab=activity]', this.element).hide();					
 		},	
 		
 		update_controls: function() {

@@ -54,12 +54,15 @@ ul {
 #precontent > .e2-tab-main,
 #content,
 #rendered,
-#e2-editbar-record > ul,
-#e2-editbar-record > div
+.e2-tab-editbar > ul,
+.e2-tab-editbar > div
 {
 	width: 1000px;
 	margin-left: auto;
 	margin-right: auto;
+}
+.e2-tab-editbar[data-tabgroup=query] > div {
+	width: auto;
 }
 .e2-map-main {
 	background: white;
@@ -113,7 +116,6 @@ ul {
 
 
 /***** Main tabs ********/
-
 
 .e2-tab-main > ul {
 	margin-top:10px;

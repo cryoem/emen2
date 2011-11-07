@@ -322,30 +322,37 @@ h4
 }
 
 
-/* e2-editbar: Editing Bar */
-.e2-editbar {
+/* e2-tab-editbar: Editing Bar */
+.e2-tab-editbar[role=tab] {
 	border-bottom: solid 1px #ccc;
 	background-image: -moz-linear-gradient(#fff, #fff, #eee);
 }
-.e2-editbar ul > li {
+.e2-tab-editbar > ul > li {
 	border-right: solid 1px #ccc;
 	margin-bottom:-1px;
 }
-.e2-editbar ul > li.e2l-float-right {
+.e2-tab-editbar > ul > li.e2l-float-right {
 	border-left: solid 1px #ccc;
 	border-right: none;
 }
-.e2-editbar > div {
+.e2-tab-editbar > ul input,
+.e2-tab-editbar > ul select {
+	vertical-align: top;
+	font-size: 10pt;
+	margin: 0px;
+	padding: 0px;
+}
+.e2-tab-editbar > div {
 	padding:10px;
 	border: solid 1px #ccc;
 	border-top: none;
-	background: #eee;
 }
-.e2-editbar li.e2-tab-active {
+.e2-tab-editbar li.e2-tab-active {
 	background: #f4f4f4;
 }
-.e2-editbar div.e2-tab-active {
+.e2-tab-editbar div.e2-tab-active {
 	display: block;
+	background: #f4f4f4;
 }
 
 
@@ -717,8 +724,18 @@ path.area {
   fill: none;
   stroke: #000;
 }
-
-
+.e2-plot-bg {
+	fill: white;
+}
+.e2-plot-controls {
+	float:right;
+	width:250px;
+	list-style:none;
+	padding-left:0px;
+}
+.e2-plot-controls input.e2-plot-bounds {
+	width:50px;
+}
 
 /***** jQuery UI Overrides *****/
 

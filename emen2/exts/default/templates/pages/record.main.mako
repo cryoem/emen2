@@ -10,7 +10,7 @@
 	var ptest = ${jsonrpc.jsonutil.encode(rec.ptest())}
 	
 	// Change View
-	$('#e2-editbar[data-group=record] [data-viewname]').click(function(){
+	$('#e2-editbar[data-tabgroup=record] [data-viewname]').click(function(){
 		var target = $("#rendered");
 		var viewname = $(this).attr('data-viewname') || 'recname';
 		target.attr("data-viewname", viewname);
@@ -18,16 +18,14 @@
 	});
 
 	// Bookmarks control
-	$('#e2l-editbar-record-setbookmark').BookmarksControl({'mode':'toggle'});
+	// $('#e2l-editbar-record-setbookmark').BookmarksControl({'mode':'toggle'});
 
 	// Tile browser
 	$('.e2-tile').TileControl({'mode':'cached'});
 		
 	// Intialize the Tab controller
-	var tab = $(".e2-editbar[data-group=record]");		
-	tab.TabControl({
-		## absolute: true
-	});
+	var tab = $("#e2-tab-editbar");		
+	tab.TabControl({});
 
 	// Editor
 	tab.TabControl('setcb', 'edit', function(page) {
@@ -108,8 +106,8 @@
 
 ## The only way I can have the nice gradient is if I
 ## put the tab ul and the page divs in separate containers...
-<div class="e2-tab e2-editbar" data-group="record">
-	<ul class="e2l-cf">
+<div id="e2-tab-editbar" class="e2-tab e2-tab-editbar" data-tabgroup="record" role="tab">
+	<ul class="e2l-cf" role="menubar tablist" data-tabgroup="record">
 
 		## Bookmarks
 		% if USER:
@@ -243,7 +241,7 @@
 	</ul>
 </div>
 
-<div class="e2-tab" data-group="record">
+<div class="e2-tab e2-tab-editbar" data-tabgroup="record" role="tabpanel">
 	<div data-tab="edit"></div>
 	
 	<div data-tab="new"></div>
@@ -295,8 +293,6 @@
 			<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/creator.is.${rec.get('creator')}/">${rec.rectype} records, created by ${rec.get('creator')}</a></li>
 		</ul>				
 	</div>	
-	
-	
 </div>
 
 
