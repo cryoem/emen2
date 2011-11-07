@@ -1279,8 +1279,6 @@ class DB(object):
 	@publicmethod("record.query")
 	def query(self,
 			c=None,
-			boolmode="AND",
-			ignorecase=True,
 			pos=0,
 			count=0,
 			sortkey="creationtime",
@@ -1288,6 +1286,8 @@ class DB(object):
 			recs=False,
 			table=False,
 			stats=False,
+			boolmode="AND",
+			ignorecase=True,
 			ctx=None,
 			txn=None,
 			**kwargs):
@@ -1338,8 +1338,6 @@ class DB(object):
 		{'names':[1,2], 'recs':{1:{'creator':'ian'}, 2:{'creator':'ian'}}, stats: {...}, time: 0.001, ...}
 		
 		:keyparam c: Constraints
-		:keyparam boolmode: AND / OR for each constraint
-		:keyparam ignorecase: Ignore case when comparing strings
 		:keyparam pos: Return results starting from (sorted record name) position
 		:keyparam count: Return a limited number of results
 		:keyparam sortkey: Sort returned records by this param. Default is creationtime.
@@ -1347,12 +1345,13 @@ class DB(object):
 		:keyparam recs: Return record stubs
 		:keyparam table: Return a table
 		:keyparam stats: Return statistics
+		:keyparam boolmode: AND / OR for each constraint
+		:keyparam ignorecase: Ignore case when comparing strings
 		:return: A dictionary containing the original query arguments, and the result in the 'names' key
 		:exception KeyError: Broken constraint
 		:exception ValidationError: Broken constraint
 		:exception SecurityError: Unable to access specified RecordDefs or other constraint parameters.
 		"""
-		# :keyparam subset: Restrict search to a subset of records
 
 		##### Step 0. Setup
 		# timing results
@@ -1421,19 +1420,19 @@ class DB(object):
 		t = clock(times, 3, t)
 		# Did we already get the rectypes?
 		rds = set([rec.get('rectype') for rec in recs.values()]) - set([None])
-		if len(rds) == 0:
-			# No, we need to group the result..
-			if returnstats: # don't do this unless we need the records grouped.
-				r = self.bdbs.record.groupbyrectype(names, ctx=ctx, txn=txn)
-				for k,v in r.items():
-					rectypes[k] = len(v)
-		elif len(rds) == 1:
+		if len(rds) == 1:
 			# Yes, a single type
 			rectypes[rds.pop()] = len(names)
 		elif len(rds) > 1:
 			# Yes, group them directly
 			for name, rec in recs.iteritems():
 				rectypes[rec.get('rectype')] += 1
+		else:
+			# No, we need to group the result..
+			if returnstats: # don't do this unless we need the records grouped.
+				r = self.bdbs.record.groupbyrectype(names, ctx=ctx, txn=txn)
+				for k,v in r.items():
+					rectypes[k] = len(v)
 
 		##### Step 5: Sort and slice to the right range
 		# This processes the values for sorting:
@@ -1442,37 +1441,42 @@ class DB(object):
 		# Sort by the rendered value.. todo: use table= keyword
 		keytype, sortvalues = self._query_sort(sortkey, names, recs=recs, c=c, ctx=ctx, txn=txn)
 
-		# Create a function for sorting
+		# Create a sort comparison function
 		key = sortvalues.get
 		if sortkey in ['creationtime', 'recid', 'name']:
+			# Use the record name as a proxy for creationtime
 			key = None
+			# Newest records first by default
 			if reverse == None:
 				reverse = True
 		elif keytype == 's':
+			# Sort by lower case for string-type params
 			key = lambda name:(sortvalues.get(name) or '').lower()
 
-		# We want to put empty values at the end..
+		# Save empty values to place them at the end 
+		# (empty values will generally sort first)
 		nonenames = set(filter(lambda x:not (sortvalues.get(x) or sortvalues.get(x)==0), names))
 		names -= nonenames
 
 		# Use the sort function
-		# (not using sorted(reverse=reverse) so we can add nonenames at the end
+		# (not using sorted(reverse=reverse) so we can add nonenames at the end)
 		names = sorted(names, key=key)
 		names.extend(sorted(nonenames))
 		if reverse:
 			names.reverse()
 
-		# Before truncating, turn the recs dict into the return recs
+		# Before truncating, turn the recs stub defaultdict into a list
 		for name in names:
 			recs[name]['name'] = name
 		recs = [recs[i] for i in names]
-
-		# Truncate results.
+		
+		# Total number of items found (for statistics)
 		length = len(names)
+		# Truncate results.
 		if count > 0:
 			names = names[pos:pos+count]
 
-		##### Step 6: Rendered....
+		##### Step 6: Render in table format
 		# This is purely a convenience to save a callback
 		t = clock(times, 5, t)
 
@@ -1516,15 +1520,13 @@ class DB(object):
 			viewdef = " ".join(viewdef)
 			table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
 
-		##### Step 7: Fix for output
+		##### Step 7: Prepare result
 		t = clock(times, 6, t)
-
 		stats = {}
 		stats['time'] = time.time()-t0
 		stats['length'] = length
 		if returnstats:
 			stats['rectypes'] = rectypes
-
 
 		ret = {
 			"c": c,
@@ -1557,19 +1559,23 @@ class DB(object):
 		:return: Record names returned by query operation, or None
 		"""
 
+		# Store found values in the rec stubs dictionary
 		if recs == None:
 			recs = {}
 
+		# Get the comparison function
 		cfunc = self._query_cmps(comp)
 
+		# These operators are handled specially
 		if value == None and comp not in ["any", "none", "contains_w_empty"]:
 			return None
 
 		# Sadly, will need to run macro on everything.. :(
 		# Run these as the last constraints.
 		if searchparam.startswith('$@'):
+			# todo: Run macro will get all the records; should I update recs...?
 			keytype, ret = self._run_macro(searchparam, names or set(), ctx=ctx, txn=txn)
-			# *minimal* validation of input..
+			# *minimal* validation of input.. # todo: catch exceptions
 			if keytype == 'd':
 				value = int(value)
 			elif keytype == 'f':
