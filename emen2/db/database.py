@@ -1281,12 +1281,11 @@ class DB(object):
 			c=None,
 			boolmode="AND",
 			ignorecase=True,
-			subset=None,
 			pos=0,
 			count=0,
 			sortkey="creationtime",
 			reverse=None,
-			names=False,
+			recs=False,
 			table=False,
 			stats=False,
 			ctx=None,
@@ -1324,63 +1323,75 @@ class DB(object):
 		
 		The result will be a dictionary containing all the original query arguments, plus:
 			names:	Names of records found
-			length:	Number of records found
 			recs:	"Stub records," dictionaries that contain the matching value for each constraint
 			stats:	Query statistics, e.g. the number of records for each RecordDef
-			time:	Execution time
+				length		Number of records found
+				rectypes	Results by Protocol
+				time		Execution time
 		
 		Examples:
 		
 		>>> db.query()
-		{'names':[1,2], length: 2, stats: {...}, time: 0.001, ...}
+		{'names':[1,2], stats: {...}, time: 0.001, ...}
 		
 		>>> db.query(c=[['creator', '==', 'ian']], )
-		{'names':[1,2], length: 2, 'recs':{1:{'creator':'ian'}, 2:{'creator':'ian'}}, stats: {...}, time: 0.001, ...}
+		{'names':[1,2], 'recs':{1:{'creator':'ian'}, 2:{'creator':'ian'}}, stats: {...}, time: 0.001, ...}
 		
 		:keyparam c: Constraints
 		:keyparam boolmode: AND / OR for each constraint
 		:keyparam ignorecase: Ignore case when comparing strings
-		:keyparam subset: Restrict search to a subset of records
 		:keyparam pos: Return results starting from (sorted record name) position
 		:keyparam count: Return a limited number of results
 		:keyparam sortkey: Sort returned records by this param. Default is creationtime.
 		:keyparam reverse: Reverse results
-		:keyparam names: 
-		:keyparam table:
-		:keyparam stats:
+		:keyparam recs: Return record stubs
+		:keyparam table: Return a table
+		:keyparam stats: Return statistics
 		:return: A dictionary containing the original query arguments, and the result in the 'names' key
 		:exception KeyError: Broken constraint
 		:exception ValidationError: Broken constraint
 		:exception SecurityError: Unable to access specified RecordDefs or other constraint parameters.
 		"""
+		# :keyparam subset: Restrict search to a subset of records
 
 		##### Step 0. Setup
-		times = {}
+		# timing results
+		times = {} 
 		t0 = time.time()
 		t = time.time()
-		returnrecs = True # bool(names)
-		boolops = {"AND":"intersection_update", "OR":"update"}
-		names = None
+		
+		# return record stubs
+		returnrecs = bool(recs) 
+		recs = collections.defaultdict(dict)
+		
+		# return statistics
+		returnstats = bool(stats) 
+		rectypes = collections.defaultdict(int)
 
+		# set() method to use
+		boolops = {"AND":"intersection_update", "OR":"update"} 
+		
+		# query result
+		names = None 
+		
 		# Pre-process the query constraints..
 		c = c or []
-		_c = []
+		_c = [] # filtered constraints
 		default = [None, 'any', None]
 		for i in c:
-			# A simple constraint is [param, "any", None]
+			# constraints with just a param name -> [param, 'any', None]
 			if not hasattr(i, "__iter__"):
 				i = [i]
 			i = i[:len(i)]+default[len(i):3]
 			_c.append(i)
 
+		# Complex constraints that we'll defer, and basic constraints to run immediately
+		# A basic constraint is a normal param, with a direct comparison
+		# A complex constraint is a macro, an empty value, or a "noop" (no constraint)
 		_cm, _cc = listops.filter_partition(lambda x:x[0].startswith('$@') or x[1]=='none' or x[1]=='noop', _c)
 
-		recs = collections.defaultdict(dict)
-
-
-		##### Step 1: Run constraints
-		t = clock(times, 0, t0)
-
+		##### Step 1: Run basic constraints (no macros or complex constraints)
+		t = clock(times, 0, t)
 		for searchparam, comp, value in _cc:
 			# Matching names for each step
 			constraintmatches = self._query(searchparam, comp, value, recs=recs, ctx=ctx, txn=txn)
@@ -1389,60 +1400,54 @@ class DB(object):
 			elif constraintmatches != None: # Apply AND/OR
 				getattr(names, boolops[boolmode])(constraintmatches)
 
-
-		##### Step 2: Filter permissions. If no constraint, use all records..
+		##### Step 2: Filter permissions.
 		t = clock(times, 1, t)
-
+		# If no constraint, use all records..
 		if names == None:
 			names = self.bdbs.record.names(ctx=ctx, txn=txn)
-
-		if subset:
-			names &= subset
-
+		# ... or with constraints, filter results
 		if c:
-			# Filter
 			names = self.bdbs.record.names(names or set(), ctx=ctx, txn=txn)
 
-
-		##### Step 3: Run constraints that include macros or "value is empty"
+		##### Step 3: Run complex constraints
 		t = clock(times, 2, t)
-
 		for searchparam, comp, value in _cm:
 			constraintmatches = self._query(searchparam, comp, value, names=names, recs=recs, ctx=ctx, txn=txn)
 			if constraintmatches != None:
 				getattr(names, boolops[boolmode])(constraintmatches)
 
-
-		##### Step 4: Generate stats on rectypes (do this before other sorting..)
+		##### Step 4: Generate stats on rectypes
+		# Do this before other sorting..
 		t = clock(times, 3, t)
-
-		rectypes = collections.defaultdict(int)
+		# Did we already get the rectypes?
 		rds = set([rec.get('rectype') for rec in recs.values()]) - set([None])
 		if len(rds) == 0:
-			if stats: # don't do this unless we need the records grouped.
+			# No, we need to group the result..
+			if returnstats: # don't do this unless we need the records grouped.
 				r = self.bdbs.record.groupbyrectype(names, ctx=ctx, txn=txn)
 				for k,v in r.items():
 					rectypes[k] = len(v)
 		elif len(rds) == 1:
+			# Yes, a single type
 			rectypes[rds.pop()] = len(names)
 		elif len(rds) > 1:
+			# Yes, group them directly
 			for name, rec in recs.iteritems():
 				rectypes[rec.get('rectype')] += 1
-
 
 		##### Step 5: Sort and slice to the right range
 		# This processes the values for sorting:
 		#	running any macros, rendering any user names, checking indexes, etc.
 		t = clock(times, 4, t)
-
+		# Sort by the rendered value.. todo: use table= keyword
 		keytype, sortvalues = self._query_sort(sortkey, names, recs=recs, c=c, ctx=ctx, txn=txn)
 
+		# Create a function for sorting
 		key = sortvalues.get
 		if sortkey in ['creationtime', 'recid', 'name']:
 			key = None
 			if reverse == None:
 				reverse = True
-
 		elif keytype == 's':
 			key = lambda name:(sortvalues.get(name) or '').lower()
 
@@ -1450,17 +1455,22 @@ class DB(object):
 		nonenames = set(filter(lambda x:not (sortvalues.get(x) or sortvalues.get(x)==0), names))
 		names -= nonenames
 
-		# not using reverse=reverse so we can add nonenames at the end
+		# Use the sort function
+		# (not using sorted(reverse=reverse) so we can add nonenames at the end
 		names = sorted(names, key=key)
 		names.extend(sorted(nonenames))
 		if reverse:
 			names.reverse()
 
+		# Before truncating, turn the recs dict into the return recs
+		for name in names:
+			recs[name]['name'] = name
+		recs = [recs[i] for i in names]
+
 		# Truncate results.
 		length = len(names)
 		if count > 0:
 			names = names[pos:pos+count]
-
 
 		##### Step 6: Rendered....
 		# This is purely a convenience to save a callback
@@ -1490,7 +1500,6 @@ class DB(object):
 				else:
 					viewdef = rd.views.get('tabularview', defaultviewdef)
 
-
 			viewdef = [i.strip() for i in viewdef.split()]
 
 			for i in addparamdefs:
@@ -1507,39 +1516,33 @@ class DB(object):
 			viewdef = " ".join(viewdef)
 			table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
 
-
 		##### Step 7: Fix for output
 		t = clock(times, 6, t)
 
 		stats = {}
 		stats['time'] = time.time()-t0
-		stats['rectypes'] = rectypes
-		# stats['times'] = times
-		# for k,v in times.items():
-		# 	print k, '%5.3f'%(v)
+		stats['length'] = length
+		if returnstats:
+			stats['rectypes'] = rectypes
 
-		for name in names:
-			recs[name]['name'] = name
-		recs = [recs[i] for i in names]
 
 		ret = {
 			"c": c,
 			"boolmode": boolmode,
 			"ignorecase": ignorecase,
 			"names": names,
-			"subset": subset,
 			"pos": pos,
 			"count": count,
-			"length": length,
 			"sortkey": sortkey,
-			"reverse": reverse
+			"reverse": reverse,
+			"stats": stats
 		}
-		if stats:
-			ret['stats'] = stats
+		
 		if returnrecs:
 			ret['recs'] = recs
 		if table:
 			ret['table'] = table
+
 		return ret
 
 

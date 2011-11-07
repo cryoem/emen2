@@ -3,8 +3,10 @@
 		options: {
 			// Options are passed to the plot
 			// Options will be updated and changed through plot interactions
-			'xkey': 'ctf_bfactor',
-			'ykey': 'ctf_defocus_measured'
+			xkey: 'name',
+			ykey: 'name'
+			//'xkey': 'ctf_bfactor',
+			//'ykey': 'ctf_defocus_measured'
 		},
 		
 		_create: function() {
@@ -59,7 +61,9 @@
 			var self = this;
 			var c = $('[data-controls='+axis+']');
 			c.append('<h4>'+axis.toUpperCase()+'</h4>');			
-			c.append('<div>Parameter: <input type="text" value="'+this.plot.options[axis+'key']+'" /></div>');
+			var param = $('<div></div>');
+			this.build_param(param);
+			c.append(param);
 			var table = $('<table cellpadding="0" cellpadding="0"><tbody></tbody></table>');
 			var tb = $('tbody', table);
 			var zkeys = ['ccd', 'scan'];
@@ -80,6 +84,17 @@
 				tb.append(row);
 			});
 			c.append(table);
+		},
+		
+		build_param: function(axis, elem) {
+			// use dict to emulate set
+			var params = {};
+			console.log(this.options.q);
+			this.options.q['recs'].map(function(d) {
+				
+			});
+			var sel = $('<select></select>');
+			//c.append('<div>Param: <input type="text" value="'+this.plot.options[axis+'key']+'" style="width:150px"/></div>');			
 		},
 		
 		build_markers: function(sel) {
@@ -230,7 +245,8 @@
 				.attr('class', 'e2-plot-area')
 
 			// Run the query and plot the result
-			this.query(function(q){self.plot(q)});
+			// this.query(function(q){self.plot(q)});
+			this.plot(this.options.q['recs']);
 		},
 		
 		setup: function() {
