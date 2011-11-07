@@ -724,19 +724,28 @@ path.area {
   fill: none;
   stroke: #000;
 }
+.e2-plot {
+	font-size:10pt;
+}
 .e2-plot-bg {
 	fill: white;
 }
 .e2-plot-controls {
 	float:right;
-	width:250px;
+	width:230px;
 	list-style:none;
 	padding-left:0px;
+}
+.e2-plot-label {
+	display: inline-block;
+	width: 60px;
 }
 .e2-plot-controls input.e2-plot-bounds {
 	width:50px;
 }
-
+.e2-plot-color {
+	width:20px;
+}
 /***** jQuery UI Overrides *****/
 
 .ui-autocomplete {

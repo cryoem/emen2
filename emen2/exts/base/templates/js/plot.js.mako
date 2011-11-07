@@ -1,20 +1,62 @@
 (function($) {
+	
+	$.widget('emen2.AxisControl', {
+		options: {
+		},
+		
+		_create: function() {
+			this.scale = d3.scale.linear().domain([0,0]);
+			this.min = null;
+			this.max = null;
+			this.bin = null;
+			this.hide = null;
+			this.keys = null;
+		}
+	});
+	
+	
 	$.widget('emen2.PlotControl', {
 		options: {
-			// Options are passed to the plot
-			// Options will be updated and changed through plot interactions
-			xkey: 'name',
-			ykey: 'name'
-			//'xkey': 'ctf_bfactor',
-			//'ykey': 'ctf_defocus_measured'
+			// q and controls are the only option.
+			// xkey: 'name',
+			// ykey: 'name',
+			// zkey: 'rectype'
 		},
 		
 		_create: function() {
 			this.built = 0;
+			// options
+			this.copy = ['xkey', 'ykey', 'zkey', 'xmin', 'xmax', 'ymin', 'ymax', 'xbin', 'ybin', 'zbin'];
 			this.build();
 		},
 		
 		build: function() {
+			var self = this;
+			// Reset
+			// Create query
+			var oq = this.options.q;
+			var q = {};
+			q['c'] = oq['c'];
+			q['ignorecase'] = oq['ignorecase'];
+			q['boolmode'] = oq['boolmode'];
+			q['axes'] = oq['axes'];
+			q['recs'] = true;
+			
+			// Execute the query and build on cb
+			$.jsonRPC.call('query', q, function(q) {
+				self._build(q);
+			});
+		},
+		
+		rebuild: function(q) {
+			// Rebuild using a new query
+			this.options.q = q;
+			this.built = 0;
+			this.build();
+		},
+		
+		_build: function(q) {
+			this.options.q = q;
 			this.build_plot();
 			this.build_controls();
 		},
@@ -26,11 +68,17 @@
 			plotelem.width(w-300);
 			this.element.append(plotelem);
 			this.options.controls = this;
-			plotelem.PlotScatter(this.options);
-			this.plot = plotelem.data('PlotScatter');
+			if (this.options.xbin) {
+				plotelem.PlotHistogram(this.options);
+				this.plot = plotelem.data('PlotHistogram');				
+			} else {
+				plotelem.PlotScatter(this.options);
+				this.plot = plotelem.data('PlotScatter');				
+			}
 		},
 		
 		build_controls: function() {
+			$('.e2-plot-controls', this.element).remove();
 			var self = this;
 			var controls = $(' \
 				<ul class="e2-plot-controls"> \
@@ -45,127 +93,130 @@
 			this.build_continuous('x');
 			this.build_continuous('y');
 			this.build_discrete('z');
+			//this.update();
 		},
 		
 		build_continuous: function(axis) {
 			var c = $('[data-controls='+axis+']');
 			c.append('<h4>'+axis.toUpperCase()+'</h4>');
-			c.append('<div>Param: <input type="text" value="'+this.plot.options[axis+'key']+'" style="width:150px"/></div>');
-			c.append('<div>Min: <input type="text" name="'+axis+'min" value="" class="e2-plot-bounds" /> Max: <input type="text" name="'+axis+'max" class="e2-plot-bounds" /></div>');
-			var bins = $('<div>Bin: </div>');
-			this.build_bins(bins);
-			c.append(bins);
+			c.append(this.build_param(axis));
+			c.append('<div><span class="e2-plot-label">Range:</span> <input type="text" name="'+axis+'min" value="" class="e2-plot-bounds" /> - <input type="text" name="'+axis+'max" class="e2-plot-bounds" /></div>');
+			c.append(this.build_bins(axis));
 		},
 		
+
+		build_param: function(axis) {
+			var elem = $('<div><span class="e2-plot-label">Param:</span> </div>');			
+			elem.append('<input type="text" name="'+axis+'key" value="'+(this.plot.options[axis+'key'] || "name")+'" style="width:120px"/>');
+			return elem
+			// This is a horrible hack
+			// ... add all keys in all q['recs'] ...
+		},
+		
+		build_bins: function(axis, vartype) {
+			var elem = $('<div><span class="e2-plot-label">Bins:</span> </div>');
+			elem.append('<input type="text" name="'+axis+'bin" class="e2-plot-bounds" />');
+			return elem
+			// var btime = ['second', 'minute', 'hour', 'day', 'month', 'year'];
+		},
+
 		build_discrete: function(axis) {
 			var self = this;
 			var c = $('[data-controls='+axis+']');
 			c.append('<h4>'+axis.toUpperCase()+'</h4>');			
-			var param = $('<div></div>');
-			this.build_param(param);
-			c.append(param);
+			c.append(this.build_param(axis));
 			var table = $('<table cellpadding="0" cellpadding="0"><tbody></tbody></table>');
 			var tb = $('tbody', table);
-			var zkeys = ['ccd', 'scan'];
-			zkeys.map(function(z) {
+			// var zkeys = this.plot[axis+'keys'];
+			var zcolors = this.plot.options.zcolors;
+			var zkeys = $.sortdict(this.plot.zsort);
+			zkeys.map(function(z, i) {
 				var row = $('<tr></tr>');
 				// Show/hide
-				row.append('<td><input type="checkbox" checked="checked" name="'+z+'" /></td>');
+				var td = $('<td></td>');
+				var cbox = $('<input type="checkbox" name="'+axis+'hide" value="'+z+'" />');
+				if ($.inArray(z, self.options[axis+'hide'])==-1) {
+					cbox.attr('checked', true);
+				}
+				td.append(cbox);
+				row.append(td);
 				// Name
 				row.append('<td>'+z+'</td>')
-				// Markers
-				var sel = $('<select name="'+axis+'marker"></select>');
-				var td = $('<td></td>');
-				self.build_markers(sel);
-				td.append(sel);
-				row.append(td);				
+				row.append('<td>'+self.plot.zsort[z]+'</td>');
 				// Colors
-				row.append('<td>C</td>');
+				row.append('<td><div class="e2-plot-color" style="background:'+zcolors(i)+'">&nbsp;</div></td>');
 				tb.append(row);
 			});
 			c.append(table);
 		},
-		
-		build_param: function(axis, elem) {
-			// use dict to emulate set
-			var params = {};
-			console.log(this.options.q);
-			this.options.q['recs'].map(function(d) {
-				
-			});
-			var sel = $('<select></select>');
-			//c.append('<div>Param: <input type="text" value="'+this.plot.options[axis+'key']+'" style="width:150px"/></div>');			
-		},
-		
+
 		build_markers: function(sel) {
 			var markers = ['o', 'x', '+', '-'];
 			markers.map(function(m) {
 				sel.append('<option value="'+m+'">'+m+'</option>');
 			});
 		},
-		
-		build_bins: function(bins, vartype) {
-			var btime = ['second', 'minute', 'hour', 'day', 'month', 'year'];
-			var bsel = $('<select></select>');
-			bsel.append('<option value=""></option>');
-
-			var b = [5, 10, 20, 50, 100];
-			b.map(function(t) {
-				bsel.append('<option value="'+t+'">'+t+'</option>');
-			});			
-			bins.append(bsel);
-
-			bins.append(' or ');
-			if (vartype == 'time') {
-				var bsel2 = $('<select></select>');
-				btime.map(function(t) {
-					bsel2.append('<option value="'+t+'">'+t+'</option>');
-				});
-				bins.append(bsel2);
-			} else {
-				var bsel2 = $('<input type="text" class="e2-plot-bounds" />');
-				bins.append('width: ');
-				bins.append(bsel2);
-			}
-
-		},
-		
+			
 		update: function() {
-			$('input[name=xmin]', this.element).val(this.plot.options.xmin);
-			$('input[name=xmax]', this.element).val(this.plot.options.xmax);
-			$('input[name=ymin]', this.element).val(this.plot.options.ymin);
-			$('input[name=ymax]', this.element).val(this.plot.options.ymax);
+			var self = this;
+			this.copy.map(function(i) {
+				$('input[name='+i+']', self.element).val(self.plot.options[i]);
+			});
 		},
 		
 		apply: function() {
+			var self = this;
 			var opts = {};
-			$.extend(opts, this.plot.options);
-			opts.xmin = $('input[name=xmin]', this.element).val();
-			opts.xmax = $('input[name=xmax]', this.element).val();
-			opts.ymin = $('input[name=ymin]', this.element).val();
-			opts.ymax = $('input[name=ymax]', this.element).val();
-			this.options = opts;
-			this.build_plot();
-		}
+			var total = false;
+			var changed = {}; // emulate set
+			this.copy.map(function(i) {
+				var val = $('input[name='+i+']', self.element).val();
+				if (!val) {
+					val = null;
+				}
+				if (val != self.options[i]) {changed[i]=true}
+				self.options[i] = val;
+			});
+			var check = ['xkey', 'ykey', 'zkey', 'xbin', 'ybin', 'zbin'];
+			check.map(function(i) {
+				if (changed[i]) {total = true}
+			});
 
+
+			var zhide = $('input[name=zhide]:not(:checked)').map(function(){return $(this).val()});
+			this.options.zhide = zhide;
+
+			var axes = [this.options.xkey, this.options.ykey, this.options.zkey];
+			this.options.q['axes'] = axes;						
+			if (total) {
+				this.build();
+			} else {			
+				this.build_plot();
+				this.update();			
+			}
+		}
 	});
 	
    $.widget('emen2.PlotBase', {
 		options: {
 			q: null,
 			// Axes
-			xkey: 'name',
-			ykey: 'name',
+			xkey: null,
+			ykey: null,
 			zkey: 'rectype',
 			// Bounds
 			xmin: null,
 			xmax: null,
 			ymin: null,
 			ymax: null,
+			// Hide series
+			xhide: null,
+			yhide: null,
+			zhide: null,
 			// Display
 			xticks: 10,
 			yticks: 10,
-			colors: d3.scale.category10(),
+			zcolors: d3.scale.category10(),
 			// Padding: top, left, bottom, right
 			padding: [10,10,50,50], 
 			width: null,
@@ -175,7 +226,7 @@
 			// Bar chart / histogram options
 			cumulative: true,
 			stacked: true,
-			bin: 'month',			
+			xbin: null,			
 		},
 
 		_create: function() {
@@ -197,6 +248,11 @@
 			if (this.built) {return}
 			var self = this;
 			this.built = 1;
+
+			if (!this.options.xkey || !this.options.ykey || !this.options.zkey) {
+				this.element.append('No axes specified');
+				return
+			}
 
 			// this.build_controls();
 
@@ -245,8 +301,7 @@
 				.attr('class', 'e2-plot-area')
 
 			// Run the query and plot the result
-			// this.query(function(q){self.plot(q)});
-			this.plot(this.options.q['recs']);
+			this.plot(this.options.q['recs'] || []);
 		},
 		
 		setup: function() {
@@ -255,7 +310,7 @@
 			var w = this.options.width - (this.options.padding[1] + this.options.padding[3]);			
 			this.x = d3.scale.linear().domain([0,0]);
 			this.y = d3.scale.linear().domain([0,0]);
-			this.z = this.options.colors;
+			this.z = this.options.zcolors;
 
 			if (this.options.xkey == 'creationtime') {
 				this.fx = function(d) {return new Date(d[this.options.xkey])};
@@ -270,19 +325,10 @@
 			// Draw the plot
 		},
 		
-		build_controls: function() {
-			// Draw the plot controls
-			var t = $(' \
-				<ul class="e2-plot-table"> \
-					<li><select name="xkey"><option value="">X Parameter</option></select></li> \
-					<li><select name="ykey"><option value="">Y Parameter</option></select></li> \
-					<li><select name="zkey"><option value="">Z Parameter</option></select></li> \
-					<li>X min: <input name="xmin" /></li> \
-					<li>X max: <input name="xmax" /></li> \
-					<li>Y min: <input name="ymin" /></li> \
-					<li>Y max: <input name="ymax" /></li> \
-				</ul>');
-			this.element.append(t);
+		update_controls: function() {
+			if (this.options.controls) {
+				this.options.controls.update();
+			}			
 		},
 		
 		redraw: function() {
@@ -292,6 +338,7 @@
 		group: function(recs) {
 			// Histograms group on two axes and replace the X with totals
 			// See PlotHistogram
+			// todo: break out the common behavior for all axes
 			var self = this;
 			var bins = {};
 			var xkeys = {};
@@ -309,6 +356,7 @@
 				}
 				bins[bz].push(d);
 			});
+			
 			// X domain
 			var xkeys = d3.values(xkeys);
 			xkeys.sort(function(a,b){return a-b});
@@ -323,6 +371,19 @@
 
 			// Z domain
 			var zkeys = d3.values(zkeys);
+			// sort by count
+			var zsort = {};
+			for (var i=0;i<zkeys.length;i++) {
+				zsort[zkeys[i]] = bins[zkeys[i]].length;
+			}
+			zkeys = $.sortdict(zsort);
+
+			// Filter out keys in zhide... 
+			// Use map instead of filter to preserve Z colors
+			var zkeys = zkeys.map(function(z){
+				if ($.inArray(z,self.options.zhide)==-1) {return z}
+			});
+			this.zsort = zsort;
 			
 			// Update the keys attributes
 			this.xkeys = xkeys;
@@ -330,10 +391,10 @@
 			this.zkeys = zkeys;
 			
 			// Update options
-			if (this.options.xmin==null) {this.options.xmin = xmin}
-			if (this.options.xmax==null) {this.options.xmax = xmax}
-			if (this.options.ymin==null) {this.options.ymin = ymin}
-			if (this.options.ymax==null) {this.options.ymax = ymax}
+			if (!this.options.xmin) {this.options.xmin = xmin}
+			if (!this.options.xmax) {this.options.xmax = xmax}
+			if (!this.options.ymin) {this.options.ymin = ymin}
+			if (!this.options.ymax) {this.options.ymax = ymax}
 			
 			return bins			
 		},
@@ -365,27 +426,13 @@
 	});	
 
 	$.widget('emen2.PlotScatter', $.emen2.PlotBase, {
-		query: function(cb) {
-			$.jsonRPC.call('getchildren', [419869], function(recs) {
-				$.jsonRPC.call('getrecord', [recs], function(recs) {
-					$.updatecache(recs);
-					cb(recs);
-				})
-			});
-			return
-			var c = [['rectype'], ['ctf_bfactor'], ['ctf_defocus_measured']];
-			$.jsonRPC.call('query', [c], function(q) {
-				cb(q['recs']);
-			});
-
-		},
-		
 		plot: function(recs) {
-			var self = this;			
+			var self = this;		
 			// Filter the records
 			recs = recs.filter(function(d){return (self.fx(d)!=null && self.fy(d)!=null)});
 			// Group by Z key
 			var bins = this.group(recs);
+			
 
 			// Update the X and Y axis domains
 			this.x.domain([this.options.xmin, this.options.xmax]);
@@ -411,7 +458,9 @@
 				.attr('data-x', function(d) {return self.fx(d)})
 				.attr('data-y', function(d) {return self.fy(d)})					
 				.attr('data-z', function(d) {return self.fz(d)})
-				.attr("r", 3);					
+				.attr("r", 3);
+								
+			this.update_controls();
 		},
 		
 		redraw: function() {			
@@ -434,9 +483,7 @@
 			this.options.ymin = d3.min(yd);
 			this.options.ymax = d3.max(yd);
 			
-			if (this.options.controls) {
-				this.options.controls.update();
-			}			
+			this.update_controls();
 		}
 	});
 	
@@ -445,9 +492,9 @@
 			var self = this;
 			var bins = this.group(recs);
 			var sbins = {};
-			
-			// Get sorted ordinal names from date range
-			var xkeys = d3.time[this.options.bin+'s'](d3.time.month(this.options.xmin), this.options.xmax);
+
+			// Get sorted ordinal names from date range			
+			var xkeys = d3.time[this.options.xbin+'s'](d3.time[this.options.xbin](this.options.xmin), this.options.xmax);
 			this.xkeys = xkeys;
 			this.options.ymax = 0;
 			
@@ -537,6 +584,8 @@
 				.attr('data-y', function(d) {return d.y})
 				.attr('data-y1', function(d) {return d.y1})
 				.attr('data-yoff', function(d) {return d.yoff});
+
+			this.update_controls();
 		},
 		
 		redraw: function() {			
@@ -546,6 +595,15 @@
 			var trans = d3.event.translate;
 			this.svg.select(".x.axis").call(this.xaxis);
 			this.plotarea.attr('transform', 'matrix('+scale+' 0 0 1 '+trans[0]+' '+trans[1]+')');
+
+			var xd = this.x.domain();
+			this.options.xmin = d3.min(xd);
+			this.options.xmax = d3.max(xd);
+			var yd = this.y.domain();
+			this.options.ymin = d3.min(yd);
+			this.options.ymax = d3.max(yd);
+
+			this.update_controls();
 		}
 		
 	});	

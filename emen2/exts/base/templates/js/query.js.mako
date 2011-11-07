@@ -485,7 +485,7 @@
 			
 			// Create new record
 			// if (this.options.rectype && this.options.parent != null) {
-			if (1) { // (this.options.create && this.options.rectype != null && this.options.parent != null) {
+			if (0) { // (this.options.create && this.options.rectype != null && this.options.parent != null) {
 				var create = $(' \
 					<li data-tab="create" class="e2l-float-right"> \
 						<span> \
@@ -617,11 +617,11 @@
 			
 			// Build a nice string for the title
 			// This gives basic query statistics
-			title = this.options.q['length'] + ' records, ' + rtkeys.length + ' protocols';
+			title = this.options.q['stats']['length'] + ' records, ' + rtkeys.length + ' protocols';
 			if (rtkeys.length == 0) {
-				title = this.options.q['length'] + ' records';				
+				title = this.options.q['stats']['length'] + ' records';				
 			} else if (rtkeys.length == 1) {
-				title = this.options.q['length'] + ' ' + rtkeys[0] + ' records';
+				title = this.options.q['stats']['length'] + ' ' + rtkeys[0] + ' records';
 			} else if (rtkeys.length <= 5) {				
 				title = title + ": ";
 				for (var i=0;i<rtkeys.length;i++) {
@@ -636,7 +636,6 @@
 			}
 			$('.e2-query-header .e2-query-length').html(title);
 
-						
 			// Update the page count
 			var pages = $('.e2-query-pages', this.element);
 			pages.empty();
@@ -644,12 +643,12 @@
 			
 			// ... build the pagination controls
 			var count = this.options.q['count'];
-			var l = this.options.q['length'];
+			var l = this.options.q['stats']['length'];
 			if (count == 0 || count > l || l == 0) {
 				//pages.append("All Records");
 			} else {			
 				var current = (this.options.q['pos'] / this.options.q['count']);
-				var pagecount = Math.ceil(this.options.q['length'] / this.options.q['count'])-1;
+				var pagecount = Math.ceil(this.options.q['stats']['length'] / this.options.q['count'])-1;
 				var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}			
 
 				var p1 = $('<span class="e2l-a" data-pos="0">&laquo;</span>').click(setpos);

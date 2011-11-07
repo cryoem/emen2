@@ -1288,6 +1288,7 @@ class DB(object):
 			stats=False,
 			boolmode="AND",
 			ignorecase=True,
+			axes=None,
 			ctx=None,
 			txn=None,
 			**kwargs):
@@ -1377,12 +1378,20 @@ class DB(object):
 		c = c or []
 		_c = [] # filtered constraints
 		default = [None, 'any', None]
+		qparams = set()
 		for i in c:
 			# constraints with just a param name -> [param, 'any', None]
 			if not hasattr(i, "__iter__"):
 				i = [i]
 			i = i[:len(i)]+default[len(i):3]
+			qparams.add(i[0])
 			_c.append(i)
+
+		# todo: tidy this up.
+		if axes:
+			for axis in axes:
+				if axis and axis not in qparams and axis != 'name':
+					_c.append([axis, 'any', None])
 
 		# Complex constraints that we'll defer, and basic constraints to run immediately
 		# A basic constraint is a normal param, with a direct comparison
