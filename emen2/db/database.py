@@ -1549,6 +1549,8 @@ class DB(object):
 			"stats": stats
 		}
 		
+		if axes:
+			ret['axes'] = axes
 		if returnrecs:
 			ret['recs'] = recs
 		if table:

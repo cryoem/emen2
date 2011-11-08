@@ -340,6 +340,7 @@ h4
 	vertical-align: top;
 	font-size: 10pt;
 	margin: 0px;
+	margin-top: -2px;
 	padding: 0px;
 }
 .e2-tab-editbar > div {
@@ -741,10 +742,13 @@ path.area {
 	width: 60px;
 }
 .e2-plot-controls input.e2-plot-bounds {
-	width:50px;
+	width:60px;
 }
 .e2-plot-color {
 	width:20px;
+}
+.e2-plot-totals td {
+	border-top:solid 1px #ccc;
 }
 /***** jQuery UI Overrides *****/
 
