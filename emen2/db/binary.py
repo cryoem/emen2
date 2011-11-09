@@ -89,10 +89,9 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		
 	def setContext(self, ctx):
 		super(Binary, self).setContext(ctx=ctx)
-		self.__dict__['filepath'] = self.parse(self.name).get('filepath')
+		self.__dict__['_filepath'] = self.parse(self.name).get('filepath')
 		if self.isowner():
-			return True
-			
+			return True			
 		if self.record is not None:	
 			rec = self._ctx.db.getrecord(self.record, filt=False)
 			

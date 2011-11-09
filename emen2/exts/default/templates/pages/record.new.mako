@@ -6,15 +6,11 @@
 
 <%namespace name="buttons" file="/buttons" />
 
-<%block name="js_inline">
-	${parent.js_inline()}
-	${buttons.tocache(newrec)}
-	${buttons.tocache(recdef)}
-</%block>
-
 
 <%block name="js_ready">
 	${parent.js_ready()}
+	${buttons.tocache(newrec)}
+	${buttons.tocache(recdef)}
 	
 	// Save Record
 	$('#e2-edit').MultiEditControl({

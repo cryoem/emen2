@@ -4,14 +4,9 @@
 <%namespace name="forms" file="/forms"  /> 
 
 
-<%block name="js_inline">
-	${parent.js_inline()}
-	${buttons.tocache(paramdef)}
-</%block>
-
-
 <%block name="js_ready">
 	${parent.js_ready()}
+	${buttons.tocache(paramdef)}
 	$('#e2-relationships').RelationshipControl({
 		edit: ${jsonrpc.jsonutil.encode(edit)}
 	});

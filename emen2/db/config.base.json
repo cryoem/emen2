@@ -91,7 +91,8 @@
 		"EMEN2DBNAME": "EMEN2",
 
 		// Logo in emen2/web/static/images to use
-		"EMEN2LOGO": "emen2logo-small.png",
+		// "EMEN2LOGO": "emen2logo-small.png",
+		"EMEN2LOGO": "ncmi2006-logo2-white.png",
 		
 		// These words will not be indexed
 		"UNINDEXED_WORDS": ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"]

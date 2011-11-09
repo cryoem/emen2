@@ -64,15 +64,20 @@ ul {
 .e2-tab-editbar[data-tabgroup=query] > div {
 	width: auto;
 }
-.e2-map-main {
+.e2-map-main > .e2-map {
 	background: white;
-	padding: 4px;
+	padding-top:4px;
+	padding-bottom:4px;
 	font-size: 10pt;
 	-moz-border-radius: 8px;
 	-webkit-border-radius: 8px;
 }
 .e2l-narrow {
 
+}
+.e2-alert > li {
+	-moz-border-radius: 8px;
+	-webkit-border-radius: 8px;	
 }
 
 /* Basic layout */

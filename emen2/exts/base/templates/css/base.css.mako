@@ -106,7 +106,8 @@ h4 .e2l-label {
 .e2-alert > li {
 	list-style: none;
 	padding-left: 0px;
-	border: solid 2px <%self:ADDED />;
+	border: solid 2px <%self:ALERT />;
+	background: white;
 	padding: 5px;
 	margin-bottom:10px;
 }
@@ -323,7 +324,13 @@ h4
 /* e2-tab-editbar: Editing Bar */
 .e2-tab-editbar[role=tab] {
 	border-bottom: solid 1px #ccc;
-	background-image: -moz-linear-gradient(#fff, #fff, #eee);
+	/* background-image: -moz-linear-gradient(#fff, #fff, #eee); */
+	background: -moz-linear-gradient(top, rgba(255,255,255,0) 0%, rgba(0,0,0,0.1) 100%);
+	background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(255,255,255,0)), color-stop(100%,rgba(0,0,0,0.1)));
+	background: -webkit-linear-gradient(top, rgba(255,255,255,0) 0%,rgba(0,0,0,0.1) 100%);
+	background: -o-linear-gradient(top, rgba(255,255,255,0) 0%,rgba(0,0,0,0.1) 100%);
+	background: -ms-linear-gradient(top, rgba(255,255,255,0) 0%,rgba(0,0,0,0.1) 100%);
+	background: linear-gradient(top, rgba(255,255,255,0) 0%,rgba(0,0,0,0.1) 100%);
 }
 .e2-tab-editbar > ul > li {
 	border-right: solid 1px #ccc;
@@ -395,7 +402,7 @@ h4
 }*/
 .e2-query .e2-query-sort th,
 .e2-query .e2-query-sort button {
-	padding: 0px;
+	padding: 2px;
 }
 .e2-query .e2-query-table ul {
 	list-style: none;

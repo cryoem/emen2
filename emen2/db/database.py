@@ -914,7 +914,7 @@ class DB(object):
 				vt_firstitem.add(pd.name)
 			elif pd.vartype in ['acl']:
 				vt_reduce.add(pd.name)
-			elif vartype.iterable:
+			elif pd.iter:
 				vt_iterable.add(pd.name)
 			else:
 				vt.add(pd.name)

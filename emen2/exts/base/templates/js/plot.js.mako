@@ -16,37 +16,36 @@
 		
 		build: function() {
 			var self = this;
-			self.query();
-			//self._build([]);
+			//self.query();
+			self._build([]);
 		},
 		
 		query: function() {
 			// Rebuild using a new query
 			this.built = 0;
 			var self = this;
-
-			emen2.db('getchildren', [136], function(recs) {
-				emen2.db('getrecord', [recs], function(recs) {
-					console.log('Got records:', recs.length);
-					self._build(recs);
-				})
-			});
-			
-			return
-			// var axes = [this.options.axopts.x.key, this.options.axopts.y.key, this.options.axopts.z.key];
-			// // Create query
-			// var oq = this.options.q || {};
-			// var q = {};
-			// q['c'] = oq['c'] || [];
-			// q['axes'] = axes;
-			// q['recs'] = true;
-			// q['ignorecase'] = oq['ignorecase'];
-			// 
-			// // Execute the query and build on cb
-			// emen2.db('query', q, function(q) {
-			// 	self.options.q = q;
-			// 	self._build(q['recs']);
+			// emen2.db('getchildren', [136], function(recs) {
+			// 	emen2.db('getrecord', [recs], function(recs) {
+			// 		self._build(recs);
+			// 	})
 			// });
+			//	return
+			
+			// Create query
+			var axopts = this.options.axopts || {'x':{}, 'y':{}, 'z':{}};
+			var axes = [axopts.x.key, axopts.y.key, axopts.z.key];
+			var oq = this.options.q || {};
+			var q = {};
+			q['c'] = oq['c'] || [];
+			q['axes'] = axes;
+			q['recs'] = true;
+			q['ignorecase'] = oq['ignorecase'];
+			
+			// Execute the query and build on cb
+			emen2.db('query', q, function(q) {
+				self.options.q = q;
+				self._build(q['recs']);
+			});
 		},
 		
 		_build: function(recs) {
@@ -97,7 +96,6 @@
 			// Ask the plot to read the controls and update
 			// Do we do a complete query and rebuild, or just update?
 			this.options.axopts = this.plot.update();
-			console.log(this.options.axopts);
 			this.query();
 			return
 			// var axes = [axopts['x'].key, axopts['y'].key, axopts['z'].key];
@@ -135,7 +133,6 @@
 			size: [400,400],
 			orient: null,
 			invert: false,
-			binwidth: 0
 		},
 		
 		_create: function() {
@@ -159,7 +156,8 @@
 		},
 		
 		bw: function(d,i) {
-			return this.options.min + this.options.binwidth
+			var binwidth = (this.options.max - this.options.min) / this.options.bin;
+			return this.options.min + binwidth
 		},
 		
 		setup: function() {
@@ -192,13 +190,24 @@
 			controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:150px" type="text" name="key" /></div>')
 			controls.append('<div><span class="e2-plot-label">Range:</span><input class="e2-plot-bounds" type="text" name="min" /> - <input class="e2-plot-bounds" type="text" name="max" /></div>');
 			if (this.options.binnable) {
-			controls.append('<div><span class="e2-plot-label">Bin:</span><input class="e2-plot-bounds" type="text" name="bin" /></div>');
+				var b = $('<div><span class="e2-plot-label">Bin:</span></div>').append(this.build_controls_bin());
+				controls.append(b);
 			}
 			this.controls.append(controls);
 			this.controls = controls;
 			$('input[name=key]', this.controls).val(this.options.key);
-			$('input[name=bin]', this.controls).val(this.options.bin);
+			$('select[name=bin]', this.controls).val(this.options.bin);
 			this.update_controls();
+		},
+		
+		build_controls_bin: function() {
+			var bin = $('<select name="bin"></select>');
+			bin.append('<option value=""></option>');
+			var keys = [1, 5, 10, 20, 50, 100, 'year', 'month', 'day', 'hour'];
+			keys.map(function(i) {
+				bin.append('<option value="'+i+'">'+i+'</option>');
+			})
+			return bin
 		},
 		
 		update_controls: function() {
@@ -215,7 +224,7 @@
 			opts['name'] = this.options.name;
 			// If we're switching keys, we'll need a total rebuild
 			opts['key'] = $('input[name=key]', this.controls).val();
-			opts['bin'] = $('input[name=bin]', this.controls).val();
+			opts['bin'] = $('select[name=bin]', this.controls).val();
 			if (opts['key'] != this.options.key) {
 				return opts
 			}
@@ -242,12 +251,12 @@
 		bin: function(recs) {
 			// Take a series of records and bin them into this.keys
 			// Create the bins
-			console.log('In Bin, this.keys:', this.keys);
+			// console.log('In Bin, this.keys:', this.keys);
 			var bins = {};
 			for (var i=0;i<this.keys.length;i++) {
 				var bx = this.keys[i];
 				if (bins[bx]==null) {
-					console.log('Creating bin: ', bx);
+					// console.log('Creating bin: ', bx);
 					bins[bx] = {'x':bx, 'y': 0, 'yoff': 0, 'ysum': 0, 'w': 0}
 				}
 			}			
@@ -256,7 +265,7 @@
 				var bx = this.b(recs[i]);
 				if (bins[bx]==null) {
 					console.log('No bin for ', bx);
-					console.log(bins);
+					// console.log(bins);
 				}
 				bins[bx].y += 1;
 				bins[bx].ysum += 1;
@@ -343,7 +352,7 @@
 			this.controls.append(controls);
 			this.controls = controls;
 			$('input[name=key]', this.controls).val(this.options.key);
-			$('input[name=bin]', this.controls).val(this.options.bin);
+			$('select[name=bin]', this.controls).val(this.options.bin);
 			this.update_controls();
 		}
 	});
@@ -375,17 +384,6 @@
 
 			// Setup and build
 			this.setup();
-
-			// // Build the plot
-			// if (this.x.options.key == null || this.y.options.key == null || this.z.options.key == null) {
-			// 	this.element.append('<p>Not enough axes</p>');
-			// 	// Build the controls
-			// 	this.x.build_controls();
-			// 	this.y.build_controls();
-			// 	this.z.build_controls();
-			// 	return
-			// }
-			
 			this.build();
 			this.plot(this.options.recs);
 
@@ -558,7 +556,11 @@
 		},
 		
 		bw: function(d,i) {
-			console.log('calculating bin width', d, i);
+			// Calculate the start/end points of this interval
+			var iv = emen2.time.interval[this.options.bin](d.x);
+			// Add the interval width to the minimum time
+			var bw = new Date(this.options.min.getTime()+(iv[1]-iv[0]));
+			return bw
 		},
 
 		data: function(recs) {
@@ -567,13 +569,8 @@
 			for (var i=0;i<recs.length;i++) {
 				keys.push(this.f(recs[i]));
 			}			
-			console.log("Finding keys..X:", keys);
-			keys.sort(function(a,b){return a-b});
-			console.log('...sorted:', keys);
-			console.log('keys wtf', keys[0], keys.length, keys[keys.length-1]);
-			
+			keys.sort(function(a,b){return a-b});		
 			var interval = emen2.time.range(keys[0], keys[keys.length-1], this.options.bin);
-			console.log('...interval', interval);
 			
 			// Update the keys
 			this.keys = interval;
@@ -611,8 +608,6 @@
 			this.options.min = this.keys[0];
 			this.options.max = this.keys[this.keys.length-1];
 			this.scale.domain([this.options.min, this.options.max]);
-			// This is used by this.bw()
-			this.options.binwidth = binwidth; 
 		}
 	});
 	
@@ -664,7 +659,13 @@
 			}
 	
 			// console.log('Maxes:', max_single, max_series, max_stacked);
-			this.options.max = max_series;
+			this.options.max = max_single;
+			if (this.options.cumulative) {
+				this.options.max = max_series;
+			}
+			if (this.options.stacked) {
+				this.options.max = max_stacked;
+			}
 
 			// Update domain
 			this.scale.domain([this.options.min, this.options.max]);
@@ -718,22 +719,24 @@
 			// Filter the records
 			var self = this;	
 			recs = recs.filter(function(d){return (self.x.f(d)!=null)});
-			console.log("Filtered recs:", recs);
+			// console.log("Filtered recs:", recs);
 			
 			// Separate by series key
 			var series = this.z.data(recs);
-			
+
 			// Update the X bounds
 			this.x.data(recs);
+
+			if (this.x.keys.length > 1000) {
+				alert('Too many bins');
+				return
+			}
 
 			// Group each series into bins
 			var series_binned = [];
 			for (var i=0;i<series.length;i++) {
 				series_binned.push(this.x.bin(series[i]));
 			}
-			
-			console.log('series_binned??');
-			console.log(series_binned);
 			
 			// Update Y axis acounts
 			this.y.data(series_binned);
@@ -757,7 +760,7 @@
 				.attr('x', function(d) {return self.x.scale(d.x)})
 				.attr('y', function(d) {return self.y.scale(d.ysum)-(self.height-self.y.scale(d.yoff))})
 				.attr('height', function(d) {return self.height-self.y.scale(d.ysum)})
-				.attr("width", 10) //function(d) {return self.x.scale(d.w)})
+				.attr("width", function(d) {return self.x.scale(self.x.bw(d))})
 		}
 	});	
 })(jQuery);
