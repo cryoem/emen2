@@ -28,7 +28,7 @@
 			this.built = 1;
 
 			// Make a copy of the cached comments and history
-			var rec = caches['record'][this.options.name];
+			var rec = emen2.caches['record'][this.options.name];
 			this.comments = rec['comments'].slice() || [];
 			this.history = rec['history'].slice() || [];
 			
@@ -42,30 +42,30 @@
 			var users = [];
 			$.each(this.comments, function(){users.push(this[0])})
 			$.each(this.history, function(){users.push(this[0])})
-			users = $.checkcache('user', users);
+			users = emen2.cache.check('user', users);
 
 			// Check cached parameters
 			var params = $.map(this.history, function(item){return item[2]});
-			params = $.checkcache('paramdef', params);
+			params = emen2.cache.check('paramdef', params);
 
 			// If we need users or params, fetch them.
 			// Todo: find a nicer way to chain these together
 			if (users && params) {
-				$.jsonRPC.call('getuser', [users], function(users) {
-					$.updatecache(users)
-					$.jsonRPC.call('getparamdef', [params], function(params) {
-						$.updatecache(params)
+				emen2.db('getuser', [users], function(users) {
+					emen2.cache.update(users)
+					emen2.db('getparamdef', [params], function(params) {
+						emen2.cache.update(params)
 						self._build();
 					});
 				});
 			} else if (params) {
-				$.jsonRPC.call("getparamdef", [params], function(params) {
-					$.updatecache(params)
+				emen2.db("getparamdef", [params], function(params) {
+					emen2.cache.update(params)
 					self._build();
 				});
 			} else if (users) {
-				$.jsonRPC.call("getuser", [users], function(users) {
-					$.updatecache(users)
+				emen2.db("getuser", [users], function(users) {
+					emen2.cache.update(users)
 					self._build();
 				});
 			} else {
@@ -132,10 +132,10 @@
 				if (event.length == 3) {'<p>'+comments.push(event[2])+'</p>'}
 				if (event.length == 4) {
 					var pdname = event[2];
-					if (caches['paramdef'][pdname]){pdname=caches['paramdef'][pdname].desc_short}
+					if (emen2.caches['paramdef'][pdname]){pdname=emen2.caches['paramdef'][pdname].desc_short}
 					var row = ' \
 						<tr> \
-							<td style="width:16px">'+$.e2image('edit.png')+'</td> \
+							<td style="width:16px">'+emen2.template.image('edit.png')+'</td> \
 							<td><a href="'+EMEN2WEBROOT+'/paramdef/'+event[2]+'/">'+pdname+'</a></td> \
 						</tr><tr> \
 							<td /> \
@@ -153,7 +153,7 @@
 		
 		save: function(e) {	
 			var self = this;
-			$.jsonRPC.call('addcomment', [this.options.name, $('textarea[name=comment]', this.options.controls).val()], function(rec) {
+			emen2.db('addcomment', [this.options.name, $('textarea[name=comment]', this.options.controls).val()], function(rec) {
 				$.record_update(rec)
 				$.notify('Comment Added');
 			});
@@ -176,8 +176,8 @@
 			//		based on the parent
 			var self = this;
 			this.built = 0;
-			this.options.rectype = $.checkopt(this, 'rectype');
-			this.options.parent = $.checkopt(this, 'parent');
+			this.options.rectype = emen2.util.checkopt(this, 'rectype');
+			this.options.parent = emen2.util.checkopt(this, 'parent');
 			if (this.options.show) {
 				this.show();
 			} else {
@@ -218,12 +218,12 @@
 				this.element.append(this.dialog);
 			}			
 
-			$.jsonRPC.call('getrecorddef', [[self.options.rectype]], function(rds) {
-				$.updatecache(rds);
-				$.jsonRPC.call('newrecord', {'rectype':self.options.rectype, 'inherit':self.options.parent}, function(rec) {
+			emen2.db('getrecorddef', [[self.options.rectype]], function(rds) {
+				emen2.cache.update(rds);
+				emen2.db('newrecord', {'rectype':self.options.rectype, 'inherit':self.options.parent}, function(rec) {
 					// console.log("New record:", rec);
-					caches['record']['None'] = rec;
-					$.jsonRPC.call('renderview', {'names':rec, 'viewname':'mainview', 'edit':true}, function(rendered) {
+					emen2.caches['record']['None'] = rec;
+					emen2.db('renderview', {'names':rec, 'viewname':'mainview', 'edit':true}, function(rendered) {
 						self._build(rendered);
 					});				
 				});
@@ -236,7 +236,7 @@
 			this.dialog.empty();
 			
 			// Show the recorddef long description
-			var rd = caches['recorddef'][this.options.rectype];
+			var rd = emen2.caches['recorddef'][this.options.rectype];
 			var desc = $.trim(rd.desc_long).replace('\n','<br /><br />'); // hacked in line breaks
 			var desc = $('<p class="e2-newrecord-desc_long">'+desc+'</p>');
 			//<strong>Protocol description:</strong>
@@ -282,10 +282,10 @@
 		
 		_create: function() {
 			this.built = 0;
-			this.options.rectype = $.checkopt(this, 'rectype');
-			this.options.parent = $.checkopt(this, 'parent');
-			this.options.private = $.checkopt(this, 'private');
-			this.options.copy = $.checkopt(this, 'copy');
+			this.options.rectype = emen2.util.checkopt(this, 'rectype');
+			this.options.parent = emen2.util.checkopt(this, 'parent');
+			this.options.private = emen2.util.checkopt(this, 'private');
+			this.options.copy = emen2.util.checkopt(this, 'copy');
 			
 			if (this.options.show) {
 				this.show();
@@ -301,19 +301,19 @@
 			var self = this;
 			// Provide some loading feedback
 			this.element.empty();
-			this.element.append($.e2spinner(true));
+			this.element.append(emen2.template.spinner(true));
 			
 			// Get the RecordDef for typicalchildren and prettier display
-			$.jsonRPC.call("findrecorddef", {'record':[this.options.parent]}, function(rd) {
+			emen2.db("findrecorddef", {'record':[this.options.parent]}, function(rd) {
 				var typicalchld = [];
 				$.each(rd, function() {
 					self.options.rectype = this.name;
-					caches['recorddef'][this.name] = this;
+					emen2.caches['recorddef'][this.name] = this;
 					typicalchld = this.typicalchld;					
 				});
-				$.jsonRPC.call("getrecorddef", [typicalchld], function(rd2) {
+				emen2.db("getrecorddef", [typicalchld], function(rd2) {
 					$.each(rd2, function() {
-						caches['recorddef'][this.name] = this;
+						emen2.caches['recorddef'][this.name] = this;
 					})
 					self._build();
 				})
@@ -324,7 +324,7 @@
 			if (this.built) {return}
 			this.built = 1;
 			var self = this;
-			var rd = caches['recorddef'][this.options.rectype];
+			var rd = emen2.caches['recorddef'][this.options.rectype];
 
 			this.element.empty();
 			
@@ -439,10 +439,10 @@
 			this.built = 0;
 
 			// Parse options from element attributes if available
-			this.options.name = $.checkopt(this, 'name');
+			this.options.name = emen2.util.checkopt(this, 'name');
 			
 			// jQuery selector for this multi-edit control to activate
-			this.options.selector = $.checkopt(this, 'selector', '.e2-edit[data-name='+this.options.name+']');
+			this.options.selector = emen2.util.checkopt(this, 'selector', '.e2-edit[data-name='+this.options.name+']');
 
 			// Show
 			if (this.options.show) {
@@ -472,15 +472,15 @@
 			// Gather records and params to request from server..
 			var names = $.map($(this.options.selector), function(elem){return $(elem).attr("data-name")});
 			var params = $.map($(this.options.selector), function(elem){return $(elem).attr("data-param")});
-			names = $.checkcache('record', names);
-			params = $.checkcache('paramdef', params);
+			names = emen2.cache.check('record', names);
+			params = emen2.cache.check('paramdef', params);
 
 			// Request records and params; update caches; show widget on callback
 			if (names.length || params.length) {
-				$.jsonRPC.call("getrecord", [names], function(recs) {
-					$.updatecache(recs);
-					$.jsonRPC.call("getparamdef", [params], function(paramdefs) {
-						$.updatecache(paramdefs);
+				emen2.db("getrecord", [names], function(recs) {
+					emen2.cache.update(recs);
+					emen2.db("getparamdef", [params], function(paramdefs) {
+						emen2.cache.update(paramdefs);
 						self._build();
 					});
 				});
@@ -568,9 +568,9 @@
 				
 		_create: function() {
 			// Parse options from element attributes if available		
-			this.options.name = $.checkopt(this, 'name');
-			this.options.param = $.checkopt(this, 'param');
-			this.options.required = $.checkopt(this, 'required');
+			this.options.name = emen2.util.checkopt(this, 'name');
+			this.options.param = emen2.util.checkopt(this, 'param');
+			this.options.required = emen2.util.checkopt(this, 'required');
 
 			if (this.options.prefix) {
 				this.options.prefix = this.options.name + '.';
@@ -589,18 +589,18 @@
 			var self = this;
 					
 			// Get the Record if it isn't cached
-			if (caches['record'][this.options.name] == null) {
-				$.jsonRPC.call("getrecord", [this.options.name], function(rec) {
-					$.updatecache([rec]);
+			if (emen2.caches['record'][this.options.name] == null) {
+				emen2.db("getrecord", [this.options.name], function(rec) {
+					emen2.cache.update([rec]);
 					self.show();
 				});
 				return
 			}
 
 			// Get the ParamDef if it isn't cached
-			if (!caches['paramdef'][this.options.param]) {
-				$.jsonRPC.call("getparamdef", [this.options.param], function(paramdef){
-					$.updatecache([paramdef]);
+			if (!emen2.caches['paramdef'][this.options.param]) {
+				emen2.db("getparamdef", [this.options.param], function(paramdef){
+					emen2.cache.update([paramdef]);
 					self.show();
 				});
 				return
@@ -673,11 +673,11 @@
 		},
 		
 		cacheval: function() {
-			return caches['record'][this.options.name][this.options.param];
+			return emen2.caches['record'][this.options.name][this.options.param];
 		},
 		
 		cachepd: function() {
-			return caches['paramdef'][this.options.param];	
+			return emen2.caches['paramdef'][this.options.param];	
 		}
 	});
 
@@ -747,7 +747,7 @@
 		},
 		
 		cacheval: function() {
-			var rec = caches['record'][this.options.name];
+			var rec = emen2.caches['record'][this.options.name];
 			if (!rec) {return null}
 			var val = rec[this.options.param];
 			if (val==null) {val=''}
@@ -755,7 +755,7 @@
 		},
 		
 		cachepd: function() {
-			var pd = caches['paramdef'][this.options.param];
+			var pd = emen2.caches['paramdef'][this.options.param];
 			return pd
 		}		
 	});
@@ -794,7 +794,7 @@
 			editw.autocomplete({
 				minLength: 0,
 				source: function(request, response) {
-					$.jsonRPC.call("findvalue", [param, request.term], function(ret) {
+					emen2.db("findvalue", [param, request.term], function(ret) {
 						var r = $.map(ret, function(item) {
 							return {
 								label: item[0] + " (" + item[1] + " records)",

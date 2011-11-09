@@ -73,7 +73,7 @@
 	if name == None:
 		name = 'None'
 	%>
-	caches[${jsonrpc.jsonutil.encode(item.keytype)}][${jsonrpc.jsonutil.encode(name)}] = ${jsonrpc.jsonutil.encode(item)};
+	emen2.caches[${jsonrpc.jsonutil.encode(item.keytype)}][${jsonrpc.jsonutil.encode(name)}] = ${jsonrpc.jsonutil.encode(item)};
 </%def>
 
 

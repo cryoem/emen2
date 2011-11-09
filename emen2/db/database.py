@@ -1286,7 +1286,6 @@ class DB(object):
 			recs=False,
 			table=False,
 			stats=False,
-			boolmode="AND",
 			ignorecase=True,
 			axes=None,
 			ctx=None,
@@ -1346,7 +1345,6 @@ class DB(object):
 		:keyparam recs: Return record stubs
 		:keyparam table: Return a table
 		:keyparam stats: Return statistics
-		:keyparam boolmode: AND / OR for each constraint
 		:keyparam ignorecase: Ignore case when comparing strings
 		:return: A dictionary containing the original query arguments, and the result in the 'names' key
 		:exception KeyError: Broken constraint
@@ -1368,9 +1366,6 @@ class DB(object):
 		returnstats = bool(stats) 
 		rectypes = collections.defaultdict(int)
 
-		# set() method to use
-		boolops = {"AND":"intersection_update", "OR":"update"} 
-		
 		# query result
 		names = None 
 		
@@ -1405,8 +1400,8 @@ class DB(object):
 			constraintmatches = self._query(searchparam, comp, value, recs=recs, ctx=ctx, txn=txn)
 			if names == None: # For the first constraint..
 				names = constraintmatches
-			elif constraintmatches != None: # Apply AND/OR
-				getattr(names, boolops[boolmode])(constraintmatches)
+			elif constraintmatches != None:
+				names &= constraintmatches
 
 		##### Step 2: Filter permissions.
 		t = clock(times, 1, t)
@@ -1422,7 +1417,7 @@ class DB(object):
 		for searchparam, comp, value in _cm:
 			constraintmatches = self._query(searchparam, comp, value, names=names, recs=recs, ctx=ctx, txn=txn)
 			if constraintmatches != None:
-				getattr(names, boolops[boolmode])(constraintmatches)
+				names &= constraintmatches
 
 		##### Step 4: Generate stats on rectypes
 		# Do this before other sorting..
@@ -1539,7 +1534,6 @@ class DB(object):
 
 		ret = {
 			"c": c,
-			"boolmode": boolmode,
 			"ignorecase": ignorecase,
 			"names": names,
 			"pos": pos,
@@ -1829,8 +1823,7 @@ class DB(object):
 	##### Other query methods #####
 
 	def _boolmode_collapse(self, rets, boolmode):
-		"""(Internal) Perform bool operation on results."""
-		
+		"""(Internal) Perform bool operation on results."""		
 		if not rets:
 			rets = [set()]
 		if boolmode == 'AND':
@@ -1914,7 +1907,7 @@ class DB(object):
 
 
 	@limit_result_length
-	def _find_pdrd(self, cb, query=None, childof=None, boolmode="AND", keytype="paramdef", record=None, vartype=None, ctx=None, txn=None, **qp):
+	def _find_pdrd(self, cb, query=None, childof=None, keytype="paramdef", record=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
 		
 		rets = []
@@ -1938,8 +1931,7 @@ class DB(object):
 		if record is not None:
 			rets.append(cb(listops.check_iterable(record), ctx=ctx, txn=txn))
 
-
-		allret = self._boolmode_collapse(rets, boolmode)
+		allret = self._boolmode_collapse(rets, boolmode='AND')
 		ret = map(ditems.get, allret)
 
 		return ret
@@ -1947,7 +1939,7 @@ class DB(object):
 
 	@publicmethod("user.find")
 	@limit_result_length
-	def finduser(self, query=None, record=None, boolmode="AND", limit=None, ctx=None, txn=None, **kwargs):
+	def finduser(self, query=None, record=None, limit=None, ctx=None, txn=None, **kwargs):
 		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
 
 		Keywords can be combined.
@@ -1989,7 +1981,8 @@ class DB(object):
 				["email", "contains", q],
 				["username", "contains", q]
 				]
-			qr = self.query(boolmode='OR', c=c, sortkey='username', ctx=ctx, txn=txn)
+			# ian: todo: must run multiple queries.. taking OR out of the basic function
+			qr = self.query(c=c, sortkey='username', ctx=ctx, txn=txn) # boolmode='OR'
 			recs = self.bdbs.record.cgets(qr['names'], ctx=ctx, txn=txn)
 			un = filter(None, [i.get('username') for i in recs])
 			rets.append(set(un))
@@ -2013,12 +2006,12 @@ class DB(object):
 			ret = self._findbyvartype(listops.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
 			rets.append(ret)
 
-		allret = self._boolmode_collapse(rets, boolmode)
+		allret = self._boolmode_collapse(rets, boolmode='AND')
 		return self.getuser(allret, ctx=ctx, txn=txn, filt=False)
 
 
 	@publicmethod("group.find")
-	def findgroup(self, query=None, record=None, limit=None, boolmode='AND', ctx=None, txn=None):
+	def findgroup(self, query=None, record=None, limit=None, ctx=None, txn=None):
 		"""Find a group.
 		
 		Keywords can be combined.
@@ -2061,7 +2054,7 @@ class DB(object):
 			ret = self._findbyvartype(listops.check_iterable(record), ['groups'], ctx=ctx, txn=txn)
 			rets.append(set(ret))
 
-		allret = self._boolmode_collapse(rets, boolmode)
+		allret = self._boolmode_collapse(rets, boolmode='AND')
 		ret = map(ditems.get, allret)
 
 		if limit:
@@ -2071,7 +2064,7 @@ class DB(object):
 
 	# Warning: This can be SLOW!
 	@publicmethod("binary.find")
-	def findbinary(self, query=None, record=None, limit=None, boolmode='AND', ctx=None, txn=None, **kwargs):
+	def findbinary(self, query=None, record=None, limit=None, ctx=None, txn=None, **kwargs):
 		"""Find a binary by filename.
 		
 		Keywords can be combined.
@@ -2119,7 +2112,7 @@ class DB(object):
 		if record is not None:
 			ret = self._findbyvartype(listops.check_iterable(record), ['binary'], ctx=ctx, txn=txn)
 			rets.append(ret)
-		allret = self._boolmode_collapse(rets, boolmode)
+		allret = self._boolmode_collapse(rets, boolmode='AND')
 		ret = self.bdbs.binary.cgets(allret, ctx=ctx, txn=txn)
 		if limit:
 			return ret[:int(limit)]

@@ -14,10 +14,10 @@
 		_create: function() {
 			this.built = 0;
 			var self = this;
-			this.options.name = $.checkopt(this, 'name');
-			this.options.keytype = $.checkopt(this, 'keytype', 'record');
-			this.options.edit = $.checkopt(this, 'edit')
-			this.options.summary = $.checkopt(this, 'summary')
+			this.options.name = emen2.util.checkopt(this, 'name');
+			this.options.keytype = emen2.util.checkopt(this, 'keytype', 'record');
+			this.options.edit = emen2.util.checkopt(this, 'edit')
+			this.options.summary = emen2.util.checkopt(this, 'summary')
 			if (this.options.show) {this.show()}			
 		},
 		
@@ -39,23 +39,23 @@
 			// Always empty the element before a rebuild, and place a spinner
 			this.element.empty();
 			this.element.addClass('e2-relationships');
-			this.element.append($.e2spinner(true));
+			this.element.append(emen2.template.spinner(true));
 			
 			// Load all the parents and children
-			var item = caches[this.options.keytype][this.options.name];
+			var item = emen2.caches[this.options.keytype][this.options.name];
 			var names = item.children.concat(item.parents);
-			names = $.checkcache(this.options.keytype, names);
+			names = emen2.cache.check(this.options.keytype, names);
 			
 			// Cache rendered views for all the items
 			// 1. Get the related items
-			$.jsonRPC.call('get', {names:names, keytype:this.options.keytype}, function(items) {
-				$.updatecache(items)
+			emen2.db('get', {names:names, keytype:this.options.keytype}, function(items) {
+				emen2.cache.update(items)
 				var found = $.map(items, function(k){return k.name});
 				
 				// 2a. Records need a second callback for pretty rendered text
 				if (self.options.keytype == 'record') {
-					$.jsonRPC.call('renderview', [found], function(recnames) {
-						$.each(recnames, function(k,v) {caches['recnames'][k] = v})
+					emen2.db('renderview', [found], function(recnames) {
+						$.each(recnames, function(k,v) {emen2.caches['recnames'][k] = v})
 						self._build();
 					});
 				} else {
@@ -74,7 +74,7 @@
 			this.element.empty();
 			
 			// Get the parents and children from cache
-			var rec = caches[this.options.keytype][this.options.name];
+			var rec = emen2.caches[this.options.keytype][this.options.name];
 			var parents = rec.parents;
 			var children = rec.children;
 			
@@ -144,14 +144,14 @@
 			// Ugly text and markup manipulation to build descriptive summaries of records/rectypes
 			var ct = {}
 			$.each(value, function(k,v){
-				var r = caches['record'][v] || {};
+				var r = emen2.caches['record'][v] || {};
 				if (!ct[r.rectype]){ct[r.rectype]=[]}
 				ct[r.rectype].push(this);
 			});				
 
 			var ce = [];
 			$.each(ct, function(k,v) {
-				var rd = caches['recorddef'][k] || {};
+				var rd = emen2.caches['recorddef'][k] || {};
 				var rddesc = rd['desc_short'] || k;
 				var adds = '';
 				if (v.length > 1) {adds='s'}
@@ -238,7 +238,7 @@
 
 			// Show/hide advanced options
 			$('.e2-relationships-advanced', controls).click(function(){
-				$.e2caret('toggle', self.options.controls);
+				emen2.template.caret('toggle', self.options.controls);
 				$('.e2l-controls', self.options.controls).toggle();
 				$('.e2l-advanced', self.options.controls).toggle();
 			});
@@ -262,7 +262,7 @@
 		},
 		
 		cache: function() {
-			return caches[this.options.keytype][this.options.name];
+			return emen2.caches[this.options.keytype][this.options.name];
 		}
 	});
 	
@@ -286,9 +286,9 @@
 			var self = this;
 			this.built = 0;
 
-			this.options.mode = $.checkopt(this, 'mode');
-			this.options.root = $.checkopt(this, 'root');
-			this.options.keytype = $.checkopt(this, 'keytype', 'record');
+			this.options.mode = emen2.util.checkopt(this, 'mode');
+			this.options.root = emen2.util.checkopt(this, 'root');
+			this.options.keytype = emen2.util.checkopt(this, 'keytype', 'record');
 	
 			this.element.click(function(e){self.show(e)});
 			if (this.options.show) {
@@ -402,7 +402,7 @@
 			});			
 			
 			// The parents needs a spinner -- the MapControl one doesn't work right
-			parents.append($.e2spinner(true));
+			parents.append(emen2.template.spinner(true));
 
 			var children = $('<div class="e2-map e2l-float-left" style="position:absolute;left:250px;" />');
 			children.MapControl({
@@ -471,20 +471,20 @@
 			var txt = 'Please be careful moving items. There is no "undo." \nKeep multiple-item moves as simple as possible, \
 				\n\te.g. moving siblings together to a new parent.\n\nRemoving these relationships ('+removerels.length+'):\n\n';			
 			for (var i=0;i<removerels.length;i++) {
-				var p = caches['recnames'][removerels[i][0]];
-				var c = caches['recnames'][removerels[i][1]];
+				var p = emen2.caches['recnames'][removerels[i][0]];
+				var c = emen2.caches['recnames'][removerels[i][1]];
 				txt += p+' -> '+c+'\n';
 			}
 			txt += '\nAnd adding these relationships ('+addrels.length+'):\n\n';
 			for (var i=0;i<addrels.length;i++) {
-				var p = caches['recnames'][addrels[i][0]];
-				var c = caches['recnames'][addrels[i][1]];
+				var p = emen2.caches['recnames'][addrels[i][0]];
+				var c = emen2.caches['recnames'][addrels[i][1]];
 				txt += p+' -> '+c+'\n';
 			}
 
 			if (!confirm(txt)) {return}
 
-			$.jsonRPC.call('rel.relink', {removerels: removerels, addrels: addrels, keytype: self.options.keytype}, function (){
+			emen2.db('rel.relink', {removerels: removerels, addrels: addrels, keytype: self.options.keytype}, function (){
 				alert("Move was successful. Please reload the page to see the changes.");
 			});
 		},
@@ -551,9 +551,9 @@
 			var self = this;
 			this.built = 0;
 
-			this.options.mode = $.checkopt(this, 'mode', 'children');
-			this.options.root = $.checkopt(this, 'root');
-			this.options.keytype = $.checkopt(this, 'keytype', 'record');
+			this.options.mode = emen2.util.checkopt(this, 'mode', 'children');
+			this.options.root = emen2.util.checkopt(this, 'root');
+			this.options.keytype = emen2.util.checkopt(this, 'keytype', 'record');
 
 			this.element.addClass('e2-map-'+this.options.mode);			
 			if (this.options.attach) {
@@ -580,7 +580,7 @@
 		build_root: function(elem, name) {
 			var self = this;
 			var name = (name == null) ? elem.attr('data-name') : name;
-			if (!caches[this.options.keytype][name]) {
+			if (!emen2.caches[this.options.keytype][name]) {
 				// make a pass through this.getnames if we don't have this cached already
 				this.getviews([name], function(){self.build_root(elem, name)});
 				return
@@ -590,7 +590,7 @@
 			root.append(' \
 				<li data-name="'+name+'"> \
 					<a href="#">'+this.getname(this.options.root)+'</a>'+
-					$.e2image('bg-open.'+this.options.mode+'.png', '+', 'e2-map-expand')+
+					emen2.template.image('bg-open.'+this.options.mode+'.png', '+', 'e2-map-expand')+
 				'</li>');
 			this.element.append(root);
 			this.attach(root);
@@ -617,10 +617,10 @@
 
 			// lower-case alpha sort...
 			var sortby = {};
-			$.each(caches[this.options.mode][name], function() {
+			$.each(emen2.caches[this.options.mode][name], function() {
 				sortby[this] = self.getname(this);
 			});
-			var sortkeys = $.sortstrdict(sortby);
+			var sortkeys = emen2.util.sortdictstr(sortby);
 			sortkeys.reverse();			
 	
 			// If there are no children, hide the expand image
@@ -636,8 +636,8 @@
 							+self.getname(this)+
 						'</a> \
 					</li>');
-				if (caches[self.options.mode][this] && self.options.expandable) {
-					var expand = $($.e2image('bg-open.'+self.options.mode+'.png', caches[self.options.mode][this].length, 'e2-map-expand'))
+				if (emen2.caches[self.options.mode][this] && self.options.expandable) {
+					var expand = $(emen2.template.image('bg-open.'+self.options.mode+'.png', emen2.caches[self.options.mode][this].length, 'e2-map-expand'))
 					li.append(expand);
 				}
 				ul.append(li);
@@ -670,9 +670,9 @@
 			// 	to determine if each child is itself expandable...
 			var method = "rel.children.tree";
 			if (this.options.mode == "parents") {method = "rel.parents.tree"}
-			$.jsonRPC.call(method, {names:name, recurse:2, keytype:this.options.keytype}, function(tree){
+			emen2.db(method, {names:name, recurse:2, keytype:this.options.keytype}, function(tree){
 				// Cache the result. This should be filtered for permissions
-				$.each(tree, function(k,v) {caches[self.options.mode][k] = v});				
+				$.each(tree, function(k,v) {emen2.caches[self.options.mode][k] = v});				
 				// Get the items and/or rendered names, then build the tree
 				// ... don't forget to use a .slice()'d copy!
 				var names = (tree[name] || []).slice();
@@ -724,18 +724,18 @@
 		// cache items that we need, then go to the callback
 		getviews: function(names, cb) {
 			var self = this;
-			var names = $.checkcache(this.options.keytype, names);
+			var names = emen2.cache.check(this.options.keytype, names);
 			if (names.length == 0) {
 				cb();
 				return
 			}
-			$.jsonRPC.call('get', {names: names, keytype: this.options.keytype}, function(items) {
-				$.updatecache(items);
+			emen2.db('get', {names: names, keytype: this.options.keytype}, function(items) {
+				emen2.cache.update(items);
 				if (self.options.keytype == 'record') {
 					// For records, we also want to render the names..
 					var found = $.map(items, function(k){return k.name});
-					$.jsonRPC.call('record.render', [found], function(recnames) {
-						$.each(recnames, function(k,v) {caches['recnames'][k]=v});
+					emen2.db('record.render', [found], function(recnames) {
+						$.each(recnames, function(k,v) {emen2.caches['recnames'][k]=v});
 						cb();
 					});
 				} else {
@@ -747,11 +747,11 @@
 		// more type-specific handling..
 		getname: function(item) {
 			if (this.options.keytype == 'record') {
-				return caches['recnames'][item] || String(item)
+				return emen2.caches['recnames'][item] || String(item)
 			} else if (this.options.keytype == 'paramdef') {
-				return caches['paramdef'][item].desc_short || item
+				return emen2.caches['paramdef'][item].desc_short || item
 			} else if (this.options.keytype == 'recorddef') {
-				return caches['recorddef'][item].desc_short || item
+				return emen2.caches['recorddef'][item].desc_short || item
 			}			
 		},
 		

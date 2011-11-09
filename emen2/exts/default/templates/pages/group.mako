@@ -21,11 +21,11 @@
 	});
 
 	$('input[name=save]').click(function() {
-		var g = caches['group'][${jsonrpc.jsonutil.encode(group.name)}];
+		var g = emen2.caches['group'][${jsonrpc.jsonutil.encode(group.name)}];
 		g["permissions"] = $('#group_members').PermissionControl('getusers');
 		g["displayname"] = $('input[name=group_displayname]').val();
 		g["name"] = $('input[name=group_name]').val();
-		$.jsonRPC.call("putgroup", [g], function(group) {
+		emen2.db("putgroup", [g], function(group) {
 			window.location = EMEN2WEBROOT+'/group/'+group.name+'/';
 		})
 

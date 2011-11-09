@@ -35,13 +35,13 @@
 			var rds = [];
 			var stats = this.options.q['stats'];
 			$.each(stats['rectypes'], function(k,v){
-				if (caches['recorddef'][k]==null){rds.push(k)}
+				if (emen2.caches['recorddef'][k]==null){rds.push(k)}
 			});
 			// Fetch any RecordDefs we need
 			if (rds) {
-				$.jsonRPC.call('getrecorddef',[rds], function(items) {
+				emen2.db('getrecorddef',[rds], function(items) {
 					$.each(items, function(k,v){
-						caches['recorddef'][v.name] = v;
+						emen2.caches['recorddef'][v.name] = v;
 					});
 					self.build();
 				})
@@ -66,8 +66,8 @@
 			var table = $('<table class="e2l-kv"></table>');
 			$.each(stats['rectypes'] || {}, function(k,v){
 				var name = k;
-				if (caches['recorddef'][k]) {
-					name = caches['recorddef'][k].desc_short
+				if (emen2.caches['recorddef'][k]) {
+					name = emen2.caches['recorddef'][k].desc_short
 				}
 				var row = $('<tr><td>'+name+'</td><td>'+v+'</td></tr>');
 				table.append(row);
@@ -146,7 +146,7 @@
 							<th></th> \
 							<th>Value</th> \
 							<th></th> \
-							<th>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear-all')+' Reset</th> \
+							<th>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear-all')+' Reset</th> \
 						</tr> \
 					</thead> \
 					<tbody class="e2-query-base e2-query-constraints"> \
@@ -155,37 +155,37 @@
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" /></td> \
 							<td><input type="checkbox" name="recurse_p" checked="checked" class="e2l-hide" /></td> \
-							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
+							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="rectype" />Protocol</td> \
 							<td><input type="hidden" name="cmp" value="is" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-recorddef" /></td> \
 							<td><input type="checkbox" name="recurse_v" /><label>Child Protocols</label></td> \
-							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
+							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="creator" />Creator</td> \
 							<td><input type="hidden" name="cmp" value="is" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-user" /></td> \
 							<td></td> \
-							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
+							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="permissions" />Permissions</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-user" /></td> \
 							<td></td> \
-							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
+							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="groups" />Groups</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-group" /></td> \
 							<td></td> \
-							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
+							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr><tr> \
 							<td><input type="hidden" name="param" value="children" />Child Of</td> \
 							<td><input type="hidden" name="cmp" value="name" /></td> \
 							<td><input type="text" size="12" name="value" class="e2-find-record" /></td> \
 							<td><input type="checkbox" name="recurse_v" /><label>Recursive</label></td> \
-							<td>'+$.e2image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
+							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
 						</tr> \
 					</tbody> \
 					<tbody class="e2-query-param e2-query-constraints"></tbody> \
@@ -201,7 +201,7 @@
 			$('.e2-find-paramdef', this.container).FindControl({keytype: 'paramdef'});
 
 			var save = $('<div class="e2l-controls"> \
-				'+$.e2spinner()+' \
+				'+emen2.template.spinner()+' \
 				<input type="button" value="Query" name="save" class="e2l-save" /></div>');				
 			this.container.append(save);
 			$('input[name=save]', this.container).bind("click", function(e){self.query()});			
@@ -305,10 +305,10 @@
 
 			var controls = $('<td />');
 
-			var addimg = $($.e2image('add_small.png', 'Add'))
+			var addimg = $(emen2.template.image('add_small.png', 'Add'))
 			addimg.click(function() {self.addconstraint()});
 
-			var removeimg = $($.e2image('remove_small.png', 'Remove', 'e2-query-clear'))
+			var removeimg = $(emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear'))
 			removeimg.click(function(e) {
 				self.event_clear(e);
 			});
@@ -454,14 +454,14 @@
 			var ul = $('.e2-tab ul', this.element);
 			
 			// Statistics
-			ul.append('<li data-tab="stats"><span class="e2l-a"><span class="e2-query-length">Records</span>'+$.e2caret()+'</span></li>');
-			ul.append('<li data-tab="controls"><span class="e2l-a">Query '+$.e2caret()+'</span></li>')
+			ul.append('<li data-tab="stats"><span class="e2l-a"><span class="e2-query-length">Records</span>'+emen2.template.caret()+'</span></li>');
+			ul.append('<li data-tab="controls"><span class="e2l-a">Query '+emen2.template.caret()+'</span></li>')
 
 			// Edit
-			ul.append('<li data-tab="edit"><span class="e2l-a">Edit '+$.e2caret()+'</span></li>')
+			ul.append('<li data-tab="edit"><span class="e2l-a">Edit '+emen2.template.caret()+'</span></li>')
 
 			// Plotting
-			ul.append('<li data-tab="plot"><span class="e2l-a">Plot '+$.e2caret()+'</span></li>')
+			ul.append('<li data-tab="plot"><span class="e2l-a">Plot '+emen2.template.caret()+'</span></li>')
 
 			// Pages
 			ul.append('<li class="e2l-float-right e2-query-pages"></li>');
@@ -480,7 +480,7 @@
 			ul.append(count);
 			
 			// Activity spinner
-			ul.append('<li class="e2l-float-right e2-query-activity" style="display:none"><span>'+$.e2spinner(true)+'</span></li>');
+			ul.append('<li class="e2l-float-right e2-query-activity" style="display:none"><span>'+emen2.template.spinner(true)+'</span></li>');
 			
 			// Create new record
 			// if (this.options.rectype && this.options.parent != null) {
@@ -560,7 +560,7 @@
 			newq['names'] = [];
 			newq['recs'] = true;
 			newq['table'] = true;
-			$.jsonRPC.call("query", newq, function(q){self.update(q)});			
+			emen2.db("query", newq, function(q){self.update(q)});			
 		},
 		
 		setpos: function(pos) {
@@ -700,7 +700,7 @@
 					var direction = 1;
 					if (self.options.q['reverse']) {direction = 0}
 				}				
-				var sortable = $('<button name="sort" class="e2l-float-right">'+$.e2image('sort_'+direction+'.png', 'Sort')+'</button>');
+				var sortable = $('<button name="sort" class="e2l-float-right">'+emen2.template.image('sort_'+direction+'.png', 'Sort')+'</button>');
 				var iw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');				
 				iw.append(sortable);
 				tr2.append(iw)

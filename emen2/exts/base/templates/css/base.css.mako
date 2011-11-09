@@ -51,6 +51,7 @@ a:hover,
 /* Commit button */
 .e2l-thumbnail {
 	height:64px;
+	width:64px;
 }
 
 /* Basic text size */
@@ -451,6 +452,7 @@ h4
 .e2-infobox img.e2l-thumbnail {
 	float: left;
 	height: 32px;
+	width: 32px;
 	margin-right: 4px;
 }
 .e2-infobox-hover {

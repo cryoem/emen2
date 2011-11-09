@@ -15,7 +15,7 @@
 				s += z;
 			}
 		});
-		$('#filesize').text($.convert_bytes(s));
+		$('#filesize').text(emen2.template.prettybytes(s));
 		$('#filecount').text(c.length);
 	}
 

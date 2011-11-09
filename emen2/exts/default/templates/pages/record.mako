@@ -24,7 +24,7 @@
 <%block name="js_inline">
 	${parent.js_inline()}
 	${buttons.tocache(rec)}
-	caches['recnames'] = ${jsonrpc.jsonutil.encode(recnames)};
+	emen2.caches['recnames'] = ${jsonrpc.jsonutil.encode(recnames)};
 </%block>
 
 

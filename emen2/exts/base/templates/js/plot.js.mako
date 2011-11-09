@@ -1,6 +1,9 @@
+
 (function($) {
 	
+	
 	/***** Plot Controller *****/
+
 
 	$.widget('emen2.PlotControl', {
 		options: {
@@ -13,47 +16,57 @@
 		
 		build: function() {
 			var self = this;
-			this.options.q['recs'] = [];
-			self._build(this.options.q);
+			self.query();
+			//self._build([]);
 		},
 		
-		rebuild: function() {
+		query: function() {
 			// Rebuild using a new query
-			var self = this;
 			this.built = 0;
-			// Create query
-			var oq = this.options.q;
-			var q = {};
-			q['c'] = oq['c'];
-			q['ignorecase'] = oq['ignorecase'];
-			q['boolmode'] = oq['boolmode'];
-			q['axes'] = oq['axes']; // axis keys
-			q['recs'] = true;
-			// Execute the query and build on cb
-			$.jsonRPC.call('query', q, function(q) {
-				self._build(q);
+			var self = this;
+
+			emen2.db('getchildren', [136], function(recs) {
+				emen2.db('getrecord', [recs], function(recs) {
+					console.log('Got records:', recs.length);
+					self._build(recs);
+				})
 			});
 			
+			return
+			// var axes = [this.options.axopts.x.key, this.options.axopts.y.key, this.options.axopts.z.key];
+			// // Create query
+			// var oq = this.options.q || {};
+			// var q = {};
+			// q['c'] = oq['c'] || [];
+			// q['axes'] = axes;
+			// q['recs'] = true;
+			// q['ignorecase'] = oq['ignorecase'];
+			// 
+			// // Execute the query and build on cb
+			// emen2.db('query', q, function(q) {
+			// 	self.options.q = q;
+			// 	self._build(q['recs']);
+			// });
 		},
 		
-		_build: function(q) {
-			this.options.q = q;
-			var self = this;
-			
+		_build: function(recs) {
+			var self = this;	
+					
 			// Build the controls stub first
 			$('.e2-plot-controls', this.element).remove();
 			var controls = $('<ul class="e2-plot-controls"></ul>');
 			this.element.append(controls);
 
 			// Build the plot
-			this.build_plot();
+			this.build_plot(recs);
 
 			// Update controls
 			controls.append('<li><br /><input type="button" name="update" value="Apply" class="e2l-float-right" /></li>');
 			$('input[name=update]', controls).click(function(e){self.update()});
+
 		},
 		
-		build_plot: function(opts) {
+		build_plot: function(recs) {
 			$('.e2-plot', this.element).remove();
 			var plotelem = $('<div class="e2-plot e2l-float-left"></div>');
 			var w = this.element.parent().width(); // hack
@@ -61,17 +74,20 @@
 			this.element.append(plotelem);		
 				
 			// Pass along the parent options
-			this.options.controls = this;
+			var opts = {};
+			opts['controls'] = this;
+			opts['recs'] = recs;
+			opts['axopts'] = this.options.axopts;
 
 			// Plot type
 			var axopts = this.options.axopts || {};
 			var xbin = axopts['x'] || {};
 			var bin = xbin['bin'];
 			if (bin) {
-				plotelem.PlotHistogram(this.options);
+				plotelem.PlotHistogram(opts);
 				this.plot = plotelem.data('PlotHistogram');					
 			} else {
-				plotelem.PlotScatter(this.options);
+				plotelem.PlotScatter(opts);
 				this.plot = plotelem.data('PlotScatter');				
 			}
 			
@@ -79,16 +95,14 @@
 		
 		update: function() {
 			// Ask the plot to read the controls and update
-			var q = this.options.q || {};
-			var oaxes = q['axes'] || [null,null,null];
 			// Do we do a complete query and rebuild, or just update?
-			var axopts = this.plot.update();
-			var axes = [axopts['x'].key, axopts['y'].key, axopts['z'].key];
+			this.options.axopts = this.plot.update();
+			console.log(this.options.axopts);
+			this.query();
+			return
+			// var axes = [axopts['x'].key, axopts['y'].key, axopts['z'].key];
 			// if (axes[0] != oaxes[0] || axes[1] != oaxes[1] || axes[2] != oaxes[2]) {
 				// Full update if an axis param changes
-				this.options.axopts = axopts;
-				this.options.q['axes'] = axes;
-				this.rebuild();
 			// } else {
 			// 	// Partial update
 			// 	this.options.axopts = axopts;
@@ -105,7 +119,7 @@
 
 	$.widget('emen2.AxisControl', {
 		options: {
-			key: null,
+			key: 'name',
 			name: null,
 			min: null,
 			max: null,
@@ -120,7 +134,8 @@
 			pan: true,			
 			size: [400,400],
 			orient: null,
-			invert: false
+			invert: false,
+			binwidth: 0
 		},
 		
 		_create: function() {
@@ -137,6 +152,14 @@
 		f: function(d) {
 			// Get the param from a record
 			return d[this.options.key];
+		},
+		
+		b: function(d,i) {
+			return 0
+		},
+		
+		bw: function(d,i) {
+			return this.options.min + this.options.binwidth
 		},
 		
 		setup: function() {
@@ -216,6 +239,37 @@
 			this.scale.domain([this.options.min, this.options.max]);
 		},
 		
+		bin: function(recs) {
+			// Take a series of records and bin them into this.keys
+			// Create the bins
+			console.log('In Bin, this.keys:', this.keys);
+			var bins = {};
+			for (var i=0;i<this.keys.length;i++) {
+				var bx = this.keys[i];
+				if (bins[bx]==null) {
+					console.log('Creating bin: ', bx);
+					bins[bx] = {'x':bx, 'y': 0, 'yoff': 0, 'ysum': 0, 'w': 0}
+				}
+			}			
+			// Stuff the records into the bins
+			for (var i=0;i < recs.length;i++) {
+				var bx = this.b(recs[i]);
+				if (bins[bx]==null) {
+					console.log('No bin for ', bx);
+					console.log(bins);
+				}
+				bins[bx].y += 1;
+				bins[bx].ysum += 1;
+			}
+			// Return the sorted bins
+			var ret = [];
+			for (var i=0;i<this.keys.length;i++) {
+				ret.push(bins[this.keys[i]]);
+			}
+			return ret
+
+		},
+		
 		redraw: function() {
 			// Redraw will always update the bounds
 			var domain = this.scale.domain();
@@ -246,18 +300,19 @@
 				counted[k] = v.length;
 			});
 			this.counted = counted;
-			this.keys = $.sortdict(counted);
-			var ret = [];
+			this.keys = emen2.util.sortdict(counted);
+
 			// Filter out keys in this.options.hide... 
 			// Use map instead of filter to preserve Z colors
+			var series = [];
 			for (var i=0;i<this.keys.length;i++) {
 				if ($.inArray(this.keys[i], this.options.hide)==-1) {
-					ret.push(bins[this.keys[i]]);
+					series.push(bins[this.keys[i]]);
 				} else {
-					ret.push([]);
+					series.push([]);
 				}
 			}
-			return ret
+			return series
 		},
 		
 		build_controls: function() {
@@ -290,9 +345,6 @@
 			$('input[name=key]', this.controls).val(this.options.key);
 			$('input[name=bin]', this.controls).val(this.options.bin);
 			this.update_controls();
-		},
-		
-		update_controls: function() {
 		}
 	});
 	
@@ -314,25 +366,33 @@
 			this.y = null;
 			this.z = null;
 			this.built = 0;
-			this.options.width = this.element.width();
+			
+			if (this.options.axopts == null) {this.options.axopts = {}}
+			if (this.options.width == null) {};
+			this.options.width = this.element.width()
 			this.height = this.options.height - (this.options.padding[0] + this.options.padding[2]);
 			this.width = this.options.width - (this.options.padding[1] + this.options.padding[3]);
-			if (this.options.axopts == null) {this.options.axopts = {}}
 
 			// Setup and build
 			this.setup();
 
+			// // Build the plot
+			// if (this.x.options.key == null || this.y.options.key == null || this.z.options.key == null) {
+			// 	this.element.append('<p>Not enough axes</p>');
+			// 	// Build the controls
+			// 	this.x.build_controls();
+			// 	this.y.build_controls();
+			// 	this.z.build_controls();
+			// 	return
+			// }
+			
+			this.build();
+			this.plot(this.options.recs);
+
 			// Build the controls
 			this.x.build_controls();
 			this.y.build_controls();
-			this.z.build_controls();			
-
-			// Build the plot
-			if (this.x.options.key == null || this.y.options.key == null || this.z.options.key == null) {
-				this.element.append('<p>Not enough axes</p>');
-				return
-			}
-			this.build();
+			this.z.build_controls();
 		},
 		
 		build: function() {
@@ -375,9 +435,6 @@
 				.style('overflow', 'hidden')
 				.append('svg:g')
 				.attr('class', 'e2-plot-area');
-
-			// Plot the data series
-			this.plot(this.options.q['recs']);
 		},
 		
 		setup: function() {
@@ -442,6 +499,9 @@
 				this.element.append('<p>No records to display</p>');
 				return
 			}
+			
+			// Bin into series
+			var series = this.z.data(recs);
 
 			// Bind the data to the axes..?
 			this.x.data(recs);
@@ -453,7 +513,7 @@
 
 			// Add a group for each cause.
 			var groups = this.plotarea.selectAll("g.group")
-				.data(this.z.data(recs))
+				.data(series)
 				.enter().append("svg:g")
 				.attr("class", "group")
 				.style("fill", function(d, i) {return self.z.scale(i)});
@@ -478,98 +538,83 @@
 	
 	/***** Histogram X Axis Control *****/
 	
-	$.widget('emen2.HistXControl', $.emen2.AxisControl, {
+	$.widget('emen2.HistTimeXControl', $.emen2.AxisControl, {
 		setup: function() {
-			var self = this;
-			// Set the bin method
-			this.bin = this.bin_count;
-
 			// Use a year/month/day/hour/minute/second bin
-			var f = d3.time[this.options.bin];
-			if (f != null) {
-				this.f = function(d) {return f(new Date(d[self.options.key]))}
-				this.bin = this.bin_time;
-				this.scale = d3.time.scale();
-				this.options.min = null;
-				this.options.max = null;
-			}
-			
-			// Display options
+			var self = this;
+			this.scale = d3.time.scale();
+			this.options.min = null;
+			this.options.max = null;
 			this.ax = d3.svg.axis().scale(this.scale).tickSize(-this.options.size[1],3,0);	
 			this.scale.range([0, this.options.size[0]]);
 		},
 		
-		// Grumble..
-		bin_count: function(recs) {
-			// This should work by date...?
-			var bins = {};
-			var keys = [];
-			var binwidth = (this.options.max - this.options.min) / this.options.bin;
-
-			// Setup all the bins
-			for (var i=0;i<this.options.bin;i++) {
-				// grumble... Dates can do subtraction but not addition?
-				var bx = (binwidth * i) + this.options.min;	
-				bins[bx]= {'x':bx, 'y': 0, 'yoff': 0, 'ysum': 0, 'w':binwidth}
-				keys.push(bx);
-			}
-			keys.sort(function(a,b){return a-b});
-
-			// Sort all the items into bins
-			var binned = [];
-			for (var i=0;i<recs.length;i++) {
-				// Get the bin # for this item
-				var bx = Math.floor((this.f(recs[i]) - this.options.min) / binwidth);
-				bx = keys[bx];
-				if (bx==null){bx = keys.length-1} // closed interval
-				// Increment the bin
-				bins[bx].y += 1;
-				bins[bx].ysum += 1;
-				binned.push(bins[bx]);
-			}
-
-			// Update settings
-			this.keys = keys;
-			this.bins = binned;
-			return binned
+		f: function(d) {
+			return new Date(d[this.options.key])
+		},
+		
+		b: function(d) {
+			return emen2.time.start(this.f(d), this.options.bin)
+		},
+		
+		bw: function(d,i) {
+			console.log('calculating bin width', d, i);
 		},
 
-		bin_time: function(recs) {
-			// Quasi-fixed time bins: year, month, day, hour, minute, second
-			var bins = {};
-			var keys = [];	
+		data: function(recs) {
+			// Extract the sorted keys
+			var keys = [];
 			for (var i=0;i<recs.length;i++) {
-				var bx = this.f(recs[i]);
-				if (bins[bx]==null) {bins[bx] = {'x':bx, 'y': 0, 'yoff': 0, 'ysum': 0}}
-				bins[bx].y += 1;
-				bins[bx].ysum += 1;
-				keys.push(bx);
-			}
+				keys.push(this.f(recs[i]));
+			}			
+			console.log("Finding keys..X:", keys);
 			keys.sort(function(a,b){return a-b});
-			this.options.min = keys[0];
-			this.options.max = keys[keys.length-1];
-			// Set the widths
-			// This isn't perfect, but it fills in the gaps, 
-			// which is necessary for the histogram plot
-			var range = d3.time[this.options.bin+'s'](this.options.min, this.options.max);
-			range.push(this.options.max);
-			var binned = [];
-			for (var i=1;i<range.length;i++) {
-				var px = range[i-1];
-				var bx = range[i];
-				if (bins[bx]==null) {bins[bx] = {'x':bx, 'y': 0, 'yoff': 0, 'ysum': 0}}
-				bins[bx].w = new Date(this.options.min.getTime()+(bx-px));
-				binned.push(bins[bx]);
-			}
-			this.keys = range;
-			this.bins = binned;
-			// console.log("X Keys:");
-			// console.log(this.keys);
-			// console.log("X Bins:");
-			// console.log(this.bins);
-			return binned
+			console.log('...sorted:', keys);
+			console.log('keys wtf', keys[0], keys.length, keys[keys.length-1]);
+			
+			var interval = emen2.time.range(keys[0], keys[keys.length-1], this.options.bin);
+			console.log('...interval', interval);
+			
+			// Update the keys
+			this.keys = interval;
+			this.options.min = this.keys[0];
+			this.options.max = this.keys[this.keys.length-1];
+			this.scale.domain([this.options.min, this.options.max]);
 		}
-	});	
+	});
+	
+	$.widget('emen2.HistXControl', $.emen2.AxisControl, {
+		setup: function() {
+			var self = this;
+			this.ax = d3.svg.axis().scale(this.scale).tickSize(-this.options.size[1],3,0);	
+			this.scale.range([0, this.options.size[0]]);
+		},
+		
+		data: function(recs) {
+			// Set the domain from the data
+			var keys = {};
+			var x = [];
+			for (var i=0;i<recs.length;i++) {
+				x.push(this.f(recs[i]));
+			}
+			var min = d3.min(x);
+			var max = d3.max(x);			
+			// Calculate the bin width and the bin breaks
+			var binwidth = (max - min) / this.options.bin;
+			var keys = [];
+			for (var i=0;i<this.options.bin;i++) {
+				keys.push(min+(binwidth*i));
+			}
+			// Update the keys
+			this.keys = keys;
+			// Update the domain
+			this.options.min = this.keys[0];
+			this.options.max = this.keys[this.keys.length-1];
+			this.scale.domain([this.options.min, this.options.max]);
+			// This is used by this.bw()
+			this.options.binwidth = binwidth; 
+		}
+	});
 	
 	/***** Histogram Y Axis Control *****/	
 	
@@ -585,6 +630,7 @@
 		
 		data: function(recs) {			
 			// Calculate cumulative and stacked totals and Y domain
+			// Recs is a dict[series key][x key]
 			var max_single = 0;
 			var max_series = 0;
 			var max_stacked = 0;
@@ -647,14 +693,24 @@
 			xopts['name'] = 'x';
 			xopts['size'] = [this.width, this.height];
 			xopts['binnable'] = true;
-			if (xopts['bin']==null) {xopts['bin'] = 10}
 			yopts['name'] = 'y';
 			yopts['size'] = [this.height, this.width],
 			yopts['orient'] = 'right';
 			yopts['invert'] = true;
 			zopts['name'] = 'z';
-			this.x = $('<div />').HistXControl(xopts).data('HistXControl');
+			
+			// X axis is a continuous, either float or time
+			//var tbins = ['year', 'month', 'day', 'hour', 'minute', 'second'];
+			//if ($.inArray(this.options.bin, tbins)>-1) {
+				this.x = $('<div />').HistTimeXControl(xopts).data('HistTimeXControl');
+			//} else {
+			//	this.x = $('<div />').HistXControl(xopts).data('HistXControl');				
+			//}
+
+			// Y axis produces counts for each bin
 			this.y = $('<div />').HistYControl(yopts).data('HistYControl');
+			
+			// Z axis is normal
 			this.z  = $('<div />').SeriesControl(zopts).data('SeriesControl');			
 		},
 		
@@ -663,49 +719,45 @@
 			var self = this;	
 			recs = recs.filter(function(d){return (self.x.f(d)!=null)});
 			console.log("Filtered recs:", recs);
-
-			// Calculate the X bounds
+			
+			// Separate by series key
+			var series = this.z.data(recs);
+			
+			// Update the X bounds
 			this.x.data(recs);
 
-			// Group by series
-			var series = [];
-			var b = this.z.data(recs);
-			for (var i=0;i<b.length;i++) {
-				var b2 = this.x.bin(b[i]);
-				series.push(b2);
+			// Group each series into bins
+			var series_binned = [];
+			for (var i=0;i<series.length;i++) {
+				series_binned.push(this.x.bin(series[i]));
 			}
-
-			console.log("Series:");
-			console.log(series);
-
-			// Update Y axis
-			this.y.data(series);
-
-			console.log("Axes:");
-			console.log(this.x);
-			console.log(this.y);
-			console.log(this.z);
+			
+			console.log('series_binned??');
+			console.log(series_binned);
+			
+			// Update Y axis acounts
+			this.y.data(series_binned);
 
 			// Update the X and Y axis domains
 			this.svg.select(".x.axis").call(this.x.ax);
 			this.svg.select(".y.axis").call(this.y.ax);
+			// return
 
 			// Add a group for each cause.
 			var groups = this.plotarea.selectAll("g.group")
-				.data(series)
+				.data(series_binned)
 				.enter().append("svg:g")
 				.attr("class", "group")
 				.style("fill", function(d, i) {return self.z.scale(i)});
-
 				
 			// Draw a rectangle for each group/bin
 			var rect = groups.selectAll("rect")
 				.data(Object)
 				.enter().append("svg:rect")
-				.attr('x', function(d,i) {return self.x.scale(d.x)})
-				.attr("width", function(d) {console.log(d.w, self.x.scale(d.w));return self.x.scale(d.w)})
+				.attr('x', function(d) {return self.x.scale(d.x)})
 				.attr('y', function(d) {return self.y.scale(d.ysum)-(self.height-self.y.scale(d.yoff))})
 				.attr('height', function(d) {return self.height-self.y.scale(d.ysum)})
+				.attr("width", 10) //function(d) {return self.x.scale(d.w)})
 		}
 	});	
 })(jQuery);

@@ -9,8 +9,8 @@ import jsonrpc.jsonutil
 
 <%block name="js_ready">
 	${parent.js_ready()}
-	caches["children"] = ${jsonrpc.jsonutil.encode(children)};
-	caches["collapsed"] = ${jsonrpc.jsonutil.encode(dict([(k, list(v)) for k,v in collapsed.items()]))};
+	emen2.caches["children"] = ${jsonrpc.jsonutil.encode(children)};
+	emen2.caches["collapsed"] = ${jsonrpc.jsonutil.encode(dict([(k, list(v)) for k,v in collapsed.items()]))};
 
 	$('#publishmap').MapSelect({
 		name: ${rec.name},

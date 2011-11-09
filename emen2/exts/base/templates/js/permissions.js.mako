@@ -32,26 +32,26 @@
 			// Add the e2-permissions class
 			this.element.empty();
 			this.element.addClass('e2-permissions');
-			this.element.append($.e2spinner());
+			this.element.append(emen2.template.spinner());
 
 			// Complicated callback chain...
 			// 1. Get the item...
-			var item = caches[this.options.keytype][this.options.name];
-			$.jsonRPC.call('get', {'keytype':this.options.keytype, 'names':this.options.name}, function(item) {
-				$.updatecache([item]);
+			var item = emen2.caches[this.options.keytype][this.options.name];
+			emen2.db('get', {'keytype':this.options.keytype, 'names':this.options.name}, function(item) {
+				emen2.cache.update([item]);
 
 				// 2. Get all the users before we draw the infoboxes
 				var users = [];
 				$.each(item['permissions'] || [], function(k, v) {users = users.concat(v)});
-				users = $.checkcache('user', users);
-				$.jsonRPC.call('getuser', [users], function(users) {
-					$.updatecache(users);
+				users = emen2.cache.check('user', users);
+				emen2.db('getuser', [users], function(users) {
+					emen2.cache.update(users);
 					
 					// 3. ... also get groups ...
 					var groups = item['groups'] || [];
-					groups = $.checkcache('group', groups);
-					$.jsonRPC.call('getgroup', [groups], function(groups) {					
-						$.updatecache(groups)
+					groups = emen2.cache.check('group', groups);
+					emen2.db('getgroup', [groups], function(groups) {					
+						emen2.cache.update(groups)
 
 						// 4. Finally call real build method
 						self._build();
@@ -64,8 +64,8 @@
 			// Real build method
 			this.built = 1;
 			var self = this;
-			var permissions = caches[this.options.keytype][this.options.name]['permissions'] || [];
-			var groups = caches[this.options.keytype][this.options.name]['groups'] || [];
+			var permissions = emen2.caches[this.options.keytype][this.options.name]['permissions'] || [];
+			var groups = emen2.caches[this.options.keytype][this.options.name]['groups'] || [];
 
 			// Remove anything that is bound
 			this.element.empty();
@@ -104,8 +104,8 @@
 		},
 		
 		build_summary: function() {
-			var permissions = caches[this.options.keytype][this.options.name]['permissions'] || [];
-			var groups = caches[this.options.keytype][this.options.name]['groups'] || [];
+			var permissions = emen2.caches[this.options.keytype][this.options.name]['permissions'] || [];
+			var groups = emen2.caches[this.options.keytype][this.options.name]['groups'] || [];
 			var total = permissions[0].length + permissions[1].length + permissions[2].length + permissions[3].length;
 			var ret = '<p>This record is accessible by '+groups.length+' groups and '+total+' users.</p>';
 			return ret
@@ -116,7 +116,7 @@
 			var controls = $(' \
 				<ul class="e2l-options"> \
 					<li class="e2-select"></li> \
-					<li><span class="e2-permissions-advanced e2l-a">'+$.e2caret('up')+'Advanced</span></li> \
+					<li><span class="e2-permissions-advanced e2l-a">'+emen2.template.caret('up')+'Advanced</span></li> \
 			 	</ul> \
 				<ul class="e2l-advanced e2l-hide"> \
 			 		<li><input type="button" name="add" value="Add selection to children" /></li> \
@@ -133,7 +133,7 @@
 			
 			// Show/hide advanced options
 			$('.e2-permissions-advanced', controls).click(function(){
-				$.e2caret('toggle', self.options.controls);
+				emen2.template.caret('toggle', self.options.controls);
 				$('.e2l-controls', self.options.controls).toggle();
 				$('.e2l-advanced', self.options.controls).toggle();
 			});

@@ -16,10 +16,10 @@
 			this.pen = -1;
 			this.boxid = 0;
 
-			this.options.bdo = $.checkopt(this, 'bdo');
+			this.options.bdo = emen2.util.checkopt(this, 'bdo');
 			this.element.attr('data-bdo', this.options.bdo);
 
-			this.options.name = $.checkopt(this, 'name');
+			this.options.name = emen2.util.checkopt(this, 'name');
 			this.element.attr('data-name', this.options.name);
 
 			if (this.options.show) {
@@ -38,9 +38,9 @@
 			// if there are records, do some callbacks..
 			if (this.options.name != null) {				
 
-				$.jsonRPC.call("getchildren", [this.options.name, 1, "box"], function(children) {
+				emen2.db("getchildren", [this.options.name, 1, "box"], function(children) {
 
-					$.jsonRPC.call("getrecord", [children], function(recs) {			
+					emen2.db("getrecord", [children], function(recs) {			
 						$.each(recs, function(i) {
 							self.load_record(this);
 						});					
@@ -91,7 +91,7 @@
 			controls.append('<h4 class="e2l-label">Boxes</h4>\
 				<input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /> \
 				<input type="button" name="newset" value="New Set" /><br /> \
-				'+$.e2spinner(false)+' \
+				'+emen2.template.spinner(false)+' \
 				<input type="button" name="saveall" class="e2l-save" value="Save All" /> \
 				');
 			controls.find("input[name=bigger]").click(function() {
@@ -144,7 +144,7 @@
 			this.boxid += 1;
 
 			// create a new box overlay
-			var boxsize = caches['record'][label]['box_size'];
+			var boxsize = emen2.caches['record'][label]['box_size'];
 			
 			var boxbox = $('<div>&nbsp;</div>');
 			boxbox.BoxBox({bdo: this.options.bdo, x: x, y: y, size: boxsize, boxid: this.boxid, scale: scale, label: label});
@@ -222,7 +222,7 @@
 			}
 			
 			if (confirm == true) {
-				$.jsonRPC.call("pcunlink", [this.options.name, label], function() {
+				emen2.db("pcunlink", [this.options.name, label], function() {
 					self.remove_label(label);
 				});
 			}		
@@ -243,7 +243,7 @@
 
 		_save: function(label) {
 			var boxes = $('.e2-box-img[data-label='+label+']');
-			var rec = caches['record'][label];
+			var rec = emen2.caches['record'][label];
 			rec['box_coords'] = $.makeArray(boxes.map(function(){return $(this).BoxImg('getcoords')}));
 			rec['box_label'] = $('.e2-box-label[data-label='+label+']').val();
 			rec['box_size'] = $('.e2-box-size[data-label='+label+']').val();
@@ -264,7 +264,7 @@
 			recs = recs.reverse();
 			this.clear();	
 			
-			$.jsonRPC.call("putrecord", [recs], function(recs) {
+			emen2.db("putrecord", [recs], function(recs) {
 				$.each(recs, function() {
 					$('.e2l-spinner', self.element).hide();
 					self.load_record(this);
@@ -274,8 +274,8 @@
 
 		save: function(label) {
 			var rec = this._save(label);
-			$.jsonRPC.call("putrecord", [rec], function(newrec) {
-				caches['record'][newrec.name] = newrec;
+			emen2.db("putrecord", [rec], function(newrec) {
+				emen2.caches['record'][newrec.name] = newrec;
 				self.remove_label(label, true);
 				self.load_record(newrec);
 			});
@@ -285,7 +285,7 @@
 			var self = this;
 			
 			if (rec==null) {
-				$.jsonRPC.call("newrecord", ["box", self.options.name], function(rec) {
+				emen2.db("newrecord", ["box", self.options.name], function(rec) {
 					rec.name = self.currentlabel;
 					self.currentlabel -= 1;
 					//rec["parents"] = [self.options.name];
@@ -295,7 +295,7 @@
 			}
 			
 			rec["box_size"] = rec["box_size"] || this.options.boxsize;
-			caches['record'][rec.name] = rec;
+			emen2.caches['record'][rec.name] = rec;
 			this.build_boxarea(rec.name);
 			$.each(rec['box_coords'] || [], function(i) {
 				self.addbox(this[0], this[1], rec.name);
@@ -306,11 +306,11 @@
 		build_boxarea: function(label) {
 			var self = this;
 						
-			caches["colors"][label] = caches['colors'][label] || this.options.colors.pop();
+			emen2.caches["colors"][label] = emen2.caches['colors'][label] || this.options.colors.pop();
 
 			var box_label = "";
 			if (label >= 0) {
-				var box_label = caches['record'][label]['box_label'] || "Box Set "+label;
+				var box_label = emen2.caches['record'][label]['box_label'] || "Box Set "+label;
 			}
 			
 
@@ -323,11 +323,11 @@
 			});	
 
 
-			var colorpicker = $('<input class="e2-box-colorpicker" data-label="'+label+'" type="text" size="4" value="'+caches["colors"][label]+'" />');
+			var colorpicker = $('<input class="e2-box-colorpicker" data-label="'+label+'" type="text" size="4" value="'+emen2.caches["colors"][label]+'" />');
 			colorpicker.change(function() {
 				var label = $(this).attr("data-label");				
 				var newcolor = $(this).val();
-				caches["colors"][label] = newcolor;
+				emen2.caches["colors"][label] = newcolor;
 				$('.e2-box-img[data-label='+label+']').css("border-color", newcolor);
 				$('.e2-box-box[data-label='+label+']').css("border-color", newcolor);
 			});
@@ -364,7 +364,7 @@
 					$(ui.draggable).remove();
 					$(ui.helper).remove();
 					var boximg = $('<img alt="Box" />');
-					boximg.BoxImg({bdo: self.options.bdo, x: o['x'], y: o['y'], size: caches['record'][newlabel]['box_size'], boxid: o['boxid'], scale: 1, label: newlabel, draggable: true});
+					boximg.BoxImg({bdo: self.options.bdo, x: o['x'], y: o['y'], size: emen2.caches['record'][newlabel]['box_size'], boxid: o['boxid'], scale: 1, label: newlabel, draggable: true});
 					$('.e2-box-boxarea[data-label='+newlabel+']').append(boximg);
 					self.updateboxcount(newlabel);
 					self.updateboxcount(o['label']);		
@@ -377,11 +377,11 @@
 			colorcontrols.append(pen, hide, colorpicker);
 
 			var actions = $('<td />');
-			actions.append($.e2spinner(), save1, remove);					
+			actions.append(emen2.template.spinner(), save1, remove);					
 
 			var boxheader = $('<tr data-label="'+label+'" />');
 			
-			boxheader.append(colorcontrols, '<td class="e2-box-count" data-label="'+label+'"></td>', '<td><input type="text" class="e2-box-size" name="box_size" data-label="'+label+'" value="'+caches['record'][label]['box_size']+'" size="2" /></td>', '<td><input class="e2-box-label" data-label="'+label+'" name="box_label" type="text" size="30" value="'+box_label+'" /></td>', actions);
+			boxheader.append(colorcontrols, '<td class="e2-box-count" data-label="'+label+'"></td>', '<td><input type="text" class="e2-box-size" name="box_size" data-label="'+label+'" value="'+emen2.caches['record'][label]['box_size']+'" size="2" /></td>', '<td><input class="e2-box-label" data-label="'+label+'" name="box_label" type="text" size="30" value="'+box_label+'" /></td>', actions);
 
 			this.element.find(".boxtable tbody").prepend(boxheader, boxarea);
 
@@ -395,7 +395,7 @@
 			$('input[name=box_size]', boxheader).change(function() {
 				var label = $(this).attr("data-label");				
 				var boxsize = parseInt($(this).val());
-				caches['record'][label]['box_size'] = boxsize;
+				emen2.caches['record'][label]['box_size'] = boxsize;
 				$('.e2-box-img[data-label='+label+']').BoxImg('setsize', boxsize);
 				$('.e2-box-box[data-label='+label+']').BoxBox('setsize', boxsize);
 			});
@@ -480,7 +480,7 @@
 			var boxscale = this.options.size / this.options.scale;
 			var disp_x = (this.options.x - (this.options.size) / 2) / this.options.scale;
 			var disp_y = (this.options.y - (this.options.size) / 2) / this.options.scale;			
-			var color = caches["colors"][this.options.label];
+			var color = emen2.caches["colors"][this.options.label];
 			this.element.css('border-color', color)			
 			this.element.css("left", disp_x);
 			this.element.css("top", disp_y);
@@ -564,7 +564,7 @@
 		
 		refresh: function() {
 			var self = this;
-			var color = caches["colors"][this.options.label];
+			var color = emen2.caches["colors"][this.options.label];
 			this.element.css('border-color', color);
 			
 			var eman2_x = self.options.x - self.options.size / 2;
@@ -615,7 +615,7 @@
 		show: function() {
 			var self = this;
 			if (this.options.mode == "cached") {
-				this.element.append($.e2spinner());
+				this.element.append(emen2.template.spinner());
 				$.ajax({
 					type: 'POST',
 					url: EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/check/',
@@ -676,7 +676,7 @@
 				$('div[data-bdo='+self.options.bdo+']').Boxer('addbox', x, y); // callback to the Boxer controller
 			});
 
-			var apix = null; //caches['record'][this.options.name]['angstroms_per_pixel'];
+			var apix = null; //emen2.caches['record'][this.options.name]['angstroms_per_pixel'];
 			if (!apix) {
 				apix = 1.0;
 			}

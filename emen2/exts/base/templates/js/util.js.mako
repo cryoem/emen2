@@ -9,82 +9,314 @@ window.log = function(){
   }
 };
 
-// Utility Methods
-(function($){
+// EMEN2 helper methods
+var emen2 = {};
 
-	// Some simple templating methods..
-	$.e2static = function(name) {
-		return EMEN2WEBROOT+'/static-'+VERSION+'/'+name
-	}
-	
-	$.e2image = function(name, alt, cls) {
-		alt = alt || '';
-		cls = cls || '';
-		return '<img src="'+$.e2static('images/'+name)+'" class="'+cls+'" alt="'+alt+'" />'		
-	}
+// EMEN2 time functions
+emen2.time = {};
 
-	$.e2spinner = function(show) {
-		var cls = 'e2l-spinner e2l-hide';
-		if (show) {cls = 'e2l-spinner'}
-		return $.e2image('spinner.gif', 'Loading', cls);
+// Print an ISO Date String
+emen2.time.ISODateString = function(d) {
+    function pad(n){
+        return n<10 ? '0'+n : n
+    }
+    return d.getUTCFullYear()+'-'
+    + pad(d.getUTCMonth()+1)+'-'
+    + pad(d.getUTCDate())+'T'
+    + pad(d.getUTCHours())+':'
+    + pad(d.getUTCMinutes())+':'
+    + pad(d.getUTCSeconds())+'Z'
+}
+
+emen2.time.range = function(t1, t2, width) {
+	var t2 = t2 || new Date();
+	var width = width || 'month';
+	var f = emen2.time.interval[width];
+	var start = f(t1)[0];
+	var end = f(t2)[1];
+	var cur = start;
+	var ret = [];
+	var i = 0;
+	while (cur<end) {
+		var d = f(cur);
+		ret.push(d[0]);
+		cur = d[1];
 	}
-	
-	$.e2caret = function(state, elem) {
-		// Create or toggle a caret up/down icon
-		var caret = [];
-		if (elem) {
-			var caret = $('.e2l-caret', elem);
+	ret.push(end);
+	return ret
+};
+emen2.time.start = function(t1, width) {
+	var t1 = t1 || new Date();
+	var width = width || 'month';
+	return emen2.time.interval[width](t1)[0]
+};
+
+// EMEN2 Time interval helpers
+emen2.time.interval = {};
+
+
+// Return year interval
+emen2.time.interval.year = function(t1) {
+	var start = new Date(t1.getFullYear(), 0, 1, 0, 0, 0, 0);
+	var end = new Date(t1.getFullYear()+1, 0, 1, 0, 0, 0, 0);
+	return [start, end]
+};
+
+emen2.time.interval.month = function(t1) {
+	var start = new Date(t1.getFullYear(), t1.getMonth(), 1, 0, 0, 0, 0);
+	var end = new Date(t1.getFullYear(), t1.getMonth()+1, 1, 0, 0, 0, 0);
+	return [start, end]
+};
+
+emen2.time.interval.day = function(t1) {
+	var start = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), 0, 0, 0, 0);
+	var end = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate()+1, 0, 0, 0, 0);
+	return [start, end]	
+};
+
+emen2.time.interval.hour = function(t1) {
+	var start = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), 0, 0, 0);
+	var end = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours()+1, 0, 0, 0);
+	return [start, end]	
+};
+
+emen2.time.interval.minute = function(t1) {
+	var start = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), t1.getMinutes(), 0, 0);
+	var end = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), t1.getMinutes()+1, 0, 0);
+	return [start, end]	
+};
+
+emen2.time.interval.second = function(t1) {
+	var start = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), t1.getMinutes(), t1.getSeconds(), 0);
+	var end = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), t1.getMinutes(), t1.getSeconds()+1, 0);
+	return [start, end]
+};
+
+
+
+// EMEN2 cache handling
+emen2.cache = {};
+
+emen2.caches = {
+	'user': {},
+	'group': {},
+	'record': {'None':{}},
+	'paramdef': {},
+	'recorddef': {},
+	'binary': {},
+	'children': {},
+	'parents': {},
+	'recnames': {}
+};
+
+emen2.cache.get = function(key, keytype) {
+	var keytype = keytype || 'record';
+	return emen2.caches[keytype][key]
+};
+
+emen2.cache.update = function(items) {
+	$.each(items, function() {
+		emen2.caches[this.keytype][this.name] = this;
+	})
+};
+
+emen2.cache.check = function(keytype, items) {
+	var ret = [];
+	$.each(items, function(i,v) {
+		if (v == 'None' || v == null) {
+			return
 		}
-		if (!elem || !caret.length) {
-			caret = $($.e2image('caret_up.png', '^', 'e2l-caret'));
-		}
-		state = state || 'down';
-		if (state == 'toggle') {
-			if (caret.attr('data-state')=='up') {state='down'} else {state='up'}
-		}		
-		caret.attr('src', $.e2static('images/caret_'+state+'.png'));
-		caret.attr('data-state', state);
-		if (elem){return}
-		return $('<div />').append(caret).html()
+		var item = emen2.caches[keytype][v];
+		if (item==null && $.inArray(v,ret)==-1) {ret.push(v)}
+	});
+	return ret
+};
+
+emen2.db = function(method, args, cb, eb) {
+	return $.jsonRPC.call(method, args, cb, eb);
+};
+
+// EMEN2 template functions
+emen2.template = {};
+emen2.template.caret = function(state, elem) {
+	// Create or toggle a caret up/down icon
+	var caret = [];
+	if (elem) {
+		var caret = $('.e2l-caret', elem);
 	}
-	
-	$.updatecache = function(items) {
-		$.each(items, function() {
-			caches[this.keytype][this.name] = this;
-		})
+	if (!elem || !caret.length) {
+		caret = $(emen2.template.image('caret_up.png', '^', 'e2l-caret'));
 	}
-	
-	$.checkcache = function(keytype, items) {
-		var ret = [];
-		$.each(items, function(i,v) {
-			if (v == 'None' || v == null) {
-				return
+	state = state || 'down';
+	if (state == 'toggle') {
+		if (caret.attr('data-state')=='up') {state='down'} else {state='up'}
+	}		
+	caret.attr('src', emen2.template.static('images/caret_'+state+'.png'));
+	caret.attr('data-state', state);
+	if (elem){return}
+	return $('<div />').append(caret).html()
+};
+
+emen2.template.static = function(name) {
+	return EMEN2WEBROOT+'/static-'+VERSION+'/'+name
+};
+
+emen2.template.image = function(name, alt, cls) {
+	alt = alt || '';
+	cls = cls || '';
+	return '<img src="'+emen2.template.static('images/'+name)+'" class="'+cls+'" alt="'+alt+'" />'		
+};
+
+emen2.template.spinner = function(show) {
+	var cls = 'e2l-spinner e2l-hide';
+	if (show) {cls = 'e2l-spinner'}
+	return emen2.template.image('spinner.gif', 'Loading', cls);
+};
+
+emen2.template.notify = function(msg, error, fade) {
+	var msg=$('<li>'+msg+'</li>');
+	if (error!=null) {
+		msg.addClass("e2l-error");
+	}
+	var killbutton = $('<span class="e2l-float-right">X</span>');
+	killbutton.click(function() {
+		$(this).parent().fadeOut(function(){
+			$(this).remove();
+		});		
+	});
+	msg.append(killbutton);
+	$("#container > .e2-alert").append(msg); //.fadeIn();	
+};
+
+// Default error message dialog.
+// This gives the user some feedback if an RPC request fails.
+emen2.template.error = function(title, text, method, data) {
+	var error = $('<div title="'+title+'" />');
+	error.append('<p>'+text+'</p>');
+	var debug = $('<div class="e2-error-debug e2l-hide"/>');
+	debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+method+'</p>');
+	debug.append('<p><strong>Data:</strong></p><p>'+data+'</p>');
+	error.append(debug);
+	error.dialog({
+		width: 400,
+		height: 300,
+		modal: true,
+		buttons: {
+			'OK':function() {
+				$(this).dialog('close')
+			},
+			'More Info': function() {
+				$('.e2-error-debug', this).toggle();
 			}
-			var item = caches[keytype][v];
-			if (item==null && $.inArray(v,ret)==-1) {ret.push(v)}
-		});
-		return ret
-	}
-	
-	// For EMEN2 widgets, check this.options first, then
-	// this.element.attr('data-'+key)
-	// This includes a check so that record ID = 0 works
-	$.checkopt = function(self, key, dfault) {
-		var value = self.options[key];
-		if (value == 0) {
-			//  && key == 'name') {
-			return value
 		}
-		value = value || self.element.attr('data-'+key) || dfault;
+	});
+};
+
+// Convert a byte count to human friendly
+emen2.template.prettybytes = function(bytes) {
+	var b = 0;
+	if (bytes >= 1099511627776) {
+		b = bytes / 1099511627776;
+		return b.toFixed(2) + " TB"
+	} else if (bytes >= 1073741824) {
+		b = bytes / 1073741824;
+		return b.toFixed(2) + " GB"
+	} else if (bytes >= 1048576) {
+		b = bytes / 1048576;
+		return b.toFixed(2) + " MB"
+	} else if (bytes >= 1024) {
+		b = bytes / 1024;
+		return b.toFixed(2) + " KB"
+	} else if (bytes != null) {
+		return bytes + " bytes"
+	} else {
+		return "Unknown"
+	}
+};
+
+
+// EMEN2 Utility functions
+emen2.util = {};
+
+// For EMEN2 widgets, check this.options first, then
+// this.element.attr('data-'+key)
+// This includes a check so that record ID = 0 works
+emen2.util.checkopt = function(self, key, dfault) {
+	var value = self.options[key];
+	if (value == 0) {
+		//  && key == 'name') {
 		return value
 	}
-	
+	value = value || self.element.attr('data-'+key) || dfault;
+	return value
+};
+
+// Sort a dict's keys based on integer values
+// >>> var sortable = [];
+// >>> for (var vehicle in maxSpeed)
+//       sortable.push([vehicle, maxSpeed[vehicle]])
+// >>> sortable.sort(function(a, b) {return a[1] - b[1]})
+// [["bike", 60], ["motorbike", 200], ["car", 300],
+// ["helicopter", 400], ["airplane", 1000], ["rocket", 28800]]
+emen2.util.sortdict = function(o) {
+	var sortable = [];
+	for (var i in o) {
+		sortable.push([i, o[i]])
+	}
+	var s = sortable.sort(function(a, b) {return b[1] - a[1]})
+	result = [];
+	for (var i=0;i<s.length;i++) {
+		result.push(s[i][0]);
+	}
+	return result
+};
+
+// Sort a dict's keys based on lower-case string values
+emen2.util.sortdictstr = function(o) {
+	var sortable = [];
+	for (var i in o) {
+		sortable.push([i, o[i]])
+	}
+	var s = sortable.sort(function(a, b) {
+		return b[1].toLowerCase() > a[1].toLowerCase()
+		});
+	result = [];
+	for (var i=0;i<s.length;i++) {
+		result.push(s[i][0]);
+	}
+	return result
+};
+
+
+// $.getFromURL = function(args, data, callback, errback, dataType){
+// 	$.get_url(args.name, args.args, args.kwargs)(function(url) {
+// 		$.getJSON(EMEN2WEBROOT+url, data, callback, errback, dataType)
+// 	})
+// }
+// 
+// $.get_urls = function(args) {
+// 	return function(cb) {
+// 		$.post(reverse_url, {'arg___json':$.toJSON(args)}, cb, 'json');
+// 	}
+// }
+// 
+// $.execute_url = function(name, args, kwargs) {
+// 	return function(cb) {
+// 		$.post(reverse_url+name+'/execute/', {'arguments___json':$.toJSON(args), 'kwargs___json':$.toJSON(kwargs)}, cb, 'json');
+// 	}
+// }
+
+
+// Utility classes
+(function($){
+
+	// These two methods are deprecated.
 	// Update controls when a record has changed
 	$.record_update = function(rec) {
 		if (typeof(rec)=="number") {
 			var name = rec;
 		} else {
-			caches['record'][rec.name] = rec;
+			emen2.caches['record'][rec.name] = rec;
 			var name = rec.name;
 		}
 		$.rebuild_views('.e2-view[data-name='+name+']');
@@ -101,7 +333,7 @@ window.log = function(){
 			var name = parseInt(elem.attr('data-name'));
 			var viewname = elem.attr('data-viewname');
 			var edit = elem.attr('data-edit');
-			$.jsonRPC.call("renderview", {'names':name, 'viewname': viewname, 'edit': edit}, function(view) {
+			emen2.db("renderview", {'names':name, 'viewname': viewname, 'edit': edit}, function(view) {
 				elem.html(view);
 				//$('.e2-edit', elem).EditControl({});
 			},
@@ -109,157 +341,6 @@ window.log = function(){
 			);
 		})
 	}
-	
-
-	// Notifications
-	$.notify = function(msg, error, fade) {
-		var msg=$('<li>'+msg+'</li>');
-		if (error!=null) {
-			msg.addClass("e2l-error");
-		}
-		var killbutton = $('<span class="e2l-float-right">X</span>');
-		killbutton.click(function() {
-			$(this).parent().fadeOut(function(){
-				$(this).remove();
-			});		
-		});
-		msg.append(killbutton);
-		$("#container > .e2-alert").append(msg); //.fadeIn();	
-	}
-	
-	// Convert a byte count to human friendly
-	$.convert_bytes = function(bytes) {
-		var b = 0;
-		if (bytes >= 1099511627776) {
-			b = bytes / 1099511627776;
-			return b.toFixed(2) + " TB"
-		} else if (bytes >= 1073741824) {
-			b = bytes / 1073741824;
-			return b.toFixed(2) + " GB"
-		} else if (bytes >= 1048576) {
-			b = bytes / 1048576;
-			return b.toFixed(2) + " MB"
-		} else if (bytes >= 1024) {
-			b = bytes / 1024;
-			return b.toFixed(2) + " KB"
-		} else if (bytes != null) {
-			return bytes + " bytes"
-		} else {
-			return "Unknown"
-		}
-	}
-
-	// Similar to RPC, but POST to a view.
-	$.postJSON = function(url, data, callback, errback) {
-		return $.ajax({
-			url: url,
-			data: $.toJSON(data), 
-			type: "POST",
-			success: callback
-			//error: function(jqXHR, textStatus, errorThrown) {console.log(errorThrown)}
-			//dataType: "json"
-			});
-	}
-	
-	$.ISODateString = function(d) {
-	    function pad(n){
-	        return n<10 ? '0'+n : n
-	    }
-	    return d.getUTCFullYear()+'-'
-	    + pad(d.getUTCMonth()+1)+'-'
-	    + pad(d.getUTCDate())+'T'
-	    + pad(d.getUTCHours())+':'
-	    + pad(d.getUTCMinutes())+':'
-	    + pad(d.getUTCSeconds())+'Z'
-	}
-
-	// The '___' argument format is deprecated for now.
-	// $.get_url = function(name, args, kwargs) {
-	// 	if (args === undefined) {args = []};
-	// 	if (kwargs === undefined) {kwargs = {}};
-	// 	return function(cb) {
-	// 		$.post(reverse_url+name+'/', {'arguments___json':$.toJSON(args), 'kwargs___json':$.toJSON(kwargs)}, cb, 'json');
-	// 	}
-	// }
-	// 
-	// $.getFromURL = function(args, data, callback, errback, dataType){
-	// 	$.get_url(args.name, args.args, args.kwargs)(function(url) {
-	// 		$.getJSON(EMEN2WEBROOT+url, data, callback, errback, dataType)
-	// 	})
-	// }
-	// 
-	// $.get_urls = function(args) {
-	// 	return function(cb) {
-	// 		$.post(reverse_url, {'arg___json':$.toJSON(args)}, cb, 'json');
-	// 	}
-	// }
-	// 
-	// $.execute_url = function(name, args, kwargs) {
-	// 	return function(cb) {
-	// 		$.post(reverse_url+name+'/execute/', {'arguments___json':$.toJSON(args), 'kwargs___json':$.toJSON(kwargs)}, cb, 'json');
-	// 	}
-	// }
-	
-	// Sort a dict's keys based on integer values
-	// >>> var sortable = [];
-	// >>> for (var vehicle in maxSpeed)
-	//       sortable.push([vehicle, maxSpeed[vehicle]])
-	// >>> sortable.sort(function(a, b) {return a[1] - b[1]})
-	// [["bike", 60], ["motorbike", 200], ["car", 300],
-	// ["helicopter", 400], ["airplane", 1000], ["rocket", 28800]]
-	$.sortdict = function(o) {
-		var sortable = [];
-		for (var i in o) {
-			sortable.push([i, o[i]])
-		}
-		var s = sortable.sort(function(a, b) {return b[1] - a[1]})
-		result = [];
-		for (var i=0;i<s.length;i++) {
-			result.push(s[i][0]);
-		}
-		return result
-	}
-
-	// Sort a dict's keys based on lower-case string values
-	$.sortstrdict = function(o) {
-		var sortable = [];
-		for (var i in o) {
-			sortable.push([i, o[i]])
-		}
-		var s = sortable.sort(function(a, b) {
-			return b[1].toLowerCase() > a[1].toLowerCase()
-			});
-		result = [];
-		for (var i=0;i<s.length;i++) {
-			result.push(s[i][0]);
-		}
-		return result
-	}
-	
-	// Default error message dialog.
-	// This gives the user some feedback if an RPC request fails.
-	$.e2error = function(title, text, method, data) {
-		var error = $('<div title="'+title+'" />');
-		error.append('<p>'+text+'</p>');
-		var debug = $('<div class="e2-error-debug e2l-hide"/>');
-		debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+method+'</p>');
-		debug.append('<p><strong>Data:</strong></p><p>'+data+'</p>');
-		error.append(debug);
-		error.dialog({
-			width: 400,
-			height: 300,
-			modal: true,
-			buttons: {
-				'OK':function() {
-					$(this).dialog('close')
-				},
-				'More Info': function() {
-					$('.e2-error-debug', this).toggle();
-				}
-			}
-		});
-	}	
-
 
 	///////////////////////////////////////////////////
 	// Some simple jquery UI widgets that don't really
@@ -340,7 +421,7 @@ window.log = function(){
 		
 		_create: function() {
 			this.built = 0;
-			this.options.tabgroup = $.checkopt(this, 'tabgroup');
+			this.options.tabgroup = emen2.util.checkopt(this, 'tabgroup');
 			this.tablist = this.element.children('ul');
 			this.tabpanel = this.element;
 			var tablist = $('[data-tabgroup='+this.options.tabgroup+'][role=tablist]');
@@ -456,9 +537,9 @@ window.log = function(){
 		},
 				
 		_create: function() {
-			this.options.parent = $.checkopt(this, 'parent');
-			this.options.mode = $.checkopt(this, 'mode');
-			this.options.name = $.checkopt(this, 'name');
+			this.options.parent = emen2.util.checkopt(this, 'parent');
+			this.options.mode = emen2.util.checkopt(this, 'mode');
+			this.options.name = emen2.util.checkopt(this, 'name');
 			this.built_bookmarks = 0;
 			var self = this;
 			if (this.options.mode) {
@@ -474,20 +555,20 @@ window.log = function(){
 						
 			var self = this;
 			var bookmarks = [];
-			$.jsonRPC.call('rel.children', [this.options.parent, 1, 'bookmarks'], function(children) {
+			emen2.db('rel.children', [this.options.parent, 1, 'bookmarks'], function(children) {
 				children.sort();
 				var brec = null;
 				if (children.length > 0) {
 					brec = children[children.length-1];
 				}
-				$.jsonRPC.call('record.get', [brec], function(rec) {
+				emen2.db('record.get', [brec], function(rec) {
 					var brecs = [];
 					if (rec != null) {
 						var brecs = rec['bookmarks'] || [];
 					}
-					$.jsonRPC.call('record.render', [brecs], function(recnames) {
+					emen2.db('record.render', [brecs], function(recnames) {
 						$.each(recnames, function(k,v) {
-							caches['recnames'][k] = v;
+							emen2.caches['recnames'][k] = v;
 						});
 						self._build_bookmarks(brecs);
 					});	
@@ -503,7 +584,7 @@ window.log = function(){
 				ul.append('<li><a href="">No bookmarks</a></li>');
 			}
 			$.each(bookmarks, function() {
-				var li = $('<li><a href="'+EMEN2WEBROOT+'/record/'+this+'/">'+caches['recnames'][this]+'</a></li>');
+				var li = $('<li><a href="'+EMEN2WEBROOT+'/record/'+this+'/">'+emen2.caches['recnames'][this]+'</a></li>');
 				ul.append(li);
 			});			
 			this.element.append(ul);
@@ -531,10 +612,10 @@ window.log = function(){
 			
 			//$('img.star', this.element).
 			this.element.empty();
-			this.element.append($.e2spinner(false));
+			this.element.append(emen2.template.spinner(false));
 			
-			$.jsonRPC.call('rel.children', [this.options.parent, 1, 'bookmarks'], function(children) {
-				$.jsonRPC.call('record.get', [children], function(recs) {
+			emen2.db('rel.children', [this.options.parent, 1, 'bookmarks'], function(children) {
+				emen2.db('record.get', [children], function(recs) {
 					if (recs.length == 0) {
 						var rec = {'rectype':'bookmarks', 'bookmarks': [], 'parents': [self.options.parent]};
 					} else {
@@ -562,11 +643,11 @@ window.log = function(){
 					//var pos = $.inArray(name, bookmarks);
 					rec['bookmarks'] = bookmarks;
 					var pos = $.inArray(name, bookmarks);
-					$.jsonRPC.call('record.put', [rec], function(updrec) {
+					emen2.db('record.put', [rec], function(updrec) {
 						if (pos == -1) {
-							var star = $($.e2image('star-open.png', 'Add Bookmark'))
+							var star = $(emen2.template.image('star-open.png', 'Add Bookmark'))
 						} else {
-							var star = $($.e2image('star-closed.png', 'Bookmarked'))
+							var star = $(emen2.template.image('star-closed.png', 'Bookmarked'))
 						}
 						self.element.empty();
 						self.element.append(star);
@@ -590,10 +671,10 @@ window.log = function(){
 		// 		if ($('#siblings', self.popup).length) {
 		// 			return
 		// 		}
-		// 		var sibs = $('<div class="e2-siblings">'+$.e2spinner()+'</div>');
+		// 		var sibs = $('<div class="e2-siblings">'+emen2.template.spinner()+'</div>');
 		// 		self.popup.append(sibs);
-		// 		$.jsonRPC.call("getsiblings", [rec.name, rec.rectype], function(siblings) {
-		// 			$.jsonRPC.call("renderview", [siblings, null, "recname"], function(recnames) {
+		// 		emen2.db("getsiblings", [rec.name, rec.rectype], function(siblings) {
+		// 			emen2.db("renderview", [siblings, null, "recname"], function(recnames) {
 		// 				siblings = siblings.sort(function(a,b){return a-b});
 		// 				sibs.empty();
 		// 				var prevnext = $('<h4 class="e2l-cf e2l-editbar-sibling-prevnext"></h4>');
@@ -606,13 +687,13 @@ window.log = function(){
 		// 				sibs.append(prevnext);
 		// 
 		// 				var ul = $('<ul/>');
-		// 				$.extend(caches["recnames"], recnames);
+		// 				$.extend(emen2.caches["recnames"], recnames);
 		// 				$.each(siblings, function(i,k) {
 		// 					if (k != rec.name) {
 		// 						// color:white here is a hack to have them line up
-		// 						ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#siblings">'+(caches["recnames"][k]||k)+'</a></li>');
+		// 						ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#siblings">'+(emen2.caches["recnames"][k]||k)+'</a></li>');
 		// 					} else {
-		// 						ul.append('<li class="e2-siblings-active">'+(caches["recnames"][k]||k)+'</li>');
+		// 						ul.append('<li class="e2-siblings-active">'+(emen2.caches["recnames"][k]||k)+'</li>');
 		// 					}
 		// 				});
 		// 				sibs.append(ul);
@@ -631,7 +712,7 @@ window.log = function(){
 
 		_create: function() {
 			var self = this;
-			this.options.max = $.checkopt(this, 'max');
+			this.options.max = emen2.util.checkopt(this, 'max');
 			
 			this.wc = $('<div class="e2-wordcount-count"></div>');
 			this.element.after(this.wc);

@@ -6,7 +6,7 @@
 	${parent.js_ready()}
 
 	// Record, ptest
-	var rec = caches['record'][${jsonrpc.jsonutil.encode(rec.name)}];
+	var rec = emen2.caches['record'][${jsonrpc.jsonutil.encode(rec.name)}];
 	var ptest = ${jsonrpc.jsonutil.encode(rec.ptest())}
 	
 	// Change View

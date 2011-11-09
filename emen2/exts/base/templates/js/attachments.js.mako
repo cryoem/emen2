@@ -68,7 +68,7 @@
 			var row = $(' \
 				<tr data-index="'+index+'"> \
 					<td>'+file.name+'</td> \
-					<td>'+$.convert_bytes(file.size)+'</td> \
+					<td>'+emen2.template.prettybytes(file.size)+'</td> \
 					<td><div class="e2-upload-progress"></div></td> \
 					<td style="width:32px" class="e2-upload-action"></td> \
 				</tr>');
@@ -129,30 +129,30 @@
 				}
 				clr(elem, action);
 				elem.html('Completed');
-				action.append($.e2image('ok.png','Success'));
+				action.append(emen2.template.image('ok.png','Success'));
 			}
 			xhr.onloadstart = function(e) {
 				clr(elem, action);
 				elem.progressbar({});
-				var cancel = $($.e2image('cancel.png','Cancel')).click(function(){xhr.abort()});
+				var cancel = $(emen2.template.image('cancel.png','Cancel')).click(function(){xhr.abort()});
 				action.append(cancel);				
 			}
 			xhr.onabort = function(e) {
 				clr(elem, action);
 				elem.html('Aborted');
-				var retry = $($.e2image('retry.png','Retry')).click(function(){self.retry(index, file)});
+				var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});
 				action.append(retry);
 			}
 			xhr.onerror = function(e) {
 				clr(elem, action);
 				elem.html('Error');
-				var retry = $($.e2image('retry.png','Retry')).click(function(){self.retry(index, file)});
+				var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});
 				action.append(retry);
 			}
 			xhr.ontimeout = function(e) {
 				clr(elem, action);
 				elem.html('Timed out');
-				var retry = $($.e2image('retry.png','Retry')).click(function(){self.retry(index, file)});
+				var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});
 				action.append(retry);				
 			}
 			xhr.open('PUT', uri, true);			
@@ -253,17 +253,17 @@
 		build: function() {
 			// Find binaries attached to the named record
 			var self = this;
-			$.jsonRPC.call("binary.find", {'record':self.options.name}, 
+			emen2.db("binary.find", {'record':self.options.name}, 
 				function(bdos) {
 					self.bdos = bdos;
-					$.updatecache(bdos);
+					emen2.cache.update(bdos);
 
 					// Grab all the users we need
 					var users = $.map(self.bdos, function(i){return i['creator']});
-					users = $.checkcache('user', users);
+					users = emen2.cache.check('user', users);
 					if (users.length) {
-						$.jsonRPC.call('user.get', [users], function(users) {
-							$.updatecache(users);
+						emen2.db('user.get', [users], function(users) {
+							emen2.cache.update(users);
 							self._build();
 						});
 					} else {
@@ -299,7 +299,7 @@
 
 		build_level: function(label, level, items) {
 			var self = this;
-			var pd = caches['paramdef'][level];
+			var pd = emen2.caches['paramdef'][level];
 			if (pd) {label = pd.desc_short}
 
 			// Update the select count when built or checked..
@@ -335,7 +335,7 @@
 						<li><input type="file" class="e2-attachments-fileinput" name="file_binary" multiple /></li> \
 					</ul> \
 					<ul class="e2l-controls"> \
-						<li>'+$.e2spinner()+'<input type="submit" value="Save attachments" /></li> \
+						<li>'+emen2.template.spinner()+'<input type="submit" value="Save attachments" /></li> \
 					</ul>');
 
 			// Selection control
@@ -388,7 +388,7 @@
 		makebdomap: function(bdos) {
 			// This is to avoid an extra RPC call, and sort BDOs by param name
 			var bdomap = {};
-			var rec = caches['record'][this.options.name];
+			var rec = emen2.caches['record'][this.options.name];
 			var self = this;
 
 			$.each(bdos, function(i, bdo) {

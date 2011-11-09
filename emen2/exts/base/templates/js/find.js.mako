@@ -35,7 +35,7 @@
 			if (this.built) {return}
 			this.built = 1;
 
-			var item = caches[this.options.keytype][this.options.name];
+			var item = emen2.caches[this.options.keytype][this.options.name];
 			if (!item) {
 				// Can't build for items that don't exist
 				if (this.options.name == null) {
@@ -49,12 +49,12 @@
 				// console.log("Retry to get:", this.options.name, "attempt:", this.retry);
 				this.retry += 1;
 				// console.log("Trying to get:", this.options.keytype, this.options.name);
-				$.jsonRPC.call('get', {
+				emen2.db('get', {
 					keytype: this.options.keytype,
 					names: this.options.name
 				}, function(item) {
 					if (!item) {return}
-					caches[item.keytype][item.name] = item;
+					emen2.caches[item.keytype][item.name] = item;
 					self._build();
 				});
 				return
@@ -66,7 +66,7 @@
 		
 		_build: function() {
 			var self = this;
-			var item = caches[this.options.keytype][this.options.name];
+			var item = emen2.caches[this.options.keytype][this.options.name];
 			
 			// ian: todo: This could be refactored somewhat
 			var title = '';
@@ -82,14 +82,14 @@
 				}
 				body = count+' members'
 			} else if (this.options.keytype == 'record') {
-				var recname = caches['recnames'][item.name];
+				var recname = emen2.caches['recnames'][item.name];
 				title = $.trim(recname || item.rectype);
 				body = item.rectype+', '+item.name+', created: '+item.creationtime.substr(0,10);
 				this.element.attr('data-rectype', item.rectype);
 			} else if (this.options.keytype == 'binary') {
 				title = item.filename;
 				if (item.filesize) {
-					title = title+' ('+$.convert_bytes(item.filesize)+')';
+					title = title+' ('+emen2.template.prettybytes(item.filesize)+')';
 				}
 				var user = item.creator;
 				body = 'Created by '+user+' on '+item.creationtime;
@@ -128,7 +128,7 @@
 			p.append(body);
 			
 			// Images
-			var img = $($.e2image('nophoto.png', '', 'e2l-thumbnail'));
+			var img = $(emen2.template.image('nophoto.png', '', 'e2l-thumbnail'));
 			if (this.options.keytype == 'user' && item.userrec['person_photo']) {
 				img.attr('src', EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/?size=thumb')
 			} else if (this.options.keytype == 'binary') {
@@ -193,11 +193,11 @@
 			this.built = 0;
 			var self=this;
 			
-			this.options.keytype = $.checkopt(this, 'keytype');
-			this.options.vartype = $.checkopt(this, 'vartype');
-			this.options.modal = $.checkopt(this, 'modal');
-			this.options.minimum = $.checkopt(this, 'minimum');
-			this.options.value = $.checkopt(this, 'value');
+			this.options.keytype = emen2.util.checkopt(this, 'keytype');
+			this.options.vartype = emen2.util.checkopt(this, 'vartype');
+			this.options.modal = emen2.util.checkopt(this, 'modal');
+			this.options.minimum = emen2.util.checkopt(this, 'minimum');
+			this.options.value = emen2.util.checkopt(this, 'value');
 						
 			this.element.click(function(e){self.show(e)});
 			if (this.options.show) {
@@ -255,7 +255,7 @@
 				height: 600
 			});
 			
-			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append($.e2spinner());		
+			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append(emen2.template.spinner());		
 		},
 	
 		show: function(e) {
@@ -277,7 +277,7 @@
 	
 		add: function(item) {
 			var self = this;
-			caches[item.keytype][item.name] = item;
+			emen2.caches[item.keytype][item.name] = item;
 			var d = $('<div />');
 			d.InfoBox({
 				keytype: this.options.keytype,
@@ -314,7 +314,7 @@
 			}
 			
 			// New request
-			this.request = $.jsonRPC.call('find'+this.options.keytype, query, function(items) {
+			this.request = emen2.db('find'+this.options.keytype, query, function(items) {
 				$('.e2l-spinner', self.dialog.dialog('widget')).hide();				
 				self.resultsarea.empty();
 				var l = items.length;
