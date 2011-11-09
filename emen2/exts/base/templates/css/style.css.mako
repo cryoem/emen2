@@ -139,13 +139,16 @@ input,
 textarea,
 label
 {
-	border-width:1px;
-	font-size:12pt;
-	margin:4px;
-	margin-left:0px;
-	padding:2px;
-	-moz-border-radius: 4px;
+/*	-moz-border-radius: 4px;
 	-webkit-border-radius: 4px;
+	padding:2px;
+	border-width:1px;
+*/
+	font-size:12pt;
+	margin: 0px;
+	margin-top: 4px;
+	margin-bottom: 4px;
+	margin-right: 4px;
 }
 
 button, 
@@ -157,13 +160,18 @@ input[type=text]
 {
 	display:inline-block;
 }
+button, input[type=button], input[type=submit] {
+	margin-left: 0px;
+	margin-right: 0px;	
+}
+
 
 textarea {
 	margin: 0px;
 	width: 100%;
-    -webkit-box-sizing: border-box; /* Safari/Chrome, other WebKit */
-    -moz-box-sizing: border-box;    /* Firefox, other Gecko */
-    box-sizing: border-box;         /* Opera/IE 8+ */
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 textarea, 
@@ -184,6 +192,11 @@ input.e2l-cancel {
 }
 
 
+
+/* tweaks */
+.e2-query-table th {
+	border-right:solid 1px #eee;
+}
 
 
 

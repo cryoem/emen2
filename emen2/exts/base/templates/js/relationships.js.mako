@@ -5,8 +5,9 @@
 			name: null,
 			keytype: null,
 			edit: null,
-			summary: null,
 			show: true,
+			summary: false,
+			help: false,
 			// events: saved
 		},
 
@@ -77,9 +78,21 @@
 			var parents = rec.parents;
 			var children = rec.children;
 			
+			if (this.options.summary || this.options.help) {
+				this.element.append('<h4>Relationships</h4>');
+			}
 			// Build a textual summary
 			if (this.options.summary && this.options.keytype == 'record') {
 				this.element.append(this.build_summary(parents, children));
+			}
+			if (this.options.help) {
+				var help = $('<p> \
+				Each record can have an arbitrary number of parent and child relationships. \
+				To add a new parent or child relationship, click the "+" button in that section. \
+				This will show a record chooser; you can either navigate to the record you want to add, or type \
+				the record ID directly into the input box. Saving this form will keep any relationships that are checked, \
+				and remove any unchecked relationships.</p>');
+				this.element.append(help);
 			}
 			
 			// Add the items
@@ -96,21 +109,20 @@
 		
 		build_summary: function(parents, children) {
 			// Make a descriptive summary of the parent and child relationships
-			var summary = $('<div class="e2-relationships-summary"></div>')
+			var summary = $('<p class="e2-relationships-summary"></p>')
 			var p = this.build_summary_label(parents);
 			var c = this.build_summary_label(children);
-
-			summary.append('<h4>Relationships</h4>');
 			var label = 'parent';
 			if (parents.length > 1) {label = 'parents'}		
-			summary.append(' \
-				<p>This record has '+
+
+			summary.append('This record has '+
 				this.build_summary_label(parents, 'parents')+
 				' and '+
 				this.build_summary_label(children, 'children')+
 				'. Select <span class="e2l-a e2-permissions-all">all</span> \
-				or <span class="e2l-a e2-permissions-none">none</span></p>');
-			
+				or <span class="e2l-a e2-permissions-none">none</span>. \
+				Click here to <a href="'+EMEN2WEBROOT+'/sitemap/'+this.options.name+'/">view children in tree format</a>.');
+
 			// Select by rectype
 			$('.e2-relationships-rectype', summary).click(function() {
 				var state = $(this).attr('data-checked');

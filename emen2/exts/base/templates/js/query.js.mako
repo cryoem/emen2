@@ -29,7 +29,6 @@
 		},
 		
 		_create: function() {
-			console.log('bc');
 			var self = this;
 			this.built = 0;
 			// Check cache
@@ -202,7 +201,7 @@
 			$('.e2-find-paramdef', this.container).FindControl({keytype: 'paramdef'});
 
 			var save = $('<div class="e2l-controls"> \
-				'+$.e2spinner(true)+' \
+				'+$.e2spinner()+' \
 				<input type="button" value="Query" name="save" class="e2l-save" /></div>');				
 			this.container.append(save);
 			$('input[name=save]', this.container).bind("click", function(e){self.query()});			
@@ -464,9 +463,12 @@
 			// Plotting
 			ul.append('<li data-tab="plot"><span class="e2l-a">Plot '+$.e2caret()+'</span></li>')
 
+			// Pages
+			ul.append('<li class="e2l-float-right e2-query-pages"></li>');
+
 			// Row count
 			var count = $('<select name="count" class="e2l-small"></select>');
-			count.append('<option value="">Rows</option>');
+			count.append('<option value="100">Rows</option>');
 			$.each([1, 10,100,1000], function() {
 				count.append('<option value="'+this+'">'+this+'</option>');
 			});
@@ -477,11 +479,8 @@
 			count = $('<li class="e2l-float-right" />').append($('<span class="e2l-a"></span>').append(count));
 			ul.append(count);
 			
-			// Pages
-			ul.append('<li data-tab="pages" class="e2l-float-right"></li>');
-
 			// Activity spinner
-			ul.append('<li data-tab="activity" class="e2l-float-right" style="display:none"><span>'+$.e2spinner(true)+'</span></li>');
+			ul.append('<li class="e2l-float-right e2-query-activity" style="display:none"><span>'+$.e2spinner(true)+'</span></li>');
 			
 			// Create new record
 			// if (this.options.rectype && this.options.parent != null) {
@@ -489,7 +488,7 @@
 				var create = $(' \
 					<li data-tab="create" class="e2l-float-right"> \
 						<span> \
-							<input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
+							<button data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
 						</span> \
 					</li>');
 				ul.append(create);
@@ -540,7 +539,6 @@
 			// Rebind to table header controls
 			this.rebuild_thead();
 		},
-
 		
 		query_download: function() {
 			// Get all the binaries in this table, and prepare a download link.
@@ -550,13 +548,9 @@
 			newq['ignorecase'] = this.options.q['ignorecase'];
 			window.location = query_build_path(newq, 'files');
 		},
-		
-		query_batch_edit: function() {
-			alert("Still being implemented..");
-			return			
-		},
-		
+				
 		query: function(newq) {
+			$('.e2-query-activity', this.element).show();
 			// Update the query from the current settings
 			newq = newq || this.options.q;
 			$('.e2-query-header .e2l-spinner', this.element).show();
@@ -599,7 +593,7 @@
 			this.update_controls();
 			this.rebuild_table();
 			this.options.q['stats'] = true;
-			$('[data-tab=activity]', this.element).hide();					
+			$('.e2-query-activity', this.element).hide();					
 		},	
 		
 		update_controls: function() {
@@ -637,7 +631,7 @@
 			$('.e2-query-header .e2-query-length').html(title);
 
 			// Update the page count
-			var pages = $('.e2-query-pages', this.element);
+			var pages = $('li.e2-query-pages', this.element);
 			pages.empty();
 			var pc = $('<span class="e2-query-extraspacing"></span>');
 			
@@ -688,7 +682,7 @@
 			var immutable = ["creator","creationtime","modifyuser","modifytime","history","name","rectype","keytype","parents","children"];
 			
 			var tr = $('<tr />');
-
+			var tr2 = $('<tr class="e2-query-sort"/>');
 			// Build the check boxes for selecting records
 			// tr.append('<th><input type="checkbox" /></th>');
 
@@ -697,29 +691,29 @@
 				if (this[3] == null) {
 					this[3]=''
 				}
-				var iw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" >'+this[0]+'</th>');
+				tr.append('<th>'+this[0]+'</th>');
+
 
 				// Build the sort button
 				var direction = 'able';
 				if (self.options.q['sortkey'] == this[2] || self.options.q['sortkey'] == '$@'+this[2]+'('+this[3]+')') {
 					var direction = 1;
 					if (self.options.q['reverse']) {direction = 0}
-				}
-				
+				}				
 				var sortable = $('<button name="sort" class="e2l-float-right">'+$.e2image('sort_'+direction+'.png', 'Sort')+'</button>');
-				iw.append(sortable);				
-
-				tr.append(iw);
+				var iw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');				
+				iw.append(sortable);
+				tr2.append(iw)
 			});
 
 			// Connect the sort and edit buttons
-			$('button[name=sort]', tr).click(function(e){
+			$('button[name=sort]', tr2).click(function(e){
 				e.preventDefault();
 				self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))
 			});
 			
 			// Append the title row and control row
-			$('thead', t).append(tr);
+			$('thead', t).append(tr, tr2);
 		},
 		
 		rebuild_tbody: function() {

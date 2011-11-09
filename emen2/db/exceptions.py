@@ -7,7 +7,7 @@ Exceptions:
 	AuthenticationError
 	DisabledUserError
 	ValidationError
-	ExistingKey
+	ExistingKeyError
 	TimeError
 """
 
@@ -29,7 +29,7 @@ class DisabledUserError(SecurityError):
 class ValidationError(ValueError):
 	"""Validation error"""
 
-class ExistingKey(ValueError):
+class ExistingKeyError(ValueError):
 	"This account name or email is already in use"
 
 # Time out

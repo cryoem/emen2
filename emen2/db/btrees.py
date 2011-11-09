@@ -340,17 +340,15 @@ class EMEN2DB(object):
 		"""
 		#if not self.bdb:
 		#	raise Exception, "DB not open."
+		# print "Adding %s to cache"%item.name
 		
 		if item.name in self.cache:
-			# print "Warning: Item %s already in cache, skipping"%item.name
-			# raise KeyError
-			return
+			# raise KeyError, "Warning: Item %s already in cache, skipping"%item.name
+			pass
 		if self.get(item.name, txn=txn):
-			# print "Warning: Item %s already in exists in database, skipping"%item.name
-			# raise KeyError
-			return
+			# raise emen2.db.exceptions.ExistingKeyError, "Item %s already in exists in database, skipping"%item.name
+			pass
 
-		# print "Adding %s to cache"%item.name
 
 		# Update parent/child relationships
 		# print "Checking parents/children for %s"%item.name
@@ -424,7 +422,7 @@ class EMEN2DB(object):
 		"""
 		# Check cache; these are read-only
 		if key in self.cache:
-			raise KeyError, "Cannot modify read-only item %s"%key			
+			raise emen2.db.exceptions.SecurityError, "Cannot modify read-only item %s"%key			
 		# Write item to database
 		emen2.db.log.msg('COMMIT', "%s.put: %s"%(self.filename, key))
 		self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)
@@ -439,6 +437,8 @@ class EMEN2DB(object):
 		"""
 		# todo: Do more checking before performing a dangerous operation.
 		self.bdb.truncate(txn=txn)
+		print "post truncation keys.."
+		print self.bdb.keys(txn)
 		emen2.db.log.msg('COMMIT', "%s.truncate"%self.filename)
 
 

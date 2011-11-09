@@ -128,14 +128,11 @@ input.e2l-error,
 .e2l-controls
 {
 	list-style: none;
-	padding-left: 0px;
-	margin:0px;
 	clear: both;
 	float: right;
-	margin: 10px;
-	margin-left: 0px;
-	margin-right: 0px;
-	padding-bottom:10px;
+	margin: 0px;
+	margin-top: 10px;
+	padding: 0px;
 }
 /*.e2l-advanced, 
 .e2l-options
@@ -389,6 +386,16 @@ h4
 	padding-right: 4px;
 }
 /***** e2-query: Query Results *****/
+.e2-query table.e2-query-table {
+	table-layout: fixed;
+}
+/*.e2-query table.e2-query-table th {
+	font-weight: bold;
+}*/
+.e2-query .e2-query-sort th,
+.e2-query .e2-query-sort button {
+	padding: 0px;
+}
 .e2-query .e2-query-table ul {
 	list-style: none;
 	padding-left: 0px;
@@ -474,8 +481,8 @@ textarea.e2l-fw
 }
 textarea.e2l-fw {
 	margin: 0px;
-	margin-top: 10px;
-	margin-bottom: 10px;
+/*	margin-top: 10px;
+	margin-bottom: 10px; */
 }
 
 

@@ -3269,7 +3269,7 @@ class DB(object):
 		:param password: Password
 		:param email: Email Address
 		:return: New user
-		:exception ExistingKey: ExistingKey if there is already a user or pending user with this name or email
+		:exception ExistingKeyError: ExistingKeyError if there is already a user or pending user with this name or email
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
@@ -3297,7 +3297,7 @@ class DB(object):
 		:param users: New user(s).
 		:return: New user(s)
 		:exception KeyError:
-		:exception ExistingKey:
+		:exception ExistingKeyError:
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
@@ -3344,7 +3344,7 @@ class DB(object):
 		:keyword reject: Also reject new users: see db.rejectuser(). For convenience.
 		:keyword filt: Ignore failures
 		:return: Approved User(s)
-		:exception ExistingKey:
+		:exception ExistingKeyError:
 		:exception KeyError:
 		:exception SecurityError:
 		:exception ValidationError:
@@ -3506,11 +3506,11 @@ class DB(object):
 		<Group demo>
 
 		>>> db.newgroup(name='admin')
-		ExistingKey, "There is already a group with the name 'admin'."
+		ExistingKeyError, "There is already a group with the name 'admin'."
 
 		:param name: Group name
 		:return: New Group
-		:exception ExistingKey:
+		:exception ExistingKeyError:
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
@@ -3615,7 +3615,7 @@ class DB(object):
 		:param vartype: ParamDef vartype
 		:keyword inherit:
 		:return: New ParamDef
-		:exception ExistingKey:
+		:exception ExistingKeyError:
 		:exception SecurityError:
 		:exception ValidationError:		
 		"""
@@ -3702,12 +3702,12 @@ class DB(object):
 		<RecordDef dna_miniprep>
 
 		>>> db.newrecorddef(name='folder', mainview='Folder')
-		ExistingKey: 'folder' already exists
+		ExistingKeyError: 'folder' already exists
 
 		:param name: RecordDef name
 		:param mainview: RecordDef main protocol description (mainview)
 		:return: New RecordDef
-		:exception ExistingKey:
+		:exception ExistingKeyError:
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
@@ -3848,7 +3848,7 @@ class DB(object):
 		
 		:param rectype: RecordDef name
 		:keyword inherit: Use these Record(s) as parents, and copy their permissions.
-		:exception ExistingKey:
+		:exception ExistingKeyError:
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
@@ -4300,7 +4300,7 @@ class DB(object):
 		<Binary None at 10d9e1950>
 
 		:return: New Binary
-		:exception ExistingKey:
+		:exception ExistingKeyError:
 		:exception SecurityError:
 		:exception ValidationError:				
 		"""

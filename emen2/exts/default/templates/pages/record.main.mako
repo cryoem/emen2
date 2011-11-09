@@ -46,7 +46,9 @@
 			name: rec.name,
 			edit: ptest[3],
 			show: true,
-			controls: page
+			controls: page,
+			summary: true,
+			help: true,
 		});
 	});
 	
@@ -76,6 +78,7 @@
 			embed: true,
 			show: true,
 			summary: true,
+			help: true,
 			controls: page
 		});
 	});

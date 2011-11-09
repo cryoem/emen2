@@ -7,7 +7,9 @@
 			edit: false,
 			show: true,
 			controls: null,
-			groups: true
+			groups: true,
+			summary: false,
+			help: false,
 		},
 		
 		_create: function() {
@@ -72,6 +74,22 @@
 			if (this.options.controls) {
 				this.build_controls();
 			}
+			if (this.options.summary || this.options.help) {
+				this.element.append('<h4>Permissions</h4>');
+			}
+			if (this.options.summary) {
+				var summary = $('<p />');			
+				summary.append(this.build_summary());
+				this.element.append(summary);
+			}
+			if (this.options.help) {
+				var help = ('<p> \
+					There are four increasing levels of permission: read (access record), comment (add comments), write (change values), and owner (change permissions). \
+					To add a new user or group, click the "+" button next to that permissions level. \
+					Group members will also be granted access, based on their permissions in that group. \
+				 	Saving this form will keep checked users and groups; unchecked users and groups will be removed.</p>');
+				this.element.append(help);
+			}
 
 			// Build the permissions levels
 			this.element.append(this.build_level('Groups', 'groups', groups, 'group'));
@@ -83,6 +101,14 @@
 			// Show all the infoboxes...
 			$('.e2-permissions-infobox', this.element).InfoBox('show');
 			
+		},
+		
+		build_summary: function() {
+			var permissions = caches[this.options.keytype][this.options.name]['permissions'] || [];
+			var groups = caches[this.options.keytype][this.options.name]['groups'] || [];
+			var total = permissions[0].length + permissions[1].length + permissions[2].length + permissions[3].length;
+			var ret = '<p>This record is accessible by '+groups.length+' groups and '+total+' users.</p>';
+			return ret
 		},
 		
 		build_controls: function() {
@@ -128,10 +154,9 @@
 			var param = (level == 'groups') ? 'groups' : 'permissions.'+level;
 
 			var ret = $('<div></div>')			
-			var header = $('<h4>'+lab+'</h4>');
-
+			var header = $('<h4 class="e2l-cf">'+lab+'</h4>');
 			if (this.options.edit) {
-				var add = $('<input type="button" data-level="'+level+'" data-keytype="'+keytype+'" value="+" class="e2l-float-left" style="margin-right:10px" /> ');
+				var add = $('<input type="button" data-level="'+level+'" data-keytype="'+keytype+'" value="+" /> ');
 				// Find control. Callback adds item to the correct box.
 				var minimum = 2;
 				if (keytype=='group'){minimum=0}
@@ -143,7 +168,7 @@
 						self.add(level, value);
 					}
 				});
-				header.append(add);
+				header.prepend(add, ' ');
 			}
 
 			var div = $('<div class="e2l-cf"></div>');
