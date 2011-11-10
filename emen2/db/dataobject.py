@@ -513,40 +513,25 @@ class PermissionsDBObject(BaseDBObject):
 	Changes to permissions and groups do not trigger an update to the
 	modification time and user.
 
-	These methods are overridden from BaseDBObject:
-
-	-	init			Initialize permissions/groups
-	-	setContext		Will throw an SecurityError if no read permissions
-	-	isowner
-	-	writable
-
-	The following methods are added to BaseDBObject:
-
-	-	setgroups		Set the groups
-	-	addgroup		Add a group(s)
-	-	removegroup		Remove a group(s)
-	-	setpermissions	Set the permissions
-	-	adduser			Add a user(s) to read permissions (or, add to level)
-	-	removeuser		Remove a user(s)
-	-	addumask		Merge a permissions set
-	-	getlevel		Get a user's permission level
-	-	ptest			Get a tuple with permission checks for each level
-	-	readable		Check read permissions
-	-	commentable		Check comment permissions
-	-	members			Get all users with read permissions
-	-	owners			Get all users with ownership permissions
-
 
 	:attr permissions: Access control list
 	:attr groups: Groups
 
 	"""
+	#These methods are overridden from BaseDBObject:
+	#	init, setContext, isowner, writable,
+	#The following methods are added to BaseDBObject:
+	#	addumask, addgroup, removegroup, removeuser, adduser, getlevel, ptest, readable, commentable, members, owners, setgroups, setpermissions
 
 	# Changes to permissions and groups, along with parents/children,
 	# are not logged.
 	attr_public = BaseDBObject.attr_public | set(['permissions', 'groups'])
 
 	def init(self, d):
+		"""Initialize the permissions and groups
+
+		This method overrides :py:meth:`BaseDBObject.init`
+		"""
 		super(PermissionsDBObject, self).init(d)
 
 		p = {}
@@ -581,6 +566,8 @@ class PermissionsDBObject(BaseDBObject):
 	def setContext(self, ctx):
 		"""Check read permissions and bind Context.
 
+		This method overrides :py:meth:`BaseDBObject.setContext`
+
 		:param ctx: the context to check access against.
 		:type: :py:class:`emen2.db.context.Context`
 		"""
@@ -605,12 +592,18 @@ class PermissionsDBObject(BaseDBObject):
 		return self._ptest[0]
 
 	def getlevel(self, user):
+		"""Get the users permissions for this object
+
+		:rtype: int
+		"""
 		for level in range(3, -1, -1):
 			if user in self.permissions[level]:
 				return level
 
 	def isowner(self):
 		"""Is the current user the owner?
+
+		This method overrides :py:meth:`BaseDBObject.isowner`
 
 		:rtype: bool
 		"""
@@ -633,22 +626,29 @@ class PermissionsDBObject(BaseDBObject):
 	def writable(self, key=None):
 		"""Does the user have permission to change the stored data (level 2)?
 
+		This method overrides :py:meth:`BaseDBObject.writable`
+
 		:rtype: bool
 		"""
 		return any(self._ptest[2:])
 
 	def members(self):
+		"""Get all users with read permissions
+
+		:rtype: [str]
+		"""
 		###TODO:documentation: what does this do?
 		return set(reduce(operator.concat, self.permissions))
 
 	def owners(self):
-		"""Return the owner of the record
+		"""Get all users with ownership permissions
 
-		:rtype: str
+		:rtype: [str]
 		"""
 		return self.permissions[3]
 
 	def ptest(self):
+		"""Get a tuple with permission checks for each level"""
 		###FIXME: should _ptest be publicly accessible?
 		return self._ptest
 
@@ -727,6 +727,7 @@ class PermissionsDBObject(BaseDBObject):
 		self.setpermissions(p)
 
 	def removeuser(self, users):
+		"""Remove a user from permissions"""
 		if not users:
 			return
 
@@ -739,6 +740,7 @@ class PermissionsDBObject(BaseDBObject):
 		self.setpermissions(p)
 
 	def setpermissions(self, value):
+		"""Set the permissions"""
 		value = self._check_permformat(value)
 
 		if len(value) != 4:
@@ -750,18 +752,21 @@ class PermissionsDBObject(BaseDBObject):
 	##### Groups #####
 
 	def addgroup(self, groups):
+		"""Add a group to the record"""
 		if not hasattr(groups, "__iter__"):
 			groups = [groups]
 		g = self.groups | set(groups)
 		self.setgroups(g)
 
 	def removegroup(self, groups):
+		"""Remove a group from the record"""
 		if not hasattr(groups, "__iter__"):
 			groups = [groups]
 		g = self.groups - set(groups)
 		self.setgroups(g)
 
 	def setgroups(self, groups):
+		"""Set the object's groups"""
 		groups = emen2.util.listops.check_iterable(groups)
 		return self._set('groups', set(groups), self.isowner())
 

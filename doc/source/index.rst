@@ -11,10 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   db
+   dataobject
 
-EMEN2 Database Public API
-=========================
-
-.. autoclass:: emen2.db.database.DB
-	:members:
 
