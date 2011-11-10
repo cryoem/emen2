@@ -22,28 +22,28 @@ import emen2.db.datatypes
 
 class BaseDBObject(object, UserDict.DictMixin):
 	"""Base class for EMEN2 DBOs.
-	
-	This class implements the mapping interface, and all the required base 
+
+	This class implements the mapping interface, and all the required base
 	attributes for DBOs:
-	
+
 		name, keytype, creator, creationtime, modifytime, modifyuser, uri
-		
+
 	The name attribute is specified by the user when a new item is created,
  	but the rest are set by the database when an item is committed. The creator
 	and creationtime attributes are set on initial commit, and modifyuser and
 	modifytime attributes are usually updated on subsequent commits. The uri
-	attribute can be set to indicate an item was imported from an external 
+	attribute can be set to indicate an item was imported from an external
 	source; presence of the uri attribute will generally mark an item as
 	read-only, even to admin users.
 
-	The keytype attribute is a property that maps to the lowercase class name. 
-	You can set this behavior by setting keytype directly or overriding 
+	The keytype attribute is a property that maps to the lowercase class name.
+	You can set this behavior by setting keytype directly or overriding
 	getkeytype().
 
 	The parents and children attributes are valid for classes that allow
-	relationships (RelateDB). These are treated specially when an item is 
+	relationships (RelateDB). These are treated specially when an item is
 	committed: both the parent and the child will be updated.
-	
+
 	All attributes should also be valid EMEN2 parameters. The default behavior
 	for BaseDBObject and subclasses is to validate the attributes as parameters
 	when they are set or updated. When a DBO is exported (JSON, XML,
@@ -56,24 +56,24 @@ class BaseDBObject(object, UserDict.DictMixin):
 	displayname class property, and listing that in cls.attr_public. In this way
 	it is part of the public interface, even though it is a generated, read-only
 	attribute. Another example is the params attribute of Record. This is a
-	normal attribute, and read/set from within the class's methods, but is not 	
+	normal attribute, and read/set from within the class's methods, but is not
 	exported (it is instead copied into the regular export dictionary.)
-	
+
 	Required attributes can be specified using cls.attr_required. If any of
 	these are None, a ValidationError will be raised during commit.
-	
-	In addition to implementing the mapping interface, the following methods 
+
+	In addition to implementing the mapping interface, the following methods
 	are required as part of the database interface:
-	
+
 		validate		Validate the item before committing
 		setContext		Check read permission and bind to a Context
 		isowner			Check ownership permission
 		writable		Check write permission
 		delete			Prepare item for deletion
 		rename			Prepare item for renaming
-		
+
 	BaseDBObject also provides the following methods for extending/overriding:
-	
+
 		init			Subclass init
 		validate_create	Check permissions to create items
 		validate_name	Validate the name
@@ -81,17 +81,17 @@ class BaseDBObject(object, UserDict.DictMixin):
 		changedparams 	Check parameters to re-index
 		commit			Commit and return the updated item
 		error			Raise an Exception (default is ValidationError)
-		
-	All public methods are safe to override or extend, but be aware of any 
-	important default behaviors, particularly those related to security and 
+
+	All public methods are safe to override or extend, but be aware of any
+	important default behaviors, particularly those related to security and
 	validation.
 
-	Naturally, as with anything in Python, anyone with file or code-level 
+	Naturally, as with anything in Python, anyone with file or code-level
 	access to the database can override security by accessing or committing
 	to the database with low-level database methods. Therefore, it is generally
 	necessary to restrict access using a proxy (e.g. DBProxy) over a network
 	connection.
-	
+
 	:attr name: Item name
 	:attr creator: Item creator
 	:attr creationtime: Creation time, ISO 8601 format
@@ -102,19 +102,19 @@ class BaseDBObject(object, UserDict.DictMixin):
 	:classattr attr_public: Public (exported) attributes
 	:classattr attr_required: Required attributes
 	:property keytype: Key type (default is lower case class name)
-	
+
 	"""
-	attr_public = set(['children', 'parents', 'keytype', 'creator', 
+	attr_public = set(['children', 'parents', 'keytype', 'creator',
 		'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
 	attr_required = set()
 	keytype = property(lambda s:s.getkeytype())
 
 	def __init__(self, _d=None, **_k):
-		"""Initialize a new DBO. 
-		
+		"""Initialize a new DBO.
+
 		You may provide either a dictionary named (first argument or _d keyword,
 		or any extra keyword arguments.)
-		
+
 		Remove the ctx and use it for setContext. Finally, update with any left
 		over items from _d.
 		"""
@@ -225,11 +225,11 @@ class BaseDBObject(object, UserDict.DictMixin):
 
 	def __repr__(self):
 		return "<%s %s at %x>" % (self.__class__.__name__, self.name, id(self))
-		
-		
+
+
 	##### Required mapping interface #####
 	# High level mapping methods
-	
+
 	def get(self, key, default=None):
 		return self.__getitem__(key, default)
 
@@ -269,7 +269,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 	def __setattr__(self, key, value):
 		return self.__setitem__(key, value)
 
-	# Check if there is a method for setting this key, 
+	# Check if there is a method for setting this key,
 	# validate the value, set the value, and update the time stamp.
 	def __setitem__(self, key, value, vtm=None, t=None):
 		"""Validate and set an attribute or key."""
@@ -323,7 +323,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		if not check:
 			msg = "Insufficient permissions to change param %s"%key
 			self.error(msg, e=emen2.db.exceptions.SecurityError)
-			
+
 		self.__dict__[key] = value
 		return set([key])
 
@@ -336,8 +336,8 @@ class BaseDBObject(object, UserDict.DictMixin):
 	##### Update parents / children #####
 
 	def _setrel(self, key, value):
-		"""Set a relationship. 
-		Make sure we have permissions to edit the relationship."""	
+		"""Set a relationship.
+		Make sure we have permissions to edit the relationship."""
 		# Filter out changes to permissions on records
 		# that we can't access...
 		value = emen2.util.listops.check_iterable(value)
@@ -348,12 +348,12 @@ class BaseDBObject(object, UserDict.DictMixin):
 		if self.keytype == 'record':
 			value = set(map(int, value))
 			orig = set(map(int, orig))
-			
+
 		changed = orig ^ value
 		# Get all of the changed items that we can access
 		# (KeyErrors will be checked later, during commit..)
 		access = self._ctx.db.get(changed, keytype=self.keytype)
-		
+
 		# Check write permissions
 		thiswrite = self.writable()
 		for item in access:
@@ -361,12 +361,12 @@ class BaseDBObject(object, UserDict.DictMixin):
 			if not (thiswrite or itemwrite):
 				msg = 'Insufficient permissions to add or remove relationship: %s -> %s'%(self.name, item.name)
 				self.error(msg, e=emen2.db.exceptions.SecurityError)
-		
+
 		# Keep items that we can't access..
 		# 	they might be new items, or items we won't
 		#	have permission to read/edit.
 		value |= changed - set(i.name for i in access)
-		
+
 		# print "Kept..", key, " :", changed-access
 		return self._set(key, value, True)
 
@@ -383,7 +383,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 	##### Pickle methods #####
 
 	def __getstate__(self):
-		"""Context and other session-specific information should not be pickled. 
+		"""Context and other session-specific information should not be pickled.
 		All private keys (starts with underscore) will be removed."""
 		odict = self.__dict__.copy() # shallow copy since we are removing keys
 		for key in odict.keys():
@@ -425,7 +425,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		# Is it an immutable param?
 		if self.name and pd.get('immutable'):
 			self.error('Cannot change immutable param %s'%pd.name)
-			
+
 		# Validate
 		v = vtm.validate(pd, value)
 
@@ -434,7 +434,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 			self.error(
 				"Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%
 				(pd.name, pd.vartype, type(value), value, type(v), v), warning=True)
-			
+
 		return v
 
 	def validate_name(self, name):
@@ -442,14 +442,14 @@ class BaseDBObject(object, UserDict.DictMixin):
 		if not name:
 			name = emen2.db.database.getrandomid()
 			# self.error("No name specified")
-			
+
 		# have to compile since flags= is a Python 2.7+ keyword
 		r = re.compile('[\w-]', re.UNICODE)
 
 		newname = "".join(r.findall(name)).lower()
 		if name != newname or not name[0].isalnum():
 			self.error("Name '%s' can only include a-z, 0-9, underscore, must be lowercase, and must start with a number or letter."%name)
-			
+
 		return name
 
 
@@ -463,7 +463,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		return vtm, t
 
 	def error(self, msg='', e=None, warning=False):
-		"""Raise a ValidationError exception. 
+		"""Raise a ValidationError exception.
 		If warning=True, pass the exception, but make a note in the log.
 		"""
 		if e == None:
@@ -486,58 +486,62 @@ class BaseDBObject(object, UserDict.DictMixin):
 # A class for dbo's that have detailed ACL permissions.
 class PermissionsDBObject(BaseDBObject):
 	"""DBO with additional access control.
-	
+
 	This class is used for DBOs that require finer grained control
 	over reading and writing. For instance, Record and Group. It is a subclass
 	of BaseDBObject; see that class for additional documentation.
-	
+
 	Two additional attributes are provided:
-		permissions, groups
-		
+	-	permissions
+	-  groups
+
 	The permissions attribute is "acl" vartype. It is a list comprised of four
 	lists or user names, denoting the following levels of permissions:
-		0	Read		Permission to read the item
-		1	Comment		Permission to add comments, if the item supports it
-		2	Write		Permission to change record attributes/parameters
-		3	Admin		Permission to change the item's permissions and groups
-		
+
+	-	0	Read		Permission to read the item
+	-	1	Comment		Permission to add comments, if the item supports it
+	-	2	Write		Permission to change record attributes/parameters
+	-	3	Admin		Permission to change the item's permissions and groups
+
 	The groups attribute is a set of group names. The permissions attribute of
 	each group will be overlaid on top of the item's permissions. For instance,
-	a user who has comment permissions in a listed group will have comment 
+	a user who has comment permissions in a listed group will have comment
 	permissions on this item. There are a few built-in groups: administrators,
 	read-only administrators, authenticated users, anonymous users, etc. See the
 	Group class documentation for additional details.
-	
+
 	Changes to permissions and groups do not trigger an update to the
 	modification time and user.
-	
-	These methods are overridden from BaseDBObject:
-		init			Initialize permissions/groups
-		setContext		Will throw an SecurityError if no read permissions
-		isowner
-		writable
-			
-	The following methods are added to BaseDBObject:
-		setgroups		Set the groups
-		addgroup		Add a group(s)
-		removegroup		Remove a group(s)
-		setpermissions	Set the permissions
-		adduser			Add a user(s) to read permissions (or, add to level)
-		removeuser		Remove a user(s)
-		addumask		Merge a permissions set
-		getlevel		Get a user's permission level
-		ptest			Get a tuple with permission checks for each level
-		readable		Check read permissions
-		commentable		Check comment permissions
-		members			Get all users with read permissions
-		owners			Get all users with ownership permissions	
 
-	
+	These methods are overridden from BaseDBObject:
+
+	-	init			Initialize permissions/groups
+	-	setContext		Will throw an SecurityError if no read permissions
+	-	isowner
+	-	writable
+
+	The following methods are added to BaseDBObject:
+
+	-	setgroups		Set the groups
+	-	addgroup		Add a group(s)
+	-	removegroup		Remove a group(s)
+	-	setpermissions	Set the permissions
+	-	adduser			Add a user(s) to read permissions (or, add to level)
+	-	removeuser		Remove a user(s)
+	-	addumask		Merge a permissions set
+	-	getlevel		Get a user's permission level
+	-	ptest			Get a tuple with permission checks for each level
+	-	readable		Check read permissions
+	-	commentable		Check comment permissions
+	-	members			Get all users with read permissions
+	-	owners			Get all users with ownership permissions
+
+
 	:attr permissions: Access control list
 	:attr groups: Groups
 
 	"""
-	
+
 	# Changes to permissions and groups, along with parents/children,
 	# are not logged.
 	attr_public = BaseDBObject.attr_public | set(['permissions', 'groups'])
@@ -547,7 +551,7 @@ class PermissionsDBObject(BaseDBObject):
 
 		p = {}
 		# Results of security test performed when the context is set
-		# correspond to, read,comment,write and owner permissions, 
+		# correspond to, read,comment,write and owner permissions,
 		# return from setContext
 		p['_ptest'] = [True,True,True,True]
 
@@ -575,7 +579,12 @@ class PermissionsDBObject(BaseDBObject):
 	##### Permissions checking #####
 
 	def setContext(self, ctx):
-		"""Check read permissions and bind Context."""
+		"""Check read permissions and bind Context.
+
+		:param ctx: the context to check access against.
+		:type: :py:class:`emen2.db.context.Context`
+		"""
+
 		# Check if we can access this item..
 		self.__dict__['_ctx'] = ctx
 
@@ -601,26 +610,46 @@ class PermissionsDBObject(BaseDBObject):
 				return level
 
 	def isowner(self):
+		"""Is the current user the owner?
+
+		:rtype: bool
+		"""
 		return self._ptest[3]
 
-	def writable(self, key=None):
-		"""Returns whether this record can be written using the given context"""
-		return any(self._ptest[2:])
-
-	def commentable(self):
-		"""Does user have level 1 permissions? Required to comment or link."""
-		return any(self._ptest[1:])
-
 	def readable(self):
+		"""Does the user have permission to read the stored data (level 0)
+
+		:rtype: bool
+		"""
 		return any(self._ptest)
 
+	def commentable(self):
+		"""Does user have permission to comment (level 1)?
+
+		:rtype: bool
+		"""
+		return any(self._ptest[1:])
+
+	def writable(self, key=None):
+		"""Does the user have permission to change the stored data (level 2)?
+
+		:rtype: bool
+		"""
+		return any(self._ptest[2:])
+
 	def members(self):
+		###TODO:documentation: what does this do?
 		return set(reduce(operator.concat, self.permissions))
 
 	def owners(self):
+		"""Return the owner of the record
+
+		:rtype: str
+		"""
 		return self.permissions[3]
 
 	def ptest(self):
+		###FIXME: should _ptest be publicly accessible?
 		return self._ptest
 
 
@@ -634,10 +663,18 @@ class PermissionsDBObject(BaseDBObject):
 			v[2] = emen2.util.listops.check_iterable(value.get('write'))
 			v[3] = emen2.util.listops.check_iterable(value.get('admin'))
 			value = v
-		return [[unicode(y) for y in x] for x in value]		
+		return [[unicode(y) for y in x] for x in value]
 
 	def adduser(self, users, level=0, reassign=False):
-		"""Add a user to the record's permissions"""
+		"""Add a user to the record's permissions
+
+		:param users: A list of users to be added to the permissions
+		:type users: [str]
+		:param level: The permission level to give to the users
+		:type level: int
+		:param reassign: Whether or not the users added should be reassigned. (default False)
+		:type reassign: bool
+		"""
 		if not users:
 			return
 
@@ -665,6 +702,14 @@ class PermissionsDBObject(BaseDBObject):
 		self.setpermissions(p)
 
 	def addumask(self, value, reassign=False):
+		"""Set permissions for users in several different levels at once.
+
+		:param value: The list of users
+		:type value: [ [str], [str], [str] ]
+		:param reassign: Whether or not the users added should be reassigned. (default False)
+		:type reassign: bool
+
+		"""
 		umask = self._check_permformat(value)
 
 		p = [set(x) for x in self.permissions]
