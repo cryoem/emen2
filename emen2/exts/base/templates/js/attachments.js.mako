@@ -234,6 +234,8 @@
 			show: true,
 			controls: null,
 			multiple: true,
+			summary: false,
+			help: false,
 			// events: saved..
 		},
 				
@@ -282,6 +284,40 @@
 			
 			// Key the binaries by parameter
 			this.bdomap = this.makebdomap(this.bdos);
+
+			//if (this.bdos.length==0) {
+			//	this.element.append('<h4>There are currently no attachments</h4>');
+			//} else 
+			if (this.options.summary || this.options.help) {
+				this.element.append('<h4>Attachments</h4>');
+			}
+			if (this.options.summary) {
+				var summary = $('<p> \
+					This record currently has X attachments, totaling Y. \
+					Click to <a href="#">view all attachments in children</a>. \
+					</p>')
+				this.element.append(summary);
+			}
+			if (this.options.help) {
+				var help = $('<p> \
+					There are several types of attachments. The default, \
+					"Regular attachment" (file_binary_image), allows multiple attachments \
+					and is fine for most purposes. Some parameters have special behaviors attached, \
+					such as Image (file_binary_image), which will show an interactive image preview. \
+					To add a new attachment, click "Browse." \
+					Select the files you want to upload, and a dialog will appear \
+					showing current upload progress. After all the files have \
+					been uploaded, click "Ok" to refresh the page. \
+					Attachments have the same permissions as the associated record. \
+					To remove an attached file, uncheck the corresponding checkbox \
+					and save the form. Please note that attachments are never truly deleted; \
+					only the association with the record is removed. The person who originally \
+					uploaded the attachment will still be able to access the attachment and reassociate \
+					a different record. Additionally, attachments cannot be modified after they \
+					have been created. To make changes, upload a new copy of the file. \
+					</p>');	
+				this.element.append(help);
+			}
 			
 			// Build the items
 			$.each(this.bdomap, function(k,v) {

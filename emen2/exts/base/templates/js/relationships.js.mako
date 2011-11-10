@@ -121,7 +121,7 @@
 				this.build_summary_label(children, 'children')+
 				'. Select <span class="e2l-a e2-permissions-all">all</span> \
 				or <span class="e2l-a e2-permissions-none">none</span>. \
-				Click here to <a href="'+EMEN2WEBROOT+'/sitemap/'+this.options.name+'/">view children in tree format</a>.');
+				Click to <a href="'+EMEN2WEBROOT+'/sitemap/'+this.options.name+'/">view children in tree format</a>.');
 
 			// Select by rectype
 			$('.e2-relationships-rectype', summary).click(function() {

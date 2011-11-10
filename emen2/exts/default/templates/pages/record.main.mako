@@ -10,7 +10,7 @@
 	var ptest = ${jsonrpc.jsonutil.encode(rec.ptest())}
 	
 	// Change View
-	$('#e2-editbar[data-tabgroup=record] [data-viewname]').click(function(){
+	$('li[data-viewname]').click(function(){
 		var target = $("#rendered");
 		var viewname = $(this).attr('data-viewname') || 'recname';
 		target.attr("data-viewname", viewname);
@@ -58,6 +58,8 @@
 			name: rec.name,
 			edit: ptest[2] || ptest[3],
 			show: true,
+			summary: true,
+			help: true,
 			controls: $('#e2-attachments', page)
 		});
 	});
@@ -174,14 +176,6 @@
 
 		## View Selector
 		<%
-		nicenames = {
-			"tabularview": "Table View (tabularview)",
-			"mainview": "Main Protocol Definition (mainview)",
-			"recname": "Short description (recname)",
-			"dicttable": "Key/value table (dicttable)",
-			"defaultview": "Default view"
-		}
-
 		historycount = len(rec.get('history',[]))
 		historycount += len(filter(lambda x:x[2].startswith("LOG:"), rec.get('comments',[])))
 		lastitem = 'comments'
@@ -191,8 +185,8 @@
 		</li>
 
 		## Table View
-		<li>
-			<span class="e2l-a" data-viewname="dicttable"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></span>
+		<li data-tab="views">
+			<a data-viewname="dicttable" href="#views"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></a>
 		</li>
 
 		## Siblings
@@ -266,17 +260,9 @@
 	<div data-tab="siblings"></div>
 	
 	<div data-tab="tools">
-		<p><a href="${ctxt.reverse('RecordDef',action=None,name=rec.rectype)}">${rec.rectype} protocol page</a></p>
-
-		<h4>Views</h4>
-		<ul>
-		% for i in sorted(set(recdef.views.keys()+['mainview', 'dicttable'])):
-			<li class="e2l-a" data-viewname="${i}">${nicenames.get(i, i)}</li>	
-		% endfor
-		</ul>
-
 		<h4>Tools</h4>
 		<ul>
+			<li><a href="${ctxt.reverse('RecordDef',action=None,name=rec.rectype)}">${rec.rectype} protocol page</a></li>
 			<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
 			<li><a href="${EMEN2WEBROOT}/query/name==${rec.name}/attachments/">View / Download all attachments</a></li>
 			<li><a href="${EMEN2WEBROOT}/query/children.name.${rec.name}*/attachments/">View / Download all attachments in children</a></li>
@@ -285,6 +271,8 @@
 				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/delete/">Delete this record</a></li>
 			% endif
 		</ul>
+		
+		<br />
 
 		<h4>Common Queries:</h4>
 		<ul>
@@ -295,7 +283,27 @@
 			<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/">${rec.rectype} records</a></li>
 			<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/creator.is.${rec.get('creator')}/">${rec.rectype} records, created by ${rec.get('creator')}</a></li>
 		</ul>				
-	</div>	
+	</div>
+	
+	<div data-tab="views">
+		<h4>Available views</h4>
+		<ul>
+			<%
+			nicenames = {
+				"mainview": "Main Protocol Definition",
+				"defaultview": "Default view",
+				"recname": "Short description",
+				"dicttable": "Parameter/value table",
+				"recname": "One-line summary",
+				"onelineview": "One-line summary (deprecated)"
+			}
+			%>
+			% for i in sorted(set(recdef.views.keys()+['mainview', 'dicttable'])):
+				<li class="e2l-a" data-viewname="${i}">${nicenames.get(i, i)}</li>	
+			% endfor
+		</ul>
+	</div>
+	
 </div>
 
 

@@ -506,9 +506,9 @@
 
 			// Build overall controls
 			if (this.options.controls) {
-				var placeholder = 'Reason for changes';
+				var placeholder = 'Please provide a reason for the changes.';
 				if (this.options.prefix) {
-					placeholder = 'Reason for changes; this comment will be added to all changed records.'
+					placeholder = 'Please provide a reason for the changes. This comment will be added to all changed records.'
 				}
 				
 				var controls = $(' \

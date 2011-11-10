@@ -292,7 +292,6 @@
 	
 	$.widget('emen2.SeriesControl', $.emen2.AxisControl, {
 		setup: function() {
-			this.options.key = 'rectype';
 			this.options.pan = false;
 			this.scale = d3.scale.category10();
 		},
