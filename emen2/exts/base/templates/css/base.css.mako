@@ -50,6 +50,7 @@ a:hover,
 
 /* Commit button */
 .e2l-thumbnail {
+	vertical-align: top;
 	height:64px;
 	width:64px;
 }
@@ -91,7 +92,11 @@ h1 .e2l-label {
 	float:right;
 	font-size:12pt;
 	margin:10px;
-	margin-top:5px;
+	margin-right:0px;
+	margin-top:10px;
+}
+h1 .e2l-label input {
+	margin-top:-5px;
 }
 h4 .e2l-label {
 	font-weight: normal;

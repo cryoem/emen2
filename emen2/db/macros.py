@@ -456,7 +456,7 @@ class macro_thumbnail(Macro):
 			bdos = [bdos]
 		
 		
-		return "".join(['<img src="http://ncmidb.bcm.edu%s/download/%s/%s.%s.%s?size=%s&amp;format=%s" alt="" />'%(
+		return "".join(['<img src="%s/download/%s/%s.%s.%s?size=%s&amp;format=%s" alt="" />'%(
 				webroot, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos
 				)])
 

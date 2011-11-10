@@ -38,14 +38,12 @@
 
 <h1>
 	<span id="filecount">${len(bdos)}</span> files, <span id="filesize">${filesize}</span>
-	<div class="e2l-controls">
-		<input type="submit" value="Download Checked Files" name="download">
-	</div>
+	<span class="e2l-label"><input type="submit" value="Download Checked Files" name="download" /></span>
 </h1>
 
 
 
-<table>
+<table class="e2l-shaded" cellpadding="0" cellspacing="0">
 	<thead>
 		<tr>
 			<th><input type="checkbox" checked="checked" name="checkbids" value="" /></th>
