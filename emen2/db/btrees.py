@@ -1082,7 +1082,7 @@ class DBODB(EMEN2DB):
 
 		# Process the items
 		for name, updrec in enumerate(items, start=1):
-			# Get the name; use recid as a backup for compatibility for now..
+			# Get the name
 			name = updrec.get('name') # or (name * -1)
 			cp = set()
 
@@ -1117,6 +1117,7 @@ class DBODB(EMEN2DB):
 			return crecs
 
 		# Assign new names based on the DB sequence.
+		# This will also update any relationships to uncommitted records.
 		namemap = self.update_sequence(crecs, txn=txn)
 
 		# Calculate all changed indexes
@@ -1620,9 +1621,6 @@ class RelateDB(DBODB):
 			for i in old - new:
 				remove.append((name, i))
 
-		nmi = set()
-		for v in namemap.values():
-			nmi.add(v)
 
 		# print "Add links:", add
 		# print "Remove links:", remove
@@ -1638,6 +1636,7 @@ class RelateDB(DBODB):
 			p_remove[c].add(p)
 			c_remove[p].add(c)
 
+		nmi = set(namemap.keys()) | set(namemap.values())
 		# print "p_add:", p_add
 		# print "p_remove:", p_remove
 		# print "c_add:", c_add
@@ -1647,7 +1646,6 @@ class RelateDB(DBODB):
 			# Go and fetch other items that we need to update
 			names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
 			# print "All affected items:", names
-			# print "New items:", nmi
 			for name in names-nmi:
 				# Get and modify the item directly w/o Context:
 				# Linking only requires write permissions 
