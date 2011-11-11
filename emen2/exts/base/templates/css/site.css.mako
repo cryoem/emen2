@@ -1,4 +1,4 @@
-<%inherit file="/css/style.css" />
+<%inherit file="/css/colors.css" />
 
 <%!
 public = True
