@@ -1287,7 +1287,9 @@ class DB(object):
 			table=False,
 			stats=False,
 			ignorecase=True,
-			axes=None,
+			x=None,
+			y=None,
+			z=None,
 			ctx=None,
 			txn=None,
 			**kwargs):
@@ -1346,6 +1348,9 @@ class DB(object):
 		:keyparam table: Return a table
 		:keyparam stats: Return statistics
 		:keyparam ignorecase: Ignore case when comparing strings
+		:keyparam x: X-axis options
+		:keyparam y: X-axis options
+		:keyparam z: X-axis options
 		:return: A dictionary containing the original query arguments, and the result in the 'names' key
 		:exception KeyError: Broken constraint
 		:exception ValidationError: Broken constraint
@@ -1383,10 +1388,12 @@ class DB(object):
 			_c.append(i)
 
 		# todo: tidy this up.
-		if axes:
-			for axis in axes:
-				if axis and axis not in qparams and axis != 'name':
-					_c.append([axis, 'any', None])
+		x = x or {}
+		y = y or {}
+		z = z or {}
+		for axis in [x.get('key'), y.get('key'), z.get('key')]:
+			if axis and axis not in qparams and axis != 'name':
+				_c.append([axis, 'any', None])
 
 		# Complex constraints that we'll defer, and basic constraints to run immediately
 		# A basic constraint is a normal param, with a direct comparison
@@ -1472,7 +1479,18 @@ class DB(object):
 		# Before truncating, turn the recs stub defaultdict into a list
 		for name in names:
 			recs[name]['name'] = name
+
 		recs = [recs[i] for i in names]
+
+		# if x.get('key'):
+		# 	key = x.get('key')
+		# 	x['values'] = [i.get(key) for i in recs]
+		# if y.get('key'):
+		# 	key = y.get('key')
+		# 	y['values'] = [i.get(key) for i in recs]
+		# if z.get('key'):
+		# 	key = z.get('key')
+		# 	z['values'] = [i.get(key) for i in recs]
 		
 		# Total number of items found (for statistics)
 		length = len(names)
@@ -1542,9 +1560,13 @@ class DB(object):
 			"reverse": reverse,
 			"stats": stats
 		}
-		
-		if axes:
-			ret['axes'] = axes
+
+		if x:
+			ret['x'] = x
+		if y:
+			ret['y'] = y
+		if z:
+			ret['z'] = z
 		if returnrecs:
 			ret['recs'] = recs
 		if table:

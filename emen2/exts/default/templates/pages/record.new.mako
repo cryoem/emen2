@@ -3,8 +3,18 @@
 	import markdown
 %>
 <%inherit file="/pages/record" />
-
 <%namespace name="buttons" file="/buttons" />
+
+<%block name="css_inline">
+	${parent.css_inline()}
+	#content {
+		width: auto;
+		padding: 0px;
+	}
+	#content_inner {
+		padding: 10px;
+	}
+</%block>
 
 
 <%block name="js_ready">
@@ -18,7 +28,7 @@
 		permissions: $('#e2-permissions')
 	});
 
-	var tab = $('#e2-editbar-newrecord');
+	var tab = $('#e2-tab-editbar');
 	tab.TabControl({});
 
 	// Permissions editor
@@ -34,14 +44,14 @@
 </%block>
 
 
-<div class="e2-tab e2-editbar" id="e2-editbar-newrecord" data-group="newrecord">
-
-	<ul class="e2l-cf">
-		## <li data-tab="newrecord"><a>Change Protocol ${buttons.caret()}</a></li>
-		<li data-tab="info" class="e2-tab-active"><a>Info ${buttons.caret()}</a></li>
+<div id="e2-tab-editbar" class="e2-tab e2-tab-editbar" role="tab" data-tabgroup="newrecord">
+	<ul class="e2l-cf" role="menubar tablist" data-tabgroup="newrecord">
+		<li data-tab="newrecord"><a>New record</a></li>
+		<li data-tab="info" class="e2-tab-active"><a>Help ${buttons.caret()}</a></li>
 		<li data-tab="permissions"><a>Permissions ${buttons.caret()}</a></li>
 	</ul>
-
+</div>
+<div class="e2-tab e2-tab-editbar" data-tabgroup="newrecord" role="tabpanel">
 	<div data-tab="newrecord">
 		Change protocol...
 	</div>
@@ -57,22 +67,21 @@
 		## This form will be copied into the main form during submit
 		<form id="e2-permissions"></form>
 	</div>
-
 </div>
 
 
 ## Main rendered record
 
 <form id="e2-edit" data-name="None" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/new/${newrec.rectype}/" enctype="multipart/form-data">
-
-	<div id="rendered" class="e2-view" data-viewname="${viewname}">
-		${rendered}
-	</div>
+	<div id="content_inner">
+		<div id="rendered" class="e2-view" data-viewname="${viewname}">
+			${rendered}
+		</div>
 	
-	<div class="e2l-controls">
-		<input type="submit" value="Save">
+		<div class="e2l-controls">
+			<input type="submit" value="Save">
+		</div>
 	</div>
-
 </form>
 
 

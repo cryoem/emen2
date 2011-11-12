@@ -55,13 +55,7 @@
 			this.element.empty();
 			
 			var stats = this.options.q['stats'];
-			var d = $('<div></div>');
-			// d.append('<h4>Summary</h4>');
-			// var st = $('<table class="e2l-kv"></table>');
-			// st.append('<tr><td>Records found</td><td>'+this.options.q['length']+'</td></tr>');
-			// st.append('<tr><td>Time</td><td>'+stats['time'].toFixed(2)+'s</td></tr>');
-			// d.append(st);			
-			
+			var d = $('<div></div>');			
 			d.append('<h4>Protocols</h4>')
 			var table = $('<table class="e2l-kv"></table>');
 			$.each(stats['rectypes'] || {}, function(k,v){
@@ -430,14 +424,11 @@
 		}
 	});
 	
-
- 
-	///////// Table Control /////////
+	/***** Table Control *****/
 	
     $.widget("emen2.TableControl", {
 		options: {
 			q: null,
-			qc: true,
 			create: null,
 			parent: null
 		},

@@ -75,20 +75,31 @@
 				this.build_controls();
 			}
 			if (this.options.summary || this.options.help) {
-				this.element.append('<h4>Permissions</h4>');
+				this.element.append('<h4 class="e2l-cf">Permissions</h4>');
+			}
+			if (this.options.help) {
+				var help = (' \
+				<div class="e2l-hide e2l-help" role="help"><p> \
+					There are four increasing levels of permission: \
+					read (access record), \
+					comment (add comments), \
+					write (change values), \
+					and owner (change permissions). \
+					To add a new user or group, click the "+" button next to that permissions level. \
+					Group members will also be granted access, based on their permissions in that group. \
+				 	Saving this form will keep checked users and groups; unchecked users and groups will be removed. \
+				</p><p> \
+					Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Permissions">EMEN2 Wiki</a>. \
+				</p></div>');
+				this.element.append(help);
+				var helper = $('<div class="e2l-label"><input type="button" value="Help" /></div>');
+				$('input', helper).click(function(e){$('[role=help]', self.element).toggle()})
+				$('h4', this.element).append(helper);
 			}
 			if (this.options.summary) {
 				var summary = $('<p />');			
 				summary.append(this.build_summary());
 				this.element.append(summary);
-			}
-			if (this.options.help) {
-				var help = ('<p> \
-					There are four increasing levels of permission: read (access record), comment (add comments), write (change values), and owner (change permissions). \
-					To add a new user or group, click the "+" button next to that permissions level. \
-					Group members will also be granted access, based on their permissions in that group. \
-				 	Saving this form will keep checked users and groups; unchecked users and groups will be removed.</p>');
-				this.element.append(help);
 			}
 
 			// Build the permissions levels

@@ -1,56 +1,25 @@
-
 (function($) {
-	
 	
 	/***** Plot Controller *****/
 
-
 	$.widget('emen2.PlotControl', {
 		options: {
+			q: null
 		},
 		
 		_create: function() {
 			this.built = 0;
-			this.build();
+			// Check the query
+			if (this.options.q == null) {this.options.q = {}}
+			if (this.options.q['x'] == null) {this.options.q['x'] = {}}
+			if (this.options.q['y'] == null) {this.options.q['y'] = {}}
+			if (this.options.q['z'] == null) {this.options.q['z'] = {}}
+			var recs = this.options.q['recs'] || [];
+			this.build(recs);
 		},
 		
-		build: function() {
+		build: function(recs) {
 			var self = this;
-			//self.query();
-			self._build([]);
-		},
-		
-		query: function() {
-			// Rebuild using a new query
-			this.built = 0;
-			var self = this;
-			// emen2.db('getchildren', [136], function(recs) {
-			// 	emen2.db('getrecord', [recs], function(recs) {
-			// 		self._build(recs);
-			// 	})
-			// });
-			//	return
-			
-			// Create query
-			var axopts = this.options.axopts || {'x':{}, 'y':{}, 'z':{}};
-			var axes = [axopts.x.key, axopts.y.key, axopts.z.key];
-			var oq = this.options.q || {};
-			var q = {};
-			q['c'] = oq['c'] || [];
-			q['axes'] = axes;
-			q['recs'] = true;
-			q['ignorecase'] = oq['ignorecase'];
-			
-			// Execute the query and build on cb
-			emen2.db('query', q, function(q) {
-				self.options.q = q;
-				self._build(q['recs']);
-			});
-		},
-		
-		_build: function(recs) {
-			var self = this;	
-					
 			// Build the controls stub first
 			$('.e2-plot-controls', this.element).remove();
 			var controls = $('<ul class="e2-plot-controls"></ul>');
@@ -62,26 +31,23 @@
 			// Update controls
 			controls.append('<li><br /><input type="button" name="update" value="Apply" class="e2l-float-right" /></li>');
 			$('input[name=update]', controls).click(function(e){self.update()});
-
 		},
 		
 		build_plot: function(recs) {
 			$('.e2-plot', this.element).remove();
 			var plotelem = $('<div class="e2-plot e2l-float-left"></div>');
 			var w = this.element.parent().width(); // hack
-			plotelem.width(w-300);
+			plotelem.width(w-300); // hack
 			this.element.append(plotelem);		
 				
 			// Pass along the parent options
 			var opts = {};
 			opts['controls'] = this;
 			opts['recs'] = recs;
-			opts['axopts'] = this.options.axopts;
-
-			// Plot type
-			var axopts = this.options.axopts || {};
-			var xbin = axopts['x'] || {};
-			var bin = xbin['bin'];
+			opts['x'] = this.options.q['x'];
+			opts['y'] = this.options.q['y'];
+			opts['z'] = this.options.q['z'];
+			var bin = this.options.q['x']['bin'];
 			if (bin) {
 				plotelem.PlotHistogram(opts);
 				this.plot = plotelem.data('PlotHistogram');					
@@ -89,25 +55,59 @@
 				plotelem.PlotScatter(opts);
 				this.plot = plotelem.data('PlotScatter');				
 			}
-			
 		},
 		
 		update: function() {
 			// Ask the plot to read the controls and update
 			// Do we do a complete query and rebuild, or just update?
-			this.options.axopts = this.plot.update();
-			this.query();
-			return
-			// var axes = [axopts['x'].key, axopts['y'].key, axopts['z'].key];
-			// if (axes[0] != oaxes[0] || axes[1] != oaxes[1] || axes[2] != oaxes[2]) {
-				// Full update if an axis param changes
-			// } else {
-			// 	// Partial update
-			// 	this.options.axopts = axopts;
-			// 	this.options.q['axes'] = axes;
-			// 	this._build(this.options.q);
-			// }
-		}
+			var opts = this.plot.update();
+			var x = opts['x'];
+			var y = opts['y'];
+			var z = opts['z'];
+			var q = this.options.q;
+
+			// This is a temporary hack.
+			if (q['x']['key'] == null) {q['x']['key'] = 'name'}
+			if (q['y']['key'] == null) {q['y']['key'] = 'name'}
+			if (q['z']['key'] == null) {q['z']['key'] = 'rectype'}
+			console.log('x:', x['key'], ':', q['x']['key']);
+			console.log('y:', y['key'], ':', q['y']['key']);
+			console.log('z:', z['key'], ':', q['z']['key']);
+			
+			var query = (x['key'] != q['x']['key'] || y['key'] != q['y']['key'] || z['key'] != q['z']['key']);
+						
+			// Update the query options
+			this.options.q['x'] = x;
+			this.options.q['y'] = y;
+			this.options.q['z'] = z;							
+
+			// If any of the axis keys change, do a full update;
+			if (query) {
+				this.query()
+			} else {
+				var recs = this.options.q['recs'] || [];
+				this.build(recs);
+			}
+		},
+
+		query: function() {
+			var self = this;
+			this.built = 0;
+
+			// Copy the query
+			var newq = {};
+			var copy = ['c', 'ignorecase', 'x', 'y', 'z'];
+			copy.map(function(key){
+				newq[key]=self.options.q[key]
+			});
+			// newq['recs'] = true;
+			
+			// Create query
+			emen2.db('query', newq, function(q) {
+				self.options.q = q;
+				self.build(q['recs']);
+			});
+		},		
 	});
 
 
@@ -117,16 +117,19 @@
 
 	$.widget('emen2.AxisControl', {
 		options: {
+			// Main options
 			key: 'name',
 			name: null,
 			min: null,
 			max: null,
+			
 			// Histogram options
 			bin: null,
 			binnable: false,
 			stacked: false,
 			cumulative: false,
 			hide: [],
+			
 			// Display
 			ticks: 10,
 			pan: true,			
@@ -163,11 +166,13 @@
 		setup: function() {
 			// Additional (subclass) setup
 			var self = this;
+			
 			// Todo: separate subclass
 			if (this.options.key == 'creationtime') {
 				this.f = function(d) {return new Date(d[self.options.key])};
 				this.scale = d3.time.scale();
-			}		
+			}	
+				
 			// Axis drawing...
 			if (this.options.invert) {
 				this.scale.range([this.options.size[0], 0]);
@@ -185,14 +190,18 @@
 		build_controls: function() {
 			// Build the control widgets
 			if (!this.controls.length) {return}
+
 			var controls = $('<li></li>');
+
 			controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
 			controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:150px" type="text" name="key" /></div>')
 			controls.append('<div><span class="e2-plot-label">Range:</span><input class="e2-plot-bounds" type="text" name="min" /> - <input class="e2-plot-bounds" type="text" name="max" /></div>');
+			
 			if (this.options.binnable) {
 				var b = $('<div><span class="e2-plot-label">Bin:</span></div>').append(this.build_controls_bin());
 				controls.append(b);
 			}
+			
 			this.controls.append(controls);
 			this.controls = controls;
 			$('input[name=key]', this.controls).val(this.options.key);
@@ -222,17 +231,27 @@
 			// Read the controls values
 			var opts = {};
 			opts['name'] = this.options.name;
-			// If we're switching keys, we'll need a total rebuild
+			
+			// If we're switching keys, the other options are irrelevant
 			opts['key'] = $('input[name=key]', this.controls).val();
 			opts['bin'] = $('select[name=bin]', this.controls).val();
 			if (opts['key'] != this.options.key) {
+				console.log('Refresh opts', opts);
 				return opts
 			}
+			
+			// Update other options
 			opts['min'] = $('input[name=min]', this.controls).val();
 			opts['max'] = $('input[name=max]', this.controls).val();
-			opts['stacked'] = $('input[name=stacked]', this.controls).val();
-			opts['cumulative'] = $('input[name=cumulative]', this.controls).val();
+
+			opts['cumulative'] = Boolean($('input[name=cumulative]', this.controls).attr('checked'));
+			opts['stacked'] = Boolean($('input[name=stacked]', this.controls).attr('checked'));
+
+			// Hide these series
 			opts['hide'] = $("input[name=hide]:not(:checked)", this.controls).map(function(){return $(this).val()});
+
+			console.log('Non refresh opts', opts);
+
 			return opts
 		},
 		
@@ -242,16 +261,15 @@
 			for (var i=0;i<recs.length;i++) {
 				x.push(this.f(recs[i]));
 			}
-			// If we weren't given bounds, update..
+			
+			// If bounds weren't specified, update.
 			if (this.options.min == null) {this.options.min = d3.min(x)}
 			if (this.options.max == null) {this.options.max = d3.max(x)}
 			this.scale.domain([this.options.min, this.options.max]);
 		},
 		
 		bin: function(recs) {
-			// Take a series of records and bin them into this.keys
 			// Create the bins
-			// console.log('In Bin, this.keys:', this.keys);
 			var bins = {};
 			for (var i=0;i<this.keys.length;i++) {
 				var bx = this.keys[i];
@@ -264,12 +282,12 @@
 			for (var i=0;i < recs.length;i++) {
 				var bx = this.b(recs[i]);
 				if (bins[bx]==null) {
-					console.log('No bin for ', bx);
-					// console.log(bins);
+					// console.log('No bin for ', bx);
 				}
 				bins[bx].y += 1;
 				bins[bx].ysum += 1;
 			}
+			
 			// Return the sorted bins
 			var ret = [];
 			for (var i=0;i<this.keys.length;i++) {
@@ -351,7 +369,7 @@
 			this.controls.append(controls);
 			this.controls = controls;
 			$('input[name=key]', this.controls).val(this.options.key);
-			$('select[name=bin]', this.controls).val(this.options.bin);
+			$('select[name=bin]', this.controls).val(this.options.bin);			
 			this.update_controls();
 		}
 	});
@@ -360,28 +378,33 @@
 	
 	$.widget('emen2.PlotBase', {
 		options: {
-			q: null,
 			// Padding: top, left, bottom, right
 			padding: [10,10,50,50],
 			width: 500,
 			height: 500,
-			// Axis options...
-			axopts: null
+			x: null,
+			y: null,
+			z: null
 		},
 
 		_create: function() {
-			this.x = null;
-			this.y = null;
-			this.z = null;
 			this.built = 0;
 			
-			if (this.options.axopts == null) {this.options.axopts = {}}
+			// Check size options
 			if (this.options.width == null) {};
 			this.options.width = this.element.width()
 			this.height = this.options.height - (this.options.padding[0] + this.options.padding[2]);
 			this.width = this.options.width - (this.options.padding[1] + this.options.padding[3]);
 
-			// Setup and build
+			// Setup axes
+			if (this.options.x == null) {this.options.x = {}};
+			if (this.options.y == null) {this.options.y = {}};
+			if (this.options.z == null) {this.options.z = {}};
+			this.x = null;
+			this.y = null;
+			this.z = null;
+
+			// Subclass init and build
 			this.setup();
 			this.build();
 			this.plot(this.options.recs);
@@ -395,6 +418,7 @@
 		build: function() {
 			if (this.built) {return}
 			this.built = 1;
+			
 			var self = this;
 
 			// Create the SVG element
@@ -424,6 +448,7 @@
 				.attr("transform", "translate(" + this.width + ",0)")
 				.call(this.y.ax);
 
+			// Plot background and plot area
 			this.plotarea = this.svg.append("svg:svg")
 				.attr('x', 0)
 				.attr('y', 0)
@@ -436,21 +461,27 @@
 		
 		setup: function() {
 			// Setup axes
+			var x = this.options.x;
+			var y = this.options.y;
+			var z = this.options.z;
+			if (!x['key']) {x['key'] = 'name'}
+			if (!y['key']) {y['key'] = 'name'}
+			if (!z['key']) {z['key'] = 'rectype'}
+			x['name'] = 'x';
+			x['binnable'] = true;
+			x['size'] = [this.width, this.height];
+			
+			y['name'] = 'y';
+			y['size'] = [this.height, this.width],
+			y['orient'] = 'right';
+			y['invert'] = true;
+			
+			z['name'] = 'z';
+			
 			// The jQuery widget factory is too useful not to use.
-			var xopts = this.options.axopts['x'] || {};
-			var yopts = this.options.axopts['y'] || {};
-			var zopts = this.options.axopts['z'] || {};
-			xopts['name'] = 'x';
-			xopts['binnable'] = true;
-			xopts['size'] = [this.width, this.height];
-			yopts['name'] = 'y';
-			yopts['size'] = [this.height, this.width],
-			yopts['orient'] = 'right';
-			yopts['invert'] = true;
-			zopts['name'] = 'z';
-			this.x = $('<div />').AxisControl(xopts).data('AxisControl');
-			this.y = $('<div />').AxisControl(yopts).data('AxisControl');
-			this.z  = $('<div />').SeriesControl(zopts).data('SeriesControl');
+			this.x = $('<div />').AxisControl(x).data('AxisControl');
+			this.y = $('<div />').AxisControl(y).data('AxisControl');
+			this.z  = $('<div />').SeriesControl(z).data('SeriesControl');
 		},
 		
 		plot: function(q) {
@@ -493,6 +524,7 @@
 			recs = recs.filter(function(d){return (self.x.f(d)!=null && self.y.f(d)!=null)});
 
 			if (!recs.length) {
+				this.element.empty();
 				this.element.append('<p>No records to display</p>');
 				return
 			}
@@ -616,7 +648,6 @@
 		setup: function() {
 			this.options.min = 0;
 			this.options.pan = false;
-			this.options.cumulative = true;
 			this.options.stacked = true;
 			this.ax = d3.svg.axis().scale(this.scale).tickSize(-this.options.size[1],3,0).orient(this.options.orient);
 			this.scale.range([this.options.size[0], 0]);
@@ -628,35 +659,46 @@
 			var max_single = 0;
 			var max_series = 0;
 			var max_stacked = 0;
-			// console.log('Y control data:', recs.length, recs);
 			
-			// Calculate the cumulative total for each series
+			// console.log('cumulative/stacked:', this.options.cumulative, this.options.stacked);
+
+			// Find the highest single bin
 			for (var i=0;i<recs.length;i++) {
-				// console.log('this series:', recs[i]);
-				var ysum = 0;
 				for (var j=0;j<recs[i].length;j++) {
 					// Largest single item?
 					if (recs[i][j].y > max_single) {max_single = recs[i][j].y}
-					// Add to the current series total
-					ysum += recs[i][j].y || 0;
-					recs[i][j].ysum = ysum;
 				}
-				// Largest series?
-				if (ysum > max_series) {max_series = ysum}
 			}
-
+			
+			// Calculate the cumulative total for each series
+			if (this.options.cumulative) {
+				for (var i=0;i<recs.length;i++) {
+					// console.log('this series:', recs[i]);
+					var ysum = 0;
+					for (var j=0;j<recs[i].length;j++) {
+						// Add to the current series total
+						ysum += recs[i][j].y || 0;
+						recs[i][j].ysum = ysum;
+					}
+					// Largest series?
+					if (ysum > max_series) {max_series = ysum}
+				}
+			}
+			
 			// Stack the series
-			var ysum = 0;
-			for (var i=1;i<recs.length;i++) {
-				for (j=0;j<recs[i].length;j++) {
-					recs[i][j].yoff = recs[i-1][j].ysum + recs[i-1][j].yoff;
-					// Largest stack?
-					if ((recs[i][j].yoff + recs[i][j].ysum) > max_stacked) {
-						max_stacked = recs[i][j].yoff + recs[i][j].ysum;
+			if (this.options.stacked) {
+				var ysum = 0;
+				for (var i=1;i<recs.length;i++) {
+					for (j=0;j<recs[i].length;j++) {
+						recs[i][j].yoff = recs[i-1][j].ysum + recs[i-1][j].yoff;
+						// Largest stack?
+						if ((recs[i][j].yoff + recs[i][j].ysum) > max_stacked) {
+							max_stacked = recs[i][j].yoff + recs[i][j].ysum;
+						}
 					}
 				}
 			}
-	
+			
 			// console.log('Maxes:', max_single, max_series, max_stacked);
 			this.options.max = max_single;
 			if (this.options.cumulative) {
@@ -674,8 +716,14 @@
 			if (!this.controls.length) {return}
 			var controls = $('<li></li>');
 			controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
-			controls.append('<div>Record totals<input type="hidden" name="key" value="name" /></div>')
+			controls.append('<div><span class="e2-plot-label">Totals</span><input class="e2-plot-bounds" type="text" name="key" value="name" /></div>')
 			controls.append('<div><span class="e2-plot-label">Range:</span><input class="e2-plot-bounds" type="text" name="min" /> - <input class="e2-plot-bounds" type="text" name="max" /></div>');
+			controls.append('<div><input type="checkbox" name="cumulative" id="e2-plot-y-cumulative" /><label for="e2-plot-y-cumulative">Cumulative</label></div>');
+			controls.append('<div><input type="checkbox" name="stacked" id="e2-plot-y-stacked" /><label for="e2-plot-y-stacked">Stacked</label></div>');
+			
+			$('input[name=cumulative]', controls).attr('checked', this.options.cumulative);
+			$('input[name=stacked]', controls).attr('checked', this.options.stacked);
+
 			this.controls.append(controls);
 			this.controls = controls;
 			this.update_controls();
@@ -687,31 +735,37 @@
 	$.widget('emen2.PlotHistogram', $.emen2.PlotBase, {		
 		setup: function() {
 			// Axis options
-			var xopts = this.options.axopts['x'] || {'key':'name'};
-			var yopts = this.options.axopts['y'] || {'key':'name'};
-			var zopts = this.options.axopts['z'] || {'key':'rectype'};
-			xopts['name'] = 'x';
-			xopts['size'] = [this.width, this.height];
-			xopts['binnable'] = true;
-			yopts['name'] = 'y';
-			yopts['size'] = [this.height, this.width],
-			yopts['orient'] = 'right';
-			yopts['invert'] = true;
-			zopts['name'] = 'z';
+			var x = this.options.x;
+			var y = this.options.y;
+			var z = this.options.z;
+			if (!x['key']) {x['key'] = 'name'}
+			if (!y['key']) {y['key'] = 'name'}
+			if (!z['key']) {z['key'] = 'rectype'}
+			
+			x['name'] = 'x';
+			x['size'] = [this.width, this.height];
+			x['binnable'] = true;
+			
+			y['name'] = 'y';
+			y['size'] = [this.height, this.width],
+			y['orient'] = 'right';
+			y['invert'] = true;
+
+			z['name'] = 'z';
 			
 			// X axis is a continuous, either float or time
-			//var tbins = ['year', 'month', 'day', 'hour', 'minute', 'second'];
-			//if ($.inArray(this.options.bin, tbins)>-1) {
-				this.x = $('<div />').HistTimeXControl(xopts).data('HistTimeXControl');
-			//} else {
-			//	this.x = $('<div />').HistXControl(xopts).data('HistXControl');				
-			//}
+			var tbins = ['year', 'month', 'day', 'hour', 'minute', 'second'];
+			if ($.inArray(x['bin'], tbins) > -1) {
+				this.x = $('<div />').HistTimeXControl(x).data('HistTimeXControl');
+			} else {
+				this.x = $('<div />').HistXControl(x).data('HistXControl');				
+			}
 
 			// Y axis produces counts for each bin
-			this.y = $('<div />').HistYControl(yopts).data('HistYControl');
+			this.y = $('<div />').HistYControl(y).data('HistYControl');
 			
-			// Z axis is normal
-			this.z  = $('<div />').SeriesControl(zopts).data('SeriesControl');			
+			// Z axis, regular series control
+			this.z  = $('<div />').SeriesControl(z).data('SeriesControl');			
 		},
 		
 		plot: function(recs) {	

@@ -2,17 +2,6 @@
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 
-<%block name="css_inline">
-	${parent.css_inline()}
-	#content {
-		width: auto;
-		padding: 0px;
-	}
-	#rendered {
-		padding: 10px;
-	}
-</%block>
-
 ## Relationship Map
 <%block name="precontent">
 	${parent.precontent()}

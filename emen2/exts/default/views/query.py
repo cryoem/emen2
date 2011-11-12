@@ -10,35 +10,31 @@ from emen2.web.view import View
 
 
 
-cmp_order = [".is.", "==", ".not.", "!=", ".contains.", ".gte.", ">=", ".lte.", "<=", ".gt.", ">", ".lt.", "<", ".any.", '.none.', '.noop.', '.name.']
-# lookup = {
-# 	"is": "==",
-# 	"not": "!=",
-# 	"gte": ">=",
-# 	"lte": "<=",
-# 	"gt": ">",
-# 	"lt": "<"
-# }
+cmp_order = [
+	".is.", "==", ".not.", "!=", ".contains.", 
+	".gte.", ">=", ".lte.", "<=", ".gt.", ">", 
+	".lt.", "<", ".any.", '.none.', '.noop.', 
+	'.name.']
 
 
 
-def convert_bytes(bytes):
-	bytes = float(bytes)
-	if bytes >= 1099511627776:
-		terabytes = bytes / 1099511627776
-		size = '%.2f TB' % terabytes
-	elif bytes >= 1073741824:
-		gigabytes = bytes / 1073741824
-		size = '%.2f GB' % gigabytes
-	elif bytes >= 1048576:
-		megabytes = bytes / 1048576
-		size = '%.2f MB' % megabytes
-	elif bytes >= 1024:
-		kilobytes = bytes / 1024
-		size = '%.2f KB' % kilobytes
-	else:
-		size = '%.2f bytes' % bytes
-	return size
+# def convert_bytes(bytes):
+# 	bytes = float(bytes)
+# 	if bytes >= 1099511627776:
+# 		terabytes = bytes / 1099511627776
+# 		size = '%.2f TB' % terabytes
+# 	elif bytes >= 1073741824:
+# 		gigabytes = bytes / 1073741824
+# 		size = '%.2f GB' % gigabytes
+# 	elif bytes >= 1048576:
+# 		megabytes = bytes / 1048576
+# 		size = '%.2f MB' % megabytes
+# 	elif bytes >= 1024:
+# 		kilobytes = bytes / 1024
+# 		size = '%.2f KB' % kilobytes
+# 	else:
+# 		size = '%.2f bytes' % bytes
+# 	return size
 
 
 
@@ -78,11 +74,8 @@ def path_to_query(path, **kwargs):
 		if match:
 			q['c'].append(match)
 
-	for k,v in kwargs.items():
-		q[urllib.unquote(k)] = urllib.unquote(v)
-
+	q.update(kwargs)
 	return q
-
 
 
 
@@ -106,12 +99,14 @@ class Query(View):
 
 	@View.add_matcher(r'^/query/$', name='main')
 	@View.add_matcher(r'^/query/(?P<path>.*)/$', name='query')
-	def main(self, path=None, q=None, c=None):
-		self.initq(path, q, c)
+	def main(self, path=None, q=None, c=None, **kwargs):
+		self.initq(path, q, c, **kwargs)
 		self.q['count'] = 100
 		self.q['table'] = True
 		self.q['stats'] = True
 		self.q = self.db.query(**self.q)
+		print "Query result:"
+		print self.q
 		self.set_context_item('q', self.q)
 
 
@@ -155,7 +150,7 @@ class Query(View):
 		users = self.db.getuser(users)
 		self.ctxt['users'] = emen2.util.listops.dictbykey(users, 'name')
 		self.ctxt['rendered'] = self.db.renderview(records)
-		self.ctxt['filesize'] = convert_bytes(filesize)
+		self.ctxt['filesize'] = filesize
 		self.ctxt['bdos'] = bdos
 
 

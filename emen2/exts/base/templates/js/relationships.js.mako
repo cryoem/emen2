@@ -79,20 +79,27 @@
 			var children = rec.children;
 			
 			if (this.options.summary || this.options.help) {
-				this.element.append('<h4>Relationships</h4>');
+				this.element.append('<h4 class="e2l-cf">Relationships</h4>');
+			}
+			if (this.options.help) {
+				var help = $(' \
+				<div class="e2l-hide e2l-help" role="help"><p> \
+					Each record can have an arbitrary number of parent and child relationships. \
+					To add a new parent or child relationship, click the "+" button in that section. \
+					This will show a record chooser; you can either navigate to the record you want to add, or type \
+					the record ID directly into the input box. Saving this form will keep any relationships that are checked, \
+					and remove any unchecked relationships. \
+				</p><p> \
+					Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Relationships">EMEN2 Wiki</a>. \
+				</p></div>');
+				this.element.append(help);
+				var helper = $('<div class="e2l-label"><input type="button" value="Help" /></div>');
+				$('input', helper).click(function(e){$('[role=help]', self.element).toggle()})
+				$('h4', this.element).append(helper);
 			}
 			// Build a textual summary
 			if (this.options.summary && this.options.keytype == 'record') {
 				this.element.append(this.build_summary(parents, children));
-			}
-			if (this.options.help) {
-				var help = $('<p> \
-				Each record can have an arbitrary number of parent and child relationships. \
-				To add a new parent or child relationship, click the "+" button in that section. \
-				This will show a record chooser; you can either navigate to the record you want to add, or type \
-				the record ID directly into the input box. Saving this form will keep any relationships that are checked, \
-				and remove any unchecked relationships.</p>');
-				this.element.append(help);
 			}
 			
 			// Add the items

@@ -2,6 +2,17 @@
 <%inherit file="/pages/record" />
 <%namespace name="buttons" file="/buttons"  /> 
 
+<%block name="css_inline">
+	${parent.css_inline()}
+	#content {
+		width: auto;
+		padding: 0px;
+	}
+	#content_inner {
+		padding: 10px;
+	}
+</%block>
+
 <%block name="js_ready">
 	${parent.js_ready()}
 
@@ -11,10 +22,10 @@
 	
 	// Change View
 	$('li[data-viewname]').click(function(){
-		var target = $("#rendered");
+		var target = $("#content_inner");
 		var viewname = $(this).attr('data-viewname') || 'recname';
 		target.attr("data-viewname", viewname);
-		$.rebuild_views("#rendered");
+		$.rebuild_views("#content_inner");
 	});
 
 	// Bookmarks control
@@ -34,8 +45,7 @@
 			controls: page
 		});
 		$('#e2-edit').MultiEditControl('show');
-	});
-	
+	});	
 	tab.TabControl('sethidecb', 'edit', function(page) {
 		$('#e2-edit').MultiEditControl('hide');	
 	});
@@ -48,7 +58,7 @@
 			show: true,
 			controls: page,
 			summary: true,
-			help: true,
+			help: true
 		});
 	});
 	
@@ -68,7 +78,9 @@
 	tab.TabControl('setcb', 'new', function(page) {
 		page.NewRecordChooserControl({
 			parent: rec.name,
-			controls: page
+			controls: page,
+			help: true,
+			summary: true
 		});
 	});		
 
@@ -208,14 +220,19 @@
 
 		## Comments!
 		<%
+		displaynames = dict([i.name, i.displayname] for i in users)
 		comments = filter(lambda x:not x[2].startswith('LOG'), rec.get('comments', []))
 		%>
 		<li data-tab="comments" class="e2l-float-right">
 			<a href="#comments">
 				% if rec.get('modifytime'):	
-					${rec.get('modifyuser')} @ ${rec.get('modifytime', '')[:10]}
+					${displaynames.get(rec.get('modifyuser'), rec.get('modifyuser'))} 
+					@ 
+					<time datetime="${rec.get('modifytime')}">${rec.get('modifytime', '')[:10]}</time>
 				% else:
-					${rec.get('creator')} @ ${rec.get('creationtime', '')[:10]}
+					${displaynames.get(rec.get('creator'), rec.get('creator'))}
+					@
+					<time datetime="${rec.get('creationtime')}">${rec.get('creationtime', '')[:10]}</time>
 				% endif
 		
 				<span id="e2l-editbar-historycount">
@@ -318,7 +335,7 @@
 
 ## Main rendered record
 <form id="e2-edit" method="post" data-name="${rec.name}" action="${EMEN2WEBROOT}/record/${rec.name}/edit/">
-	<div id="rendered" class="e2-view" data-viewname="${viewname}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
+	<div id="content_inner" class="e2-view" data-viewname="${viewname}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
 		${rendered}
 	</div>
 </form>

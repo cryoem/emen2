@@ -277,7 +277,9 @@
 			rectype: null,
 			private: null,
 			copy: null,
-			show: true
+			show: true,
+			help: false,
+			summary: false
 		},
 		
 		_create: function() {
@@ -325,12 +327,42 @@
 			this.built = 1;
 			var self = this;
 			var rd = emen2.caches['recorddef'][this.options.rectype];
-
 			this.element.empty();
+
+			if (this.options.help || this.options.summary) {
+				var header = $('<h4 class="e2l-cf">New record</h4>');				
+				this.element.append(header);
+			}
+			if (this.options.help) {
+				var help = $(' \
+					<div class="e2l-hide e2l-help" role="help"><p> \
+						The suggested protocols are those that are commonly \
+						children of this protocol. Related protocols are those \
+						that are child protocols of this record\'s protocol. \
+						To select a protocol that is now displayed, click "Browse other protocols" \
+						and use the protocol chooser to select a different protocol. \
+					</p><p> \
+						By default, child records will inherit permissions from the parent. \
+						If you want the new record to have an empty permissions list, click the \
+						"Private" checkbox. If you would like to create the child record as a copy \
+						of this record, click the "Copy" checkbox. \
+					</p><p> \
+						Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/NewRecord">EMEN2 wiki</a>. \
+					</p></div>');
+				this.element.append(help);
+				var helper = $('<div class="e2l-label"><input type="button" value="Help" /></div>');
+				$('input', helper).click(function(e){$('[role=help]', self.element).toggle()})
+				$('h4', this.element).append(helper);
+			}			
+			if (this.options.summary) {
+				var summary = $('<p></p>');
+				summary.append('Select one of the protocols below and click "New record" to begin creating a new child record.');
+				this.element.append(summary);
+			}
 			
 			// Children suggested by RecordDef.typicalchld
 			if (rd.typicalchld.length) {
-				this.element.append(this.build_level('Suggested protocols for children', 'typicalchld', rd.typicalchld))
+				this.element.append(this.build_level('Suggested protocols', 'typicalchld', rd.typicalchld))
 			}
 			
 			// Child protocols
@@ -514,7 +546,7 @@
 				var controls = $(' \
 					<textarea class="e2l-fw" name="comments" placeholder="'+placeholder+'"></textarea> \
 					<ul class="e2l-controls"> \
-						<li><input type="button" class="e2-edit-save" value="Save" /></li> \
+						<li><input type="submit" class="e2-edit-save" value="Save" /></li> \
 					</ul>');
 				$('.e2-edit-show', controls).click(function() {self.show()})
 				$('.e2-edit-cancel', controls).click(function() {self.hide()})
@@ -549,8 +581,8 @@
 			}
 
 			// Submit form
-			// e.preventDefault();			
-			// this.element.submit();
+			e.preventDefault();			
+			this.element.submit();
 		}
 	});
 

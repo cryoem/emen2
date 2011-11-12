@@ -1,12 +1,12 @@
 <%! import jsonrpc.jsonutil %>
 
 <%def name="table(q, create=False, name=None, childtype=None, qc=True)">
-
 	<script type="text/javascript">
 	//<![CDATA[
+		var q = ${jsonrpc.jsonutil.encode(q)};
 		$(document).ready(function() {
 			$(".e2-query").TableControl({
-				q: ${jsonrpc.jsonutil.encode(q)}, 
+				q: q, 
 				% if create:
 					rectype: ${jsonrpc.jsonutil.encode(childtype)},
 					parent: ${jsonrpc.jsonutil.encode(name)}

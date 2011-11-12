@@ -95,12 +95,14 @@ h1 .e2l-label {
 	margin-right:0px;
 	margin-top:10px;
 }
-h1 .e2l-label input {
-	margin-top:-5px;
-}
 h4 .e2l-label {
 	font-weight: normal;
 	float: right;
+	font-size: 10pt;
+}
+h4 .e2l-label input,
+h1 .e2l-label input {
+	margin-top:-10px;
 }
 
 /* e2-alert: Alerts, notifications, and errors */
@@ -400,7 +402,7 @@ h4
 }
 /***** e2-query: Query Results *****/
 .e2-query table.e2-query-table {
-	table-layout: fixed;
+	/* table-layout: fixed;*/
 }
 /*.e2-query table.e2-query-table th {
 	font-weight: bold;
@@ -435,7 +437,7 @@ h4
 .e2-infobox {
 	float:left;
 	position:relative;
-	width:300px;
+	width:280px;
 	margin-right:50px;
 	padding:5px;
 	padding-left:0px;

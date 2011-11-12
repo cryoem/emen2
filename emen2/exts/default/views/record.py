@@ -48,8 +48,8 @@ class RecordBase(View):
 
 		# User display names
 		# These are generally displayed: creator, modifyuser, comments.
-		getusers = set([self.rec.get('creator'), self.rec.get('modifyuser')])
-
+		users = set([self.rec.get('creator'), self.rec.get('modifyuser')])
+		users = self.db.getuser(users)
 
 		# Some warnings/alerts
 		if self.rec.get('deleted'):
@@ -86,6 +86,7 @@ class RecordBase(View):
 			recdef = self.recdef,
 			title = "Record: %s: %s (%s)"%(self.rec.rectype, recnames.get(self.rec.name), self.name),
 			pages = pages,
+			users = users,
 			recnames = recnames,
 			parentmap = parentmap,
 			viewname = "defaultview",
@@ -137,7 +138,7 @@ class Record(RecordBase):
 			try:
 				rec.update(kwargs)
 				self.db.putrecord(rec)
-				self.redirect(self.routing.reverse('Record/main', name=name, anchor='attachments'))
+				self.redirect(self.routing.reverse('Record/main', name=name))
 			except Exception, e:
 				self.ctxt['ERRORS'].append(e)
 			
