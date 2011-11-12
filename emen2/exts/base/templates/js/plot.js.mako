@@ -380,8 +380,8 @@
 		options: {
 			// Padding: top, left, bottom, right
 			padding: [10,10,50,50],
-			width: 500,
-			height: 500,
+			width: 600,
+			height: 600,
 			x: null,
 			y: null,
 			z: null

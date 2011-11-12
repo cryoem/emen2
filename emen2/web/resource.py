@@ -32,8 +32,8 @@ import emen2.web.server
 
 
 
-
 class UploadFile(object):
+	# Stub for EMEN2File	
 	def __init__(self, filename, filedata=None, fileobj=None, infile=None, param='file_binary'):
 		self.filename = filename
 		self.filedata = filedata
@@ -42,30 +42,6 @@ class UploadFile(object):
 		self.param = param
 		self.tmp = None
 
-	def writetmp(self):
-		if self.infile:
-			return self.infile
-
-		print "Copying data to a temporary file..."
-		tmp = tempfile.NamedTemporaryFile(suffix=self.filename, delete=False)
-		filename = tmp.name
-		if self.filedata:
-			tmp.write(self.filedata)
-		elif self.fileobj:
-			self.fileobj.seek(0)
-			chunk = self.fileobj.read()
-			while chunk:
-				tmp.write(chunk)
-				chunk = self.fileobj.read()
-
-		tmp.close()
-		self.tmp = filename
-		print "...wrote %s"%filename
-		return filename
-
-
-	def __repr__(self):
-		return str(self.__dict__)
 
 
 

@@ -73,9 +73,9 @@ def filter_ext(files, exts):
 ##### Managed file handler. See emen2.db.database.Binary for more details. #####
 
 class EMEN2File(object):
-	'''EMEN2 managed file. This class is used for importing and reading files managed by EMEN2 Binaries.
+	'''EMEN2 managed file. This class is used for importing files.
 	
-	The original name of the file is self.filename. Input sources can be a added in the constructor, and
+	The original name of the file is self.filename. Sources can be a added in the constructor, and
 	may be a string of data (filedata), a file-like object supporting read() (fileobj), or a 
 	filename on disk (infile, currently disabled). Generally, consider the data sources to be READ ONLY.
 	
@@ -134,8 +134,10 @@ class EMEN2File(object):
 		
 		# Make a temporary file
 		args = {}
-		if suffix: args['suffix'] = suffix
-		if path: args['dir'] = path
+		if suffix:
+			args['suffix'] = suffix
+		if path:
+			args['dir'] = path
 		(fd, tmpfile) = tempfile.mkstemp(**args)
 
 		# Copy to the output file, updating md5 and size

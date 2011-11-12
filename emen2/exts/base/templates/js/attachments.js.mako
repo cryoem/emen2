@@ -10,16 +10,11 @@
 		},
 				
 		_create: function() {
-			this.built = 0;
-			this.files = [];	
-			this.build();
 			var self = this;
-			
+			this.built = 0;
+			this.files = [];			
 			this.options.action = this.element.attr('action');
-			var location = $('input[name=location]', this.element);
-			if (location.length) {
-				this.options.location = location.val();
-			}
+			this.options.location = $('input[name=location]', this.element).val();
 			
 			// Check that we have browser support for File API
 			if (window.File && window.FileReader && window.FileList && window.Blob) {
@@ -29,14 +24,18 @@
 				return
 			}
 
+			this.build();
+
 			// If the browser supports it, bind to the form submission event.
 			// this.element.submit(function(e) {
-			//	self.submit(e);
+			// 	self.submit(e);
 			// });
 		},
 		
 		submit: function(e) {
 			var self = this;
+
+			// Ignore the rest of the form
 			// e.preventDefault();
 
 			// Clear the table body
@@ -55,6 +54,7 @@
 			$.each(files, function(index, file) {
 				self.add(index, file);
 			});
+			
 			// Start the upload
 			this.next(0);
 		},
@@ -62,9 +62,8 @@
 		add: function(index, file) {
 			// Add to the file queue
 			this.files.push([index, file]);
+			
 			// Add a row for the file
-			var tbody = $('.e2-upload-table tbody', this.dialog);
-
 			var row = $(' \
 				<tr data-index="'+index+'"> \
 					<td>'+file.name+'</td> \
@@ -72,7 +71,7 @@
 					<td><div class="e2-upload-progress"></div></td> \
 					<td style="width:32px" class="e2-upload-action"></td> \
 				</tr>');
-
+			var tbody = $('.e2-upload-table tbody', this.dialog);
 			tbody.append(row);
 		},
 		
@@ -80,12 +79,18 @@
 			var self = this;
 			if (wait == null) {wait = this.options.wait}
 
+			console.log('Files left:', this.files.length);
+
+			// Upload is done.
 			if (!this.files.length) {
-				$('input:submit[disabled]', this.dialog).attr('disabled',false);
+				var ok = $('input:submit[disabled]', this.dialog);
+				ok.val('Ok');
+				ok.attr('disabled',false);
 				return
 			}
 
-			var item = this.files.shift();			
+			// Wait a period of time before next upload
+			var item = this.files.shift();
 			setTimeout(function(){
 				self.upload(item[0], item[1]);
 			}, wait);
@@ -93,7 +98,6 @@
 		},
 		
 		retry: function(index, file) {
-			console.log("Retry", index, file);
 			this.upload(index, file);
 		},
 		
@@ -107,8 +111,9 @@
 			
 			// Copy the form data; we need to submit it as GET querystring
 			// because the request itself will be PUT
-			var qs = this.element.serialize();
-			var uri = this.options.action + '?' + qs;			
+			// var qs = this.element.serialize();
+			// var uri = this.options.action + '?' + qs;			
+			var uri = this.options.action;
 
 			clr = function(elem, action) {
 				elem.empty();
@@ -155,34 +160,16 @@
 				var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});
 				action.append(retry);				
 			}
+			// Start the request
 			xhr.open('PUT', uri, true);			
 			xhr.setRequestHeader('X-File-Name', file.name);
 			xhr.setRequestHeader('X-File-Size', file.size);
 			xhr.setRequestHeader('X-File-Param', this.options.param);
 			xhr.setRequestHeader('Content-Type', file.type);			
+			
+			// Send the file
 			xhr.send(file);
-
-			// var size = file.size;
-			// var pos = 0;
-			// var chunk = 128;
-			// function getslice(file, start, stop) {
-			// 	if (file.webkitSlice) {
-			// 		var blob = file.webkitSlice(start, stop + 1);
-			// 	} else if (file.mozSlice) {
-			// 		var blob = file.mozSlice(start, stop + 1);
-			// 	}
-			// 	return blob;
-			// }
-			// reader = new FileReader();
-			// reader.onloadend = function(e) {
-			// 	console.log('reader.onloadend', pos, chunk);
-			// 	if (e.target.readyState == FileReader.DONE) {
-			// 		xhr.sendAsBinary(e.target.result);
-			// 		pos += chunk;
-			// 		reader.readAsBinaryString(getslice(file, pos, pos+chunk));
-			// 	}
-			// }
-			// reader.readAsBinaryString(getslice(file, pos, pos+chunk));
+			
 		},
 
 		build: function() {
@@ -207,7 +194,7 @@
 			this.dialog.append(table);
 			
 			// <li><input type="button" value="Cancel" /></li>
-			var ok = $('<form method="post" action="'+this.options.location+'"><ul class="e2l-controls"><li><input type="submit" value="Ok" disabled /></li></ul></form>');
+			var ok = $('<form method="post" action="'+this.options.location+'"><ul class="e2l-controls"><li><input type="submit" value="Uploading..." disabled /></li></ul></form>');
 			this.dialog.append(ok);
 			
 			if (this.options.modal) {
@@ -276,6 +263,7 @@
 		},
 
 		_build: function() {
+			// Build callback
 			if (this.built) {return}
 			this.built = 1;
 			
@@ -335,8 +323,8 @@
 			if (this.options.controls) {
 				this.build_controls();
 			}
+			
 			$('.e2-attachments-infobox').InfoBox('show');
-
 		},
 
 		build_level: function(label, level, items) {
@@ -371,61 +359,34 @@
 			
 			// Controls includes it's own form for uploading files
 			var controls = $(' \
-					<ul class="e2l-options"> \
-						<li class="e2-select" /> \
-						<li><span class="e2l-a e2l-label e2-attachments-param">Regular Attachment</span></li> \
-						<li><input type="file" class="e2-attachments-fileinput" name="file_binary" multiple /></li> \
-					</ul> \
-					<ul class="e2l-controls"> \
-						<li>'+emen2.template.spinner()+'<input type="submit" value="Save attachments" /></li> \
-					</ul>');
+				<ul class="e2l-options"> \
+					<li class="e2-select" /> \
+					<li><span class="e2l-a e2l-label e2-attachments-param">Regular Attachment</span></li> \
+					<li><input type="file" class="e2-attachments-fileinput" name="file_binary" multiple /></li> \
+				</ul> \
+				<ul class="e2l-controls"> \
+					<li>'+emen2.template.spinner()+'<input type="submit" value="Save attachments" /></li> \
+				</ul>');
 
 			// Selection control
 			$('.e2-select', controls).SelectControl({root: this.element});
-			
+
+			// The submit button saves the form normally
 			// $('input:submit', controls).click(function(e){self.save(e)});
 			
-			// Submit the form when this changes.
+			// If File API is supported, upload files as soon as files are selected.
 			$('.e2-attachments-fileinput', controls).change(function(e) {
-				self.upload(e);
+				self.save(e);
 			});
 			
-			// Submit button causes file selection then upload when value changes
-			// $('input[name=save]', controls).click(function(e) {
-			//	$('input[name=filedata]', self.element).click();
-			//	e.preventDefault();
-			// });	
-
-			// Change the selected param for upload..
-			// $('.e2-attachments-param', controls).FindControl({
-			// 	keytype: 'paramdef',
-			// 	vartype: ['binary'],
-			// 	minimum: 0,
-			// 	selected: function(self, value) {
-			// 		$('#e2-attachments-param').val(value);
-			// 		self.element.html(value);
-			// 	}
-			// });
-			
 			this.options.controls.append(controls);
-
-			// $('#e2-attachments-upload').UploadControl({});
-			// $('#e2-attachments-upload').submit(function(e) {
-			// 	e.preventDefault();
-			// 	console.log(e);
-			// })
-			
 		},
 		
 		save: function(e) {
-			this.element.submit();
-		},
-		
-		upload: function(e) {
 			this.element.UploadControl({});
 			this.element.UploadControl('submit');
 		},
-
+		
 		// Utility methods --
 		makebdomap: function(bdos) {
 			// This is to avoid an extra RPC call, and sort BDOs by param name

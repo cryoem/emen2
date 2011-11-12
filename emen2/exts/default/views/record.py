@@ -145,7 +145,7 @@ class Record(RecordBase):
 		# And files..
 		for f in self.request_files:
 			f.record = name
-			self.db.putbinary(None, infile=f)	
+			self.db.putbinary(f)	
 			
 		self.main(name=name)
 		self.ctxt["edit"] = True
@@ -241,7 +241,7 @@ class Record(RecordBase):
 			# And upload any files..
 			for f in self.request_files:
 				f.record = newrec.name
-				self.db.putbinary(None, infile=f)
+				self.db.putbinary(f)
 							
 			self.redirect(self.routing.reverse('Record/main', name=newrec.name))
 			return

@@ -41,7 +41,6 @@ class Upload(View):
 			f.record = record
 			r = self.db.putbinary(None, infile=f)
 			ret.append(r)
-			
 
 
 	@View.add_matcher('^/upload/create/$', name='create')

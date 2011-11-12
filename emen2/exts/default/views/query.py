@@ -104,9 +104,10 @@ class Query(View):
 		self.q['count'] = 100
 		self.q['table'] = True
 		self.q['stats'] = True
+		self.q['recs'] = True
 		self.q = self.db.query(**self.q)
-		print "Query result:"
-		print self.q
+		# print "Query result:"
+		# print self.q
 		self.set_context_item('q', self.q)
 
 
