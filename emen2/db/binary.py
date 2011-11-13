@@ -32,15 +32,16 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		filename, record, md5, filesize, compress, filepath
 		
 	The Binary name has a specific format, bdo:YYYYMMDDXXXXX, where YYYYMMDD is 
-	date format and XXXXX is 5-char hex ID code of file for the day. In the
-	future, the name will be a URN scheme, where 'bdo' is an access protocol
-	and the name is dependent on the scheme.
-
+	date format and XXXXX is 5-char hex ID code of file for the day. 
+	
 	The filename attribute is the original name of the uploaded file. The 
 	filesize attribute is the uncompressed size of the file, and the md5
 	attribute is the MD5 checksum of the uncompressed file. The filename may be
 	changed by an owner after a Binary is committed, but the contents (filesize 
-	and md5) cannot be changed.
+	and md5) cannot be changed. Files may be compressed after they have been
+	created; in this case, the compress param will specify the compression
+	scheme (gzip, bz2, etc.) and filesize_compress and md5_compress will have
+	values for the compressed file.
 
 	File names are checked to prevent illegal characters, and names such as "."
 	and invalid file names on some platforms ("COM", "NUL", etc.).
@@ -71,12 +72,17 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 	:attr filename: File name
 	:attr filesize: Size of the uncompressed file
 	:attr md5: MD5 checksum of the uncompressed file
+	:attr filesize_compress: Size of the compressed file
+	:attr md5_compress: MD5 checksum of the compressed file
 	:attr compress: File is gzip compressed
 	:attr record: Associated Record
 	:property filepath: Path to the file on disk
 	"""
+	# In the
+	# future, the name will be a URN scheme, where 'bdo' is an access protocol
+	# and the name is dependent on the scheme.
 
-	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["filename", "record", "compress", "filesize", "md5"])
+	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["filename", "record", "compress", "filesize", "md5", "filesize_compress", "md5_compress"])
 	filepath = property(lambda x:x._filepath)
 	
 	def init(self, d):
@@ -85,6 +91,8 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		self.__dict__['md5'] = None
 		self.__dict__['filesize'] = None
 		self.__dict__['compress'] = False
+		self.__dict__['filesize_compress'] = None
+		self.__dict__['md5_compress'] = None
 		self._filepath = None
 		
 	def setContext(self, ctx):
@@ -107,19 +115,19 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 	# These immutable attributes only ever be set for a new Binary, before commit	
 	def _set_md5(self, key, value, vtm=None, t=None):
-		if self.name != None:
-			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
-		return self._set(key, value, self.isowner())
+		raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+
+	def _set_md5_compress(self, key, value, vtm=None, t=None):
+		raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
 
 	def _set_compress(self, key, value, vtm=None, t=None):
-		if self.name != None:
-			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
-		return self._set(key, value, self.isowner())
+		raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
 
 	def _set_filesize(self, key, value, vtm=None, t=None):
-		if self.name != None:
-			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
-		return self._set(key, value, self.isowner())
+		raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+
+	def _set_filesize_compress(self, key, value, vtm=None, t=None):
+		raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
 
 	# These can be changed normally
 	def _set_filename(self, key, value, vtm=None, t=None):
@@ -139,15 +147,53 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 	def _set_record(self, key, value, vtm=None, t=None):
 		return self._set(key, int(value), self.isowner())
 
-	# Validate
 	def validate(self, vtm=None, t=None):
+		# Validate
 		if self.filesize <= 0:
 			raise emen2.db.exceptions.ValidationError, "No file specified"
-		if not self.filename or not self.md5 or not self.filesize >= 0:
+		if not all([self.filename, self.md5, self.filesize >= 0]):
 			raise emen2.db.exceptions.ValidationError, "Filename, filesize, and MD5 checksum are required"
-		if self.record is None:
-			raise emen2.db.exceptions.ValidationError, "Reference to a Record is required"
+		# This requirement has been relaxed.
+		# if self.record is None:
+		#	raise emen2.db.exceptions.ValidationError, "Record reference is required"		
 		
+	# Write contents to a temporary file.
+	def writetmp(self, filedata=None, fileobj=None):
+		'''Write to temporary storage.
+		:return: Temporary file path, the file size, and an md5 digest.		
+		'''
+		if filedata:
+			fileobj = cStringIO.StringIO(filedata)
+		if not fileobj:
+			raise ValueError, "No data to write to temporary file."
+
+		# In narrow circumstances, this might not be the same filesystem
+		# as the final file destination. So use a higher level tool like
+		# shutil to rename the file, instead of just os.rename.
+		dkey = self.parse('')
+
+		# Make a temporary file
+		args = {}
+		args['dir'] = dkey['basepath']
+		if suffix:
+			args['suffix'] = suffix
+			
+		(fd, tmpfile) = tempfile.mkstemp(dir=dkey['basepath'], suffix='.upload')
+
+		# Copy to the output file, updating md5 and size
+		with os.fdopen(fd, "w+b") as f:
+			for line in infile:
+				f.write(line)
+				m.update(line)
+				filesize += len(line)
+
+		md5sum = m.hexdigest()
+		emen2.db.log.info("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfile, filesize, md5sum))
+		# Update filesize/md5
+		self.__dict__['filesize'] = filesize
+		self.__dict__['md5'] = md5sum
+		return tmpfile
+	
 	@staticmethod
 	def parse(bdokey, counter=None):
 		"""Parse a 'bdo:2010010100001' type identifier into constituent parts

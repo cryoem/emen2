@@ -23,6 +23,7 @@ import mako.exceptions
 # emen2 imports
 import emen2.db.config
 import emen2.db.exceptions
+import emen2.db.handlers
 import emen2.util.loganalyzer
 import emen2.util.listops
 import emen2.web.events
@@ -32,15 +33,6 @@ import emen2.web.server
 
 
 
-class UploadFile(object):
-	# Stub for EMEN2File	
-	def __init__(self, filename, filedata=None, fileobj=None, infile=None, param='file_binary'):
-		self.filename = filename
-		self.filedata = filedata
-		self.fileobj = fileobj
-		self.infile = infile
-		self.param = param
-		self.tmp = None
 
 
 
@@ -368,7 +360,7 @@ class EMEN2Resource(object):
 
 		if request.method == "PUT":
 			# The param?..
-			f = UploadFile(filename=request.getHeader('x-file-name'), param=request.getHeader('x-file-param'), fileobj=request.content)
+			f = emen2.db.handlers.EMEN2File(filename=request.getHeader('x-file-name'), param=request.getHeader('x-file-param'), fileobj=request.content)
 			files.append(f)
 
 
@@ -384,9 +376,9 @@ class EMEN2Resource(object):
 			except:
 				pass
 
-			# Turn those pairs into UploadFile instances
+			# Turn those pairs into EMEN2File instances
 			for param, filename in r:
-				f = UploadFile(param=param, filename=filename)
+				f = emen2.db.handlers.EMEN2File(param=param, filename=filename)
 				files.append(f)
 
 			# And match those up with the parsed data
@@ -403,7 +395,7 @@ class EMEN2Resource(object):
 				if len(datas) != len(fs):
 					raise ValueError, "Cannot upload empty file"
 
-				# Move the data into the UploadFiles
+				# Move the data into the EMEN2Files
 				for f, filedata in zip(fs, datas):
 					f.filedata = filedata
 

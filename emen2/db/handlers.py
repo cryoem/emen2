@@ -2,7 +2,7 @@
 '''File handlers
 
 '''
-
+import shutil
 import time
 import re
 import traceback
@@ -58,7 +58,6 @@ def rename_emdata(header):
 	return ret
 
 
-
 def filter_ext(files, exts):
 	ret = []
 	for f in files:
@@ -67,27 +66,30 @@ def filter_ext(files, exts):
 		if ext.lower() in exts:
 			ret.append(f)
 	return ret
-		
-		
 
-##### Managed file handler. See emen2.db.database.Binary for more details. #####
+
+
+##### File handler #####
+# This can be used as a temporary file, committed as DB Binary.
 
 class EMEN2File(object):
-	'''EMEN2 managed file. This class is used for importing files.
+	'''File.
 	
-	The original name of the file is self.filename. Sources can be a added in the constructor, and
-	may be a string of data (filedata), a file-like object supporting read() (fileobj), or a 
-	filename on disk (infile, currently disabled). Generally, consider the data sources to be READ ONLY.
+	This is used in a few different ways. It is used for files uploaded
+	to the web server. It can also be used with the File Handlers defined
+	below (e.g. to extract header metadata.) These can also be passed
+	as items to db.putbinary() and stored as database Binary attachments.
 	
-	The writetmp() method will return an on-disk filename that can be used for operations that required
-	a named file (e.g. EMAN2.) If the input source is filedata or fileobj, it will write out to a temporary
-	file in the normal temp file storage area. The cleanup() method will remove any temporary files.
+	The original name of the file is self.filename. Sources can be a added in 
+	the constructor, and may be a string of data (filedata), a file-like 
+	object supporting read() (fileobj), or a filename on disk (infile, 
+	currently disabled). Consider the data to be read-only.
 	
-	The writebinary() method will write out the file to a temporary storage location in the correct
-	EMEN2 Binary storage area, and will return (path, filesize, md5). The tmp file will have a '.upload'
-	extension. If the Binary commit is successful, you can then use a simple, atomic file rename 
-	operation to move it into place. If not, it can be removed immediately, or a script can be used to 
-	clean out all '.upload' files.
+	The writetmp() method will return an on-disk filename that can be used 
+	for operations that required a named file (e.g. EMAN2.) If the input 
+	source is filedata or fileobj, it will write out to a temporary file in 
+	the normal temp file storage area. The close() method will remove any 
+	temporary files.
 	'''
 	
 	def __init__(self, filename, filedata=None, fileobj=None, param='file_binary'):
@@ -107,29 +109,34 @@ class EMEN2File(object):
 		elif self.fileobj:
 			mode = 'fileobj'
 		print '<EMEN2File %s (%s)>'%(self.filename, mode)
-		
+	
+	def get(self, key, default=None):
+		return self.__dict__.get(key, default)
+	
 	def open(self):
 		'''Open the file'''
-		# Open the filedata
 		readfile = None
 		if self.filedata:
-			# This is fine; strings are immutable, cStringIO will reuse the buffer
+			# This is fine; strings are immutable, 
+			# cStringIO will reuse the buffer
 			readfile = cStringIO.StringIO(self.filedata)
 		elif self.fileobj:
 			# ... use the fileobj
 			self.fileobj.seek(0)
 			readfile = self.fileobj
-		#elif self.infile:
-		#	# ... or open the file
-		#	readfile = open(self.infile, 'rb')
 		else:
-			raise IOError, "No file given or don't know how to read file.."
+			raise IOError, "No file given, or don't know how to read file.."
+		return readfile
+
+	def close(self):
+		if self.tmpfile:
+			print "Should remove temporary file...", self.tmpfile
 
 	def writetmp(self, path=None, suffix=None):
-		'''Write to temporary storage and calculate size / md5
-		:return: Temporary file path, the file size, and an md5 digest.		
+		'''Write to temporary storage.
+		:return: Temporary file path.
 		'''
-
+		# Get a file handle
 		infile = self.open()
 		
 		# Make a temporary file
@@ -138,47 +145,13 @@ class EMEN2File(object):
 			args['suffix'] = suffix
 		if path:
 			args['dir'] = path
-		(fd, tmpfile) = tempfile.mkstemp(**args)
+		(fd, self.tmpfile) = tempfile.mkstemp(**args)
 
-		# Copy to the output file, updating md5 and size
 		with os.fdopen(fd, "w+b") as f:
-			for line in infile:
-				f.write(line)
-				m.update(line)
-				filesize += len(line)
-
-		if self.infile:
-			infile.close()
-
-		md5sum = m.hexdigest()
-		# print "Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfilepath, filesize, md5sum)
-		emen2.db.log.info("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfile, filesize, md5sum))
-
-		return tmpfilepath, filesize, md5sum
-
-	# ian: todo: better job at cleaning up broken files..
-	def writebinary(self):
-		"""Write filedata out to a temporary file in the EMEN2 Binary storage area.
-		:return: Temporary file path, the file size, and an md5 digest.		
-		"""
-		
-		# Get the basepath for the current storage area
-		dkey = emen2.db.binary.Binary.parse('')
-
-		# Make the directory
-		try:
-			os.makedirs(dkey["basepath"])
-		except OSError:
-			pass
+			shutil.copyfileobj(infile, f)
 			
-		return self.writetmp(suffix='.upload', path=dkey['basepath'])	
+		return tmpfile
 
-	def rename(self, newname):
-		pass
-
-	def cleanup(self):
-		pass
-		
 		
 
 ##### Generic file handlers #####

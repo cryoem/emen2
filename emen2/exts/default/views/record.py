@@ -244,8 +244,7 @@ class Record(RecordBase):
 				self.db.putbinary(f)
 							
 			self.redirect(self.routing.reverse('Record/main', name=newrec.name))
-			return
-			
+			return		
 
 		recdef = self.db.getrecorddef(newrec.rectype)
 		rendered = self.db.renderview(newrec, edit=True, viewname=viewname)

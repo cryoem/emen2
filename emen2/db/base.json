@@ -1,6 +1,6 @@
 /////////////////
 // Core ParamDefs
-{"immutable": false, "name": "root", "keytype": "paramdef", "parents": [], "vartype": "none", "children": ["core"], "desc_short": "Root Parameter"}
+{"name": "root", "keytype": "paramdef", "parents": [], "vartype": "none", "children": ["core"], "desc_short": "Root Parameter"}
 {"name": "core", "keytype": "paramdef", "parents": ["root"], "vartype": "string", "children": ["username", "name_first", "observed_by", "keytype", "address_street2", "creationtime", "name_contact", "phone_fax", "academic_degrees", "owner", "address_street", "children", "name_last", "support", "creator", "comments", "filename", "name_middle", "affiliations", "parents", "department", "phone_voice", "phone_fax_international", "name_folder", "address_state", "email", "person_photo", "website", "history", "address_email", "groups", "modifytime", "institution", "permissions", "modifyuser", "address_city", "folder_description", "name", "name_group", "performed_by", "address_international", "uri", "file_binary_image", "contact", "recid", "phone_voice_international", "file_binary", "country", "address_zipcode", "rectype", "date_occurred"], "desc_short": "Core Parameters"}
 
 // Parameters for DatabaseObject attributes
@@ -38,8 +38,6 @@
 {"name": "date_start", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Start"}
 {"name": "date_end", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "End"}
 
-
-
 // Common User Profile parameters
 {"name": "name_first", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "First name"}
 {"name": "name_middle", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Middle name"}
@@ -55,7 +53,7 @@
 {"name": "affiliations", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Affiliations"}
 {"name": "phone_fax_international", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "International fax"}
 {"name": "address_state", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "State"}
-{"name": "person_photo", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "iter":false, "desc_short": "Photo"}
+{"name": "person_photo", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "desc_short": "Photo"}
 {"immutable": true, "name": "username", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Username", "desc_long": "User name associated with a User's profile record. Do not change these, as it will break User queries."}
 {"name": "department", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Department"}
 {"modifyuser": "root", "name": "address_zipcode", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Zip", "desc_long": "Zipcode"}
@@ -65,9 +63,15 @@
 {"name": "phone_voice_international", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "International phone"}
 
 // Binary
-{"immutable": false, "name": "filename", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Filename"}
-{"name": "file_binary_image", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "iter":false, "desc_short": "Image file", "desc_long": "A single image file attachment, e.g. a ccd frame."}
+{"name": "filename", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Filename"}
+{"name": "filesize", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "property":"bytes", "defaultunits":"B", "desc_short": "Filesize"}
+{"name": "filesize_compress", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "property":"bytes", "defaultunits":"B", "desc_short": "Filesize (compressed)"}
+{"name": "md5", "keytype": "paramdef", "parents": ["core"], "vartype": "md5", "desc_short": "MD5 Checksum"}
+{"name": "md5_compress", "keytype": "paramdef", "parents": ["core"], "vartype": "md5", "desc_short": "MD5 Checksum (compressed)"}
+{"name": "record", "keytype": "paramdef", "parents": ["core"], "vartype": "links", "desc_short": "Associated record"}
+{"name": "file_binary_image", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "desc_short": "Image file", "desc_long": "A single image file attachment, e.g. a ccd frame."}
 {"name": "file_binary", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "iter":true, "desc_short": "Attachments"}
+{"name": "compress", "keytype":"paramdef", "parents":["core"], "vartype":"string", "desc_short": "Compressed format"}
 
 //////////////////
 // Core RecordDefs
