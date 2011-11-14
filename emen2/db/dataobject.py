@@ -488,20 +488,27 @@ class PermissionsDBObject(BaseDBObject):
 	"""DBO with additional access control.
 
 	This class is used for DBOs that require finer grained control
-	over reading and writing. For instance, Record and Group. It is a subclass
-	of BaseDBObject; see that class for additional documentation.
+	over reading and writing. For instance, :py:class:`emen2.db.record.Record` and :py:class:`emen2.db.group.Group`. It is a subclass
+	of :py:class:`BaseDBObject`; see that class for additional documentation.
 
 	Two additional attributes are provided:
 	-	permissions
 	-  groups
 
-	The permissions attribute is "acl" vartype. It is a list comprised of four
+	The permissions attribute is of the "acl" vartype. It is a list comprised of four
 	lists or user names, denoting the following levels of permissions:
 
-	-	0	Read		Permission to read the item
-	-	1	Comment		Permission to add comments, if the item supports it
-	-	2	Write		Permission to change record attributes/parameters
-	-	3	Admin		Permission to change the item's permissions and groups
+	Level 0 - Read
+		Permission to read the item
+
+	Level 1 - Comment
+		Permission to add comments, if the item supports it
+
+	Level 2 - Write
+		Permission to change record attributes/parameters
+
+	Level 3 - Admin
+		Permission to change the item's permissions and groups
 
 	The groups attribute is a set of group names. The permissions attribute of
 	each group will be overlaid on top of the item's permissions. For instance,

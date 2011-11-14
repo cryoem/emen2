@@ -4,7 +4,7 @@
 Classes:
 	Record
 	RecordDB
-	
+
 """
 
 import collections
@@ -21,44 +21,44 @@ import emen2.util.listops as listops
 
 class Record(emen2.db.dataobject.PermissionsDBObject):
 	"""Database Record.
-	
+
 	Provides the following additional attributes:
 		rectype, history, comments
-		
+
 	This class represents a single database record. In a sense this is an
-	instance of a particular RecordDef, however, note that it is not required 
+	instance of a particular RecordDef, however, note that it is not required
 	to have a value for every field described in the RecordDef, although this
 	will usually be the case. This class is a subclass of PermissionsDBObject
 	(and BaseDBObject); see these classes for additinal documentation.
 
-	The RecordDef name is stored in the rectype attribute. Currently, this 
+	The RecordDef name is stored in the rectype attribute. Currently, this
 	cannot be changed after a Record is created, even by admins. However, this
 	functionality may be provided at some point in the future.
-	
+
 	Unlike most other DBOs, Records allow arbitrary attributes
 	as long as they are valid EMEN2 Parameters. These are stored in the params
 	attribute, which is a dictionary with parameter names as keys.  The params
-	attribute is effectively private and not exported. Instead, it is part of 
-	the mapping interface. Items can be set with __setitem__ 
+	attribute is effectively private and not exported. Instead, it is part of
+	the mapping interface. Items can be set with __setitem__
 	(record['parameter'] = Value) or through an update(). When an item is
 	exported (e.g. JSON), the contents of param are in the regular dictionary
 	of attributes. Changes to these parameters are always logged in the history
-	log, described below, and will always trigger an update to the 
+	log, described below, and will always trigger an update to the
 	modification time.
 
 	Records contain an integrated log of all changes over the entire history
 	of the record. In a sense, as in a physical lab notebook, an original value
-	can never be changed, only superceded. This log is stored in the history 
+	can never be changed, only superceded. This log is stored in the history
 	attribute, which is a list containing a tuple entry for every change made,
 	in the following format:
 		0	User
 		1	Time of change
 		2	Parameter changed
 		3	Previous parameter value
-	
+
 	The history log is immutable, even to admins, and is updated when the item
 	is committed. From a database standpoint, this is rather odd behavior. Such
-	tasks would generally be handled with an audit log of some sort. However, 
+	tasks would generally be handled with an audit log of some sort. However,
 	in this case, as an electronic representation of a Scientific lab notebook,
 	it is absolutely necessary that all historical values are permanently
 	preserved for any field, and there is no particular reason to store this
@@ -67,14 +67,14 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	prompt the user for a comment describing the reason for the change. If
 	provided, the comment and the history log item will have the same timestamp.
 
-	Users also can store free-form textual comments in the comments attribute, 
-	either by setting the comments key (item['comments'] = 'Test') or through 
-	the  addcomment() method. Comments will stored as plain text, and usually 
-	displayed with Markdown-type formatting applied. Like the history log, 
+	Users also can store free-form textual comments in the comments attribute,
+	either by setting the comments key (item['comments'] = 'Test') or through
+	the  addcomment() method. Comments will stored as plain text, and usually
+	displayed with Markdown-type formatting applied. Like the history log,
 	comments are immutable once set, even to admins. Additionally, parameters
-	can be updated inside of a comment using the RecordDef view syntax: 
+	can be updated inside of a comment using the RecordDef view syntax:
 		$$parameter="value"
-	
+
 	Each new comment is added to the comments list as a tuple with the format:
 		0	User
 		1	Time of comment
@@ -87,23 +87,23 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		keys			Add parameter keys
 		validate		Check RecordDef
 		validate_name	Check the name is a positive integer
-		
+
 	And the following methods are provided:
-	
+
 		addcomment		Add a comment
 		revision		Calculate the record's values to a point in the past.
 
-	
+
 	:attr history: History log
 	:attr comments: Comments log
 	:attr rectype: Associated RecordDef
-	
+
 	"""
 	attr_public = emen2.db.dataobject.PermissionsDBObject.attr_public | set(['comments', 'history', 'rectype'])
 	attr_required = set(['rectype'])
 
 	# backwards compat
-	recid = property(lambda s:s.name) 
+	recid = property(lambda s:s.name)
 
 	def init(self, d):
 		# Call PermissionsDBObject init
@@ -177,10 +177,10 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 	def addcomment(self, value, vtm=False, t=None):
 		"""Add a comment. Any $$param="value" comments will be parsed and set as values."""
-		
+
 		if not self.commentable():
 			self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.SecurityError)
-			
+
 		vtm, t = self._vtmtime(vtm, t)
 		cp = set()
 		if value == None:
