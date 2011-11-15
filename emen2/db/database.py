@@ -4352,9 +4352,10 @@ class DB(object):
 		"""
 		# :keyword filename: ... the filename to use
 		# :keyword record: ... the Record name, or new Record, to use
-		# :keyword param: ... Record param to use for the reference to the Binary name
-		
+		# :keyword param: ... param to use for the reference
+		bdos = []
 		rename = []
+		
 		for bdo in items:
 			# New BDO details
 			newfile = False
@@ -4369,21 +4370,22 @@ class DB(object):
 				# filesystem as the final file location, so the final
 				# operation in this method will be a rename operation. But in
 				# situations where the file storage area changes between the
-				# time the tempfile is written and the sequence is updated,
+				# time the temp file is written and the sequence is updated,
 				# it will require a copy and remove operation. Not a big deal,
 				# just something to be aware of.
 				newfile = bdo.writetmp(filedata=filedata, fileobj=fileobj)
 
-			# Test that we can write to the record. This may be relaxed in
-			# the future.
+			# Test that we can write to the record.
 			if bdo.get('record'):
 				rec = self.bdbs.record.cget(bdo.record, filt=False, ctx=ctx, txn=txn)
 				if not rec.writable():
 					raise SecurityError, "No write permissions for Record %s"%rec.name
 		
 			# Commit the BDO. This will set the Binary's name.
-			bdo = self.bdbs.binary.cput(item, ctx=ctx, txn=txn)
-
+			bdo = self.bdbs.binary.cput(bdo, ctx=ctx, txn=txn)
+			bdo.__dict__['_filepath'] = bdo.parse(bdo.name)['filepath']
+			bdos.append(bdo)
+			
 			# If this is a new BDO..
 			if newfile:
 				# Check that we won't be overwriting an existing file.
@@ -4395,9 +4397,11 @@ class DB(object):
 		# Rename/copy temporary files to final destination.
 		# todo: Handle any exceptions that might arise here.	
 		for newfile, filepath in rename:
-			print "Renaming file %s -> %s"%(newfile, filepath)
+			# print "Renaming file %s -> %s"%(newfile, filepath)
 			os.rename(newfile, filepath)
-			
+	
+		return bdos
+	
 
 	@publicmethod("ping")
 	def ping(self, *a, **kw):

@@ -5,6 +5,7 @@
 import shutil
 import time
 import re
+import collections
 import traceback
 import math
 import os
@@ -81,9 +82,8 @@ class EMEN2File(object):
 	as items to db.putbinary() and stored as database Binary attachments.
 	
 	The original name of the file is self.filename. Sources can be a added in 
-	the constructor, and may be a string of data (filedata), a file-like 
-	object supporting read() (fileobj), or a filename on disk (infile, 
-	currently disabled). Consider the data to be read-only.
+	the constructor, and may be a string of data (filedata), or a file-like 
+	object supporting read() (fileobj). Consider the data to be read-only.
 	
 	The writetmp() method will return an on-disk filename that can be used 
 	for operations that required a named file (e.g. EMAN2.) If the input 
@@ -91,24 +91,19 @@ class EMEN2File(object):
 	the normal temp file storage area. The close() method will remove any 
 	temporary files.
 	'''
-	
+	# , or a filename on disk (infile, currently disabled).
+
 	def __init__(self, filename, filedata=None, fileobj=None, param='file_binary'):
 		self.filename = filename
 		self.filedata = filedata
 		self.fileobj = fileobj
-		self.infile = None
 		self.param = param
 		self.readonly = True
 		self.tmp = None
 
 	def __repr__(self):
 		# For debugging.
-		mode = 'infile'
-		if self.filedata:
-			mode = 'filedata'
-		elif self.fileobj:
-			mode = 'fileobj'
-		print '<EMEN2File %s (%s)>'%(self.filename, mode)
+		print '<EMEN2File %s>'%(self.filename)
 	
 	def get(self, key, default=None):
 		return self.__dict__.get(key, default)
@@ -145,7 +140,8 @@ class EMEN2File(object):
 			args['suffix'] = suffix
 		if path:
 			args['dir'] = path
-		(fd, self.tmpfile) = tempfile.mkstemp(**args)
+
+		(fd, tmpfile) = tempfile.mkstemp(**args)
 
 		with os.fdopen(fd, "w+b") as f:
 			shutil.copyfileobj(infile, f)
@@ -154,7 +150,7 @@ class EMEN2File(object):
 
 		
 
-##### Generic file handlers #####
+##### File handlers #####
 
 class Handler(object):
 	rectypes = []
@@ -174,6 +170,26 @@ class Handler(object):
 ##### Specific file type handlers #####
 # In the future, these may be moved into 
 #	extension modules and registered with the parent class
+
+class TestHandler(Handler):
+	"""Test handler. Count the words in a file."""
+	def extract(self):
+		txtfile = self.files[0]
+		f = txtfile.open()
+		words = collections.defaultdict(int)
+		for w in f.read().split():
+			words[w] += 1
+		return words
+
+class TestTmpHandler(Handler):
+	"""Test handler. Count the words in a file."""
+	def extract(self):
+		txtfile = self.files[0]
+		f = txtfile.writetmp()
+		print f
+		return {}
+
+
 
 class movie(Handler):
 	extensions = ['avi', 'flv', 'mpg', 'mp4', 'mov']

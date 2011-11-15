@@ -208,7 +208,7 @@ class Record(RecordBase):
 
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$')
-	def new(self, name=None, rectype=None, _copy=False, _private=False, **kwargs):
+	def new(self, name=None, rectype=None, _copy=False, _private=False, _extract=False, **kwargs):
 		self.template = '/pages/record.new'
 		viewname = 'mainview'
 
@@ -241,7 +241,8 @@ class Record(RecordBase):
 			# And upload any files..
 			for f in self.request_files:
 				f.record = newrec.name
-				self.db.putbinary(f)
+				
+			self.db.putbinary(self.request_files)
 							
 			self.redirect(self.routing.reverse('Record/main', name=newrec.name))
 			return		

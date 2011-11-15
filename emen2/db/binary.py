@@ -115,19 +115,29 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 	# These immutable attributes only ever be set for a new Binary, before commit	
 	def _set_md5(self, key, value, vtm=None, t=None):
-		raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+		if self.name:
+			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+		return self._set(key, value, self.isowner())
 
 	def _set_md5_compress(self, key, value, vtm=None, t=None):
-		raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+		if self.name:
+			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+		return self._set(key, value, self.isowner())
 
 	def _set_compress(self, key, value, vtm=None, t=None):
-		raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+		if self.name:
+			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+		return self._set(key, value, self.isowner())
 
 	def _set_filesize(self, key, value, vtm=None, t=None):
-		raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+		if self.name:
+			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+		return self._set(key, value, self.isowner())
 
-	def _set_filesize_compress(self, key, value, vtm=None, t=None):
-		raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+	def _set_filesize_compress(self, key, value, vtm=None, t=None):			
+		if self.name:
+			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+		return self._set(key, value, self.isowner())
 
 	# These can be changed normally
 	def _set_filename(self, key, value, vtm=None, t=None):
@@ -167,22 +177,22 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		if not fileobj:
 			raise ValueError, "No data to write to temporary file."
 
+		fileobj.seek(0)
+
 		# In narrow circumstances, this might not be the same filesystem
 		# as the final file destination. So use a higher level tool like
 		# shutil to rename the file, instead of just os.rename.
 		dkey = self.parse('')
 
-		# Make a temporary file
-		args = {}
-		args['dir'] = dkey['basepath']
-		if suffix:
-			args['suffix'] = suffix
-			
+		if not os.path.exists(dkey['basepath']):
+			os.makedirs(dkey['basepath'])
 		(fd, tmpfile) = tempfile.mkstemp(dir=dkey['basepath'], suffix='.upload')
 
+		m = hashlib.md5()
+		filesize = 0
 		# Copy to the output file, updating md5 and size
 		with os.fdopen(fd, "w+b") as f:
-			for line in infile:
+			for line in fileobj:
 				f.write(line)
 				m.update(line)
 				filesize += len(line)
@@ -287,6 +297,8 @@ class BinaryDB(emen2.db.btrees.DBODB):
 	def openindex(self, param, txn=None):
 		"""Index on filename (and possibly MD5 in the future.)"""
 		if param == 'filename':
+			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
+		elif param == 'md5':
 			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
 		else:
 		 	ind = super(BinaryDB, self).openindex(param, txn=txn)

@@ -538,6 +538,16 @@ class vt_binary(Vartype):
 		return value
 
 
+###################################
+# md5 checksum
+#	Indexed as keytype 's'
+###################################
+
+@vtm.register_vartype('md5')
+class vt_md5(Vartype):
+	"""String"""
+	keytype = 's'
+
 
 ###################################
 # Internal record-record linkes
