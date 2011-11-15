@@ -19,7 +19,6 @@ class VartypeManager(object):
 	_macros = {}
 	nonevalues = [None,"","N/A","n/a","None"]
 
-
 	@classmethod
 	def register_vartype(cls, name):
 		def f(o):

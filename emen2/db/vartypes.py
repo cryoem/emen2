@@ -678,7 +678,7 @@ class vt_groups(Vartype):
 		check_groupnames(self.engine, value)
 		return self._rci(value)
 
-	def process(self, engine, pd, value, rec, db):
+	def process(self, value):
 		value = ci(value)
 		return [unicode(i) for i in value]
 

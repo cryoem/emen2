@@ -104,15 +104,14 @@
 		upload: function(index, file) {
 			// Upload the file blob
 			var self = this;
+
+			// This row
 			var elem = $('tr[data-index='+index+'] .e2-upload-progress');
 			var action = $('tr[data-index='+index+'] .e2-upload-action');
 			elem.empty();
 			action.empty();
 			
-			// Copy the form data; we need to submit it as GET querystring
-			// because the request itself will be PUT
-			// var qs = this.element.serialize();
-			// var uri = this.options.action + '?' + qs;			
+			// Upload destination
 			var uri = this.options.action;
 
 			clr = function(elem, action) {
@@ -121,40 +120,51 @@
 				elem.progressbar('destroy');
 			}
 			
+			// Setup the XHR
 			var xhr = new XMLHttpRequest();
 			xhr.upload.onprogress = function(e) {
 				var prog = Math.round((e.loaded / e.total) * 100);
 				elem.progressbar('value', prog);
 			}
 			xhr.onloadend = function(e) {
+				if (this.status == 500) {
+					// Server error
+					clr(elem, action);
+					elem.html('Error');
+					var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});
+					action.append(retry);
+				} else if (this.status == 200) {
+					// Successful upload
+					clr(elem, action);
+					elem.html('Completed');
+					action.append(emen2.template.image('ok.png','Success'));					
+				}
 				// Always go ahead and try the next item
 				self.next()
-				if (this.status == 0) {
-					return
-				}
-				clr(elem, action);
-				elem.html('Completed');
-				action.append(emen2.template.image('ok.png','Success'));
 			}
 			xhr.onloadstart = function(e) {
+				// Show a cancel action
 				clr(elem, action);
 				elem.progressbar({});
 				var cancel = $(emen2.template.image('cancel.png','Cancel')).click(function(){xhr.abort()});
 				action.append(cancel);				
 			}
 			xhr.onabort = function(e) {
+				// Retry an aborted upload
 				clr(elem, action);
 				elem.html('Aborted');
 				var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});
 				action.append(retry);
 			}
 			xhr.onerror = function(e) {
+				// Retry an upload that failed
 				clr(elem, action);
 				elem.html('Error');
 				var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});
 				action.append(retry);
 			}
 			xhr.ontimeout = function(e) {
+				// Retry after time out
 				clr(elem, action);
 				elem.html('Timed out');
 				var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});

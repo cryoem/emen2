@@ -22,7 +22,6 @@ except ImportError:
 
 import emen2.db.config
 
-
 ##### Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool #####
 
 class DBPool(object):

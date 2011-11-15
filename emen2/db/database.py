@@ -4350,12 +4350,9 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:			
 		"""
-		# :keyword filename: ... the filename to use
-		# :keyword record: ... the Record name, or new Record, to use
-		# :keyword param: ... param to use for the reference
+
 		bdos = []
-		rename = []
-		
+		rename = []		
 		for bdo in items:
 			# New BDO details
 			newfile = False
@@ -4389,11 +4386,12 @@ class DB(object):
 			# If this is a new BDO..
 			if newfile:
 				# Check that we won't be overwriting an existing file.
-				if os.path.exists(bdo.filepath):
-					raise SecurityError, "Cannot overwrite existing file!"
+				# Note: it's possible that an aborted txn left files...
+				# if os.path.exists(bdo.filepath):
+				#	raise SecurityError, "Cannot overwrite existing file!"
 				# Add to the list of files to rename/copy.
 				rename.append([newfile, bdo.filepath])
-				
+							
 		# Rename/copy temporary files to final destination.
 		# todo: Handle any exceptions that might arise here.	
 		for newfile, filepath in rename:

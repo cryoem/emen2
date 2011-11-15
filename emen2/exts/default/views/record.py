@@ -3,11 +3,10 @@ import urllib
 import time
 import collections
 
-# Standard View imports
+import emen2.db.exceptions
 import emen2.util.listops as listops
 import emen2.web.responsecodes
 from emen2.web.view import View
-
 
 class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 	title = 'Record not Found'
@@ -57,7 +56,7 @@ class RecordBase(View):
 		if 'publish' in self.rec.get('groups',[]):
 			self.ctxt['NOTIFY'].append('Record marked as published data')
 		if 'authenticated' in self.rec.get('groups',[]):
-			self.ctxt['NOTIFY'].append('Any authenticated user can access this record')
+			self.ctxt['NOTIFY'].append('Any authenticated user can read this record')
 		if 'anon' in self.rec.get('groups', []):
 			self.ctxt['NOTIFY'].append('Anyone may access this record anonymously')
 			
@@ -132,23 +131,52 @@ class Record(RecordBase):
 
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$')
-	def edit(self, name=None, **kwargs):
-		if self.request_method == 'post':
-			rec = self.db.getrecord(name, filt=False)
-			try:
-				rec.update(kwargs)
-				self.db.putrecord(rec)
-				self.redirect(self.routing.reverse('Record/main', name=name))
-			except Exception, e:
-				self.ctxt['ERRORS'].append(e)
-			
-		# And files..
+	def edit(self, name=None, _extract=False, **kwargs):
+		# Edit page and requests
+		
+		if self.request_method not in ['post', 'put']:
+			# Show the form and return
+			self.main(name=name)
+			self.ctxt["edit"] = True
+			return
+
+		# Get the record
+		rec = self.db.getrecord(name, filt=False)
+		if not rec.writable():
+			raise emen2.db.exceptions.SecurityError, "No write permission for record %s"%rec.name
+
+		# Update the record
+		rec.update(kwargs)
+		
+		# Handle file uploads
+		_extract = 'ccd'
+		if _extract:
+			handler = emen2.db.handlers.Handler.get_handler(_extract)(self.request_files)
+			rec.update(handler.extract())
+
+		# Validate changes before we commit the binaries
+		self.db.validaterecord(rec)
+
 		for f in self.request_files:
-			f.record = name
-			self.db.putbinary(f)	
-			
-		self.main(name=name)
-		self.ctxt["edit"] = True
+			pd = self.db.getparamdef(f.param)
+			if pd.vartype != 'binary':
+				raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
+
+			f.record = rec.name			
+			bdo = self.db.putbinary(f)
+
+			if pd.iter:
+				v = rec.get(pd.name) or []
+				v.append(bdo.name)
+			else:
+				v = bdo.name
+			rec[pd.name] = v
+
+		# Commit the record
+		self.db.putrecord(rec)
+
+		# Redirect
+		self.redirect(self.routing.reverse('Record/main', name=name))
 
 
 	#@write
@@ -222,6 +250,13 @@ class Record(RecordBase):
 		parentrec = self.db.getrecord(name)
 		parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=3)
 
+		#_extract = True
+		#if _extract:
+		#	handler = emen2.db.handlers.TestTmpHandler(self.request_files)
+		#	print "extracting..."
+		#	print handler.extract()
+
+
 		if _private:
 			newrec = self.db.newrecord(rectype)
 			newrec.parents = inherit
@@ -238,12 +273,9 @@ class Record(RecordBase):
 			newrec = self.db.putrecord(newrec)
 
 		if newrec.name:
-			# And upload any files..
 			for f in self.request_files:
 				f.record = newrec.name
-				
 			self.db.putbinary(self.request_files)
-							
 			self.redirect(self.routing.reverse('Record/main', name=newrec.name))
 			return		
 
