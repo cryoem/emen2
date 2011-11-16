@@ -13,5 +13,7 @@ Contents:
 
    db
    dataobject
+   user
+   record
 
 
