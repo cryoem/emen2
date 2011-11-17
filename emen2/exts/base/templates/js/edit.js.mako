@@ -684,7 +684,11 @@
 				'history':'none',
 				'uri':'none',
 				'recid':'none',
-				'acl':'none'
+				'acl':'not_ready',
+				'links':'not_ready',
+				'groups':'not_ready',
+				'binary':'not_ready',
+				'comments':'textarea'
 			}
 			return defaults[vt] || vt;			
 		},		
@@ -800,6 +804,13 @@
 		}
 	});
 
+	// Use other widget
+    $.widget("emen2edit.not_ready", $.emen2.EditBase, {
+		build_control: function() {
+			this.element.append('(Use toolbar to edit this)');
+		}
+	});
+
 	// Basic String editing widget
     $.widget("emen2edit.string", $.emen2.EditBase, {
 		build_item: function(val, index) {
@@ -864,7 +875,6 @@
 				$('.e2-edit-val', this).val(unitsval+' '+units);
 			});
 		}
-		
 	});
 	
 	// Single-choice widget
@@ -954,46 +964,53 @@
 	});
 	
 	// Binary Editor
-    $.widget("emen2edit.binary", $.emen2.EditBase, {
-		build_item: function(val, index) {
-			return 'Edit Binary...'
-		},
-		sethidden: function() {
-			var self = this;
-			$('.e2-edit-container', this.element).each(function(){
-				$('.e2-edit-val', this).val('');
-			});
-		}
-	});	
+	//     $.widget("emen2edit.binary", $.emen2.EditBase, {
+	// 	build_item: function(val, index) {
+	// 		return 'Edit Binary...'
+	// 	},
+	// 	sethidden: function() {
+	// 		var self = this;
+	// 		$('.e2-edit-container', this.element).each(function(){
+	// 			$('.e2-edit-val', this).val('');
+	// 		});
+	// 	}
+	// });	
 	
 	// Group Editor
-    $.widget("emen2edit.groups", $.emen2.EditBase, {
-		build_item: function(val, index) {
-			return 'Edit Groups...'
-		},
-		sethidden: function() {
-			var self = this;
-			$('.e2-edit-container', this.element).each(function(){
-				$('.e2-edit-val', this).val('');
-			});
-		}
-	});	
+	//     $.widget("emen2edit.groups", $.emen2.EditBase, {
+	// 	build_item: function(val, index) {
+	// 		return 'Edit Groups...'
+	// 	},
+	// 	sethidden: function() {
+	// 		var self = this;
+	// 		$('.e2-edit-container', this.element).each(function(){
+	// 			$('.e2-edit-val', this).val('');
+	// 		});
+	// 	}
+	// });	
 	
 	// Comments
-    $.widget("emen2edit.comments", $.emen2.EditBase, {
-		build_item: function(val, index) {
-			return 'Edit Comments...'
-		}
-	});
-	
-	// Coordinate
-    $.widget("emen2edit.coordinate", $.emen2.EditBase, {
-		build_item: function(val, index) {
-			return 'Edit coordinates...'
-		}
-	});	
+	//     $.widget("emen2edit.comments", $.emen2.EditBase, {
+	// 	build_item: function(val, index) {
+	// 		return 'Edit Comments...'
+	// 	}
+	// });
 
 	// Coordinate
+	//     $.widget("emen2edit.coordinate", $.emen2.EditBase, {
+	// 	build_item: function(val, index) {
+	// 		return 'Edit coordinates...'
+	// 	}
+	// });
+	
+	// Rectype
+	//     $.widget("emen2edit.rectype", $.emen2.EditBase, {
+	// 	build_item: function(val, index) {
+	// 		return 'Rectype is not editable!'
+	// 	}
+	// });	
+
+	// Percent
     $.widget("emen2edit.percent", $.emen2.EditBase, {
 		build_item: function(val, index) {
 			return 'Edit Percent...'
@@ -1004,13 +1021,6 @@
 				$('.e2-edit-val', this).val('');
 			});
 		}		
-	});	
-	
-	// Rectype
-    $.widget("emen2edit.rectype", $.emen2.EditBase, {
-		build_item: function(val, index) {
-			return 'Rectype is not editable!'
-		}
 	});	
 
 	// Date Time

@@ -2303,14 +2303,50 @@ class DB(object):
 		return rendered, c_all
 
 
-	def _make_tables(self, recdefs, rec, builtinparams, builtinparamsshow, markup, ctx, txn):
+	def _make_tables(self, recdefs, rec, markup, ctx, txn):
 		"""(Internal) Find "out-of-band" parameters."""
 		# move built in params to end of table
 		#par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
-		par = [p for p in recdefs.get(rec.rectype).paramsK if p not in builtinparams]
-		par += builtinparamsshow
-		par += [p for p in rec.keys() if p not in par]
-		return self._dicttable_view(par, markup=markup, ctx=ctx, txn=txn)
+		# Default params
+		public = set() | emen2.db.record.Record.attr_public
+		show = set(rec.keys()) | recdefs.get(rec.rectype).paramsK | public
+		descs = dict((i.name,i.desc_short) for i in self.getparamdef(show, ctx=ctx, txn=txn))
+		show -= public
+		par = []
+		par.extend(sorted(show, key=lambda x:descs.get(x, x)))
+		par.extend(sorted(public, key=lambda x:descs.get(x, x)))
+		# par = [p for p in recdefs.get(rec.rectype).paramsK if p not in builtinparams]
+		# par += [p for p in rec.keys() if p not in par]
+		return self._view_dicttable(par, markup=markup, ctx=ctx, txn=txn)
+
+
+	def _view_dicttable(self, params, paramdefs={}, markup=False, ctx=None, txn=None):
+		"""(Internal) Create an HTML table for rendering.
+
+		:param params: Use these ParamDef names
+		:keyword paramdefs: ParamDef cache
+		:keyword markup: Use HTML Markup (default=False)
+		:return: HTML table of params
+		"""
+
+		if markup:
+			dt = ["""<table class="e2l-kv e2l-shaded" cellspacing="0" cellpadding="0">
+					<thead><th>Parameter</th><th>Value</th></thead>
+					<tbody>"""]
+			for count, i in enumerate(params):
+				if count%2:
+					dt.append("\t\t<tr class=\"s\"><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
+				else:
+					dt.append("\t\t<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
+
+			dt.append("\t<thead>\n</table>")
+
+		else:
+			dt = []
+			for i in params:
+				dt.append("$#%s:\t$$%s\n"%(i,i))
+
+		return "\n".join(dt)
 
 
 	@publicmethod("record.render")
@@ -2392,10 +2428,6 @@ class DB(object):
 			rec.update(newrec)
 			recs.append(rec)
 
-		# Default params
-		builtinparams = set() | emen2.db.record.Record.attr_public
-		builtinparamsshow = builtinparams - set(['permissions', 'comments', 'history', 'groups', 'parents', 'children'])
-
 		# Get and pre-process views
 		groupviews = {}
 		recdefs = listops.dictbykey(self.bdbs.recorddef.cgets(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
@@ -2406,7 +2438,7 @@ class DB(object):
 			groupviews[None] = viewdef
 		elif viewname == "dicttable":
 			for rec in recs:
-				groupviews[rec.name] = self._make_tables(recdefs, rec, builtinparams, builtinparamsshow, markup, ctx=ctx, txn=txn)
+				groupviews[rec.name] = self._make_tables(recdefs, rec, markup, ctx=ctx, txn=txn)
 		else:
 			for rd in recdefs.values():
 				rd["views"]["mainview"] = rd.mainview
@@ -2515,33 +2547,7 @@ class DB(object):
 		return ret
 
 
-	def _dicttable_view(self, params, paramdefs={}, markup=False, ctx=None, txn=None):
-		"""(Internal) Create an HTML table for rendering.
 
-		:param params: Use these ParamDef names
-		:keyword paramdefs: ParamDef cache
-		:keyword markup: Use HTML Markup (default=False)
-		:return: HTML table of params
-		"""
-		
-		if markup:
-			dt = ["""<table class="e2l-kv" cellspacing="0" cellpadding="0">
-					<thead><th>Parameter</th><th>Value</th></thead>
-					<tbody>"""]
-			for count, i in enumerate(params):
-				if count%2:
-					dt.append("\t\t<tr class=\"s\"><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
-				else:
-					dt.append("\t\t<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
-
-			dt.append("\t<thead>\n</table>")
-
-		else:
-			dt = []
-			for i in params:
-				dt.append("$#%s:\t$$%s\n"%(i,i))
-
-		return "\n".join(dt)
 
 
 

@@ -626,21 +626,17 @@ class vt_acl(Vartype):
 		if not value:
 			return []
 
-		value = reduce(lambda x,y:x+y, value)
+		allusers = reduce(lambda x,y:x+y, value)
 		unames = {}
-
-		for user in self.engine.db.getuser(value):
-			user.getdisplayname(lnf=True)
+		for user in self.engine.db.getuser(allusers):
 			unames[user.name] = user.displayname
 
-		levels=["Read","Comment","Write","Admin"]
-		ret=[]
-
-		for level,names in enumerate(value):
+		levels = ["Read","Comment","Write","Admin"]
+		ret = []
+		for level, names in zip(levels, value):
 			namesr = [unames.get(i,"(%s)"%i) for i in names]
-			ret.append("%s: %s"%(levels[level],", ".join(namesr)))
-
-		return ret
+			ret.append("%s: %s"%(level, ", ".join(namesr)))
+		return ['<br />'.join(ret)]
 
 
 	def reindex(self, items):

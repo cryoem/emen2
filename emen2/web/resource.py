@@ -626,8 +626,6 @@ class JSONRPCResource(jsonrpc.server.JSON_RPC):
 		return twisted.web.static.server.NOT_DONE_YET
 
 
-
-
 # Fault = xmlrpclib.Fault
 # class RPCFormatXMLRPC:
 # 	def __init__(self):

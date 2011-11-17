@@ -14,6 +14,7 @@
 			this.built = 0;
 			this.files = [];			
 			this.options.action = this.element.attr('action');
+			console.log(this.element);
 			this.options.location = $('input[name=location]', this.element).val();
 			
 			// Check that we have browser support for File API
@@ -25,12 +26,47 @@
 			}
 
 			this.build();
-
-			// If the browser supports it, bind to the form submission event.
-			// this.element.submit(function(e) {
-			// 	self.submit(e);
-			// });
 		},
+		
+		build: function() {
+			this.dialog = $('<div></div>');
+			this.dialog.attr('title','Upload Progress');
+			
+			//style="table-layout:fixed" 
+			var table = $(' \
+				<table cellspacing="0" cellpadding="0" class="e2l-shaded e2-upload-table"> \
+					<thead> \
+						<tr> \
+							<th>Filename</th> \
+							<th>Filesize</th> \
+							<th>Progress</th> \
+							<th></th> \
+						</tr> \
+					</thead> \
+					<tbody> \
+					</tbody> \
+				</table>');
+			
+			this.dialog.append(table);
+			
+			// <li><input type="button" value="Cancel" /></li>
+			var ok = $('<form method="post" action="'+this.options.location+'"><ul class="e2l-controls"><li><input type="submit" value="Uploading..." disabled /></li></ul></form>');
+			this.dialog.append(ok);
+			
+			if (this.options.modal) {
+				$('body').append(this.dialog);
+				this.dialog.dialog({
+					width: 600,
+					height: 600,
+					autoOpen: false,
+					modal: true,
+					closeOnEscape: false,
+					dialogClass: 'e2-dialog-no-close'
+				});
+			} else {
+				this.element.append(this.dialog);
+			}
+		},		
 		
 		submit: function(e) {
 			var self = this;
@@ -78,8 +114,6 @@
 		next: function(wait) {
 			var self = this;
 			if (wait == null) {wait = this.options.wait}
-
-			console.log('Files left:', this.files.length);
 
 			// Upload is done.
 			if (!this.files.length) {
@@ -180,46 +214,6 @@
 			// Send the file
 			xhr.send(file);
 			
-		},
-
-		build: function() {
-			this.dialog = $('<div></div>');
-			this.dialog.attr('title','Upload Progress');
-			
-			//style="table-layout:fixed" 
-			var table = $(' \
-				<table cellspacing="0" cellpadding="0" class="e2l-shaded e2-upload-table"> \
-					<thead> \
-						<tr> \
-							<th>Filename</th> \
-							<th>Filesize</th> \
-							<th>Progress</th> \
-							<th></th> \
-						</tr> \
-					</thead> \
-					<tbody> \
-					</tbody> \
-				</table>');
-			
-			this.dialog.append(table);
-			
-			// <li><input type="button" value="Cancel" /></li>
-			var ok = $('<form method="post" action="'+this.options.location+'"><ul class="e2l-controls"><li><input type="submit" value="Uploading..." disabled /></li></ul></form>');
-			this.dialog.append(ok);
-			
-			if (this.options.modal) {
-				$('body').append(this.dialog);
-				this.dialog.dialog({
-					width: 600,
-					height: 600,
-					autoOpen: false,
-					modal: true,
-					closeOnEscape: false,
-					dialogClass: 'e2-dialog-no-close'
-				});
-			} else {
-				this.element.append(this.dialog);
-			}
 		}
 	});
 	

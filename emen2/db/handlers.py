@@ -155,17 +155,17 @@ class Handler(object):
 # 		return words
 
 
-@Handler.register('movie')
-class movie(Handler):
-	extensions = ['avi', 'flv', 'mpg', 'mp4', 'mov']
-
-
-@Handler.register('image')
-class image(Handler):
-	extensions = ['jpg', 'jpeg', 'png', 'gif', 'tif', 'tiff', 'bmp', 'crw', 'nef', 'mng']
-
-
-@Handler.register('pdf')
-class pdf(Handler):
-	extensions = ['pdf']
+# @Handler.register('file_movie')
+# class file_movie(Handler):
+# 	extensions = ['avi', 'flv', 'mpg', 'mp4', 'mov']
+# 
+# 
+# @Handler.register('file_image')
+# class file_image(Handler):
+# 	extensions = ['jpg', 'jpeg', 'png', 'gif', 'tif', 'tiff', 'bmp', 'crw', 'nef', 'mng']
+# 
+# 
+# @Handler.register('file_pdf')
+# class file_pdf(Handler):
+# 	extensions = ['pdf']
 

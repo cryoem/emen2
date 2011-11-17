@@ -59,7 +59,6 @@ class RecordBase(View):
 			self.ctxt['NOTIFY'].append('Any authenticated user can read this record')
 		if 'anon' in self.rec.get('groups', []):
 			self.ctxt['NOTIFY'].append('Anyone may access this record anonymously')
-			
 		
 		# Parent map
 		if parents:
@@ -149,10 +148,8 @@ class Record(RecordBase):
 		rec.update(kwargs)
 		
 		# Handle file uploads
-		_extract = 'ccd'
-		if _extract:
-			handler = emen2.db.handlers.Handler.get_handler(_extract)(self.request_files)
-			rec.update(handler.extract())
+		handler = emen2.db.handlers.Handler.get_handler(rec.rectype)(self.request_files)
+		rec.update(handler.extract())
 
 		# Validate changes before we commit the binaries
 		self.db.validaterecord(rec)
