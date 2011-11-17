@@ -322,7 +322,7 @@ class DebugState(object):
 		tb = k.pop('tb', False)
 		if tb: self.print_traceback()
 
-		# outputs for the sake of lazy binding, outputs_l for caching
+		# outputs is a generator in order to quickly determine if any work needs to be done.
 		outputs_l = []
 		outputs = ( (outputs_l.append(output), True)[1] for output in self._outputs if output.checkstate(state) )
 

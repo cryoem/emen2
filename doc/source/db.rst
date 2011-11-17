@@ -1,6 +1,6 @@
 
-EMEN2 Database Public API
-=========================
+EMEN2 Database API Documentation
+================================
 
 .. autoclass:: emen2.db.database.DB
 	:members:

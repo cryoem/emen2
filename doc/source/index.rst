@@ -15,5 +15,25 @@ Contents:
    dataobject
    user
    record
-
-
+   binary
+   btrees
+   callback
+   config
+   context
+   datatypes
+   debug
+   dump
+   exceptions
+   globalns
+   group
+   handlers
+   load
+   log
+   macros
+   magnitude
+   paramdef
+   properties
+   proxy
+   recorddef
+   vartypes
+   workflow

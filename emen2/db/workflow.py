@@ -21,22 +21,22 @@ import emen2.db.btrees
 
 class WorkFlow(emen2.db.dataobject.BaseDBObject):
 	"""Workflow.
-	
+
 	Provides the following additional attributes:
 		wfid			Unique ID assigned by database
 		wftype			Application-defined WorkFlow type
 		desc_short		Short summary of WorkFlow
 		desc_long		Detailed WorkFlow description
 		appdata			Application-defined data
-	
-	Defines a workflow object, ie - a task that the user must complete at some 
+
+	Defines a workflow object, ie - a task that the user must complete at some
 	point in time. These are intended to be transitory objects, so they aren't
 	implemented using the Record class. Implementation of workflow behavior is
-	largely up to the external application. This simply acts as a repository 
+	largely up to the external application. This simply acts as a repository
 	for tasks
 	"""
 
-	
+
 
 	def init(self, d=None):
 		# unique workflow id number assigned by the database
@@ -44,10 +44,10 @@ class WorkFlow(emen2.db.dataobject.BaseDBObject):
 		self.wftype = None
 
 		# A 1-line description of the task to complete
-		self.desc_short = None 
+		self.desc_short = None
 
 		# an optional longer description of the task
-		self.desc_long = None						
+		self.desc_long = None
 
 		# application specific data used to implement the actual activity
 		self.appdata = None

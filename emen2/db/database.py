@@ -116,18 +116,18 @@ set_lg_bsize 2097152
 def _fakemodules():
 	"""Backwards compatibility for old module/class names."""
 	import imp
-	Database = imp.new_module("Database")
-	Database.dataobjects = imp.new_module("dataobjects")
-	sys.modules["emen2.Database"] = Database
-	sys.modules["emen2.Database.dataobjects"] = Database.dataobjects
-	sys.modules["emen2.Database.dataobjects.record"] = emen2.db.record
-	sys.modules["emen2.Database.dataobjects.binary"] = emen2.db.binary
-	sys.modules["emen2.Database.dataobjects.context"] = emen2.db.context
-	sys.modules["emen2.Database.dataobjects.paramdef"] = emen2.db.paramdef
-	sys.modules["emen2.Database.dataobjects.recorddef"] = emen2.db.recorddef
-	sys.modules["emen2.Database.dataobjects.user"] = emen2.db.user
-	sys.modules["emen2.Database.dataobjects.group"] = emen2.db.group
-	sys.modules["emen2.Database.dataobjects.workflow"] = emen2.db.workflow
+	#Database = imp.new_module("Database")
+	#Database.dataobjects = imp.new_module("dataobjects")
+	#sys.modules["emen2.Database"] = Database
+	#sys.modules["emen2.Database.dataobjects"] = Database.dataobjects
+	#sys.modules["emen2.Database.dataobjects.record"] = emen2.db.record
+	#sys.modules["emen2.Database.dataobjects.binary"] = emen2.db.binary
+	#sys.modules["emen2.Database.dataobjects.context"] = emen2.db.context
+	#sys.modules["emen2.Database.dataobjects.paramdef"] = emen2.db.paramdef
+	#sys.modules["emen2.Database.dataobjects.recorddef"] = emen2.db.recorddef
+	#sys.modules["emen2.Database.dataobjects.user"] = emen2.db.user
+	#sys.modules["emen2.Database.dataobjects.group"] = emen2.db.group
+	#sys.modules["emen2.Database.dataobjects.workflow"] = emen2.db.workflow
 
 _fakemodules()
 
