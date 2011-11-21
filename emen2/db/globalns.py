@@ -202,6 +202,7 @@ class GlobalNamespace(Hier):
 
 	@inst
 	class paths(object):
+		'''A class which stores path configuration variables and adjusts relative pasts to point to the root specified in the root attribute'''
 		attrs = []
 		__root = ['']
 
@@ -256,6 +257,7 @@ class GlobalNamespace(Hier):
 
 	@property
 	def EMEN2DBHOME(self):
+		'''The root for relative paths, also the base directory of the DB'''
 		return self.getattr('EMEN2DBHOME')
 
 	@EMEN2DBHOME.setter
@@ -303,6 +305,11 @@ class GlobalNamespace(Hier):
 
 	@classmethod
 	def load_data(cls, fn, data):
+		'''Load data from a specified configuration file (either a YAML file or a JSON one) or dictionary
+
+		:attr fn: the name of the configuration file
+		:attr data: a dictionary to load the data from
+		'''
 		fn = os.path.abspath(fn)
 		if fn and os.access(fn, os.F_OK):
 			ext = fn.rpartition('.')[2]
@@ -379,10 +386,12 @@ class GlobalNamespace(Hier):
 
 
 	def to_json(self, keys=None, kg=None, file=None, indent=4, sort_keys=True):
+		'''Dump the data as a JSON file'''
 		return json.dumps(self.__dump_prep(keys, kg, file), indent=indent, sort_keys=sort_keys)
 
 
 	def to_yaml(self, keys=None, kg=None, file=None, fs=0):
+		'''Dump the data as a YAML file'''
 		return yaml.safe_dump(self.__dump_prep(keys, kg, file), default_flow_style=fs)
 
 	def __dump_prep(self, keys=None, kg=None, file=None):
@@ -410,6 +419,7 @@ class GlobalNamespace(Hier):
 		return dict(_dict)
 
 	def json_equivalent(self):
+		'''Return a JSON equivalent of this class, for :py:func:`jsonutil.encode`'''
 		return dict(self._values)
 
 	#@classmethod
@@ -436,6 +446,7 @@ class GlobalNamespace(Hier):
 
 	#@classmethod
 	def setattr(self, name, value, options=None):
+		'''Set an attribute'''
 		if not name in self.__all__:
 			self.__all__.append(name)
 
@@ -448,6 +459,7 @@ class GlobalNamespace(Hier):
 		else: raise LockedNamespaceError, 'cannot change locked namespace'
 
 	def getattr(self, name, default=None, *args, **kwargs):
+		'''Get an attribute, returning default if not accessible'''
 		if name.endswith('___'):
 			name = name.partition('___')[-1]
 		if self.__options.has_key('private'):
@@ -463,7 +475,7 @@ class GlobalNamespace(Hier):
 #import <module>
 import unittest
 
-class TestSequenceFunctions(unittest.TestCase):
+class TestGlobalNamespace(unittest.TestCase):
 
 	def setUp(self):
 		self.a = GlobalNamespace('one instance')
