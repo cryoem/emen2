@@ -52,6 +52,8 @@ def help(mt):
 
 
 class MethodTree(object):
+	'''Arranges the database methods into a tree so that they can be accessed as db.<a>.<b> (e.g. db.record.get)'''
+
 	def __init__(self, func=None):
 		self.func = func
 		if func: self.doc = func.__doc__ or ''
@@ -59,12 +61,20 @@ class MethodTree(object):
 		self.children = {}
 		self.aliases = {}
 
-	def alias(self, orig, new):
-		if orig in self.children:
-			raise ValueError, "namespace conflict, cannot alias %r to %r" %(orig, new)
-		self.aliases[orig] = new
-	def get_alias(self, txt):
-		return self.aliases.get(txt,txt)
+	def alias(self, original_name, new_name):
+		'''define an alias for a certain method.
+
+		:param new_name: the name to be replaced
+		:param original_name: The replacement name
+		'''
+
+		if original_name in self.children:
+			raise ValueError, "namespace conflict, cannot alias %r to %r" %(original_name, new_name)
+		self.aliases[original_name] = new_name
+
+	def get_alias(self, name):
+		'''Check if the method sought has another name'''
+		return self.aliases.get(name,name)
 
 	def __repr__(self):
 		return 'MethodTree: func: %r, children: %r' % (self.func, len(self.children.keys()))
@@ -79,11 +89,27 @@ class MethodTree(object):
 		return self.get_method(name)
 
 	def add_method(self, name, func):
+		'''Add a method to the tree
+
+		Overview of the algorithm:
+		--------------------------
+
+		1. Split the method name at the first '.', the first part is the child to be found at present, the second is the 'tail'
+		2. If the child does not exist, add it
+		3. If tail is '', then insert 'func' as a method
+		4. Otherwise, recurse on the tail
+
+		:param name: the name of the method
+		:param func: the function to be executed
+		'''
 		self._add_method(name, func)
 
+	#NOTE: a is for debugging purposes, it can be removed
 	def _add_method(self, name, func, a=1):
-		head, _, tail = name.partition('.')
+		head, _, tail = name.partition('.') # use partition and not split since it is guaranteed to return a 3-tuple
+
 		self.children.setdefault(head, MethodTree())
+
 		if tail == '':
 			self.children[head].func = func
 		else:
