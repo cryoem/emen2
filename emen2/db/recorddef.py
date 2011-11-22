@@ -4,7 +4,7 @@
 Classes:
 	RecordDef
 	RecordDefDB
-	
+
 """
 
 import re
@@ -43,7 +43,7 @@ def parseparmvalues(text):
 
 class RecordDef(emen2.db.dataobject.BaseDBObject):
 	"""RecordDefs, aka Protocols.
-	
+
 	RecordDefs, aka Protocols, function as templates for Records. Each Record must be an instance of a defined RecordDef.
 	The RecordDef defines the default parameters that make up a record, and a set of presentation formats ('views'). The 'mainview'
 	is parsed for parameters and becomes the default view. Other important views that are used by the web interface are:

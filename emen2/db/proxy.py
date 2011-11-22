@@ -52,7 +52,9 @@ def help(mt):
 
 
 class MethodTree(object):
-	'''Arranges the database methods into a tree so that they can be accessed as db.<a>.<b> (e.g. db.record.get)'''
+	'''Arranges the database methods into a tree so that they can be accessed as db.<a>.<b> (e.g. db.record.get)
+
+	Used by DBProxy'''
 
 	def __init__(self, func=None):
 		self.func = func
@@ -92,7 +94,6 @@ class MethodTree(object):
 		'''Add a method to the tree
 
 		Overview of the algorithm:
-		--------------------------
 
 		1. Split the method name at the first '.', the first part is the child to be found at present, the second is the 'tail'
 		2. If the child does not exist, add it
@@ -116,6 +117,10 @@ class MethodTree(object):
 			self.children[head]._add_method(tail, func, a+1)
 
 	def get_method(self, name):
+		'''Get a method by name, only resolves aliases once
+
+		:param name: the name of the method
+		'''
 		name = self.get_alias(name)
 		return self._get_method(name)
 
@@ -167,6 +172,9 @@ class DBProxy(object):
 	"""
 
 	_publicmethods = {}
+
+	#NOTE: the comments beginning like the one below are documentation
+	#: An instance of :py:class:`MethodTree` which holds the registered DB methods
 	mt = MethodTree()
 
 	@classmethod
@@ -206,7 +214,7 @@ class DBProxy(object):
 	_txn_autoclean = False
 
 	def _autoclean(self):
-		"""set _txn_autoclean in order to allow the with statement to cleanup the txn"""
+		"""Allow the with statement to cleanup the txn"""
 		self._txn_autoclean = True
 		return self
 
