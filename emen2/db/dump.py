@@ -219,8 +219,8 @@ class Dumper(object):
 		newgroups = set()
 		for chunk in emen2.util.listops.chunk(usernames):
 			self.usernames |= set(chunk)
-			users = self.db.getuser(chunk)
-
+			# users = self.db.getuser(chunk)
+			users = []
 			for user in users:
 				newnames.add(user.record)
 
@@ -465,7 +465,7 @@ def main():
 		if v != None:
 			copy_to_kw[key] = v
 
-	db = dbo.opendb()
+	db = dbo.opendb(admin=True)
 	with db:
 		d = Dumper(db=db, root=options.root, uri=options.uri, **copy_to_kw)
 
