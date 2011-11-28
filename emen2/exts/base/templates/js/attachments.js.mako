@@ -337,8 +337,7 @@
 			if (pd) {label = pd.desc_short}
 
 			// Update the select count when built or checked..
-			var cb = function() {$('.e2-select', self.options.controls).SelectControl('update')}
-			
+			var cb = function() {$('.e2-select', self.options.controls).SelectControl('update')}			
 			var header = $('<h4>'+label+'</h4>');
 			var d = $('<div class="e2l-cf e2l-fw"></div>');
 			$.each(items, function() {
@@ -348,12 +347,13 @@
 					name: this,
 					keytype: 'binary',
 					selectable: self.options.edit,
-					input: ['checkbox',level,true],
+					input: ['checkbox', level, true],
 					built: cb,
 					selected: cb
 				});
 				d.append(infobox);
 			});
+			d.append('<input type="hidden" name="'+level+'" value="" />');
 			
 			return $('<div>').append(header, d)
 		},

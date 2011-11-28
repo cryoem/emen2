@@ -256,8 +256,13 @@ class Property(object):
 		if hasattr(value,"__float__"):
 			return float(value)
 
-		q = re.compile("([0-9+\-\.]+)(.*)")
+		# print "Parsing for units: '%s'"%value			
 		value = unicode(value).strip()
+		if not value:
+			return None
+
+		# Match floating point numbers
+		q = re.compile("^([-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?)(.*)")
 
 		try:
 			r = q.match(value).groups()
@@ -271,8 +276,8 @@ class Property(object):
 			target = self.defaultunits
 
 		units = None
-		if r[1] != None:
-			units = unicode(r[1]).strip()
+		if r[2] != None:
+			units = unicode(r[2]).strip()
 		if not units:
 			units = target
 

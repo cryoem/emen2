@@ -25,7 +25,7 @@
 
 			<tr>
 				<td>Created:</td>
-				<td><a href="${EMEN2WEBROOT}/user/${recorddef.creator}/">${recorddef.creator}</a> @ ${recorddef.creationtime}</td>
+				<td><a href="${EMEN2WEBROOT}/user/${recorddef.creator}/">${recorddef.creator}</a> @ <time datetime="${recorddef.creationtime}">${recorddef.creationtime}</time></td>
 			</tr>
 
 			<tr>

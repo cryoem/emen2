@@ -518,6 +518,8 @@ class UserDB(emen2.db.btrees.DBODB):
 	def openindex(self, param, txn=None):
 		if param == 'email':
 			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keytype='s', datatype='s', dbenv=self.dbenv)
+		elif param == 'record':
+			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keytype='d', datatype='s', dbenv=self.dbenv)			
 		else:
 			ind = super(UserDB, self).openindex(param, txn=txn)
 		return ind

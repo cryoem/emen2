@@ -5,8 +5,6 @@ Classes:
 	DBProxy
 """
 
-from __future__ import with_statement
-
 import os
 import sys
 import time
@@ -19,10 +17,8 @@ import inspect
 # EMEN2 imports
 from emen2.util import listops
 
-# ian: The main DB class was cleaned up alot. I am going to merge the
-# DBProxy functionality into it to remove one layer of abstraction.
-
-##### Warning: This module is very sensitive to changes. Please test thoroughly before committing!! #####
+##### Warning: This module is very sensitive to changes. #####
+##### Please test thoroughly before committing!!         #####
 
 def publicmethod(*args, **kwargs):
 	"""Decorator for public admin API database method"""
@@ -33,7 +29,6 @@ def publicmethod(*args, **kwargs):
 	return _inner
 
 
-
 # class MethodUtil(object):
 # 	allmethods = set(['doc'])
 # 	def help(self, func, *args, **kwargs):
@@ -41,7 +36,9 @@ def publicmethod(*args, **kwargs):
 
 
 strht = lambda s, c: s.partition(c)[::2]
-def fb(): return 'hi'
+def fb():
+	return 'hi'
+
 def help(mt):
 	def _inner(*a, **b):
 		return dict(
@@ -105,9 +102,10 @@ class MethodTree(object):
 		'''
 		self._add_method(name, func)
 
-	#NOTE: a is for debugging purposes, it can be removed
+	# NOTE: a is for debugging purposes, it can be removed
 	def _add_method(self, name, func, a=1):
-		head, _, tail = name.partition('.') # use partition and not split since it is guaranteed to return a 3-tuple
+		head, _, tail = name.partition('.') 
+		# use partition and not split since it is guaranteed to return a 3-tuple
 
 		self.children.setdefault(head, MethodTree())
 
@@ -138,9 +136,6 @@ class MethodTree(object):
 			result = child._get_method(tail)
 
 		return result
-
-
-
 
 
 
@@ -191,14 +186,9 @@ class DBProxy(object):
 				cur = ncur
 		return result
 
-
-	def __init__(self, db=None, ctxid=None, host=None, ctx=None, txn=None):
+	def __init__(self, db=None, ctx=None, txn=None):
 		# it can cause circular imports if this is at the top level of the module
 		import database
-
-		self._txn = None
-		self._is_bound = False
-
 		if not db:
 			db = database.DB()
 
@@ -206,92 +196,43 @@ class DBProxy(object):
 		self._ctx = ctx
 		self._txn = txn
 
-
-	##############
-	# Transactions
-	##############
-	#: If true, close transaction on __exit__
-	_txn_autoclean = False
-
-	def _autoclean(self):
-		"""Allow the with statement to cleanup the txn"""
-		self._txn_autoclean = True
-		return self
-
 	# Implements "with" interface
 	def __enter__(self):
-		if self._txn is None:
-			self._starttxn()
-			self._txn_autoclean = True
+		# print "--> ENTER"
+		if self._txn:
+			raise Exception, "DBProxy: Existing open transaction."
+		self._txn = self._db.bdbs.txncheck(txn=self._txn)
 		return self
 
-
-	def __exit__(self, type, value, traceback):
-		if self._txn_autoclean and self._txn is not None:
-			if type is None:
-				self._committxn()
-			else:
-				self._aborttxn()
-			self._txn_autoclean = False
-			self._txn = None
-
+	def __exit__(self, exc_type, exc_value, traceback):
+		# print "--> EXIT:", exc_type
+		if not self._txn:
+			raise Exception, "DBProxy: No transaction to close."
+		if exc_type is None:
+			self._txn = self._db.bdbs.txncommit(txn=self._txn)
+		else:
+			self._txn = self._db.bdbs.txnabort(txn=self._txn)
+		self._txn = None
+		
 	def _gettxn(self):
 		return self._txn
 
-
-	def _settxn(self, txn=None):
-		self._txn = txn
-
-
-	def _starttxn(self, write=False):
-		self._txn = self._db.bdbs.txncheck(txn=self._txn, write=write)
-		return self
-
-
-	def _committxn(self):
-		self._txn = self._db.bdbs.txncommit(txn=self._txn)
-
-
-	def _aborttxn(self):
-		self._txn = self._db.bdbs.txnabort(txn=self._txn)
-
-
 	# Rebind a new Context
 	def _setContext(self, ctxid=None, host=None):
-		# try:
 		self._ctx = self._db._getcontext(ctxid=ctxid, host=host, txn=self._txn)
 		self._ctx.setdb(db=self)
-		# except:
-		# 	self._ctx = None
-		# 	raise
-
-		self._is_bound = True
 		return self
 
-
 	def _clearcontext(self):
-		if self._is_bound:
-			self._ctx = None
-
+		self._ctx = None
 
 	def _getctx(self):
 		return self._ctx
 
-
-	@property
-	def _bound():
-		return self._is_bound
-
-
-	@_bound.deleter
-	def _bound():
-		self._clearcontext()
-
-
 	def _ismethod(self, name):
-		if name in self._allmethods(): return True
+		if name in self._allmethods():
+			return True
 		return False
-
 
 	@classmethod
 	def _register_publicmethod(cls, func, apiname, write=False, admin=False, ext=False):
@@ -309,10 +250,10 @@ class DBProxy(object):
 		cls.mt.add_method(apiname, func)
 		cls.mt.add_method(func.func_name, func)
 
-
 	def _checkwrite(self, method):
 		return getattr(self.mt.get_method(method).func, "write", False)
 
+	##### Wrap DB Public methods #####
 
 	def _callmethod(self, method, args=(), kwargs={}):
 		"""Call a method by name with args and kwargs (e.g. RPC access)"""
@@ -321,71 +262,49 @@ class DBProxy(object):
 		if m is not None:
 			return self._wrap(m)(*args, **kwargs)
 
-
 	def __getattr__(self, name):
 		if not name.startswith('_'):
 			func = self._publicmethods.get(name)
-		else: func = self.__getattribute__(name)
-		if func: return self._wrap(func)
-		return _Method(self, name)
+		else:
+			func = self.__getattribute__(name)
+			
+		if func:
+			return self._wrap(func)
 
+		return _Method(self, name)
 
 	def _login(self, username, passwd, host=None):
 		ctxid = self.login(username, passwd)
 		self._setContext(ctxid, host)
 
 	def _wrap(self, func):
-		# print "going into wrapper for func: %s / %s"%(func.func_name, func.apiname)
-		kwargs = dict(ctx=self._ctx, txn=self._txn)
+		# print "Going into wrapper for func: %s / %s"%(func.func_name, func.apiname)
 
 		@functools.wraps(func)
 		def wrapper(*args, **kwargs):
 			# self._db.periodic_operations.next()
 			t = time.time()
-			result = None
-			commit = False
 
 			# Remove these from the keyword arguments
 			kwargs.pop('ctx', None)
 			kwargs.pop('txn', None)
 
 			# Pass the current bound Context
-			ctx = self._ctx
-			kwargs['ctx'] = ctx
+			kwargs['ctx'] = self._ctx
+			kwargs['txn'] = self._txn
 
-			# If admin=True..
-			if getattr(func, 'admin', False) and not ctx.checkadmin():
+			if getattr(func, 'admin', False) and not self._ctx.checkadmin():
 				raise Exception, "This method requires administrator level access."
 
-			# Check there is an open transaction, and pass to method
-			self._starttxn()
-			kwargs['txn'] = self._txn
-			try:
-				ctx.setdb(self)
-			except (AttributeError, NameError):
-				pass
+			# Make sure the DB is bound to the Context
+			self._ctx.setdb(self)
 
-			# Pass the DB
-			if getattr(func, 'ext', False):
-				kwargs['db'] = self._db
+			# If extension method, pass the DB as an argument.
+			# if getattr(func, 'ext', False):
+			# 	kwargs['db'] = self._db
 
-			try:
-				# result = func.execute(*args, **kwargs)
-				result = func(self._db, *args, **kwargs)
-
-			except Exception, e:
-				# traceback.print_exc(e)
-				if commit is True:
-					txn and self._db.txnabort(ctx=ctx, txn=txn)
-				raise
-
-			else:
-				if commit is True:
-					txn and self._db.txncommit(ctx=ctx, txn=txn)
-
-			# timer!
-			# print "     <---------\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
-			return result
+			return func(self._db, *args, **kwargs)
+			# print "  <---------\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
 
 		return wrapper
 

@@ -46,7 +46,7 @@
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.jsonrpc.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.ui.timepicker-addon.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.timeago.js"></script>
-		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.fullcalendar.js"></script>
+		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.localize.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/d3/d3.js" type="text/javascript"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/d3/d3.time.js" type="text/javascript"></script>
 
@@ -66,6 +66,7 @@
 		<%block name="js_inline" />
 		
 		$(document).ready(function() {
+			$('time').localize();
 			<%block name="js_ready" />
 		});	
 			

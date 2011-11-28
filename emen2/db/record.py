@@ -181,6 +181,9 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		if not self.commentable():
 			self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.SecurityError)
 
+		if not value:
+			return set()
+
 		vtm, t = self._vtmtime(vtm, t)
 		cp = set()
 		if value == None:

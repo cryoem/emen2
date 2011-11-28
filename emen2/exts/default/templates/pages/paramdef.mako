@@ -193,12 +193,12 @@
 			% if not new:
 				<tr>
 					<td>Created:</td>
-					<td><a href="${EMEN2WEBROOT}/user/${paramdef.creator}">${paramdef.creator}</a> @ ${paramdef.creationtime}</td>
+					<td><a href="${EMEN2WEBROOT}/user/${paramdef.creator}">${paramdef.creator}</a> @ <time datetime="${paramdef.creationtime}">${paramdef.creationtime}</time></td>
 				</tr>
 
 				<tr>
 					<td>Modified:</td>
-					<td><a href="${EMEN2WEBROOT}/user/${paramdef.modifyuser}">${paramdef.modifyuser}</a> @ ${paramdef.modifytime}</td>
+					<td><a href="${EMEN2WEBROOT}/user/${paramdef.modifyuser}">${paramdef.modifyuser}</a> @ <time datetime="${paramdef.modifytime}">${paramdef.modifytime}</time></td>
 				</tr>
 			% endif
 		</table>

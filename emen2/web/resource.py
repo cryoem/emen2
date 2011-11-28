@@ -166,16 +166,16 @@ class EMEN2Resource(object):
 
 
 	def _render_db(self, method, db=None, ctxid=None, host=None, args=None):
-		# Render method inside a DB transaction using auth token ctxid
+		# Render method
 		self.db = db
 
 		# The DBProxy context manager will open a transaction, and abort
 		# on an uncaught exception.
 		with self.db:
+			# Bind the ctxid/host to the DBProxy
 			self.db._setContext(ctxid,host)
 			# Any View init method is run inside the transaction
 			self.init()
-			# getattr(self, '_before_action', lambda x:x)() # temp workaround
 			result = method(self, **args)
 
 		return result
@@ -514,37 +514,6 @@ class EMEN2Resource(object):
 
 
 
-##### Test Resource #####
-
-class TestResource(object):
-	# The Resource specification for leaf nodes
-	# only requires render() and isLeaf = True
-	isLeaf = True
-
-	def render(self, request):
-		deferred = pool.runtxn(self.render_action, args=request.args)
-		deferred.addCallback(self.render_cb, request)
-		deferred.addErrback(self.render_eb, request)
-		request.notifyFinish().addErrback(self._request_broken, request, deferred)
-		return twisted.web.static.server.NOT_DONE_YET
-
-	def render_action(self, *args, **kwargs):
-		result = '%s %s %s'%(time.strftime('%Y/%m/%d %H:%M:%S'), args, kwargs)
-		return result
-
-	def render_cb(self, result, request):
-		request.write(result)
-		request.finish()
-
-	def render_eb(self, failure, request):
-		request.write('failure!')
-		request.finish()
-
-	def _request_broken(self, failure, request, deferred):
-		# The errback will be called, but not the callback.
-		deferred.cancel()
-
-
 
 ##### XML-RPC and JSON-RPC Resources #####
 
@@ -590,13 +559,14 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 
 		else:
 			# Start the DB with a write transaction
-			db._starttxn(write=db._checkwrite(rpcrequest.method))
-			with db._autoclean():
+			# db._starttxn(write=db._checkwrite(rpcrequest.method))
+			with db:
+				db._setContext(self.ctxid, self.host)
+
 				_method = rpcrequest.method.rpartition('.')[2]
 				if _method == 'login':
 					rpcrequest.kwargs['host'] = self.host
 
-				db._setContext(self.ctxid, self.host)
 				methodresult = db._callmethod(rpcrequest.method, rpcrequest.args, rpcrequest.kwargs)
 				if _method in set(['login', 'logout']):
 					request.addCookie('ctxid', methodresult or '')
@@ -604,7 +574,7 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 		return methodresult
 
 	def defer(self, method, *a, **kw):
-		print "Deferring to DB Pool"
+		# print "Deferring to DB Pool"
 		# Use the DB pool
 		deferred = emen2.web.server.pool.rundb(method, *a, **kw)
 		return deferred
@@ -625,137 +595,6 @@ class JSONRPCResource(jsonrpc.server.JSON_RPC):
 		deferred.addErrback(self._ebRender, request, contents.id if hasattr(contents, 'id') else None)
 		return twisted.web.static.server.NOT_DONE_YET
 
-
-# Fault = xmlrpclib.Fault
-# class RPCFormatXMLRPC:
-# 	def __init__(self):
-# 		pass
-#
-# 	def decode(self, content, kw):
-# 		args, method = xmlrpclib.loads(content)
-#
-# 		args=list(args)
-# 		kwargs = {}
-# 		# add kwargs support to xmlrpc:: if last arg is dict...
-# 		#if isinstance(args[-1],dict):
-# 		#	kwargs = args.pop()
-#
-# 		# not really supported... no decode; values limited to strings.
-# 		for k,v in kw.items():
-# 			try:
-# 				kwargs[str(k)] = v[0]
-# 			except:
-# 				pass
-#
-# 		if hasattr(args,"items"):
-# 			for k,v in args.items():
-# 				kwargs[str(k)]=v
-# 			args=[]
-#
-# 		return method, args, kwargs
-#
-#
-# 	def encode(self, method, value):
-# 		value = self.encode_serialize(value)
-#
-# 		if not isinstance(value, tuple):
-# 			value = (value,)
-# 		value = xmlrpclib.dumps(value, methodresponse=1, allow_none=True)
-#
-# 		return value
-#
-# 	def encode_serialize(self, value):
-# 		"""Serializes in UTF-8 DB instances for unsophisticated encoders (e.g. xmlrpc)"""
-# 		# convert to dict using class method
-# 		if isinstance(value, (emen2.db.dataobject.BaseDBObject)):
-# 			return self.encode_serialize(dict(value))
-#
-# 		elif hasattr(value,"items"):
-# 			v2={}
-# 			for k,v in value.items():
-# 				v2[str(k)]=self.encode_serialize(v)
-# 			return v2
-#
-# 		elif hasattr(value,"__iter__"):
-# 			ret=[]
-# 			for i in value:
-# 				ret.append(self.encode_serialize(i))
-# 			return ret
-#
-# 		elif type(value)==unicode:
-# 			value=value.encode("utf-8")
-#
-# 		return value
-#
-# class RPCResource(emen2.web.resources.emen2resource.EMEN2Resource):
-#
-# 	isLeaf = True
-# 	resourcename = 'rpc'
-#
-# 	def __init__(self, format="xmlrpc"):
-# 		emen2.web.resources.emen2resource.EMEN2Resource.__init__(self)
-#
-# 		self.format = format
-# 		if format=="xmlrpc":
-# 			self.handler = RPCFormatXMLRPC()
-# 			self.fmt = 'text/xml'
-#
-# 	##### EMEN2Resource interface #####
-#
-# 	def action(self, args=None, ctxid=None, host=None, db=None, request=None):
-# 		# this binds the Context to the DBProxy for the duration of the view
-#
-# 		method_call = args.get('method_call')
-# 		method_args = args.get('method_args')
-# 		method_kwargs = args.get('method_kwargs')
-#
-# 		ctxid = ctxid or method_kwargs.pop("ctxid",None)
-#
-# 		if method_call == None:
-# 			method_call = '.'.join(request.postpath)
-#
-# 		# this is a compatibility hack for old-style getchildren/getparents and getbinary
-# 		# this may be removed at some point in the future...
-# 		# ian: todo: remove
-# 		if method_call in ["getchildren","getparents"]:
-# 			try:
-# 				if method_args[1] == "record":
-# 					method_args.pop(1)
-# 				method_args = method_args[:3]
-# 			except:
-# 				pass
-#
-# 		if method_call == "login" or method_call == "_login":
-# 			method_kwargs['host'] = host
-#
-# 		db._starttxn(write=db._checkwrite(method_call))
-# 		with db._autoclean():
-# 			db._setContext(ctxid, host)
-# 			username = db._getctx().username
-# 			result = db._callmethod(method_call, method_args, method_kwargs)
-#
-# 		# old-style getbinary wants a dictionary...
-# 		# like the above fix, this will almost certainly be removed later
-# 		# ian: todo: remove
-# 		if method_call == "getbinary":
-# 			try:
-# 				if args[1] == True:
-# 					result = listops.dictbykey(result, 'name')
-# 			except:
-# 				pass
-#
-# 		return self.handler.encode(method_call, result), {'X-Username': username, "Content-Type": self.fmt}
-#
-#
-# 	def parse_content(self, request):
-# 		postargs = {}
-# 		request.content.seek(0, 0)
-# 		content = request.content.read()
-# 		method, args, kwargs = self.handler.decode(content, request.args)
-# 		postargs['method_call'] = method
-# 		postargs['method_args'] = args
-# 		postargs['method_kwargs'] = kwargs
-# 		return postargs
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

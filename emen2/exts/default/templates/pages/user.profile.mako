@@ -4,7 +4,7 @@
 ## This is a separate template so it can be easily overridden 
 ## without reimplementing the entire new User template.
 
-	<%buttons:singlepage label='Contact Information'>
+<%buttons:singlepage label='Contact Information'>
 	<table  class="e2l-kv">	
 		<tbody>					
 

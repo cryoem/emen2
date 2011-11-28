@@ -229,7 +229,7 @@
 			<tr><td>Name:</td><td><input type="text" name="name" value="" /></td></tr>
 		% else:
 			<tr><td>Name:</td><td>${recdef.name}</td></tr>
-			<tr><td>Created:</td><td><a href="${EMEN2WEBROOT}/users/${recdef.creator}/">${recdef.creator}</a> @ ${recdef.creationtime}</td></tr>
+			<tr><td>Created:</td><td><a href="${EMEN2WEBROOT}/users/${recdef.creator}/">${recdef.creator}</a> @ <time datetime="${recdef.creationtime}">${recdef.creationtime}</time></td></tr>
 			<tr><td>Owner:</td><td>${recdef.owner}</td></tr>
 			<input type="hidden" name="name" value="${recdef.name}" />
 		% endif

@@ -1,7 +1,6 @@
 <%! import jsonrpc.jsonutil %>
 <%namespace name="buttons" file="/buttons"  />
 
-
 ## JavaScript for client-side initial validation and error
 ## reporting for New User form
 
@@ -322,8 +321,8 @@
 
 
 <%def name="page_history(user, edit)">
-	<p>Created: ${user.userrec.get("creationtime")}</p>
-	<p>Modified: ${user.userrec.get("modifytime")}</p>
+	<p>Created: <time datetime="${user.userrec.get("creationtime")}">${user.userrec.get("creationtime")}</time></p>
+	<p>Modified: <time datetime="${user.userrec.get("modifytime")}">${user.userrec.get("modifytime")}</time></p>
 </%def>
 
 
@@ -351,157 +350,6 @@
 
 
 
-<%def name="userqueue(queue,abridge)">
-
-		<%
-		sorted_users = sorted(queue.keys())
-		if abridge:
-			sorted_users = sorted_users[:10]
-		%>
-
-		% if not abridge:
-			<p><span id="admin_userqueue_count">${len(queue)}</span> Users in Queue</p>
-		% endif
-
-		% if abridge:
-			% if len(queue) > 10:
-				<p>Showing 1-10 of ${len(queue)} unapproved users. <a href="${EMEN2WEBROOT}/approveuser/">Show All</a></p>
-			% else:
-				## <p><a href="${EMEN2WEBROOT}/approveuser/">View full form</a></p>
-				
-			% endif
-		% endif
-
-		<form method="post" action="javascript:return false">
 
 
 
-
-		<table class="admin_userqueue_table" cellspacing="0" cellpadding="0" width="100%" >
-			<tr>
-				<th>Yes</th>
-				<th>No</th>
-				<th>Account Name</th>
-				<th>Display Name</th>
-				<th>Email</th>
-				<th>Phone</th>
-			</tr>
-			
-			% for sh,i in enumerate(sorted_users):
-			
-				<%
-					if sh%2: sh='s'
-					else:	sh=""
-					if not hasattr(queue[i],"signupinfo"):
-						queue[i].signupinfo={}
-				%>
-			
-				<tr class="userqueue_${i} ${sh}">
-					<td><input type="radio" value="true" name="${i}" /></td>
-					<td><input type="radio" value="false" name="${i}" /></td>
-					<td><a href="">${i}</a></td>
-					<td>${queue[i].signupinfo.get("name_first","")} ${queue[i].signupinfo.get("name_middle","")} ${queue[i].signupinfo.get("name_last","")}</td>
-					<td>${queue[i]["email"]}</td>
-					<td>${queue[i].signupinfo.get("phone_voice")}</td>
-				</tr>
-
-				<tr class="userqueue_${i} ${sh}">
-					<td />
-					<td />
-					<td />
-					<td colspan="3">
-						Info: 
-						% for key in set(queue[i].signupinfo.keys()) - set(["name_first","name_middle","name_last","email","phone_voice","comments"]):
-							% if queue[i].signupinfo.get(key) != None:
-								${queue[i].signupinfo.get(key)}, 
-							% endif
-						% endfor
-
-						<br />
-						Reason: ${queue[i].signupinfo.get("comments",'')}
-						
-					</td>
-
-				</tr>
-
-
-
-			% endfor
-			
-		</table>
-		
-		<div class="e2l-controls" id="ext_save">
-			${buttons.spinner(false)}
-			<input type="button" value="Accept / Reject Users" onclick="javascript:admin_approveuser_form(this);return false" />
-		</div>	
-
-
-
-		</form>
-
-</%def>
-
-
-<% import jsonrpc.jsonutil %>
-
-<%def name="userlist(users, sortby='name_last', reverse=False, admin=False)">
-
-<%
-if sortby == "name":
-	sortkey = lambda x:x.name
-elif sortby == "email":
-	sortkey = lambda x:x.email
-elif sortby == "domain":
-	sortkey = lambda x:x.get('email','').partition("@")[2]
-else:	
-	sortkey = lambda x:x.userrec.get(sortby,'').lower()
-
-users_sorted = sorted(users, key=sortkey, reverse=reverse)
-%>
-
-	<form name="form_admin_userlist">
-
-	<table cellpadding="0" cellspacing="0" class="admin_userlist" width="100%" >
-
-	<tr>
-
-		% if admin:
-			<th><a href="${EMEN2WEBROOT}/admin/users/?sortby=disabled">Active</a></th>
-			<th><a href="${EMEN2WEBROOT}/admin/users/?sortby=disabled&reverse=1">Disabled</a></th>
-		% endif
-		
-		<th><a href="${EMEN2WEBROOT}/admin/users/?sortby=name">Account Name</a></th>
-		<th><a href="${EMEN2WEBROOT}/admin/users/?sortby=name_last">Name</a></th>
-		<th><a href="${EMEN2WEBROOT}/admin/users/?sortby=email">Email</a> (<a href="${EMEN2WEBROOT}/admin/users/?sortby=domain">sort by domain</a>)</th>
-		<th><a href="${EMEN2WEBROOT}/admin/users/?sortby=phone_voice">Phone<a></th>
-	</tr>
-
-	% for sh, user in enumerate(users_sorted):
-		
-		<tr ${['','class="s"'][sh%2]}>
-
-			% if admin:
-				% if not user.disabled:
-					<td><input type="radio" name="${user.name}" checked="1" value="0" /></td>
-					<td><input type="radio" name="${user.name}" value="1" /></td>			
-				% else:
-					<td><input type="radio" name="${user.name}" value="0" /></td>
-					<td><input type="radio" name="${user.name}" checked="1" value="1" /></td>			
-				% endif
-			% endif
-
-			<td><a href="${EMEN2WEBROOT}/user/${user.name}/edit/">${user.name}</a></td>
-			<td>${user.displayname}</td>
-			<td>${user.userrec.get('email','')}</td>
-			<td>${user.userrec.get('phone_voice','')}</td>
-
-		</tr>
-	% endfor
-	
-	</table>
-	
-	<input type="button" value="Change Enabled/Disabled State" onclick="javascript:admin_userstate_form(this);return false" />
-	
-	</form>
-
-</%def>

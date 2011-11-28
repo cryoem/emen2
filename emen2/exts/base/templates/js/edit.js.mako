@@ -337,9 +337,9 @@
 				var help = $(' \
 					<div class="e2l-hide e2l-help" role="help"><p> \
 						The suggested protocols are those that are commonly \
-						children of this protocol. Related protocols are those \
-						that are child protocols of this record\'s protocol. \
-						To select a protocol that is now displayed, click "Browse other protocols" \
+						used as children of this record\'s protocol. Related protocols are the \
+						child protocols of this record\'s protocol. \
+						To select a protocol that is not displayed, click "Browse other protocols" \
 						and use the protocol chooser to select a different protocol. \
 					</p><p> \
 						By default, child records will inherit permissions from the parent. \
@@ -859,11 +859,16 @@
 			var property = this.cachepd().property;
 			var defaultunits = this.cachepd().defaultunits;
 			var units = $('<select class="e2-edit-units"></select>');
+			var u = valid_properties[property][1];
+			// Add all the known units to the select
 			for (var i=0;i < valid_properties[property][1].length;i++) {
-				var sel = "";
-				if (defaultunits == valid_properties[property][1][i]) sel = "selected";
-				units.append('<option '+sel+'>'+valid_properties[property][1][i]+'</option>');
+				units.append('<option>'+valid_properties[property][1][i]+'</option>');
 			}
+			// Make sure the defaultunits for this paramdef is in the select
+			if ($.inArray(defaultunits, u)==-1) {
+				units.append('<option>'+defaultunits+'</option>');				
+			}
+			units.val(defaultunits);
 			return units
 		},
 
@@ -872,6 +877,7 @@
 			$('.e2-edit-container', this.element).each(function(){
 				var unitsval = $('.e2-edit-unitsval', this).val();
 				var units = $('.e2-edit-units', this).val();
+				if (!unitsval) {units=""}
 				$('.e2-edit-val', this).val(unitsval+' '+units);
 			});
 		}

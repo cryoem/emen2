@@ -84,7 +84,7 @@
 			} else if (this.options.keytype == 'record') {
 				var recname = emen2.caches['recnames'][item.name];
 				title = $.trim(recname || item.rectype);
-				body = item.rectype+', '+item.name+', created: '+item.creationtime.substr(0,10);
+				body = item.rectype+', '+item.name+', created: '+$.localize(new Date(item.creationtime));
 				this.element.attr('data-rectype', item.rectype);
 			} else if (this.options.keytype == 'binary') {
 				title = item.filename;
@@ -92,7 +92,7 @@
 					title = title+' ('+emen2.template.prettybytes(item.filesize)+')';
 				}
 				var user = item.creator;
-				body = 'Created by '+user+' on '+item.creationtime;
+				body = 'Created by '+user+' on '+$.localize(new Date(item.creationtime));
 			} else {
 				title = $.trim(item.desc_short) || item.name;
 				body = ''
@@ -120,7 +120,9 @@
 			if (this.options.time) {
 				// h4.append(' @ '+this.options.time);
 				// <abbr class="timeago" title="2008-07-17T09:24:17Z">July 17, 2008</abbr>
-				h4.append('<time class="e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
+				var t = $('<time class="e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
+				t.localize();
+				h4.append(t);
 			}
 			
 			// Body body

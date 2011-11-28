@@ -18,6 +18,7 @@ import copy
 import bsddb3
 import traceback
 import os
+import functools
 import cPickle as pickle
 
 # EMEN2 imports
@@ -527,10 +528,8 @@ class IndexDB(EMEN2DB):
 
 		return set(self.loaddata(x) for x in r)
 
-
 	# Default get method used by get()
 	_get_method = _get_method_nonbulk
-
 
 	def get(self, key, default=None, cursor=None, txn=None, flags=0):
 		"""Return all the values for this key.
@@ -963,6 +962,7 @@ class DBODB(EMEN2DB):
 				ret.append(d)
 			except filt, e:
 				pass
+		
 		return ret
 
 
@@ -1291,6 +1291,11 @@ class DBODB(EMEN2DB):
 			print "Close index", param
 			ind.close()
 			self.index[param] = None
+	
+	
+
+
+
 
 
 

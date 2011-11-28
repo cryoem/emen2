@@ -8,6 +8,7 @@ import emen2.util.listops as listops
 import emen2.web.responsecodes
 from emen2.web.view import View
 
+
 class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 	title = 'Record not Found'
 	msg = 'Record %s not found'

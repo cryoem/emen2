@@ -9,6 +9,9 @@ window.log = function(){
   }
 };
 
+// Time localize format
+$.localize.format = 'mm/dd/yyyy';
+
 // EMEN2 helper methods
 var emen2 = {};
 

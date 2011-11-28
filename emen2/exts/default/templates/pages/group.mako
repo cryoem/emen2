@@ -81,13 +81,13 @@
 
 			<tr>
 				<td>Created:</td>
-				<td>${group.creationtime}</td>
+				<td><time datetime="${group.creationtime}">${group.creationtime}</time></td>
 			</tr>
 
 
 			<tr>
 				<td>Modified:</td>
-				<td>${group.modifytime}</td>
+				<td><time datetime="${group.modifytime}">${group.modifytime}</time></td>
 			</tr>
 
 		% endif

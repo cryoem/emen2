@@ -69,15 +69,6 @@ class DBPool(object):
 		result = call(db=db, *args, **kwargs)
 		return result
 
-	def runtxn(self, call, *args, **kwargs):
-		return twisted.internet.threads.deferToThread(self._runtxn, call, *args, **kwargs)
-
-	def _runtxn(self, call, *args, **kwargs):
-		db = self.connect()
-		with db:
-			result = call(db=db, *args, **kwargs)
-		return result
-
 
 ##### pool and reactor #####
 

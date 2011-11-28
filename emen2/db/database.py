@@ -340,7 +340,7 @@ class EMEN2DBEnv(object):
 	cachesize = emen2.db.config.get('BDB.CACHESIZE', 1024)
 	path = emen2.db.config.get('EMEN2DBHOME')
 	create = emen2.db.config.get('params.CREATE')
-	snapshot = emen2.db.config.get('params.SNAPSHOT')
+	snapshot = False # emen2.db.config.get('params.SNAPSHOT')
 
 	# paths from global configuration
 	LOGPATH = emen2.db.config.get('paths.LOGPATH')
@@ -1481,16 +1481,6 @@ class DB(object):
 			recs[name]['name'] = name
 
 		recs = [recs[i] for i in names]
-
-		# if x.get('key'):
-		# 	key = x.get('key')
-		# 	x['values'] = [i.get(key) for i in recs]
-		# if y.get('key'):
-		# 	key = y.get('key')
-		# 	y['values'] = [i.get(key) for i in recs]
-		# if z.get('key'):
-		# 	key = z.get('key')
-		# 	z['values'] = [i.get(key) for i in recs]
 		
 		# Total number of items found (for statistics)
 		length = len(names)
@@ -1959,6 +1949,16 @@ class DB(object):
 		return ret
 
 
+	def _indcontains(self, param, term, keytype='record', txn=None):
+		termrecs = set()
+		ind = self.bdbs.keytypes[keytype].getindex(param, txn=txn)
+		if ind:
+			for key, records in ind.iteritems(txn=txn):
+				if term in key:
+					termrecs |= records
+		return termrecs
+		
+
 	@publicmethod("user.find")
 	@limit_result_length
 	def finduser(self, query=None, record=None, limit=None, ctx=None, txn=None, **kwargs):
@@ -1977,44 +1977,67 @@ class DB(object):
 		>>> db.finduser(email='bcm.edu', record='137*')
 		[<User ian>, <User wah>, <User mike>, ...]
 
-		:keyword query: Contained in any item below
+		:keyword query: Contained in name_first or name_last
 		:keyword email: ... contains in email
 		:keyword name_first: ... contains in first name
-		:keyword name_middle: ... contains in middle name
+		:keyword name_middle: ... contains in middle name		
 		:keyword name_last: ... contains in last name
-		:keyword name: ... contains in user name
 		:keyword record: Referenced in Record name(s)
 		:keyword limit: Limit number of results
-		:keyword boolmode: AND / OR for each search constraint
 		:return: Users
 		"""
-		rets = []
-		if query == '':
-			allnames = self.bdbs.user.names(ctx=ctx, txn=txn)
-			rets.append(allnames)
 
-		query = unicode(query or '').split()
-		for q in query:
-			q = q.strip()
-			c = [
-				["name_first", "contains", q],
-				["name_last", "contains", q],
-				["name_middle", "contains", q],
-				["email", "contains", q],
-				["username", "contains", q]
-				]
-			# ian: todo: must run multiple queries.. taking OR out of the basic function
-			qr = self.query(c=c, sortkey='username', ctx=ctx, txn=txn) # boolmode='OR'
-			recs = self.bdbs.record.cgets(qr['names'], ctx=ctx, txn=txn)
-			un = filter(None, [i.get('username') for i in recs])
-			rets.append(set(un))
+		foundusers = None
+		foundrecs = None
+		query = [i.strip() for i in unicode(query or '').split()]
+		
+		# If no options specified, find all users
+		if not any(query, record, kwargs):
+			foundusers = self.bdbs.user.names(ctx=ctx, txn=txn)
 
-		# email=None, name_first=None, name_middle=None, name_last=None, name=None,
-		for param in ['email', 'name_first', 'name_middle', 'name_last']:
-			if kwargs.get(param):
-				q = self.query(c=[[param,'contains', kwargs.get(param)]], sortkey='username', ctx=ctx, txn=txn)
-				un = filter(None, [i.get('username') for i in q['recs']])
-				rets.append(set(un))
+
+		if record:
+			ret = self._findbyvartype(listops.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
+			rets.append(ret)
+
+
+		# Find users by either name_last OR name_first
+		for term in query:
+			q = set()
+			q |= self._indcontains('name_first', term, txn=txn)
+			q |= self._indcontains('name_last', term, txn=txn)
+			if foundrecs is None:
+				foundrecs = q
+			foundrecs &= q
+
+		# Find users by profile name parameters
+		for param in filter(kwargs.get, ['name_first', 'name_middle', 'name_last']):
+			term = kwargs.get(i)
+			q = self._indcontains(param, term, txn=txn)
+			if foundrecs is None:
+				foundrecs = q
+			foundrecs &= q
+
+		# Get the records returned by the profile record search queries
+		if foundrecs:
+			foundrecs = self.getrecord(foundrecs, ctx=ctx, txn=txn)
+			foundusers = set(filter([i.get('username') for i in recs]))
+
+		# Find users by user parameters
+		for param in filter(kwargs.get, ['email', 'record']):
+			term = kwargs.get(i)
+			q = self._indcontains(param, term, keytype='user', txn=txn)
+			if foundusers is None:
+				foundusers = q
+			foundusers &= q
+			
+		# for param in filter(kwargs.get, ['name']):
+		#	q = 
+
+		print foundusers	
+		print foundrecords
+		return
+
 
 		name = kwargs.get('name') or kwargs.get('username')
 		if name:

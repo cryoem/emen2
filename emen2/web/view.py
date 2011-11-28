@@ -391,35 +391,4 @@ class ViewLoader(object):
 		sys.path = list(reversed(pth))
 
 
-	# def routes_from_g(self):
-	# 	pass
-	# 	for key, value in self.routing_table.iteritems():
-	# 		for name, regex in value.iteritems():
-	# 			view = self.router.get(key)
-	# 			if view:
-	# 				view.add_matcher(name, regex, view.get_callback('main'))
-
-
-	# def load_redirects(self):
-	# 	for fro,v in self.redirects.iteritems():
-	# 		to, kwargs = v
-	# 		emen2.web.resources.publicresource.PublicView.register_redirect(fro, to, **kwargs)
-
-
-	# def reload_views(self, view=None):
-	# 	reload(view)
-	# 	failures = []
-	# 	self.load_templates(failures=failures)
-	# 	self.load_views(failures=failures)
-	# 	if view != None: values = [emen2.web.routing.Router.Router[view]]
-	# 	else: values = emen2.web.routing.Router.Router.values()
-	# 	for view in values:
-	# 		try:
-	# 			view = view._callback.__module__
-	# 			exec 'import %s;reload(%s)' % (view,view)
-	# 		except:
-	# 			failures.append(str(view))
-	# 	return failures
-
-
 __version__ = "$Revision$".split(":")[1][:-1].strip()

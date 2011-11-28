@@ -404,6 +404,11 @@ class vt_datetime(vt_string):
 				ret.append(i)
 		return self._rci(ret)
 
+	def process(self, value):
+		value = ci(value)
+		return ['<time datetime="%s">%s</time>'%(i,i) for i in value]
+
+
 
 @vtm.register_vartype('date')
 class vt_date(vt_datetime):
@@ -589,7 +594,7 @@ class vt_user(Vartype):
 		for i in value:
 			key = self.engine.get_cache_key('displayname', i)
 			hit, dn = self.engine.check_cache(key)
-			dn = cgi.escape(dn)
+			dn = cgi.escape(dn or '')
 			if self.table or not self.markup:
 				lis.append(dn)
 			else:
