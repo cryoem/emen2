@@ -5,7 +5,7 @@ Classes:
 	VartypeManager:
 		= Registers available Vartypes, Properties, and Macros
 		- Helper methods for access, validating, and rendering parameters
-		- This class may be replaced in the future, by moving it to the 
+		- This class may be replaced in the future, by moving it to the
 			appropriate Vartype/Property/Macro classes.
 """
 
@@ -13,6 +13,12 @@ import re
 import cgi
 
 class VartypeManager(object):
+	"""Registers available Vartypes, Properties, and Macros
+
+	- Helper methods for access, validating, and rendering parameters
+	- This class may be replaced in the future, by moving it to the
+		appropriate Vartype/Property/Macro classes.
+	"""
 
 	_vartypes = {}
 	_properties = {}
@@ -21,6 +27,11 @@ class VartypeManager(object):
 
 	@classmethod
 	def register_vartype(cls, name):
+		"""Decorator used to register a :py:class:`~.vartypes.Vartype`
+
+		:param str name: the name for the :py:class:`~.vartypes.Vartype`
+		:returns: A function which takes a :py:class:`~.vartypes.Vartype` and registers it
+		"""
 		def f(o):
 			if name in cls._vartypes.keys():
 				raise ValueError("""vartype %s already registered""" % name)

@@ -67,12 +67,12 @@ class Macro(object):
 
 	def getkeytype(self):
 		return self.keytype
-		
-		
+
+
 	# Pre-cache if we're going to be doing alot of records.. This can be a substantial improvement.
 	def preprocess(self, macro, params, recs):
 		pass
-		
+
 
 	# Run the macro
 	def process(self, macro, params, rec):
@@ -93,7 +93,7 @@ class Macro(object):
 		if hasattr(value, '__iter__'):
 			value = ", ".join(map(unicode, value))
 		if not self.markup:
-			return unicode(value)		
+			return unicode(value)
 		if self.table:
 			webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 			value = '<a href="%s/record/%s/">%s</a>'%(webroot, self.rec.name, value)
@@ -114,7 +114,7 @@ class macro_name(Macro):
 
 	def process(self, macro, params, rec):
 		return rec.name
-		
+
 
 	def macro_name(self, macro, params):
 		return "Record Name"
@@ -137,35 +137,35 @@ class macro_recid(Macro):
 
 @vtm.register_macro('parents')
 class macro_parents(Macro):
-			
+
 	def process(self, macro, params, rec):
 		rectype, _, recurse = params.partition(",")
 		recurse = int(recurse or 1)
 		return self.engine.db.getparents(rec.name, rectype=rectype, recurse=recurse)
-		
+
 
 	def macro_name(self, macro, params):
-		return "Parents: %s"%params				
-				
+		return "Parents: %s"%params
+
 
 
 @vtm.register_macro('recname')
 class macro_recname(Macro):
 	"""recname macro"""
-			
+
 	def process(self, macro, params, rec):
 		return self.engine.db.renderview(rec) #vtm=self.engine
 
 
 	def macro_name(self, macro, params):
-		return "Record ID"				
-				
+		return "Record ID"
+
 
 @vtm.register_macro('childcount')
 class macro_childcount(Macro):
 	"""childcount macro"""
 	keytype = 'd'
-	
+
 	def preprocess(self, macro, params, recs):
 		rectypes = params.split(",")
 		# ian: todo: recurse = -1..
@@ -174,7 +174,7 @@ class macro_childcount(Macro):
 			key = self.engine.get_cache_key('getchildren', rec.name, *rectypes)
 			self.engine.store(key, len(children.get(rec.name,[])))
 
-		
+
 	def process(self, macro, params, rec):
 		"""Now even more optimized!"""
 		rectypes = params.split(",")
@@ -201,7 +201,7 @@ class macro_img(Macro):
 		ps = params.split(",")
 		for i,v in list(enumerate(ps))[:3]:
 			default[i] = v
-			
+
 		param, width, height = default
 
 		pd = self.engine.db.getparamdef(param)
@@ -256,7 +256,7 @@ class macro_childvalue(Macro):
 @vtm.register_macro('parentvalue')
 class macro_parentvalue(Macro):
 	"""parentvalue macro"""
-		
+
 	def process(self, macro, params, rec):
 		p = params.split(",")
 		param, recurse, rectype = p[0], 1, None
@@ -265,7 +265,7 @@ class macro_parentvalue(Macro):
 			param, recurse, rectype = p
 		elif len(p) == 2:
 			param, recurse = p
-			
+
 		recurse = int(recurse or 1)
 		name = rec.name
 		parents = self.engine.db.getrecord(self.engine.db.getparents(name, recurse=recurse, rectype=rectype))
@@ -280,7 +280,7 @@ class macro_parentvalue(Macro):
 @vtm.register_macro('first')
 class macro_first(Macro):
 	"""Return the first value found from a list of params"""
-			
+
 	def process(self, macro, params, rec):
 		ret = None
 		for param in params.split(","):
@@ -295,7 +295,7 @@ class macro_first(Macro):
 @vtm.register_macro('or')
 class macro_or(Macro):
 	"""parentvalue macro"""
-			
+
 	def process(self, macro, params, rec):
 		ret = None
 		for param in params.split(","):
@@ -311,7 +311,7 @@ class macro_or(Macro):
 @vtm.register_macro('escape_paramdef_val')
 class macro_escape_paramdef_val(Macro):
 	"""escape_paramdef_val macro"""
-		
+
 	def process(self, macro, params, rec):
 		return cgi.escape(rec.get(params, ''))
 
@@ -323,7 +323,7 @@ class macro_escape_paramdef_val(Macro):
 @vtm.register_macro('renderchildren')
 class macro_renderchildren(Macro):
 	"""renderchildren macro"""
-		
+
 	def process(self, macro, params, rec):
 		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		r = self.engine.db.renderview(self.engine.db.getchildren(rec.name), viewname=params or "recname") #ian:mustfix
@@ -337,14 +337,14 @@ class macro_renderchildren(Macro):
 
 
 	def macro_name(self, macro, params):
-		return "renderchildren"			
+		return "renderchildren"
 
 
 
 @vtm.register_macro('renderchild')
 class macro_renderchild(Macro):
 	"""renderchild macro"""
-		
+
 	def process(self, macro, params, rec):
 		#rinfo = dict(,host=host)
 		#view, key, value = args.split(' ')
@@ -353,9 +353,9 @@ class macro_renderchild(Macro):
 		#return render_records(db, rec, view, get_records,rinfo, html_join_func)
 		return ""
 
-		
+
 	def macro_name(self, macro, params):
-		return "renderchild"		
+		return "renderchild"
 
 
 
@@ -363,7 +363,7 @@ class macro_renderchild(Macro):
 class macro_renderchildrenoftype(Macro):
 	"""renderchildrenoftype macro"""
 
-		
+
 	def process(self, macro, params, rec):
 		# print macro, params
 		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
@@ -376,16 +376,16 @@ class macro_renderchildrenoftype(Macro):
 
 		return "<ul>%s</ul>"%("\n".join(hrefs))
 
-		
+
 	def macro_name(self, macro, params):
-		return "renderchildrenoftype"	
+		return "renderchildrenoftype"
 
 
 
 @vtm.register_macro('getfilenames')
 class macro_getfilenames(Macro):
 	"""getfilenames macro"""
-		
+
 	def process(self, macro, params, rec):
 		# files = {}
 		# if rec["file_binary"] or rec["file_binary_image"]:
@@ -406,16 +406,16 @@ class macro_getfilenames(Macro):
 		# return files
 		return ""
 
-		
+
 	def macro_name(self, macro, params):
-		return "getfilenames"	
+		return "getfilenames"
 
 
 
 @vtm.register_macro('getrectypesiblings')
 class macro_getrectypesiblings(Macro):
 	"""getrectypesiblings macro"""
-		
+
 	def process(self, macro, params, rec):
 		pass
 		# """returns siblings and cousins of same rectype"""
@@ -431,16 +431,16 @@ class macro_getrectypesiblings(Macro):
 		# if groups.has_key(rec.rectype):
 		# 	q = db.getindexdictbyvaluefast(groups[rec.rectype],"modifytime")
 		# 	ret = [i[0] for i in sorted(q.items(), key=itemgetter(1), reverse=True)] #BUG: What is supposed to happen here?
-		
+
 	def macro_name(self, macro, params):
-		return "getrectypesiblings"	
-		
-		
+		return "getrectypesiblings"
+
+
 
 @vtm.register_macro('thumbnail')
 class macro_thumbnail(Macro):
 	"""tile thumb macro"""
-	
+
 	def process(self, macro, params, rec):
 		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		format = "jpg"
@@ -450,12 +450,12 @@ class macro_thumbnail(Macro):
 		for i,v in enumerate(params):
 			if v:
 				defaults[i]=v
-	
+
 		bdos = rec.get(defaults[0])
 		if not hasattr(bdos,"__iter__"):
 			bdos = [bdos]
-		
-		
+
+
 		return "".join(['<img class="e2l-thumbnail" src="%s/download/%s/%s.%s.%s?size=%s&amp;format=%s" alt="" />'%(
 				webroot, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos
 				)])
@@ -473,11 +473,11 @@ class macro_thumbnail(Macro):
 @vtm.register_macro('checkbox')
 class macro_checkbox(Macro):
 	"""draw a checkbox for editing values"""
-		
+
 	def process(self, macro, params, rec):
 		args = parse_args(params)
 		return self._process(rec, *args)
-		
+
 	def _process(self, rec, param, value, label=None, *args, **kwargs):
 		checked = ''
 		if value in ci(rec.get(param)):
@@ -493,7 +493,7 @@ class macro_checkbox(Macro):
 			<input type="hidden" name="%s" value="" />"""%(labelid, param, param, value, checked, labelid, label or value, param)
 
 	def macro_name(self, macro, params):
-		return "Checkbox:", params			
+		return "Checkbox:", params
 
 
 

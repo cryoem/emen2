@@ -43,9 +43,15 @@ vtm = emen2.db.datatypes.VartypeManager
 
 @vtm.register_vartype('none')
 class Vartype(object):
+	'''Base class for vartypes'''
+
+	#: the index key type for this class
 	keytype = None
+	#: is this vartype iterable?
 	iterable = True
+	#: the CSS class to use when rendering as HTML
 	elem_class = 'e2-edit'
+	#: the element to use when rendering as HTML
 	elem = 'span'
 
 	def __init__(self, engine=None, pd=None):
@@ -59,6 +65,7 @@ class Vartype(object):
 
 	# This is the default HTML renderer for single-value items. It is important to cgi.escape the values!!
 	def render(self, value, name=0, edit=False, showlabel=False, markup=False, table=False, embedtype=None):
+		'''Render a value as HTML'''
 		# Store these for convenience
 		self.name = name
 		self.edit = edit
@@ -82,7 +89,7 @@ class Vartype(object):
 		else:
 			embedtype = ''
 		editmarkup = 'data-name="%s" data-param="%s" %s'%(self.name, self.pd.name, embedtype)
-		
+
 		if value and self.pd.defaultunits:
 			value = ['%s %s'%(i, self.pd.defaultunits) for i in value]
 
@@ -101,9 +108,9 @@ class Vartype(object):
 		# Tables have links to the record
 		if self.table:
 			value = ['<a href="%s/record/%s">%s</a>'%(webroot, self.name, i) for i in value]
-			
+
 		# Iterable parameters
-		if self.pd.iter:	
+		if self.pd.iter:
 			lis = ['<li>%s</li>'%(i) for i in value]
 			if not self.edit:
 				return '<ul>%s</ul>'%("\n".join(lis))
@@ -119,7 +126,7 @@ class Vartype(object):
 		# Non-iterable parameters
 		if not self.edit:
 			return value
-		
+
 		return '<%s class="%s" %s>%s%s</%s>'%(self.elem, self.elem_class, editmarkup, value, label, self.elem)
 
 
@@ -135,9 +142,9 @@ class Vartype(object):
 		"""Validate a value"""
 		raise ValidationError, "This is an organizational parameter, and is not intended to be used."
 
-	
+
 	def _rci(self, value):
-		"""Validation methods generally work on iterables; if the parameter is non-iterable, 
+		"""Validation methods generally work on iterables; if the parameter is non-iterable,
 		return a single value."""
 		if value and not self.pd.iter:
 			return value.pop()
@@ -151,8 +158,8 @@ class Vartype(object):
 
 	def getkeytype(self):
 		return self.keytype
-	
-	
+
+
 	def reindex(self, items):
 		# print "reindex:", items
 		# items format: [name, newval, oldval]
@@ -161,7 +168,7 @@ class Vartype(object):
 		for name, new, old in items:
 			if new == old:
 				continue
-			
+
 			if not self.pd.iter:
 				new=[new]
 				old=[old]
@@ -189,6 +196,7 @@ class Vartype(object):
 @vtm.register_vartype('float')
 class vt_float(Vartype):
 	"""Floating-point number"""
+	#:
 	keytype = 'f'
 
 	def validate(self, value):
@@ -201,8 +209,9 @@ class vt_float(Vartype):
 @vtm.register_vartype('percent')
 class vt_percent(Vartype):
 	"""Percentage. 0 <= x <= 1"""
+	#:
 	keytype = 'f'
-	
+
 	def validate(self, value):
 		value = map(float, ci(value))
 		for i in value:
@@ -223,6 +232,7 @@ class vt_percent(Vartype):
 @vtm.register_vartype('int')
 class vt_int(Vartype):
 	"""Integer"""
+	#:
 	keytype = 'd'
 
 	def validate(self, value):
@@ -240,8 +250,9 @@ class vt_coordinate(Vartype):
 @vtm.register_vartype('boolean')
 class vt_boolean(Vartype):
 	"""Boolean value. Accepts 0/1, True/False, T/F, Yes/No, Y/N, None."""
+	#:
 	keytype = 'd'
-	
+
 	def validate(self, value):
 		t = ['t', 'y', 'yes', 'true', '1']
 		f = ['f', 'n', 'no', 'false', 'none', '0']
@@ -295,6 +306,7 @@ class vt_name(Vartype):
 @vtm.register_vartype('string')
 class vt_string(Vartype):
 	"""String"""
+	#:
 	keytype = 's'
 
 	def validate(self, value):
@@ -310,7 +322,7 @@ class vt_string(Vartype):
 @vtm.register_vartype('choice')
 class vt_choice(vt_string):
 	"""One value from a defined list of choices"""
-	
+
 	def validate(self, value):
 		value = [unicode(i).strip() for i in ci(value)]
 		for v in value:
@@ -323,7 +335,7 @@ class vt_choice(vt_string):
 @vtm.register_vartype('rectype')
 class vt_rectype(vt_string):
 	"""RecordDef name"""
-	
+
 	def validate(self, value):
 		value = [unicode(x).strip() for x in ci(value)]
 		check_rectypes(self.engine, value)
@@ -333,10 +345,12 @@ class vt_rectype(vt_string):
 @vtm.register_vartype('text')
 class vt_text(vt_string):
 	"""Freeform text, with word indexing."""
+	#:
 	elem = 'div'
 
+	#:
 	unindexed_words = {"in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"}
-	
+
 	def reindex(self, items):
 		"""(Internal) calculate param index updates for vartype == text"""
 		addrefs = collections.defaultdict(list)
@@ -394,6 +408,7 @@ class vt_text(vt_string):
 @vtm.register_vartype('datetime')
 class vt_datetime(vt_string):
 	"""Date and time, yyyy/mm/dd HH:MM:SS"""
+	#:
 	keytype = 's'
 
 	def validate(self, value):
@@ -421,7 +436,7 @@ class vt_date(vt_datetime):
 			if i:
 				ret.append(i)
 		return self._rci(ret)
-		
+
 
 @vtm.register_vartype('time')
 class vt_time(vt_datetime):
@@ -450,7 +465,7 @@ class vt_recurrence(Vartype):
 	"""Date, yyyy/mm/dd"""
 	pass
 
-		
+
 ###################################
 # Reference vartypes (uri, binary, hdf, etc.).
 #	Indexed as keytype 's'
@@ -459,6 +474,7 @@ class vt_recurrence(Vartype):
 @vtm.register_vartype('uri')
 class vt_uri(Vartype):
 	"""URI"""
+	#:
 	keytype = 's'
 
 	# ian: todo: parse with urlparse
@@ -517,7 +533,9 @@ class vt_uri(Vartype):
 @vtm.register_vartype('binary')
 class vt_binary(Vartype):
 	"""File Attachment"""
+	#:
 	keytype = None
+	#:
 	elem_class = "e2-edit-binary"
 
 	def validate(self, value):
@@ -551,6 +569,7 @@ class vt_binary(Vartype):
 @vtm.register_vartype('md5')
 class vt_md5(Vartype):
 	"""String"""
+	#:
 	keytype = 's'
 
 
@@ -562,6 +581,7 @@ class vt_md5(Vartype):
 @vtm.register_vartype('links')
 class vt_links(Vartype):
 	"""References to other Records."""
+	#:
 	keytype = None
 
 	def validate(self, value):
@@ -577,13 +597,14 @@ class vt_links(Vartype):
 @vtm.register_vartype('user')
 class vt_user(Vartype):
 	"""Users"""
+	#:
 	keytype = 's'
 
 	def validate(self, value):
 		value = [unicode(x).strip() for x in ci(value)]
 		check_usernames(self.engine, value)
 		return self._rci(value)
-		
+
 
 	def process(self, value):
 		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
@@ -608,6 +629,7 @@ class vt_user(Vartype):
 @vtm.register_vartype('acl')
 class vt_acl(Vartype):
 	"""Permissions access control list; nested lists of users"""
+	#:
 	keytype = 's'
 
 	def validate(self, value):
@@ -672,6 +694,7 @@ class vt_acl(Vartype):
 @vtm.register_vartype('groups')
 class vt_groups(Vartype):
 	"""Groups"""
+	#:
 	keytype = 's'
 
 	def validate(self, value):
@@ -692,6 +715,7 @@ class vt_groups(Vartype):
 @vtm.register_vartype('comments')
 class vt_comments(Vartype):
 	"""Comments"""
+	#:
 	keytype = None
 
 	# ian: todo... sort this out.
@@ -722,6 +746,7 @@ class vt_comments(Vartype):
 @vtm.register_vartype('history')
 class vt_history(Vartype):
 	"""History"""
+	#:
 	keytype = None
 
 	def validate(self, value):
@@ -805,23 +830,23 @@ def update_username_cache(engine, values):
 
 
 # """Following based on public domain code by Paul Harrison, 2006; modified by Ian"""
-# 
+#
 # time_formats = [
 # 	'%H:%M:%S',
 # 	'%H:%M',
 # 	'%H'
 # 	]
-# 
+#
 # date_formats = [
 # 	'%Y %m %d',
 # 	'%Y %m',
 # 	'%Y'
 # 	]
-# 
+#
 # # Foramts to check [0] and return [1] in order of priority
 # # (the return value will be used for the internal database value for consistency)
 # # The DB will return the first format that validates.
-# 
+#
 # datetime_formats = [
 # 	['%Y %m %d %H:%M:%S','%Y/%m/%d %H:%M:%S'],
 # 	['%Y %m %d %H:%M','%Y/%m/%d %H:%M'],
@@ -835,54 +860,54 @@ def update_username_cache(engine, values):
 # 	['%m %d %Y','%Y/%m/%d'],
 # 	['%m %d %Y %H:%M:%S','%Y/%m/%d %H:%M:%S']
 # 	]
-# 
-# 
-# 
+#
+#
+#
 # def parse_datetime(string):
 # 	"""Return a tuple: datetime instance, and validated output"""
 # 	string = (string or '').strip()
 # 	if not string:
 # 		return None, None
-# 
+#
 # 	string = string.replace('/',' ').replace('-',' ').replace(',',' ').split(".")
 # 	msecs = 0
 # 	if len(string) > 1:
 # 		msecs = int(string.pop().ljust(6,'0'))
 # 	string = ".".join(string)
-# 
+#
 # 	for format, output in datetime_formats:
 # 		try:
 # 			string = datetime.datetime.strptime(string, format)
 # 			return string, datetime.datetime.strftime(string, output)
 # 		except ValueError, inst:
 # 			pass
-# 
+#
 # 	raise ValidationError()
-# 
-# 
-# 
+#
+#
+#
 # def parse_time(string):
 # 	string = string.strip().split(".")
 # 	msecs = 0
 # 	if len(string) > 1:
 # 		msecs = int(string.pop().ljust(6,'0'))
 # 	string = ".".join(string)
-# 
+#
 # 	for format in time_formats:
 # 		try:
 # 			return datetime.datetime.strptime(string, format).time(), string
 # 		except ValueError, inst:
 # 			pass
-# 
+#
 # 	raise ValidationError()
-# 
-# 
+#
+#
 # def parse_date(string):
 # 	string = string.strip()
 # 	if not string: return None, None
-# 
+#
 # 	string = string.replace('/',' ').replace('-',' ').replace(',',' ')
-# 
+#
 # 	for format in date_formats:
 # 		try:
 # 			return datetime.datetime.strptime(string, format).date(), string
@@ -899,7 +924,7 @@ def parse_iso8601(d, result=None):
 	def strip(i):
 		return i.replace('-','').replace(':','').replace(' ','')
 
-	dd, _, dt = d.partition('T')	
+	dd, _, dt = d.partition('T')
 	tz = ''
 	for sep in ['Z', '-', '+']:
 		if sep in dt:
@@ -925,26 +950,26 @@ def parse_iso8601(d, result=None):
 		if r.get(key):
 			r2[key] = int(r.get(key))
 
-	
+
 	r3 = datetime.datetime(**r2)
-	
+
 	if result == 'datetime':
 		return r3.isoformat()+'Z'
 	elif result == 'date':
 		return r3.isoformat()[:10]
-	
+
 	return r3
-	
-	
-	
-	
+
+
+
+
 def parse_iso8601duration(d):
 	"""
 	Parse ISO 8601 duration format.
-	
+
 	From Wikipedia, ISO 8601 duration format is:
 		P[n]Y[n]M[n]DT[n]H[n]M[n]S
-	
+
 	P is the duration designator (historically called "period") placed at the start of the duration representation.
 	Y is the year designator that follows the value for the number of years.
 	M is the month designator that follows the value for the number of months.
@@ -953,7 +978,7 @@ def parse_iso8601duration(d):
 	T is the time designator that precedes the time components of the representation.
 	H is the hour designator that follows the value for the number of hours.
 	M is the minute designator that follows the value for the number of minutes.
-	S is the second designator that follows the value for the number of seconds.	
+	S is the second designator that follows the value for the number of seconds.
 
 	Examples:
 	d = 'P1M2D' # 1 month, 2 days
@@ -976,7 +1001,7 @@ def parse_iso8601duration(d):
 			""", re.X)
 	match = regex.search(d)
 	rd = {} # return date
-	
+
 	# rdate['type'] = match.group('type')
 	for key in ['weeks','years','months','days','hours','minutes','seconds']:
 		if match.group(key):

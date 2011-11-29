@@ -51,10 +51,15 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	can never be changed, only superceded. This log is stored in the history
 	attribute, which is a list containing a tuple entry for every change made,
 	in the following format:
-		0	User
-		1	Time of change
-		2	Parameter changed
-		3	Previous parameter value
+
+	0
+		User
+	1
+		Time of change
+	2
+		Parameter changed
+	3
+		Previous parameter value
 
 	The history log is immutable, even to admins, and is updated when the item
 	is committed. From a database standpoint, this is rather odd behavior. Such
@@ -76,33 +81,35 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		$$parameter="value"
 
 	Each new comment is added to the comments list as a tuple with the format:
-		0	User
-		1	Time of comment
-		2	Comment text
+
+	0
+		User
+	1
+		Time of comment
+	2
+		Comment text
 
 
 	The following methods are overridden:
 
-		init			Init the rectype, comments, and history
-		keys			Add parameter keys
-		validate		Check RecordDef
-		validate_name	Check the name is a positive integer
-
-	And the following methods are provided:
-
-		addcomment		Add a comment
-		revision		Calculate the record's values to a point in the past.
-
+	init
+				Init the rectype, comments, and history
+	keys
+				Add parameter keys
 
 	:attr history: History log
 	:attr comments: Comments log
 	:attr rectype: Associated RecordDef
 
 	"""
+
+	#: Attributes readable by the user
 	attr_public = emen2.db.dataobject.PermissionsDBObject.attr_public | set(['comments', 'history', 'rectype'])
+
+	#: Attributes required for validation
 	attr_required = set(['rectype'])
 
-	# backwards compat
+	#: The id of the record, for backwards compatibility only
 	recid = property(lambda s:s.name)
 
 	def init(self, d):
@@ -176,7 +183,10 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		self.history.append((unicode(self._ctx.username), unicode(t), unicode(param), self.params.get(param)))
 
 	def addcomment(self, value, vtm=False, t=None):
-		"""Add a comment. Any $$param="value" comments will be parsed and set as values."""
+		"""Add a comment. Any $$param="value" comments will be parsed and set as values.
+
+		:param value: The comment to be added
+		"""
 
 		if not self.commentable():
 			self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.SecurityError)
@@ -221,7 +231,10 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		return cp
 
 	def revision(self, revision=None):
-		"""This will return information about the record's revision history"""
+		"""Calculate the record's values to a point in the past
+
+		:param revision: the revision of the record to start
+		"""
 
 		history = copy.copy(self.history)
 		comments = copy.copy(self.comments)
@@ -257,7 +270,12 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	##### Validation #####
 
 	def validate_name(self, name):
-		"""Validate the name of this object"""
+		"""Validate the name of this object
+
+		:param int name: the name to be validated
+		:returns: int
+		:raises: :py:class:`ValueError`
+		"""
 		if name in ['None', None]:
 			return
 		try:
@@ -267,7 +285,13 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		return name
 
 	def validate(self, vtm=None, t=None):
-		"""Validate the record before committing."""
+		"""Validate the record before committing.
+
+		:param vtm: the :py:class:`~.datatypes.VartypeManager` used to validate param values
+		:type vtm: :py:class:`.datatypes.VartypeManager`
+		:param t: the time of validation
+
+		"""
 		# Cut out any None's
 		pitems = self.params.items()
 		for k,v in pitems:
@@ -379,8 +403,9 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 	def groupbyrectype(self, names, ctx=None, txn=None):
 		"""Group Records by Rectype. Filters for permissions.
-		@param names Record(s) or Record name(s)
-		@return {rectype:set(record names)}
+
+		:param names: Record(s) or Record name(s)
+		:returns: {rectype:set(record names)}
 		"""
 		if not names:
 			return {}
@@ -415,6 +440,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 	# This builds UP instead of prunes DOWN; filter does the opposite..
 	def names(self, names=None, ctx=None, txn=None, **kwargs):
+
 		if names is not None:
 			return self.filter(names, rectype=kwargs.get('rectype'), ctx=ctx, txn=txn)
 
@@ -431,8 +457,9 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 	def filter(self, names, rectype=None, ctx=None, txn=None):
 		"""Filter for permissions.
-		@param names Record name(s).
-		@return Readable Record names.
+
+		:param names: Record name(s).
+		:returns: Readable Record names.
 		"""
 
 		names = self.expand(names, ctx=ctx, txn=txn)
