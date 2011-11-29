@@ -1,423 +1,509 @@
-import collections
-import time
-
-
-class Constraint(object):
-	def __init__(self, param, op='contains', term=''):
-		self.param = param
-		self.op = op
-		self.term = term
-		self.p = None
-		self.defer = False
-		self.nkeys = 0
-	
-	def init(self, p):
-		self.p = p
-		try:
-			# Get the number of keys in the index
-			ind = self.p.btree.getindex(self.param, txn=self.p.txn)
-			self.nkeys = ind.bdb.stat(txn=self.p.txn)['nkeys']
-		except Exception, e:
-			# Non-indexed params will be deferred until after indexed ones
-			self.defer = True
-
-	def run(self):		
-		if '*' in self.param:
-			# Turn expanded params into a new constraint
-			params = self.p.btree.dbenv.paramdef.expand([self.param], ctx=ctx, txn=txn)
-			c = Constraints(
-				[Constraint(i, op=self.op, term=self.term) for i in params], 
-				mode='OR', 
-				ctx=self.p.ctx, 
-				txn=self.p.txn,
-				btree=self.p.btree)				
-			return c.run()
-
-		print "running:", self.param, self.op, self.term		
-		if self.param.startswith('$@'):
-			f = self._run_macro()	
-		elif self.param in ['parents', 'children']:
-			f = self._run_rel()
-		elif self.defer:
-			f = self._run_items()
-		else:
-			f = self._run_index()	
-
-		if self.op == 'noop':
-			# Returning None has no constraint
-			return None
-		elif self.op == 'none':
-			# Return all records that don't have a value
-			names = self.p.btree.names(ctx=self.p.ctx, txn=self.p.txn)
-			f = names - f
-	
-		return f
-
-	def _run_rel(self):
-		ind = self.p.btree.getindex(self.param, txn=self.p.txn)
-		return ind.get(ind.typekey(self.term), txn=self.p.txn)
-		
-	def _run_index(self):
-		f = set()
-		ind = self.p.btree.getindex(self.param, txn=self.p.txn)
-		term = ind.typekey(self.term)
-		cfunc = self._op(self.op)
-		for key, items in ind.iteritems(txn=self.p.txn):
-			if cfunc(term, key):
-				f |= items
-				for i in items:
-					self.p.cache[i][self.param] = key
-		return f
-		
-	def _run_macro(self):
-		f = set()
-		cfunc = self._op(self.op)
-		vtm = emen2.db.datatypes.VartypeManager(db=self.p.ctx.db)
-		regex = emen2.db.database.VIEW_REGEX
-		k = regex.match(self.param)
-		keytype = vtm.getmacro(k.group('name')).getkeytype()
-		vtm.macro_preprocess(k.group('name'), k.group('args'), self.p.items)
-		for item in self.p.items:
-			value = vtm.macro_process(k.group('name'), k.group('args'), item)
-			if cfunc(self.term, value):
-				f.add(item.name)
-				self.p.cache[item.name][self.param] = value
-		return f
-				
-	def _run_items(self):
-		f = set()
-		cfunc = self._op(self.op)
-		for item in self.p.items:
-			value = item.get(self.param)
-			if cfunc(self.term, value):
-				f.add(item.name)
-				self.p.cache[item.name][self.param] = value
-		return f
-		
-	def _op(self, op, ignorecase=1):
-		"""(Internal) Get a comparison function
-		:keyword ignorecase: Use case-insensitive comparison methods
-		:return: Comparison function
-		"""
-		# y is search argument, x is the record's value
-		ops = {
-			"==": lambda y,x: x == y,
-			"!=": lambda y,x: x != y,
-			">": lambda y,x: x > y,
-			"<": lambda y,x: x < y,
-			">=": lambda y,x: x >= y,
-			"<=": lambda y,x: x <= y,
-			'any': lambda y,x: x != None,
-			'none': lambda y,x: x != None,
-			"contains": lambda y,x: unicode(y) in unicode(x),
-			'noop': lambda y,x: True,
-		}
-	
-		# Synonyms
-		synonyms = {
-			"is": "==",
-			"not": "!=",
-			"gte": ">=",
-			"lte": "<=",
-			"gt": ">",
-			"lt": "<"
-		}
-	
-		if ignorecase:
-			ops["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
-			ops['contains_w_empty'] = lambda y,x:unicode(y or '').lower() in unicode(x).lower()
-	
-		operator = synonyms.get(op, op)
-		return ops[operator]
-	
-
-
-
-		
-class Constraints(object):
-	def __init__(self, constraints, mode='AND', ctx=None, txn=None, btree=None):
-		self.mode = mode
-		self.constraints = constraints
-		# Items shared between constraints
-		self.result = None
-		self.items = []
-		self.cache = collections.defaultdict(dict)
-		self.vtm = None
-		# DB
-		self.ctx = ctx
-		self.txn = txn
-		self.btree = btree
-	
-	def run(self):
-		now = []
-		defer = []
-		for c in self.constraints:
-			c.init(self)
-			if c.defer:
-				defer.append(c)
-			else:
-				now.append(c)
-		
-		# Run indexed constraints
-		for c in sorted(now, key=lambda x:x.nkeys):
-			f = c.run()
-			self._join(f)
-
-		# Run non-indexed or macro constraints
-		if defer:
-			self.items = self.btree.cgets(self.result, ctx=self.ctx, txn=self.txn)
-			
-		for c in defer:
-			f = c.run()
-			self._join(f)
-		
-		items = []
-		for name, item in self.cache.items():
-			item['name'] = name
-			if name in self.result:
-				items.append(item)
-		
-		print "Items:"
-		print items
-			
-		return self.result
-		
-	def _join(self, f):
-		if f is None:
-			pass
-		elif self.result == None:
-			self.result = f
-		elif self.mode == 'AND':
-			self.result &= f
-		else:
-			self.result |= f
-			
-			
 
 import emen2.db
 db = emen2.db.opendb(admin=True)
 with db:
 	txn = db._txn
-	ctx = db._ctx	
-	c = Constraints(
-		[
-			Constraint('name_pi', 'contains', 'wah'), 
-			Constraint('rectype', 'is', 'project'), 
-			# Constraint('core*', 'is', 'lol')
-		], 
-		ctx=ctx, 
-		txn=txn, 
-		btree=db._db.bdbs.record
-		)
-		
-	print c.run()
-
+	ctx = db._ctx
+	c = [
+		['name_pi', 'contains', 'wah'],
+		['rectype', 'is', 'project'],
+		['$@recname()', 'noop'],
+		['creationtime', 'contains', '2011'],
+	]
 	
+	db.query(c=c)
+
+	# for i in range(3):
+	# 	print "\n\n---------"
+	# 	t = time.time()
+	# 	c = Constraints(
+	# 		[
+	# 			Constraint('name_pi', 'contains', 'wah'), 
+	# 			Constraint('rectype', 'is', 'project'),
+	# 			Constraint('children', 'contains', '136'),
+	# 			Constraint('$@recname()', 'noop', ''),
+	# 			Constraint('creationtime', 'contains', '2011')
+	# 		], 
+	# 		ctx=ctx, 
+	# 		txn=txn, 
+	# 		btree=db._db.bdbs.record
+	# 		)
+	# 	print c.run()
+	# 	print time.time()-t
+		##### Step 0. Setup
+		# timing results
+
+
+
+
+	# 	times = {} 
+	# 	t0 = time.time()
+	# 	t = time.time()
+	# 	
+	# 	# return record stubs
+	# 	returnrecs = bool(recs) 
+	# 	recs = collections.defaultdict(dict)
+	# 	
+	# 	# return statistics
+	# 	returnstats = bool(stats) 
+	# 	rectypes = collections.defaultdict(int)
+	# 
+	# 	# query result
+	# 	names = None 
+	# 	
+	# 	# Pre-process the query constraints..
+	# 	c = c or []
+	# 	_c = [] # filtered constraints
+	# 	default = [None, 'any', None]
+	# 	qparams = set()
+	# 	for i in c:
+	# 		# constraints with just a param name -> [param, 'any', None]
+	# 		if not hasattr(i, "__iter__"):
+	# 			i = [i]
+	# 		i = i[:len(i)]+default[len(i):3]
+	# 		qparams.add(i[0])
+	# 		_c.append(i)
+	# 
+	# 	# todo: tidy this up.
+	# 	x = x or {}
+	# 	y = y or {}
+	# 	z = z or {}
+	# 	for axis in [x.get('key'), y.get('key'), z.get('key')]:
+	# 		if axis and axis not in qparams and axis != 'name':
+	# 			_c.append([axis, 'any', None])
+	# 
+	# 	# Complex constraints that we'll defer, and basic constraints to run immediately
+	# 	# A basic constraint is a normal param, with a direct comparison
+	# 	# A complex constraint is a macro, an empty value, or a "noop" (no constraint)
+	# 	_cm, _cc = listops.filter_partition(lambda x:x[0].startswith('$@') or x[1]=='none' or x[1]=='noop', _c)
+	# 
+	# 	##### Step 1: Run basic constraints (no macros or complex constraints)
+	# 	t = clock(times, 0, t)
+	# 	for searchparam, comp, value in _cc:
+	# 		# Matching names for each step
+	# 		constraintmatches = self._query(searchparam, comp, value, recs=recs, ctx=ctx, txn=txn)
+	# 		if names == None: # For the first constraint..
+	# 			names = constraintmatches
+	# 		elif constraintmatches != None:
+	# 			names &= constraintmatches
+	# 
+	# 	##### Step 2: Filter permissions.
+	# 	t = clock(times, 1, t)
+	# 	# If no constraint, use all records..
+	# 	if names == None:
+	# 		names = self.bdbs.record.names(ctx=ctx, txn=txn)
+	# 	# ... or with constraints, filter results
+	# 	if c:
+	# 		names = self.bdbs.record.names(names or set(), ctx=ctx, txn=txn)
+	# 
+	# 	##### Step 3: Run complex constraints
+	# 	t = clock(times, 2, t)
+	# 	for searchparam, comp, value in _cm:
+	# 		constraintmatches = self._query(searchparam, comp, value, names=names, recs=recs, ctx=ctx, txn=txn)
+	# 		if constraintmatches != None:
+	# 			names &= constraintmatches
+	# 
+	# 	##### Step 4: Generate stats on rectypes
+	# 	# Do this before other sorting..
+	# 	t = clock(times, 3, t)
+	# 	# Did we already get the rectypes?
+	# 	rds = set([rec.get('rectype') for rec in recs.values()]) - set([None])
+	# 	if len(rds) == 1:
+	# 		# Yes, a single type
+	# 		rectypes[rds.pop()] = len(names)
+	# 	elif len(rds) > 1:
+	# 		# Yes, group them directly
+	# 		for name, rec in recs.iteritems():
+	# 			rectypes[rec.get('rectype')] += 1
+	# 	else:
+	# 		# No, we need to group the result..
+	# 		if returnstats: # don't do this unless we need the records grouped.
+	# 			r = self.bdbs.record.groupbyrectype(names, ctx=ctx, txn=txn)
+	# 			for k,v in r.items():
+	# 				rectypes[k] = len(v)
+	# 
+	# 	##### Step 5: Sort and slice to the right range
+	# 	# This processes the values for sorting:
+	# 	#	running any macros, rendering any user names, checking indexes, etc.
+	# 	t = clock(times, 4, t)
+	# 	# Sort by the rendered value.. todo: use table= keyword
+	# 	keytype, sortvalues = self._query_sort(sortkey, names, recs=recs, c=c, ctx=ctx, txn=txn)
+	# 
+	# 	# Create a sort comparison function
+	# 	key = sortvalues.get
+	# 	if sortkey in ['creationtime', 'recid', 'name']:
+	# 		# Use the record name as a proxy for creationtime
+	# 		key = None
+	# 		# Newest records first by default
+	# 		if reverse == None:
+	# 			reverse = True
+	# 	elif keytype == 's':
+	# 		# Sort by lower case for string-type params
+	# 		key = lambda name:(sortvalues.get(name) or '').lower()
+	# 
+	# 	# Save empty values to place them at the end 
+	# 	# (empty values will generally sort first)
+	# 	nonenames = set(filter(lambda x:not (sortvalues.get(x) or sortvalues.get(x)==0), names))
+	# 	names -= nonenames
+	# 
+	# 	# Use the sort function
+	# 	# (not using sorted(reverse=reverse) so we can add nonenames at the end)
+	# 	names = sorted(names, key=key)
+	# 	names.extend(sorted(nonenames))
+	# 	if reverse:
+	# 		names.reverse()
+	# 
+	# 	# Before truncating, turn the recs stub defaultdict into a list
+	# 	for name in names:
+	# 		recs[name]['name'] = name
+	# 
+	# 	recs = [recs[i] for i in names]
+	# 	
+	# 	# Total number of items found (for statistics)
+	# 	length = len(names)
+	# 	# Truncate results.
+	# 	if count > 0:
+	# 		names = names[pos:pos+count]
+	# 
+	# 	##### Step 6: Render in table format
+	# 	# This is purely a convenience to save a callback
+	# 	t = clock(times, 5, t)
+	# 
+	# 	def add_to_viewdef(viewdef, param):
+	# 		if not param.startswith('$'):
+	# 			param = '$$%s'%i
+	# 		if param in ['$$children','$$rectype', '$$parents']:
+	# 			pass
+	# 		elif param not in viewdef:
+	# 			viewdef.append(i)
+	# 
+	# 	if table:
+	# 		defaultviewdef = "$@recname() $@thumbnail() $$rectype $$name"
+	# 		addparamdefs = ["creator","creationtime"]
+	# 
+	# 		# Get the viewdef
+	# 		if len(rectypes) == 1:
+	# 			rd = self.bdbs.recorddef.cget(rectypes.keys()[0], ctx=ctx, txn=txn)
+	# 			viewdef = rd.views.get('tabularview', defaultviewdef)
+	# 		else:
+	# 			try:
+	# 				rd = self.bdbs.recorddef.cget("root", filt=False, ctx=ctx, txn=txn)
+	# 			except (KeyError, SecurityError):
+	# 				viewdef = defaultviewdef
+	# 			else:
+	# 				viewdef = rd.views.get('tabularview', defaultviewdef)
+	# 
+	# 		viewdef = [i.strip() for i in viewdef.split()]
+	# 
+	# 		for i in addparamdefs:
+	# 			if not i.startswith('$'):
+	# 				i = '$$%s'%i
+	# 			if i in viewdef:
+	# 				viewdef.remove(i)
+	# 
+	# 		for i in [i[0] for i in c] + addparamdefs:
+	# 			if not i.startswith('$'):
+	# 				i = '$$%s'%i
+	# 			add_to_viewdef(viewdef, i)
+	# 
+	# 		viewdef = " ".join(viewdef)
+	# 		table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
+	# 
+	# 	##### Step 7: Prepare result
+	# 	t = clock(times, 6, t)
+	# 	stats = {}
+	# 	stats['time'] = time.time()-t0
+	# 	stats['length'] = length
+	# 	if returnstats:
+	# 		stats['rectypes'] = rectypes
+	# 
+	# 	ret = {
+	# 		"c": c,
+	# 		"ignorecase": ignorecase,
+	# 		"names": names,
+	# 		"pos": pos,
+	# 		"count": count,
+	# 		"sortkey": sortkey,
+	# 		"reverse": reverse,
+	# 		"stats": stats
+	# 	}
+	# 
+	# 	if x:
+	# 		ret['x'] = x
+	# 	if y:
+	# 		ret['y'] = y
+	# 	if z:
+	# 		ret['z'] = z
+	# 	if returnrecs:
+	# 		ret['recs'] = recs
+	# 	if table:
+	# 		ret['table'] = table
+	# 
+	# 	return ret
+	# 
+	# 
+	# def _query(self, searchparam, comp, value, names=None, recs=None, ctx=None, txn=None):
+	# 	"""(Internal) index-based search. See DB.query()
+	# 
+	# 	:param searchparam: Param
+	# 	:param comp: Comparison method
+	# 	:param value: Comparison value
+	# 	:keyword names: Record names (used in some query operations)
+	# 	:keyword recs: Record cache dict, by name
+	# 	:return: Record names returned by query operation, or None
+	# 	"""
+	# 
+	# 	# Store found values in the rec stubs dictionary
+	# 	if recs == None:
+	# 		recs = {}
+	# 
+	# 	# Get the comparison function
+	# 	cfunc = self._query_cmps(comp)
+	# 
+	# 	# These operators are handled specially
+	# 	if value == None and comp not in ["any", "none", "contains_w_empty"]:
+	# 		return None
+	# 
+	# 	# Sadly, will need to run macro on everything.. :(
+	# 	# Run these as the last constraints.
+	# 	if searchparam.startswith('$@'):
+	# 		# todo: Run macro will get all the records; should I update recs...?
+	# 		keytype, ret = self._run_macro(searchparam, names or set(), ctx=ctx, txn=txn)
+	# 		# *minimal* validation of input.. # todo: catch exceptions
+	# 		if keytype == 'd':
+	# 			value = int(value)
+	# 		elif keytype == 'f':
+	# 			value = float(value)
+	# 		else:
+	# 			value = unicode(value)
+	# 		# Filter by comp/value
+	# 		r = set()
+	# 		for k, v in ret.items():
+	# 			if cfunc(value, v): # cfunc(value, v):
+	# 				recs[k][searchparam] = v # Update the record cache
+	# 				r.add(k)
+	# 		return r
+	# 
+	# 	# Additional setup..
+	# 	vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
+	# 	matchkeys = collections.defaultdict(set)
+	# 	indparams = set()
+	# 	searchnames = set()
+	# 
+	# 	if searchparam == 'rectype' and value:
+	# 		# Get child protocols, skip the index-index search
+	# 		matchkeys['rectype'] = self.bdbs.recorddef.expand([value], ctx=ctx, txn=txn)
+	# 
+	# 	elif searchparam == 'children':
+	# 		# Get children, skip the other steps
+	# 		# ian: todo: integrate this with the other * processing methods
+	# 		recurse = 0
+	# 		if unicode(value).endswith('*'):
+	# 			value = int(unicode(value).replace('*', ''))
+	# 			recurse = -1
+	# 		recs[value]['children'] = self.bdbs.record.rel([value], recurse=recurse, ctx=ctx, txn=txn).get(value, set())
+	# 		searchnames = recs[value]['children']
+	# 
+	# 	elif searchparam == 'name':
+	# 		# This is useful in a few places
+	# 		searchnames.add(int(value))
+	# 
+	# 	else:
+	# 		# Get the list of indexes to search
+	# 		param_stripped = searchparam.replace('*','').replace('$$','')
+	# 		if searchparam.endswith('*'):
+	# 			indparams |= self.bdbs.paramdef.rel([param_stripped], recurse=-1, ctx=ctx, txn=txn)[param_stripped]
+	# 		indparams.add(param_stripped)
+	# 
+	# 	# First, search the index index
+	# 	indk = self.bdbs.record.getindex('indexkeys', txn=txn)
+	# 
+	# 	for indparam in indparams:
+	# 		pd = self.bdbs.paramdef.cget(indparam, ctx=ctx, txn=txn)
+	# 		ik = indk.get(indparam, txn=txn)
+	# 		if not pd:
+	# 			continue
+	# 
+	# 		# Don't need to validate these
+	# 		if comp in ['any', 'none', 'noop']:
+	# 			matchkeys[indparam] = ik
+	# 			continue
+	# 
+	# 		# Validate for comparisons (vartype, units..)
+	# 		# ian: todo: When validating for a user, needs
+	# 		# to return value if not validated?
+	# 		try:
+	# 			cargs = vtm.validate(pd, value)
+	# 		except ValueError:
+	# 			if pd.vartype == 'user':
+	# 				cargs = value
+	# 			else:
+	# 				continue
+	# 		except:
+	# 			continue
+	# 
+	# 		# Special case for nested iterables (e.g. permissions) --
+	# 		# 		they validate as list of lists
+	# 		if pd.name == 'permissions':
+	# 			cargs = listops.combine(*cargs)
+	# 
+	# 		r = set()
+	# 		for v in listops.check_iterable(cargs):
+	# 			r |= set(filter(functools.partial(cfunc, v), ik))
+	# 
+	# 		if r:
+	# 			matchkeys[indparam] = r
+	# 
+	# 	# Now search individual param indexes
+	# 	for pp, keys in matchkeys.items():
+	# 		ind = self.bdbs.record.getindex(pp, txn=txn)
+	# 		for key in keys:
+	# 			v = ind.get(key, txn=txn)
+	# 			searchnames |= v
+	# 			for v2 in v:
+	# 				recs[v2][pp] = key
+	# 
+	# 	# If the comparison is "value is empty", then we
+	# 	# 	return the items we couldn't find in the index
+	# 	# 'No constraint' doesn't affect search results -- just store the values.
+	# 	if comp == 'noop':
+	# 		return None
+	# 	elif comp == 'none':
+	# 		return (names or set()) - searchnames
+	# 
+	# 	return searchnames
+	# 
+	# 
+	# def _query_sort(self, sortkey, names, recs=None, rendered=False, c=None, ctx=None, txn=None):
+	# 	"""(Internal) Sort Records by sortkey
+	# 
+	# 	:param sortkey:
+	# 	:param names:
+	# 	:keyword recs: Record cache, keyed by name
+	# 	:keyword rendered: Compare using 'rendered' value
+	# 	:param c: Query constraints; used for checking items in cache
+	# 	:return: Sortkey keytype ('s'/'d'/'f'/None), and {name:value} of values that can be sorted
+	# 	"""
+	# 	# No work necessary if sortkey is creationtime
+	# 	if sortkey in ['creationtime', 'name', 'recid']:
+	# 		return 's', {}
+	# 
+	# 	# Setup
+	# 	vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
+	# 	inverted = collections.defaultdict(set)
+	# 	c = c or []
+	# 
+	# 	# Check the paramdef
+	# 	pd = self.bdbs.paramdef.cget(sortkey, ctx=ctx, txn=txn)
+	# 	sortvalues = {}
+	# 	vartype = None
+	# 	keytype = None
+	# 	iterable = False
+	# 	ind = False
+	# 	if pd:
+	# 		vartype = pd.vartype
+	# 		vt = vtm.getvartype(vartype)
+	# 		keytype = vt.keytype
+	# 		iterable = vt.iterable
+	# 		ind = self.bdbs.record.getindex(pd.name, txn=txn)
+	# 
+	# 	if sortkey.startswith('$@'):
+	# 		# Sort using a macro, and get the right sort function
+	# 		keytype, sortvalues = self._run_macro(sortkey, names, ctx=ctx, txn=txn)
+	# 		for k,v in sortvalues.items():
+	# 			recs[k][sortkey] = v
+	# 			# Unghhgh... ian: todo: make a macro_render_sort
+	# 			if hasattr(v, '__iter__'):
+	# 				v = ", ".join(map(unicode, v))
+	# 				sortvalues[k] = v
+	# 
+	# 	elif not ind or len(names) < 1000 or iterable:
+	# 		# Iterable params are indexed, but the order is not preserved,
+	# 		# 	so we must check directly.
+	# 		# No index can be very slow! Chunk the record gets to help.
+	# 		for chunk in listops.chunk(names):
+	# 			for rec in self.bdbs.record.cgets(chunk, ctx=ctx, txn=txn):
+	# 				sortvalues[rec.name] = rec.get(sortkey)
+	# 		for k,v in sortvalues.items():
+	# 			recs[k][sortkey] = v
+	# 
+	# 	elif ind:
+	# 		# We don't have the value, but there is an index..
+	# 		# modifytime is kindof a pathological index.. need to find a better way
+	# 		for k,v in ind.iterfind(names, txn=txn):
+	# 			inverted[k] = v
+	# 		sortvalues = listops.invert(inverted)
+	# 		for k,v in sortvalues.items():
+	# 			recs[k][sortkey] = v
+	# 
+	# 	else:
+	# 		raise ValueError, "Don't know how to sort by %s"%sortkey
+	# 
+	# 
+	# 	# Use a "rendered" representation of the value,
+	# 	#	e.g. user names to sort by user's current last name
+	# 	# These will always sort using the rendered value
+	# 	if vartype in ["user", "binary"]:
+	# 		rendered = True
+	# 
+	# 	if rendered:
+	# 		# Invert again.. then render. This will save time on users.
+	# 		if not inverted:
+	# 			for k,v in sortvalues.items():
+	# 				try:
+	# 					inverted[v].add(k)
+	# 				except TypeError:
+	# 					# Handle iterable vartypes, e.g. userlist
+	# 					inverted[tuple(v)].add(k)
+	# 
+	# 		sortvalues = {}
+	# 		for k,v in inverted.items():
+	# 			r = vtm.param_render_sort(pd, k)
+	# 			for v2 in v:
+	# 				sortvalues[v2] = r
+	# 
+	# 	return keytype, sortvalues
+	# 
+	# 
+	# def _query_cmps(self, comp, ignorecase=1):
+	# 	"""(Internal) Return the list of query constraint operators.
+	# 
+	# 	:keyword ignorecase: Use case-insensitive comparison methods
+	# 	:return: Dict of query methods
+	# 	"""
+	# 	# y is search argument, x is the record's value
+	# 	cmps = {
+	# 		"==": lambda y,x:x == y,
+	# 		"!=": lambda y,x:x != y,
+	# 		">": lambda y,x: x > y,
+	# 		"<": lambda y,x: x < y,
+	# 		">=": lambda y,x: x >= y,
+	# 		"<=": lambda y,x: x <= y,
+	# 		'any': lambda y,x: x != None,
+	# 		'none': lambda y,x: x != None,
+	# 		"contains": lambda y,x:unicode(y) in unicode(x),
+	# 		'contains_w_empty': lambda y,x:unicode(y or '') in unicode(x),
+	# 		'noop': lambda y,x: True,
+	# 		'name': lambda y,x: x,
+	# 		#'rectype': lambda y,x: x,
+	# 		# "!contains": lambda y,x:unicode(y) not in unicode(x),
+	# 		# "range": lambda x,y,z: y < x < z
+	# 	}
+	# 
+	# 	# Synonyms
+	# 	synonyms = {
+	# 		"is": "==",
+	# 		"not": "!=",
+	# 		"gte": ">=",
+	# 		"lte": "<=",
+	# 		"gt": ">",
+	# 		"lt": "<"
+	# 	}
+	# 
+	# 	if ignorecase:
+	# 		cmps["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
+	# 		cmps['contains_w_empty'] = lambda y,x:unicode(y or '').lower() in unicode(x).lower()
+	# 
+	# 	comp = synonyms.get(comp, comp)
+	# 	return cmps[comp]
 	
-
-# import emen2.db
-# db = emen2.db.opendb(admin=True)
-# with db:
-# 	txn = db._txn
-# 	ctx = db._ctx
-# 	
-# 	c = [
-# 		# ['children', 'contains', '136'],
-# 		['core*', 'contains', '']
-# 		# ['name_pi', 'contains', 'wah'],
-# 		# ['$@recname()', 'contains', 'pro'],
-# 		# ['ctf_bfactor', '>=', '0'],
-# 		# ['creationtime', 'contains', ''],
-# 		# ['email', 'contains', 'ian'], 
-# 		]
-# 	
-# 	for i in range(3):	
-# 		t = time.time()
-# 		r = db._db.bdbs.record.query(c=c, sortkey="name_pi", ctx=ctx, txn=txn)
-# 		# r = db._db.bdbs.user._query('email', 'ian', ctx=ctx, txn=txn)
-# 		print r
-# 		print time.time()-t
-
-##### Search and Query #####
-# 
-# def query(self,
-# 		c=None,
-# 		pos=0,
-# 		count=0,
-# 		sortkey="name",
-# 		reverse=False,
-# 		recs=False,
-# 		ignorecase=True,
-# 		ctx=None,
-# 		txn=None,
-# 		**kwargs):
-# 	"""General query."""
-# 	
-# 	c = c or []
-# 	cache = collections.defaultdict(dict)
-# 	
-# 	# Found items
-# 	found = None
-# 	allnames = None
-# 	if 'none' in [i[1] for i in c] or not c:
-# 		allnames = self.names(ctx=ctx, txn=txn)
-# 	if not c:
-# 		found = allnames
-# 		
-# 	# Sort indexes by the number of keys
-# 	nkeys = {}
-# 	for param, operator, term in c:
-# 		try:
-# 			ind = self.getindex(param, txn=txn)
-# 			nkeys[param] = ind.bdb.stat(txn=txn)['nkeys']
-# 		except:
-# 			pass
-# 	nkeys['parents'] = -1
-# 	nkeys['children'] = -1
-# 
-# 	for param, op, term in sorted(c, key=lambda x:nkeys.get(x[0])):
-# 		cfunc = self._query_op(op)
-# 		f = set()
-# 		
-# 		if param in ['parents', 'children']:
-# 			# Always evaluate relationships first
-# 			ind = self.getindex(param, txn=txn)
-# 			f = ind.get(ind.typekey(term), txn=txn)
-# 
-# 		elif param == 'rectype':
-# 			pass
-# 			continue
-# 
-# 		elif param.startswith('$@'):
-# 			pass
-# 			continue
-# 
-# 		else:
-# 			# Expand the param
-# 			fromitems = set()
-# 			for param in self.dbenv.paramdef.expand([param], ctx=ctx, txn=txn):
-# 				ind = self.getindex(param, txn=txn)
-# 				if not ind:
-# 					fromitems.add(param)
-# 					continue
-# 					
-# 				pd = self.dbenv.paramdef.cget(param, ctx=ctx, txn=txn)
-# 				term = ind.typekey(term)
-# 				for key, items in ind.iteritems(txn=txn):
-# 					if cfunc(term, key):
-# 						f |= items
-# 						for i in items:
-# 							cache[i][param] = key
-# 
-# 			if fromitems:
-# 				items = self.cgets(f, ctx=ctx, txn=txn)
-# 				for param in fromitems:
-# 					for item in items:
-# 						if cfunc(term, key):
-# 							pass
-# 		
-# 		# Constrain the results
-# 		if op is 'none':
-# 			f = allnames - f			
-# 		if found is None:
-# 			found = f
-# 		found &= f
-# 		
-# 
-# 	print items
-# 	return len(found)
-# 
-# def _query_rel(self, c, found=None, cache=None, ctx=None, txn=None):
-# 	pass
-# 	
-# def _query_index(self, c, found=None, cache=None, ctx=None, txn=None):
-# 	pass
-# 	
-# def _query_items(self, c, found=None, cache=None, ctx=None, txn=None):
-# 	pass
-# 
-# def _query_op(self, operator, ignorecase=1):
-# 	"""(Internal) Return the list of query constraint operators.
-# 	:keyword ignorecase: Use case-insensitive comparison methods
-# 	:return: Dict of query methods
-# 	"""
-# 	# y is search argument, x is the record's value
-# 	ops = {
-# 		"==": lambda y,x:x == y,
-# 		"!=": lambda y,x:x != y,
-# 		">": lambda y,x: x > y,
-# 		"<": lambda y,x: x < y,
-# 		">=": lambda y,x: x >= y,
-# 		"<=": lambda y,x: x <= y,
-# 		'any': lambda y,x: x != None,
-# 		'none': lambda y,x: x != None,
-# 		"contains": lambda y,x:unicode(y) in unicode(x),
-# 		'contains_w_empty': lambda y,x:unicode(y or '') in unicode(x),
-# 		'noop': lambda y,x: True,
-# 		'name': lambda y,x: x
-# 	}
-# 
-# 	# Synonyms
-# 	synonyms = {
-# 		"is": "==",
-# 		"not": "!=",
-# 		"gte": ">=",
-# 		"lte": "<=",
-# 		"gt": ">",
-# 		"lt": "<"
-# 	}
-# 
-# 	if ignorecase:
-# 		ops["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
-# 		ops['contains_w_empty'] = lambda y,x:unicode(y or '').lower() in unicode(x).lower()
-# 
-# 	operator = synonyms.get(operator, operator)
-# 	return ops[operator]
-# 
-
-# # ... then direct record comparisons, including macros
-# if c_items or c_macro:
-# 	# todo: change term to correct type
-# 	items = self.cgets(found, ctx=ctx, txn=txn)
-# 	vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
-# 	for macro in [i[0] for i in c_macro]:
-# 		regex = emen2.db.database.VIEW_REGEX
-# 		k = regex.match(macro)
-# 		keytype = vtm.getmacro(k.group('name')).getkeytype()
-# 		vtm.macro_preprocess(k.group('name'), k.group('args'), items)
-# 		for item in items:
-# 			cache[item.name][macro] = vtm.macro_process(k.group('name'), k.group('args'), item)
-# 	for param in [i[0] for i in c_items]:
-# 		for item in items:
-# 			cache[item.name][param] = item.get(param)
-# 			
-# 	for param, op, term in c_items+c_macro:
-# 		f = set()
-# 		cfunc = self._query_op(op)
-# 		for item in items:
-# 			v = cache.get(item.name).get(param)
-# 			if cfunc(term, v):
-# 				f.add(item.name)
-# 				cache[item.name][param] = v
-# 		# Constrain
-# 		if op is 'none':
-# 			allnames -= f
-# 			f = allnames
-# 		if found is None: found = f
-# 		else: found &= f
-# 
-# items = []
-# for name, item in cache.items():
-# 	if name in found:
-# 		item['name'] = name
-# 		items.append(item)
-# 
-# # Sort
-# items = sorted(items, key=lambda x:x.get(sortkey), reverse=reverse or False)
-# 
-# 
-# # Switch to item mode if < 1000 items
-# if found is not None and len(found) < 1000:
-# 	c_items.append([param, op, term])
-# 	continue
-# 

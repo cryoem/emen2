@@ -25,6 +25,7 @@ import cPickle as pickle
 import emen2.db.config
 import emen2.db.log
 import emen2.util.listops
+import emen2.db.query
 
 try:
 	import emen2.db.bulk
@@ -1293,9 +1294,24 @@ class DBODB(EMEN2DB):
 			self.index[param] = None
 	
 	
-
-
-
+	##### Query #####
+	
+	def query(self,
+			c=None,
+			pos=0,
+			count=100,
+			sortkey="creationtime",
+			reverse=None,
+			recs=False,
+			ignorecase=True,
+			ctx=None,
+			txn=None,
+			**kwargs):
+		
+		c = emen2.db.query.Constraints(constraints=c, ctx=ctx, txn=txn, btree=self)
+		c.run()
+		c.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
+		return c
 
 
 
