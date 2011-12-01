@@ -18,7 +18,8 @@ import UserDict
 # This may be changed in the future.
 import emen2.db.datatypes
 
-# todo: Remove UserDict, just do all the methods myself?
+# TODO: Remove UserDict, just do all the methods myself?
+# TODO: implement collections.MutableMapping instead of subclassing DictMixin
 
 class BaseDBObject(object, UserDict.DictMixin):
 	"""Base class for EMEN2 DBOs.

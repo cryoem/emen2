@@ -26,18 +26,18 @@ import emen2.db.exceptions
 
 
 class Binary(emen2.db.dataobject.BaseDBObject):
-	"""Binary file stored on disk and managed by EMEN2. 
-	
+	"""Binary file stored on disk and managed by EMEN2.
+
 	Provides following attributes:
 		filename, record, md5, filesize, compress, filepath
-		
-	The Binary name has a specific format, bdo:YYYYMMDDXXXXX, where YYYYMMDD is 
-	date format and XXXXX is 5-char hex ID code of file for the day. 
-	
-	The filename attribute is the original name of the uploaded file. The 
+
+	The Binary name has a specific format, bdo:YYYYMMDDXXXXX, where YYYYMMDD is
+	date format and XXXXX is 5-char hex ID code of file for the day.
+
+	The filename attribute is the original name of the uploaded file. The
 	filesize attribute is the uncompressed size of the file, and the md5
 	attribute is the MD5 checksum of the uncompressed file. The filename may be
-	changed by an owner after a Binary is committed, but the contents (filesize 
+	changed by an owner after a Binary is committed, but the contents (filesize
 	and md5) cannot be changed. Files may be compressed after they have been
 	created; in this case, the compress param will specify the compression
 	scheme (gzip, bz2, etc.) and filesize_compress and md5_compress will have
@@ -63,7 +63,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		setContext		Check read permissions and bind Context
 		validate_name	Check the access protocol (bdo:YYYYMMDDXXXXX)
 		validate		Check required attributes
-		
+
 	And the following method is provided:
 
 		parse			Parse name
@@ -84,7 +84,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["filename", "record", "compress", "filesize", "md5", "filesize_compress", "md5_compress"])
 	filepath = property(lambda x:x._filepath)
-	
+
 	def init(self, d):
 		self.__dict__['filename'] = None
 		self.__dict__['record'] = None
@@ -94,17 +94,17 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		self.__dict__['filesize_compress'] = None
 		self.__dict__['md5_compress'] = None
 		self._filepath = None
-		
+
 	def setContext(self, ctx):
 		super(Binary, self).setContext(ctx=ctx)
 		self.__dict__['_filepath'] = self.parse(self.name).get('filepath')
 		if self.isowner():
-			return True			
-		if self.record is not None:	
+			return True
+		if self.record is not None:
 			rec = self._ctx.db.getrecord(self.record, filt=False)
-			
+
 	def validate_name(self, name):
-		"""Validate the name of this object"""		
+		"""Validate the name of this object"""
 		if name in ['None', None]:
 			return
 		return self.parse(name)['name']
@@ -113,7 +113,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 	def _set_filepath(self, key, value, vtm=None, t=None):
 		return set()
 
-	# These immutable attributes only ever be set for a new Binary, before commit	
+	# These immutable attributes only ever be set for a new Binary, before commit
 	def _set_md5(self, key, value, vtm=None, t=None):
 		if self.name:
 			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
@@ -134,14 +134,14 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
 		return self._set(key, value, self.isowner())
 
-	def _set_filesize_compress(self, key, value, vtm=None, t=None):			
+	def _set_filesize_compress(self, key, value, vtm=None, t=None):
 		if self.name:
 			raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
 		return self._set(key, value, self.isowner())
 
 	# These can be changed normally
 	def _set_filename(self, key, value, vtm=None, t=None):
-		# Sanitize filename.. This will allow unicode characters, 
+		# Sanitize filename.. This will allow unicode characters,
 		#	and check for reserved filenames on linux/windows
 		filename = value
 		filename = "".join([i for i in filename if i.isalpha() or i.isdigit() or i in '.()-=_'])
@@ -153,7 +153,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 			filename = "renamed."+filename
 		value = unicode(filename)
 		return self._set(key, value, self.isowner())
-	
+
 	def _set_record(self, key, value, vtm=None, t=None):
 		return self._set(key, int(value), self.isowner())
 
@@ -165,12 +165,12 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 			raise emen2.db.exceptions.ValidationError, "Filename, filesize, and MD5 checksum are required"
 		# This requirement has been relaxed.
 		# if self.record is None:
-		#	raise emen2.db.exceptions.ValidationError, "Record reference is required"		
-		
+		#	raise emen2.db.exceptions.ValidationError, "Record reference is required"
+
 	# Write contents to a temporary file.
 	def writetmp(self, filedata=None, fileobj=None):
 		'''Write to temporary storage.
-		:return: Temporary file path, the file size, and an md5 digest.		
+		:return: Temporary file path, the file size, and an md5 digest.
 		'''
 		if filedata:
 			fileobj = cStringIO.StringIO(filedata)
@@ -203,7 +203,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		self.__dict__['filesize'] = filesize
 		self.__dict__['md5'] = md5sum
 		return tmpfile
-	
+
 	@staticmethod
 	def parse(bdokey, counter=None):
 		"""Parse a 'bdo:2010010100001' type identifier into constituent parts
@@ -227,7 +227,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		else:
 			# Timestamps are now in ISO8601 format
 			# e.g.: "2011-10-16T02:00:00Z"
-			bdokey = emen2.db.database.gettime() 
+			bdokey = emen2.db.database.gettime()
 			year = int(bdokey[:4])
 			mon = int(bdokey[5:7])
 			day = int(bdokey[8:10])
@@ -241,7 +241,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 		# Find the last item matching the current date
 		mp = [x for x in sorted(binarypaths.keys()) if str(x)<=datekey]
-		base = binarypaths[mp[-1]]	
+		base = binarypaths[mp[-1]]
 
 		# Resolve the parsed bdo key to a directory (basepath) and file (filepath)
 		basepath = "%s/%04d/%02d/%02d/"%(base, year, mon, day)
@@ -265,11 +265,11 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 class BinaryDB(emen2.db.btrees.DBODB):
 	"""DBODB for Binaries
-	
+
 	Extends:
 		update_sequence		Binaries are assigned a name based on date
 		openindex			Indexed by: filename (maybe md5 in future)
-		
+
 	"""
 	sequence = True
 	dataclass = Binary
@@ -289,10 +289,10 @@ class BinaryDB(emen2.db.btrees.DBODB):
 
 		for offset, newrec in enumerate(newrecs):
 			dkey = emen2.db.binary.Binary.parse(name, counter=offset+basename)
-			newrec.__dict__['name'] = dkey['name']			
+			newrec.__dict__['name'] = dkey['name']
 			newrec.__dict__['filepath'] = dkey['filepath']
 
-		return {}		
+		return {}
 
 	def openindex(self, param, txn=None):
 		"""Index on filename (and possibly MD5 in the future.)"""
@@ -301,9 +301,9 @@ class BinaryDB(emen2.db.btrees.DBODB):
 		elif param == 'md5':
 			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
 		else:
-		 	ind = super(BinaryDB, self).openindex(param, txn=txn)
+			ind = super(BinaryDB, self).openindex(param, txn=txn)
 		return ind
-		
-		
+
+
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
