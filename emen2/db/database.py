@@ -1290,6 +1290,7 @@ class DB(object):
 			y=None,
 			z=None,
 			keytype="record",
+			mode='AND',
 			ctx=None,
 			txn=None,
 			**kwargs):
@@ -1356,8 +1357,8 @@ class DB(object):
 		# :exception ValidationError: Broken constraint
 		# :exception SecurityError: Unable to access specified RecordDefs or other constraint parameters.
 		# """
-		q = self.bdbs.keytypes[keytype].query(c=c, ctx=ctx, txn=txn)
-		return q
+		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
+		return q.result
 
 
 

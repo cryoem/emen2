@@ -1304,11 +1304,11 @@ class DBODB(EMEN2DB):
 			reverse=None,
 			recs=False,
 			ignorecase=True,
+			mode='AND',
 			ctx=None,
 			txn=None,
 			**kwargs):
-		
-		c = emen2.db.query.Constraints(constraints=c, ctx=ctx, txn=txn, btree=self)
+		c = emen2.db.query.Constraints(constraints=c, mode=mode, ctx=ctx, txn=txn, btree=self)
 		c.run()
 		c.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
 		return c

@@ -141,6 +141,11 @@ emen2.db = function(method, args, cb, eb) {
 
 // EMEN2 template functions
 emen2.template = {};
+
+emen2.template.random = function() {
+	return ""
+};
+
 emen2.template.caret = function(state, elem) {
 	// Create or toggle a caret up/down icon
 	var caret = [];

@@ -5,19 +5,21 @@ with db:
 	txn = db._txn
 	ctx = db._ctx
 	c = [
-		['vartype', 'is', 'string'],
-		['iter', 'is', True],
+		#['vartype', 'is', 'string'],
+		#['vartype', 'is', 'text'],
 		#['phone_voice*', 'contains', '2011'],
 		#['name_pi', 'contains', 'wah'],
 		#['rectype', 'is', 'project'],
-		#['$@recname()', 'noop'],
-		#['creationtime', 'contains', '2012'],
+		# ['$@recname()', 'noop'],
+		['ctf_bfactor', 'any', ''],
+		['ctf_defocus_measured', 'any', ''],
+		#['creationtime', 'contains', '2011'],
 	]
 
 	print "\n\n---------"
 	t = time.time()
-	db.query(c=c, keytype='paramdef')
-	print "=> total: ", time.time()-t
+	q = db.query(c=c)
+	print "=> total: %s results in %s"%(len(q or []), time.time()-t)
 
 
 # class Blah(object):
