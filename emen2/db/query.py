@@ -212,9 +212,7 @@ class MacroConstraint(Constraint):
 				self.p.cache[item.name][self.param] = value
 		return f
 		
-			
-
-
+		
 
 
 class Constraints(object):
@@ -254,7 +252,9 @@ class Constraints(object):
 		# print "Sorting by: %s"%sortkey
 		# Make sure we have the values for sorting
 		params = [i.param for i in self.constraints]
-		if sortkey not in params:
+		if sortkey is 'name':
+			pass
+		elif sortkey not in params:
 			# This does not change the constraint, just gets values.
 			c = self._makeconstraint(sortkey, op='noop')
 			c.run()

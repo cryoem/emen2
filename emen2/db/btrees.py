@@ -1298,24 +1298,14 @@ class DBODB(EMEN2DB):
 
 
 	##### Query #####
-
-	def query(self,
-			c=None,
-			pos=0,
-			count=100,
-			sortkey="creationtime",
-			reverse=None,
-			recs=False,
-			ignorecase=True,
-			mode='AND',
-			ctx=None,
-			txn=None,
-			**kwargs):
-		c = emen2.db.query.Constraints(constraints=c, mode=mode, ctx=ctx, txn=txn, btree=self)
-		c.run()
-		c.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
-		return c
-
+	
+	def query(self, c=None, mode='AND', ctx=None, txn=None):
+		"""Return a Query Constraint Group.
+		
+		You will need to call constraint.run() to execute the query, 
+		and constraint.sort() to sort the values.
+		"""
+		return emen2.db.query.Constraints(constraints=c, mode=mode, ctx=ctx, txn=txn, btree=self)
 
 
 

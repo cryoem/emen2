@@ -1276,91 +1276,31 @@ class DB(object):
 	##### Query #####
 
 	@publicmethod("record.query")
-	def query(self,
-			c=None,
-			pos=0,
-			count=0,
-			sortkey="name",
-			reverse=None,
-			recs=False,
-			table=False,
-			stats=False,
-			ignorecase=True,
-			x=None,
-			y=None,
-			z=None,
-			keytype="record",
-			mode='AND',
-			ctx=None,
-			txn=None,
-			**kwargs):
-		# """General query.
-		# 
-		# Constraints are provided in the following format:
-		# 	[param, operator, value]
-		# 
-		# Operation and value are optional. An arbitrary number of constraints may be given.
-		# 
-		# Operators:
-		# 	is			or		==
-		# 	not			or		!=
-		# 	gt			or		>
-		# 	lt			or		<
-		# 	gte			or		>=
-		# 	lte			or		<=
-		# 	any
-		# 	none
-		# 	contains
-		# 	contains_w_empty
-		# 	noop
-		# 	name
-		# 				
-		# Examples constraints:
-		# 	[name, '==', 136]
-		# 	['creator', '==', 'ian']
-		# 	[['modifytime', '>=', '2011'], ['name_pi', 'contains', 'steve']]
-		# 	
-		# For record names, parameter names, and protocol names, a '*' can be used to also match children, e.g:
-		# 	[['children', 'name', '136*'], ['rectype', '==', 'image_capture*']]
-		# Will match all children of record 136, recursively, for any child protocol of image_capture.
-		# 
-		# The result will be a dictionary containing all the original query arguments, plus:
-		# 	names:	Names of records found
-		# 	recs:	"Stub records," dictionaries that contain the matching value for each constraint
-		# 	stats:	Query statistics, e.g. the number of records for each RecordDef
-		# 		length		Number of records found
-		# 		rectypes	Results by Protocol
-		# 		time		Execution time
-		# 
-		# Examples:
-		# 
-		# >>> db.query()
-		# {'names':[1,2], stats: {...}, time: 0.001, ...}
-		# 
-		# >>> db.query(c=[['creator', '==', 'ian']], )
-		# {'names':[1,2], 'recs':{1:{'creator':'ian'}, 2:{'creator':'ian'}}, stats: {...}, time: 0.001, ...}
-		# 
-		# :keyparam c: Constraints
-		# :keyparam pos: Return results starting from (sorted record name) position
-		# :keyparam count: Return a limited number of results
-		# :keyparam sortkey: Sort returned records by this param. Default is creationtime.
-		# :keyparam reverse: Reverse results
-		# :keyparam recs: Return record stubs
-		# :keyparam table: Return a table
-		# :keyparam stats: Return statistics
-		# :keyparam ignorecase: Ignore case when comparing strings
-		# :keyparam x: X-axis options
-		# :keyparam y: X-axis options
-		# :keyparam z: X-axis options
-		# :return: A dictionary containing the original query arguments, and the result in the 'names' key
-		# :exception KeyError: Broken constraint
-		# :exception ValidationError: Broken constraint
-		# :exception SecurityError: Unable to access specified RecordDefs or other constraint parameters.
-		# """
+	def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=False, keytype="record", ctx=None, txn=None, **kwargs):
+		# Run the query		
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
+		q.run()
+		q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
 		return q.result
 
 
+	@publicmethod("record.table")
+	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=False, keytype="record", ctx=None, txn=None, **kwargs):
+		if count < 1 or count > 1000:
+			count = 1000			
+		# Run the query		
+		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
+		q.run()
+		q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
+		return q.result
+
+
+	@publicmethod("record.plot")
+	def plot(self, c=None, mode='AND', x=None, y=None, z=None, keytype="record", ctx=None, txn=None, **kwargs):
+		x = x or {}
+		y = y or {}
+		z = z or {}
+		
 
 
 	##### Other query methods #####
