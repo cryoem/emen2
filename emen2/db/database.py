@@ -1277,31 +1277,75 @@ class DB(object):
 
 	@publicmethod("record.query")
 	def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=False, keytype="record", ctx=None, txn=None, **kwargs):
+		c = c or []
+		ret = dict(
+			c=c,
+			mode=mode,
+			sortkey=sortkey,
+			pos=pos,
+			count=count,
+			reverse=reverse,
+			ignorecase=True,
+			stats={},
+			keytype=keytype
+		)
 		# Run the query		
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
+		ret['stats']['length'] = len(q.result)
 		q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
-		return q.result
-
+		ret['names'] = q.result
+		return ret
+		
 
 	@publicmethod("record.table")
 	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=False, keytype="record", ctx=None, txn=None, **kwargs):
 		if count < 1 or count > 1000:
-			count = 1000			
+			count = 1000
+		c = c or []
+		ret = dict(
+			c=c,
+			mode=mode,
+			sortkey=sortkey,
+			pos=pos,
+			count=count,
+			reverse=reverse,
+			ignorecase=True,
+			stats={},
+			keytype=keytype
+		)		
 		# Run the query		
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
+		ret['stats']['length'] = len(q.result)
 		q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
-		return q.result
-
+		ret['names'] = q.result
+		return ret
 
 	@publicmethod("record.plot")
 	def plot(self, c=None, mode='AND', x=None, y=None, z=None, keytype="record", ctx=None, txn=None, **kwargs):
 		x = x or {}
 		y = y or {}
 		z = z or {}
-		
+		c = c or []
+		for axis in [x.get('key'), y.get('key'), z.get('key')]:
+			if axis and axis not in qparams and axis != 'name':
+				c.append([axis, 'any', None])
 
+		ret = dict(
+			c=c,
+			mode=mode,
+			stats={},
+			ignorecase=True,
+			keytype=keytype
+		)
+
+		# Run the query		
+		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
+		q.run()
+		ret['stats']['length'] = len(q.result)
+		ret['recs'] = q.cache.values()
+		return ret
 
 	##### Other query methods #####
 

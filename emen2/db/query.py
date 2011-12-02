@@ -112,7 +112,6 @@ class ParamConstraint(IndexedConstraint):
 		return self._run_index()
 
 	def _run_items(self):
-		print "(using items)"
 		self.p._cacheitems()
 		f = set()
 		cfunc = getop(self.op)
@@ -218,20 +217,26 @@ class MacroConstraint(Constraint):
 class Constraints(object):
 	def __init__(self, constraints, mode='AND', ctx=None, txn=None, btree=None):
 		# Results attributes
-		self.vtm = None
-		self.result = None
-		self.items = []
+		self.time = 0.0
+		self.vtm = None			# vartype manager; handles validation, macros
+		self.result = None 		# None or set() of query result
+		self.mode = mode		# boolean AND / OR
+
+		# Items that were fetched for non-indexed constraints
+		self.items = []			
+		# Cache to hold values from constraint results
 		self.cache = collections.defaultdict(dict)
-		# Query boolean mode
-		self.mode = mode
+
 		# Database details
 		self.ctx = ctx
 		self.txn = txn
 		self.btree = btree
-		# Constraint Groups can contain sub-groups
-		self.ind = True
-		self.param = None
+
+		# Constraint Groups can contain sub-groups: see also init(), run()
+		self.ind = True		
+		self.param = None	
 		self.priority = 0
+
 		# Make constraints
 		self.constraints = []
 		for c in constraints:
@@ -241,20 +246,32 @@ class Constraints(object):
 		pass
 		
 	def run(self):
+		# Start the clock
+		t = time.time()
+		
+		# Run the constraints
 		for c in sorted(self.constraints, key=lambda x:x.priority):
 			f = c.run()
 			self._join(f)
-			self._prune()
+		
+		# After all constraints have run, tidy up cache/items
+		self._prunecache()
+		self._pruneitems()		
+
+		# Update the approx. running time.
+		self.time = time.time()-t
 		
 		return self.result
 
-	def sort(self, sortkey='name', reverse=False, pos=0, count=100):
+	def sort(self, sortkey='name', reverse=False, pos=0, count=0):
 		# print "Sorting by: %s"%sortkey
 		# Make sure we have the values for sorting
 		params = [i.param for i in self.constraints]
 		if sortkey is 'name':
+			# Name is inherent
 			pass
 		elif sortkey not in params:
+			# We don't have a constraint that matched the sortkey
 			# This does not change the constraint, just gets values.
 			c = self._makeconstraint(sortkey, op='noop')
 			c.run()
@@ -263,9 +280,18 @@ class Constraints(object):
 		paramdef = self.btree.dbenv.paramdef.cget(sortkey, ctx=self.ctx, txn=self.txn)
 		if paramdef and paramdef.iter:
 			self._checkitems(sortkey)
+			
+		# Actually sort..	
+		# Todo: Sort by the rendered value or the raw actual value?
+		sortvalues = {}
+		for i in self.result or []:
+			sortvalues[i] = self.cache[i].get(sortkey)
+		
+		self.result = sorted(self.result, key=sortvalues.get, reverse=reverse)
+		
+		if count > 0:
+			self.result = self.result[pos:pos+count]
 
-		#for k,v in self.cache.items():
-		#	print k, v
 
 
 	##### Results/Cache methods #####
@@ -283,16 +309,25 @@ class Constraints(object):
 		else:
 			raise Exception, "Unknown mode %s"%self.mode
 
-	def _prune(self):		
-		# Prune items that won't be used again.
-		# Make sure that we have a result, and have fetched items
-		if self.mode == 'AND' and self.result and self.items:
-			print "pruning %s items down to %s"%(len(self.items), len(self.result))
-			self.items = [i for i in self.items if i.name in self.result]
-			print "    -> %s"%(len(self.items))		
+	def _prunecache(self):
+		# Prune items from the cache that aren't in result set.
+		if self.result is None:
+			return
+		newcache = {}
+		for k,v in self.cache.items():
+			if k in self.result:
+				v['name'] = k
+				newcache[k] = v
+		self.cache = newcache
+			
+	def _pruneitems(self):		
+		# Prune items that aren't in the result set.
+		if self.result is None:
+			return
+		self.items = [i for i in self.items if i.name in self.result]
 
 	def _cacheitems(self):
-		# Cache items to run an direct comparison constraint.
+		# Get and cache items for direct comparison constraints.
 		# In OR constraints, self.items will be the domain of all possible matches
 		toget = self.result
 		if toget is None and not self.items:
@@ -301,10 +336,9 @@ class Constraints(object):
 		current = set([i.name for i in self.items])
 		toget -= current
 
-		if len(toget) > 10000:
-			raise Exception, "This type of constraint has a limit of 10,000 items; tried %s"%(len(toget))
+		if len(toget) > 100000:
+			raise Exception, "This type of constraint has a limit of 100,000 items; tried to get %s"%(len(toget))
 
-		# for chunk in emen2.util.listops.chunk(self.result):
 		if toget:
 			items = self.btree.cgets(toget, ctx=self.ctx, txn=self.txn)
 			self.items.extend(items)
