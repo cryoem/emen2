@@ -8,89 +8,91 @@ with db:
 		#['vartype', 'is', 'string'],
 		#['vartype', 'is', 'text'],
 		#['phone_voice*', 'contains', '2011'],
-		['name_pi', 'contains', 'wah'],
-		['rectype', 'is', 'project'],
+		# ['name_pi', 'contains', 'wah'],
+		# ['children', 'contains', '136'],
+		['rectype', 'contains', 'ccd'],
 		# ['$@recname()', 'noop'],
 		# ['ctf_bfactor', 'any', ''],
 		#['ctf_defocus_measured', 'any', ''],
 		# ['creationtime', 'contains', '2011'],
 	]
 
-	print "\n\n---------"
 	t = time.time()
-	q = db.query(c=c)
-	# q = db.plot(c=c)
-	print q
-	print "=> total: %s results in %s"%(len(q or []), time.time()-t)
+	# x = {'key':'ctf_defocus_measured'}
+	# y = {'key':'ctf_bfactor'}
+	# q = db.plot(c=c, x=x, y=y)
+	# q = db.plot(c=c, count=10, pos=0)
+	q = db.table(c=c)
+	print "=> total: %s results in %s"%(q['stats']['length'], time.time()-t)
 
 
 
 
 
 class Blah(object):
-	# """General query.
-	# 
-	# Constraints are provided in the following format:
-	# 	[param, operator, value]
-	# 
-	# Operation and value are optional. An arbitrary number of constraints may be given.
-	# 
-	# Operators:
-	# 	is			or		==
-	# 	not			or		!=
-	# 	gt			or		>
-	# 	lt			or		<
-	# 	gte			or		>=
-	# 	lte			or		<=
-	# 	any
-	# 	none
-	# 	contains
-	# 	contains_w_empty
-	# 	noop
-	# 	name
-	# 				
-	# Examples constraints:
-	# 	[name, '==', 136]
-	# 	['creator', '==', 'ian']
-	# 	[['modifytime', '>=', '2011'], ['name_pi', 'contains', 'steve']]
-	# 	
-	# For record names, parameter names, and protocol names, a '*' can be used to also match children, e.g:
-	# 	[['children', 'name', '136*'], ['rectype', '==', 'image_capture*']]
-	# Will match all children of record 136, recursively, for any child protocol of image_capture.
-	# 
-	# The result will be a dictionary containing all the original query arguments, plus:
-	# 	names:	Names of records found
-	# 	recs:	"Stub records," dictionaries that contain the matching value for each constraint
-	# 	stats:	Query statistics, e.g. the number of records for each RecordDef
-	# 		length		Number of records found
-	# 		rectypes	Results by Protocol
-	# 		time		Execution time
-	# 
-	# Examples:
-	# 
-	# >>> db.query()
-	# {'names':[1,2], stats: {...}, time: 0.001, ...}
-	# 
-	# >>> db.query(c=[['creator', '==', 'ian']], )
-	# {'names':[1,2], 'recs':{1:{'creator':'ian'}, 2:{'creator':'ian'}}, stats: {...}, time: 0.001, ...}
-	# 
-	# :keyparam c: Constraints
-	# :keyparam pos: Return results starting from (sorted record name) position
-	# :keyparam count: Return a limited number of results
-	# :keyparam sortkey: Sort returned records by this param. Default is creationtime.
-	# :keyparam reverse: Reverse results
-	# :keyparam recs: Return record stubs
-	# :keyparam table: Return a table
-	# :keyparam stats: Return statistics
-	# :keyparam ignorecase: Ignore case when comparing strings
-	# :keyparam x: X-axis options
-	# :keyparam y: X-axis options
-	# :keyparam z: X-axis options
-	# :return: A dictionary containing the original query arguments, and the result in the 'names' key
-	# :exception KeyError: Broken constraint
-	# :exception ValidationError: Broken constraint
-	# :exception SecurityError: Unable to access specified RecordDefs or other constraint parameters.
-	# """
+	"""General query.
+	
+	Constraints are provided in the following format:
+		[param, operator, value]
+	
+	Operation and value are optional. An arbitrary number of constraints may be given.
+	
+	Operators:
+		is			or		==
+		not			or		!=
+		gt			or		>
+		lt			or		<
+		gte			or		>=
+		lte			or		<=
+		any
+		none
+		contains
+		contains_w_empty
+		noop
+		name
+					
+	Examples constraints:
+		[name, '==', 136]
+		['creator', '==', 'ian']
+		[['modifytime', '>=', '2011'], ['name_pi', 'contains', 'steve']]
+		
+	For record names, parameter names, and protocol names, a '*' can be used to also match children, e.g:
+		[['children', 'name', '136*'], ['rectype', '==', 'image_capture*']]
+	Will match all children of record 136, recursively, for any child protocol of image_capture.
+	
+	The result will be a dictionary containing all the original query arguments, plus:
+		names:	Names of records found
+		recs:	"Stub records," dictionaries that contain the matching value for each constraint
+		stats:	Query statistics, e.g. the number of records for each RecordDef
+			length		Number of records found
+			rectypes	Results by Protocol
+			time		Execution time
+	
+	Examples:
+	
+	>>> db.query()
+	{'names':[1,2], stats: {...}, time: 0.001, ...}
+	
+	>>> db.query(c=[['creator', '==', 'ian']], )
+	{'names':[1,2], 'recs':{1:{'creator':'ian'}, 2:{'creator':'ian'}}, stats: {...}, time: 0.001, ...}
+	
+	:keyparam c: Constraints
+	:keyparam pos: Return results starting from (sorted record name) position
+	:keyparam count: Return a limited number of results
+	:keyparam sortkey: Sort returned records by this param. Default is creationtime.
+	:keyparam reverse: Reverse results
+	:keyparam recs: Return record stubs
+	:keyparam table: Return a table
+	:keyparam stats: Return statistics
+	:keyparam ignorecase: Ignore case when comparing strings
+	:keyparam x: X-axis options
+	:keyparam y: X-axis options
+	:keyparam z: X-axis options
+	:return: A dictionary containing the original query arguments, and the result in the 'names' key
+	:exception KeyError: Broken constraint
+	:exception ValidationError: Broken constraint
+	:exception SecurityError: Unable to access specified RecordDefs or other constraint parameters.
+	"""
 	
 	def query(self):
 		times = {} 

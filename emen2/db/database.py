@@ -1279,7 +1279,7 @@ class DB(object):
 	def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=False, keytype="record", ctx=None, txn=None, **kwargs):
 		c = c or []
 		ret = dict(
-			c=c,
+			c=c[:], #copy
 			mode=mode,
 			sortkey=sortkey,
 			pos=pos,
@@ -1289,12 +1289,13 @@ class DB(object):
 			stats={},
 			keytype=keytype
 		)
+		
 		# Run the query		
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
 		ret['stats']['length'] = len(q.result)
-		q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
-		ret['names'] = q.result
+		ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
+		ret['stats']['time'] = q.time		
 		return ret
 		
 
@@ -1304,7 +1305,7 @@ class DB(object):
 			count = 1000
 		c = c or []
 		ret = dict(
-			c=c,
+			c=c[:],
 			mode=mode,
 			sortkey=sortkey,
 			pos=pos,
@@ -1314,12 +1315,49 @@ class DB(object):
 			stats={},
 			keytype=keytype
 		)		
-		# Run the query		
+
+		# Run the query
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
+		names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
+		items = q.items
+		cache = q.cache
+
+		# rectypes = set(i.get('rectype') for i in cache.values())
+		# print "rectypes:", rectypes
+		# defaultviewdef = "$@recname() $@thumbnail() $$rectype $$name"
+		# addparamdefs = ["creator","creationtime"]
+		# # Get the viewdef
+		# if len(rectypes) == 1:
+		# 	rd = self.bdbs.recorddef.cget(rectypes.keys()[0], ctx=ctx, txn=txn)
+		# 	viewdef = rd.views.get('tabularview', defaultviewdef)
+		# else:
+		# 	try:
+		# 		rd = self.bdbs.recorddef.cget("root", filt=False, ctx=ctx, txn=txn)
+		# 	except (KeyError, SecurityError):
+		# 		viewdef = defaultviewdef
+		# 	else:
+		# 		viewdef = rd.views.get('tabularview', defaultviewdef)
+		# 
+		# viewdef = [i.strip() for i in viewdef.split()]
+		# 
+		# for i in addparamdefs:
+		# 	if not i.startswith('$'):
+		# 		i = '$$%s'%i
+		# 	if i in viewdef:
+		# 		viewdef.remove(i)
+		# 
+		# for i in [i[0] for i in c] + addparamdefs:
+		# 	if not i.startswith('$'):
+		# 		i = '$$%s'%i
+		# 	add_to_viewdef(viewdef, i)
+		# 
+		# viewdef = " ".join(viewdef)
+		# table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
+
+		ret['names'] = names
 		ret['stats']['length'] = len(q.result)
-		q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
-		ret['names'] = q.result
+		ret['stats']['time'] = q.time
 		return ret
 
 	@publicmethod("record.plot")
@@ -1328,23 +1366,29 @@ class DB(object):
 		y = y or {}
 		z = z or {}
 		c = c or []
-		for axis in [x.get('key'), y.get('key'), z.get('key')]:
-			if axis and axis not in qparams and axis != 'name':
-				c.append([axis, 'any', None])
-
 		ret = dict(
-			c=c,
+			c=c[:],
+			x=x,
+			y=y,
+			z=z,
 			mode=mode,
 			stats={},
 			ignorecase=True,
-			keytype=keytype
+			keytype=keytype,
 		)
 
+		qparams = [i[0] for i in c]
+		qparams.append('name')
+		for axis in [x.get('key'), y.get('key'), z.get('key')]:
+			if axis and axis not in qparams:
+				c.append([axis, 'any', None])
 		# Run the query		
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
-		ret['stats']['length'] = len(q.result)
+		ret['names'] = q.result
 		ret['recs'] = q.cache.values()
+		ret['stats']['length'] = len(q.result)
+		ret['stats']['time'] = q.time
 		return ret
 
 	##### Other query methods #####
