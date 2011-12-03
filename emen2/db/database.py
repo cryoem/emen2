@@ -1277,6 +1277,66 @@ class DB(object):
 
 	@publicmethod("record.query")
 	def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=False, keytype="record", ctx=None, txn=None, **kwargs):
+		"""General query.
+
+		Constraints are provided in the following format:
+			[param, operator, value]
+
+		Operation and value are optional. An arbitrary number of constraints may be given.
+
+		Operators:
+			is			or		==
+			not			or		!=
+			gt			or		>
+			lt			or		<
+			gte			or		>=
+			lte			or		<=
+			any
+			none
+			contains
+			contains_w_empty
+			noop
+			name
+
+		Examples constraints:
+			[name, '==', 136]
+			['creator', '==', 'ian']
+			['rectype', 'is', 'image_capture*']
+			['$@recname()', 'noop']
+			[['modifytime', '>=', '2011'], ['name_pi', 'contains', 'steve']]
+
+		For record names, parameter names, and protocol names, a '*' can be used to also match children, e.g:
+			[['children', 'name', '136*'], ['rectype', '==', 'image_capture*']]
+		Will match all children of record 136, recursively, for any child protocol of image_capture.
+
+		The result will be a dictionary containing all the original query arguments, plus:
+			names:	Names of records found
+			stats:	Query statistics
+				length		Number of records found
+				time		Execution time
+
+		Examples:
+
+		>>> db.query()
+		{'names':[1,2, ...], 'stats': {'time': 0.001, 'length':1234}, 'c': [], ...}
+
+		>>> db.query([['creator', 'is', 'ian']])
+		{'names':[1,2,3], 'stats': {'time': 0.002, 'length':3}, 'c': [['creator', 'is', 'ian]], ...}
+
+		>>> db.query([['creator', 'is', 'ian']], sortkey='creationtime', reverse=True)
+		{'names':[3,2,1], 'stats': {'time': 0.002, 'length':3}, 'c': [['creator', 'is', 'ian]], 'sortkey': 'creationtime' ...}
+
+		:keyparam c: Constraints
+		:keyparam pos: Return results starting from (sorted record name) position
+		:keyparam count: Return a limited number of results
+		:keyparam sortkey: Sort returned records by this param. Default is creationtime.
+		:keyparam reverse: Reverse results
+		:keyparam ignorecase: Ignore case when comparing strings
+		:return: A dictionary containing the original query arguments, and the result in the 'names' key
+		:exception KeyError: Broken constraint
+		:exception ValidationError: Broken constraint
+		:exception SecurityError: Unable to access specified RecordDefs or other constraint parameters.
+		"""		
 		c = c or []
 		ret = dict(
 			c=c[:], #copy
@@ -1293,19 +1353,29 @@ class DB(object):
 		# Run the query		
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
-		ret['stats']['length'] = len(q.result)
 		ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
+		ret['stats']['length'] = len(q.result)
 		ret['stats']['time'] = q.time		
 		return ret
 		
 
 	@publicmethod("record.table")
-	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=False, keytype="record", ctx=None, txn=None, **kwargs):
+	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=False, viewdef=None, keytype="record", ctx=None, txn=None, **kwargs):
+		"""Query results suitable for making a table.
+		
+		This method extends query() to include rendered views in the results. 
+		These are available in the 'rendered' key in the return value. Key is
+		the item name, value is a list of the values for each column. The
+		headers for each column are in the 'headers' key.
+		
+		The maximum number of items returned in the table is 1000.
+		
+		"""
 		if count < 1 or count > 1000:
 			count = 1000
 		c = c or []
 		ret = dict(
-			c=c[:],
+			c=c[:], # copy
 			mode=mode,
 			sortkey=sortkey,
 			pos=pos,
@@ -1319,41 +1389,55 @@ class DB(object):
 		# Run the query
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
-		names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
-		items = q.items
-		cache = q.cache
-		rectypes = set(i.get('rectype') for i in cache.values())
-		print "rectypes:", rectypes
-		# defaultviewdef = "$@recname() $@thumbnail() $$rectype $$name"
-		# addparamdefs = ["creator","creationtime"]
-		# # Get the viewdef
-		# if len(rectypes) == 1:
-		# 	rd = self.bdbs.recorddef.cget(rectypes.keys()[0], ctx=ctx, txn=txn)
-		# 	viewdef = rd.views.get('tabularview', defaultviewdef)
-		# else:
-		# 	try:
-		# 		rd = self.bdbs.recorddef.cget("root", filt=False, ctx=ctx, txn=txn)
-		# 	except (KeyError, SecurityError):
-		# 		viewdef = defaultviewdef
-		# 	else:
-		# 		viewdef = rd.views.get('tabularview', defaultviewdef)
-		# 
-		# viewdef = [i.strip() for i in viewdef.split()]
-		# 
-		# for i in addparamdefs:
-		# 	if not i.startswith('$'):
-		# 		i = '$$%s'%i
-		# 	if i in viewdef:
-		# 		viewdef.remove(i)
-		# 
-		# for i in [i[0] for i in c] + addparamdefs:
-		# 	if not i.startswith('$'):
-		# 		i = '$$%s'%i
-		# 	add_to_viewdef(viewdef, i)
-		# 
-		# viewdef = " ".join(viewdef)
-		# table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
+		names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse, rendered=True)
 
+		# Render the table
+		if not viewdef:
+			# todo: move this to q.check('rectype') or similar..
+			# Check which views we need to fetch
+			toget = []
+			for i in q.result:
+				if not q.cache[i].get('rectype'):
+					toget.append(i)
+					
+			if toget:
+				rt = self.groupbyrectype(toget, ctx=ctx, txn=txn)
+				for k,v in rt.items():
+					for name in v:
+						q.cache[name]['rectype'] = k
+
+			rectypes = set(q.cache[i].get('rectype') for i in q.result)
+			rectypes -= set([None])
+			
+			defaultviewdef = "$@recname() $@thumbnail() $$rectype $$name"
+			addparamdefs = ["creator","creationtime"]
+			# Get the viewdef
+			if len(rectypes) == 1:
+				rd = self.bdbs.recorddef.cget(rectypes, ctx=ctx, txn=txn)
+				viewdef = rd.views.get('tabularview', defaultviewdef)
+			else:
+				try:
+					rd = self.bdbs.recorddef.cget("root", filt=False, ctx=ctx, txn=txn)
+				except (KeyError, SecurityError):
+					viewdef = defaultviewdef
+				else:
+					viewdef = rd.views.get('tabularview', defaultviewdef)
+			
+			# viewdef = [i.strip() for i in viewdef.split()]
+			# for i in addparamdefs:
+			# 	if not i.startswith('$'):
+			# 		i = '$$%s'%i
+			# 	if i in viewdef:
+			# 		viewdef.remove(i)			
+			# for i in [i[0] for i in c] + addparamdefs:
+			# 	if not i.startswith('$'):
+			# 		i = '$$%s'%i
+			# 	add_to_viewdef(viewdef, i)			
+			# viewdef = " ".join(viewdef)
+		
+		table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
+		print table
+		
 		ret['names'] = names
 		ret['stats']['length'] = len(q.result)
 		ret['stats']['time'] = q.time
@@ -1361,6 +1445,26 @@ class DB(object):
 
 	@publicmethod("record.plot")
 	def plot(self, c=None, mode='AND', x=None, y=None, z=None, keytype="record", ctx=None, txn=None, **kwargs):
+		"""Query results suitable for plotting.
+		
+		This method extends query() to help generate a plot. The results are
+		not sorted; the sortkey, pos, count, and reverse keyword arguments
+		are ignored.
+
+		Provide dictionaries for the x, y, and z keywords. These may have the
+		following keys:
+			key:	Parameter name for this axis.
+			bin:	Number of bins, or date width for time parameters.
+			min:	Minimum
+			max:	Maximum
+			
+		Currently only the 'key' from each x, y, z attribute is used to make
+		sure it is part of the query that runs.
+		
+		The matching values for each constraint are available in the "items"
+		key in the return value. This is a list of stub items.
+		
+		"""		
 		x = x or {}
 		y = y or {}
 		z = z or {}

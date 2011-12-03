@@ -9,7 +9,7 @@ import emen2.util.listops
 INDEXMIN = 1000
 ITEMSMAX = 100000
 
-def getop(op, ignorecase=1):
+def getop(op, ignorecase=True):
 	"""(Internal) Get a comparison function
 	:keyword ignorecase: Use case-insensitive comparison methods
 	:return: Comparison function
@@ -68,10 +68,10 @@ class Constraint(object):
 
 	def run(self):		
 		# Run the constraint
-		print "\nrunning:", self.param, self.op, self.term, '(ind:%s)'%self.ind, '(found:%s)'%len(self.p.result or [])
-		t = time.time()
+		# print "\nrunning:", self.param, self.op, self.term, '(ind:%s)'%self.ind, '(prev found:%s)'%len(self.p.result or [])
+		# t = time.time()
 		f = self._run()
-		print "-> found: %s in %s"%(len(f or []), time.time()-t)
+		# print "-> found: %s in %s"%(len(f or []), time.time()-t)
 
 		# Check for negative operators
 		if self.op == 'noop':
@@ -89,6 +89,8 @@ class Constraint(object):
 
 
 class IndexedConstraint(Constraint):
+	"""Constraint that has an index."""
+	
 	def init(self, p):
 		super(IndexedConstraint, self).init(p)
 		self.priority = 1.0
@@ -107,8 +109,9 @@ class ParamConstraint(IndexedConstraint):
 	"""Constraint based on a ParamDef"""
 	
 	def _run(self):
+		# Use either the items-based search or the index-based search.
 		r = self.p.result
-		if r and len(r) < INDEXMIN:
+		if (r and len(r) < INDEXMIN) or not self.ind:
 			return self._run_items()
 		return self._run_index()
 
@@ -125,7 +128,8 @@ class ParamConstraint(IndexedConstraint):
 	
 	def _run_index(self):
 		# Use the parameter index
-		f = set()
+		# list seems to be faster than set
+		f = []
 		# Convert the term to the right type
 		try:
 			term = self.ind.typekey(self.term)
@@ -135,19 +139,19 @@ class ParamConstraint(IndexedConstraint):
 		# If we're just looking for a single value
 		if self.op is 'is':
 			items = self.ind.get(term, txn=self.p.txn)
-			f |= items
+			f.extend(items)
 			for i in items:
 				self.p.cache[i][self.param] = term
-			return f
+			return set(f)
 
 		# Otherwise check constraint against all indexed values
 		cfunc = getop(self.op)
 		for key, items in self.ind.iteritems(txn=self.p.txn):
 			if cfunc(term, key):
-				f |= items
+				f.extend(items)
 				for i in items:
 					self.p.cache[i][self.param] = key
-		return f
+		return set(f)
 
 
 class RectypeConstraint(ParamConstraint):
@@ -163,72 +167,16 @@ class RectypeConstraint(ParamConstraint):
 			terms = [self.term]
 			
 		for i in terms:
-			print "...", i
 			self.term = i # ugly; pass as argument in the future
 			f2 = super(RectypeConstraint, self)._run()
 			if f is None and f2:
-				f = f2
+				f = list(f2)
 			elif f2:
-				f |= f2
-		return f
+				f.extend(f2)
 
-	# def _run_items(self):
-	# 	# Copy from items to cache
-	# 	self.p._cacheitems()
-	# 	for item in self.p.items:
-	# 		self.p.cache[item.name]['rectype'] = item.get('rectype')
-	# 
-	# 	# No constraint, just fetched values
-	# 	if self.op in ['noop', 'any']:
-	# 		return None
-	# 
-	# 	rectypes = self._expand()
-	# 	f = set()
-	# 	for item in self.p.items:
-	# 		if item.get('rectype') in rectypes:
-	# 			f.add(item.name)
-	# 	return f
-	# 
-	# def _run_index(self):
-	# 	# This can be ugly; avoid running just rectype noop.
-	# 	# Get the entire index.
-	# 	if self.p.result is None and self.op in ['noop', 'any', 'none']:
-	# 		for k,v in ind.iteritems(txn=self.p.txn):
-	# 			for item in v:
-	# 				self.p.cache[item] = k
-	# 		return None
-	# 
-	# 	rectypes = self._expand()
-	# 	f = set()
-	# 	for rectype in rectypes:
-	# 		i = self.ind.get(rectype, txn=self.p.txn)
-	# 		f |= i
-	# 		for item in i:
-	# 			self.p.cache[item]['rectype'] = rectype
-	# 		
-	# 	return f
-	# 
-	# 
-	# def _expand(self):
-	# 	return self.p.btree.dbenv.recorddef.expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
+		# ian: todo: Doesn't work for "not param*"
+		return set(f)
 
-	# def _run(self):
-	# 	f = set()
-	# 	rectypes = self.p.btree.dbenv.recorddef.expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
-	# 	
-	# 	if self.op in ['any', 'noop']:
-	# 		# We've already switched to direct constraints
-	# 		if self.p.items:
-	# 			
-	# 		
-	# 		return f
-	# 
-	# 	for rectype in rectypes:
-	# 		items = self.ind.get(rectype, txn=self.p.txn)
-	# 		f |= items
-	# 		for i in items:
-	# 			self.p.cache[i]['rectype'] = rectype
-	# 	return f
 
 class RelConstraint(IndexedConstraint):
 	"""Relationship constraints, allows '*' notation in constraint term"""
@@ -409,15 +357,16 @@ class Query(object):
 	def _cacheitems(self):
 		# Get and cache items for direct comparison constraints.
 		# In OR constraints, self.items will be the domain of all possible matches
-		toget = set() | self.result # copy
-		if toget is None and not self.items:
+		if self.result is None and not self.items:
 			toget = self.btree.names(ctx=self.ctx, txn=self.txn)
+		else:
+			toget = set() | self.result # copy
 
 		current = set([i.name for i in self.items])
 		toget -= current
 
 		if len(toget) > ITEMSMAX:
-			raise Exception, "This type of constraint has a limit of 100,000 items; tried to get %s"%(len(toget))
+			raise Exception, "This type of constraint has a limit of 100000 items; tried to get %s. Try narrowing the search by adding additional parameters."%(len(toget))
 
 		if toget:
 			items = self.btree.cgets(toget, ctx=self.ctx, txn=self.txn)

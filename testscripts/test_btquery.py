@@ -5,31 +5,33 @@ with db:
 	txn = db._txn
 	ctx = db._ctx
 	c = [
-		#['vartype', 'is', 'string'],
-		#['vartype', 'is', 'text'],
-		#['phone_voice*', 'contains', '2011'],
+		# ['vartype', 'is', 'string'],
+		# ['vartype', 'is', 'text'],
+		# ['phone_voice*', 'contains', '2011'],
 		# ['name_pi', 'contains', 'wah'],
 		# ['children', 'contains', '136'],
+		# ['rectype', 'not', 'project*'],
 		# ['rectype', 'contains', 'ccd'],
-		['rectype', 'is', 'project'],
+		['rectype', 'is', 'image_capture*']
+		# ['rectype', 'is', 'ccd'],
 		# ['$@recname()', 'noop'],
 		# ['ctf_bfactor', 'any', ''],
-		#['ctf_defocus_measured', 'any', ''],
-		# ['creationtime', 'contains', '2011'],
+		# ['ctf_defocus_measured', 'any', ''],
+		# ['creationtime', 'any', '2011'],
 	]
+	# x = {'key':'creationtime'}
+	# y = {'key':'ctf_bfactor'}
+	# z = {'key':'rectype'}
+	# z = {'key':'$@recname()'}
+	# z = {'key':'$@parentvalue(tem_name,-1)'}
 
 	t = time.time()
-	# x = {'key':'ctf_defocus_measured'}
-	# y = {'key':'ctf_bfactor'}
-	# q = db.plot(c=c, x=x, y=y)
-	# q = db.plot(c=c, count=10, pos=0)
 	q = db.table(c=c)
+	print q
 	print "=> total: %s results in %s"%(q['stats']['length'], time.time()-t)
 
 
-
-
-
+# These are the old query methods
 class Blah(object):
 	"""General query.
 	

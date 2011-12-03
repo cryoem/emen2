@@ -4,7 +4,6 @@
 Classes:
 	EMEN2DB: BerkeleyDB BTree wrapper
 	IndexDB: Index DB
-	IndexKeysDB: Index-index DB
 	DBODB: DB for items implementing DBO interface
 	RelateDB: DBODB that supports parent-child relationships
 
@@ -752,12 +751,6 @@ class IndexDB(EMEN2DB):
 
 
 
-class IndexKeysDB(IndexDB):
-	'''A specialized IndexDB for keeping an index of index keys.'''
-	extension = 'bdb'
-
-
-
 
 # Context-aware DB for DBO's.
 # These support a single DB and a single data class.
@@ -1207,9 +1200,8 @@ class DBODB(EMEN2DB):
 		vtm = emen2.db.datatypes.VartypeManager()
 		vt = vtm.getvartype(pd.vartype)
 		vt.pd = pd
+
 		# Process the changes into index addrefs / removerefs
-		addindexkeys = []
-		removeindexkeys = []
 		addrefs, removerefs = vt.reindex(changes)
 		# print "reindexing", pd.name
 		# print "changes:", changes
@@ -1220,22 +1212,10 @@ class DBODB(EMEN2DB):
 		for oldval, recs in removerefs.items():
 			# Not necessary to map temp names to final names,
 			# as reindexing is now done after assigning names
-			removeindexkeys.extend(ind.removerefs(oldval, recs, txn=txn))
+			ind.removerefs(oldval, recs, txn=txn)
 
 		for newval,recs in addrefs.items():
-			addindexkeys.extend(ind.addrefs(newval, recs, txn=txn))
-
-		# Update the index-index
-		indk = self.getindex('indexkeys', txn=txn)
-		if not indk or pd.name in ['parents', 'children']:
-			return
-
-		# Update index-index, a necessary evil..
-		if removeindexkeys:
-			indk.removerefs(pd.name, removeindexkeys, txn=txn)
-
-		if addindexkeys:
-			indk.addrefs(pd.name, addindexkeys, txn=txn)
+			ind.addrefs(newval, recs, txn=txn)
 
 
 	##### Indexes. #####

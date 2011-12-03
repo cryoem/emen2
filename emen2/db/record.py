@@ -336,10 +336,6 @@ class RecordDB(emen2.db.btrees.RelateDB):
 			return ind
 
 		# print "Attempting to open index %s"%param
-		# RecordDB maintains an index-of-indexes for faster querying
-		if param == 'indexkeys':
-			ind = emen2.db.btrees.IndexKeysDB(filename=self._indname(param), keytype='s', datatype='p', dbenv=self.dbenv)
-			return ind
 
 		# Check the paramdef to see if it's indexed
 		# ian: todo: use the context
