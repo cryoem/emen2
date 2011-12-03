@@ -1322,9 +1322,8 @@ class DB(object):
 		names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
 		items = q.items
 		cache = q.cache
-
-		# rectypes = set(i.get('rectype') for i in cache.values())
-		# print "rectypes:", rectypes
+		rectypes = set(i.get('rectype') for i in cache.values())
+		print "rectypes:", rectypes
 		# defaultviewdef = "$@recname() $@thumbnail() $$rectype $$name"
 		# addparamdefs = ["creator","creationtime"]
 		# # Get the viewdef

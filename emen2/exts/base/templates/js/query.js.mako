@@ -551,7 +551,7 @@
 			newq['names'] = [];
 			newq['recs'] = true;
 			newq['table'] = true;
-			emen2.db("query", newq, function(q){self.update(q)});			
+			emen2.db("table", newq, function(q){self.update(q)});			
 		},
 		
 		setpos: function(pos) {

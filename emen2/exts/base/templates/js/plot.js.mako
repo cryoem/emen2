@@ -103,7 +103,7 @@
 			// newq['recs'] = true;
 			
 			// Create query
-			emen2.db('query', newq, function(q) {
+			emen2.db('plot', newq, function(q) {
 				self.options.q = q;
 				self.build(q['recs']);
 			});

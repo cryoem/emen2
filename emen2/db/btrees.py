@@ -1305,7 +1305,7 @@ class DBODB(EMEN2DB):
 		You will need to call constraint.run() to execute the query, 
 		and constraint.sort() to sort the values.
 		"""
-		return emen2.db.query.Constraints(constraints=c, mode=mode, ctx=ctx, txn=txn, btree=self)
+		return emen2.db.query.Query(constraints=c, mode=mode, ctx=ctx, txn=txn, btree=self)
 
 
 

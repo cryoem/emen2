@@ -6,6 +6,8 @@ import time
 import emen2.db.vartypes
 import emen2.util.listops
 
+INDEXMIN = 1000
+ITEMSMAX = 100000
 
 def getop(op, ignorecase=1):
 	"""(Internal) Get a comparison function
@@ -52,25 +54,25 @@ class Constraint(object):
 		self.param = param
 		self.op = op or 'contains'
 		self.term = term or ''
-		# Parent Constraints Group
+		# Parent query group
 		self.p = None
+		self.priority = 10
 		# Param details
 		self.paramdef = None
-		self.priority = 100
 		self.typekey = unicode
 		self.ind = None
 				
 	def init(self, p):
-		"""Bind the parent Constraints group."""
+		"""Bind the parent query group."""
 		self.p = p
 
 	def run(self):		
 		# Run the constraint
-		print "\nrunning:", self.param, self.op, self.term, '(ind:%s)'%self.ind
+		print "\nrunning:", self.param, self.op, self.term, '(ind:%s)'%self.ind, '(found:%s)'%len(self.p.result or [])
 		t = time.time()
 		f = self._run()
 		print "-> found: %s in %s"%(len(f or []), time.time()-t)
-			
+
 		# Check for negative operators
 		if self.op == 'noop':
 			# If op is 'noop', return None (no constraint)
@@ -79,7 +81,7 @@ class Constraint(object):
 			# If op is 'none', return all records that don't have a value
 			names = self.p.btree.names(ctx=self.p.ctx, txn=self.p.txn)
 			f = names - (f or set())
-
+		
 		return f
 
 	def _run(self):
@@ -89,25 +91,24 @@ class Constraint(object):
 class IndexedConstraint(Constraint):
 	def init(self, p):
 		super(IndexedConstraint, self).init(p)
+		self.priority = 1.0
 		# If this is a ParamDef index, get all the details and index
 		try:
 			self.paramdef = self.p.btree.dbenv.paramdef.cget(self.param, filt=False, ctx=self.p.ctx, txn=self.p.txn)			
 			self.ind = self.p.btree.getindex(self.param, txn=self.p.txn)
-			nkeys = self.ind.bdb.stat(txn=self.p.txn)['nkeys'] or 1 # avoid div by zero
+			nkeys = self.ind.bdb.stat(txn=self.p.txn)['ndata'] or 1 # avoid div by zero
 			self.priority = 1.0 - (1.0/nkeys)
 		except Exception, e:
-			# Unindexed item, low priority.
-			print "Error opening %s index:"%self.param, e
-			self.priority = 2 
+			# print "Error opening %s index:"%self.param, e
 			pass
 			
 
 class ParamConstraint(IndexedConstraint):
-	"""Constraints based on a ParamDef"""
+	"""Constraint based on a ParamDef"""
 	
 	def _run(self):
 		r = self.p.result
-		if r and len(r) < 1000:
+		if r and len(r) < INDEXMIN:
 			return self._run_items()
 		return self._run_index()
 
@@ -123,34 +124,111 @@ class ParamConstraint(IndexedConstraint):
 		return f
 	
 	def _run_index(self):
-		print "(using index)"
 		# Use the parameter index
 		f = set()
-		cfunc = getop(self.op)
-		# Get the index
-		ind = self.p.btree.getindex(self.param, txn=self.p.txn)
 		# Convert the term to the right type
 		try:
-			term = ind.typekey(self.term)
+			term = self.ind.typekey(self.term)
 		except:
 			term = self.term
 		
 		# If we're just looking for a single value
 		if self.op is 'is':
-			items = ind.get(term, txn=self.p.txn)
+			items = self.ind.get(term, txn=self.p.txn)
 			f |= items
 			for i in items:
 				self.p.cache[i][self.param] = term
 			return f
 
 		# Otherwise check constraint against all indexed values
-		for key, items in ind.iteritems(txn=self.p.txn):
+		cfunc = getop(self.op)
+		for key, items in self.ind.iteritems(txn=self.p.txn):
 			if cfunc(term, key):
 				f |= items
 				for i in items:
 					self.p.cache[i][self.param] = key
 		return f
 
+
+class RectypeConstraint(ParamConstraint):
+	"""Rectype constraints, allows '*' notation in constraint term"""
+
+	def _run(self):
+		# Expand the rectype children and run for each term
+		# This is essentially a sub-Query, but without creating a new cache/items/etc.
+		f = None
+		if self.term.endswith('*'):
+			terms = self.p.btree.dbenv.recorddef.expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
+		else:
+			terms = [self.term]
+			
+		for i in terms:
+			print "...", i
+			self.term = i # ugly; pass as argument in the future
+			f2 = super(RectypeConstraint, self)._run()
+			if f is None and f2:
+				f = f2
+			elif f2:
+				f |= f2
+		return f
+
+	# def _run_items(self):
+	# 	# Copy from items to cache
+	# 	self.p._cacheitems()
+	# 	for item in self.p.items:
+	# 		self.p.cache[item.name]['rectype'] = item.get('rectype')
+	# 
+	# 	# No constraint, just fetched values
+	# 	if self.op in ['noop', 'any']:
+	# 		return None
+	# 
+	# 	rectypes = self._expand()
+	# 	f = set()
+	# 	for item in self.p.items:
+	# 		if item.get('rectype') in rectypes:
+	# 			f.add(item.name)
+	# 	return f
+	# 
+	# def _run_index(self):
+	# 	# This can be ugly; avoid running just rectype noop.
+	# 	# Get the entire index.
+	# 	if self.p.result is None and self.op in ['noop', 'any', 'none']:
+	# 		for k,v in ind.iteritems(txn=self.p.txn):
+	# 			for item in v:
+	# 				self.p.cache[item] = k
+	# 		return None
+	# 
+	# 	rectypes = self._expand()
+	# 	f = set()
+	# 	for rectype in rectypes:
+	# 		i = self.ind.get(rectype, txn=self.p.txn)
+	# 		f |= i
+	# 		for item in i:
+	# 			self.p.cache[item]['rectype'] = rectype
+	# 		
+	# 	return f
+	# 
+	# 
+	# def _expand(self):
+	# 	return self.p.btree.dbenv.recorddef.expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
+
+	# def _run(self):
+	# 	f = set()
+	# 	rectypes = self.p.btree.dbenv.recorddef.expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
+	# 	
+	# 	if self.op in ['any', 'noop']:
+	# 		# We've already switched to direct constraints
+	# 		if self.p.items:
+	# 			
+	# 		
+	# 		return f
+	# 
+	# 	for rectype in rectypes:
+	# 		items = self.ind.get(rectype, txn=self.p.txn)
+	# 		f |= items
+	# 		for i in items:
+	# 			self.p.cache[i]['rectype'] = rectype
+	# 	return f
 
 class RelConstraint(IndexedConstraint):
 	"""Relationship constraints, allows '*' notation in constraint term"""
@@ -161,23 +239,16 @@ class RelConstraint(IndexedConstraint):
 	
 	def _run(self):
 		# Relationships
-		# self.bdbs.record.rel([value], recurse=recurse, ctx=ctx, txn=txn).get(value, set())
-		ind = self.p.btree.getindex(self.param, txn=self.p.txn)
-		try:
-			return ind.get(ind.typekey(self.term), txn=self.p.txn)
-		except:
-			return None
+		recurse = 1
+		term = unicode(self.term)
+		if term.endswith('*'):
+			term = term.replace('*', '')
+			recurse = -1			
 
+		term = self.p.btree.typekey(term)
+		rel = self.p.btree.rel([term], recurse=recurse, ctx=self.p.ctx, txn=self.p.txn)
+		return rel.get(term, set())
 
-class RectypeConstraint(IndexedConstraint):
-	"""Rectype constraints, allows '*' notation in constraint term"""
-	
-	def _run(self):
-		f = set()
-		rectypes = self.p.btree.dbenv.recorddef.expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
-		for rectype in rectypes:
-			f |= self.ind.get(rectype, txn=self.p.txn)
-		return f
 
 	
 class MacroConstraint(Constraint):
@@ -186,7 +257,6 @@ class MacroConstraint(Constraint):
 	def _run(self):
 		# Execute a macro
 		f = set()
-		cfunc = getop(self.op)
 		# Fetch the items we need in the parent group.
 		self.p._cacheitems()		
 		# Parse the macro and get the Macro class
@@ -204,6 +274,7 @@ class MacroConstraint(Constraint):
 		else:
 			term = unicode(self.term)
 		# Run the comparison
+		cfunc = getop(self.op)
 		for item in self.p.items:
 			value = vtm.macro_process(k.group('name'), k.group('args'), item)
 			if cfunc(term, value):
@@ -214,7 +285,7 @@ class MacroConstraint(Constraint):
 		
 
 
-class Constraints(object):
+class Query(object):
 	def __init__(self, constraints, mode='AND', ctx=None, txn=None, btree=None):
 		# Results attributes
 		self.time = 0.0
@@ -235,7 +306,7 @@ class Constraints(object):
 		# Constraint Groups can contain sub-groups: see also init(), run()
 		self.ind = True		
 		self.param = None	
-		self.priority = 0
+		self.priority = 1
 
 		# Make constraints
 		self.constraints = []
@@ -253,18 +324,22 @@ class Constraints(object):
 		for c in sorted(self.constraints, key=lambda x:x.priority):
 			f = c.run()
 			self._join(f)
+
+		# Filter by permissions
+		self.result = self.btree.names(self.result or set(), ctx=self.ctx, txn=self.txn)
 		
 		# After all constraints have run, tidy up cache/items
 		self._prunecache()
 		self._pruneitems()		
 
 		# Update the approx. running time.
-		self.time = time.time()-t
+		self.time += time.time()-t
 		
 		return self.result
 
-	def sort(self, sortkey='name', reverse=False, pos=0, count=0):
+	def sort(self, sortkey='name', reverse=False, pos=0, count=0, rendered=False):
 		# print "Sorting by: %s"%sortkey
+		t = time.time()
 		# Make sure we have the values for sorting
 		params = [i.param for i in self.constraints]
 		if sortkey is 'name':
@@ -282,16 +357,22 @@ class Constraints(object):
 			self._checkitems(sortkey)
 			
 		# Actually sort..	
-		# Todo: Sort by the rendered value or the raw actual value?
 		sortvalues = {}
 		for i in self.result or []:
 			sortvalues[i] = self.cache[i].get(sortkey)
 		
-		self.result = sorted(self.result, key=sortvalues.get, reverse=reverse)
+		# Todo: Sort by the rendered value or the raw actual value?
+		# if rendered:
+		# 	rendered = {}
+		
+		result = sorted(self.result, key=sortvalues.get, reverse=reverse)
 		
 		if count > 0:
-			self.result = self.result[pos:pos+count]
+			result = result[pos:pos+count]
 
+		self.time += time.time()-t
+
+		return result
 
 
 	##### Results/Cache methods #####
@@ -300,7 +381,7 @@ class Constraints(object):
 		# Add/remove items from results 
 		if f is None:
 			pass
-		elif self.result == None:
+		elif self.result is None:
 			self.result = f
 		elif self.mode == 'AND':
 			self.result &= f
@@ -313,12 +394,11 @@ class Constraints(object):
 		# Prune items from the cache that aren't in result set.
 		if self.result is None:
 			return
-		newcache = {}
-		for k,v in self.cache.items():
-			if k in self.result:
-				v['name'] = k
-				newcache[k] = v
-		self.cache = newcache
+		keys = self.cache.keys()
+		for key in keys:
+			self.cache[key]['name'] = key
+			if key not in self.result:
+				del self.cache[key]
 			
 	def _pruneitems(self):		
 		# Prune items that aren't in the result set.
@@ -329,14 +409,14 @@ class Constraints(object):
 	def _cacheitems(self):
 		# Get and cache items for direct comparison constraints.
 		# In OR constraints, self.items will be the domain of all possible matches
-		toget = self.result
+		toget = set() | self.result # copy
 		if toget is None and not self.items:
 			toget = self.btree.names(ctx=self.ctx, txn=self.txn)
 
 		current = set([i.name for i in self.items])
 		toget -= current
 
-		if len(toget) > 100000:
+		if len(toget) > ITEMSMAX:
 			raise Exception, "This type of constraint has a limit of 100,000 items; tried to get %s"%(len(toget))
 
 		if toget:
@@ -362,7 +442,7 @@ class Constraints(object):
 		elif param.endswith('*'):
 			# Turn expanded params into a new constraint group
 			params = self.btree.dbenv.paramdef.expand([param], ctx=self.ctx, txn=self.txn)
-			constraint = Constraints(
+			constraint = Query(
 				[[i, op, term] for i in params],
 				mode='OR', 
 				ctx=self.ctx, 

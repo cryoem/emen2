@@ -67,9 +67,7 @@ class RecordBase(View):
 		else:
 			parentmap = ''
 
-
 		# Children
-		# TODO: Finish getting rid of HTMLTab
 		pages = collections.OrderedDict()
 		pages.uris = {}
 		pages['main'] = recnames.get(self.rec.name, self.rec.name)
