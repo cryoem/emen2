@@ -1276,7 +1276,7 @@ class DB(object):
 	##### Query #####
 
 	@publicmethod("record.query")
-	def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=False, keytype="record", ctx=None, txn=None, **kwargs):
+	def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""General query.
 
 		Constraints are provided in the following format:
@@ -1360,7 +1360,7 @@ class DB(object):
 		
 
 	@publicmethod("record.table")
-	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=False, viewdef=None, keytype="record", ctx=None, txn=None, **kwargs):
+	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, viewdef=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""Query results suitable for making a table.
 		
 		This method extends query() to include rendered views in the results. 
@@ -1369,10 +1369,16 @@ class DB(object):
 		headers for each column are in the 'headers' key.
 		
 		The maximum number of items returned in the table is 1000.
-		
 		"""
+
+		# Limit tables to 1000 items per page.
 		if count < 1 or count > 1000:
 			count = 1000
+			
+		# Records are shown newest-first by default...
+		if keytype == "record" and sortkey in ['name', 'recid', 'creationtime'] and reverse is None:
+			reverse = True
+
 		c = c or []
 		ret = dict(
 			c=c[:], # copy
@@ -1389,7 +1395,7 @@ class DB(object):
 		# Run the query
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
-		names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
+		names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse, rendered=True)
 
 		# Build the viewdef
 		defaultviewdef = "$@recname() $@thumbnail() $$rectype $$name"

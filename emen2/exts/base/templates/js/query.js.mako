@@ -607,7 +607,7 @@
 				title = this.options.q['stats']['length'] + ' records';				
 			} else if (rtkeys.length == 1) {
 				title = this.options.q['stats']['length'] + ' ' + rtkeys[0] + ' records';
-			} else if (rtkeys.length <= 5) {				
+			} else if (rtkeys.length <= 5) {
 				title = title + ": ";
 				for (var i=0;i<rtkeys.length;i++) {
 					title = title + self.options.q['stats']['rectypes'][rtkeys[i]] + ' ' + rtkeys[i];
@@ -724,7 +724,6 @@
 			// Build each row
 			for (var i=0;i<names.length;i++) {
 				var row = [];
-				// row.push('<td><input type="checkbox" data-name="'+names[i]+'" /></td>');
 				for (var j=0;j<headers.length;j++) {
 					row.push('<td>'+self.options.q['table'][names[i]][j]+'</td>');
 				}

@@ -223,17 +223,16 @@ class MacroConstraint(Constraint):
 		self.p._cacheitems()		
 		# Parse the macro and get the Macro class
 		regex = emen2.db.database.VIEW_REGEX
-		k = regex.match(self.param)
-		vtm = emen2.db.datatypes.VartypeManager(db=self.p.ctx.db)
+		k = regex.match(self.param)		
 		# Run the macro
-		vtm.macro_preprocess(k.group('name'), k.group('args'), self.p.items)
+		self.p.vtm.macro_preprocess(k.group('name'), k.group('args'), self.p.items)
 		# Convert the term to the right type
-		keytype = vtm.getmacro(k.group('name')).getkeytype()
+		keytype = self.p.vtm.getmacro(k.group('name')).getkeytype()
 		term = keytypeconvert(keytype, self.term)
 		# Run the comparison
 		cfunc = getop(self.op)
 		for item in self.p.items:
-			value = vtm.macro_process(k.group('name'), k.group('args'), item)
+			value = self.p.vtm.macro_process(k.group('name'), k.group('args'), item)
 			if cfunc(term, value):
 				f.add(item.name)
 				self.p.cache[item.name][self.param] = value
@@ -244,11 +243,12 @@ class MacroConstraint(Constraint):
 
 class Query(object):
 	def __init__(self, constraints, mode='AND', ctx=None, txn=None, btree=None):
-		# Results attributes
 		self.time = 0.0
-		self.vtm = None			# vartype manager; handles validation, macros
-		self.result = None 		# None or set() of query result
-		self.mode = mode		# boolean AND / OR
+
+		# None or set() of query result
+		self.result = None 		
+		# boolean AND / OR
+		self.mode = mode		
 
 		# Items that were fetched for non-indexed constraints
 		self.items = []			
@@ -259,6 +259,8 @@ class Query(object):
 		self.ctx = ctx
 		self.txn = txn
 		self.btree = btree
+		# vartype manager; handles validation, macros
+		self.vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 
 		# Constraint Groups can contain sub-groups: see also init(), run()
 		self.ind = True		
@@ -297,15 +299,20 @@ class Query(object):
 		
 		return self.result
 
-	def sort(self, sortkey='name', reverse=False, pos=0, count=0, rendered=False):
+	def sort(self, sortkey='name', reverse=None, pos=0, count=0, rendered=False):
+		if sortkey == 'name':
+			# Shortcut
+			result = sorted(self.result, reverse=reverse)
+			if count > 0:
+				result = result[pos:pos+count]
+			return result
+
 		# print "Sorting by: %s"%sortkey
 		t = time.time()
+
 		# Make sure we have the values for sorting
 		params = [i.param for i in self.constraints]
-		if sortkey is 'name':
-			# Name is inherent
-			pass
-		elif sortkey not in params:
+		if sortkey not in params:
 			# We don't have a constraint that matched the sortkey
 			# This does not change the constraint, just gets values.
 			c = self._makeconstraint(sortkey, op='noop')
@@ -315,17 +322,44 @@ class Query(object):
 		paramdef = self.btree.dbenv.paramdef.cget(sortkey, ctx=self.ctx, txn=self.txn)
 		if paramdef and paramdef.iter:
 			self._checkitems(sortkey)
-			
-		# Actually sort..	
+
+		# Make a copy of the results
+		result = set() | (self.result or set())
+
+		# Sort function
 		sortvalues = {}
-		for i in self.result or []:
+		sortfunc = sortvalues.get
+		for i in result:
 			sortvalues[i] = self.cache[i].get(sortkey)
+
+		# Remove Nones
+		nones = set([i for i in result if sortvalues[i] is None])
+		result -= nones
+
+		# Get the data type of the paramdef..
+		if rendered and paramdef:
+			# Users need to be rendered... ugly hack.
+			if paramdef.vartype == 'user':
+				for i in result:
+					sortvalues[i] = self.vtm.param_render_sort(paramdef, sortvalues[i])
+
+			# Case-insensitive sort
+			vt = self.vtm.getvartype(paramdef.vartype)
+			if vt.keytype == 's':
+				sortfunc = lambda x:sortvalues[x].lower()
 		
+
 		# Todo: Sort by the rendered value or the raw actual value?
-		# if rendered:
-		# 	rendered = {}
-		result = sorted(self.result, key=sortvalues.get, reverse=reverse)
+		result = sorted(result, key=sortfunc, reverse=reverse)		
 		
+		# Add Nones back in
+		nones = sorted(nones, reverse=reverse)
+		if reverse:
+			nones.extend(result)
+			result = nones
+		else:
+			result.extend(nones)
+
 		if count > 0:
 			result = result[pos:pos+count]
 

@@ -402,7 +402,7 @@ h4
 }
 /***** e2-query: Query Results *****/
 .e2-query table.e2-query-table {
-	/* table-layout: fixed;*/
+/*	table-layout: fixed; */
 }
 /*.e2-query table.e2-query-table th {
 	font-weight: bold;
