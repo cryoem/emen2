@@ -81,10 +81,10 @@ class Constraint(object):
 
 	def run(self):		
 		# Run the constraint
-		print "\nrunning:", self.param, self.op, self.term, '(ind:%s)'%self.ind, '(prev found:%s)'%len(self.p.result or [])
+		# print "\nrunning:", self.param, self.op, self.term, '(ind:%s)'%self.ind, '(prev found:%s)'%len(self.p.result or [])
 		t = time.time()
 		f = self._run()
-		print "-> found: %s in %s"%(len(f or []), time.time()-t)
+		# print "-> found: %s in %s"%(len(f or []), time.time()-t)
 
 		# Check for negative operators
 		if self.op == 'noop':
