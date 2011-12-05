@@ -49,14 +49,15 @@ class Download(View):
 		for bdo in bdos:
 			filename = bdo.get("filename")
 			filepath = bdo.get("filepath")
-			# If we're looking for a particular size or format..
-			# if size:
-			# 	filename = "%s.%s.%s"%(filename, size, format)
-			# 	filepath = os.path.join(g.paths.TILEPATH, "%s.%s.%s"%(bdo.name.replace(":","."), size, format))
-			# 	if not os.access(filepath, os.F_OK):
-			# 		filepath = emen2.db.config.get_filename('emen2', 'web/static/images/blank.png')
 
-			files[filepath] = filename
+			# If we're looking for a particular size or format..
+			size = request.args.get('size')
+			if size:
+			 	thumbname = '%s.%s.jpg'%(bdo.name.replace(':', '.'), size)
+				filepath = os.path.join(emen2.db.config.get('paths.TILEPATH'), thumbname)
+				if not os.access(filepath, os.F_OK):
+			 		filepath = emen2.db.config.get_filename('emen2', 'web/static/images/blank.png')
+			files[filepath] = "%s.%s.jpg"%(filename, size)
 			
 			# This will trigger render_eb if the file is not found
 			if not os.access(filepath, os.F_OK):
