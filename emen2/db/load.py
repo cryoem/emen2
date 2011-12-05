@@ -51,8 +51,8 @@ class BaseLoader(object):
 							yield item
 					else:
 						yield item
-	
-	
+
+
 
 class Loader(BaseLoader):
 	def load(self, overwrite=False):
@@ -73,7 +73,7 @@ class Loader(BaseLoader):
 
 
 		##### PARAMDEFS #####
-		
+
 		pds = []
 		for pd in self.loadfile(self.infile, keytype='paramdef'):
 			pdc[pd.get('name')] |= set(pd.pop('parents', []))
@@ -90,8 +90,8 @@ class Loader(BaseLoader):
 
 
 		##### USERS #####
-		
-		users = []			
+
+		users = []
 		for user in self.loadfile(self.infile, keytype='user'):
 			if user.get('name') in existing_usernames and not overwrite:
 				continue
@@ -116,7 +116,7 @@ class Loader(BaseLoader):
 
 
 		##### GROUPS #####
-		
+
 		groups = []
 		for group in self.loadfile(self.infile, keytype='group'):
 			if group.get('name') in existing_groupnames and not overwrite:
@@ -161,7 +161,7 @@ class Loader(BaseLoader):
 
 
 		##### BDOS #####
-		
+
 		# for bdo in self.loadfile(self.infile, keytype='binary'):
 		# 	# BDO names have colons -- this can cause issues on filesystems, so we change : -> . and back again
 		# 	infile = bdo['name'].replace(":",".")

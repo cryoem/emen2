@@ -49,7 +49,7 @@ class AddExtLookup(mako.lookup.TemplateLookup):
 	Extends TemplateLookup methods:
 		get_template		Adds '.mako' to filenames
 		render_template		""
-		
+
 	"""
 
 	def get_template(self, uri):
@@ -86,11 +86,11 @@ def get_filename(package, resource):
 
 def get(key, default=None):
 	"""Get a configuration value.
-	
+
 	:param key: Configuration key
 	:keyword default: Default value if key is not found
 	:return: Configuration value
-	
+
 	"""
 	return globalns.watch(key, default=default).get()
 
@@ -254,7 +254,7 @@ class DBOptions(optparse.OptionParser):
 		if os.getenv('EMEN2EXTPATHS'):
 			for path in filter(None, os.getenv('EMEN2EXTPATHS','').split(":")):
 				g.paths.EXTPATHS.append(path)
-				
+
 
 
 		# Load the default extensions

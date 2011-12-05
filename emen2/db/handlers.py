@@ -28,20 +28,20 @@ import emen2.db.log
 
 class EMEN2File(object):
 	'''File.
-	
+
 	This is used in a few different ways. It is used for files uploaded
 	to the web server. It can also be used with the File Handlers defined
 	below (e.g. to extract header metadata.) These can also be passed
 	as items to db.putbinary() and stored as database Binary attachments.
-	
-	The original name of the file is self.filename. Sources can be a added in 
-	the constructor, and may be a string of data (filedata), or a file-like 
+
+	The original name of the file is self.filename. Sources can be a added in
+	the constructor, and may be a string of data (filedata), or a file-like
 	object supporting read() (fileobj). Consider the data to be read-only.
-	
-	The writetmp() method will return an on-disk filename that can be used 
-	for operations that required a named file (e.g. EMAN2.) If the input 
-	source is filedata or fileobj, it will write out to a temporary file in 
-	the normal temp file storage area. The close() method will remove any 
+
+	The writetmp() method will return an on-disk filename that can be used
+	for operations that required a named file (e.g. EMAN2.) If the input
+	source is filedata or fileobj, it will write out to a temporary file in
+	the normal temp file storage area. The close() method will remove any
 	temporary files.
 	'''
 	# , or a filename on disk (infile, currently disabled).
@@ -57,12 +57,12 @@ class EMEN2File(object):
 	def get(self, key, default=None):
 		# Used for copying filename/filedata/fileobj/param into putbinary.
 		return self.__dict__.get(key, default)
-	
+
 	def open(self):
 		'''Open the file'''
 		readfile = None
 		if self.filedata:
-			# This is fine; strings are immutable, 
+			# This is fine; strings are immutable,
 			# cStringIO will reuse the buffer
 			readfile = cStringIO.StringIO(self.filedata)
 		elif self.fileobj:
@@ -83,7 +83,7 @@ class EMEN2File(object):
 		'''
 		# Get a file handle
 		infile = self.open()
-		
+
 		# Make a temporary file
 		args = {}
 		if suffix:
@@ -95,7 +95,7 @@ class EMEN2File(object):
 
 		with os.fdopen(fd, "w+b") as f:
 			shutil.copyfileobj(infile, f)
-			
+
 		return tmpfile
 
 
@@ -122,7 +122,7 @@ class Handler(object):
 			if ext.lower() in exts:
 				ret.append(f)
 		return ret
-		
+
 	@classmethod
 	def register(cls, name):
 		def f(o):
@@ -136,12 +136,12 @@ class Handler(object):
 	@classmethod
 	def get_handler(cls, handler):
 		return cls._handlers.get(handler, cls)
-		
+
 
 
 
 ##### Specific file type handlers #####
-# In the future, these may be moved into 
+# In the future, these may be moved into
 #	extension modules and registered with the parent class
 
 # class TestHandler(Handler):
@@ -158,13 +158,13 @@ class Handler(object):
 # @Handler.register('file_movie')
 # class file_movie(Handler):
 # 	extensions = ['avi', 'flv', 'mpg', 'mp4', 'mov']
-# 
-# 
+#
+#
 # @Handler.register('file_image')
 # class file_image(Handler):
 # 	extensions = ['jpg', 'jpeg', 'png', 'gif', 'tif', 'tiff', 'bmp', 'crw', 'nef', 'mng']
-# 
-# 
+#
+#
 # @Handler.register('file_pdf')
 # class file_pdf(Handler):
 # 	extensions = ['pdf']
