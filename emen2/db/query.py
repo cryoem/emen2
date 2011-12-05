@@ -9,6 +9,17 @@ import emen2.util.listops
 INDEXMIN = 1000
 ITEMSMAX = 100000
 
+# Synonyms
+synonyms = {
+	"is": "==",
+	"not": "!=",
+	"gte": ">=",
+	"lte": "<=",
+	"gt": ">",
+	"lt": "<"
+}
+
+
 def getop(op, ignorecase=True):
 	"""(Internal) Get a comparison function
 	:keyword ignorecase: Use case-insensitive comparison methods
@@ -27,22 +38,25 @@ def getop(op, ignorecase=True):
 		'contains': lambda y,x: unicode(y) in unicode(x),
 		'noop': lambda y,x: True,
 	}
-	# Synonyms
-	synonyms = {
-		"is": "==",
-		"not": "!=",
-		"gte": ">=",
-		"lte": "<=",
-		"gt": ">",
-		"lt": "<"
-	}
-	
 	if ignorecase:
 		ops["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
 		ops['contains_w_empty'] = lambda y,x:unicode(y or '').lower() in unicode(x).lower()
 
 	operator = synonyms.get(op, op)
 	return ops[operator]
+
+
+def keytypeconvert(keytype, term):
+	try:
+		if keytype == 'd':
+			term = int(term)
+		elif keytype == 'f':
+			term = float(term)
+		elif keytype == 's':
+			term = unicode(term)
+	except:
+		pass
+	return term
 
 
 
@@ -59,7 +73,6 @@ class Constraint(object):
 		self.priority = 10
 		# Param details
 		self.paramdef = None
-		self.typekey = unicode
 		self.ind = None
 				
 	def init(self, p):
@@ -68,10 +81,10 @@ class Constraint(object):
 
 	def run(self):		
 		# Run the constraint
-		# print "\nrunning:", self.param, self.op, self.term, '(ind:%s)'%self.ind, '(prev found:%s)'%len(self.p.result or [])
-		# t = time.time()
+		print "\nrunning:", self.param, self.op, self.term, '(ind:%s)'%self.ind, '(prev found:%s)'%len(self.p.result or [])
+		t = time.time()
 		f = self._run()
-		# print "-> found: %s in %s"%(len(f or []), time.time()-t)
+		print "-> found: %s in %s"%(len(f or []), time.time()-t)
 
 		# Check for negative operators
 		if self.op == 'noop':
@@ -130,14 +143,12 @@ class ParamConstraint(IndexedConstraint):
 		# Use the parameter index
 		# list seems to be faster than set
 		f = []
+
 		# Convert the term to the right type
-		try:
-			term = self.ind.typekey(self.term)
-		except:
-			term = self.term
+		term = keytypeconvert(self.ind.keytype, self.term)
 		
 		# If we're just looking for a single value
-		if self.op is 'is':
+		if self.op == '==':
 			items = self.ind.get(term, txn=self.p.txn)
 			f.extend(items)
 			for i in items:
@@ -151,7 +162,9 @@ class ParamConstraint(IndexedConstraint):
 				f.extend(items)
 				for i in items:
 					self.p.cache[i][self.param] = key
-		return set(f)
+		if f is None:
+			return f
+		return set(f or [])
 
 
 class RectypeConstraint(ParamConstraint):
@@ -175,7 +188,7 @@ class RectypeConstraint(ParamConstraint):
 				f.extend(f2)
 
 		# ian: todo: Doesn't work for "not param*"
-		return set(f)
+		return set(f or [])
 
 
 class RelConstraint(IndexedConstraint):
@@ -193,9 +206,10 @@ class RelConstraint(IndexedConstraint):
 			term = term.replace('*', '')
 			recurse = -1			
 
-		term = self.p.btree.typekey(term)
+		term = keytypeconvert(self.p.btree.keytype, term)
 		rel = self.p.btree.rel([term], recurse=recurse, ctx=self.p.ctx, txn=self.p.txn)
 		return rel.get(term, set())
+
 
 
 	
@@ -215,12 +229,7 @@ class MacroConstraint(Constraint):
 		vtm.macro_preprocess(k.group('name'), k.group('args'), self.p.items)
 		# Convert the term to the right type
 		keytype = vtm.getmacro(k.group('name')).getkeytype()
-		if keytype == 'd':
-			term = int(self.term)
-		elif keytype == 'f':
-			term = float(self.term)
-		else:
-			term = unicode(self.term)
+		term = keytypeconvert(keytype, self.term)
 		# Run the comparison
 		cfunc = getop(self.op)
 		for item in self.p.items:
@@ -274,7 +283,10 @@ class Query(object):
 			self._join(f)
 
 		# Filter by permissions
-		self.result = self.btree.names(self.result or set(), ctx=self.ctx, txn=self.txn)
+		if not self.constraints:
+			self.result = self.btree.names(ctx=self.ctx, txn=self.txn)
+		else:
+			self.result = self.btree.filter(self.result or set(), ctx=self.ctx, txn=self.txn)
 		
 		# After all constraints have run, tidy up cache/items
 		self._prunecache()
@@ -383,6 +395,8 @@ class Query(object):
 		self.items.extend(items)
 
 	def _makeconstraint(self, param, op='noop', term=''):
+		op = synonyms.get(op, op)
+		
 		# Automatically construct the best type of constraint
 		constraint = None
 		if param.startswith('$@'):

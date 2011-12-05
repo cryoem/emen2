@@ -1360,7 +1360,7 @@ class DB(object):
 		
 
 	@publicmethod("record.table")
-	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=False, viewdef=None, keytype="record", ctx=None, txn=None, **kwargs):
+	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=False, viewdef=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""Query results suitable for making a table.
 		
 		This method extends query() to include rendered views in the results. 
@@ -1389,31 +1389,38 @@ class DB(object):
 		# Run the query
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
-		names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse, rendered=True)
+		names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
 
-		# Render the table
-		if not viewdef:
+		# Build the viewdef
+		defaultviewdef = "$@recname() $@thumbnail() $$rectype $$name"
+		rectypes = set(q.cache[i].get('rectype') for i in q.result)
+		rectypes -= set([None])
+
+		if not rectypes:
+			viewdef = defaultviewdef
+			
+		elif not viewdef:
 			# todo: move this to q.check('rectype') or similar..
 			# Check which views we need to fetch
 			toget = []
 			for i in q.result:
 				if not q.cache[i].get('rectype'):
 					toget.append(i)
-					
+
 			if toget:
 				rt = self.groupbyrectype(toget, ctx=ctx, txn=txn)
 				for k,v in rt.items():
 					for name in v:
 						q.cache[name]['rectype'] = k
 
+			# Update..
 			rectypes = set(q.cache[i].get('rectype') for i in q.result)
 			rectypes -= set([None])
 			
-			defaultviewdef = "$@recname() $@thumbnail() $$rectype $$name"
 			addparamdefs = ["creator","creationtime"]
 			# Get the viewdef
 			if len(rectypes) == 1:
-				rd = self.bdbs.recorddef.cget(rectypes, ctx=ctx, txn=txn)
+				rd = self.bdbs.recorddef.cget(rectypes.pop(), ctx=ctx, txn=txn)
 				viewdef = rd.views.get('tabularview', defaultviewdef)
 			else:
 				try:
@@ -1435,13 +1442,15 @@ class DB(object):
 			# 	add_to_viewdef(viewdef, i)			
 			# viewdef = " ".join(viewdef)
 		
+		# Render the table
 		table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
-		print table
-		
+
+		ret['table'] = table
 		ret['names'] = names
 		ret['stats']['length'] = len(q.result)
 		ret['stats']['time'] = q.time
 		return ret
+
 
 	@publicmethod("record.plot")
 	def plot(self, c=None, mode='AND', x=None, y=None, z=None, keytype="record", ctx=None, txn=None, **kwargs):
@@ -1859,30 +1868,31 @@ class DB(object):
 		"""
 		
 		pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
-		q = self.query(c=[[param, "contains_w_empty", query]], ignorecase=1, recs=True, ctx=ctx, txn=txn)
+		c = [[pd.name, 'contains', query]]
+		q = self.plot(c=c, ctx=ctx, txn=txn)
 		inverted = collections.defaultdict(set)
 		for rec in q['recs']:
 			inverted[rec.get(param)].add(rec.get('name'))
-
+		
 		keys = sorted(inverted.items(), key=lambda x:len(x[1]), reverse=True)
 		if limit:
 			keys = keys[:int(limit)]
-
+		
 		ret = dict([(i[0], i[1]) for i in keys])
 		if count:
 			for k,v in ret.items():
 				ret[k] = len(v)
-
+		
 		ri = []
 		choices = pd.choices or []
 		if showchoices:
 			for i in choices:
 				ri.append((i, ret.get(i, 0)))
-
+		
 		for i,j in sorted(ret.items(), key=operator.itemgetter(1), reverse=True):
 			if i not in choices:
 				ri.append((i, ret.get(i, [])))
-
+		
 		return ri
 
 
@@ -2866,6 +2876,8 @@ class DB(object):
 		# user = self.bdbs.user.cget(name or ctx.username, filt=False, ctx=ctx, txn=txn)
 		#ed: odded 'or ctx.username' to match docs
 		user = self.bdbs.user.getbyemail(name or ctx.username, filt=False, txn=txn)
+		if not secret:
+			user.setContext(ctx)
 		user.setpassword(oldpassword, newpassword, secret=secret)
 
 		# ian: todo: evaluate to use put/cput..
