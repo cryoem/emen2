@@ -174,11 +174,12 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 
 	def __str__(self):
 		'''Render the View, encoded as UTF-8'''
-		return unicode(self.get_data()).encode('utf-8', 'replace')
-		# try:
-		#	return str((unicode(self).encode('utf-8', 'replace')))
-		# except UnicodeDecodeError:
-		# 	return self.get_data()
+		# return unicode(self.get_data()).encode('utf-8', 'replace')
+		data = self.get_data()
+		try:
+			return str(data.encode('utf-8', 'replace'))
+		except UnicodeDecodeError:
+			return data
 
 	def error(self, msg):
 		'''Set the output to a simple error message'''
@@ -186,11 +187,15 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 		self.title = 'Error'
 		self.ctxt['errmsg'] = msg
 
-	def redirect(self, location):
+	def redirect(self, location, content=''):
 		'''Redirect by setting Location header and
 		using the redirect template'''
 		self.headers['Location'] = location.replace('//','/')
 		self.template = '/redirect'
+		# Ughrhgh..
+		if content:
+			self.template = '/raw'
+			self.ctxt['content'] = content
 
 	def get_data(self):
 		'''Render the template'''

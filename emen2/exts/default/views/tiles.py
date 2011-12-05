@@ -66,14 +66,13 @@ class Tiles(View):
 		if self.bid == None:
 			return "No Binary ID supplied."
 
-		bdoo = self.db.getbinary(self.bid, filt=False)
+		bdo = self.db.getbinary(self.bid, filt=False)
 
 		# transform TileImg params to old-style tile file
 		self.level = int(kwargs.get('level', 0))
 		self.x = int(kwargs.get('x', 0)) / (self.level * 256)
 		self.y = int(kwargs.get('y', 0)) / (self.level * 256)
 		self.level = math.log(self.level, 2)
-		
 				
 	def get_data(self):
 		tilepath = emen2.db.config.get('paths.TILEPATH')
@@ -96,7 +95,7 @@ class PSpec1D(View):
 		if self.bid == None:
 			return "No Binary ID supplied."
 
-		self.bdoo = self.db.getbinary(self.bid, filt=False)
+		self.bdo = self.db.getbinary(self.bid, filt=False)
 		self.angstroms_per_pixel = float(kwargs.get('angstroms_per_pixel', 1))
 		self.tem_magnification_set = float(kwargs.get('tem_magnification_set', 0))
 		self.length_camera = float(kwargs.get('length_camera', 0))
@@ -113,9 +112,9 @@ class PSpec1D(View):
 		# raise ValueError, "Could not access cached spatial frequency data"
 		if self.rebuild or not os.access(filepath,os.R_OK):
 			try:
-				emen2.web.thumbs.run_from_bdo(self.bdoo, wait=True)
-			except Exception, inst:
-				raise ValueError, "Could not create tile"
+				emen2.web.thumbs.run_from_bdo(self.bdo, wait=True)
+			except Exception, e:
+				raise ValueError, "Could not create tile: %s"%e
 
 
 		f = open(filepath, "r")
@@ -142,24 +141,21 @@ class TilesCheck(View):
 	def main(self, bid=None):
 		self.bid = bid
 		self.rebuild = False
-		View.init(self)
 
 	def get_data(self):	
-		ret=()
-		bdoo = self.db.getbinary(self.bid, filt=False)
-
-		bname = bdoo.get('filename')
-		ipath = bdoo.get('filepath')
-		bdocounter = bdoo.get('name')
+		ret = ()
+		bdo = self.db.getbinary(self.bid, filt=False)
+		bname = bdo.get('filename')
+		ipath = bdo.get('filepath')
+		bdocounter = bdo.get('name')
 		tilepath = emen2.db.config.get('paths.TILEPATH')
 		filepath = os.path.join(tilepath, self.bid.replace(":",".")+".tile")
 
 		if self.rebuild or not os.access(filepath,os.R_OK):
 			try:
-				emen2.web.thumbs.run_from_bdo(bdoo, wait=True)
-			except Exception, inst:
-				raise ValueError, "Could not create tile"
-
+				emen2.web.thumbs.run_from_bdo(bdo, wait=True)
+			except Exception, e:
+				raise ValueError, "Could not create tile: %s"%e
 
 		dims = get_tile_dim(filepath)
 		dimsx = [i[0] for i in dims]
@@ -169,8 +165,7 @@ class TilesCheck(View):
 		ret['width'] = max(dimsx) * 256
 		ret['height'] = max(dimsy) * 256
 		ret['maxscale'] = math.pow(2, len(dimsx)-1)
-		ret['filename'] = bdoo.get('filename')
-
+		ret['filename'] = bdo.get('filename')
 		return jsonrpc.jsonutil.encode(ret)
 
 
@@ -185,11 +180,10 @@ class TilesCreate(View):
 
 	def get_data(self):
 		ret = ()
-		bdoo = self.db.getbinary(self.bid, filt=False)
-		bname = bdoo.get('filename')
-		ipath = bdoo.get('filepath')
-		bdocounter = bdoo.get('name')
-
+		bdo = self.db.getbinary(self.bid, filt=False)
+		bname = bdo.get('filename')
+		ipath = bdo.get('filepath')
+		bdocounter = bdo.get('name')
 
 		if not os.access(filepath,os.R_OK):
 			raise Exception,"Unable to create tile"

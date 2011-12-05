@@ -469,7 +469,7 @@ class EMEN2DBEnv(object):
 		"""Close the Database Environment"""
 		
 		for k,v in self.keytypes.items():
-			print "Closing", v
+			# print "Closing", v
 			v.close()
 		self.dbenv.close()
 
@@ -1704,11 +1704,7 @@ class DB(object):
 			
 		# for param in filter(kwargs.get, ['name']):
 		#	q = 
-
-		print foundusers	
-		print foundrecords
 		return
-
 
 		name = kwargs.get('name') or kwargs.get('username')
 		if name:

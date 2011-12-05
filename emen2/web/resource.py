@@ -34,9 +34,6 @@ import emen2.web.server
 
 
 
-
-
-
 ##### Routing Resource #####
 
 class Router(twisted.web.resource.Resource):
@@ -137,7 +134,7 @@ class EMEN2Resource(object):
 		args = self.parse_args(request)
 
 		# Find the authentication token
-		ctxid = request.getCookie("ctxid") or args.pop('ctxid', None)
+		ctxid = args.pop('ctxid', None) or request.getCookie("ctxid")
 		host = request.getClientIP()
 
 		# self._render can either return an immediate result,
@@ -229,6 +226,9 @@ class EMEN2Resource(object):
 		# Error callback
 		e, data = '', ''
 		headers = {}
+
+		print "Failure:"
+		print failure
 
 		# Raise the exception
 		try:
@@ -362,7 +362,6 @@ class EMEN2Resource(object):
 			# The param?..
 			f = emen2.db.handlers.EMEN2File(filename=request.getHeader('x-file-name'), param=request.getHeader('x-file-param'), fileobj=request.content)
 			files.append(f)
-
 
 		elif request.method == "POST":
 			# Fix Twisted's broken handling of multipart/form-data file uploads

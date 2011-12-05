@@ -324,7 +324,6 @@ class Query(object):
 		# Todo: Sort by the rendered value or the raw actual value?
 		# if rendered:
 		# 	rendered = {}
-		
 		result = sorted(self.result, key=sortvalues.get, reverse=reverse)
 		
 		if count > 0:

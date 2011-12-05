@@ -131,7 +131,6 @@ class Record(RecordBase):
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$')
 	def edit(self, name=None, _extract=False, **kwargs):
 		# Edit page and requests
-		
 		if self.request_method not in ['post', 'put']:
 			# Show the form and return
 			self.main(name=name)
@@ -160,7 +159,6 @@ class Record(RecordBase):
 
 			f.record = rec.name			
 			bdo = self.db.putbinary(f)
-
 			if pd.iter:
 				v = rec.get(pd.name) or []
 				v.append(bdo.name)
@@ -246,13 +244,6 @@ class Record(RecordBase):
 		parentrec = self.db.getrecord(name)
 		parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=3)
 
-		#_extract = True
-		#if _extract:
-		#	handler = emen2.db.handlers.TestTmpHandler(self.request_files)
-		#	print "extracting..."
-		#	print handler.extract()
-
-
 		if _private:
 			newrec = self.db.newrecord(rectype)
 			newrec.parents = inherit
@@ -263,31 +254,49 @@ class Record(RecordBase):
 			for rec in self.db.getrecord(inherit):
 				newrec.update(rec)
 
+		if self.request_method not in ['post', 'put']:
+			recdef = self.db.getrecorddef(newrec.rectype)
+			rendered = self.db.renderview(newrec, edit=True, viewname=viewname)
+			self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
+			self.ctxt.update(
+				parentmap = parentmap,
+				recnames = recnames,
+				rec = parentrec,
+				recdef = recdef,
+				newrec = newrec,
+				viewname = viewname,
+				rendered = rendered
+			)
+			return
+
 		# Save the new record
-		if self.request_method == 'post':
-			newrec.update(kwargs)
+		newrec.update(kwargs)
+		newrec = self.db.putrecord(newrec)
+		
+		if self.request_files:
+			# Extract attachment metadata
+			handler = emen2.db.handlers.Handler.get_handler(newrec.rectype)(self.request_files)
+			newrec.update(handler.extract())
+		
+			# Save the attachments
+			for f in self.request_files:
+				pd = self.db.getparamdef(f.param)
+				if pd.vartype != 'binary':
+					raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
+
+				f.record = newrec.name			
+				bdo = self.db.putbinary(f)
+				if pd.iter:
+					v = newrec.get(pd.name) or []
+					v.append(bdo.name)
+				else:
+					v = bdo.name
+				newrec[pd.name] = v
+
+			# Save the record a 2nd time
 			newrec = self.db.putrecord(newrec)
 
-		if newrec.name:
-			for f in self.request_files:
-				f.record = newrec.name
-			self.db.putbinary(self.request_files)
-			self.redirect(self.routing.reverse('Record/main', name=newrec.name))
-			return		
-
-		recdef = self.db.getrecorddef(newrec.rectype)
-		rendered = self.db.renderview(newrec, edit=True, viewname=viewname)
-
-		self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
-		self.ctxt.update(
-			parentmap = parentmap,
-			recnames = recnames,
-			rec = parentrec,
-			recdef = recdef,
-			newrec = newrec,
-			viewname = viewname,
-			rendered = rendered
-		)
+		self.redirect(self.routing.reverse('Record/main', name=newrec.name), content=newrec.name)
 			
 
 
@@ -298,13 +307,12 @@ class Record(RecordBase):
 		self.template = "/pages/record.table"
 		self.ctxt["create"] = self.db.checkcreate()
 		self.ctxt["childtype"] = childtype
-		c = [['children', 'name', name], ['rectype', '==', childtype]]
+		c = [['children', '==', name], ['rectype', '==', childtype]]
 		query = self.routing.execute('Query/embed', db=self.db, c=c)
 
 		# ian: awful hack
 		query.request_location = self.request_location
 		query.ctxt['REQUEST_LOCATION'] = self.request_location
-		
 		
 		self.ctxt['table'] = query
 		self.ctxt['q'] = {}

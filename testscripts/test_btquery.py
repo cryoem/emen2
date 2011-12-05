@@ -12,12 +12,13 @@ with db:
 		# ['children', 'contains', '136'],
 		# ['rectype', 'not', 'project*'],
 		# ['rectype', 'contains', 'ccd'],
-		['rectype', 'is', 'image_capture*']
+		# ['rectype', 'is', 'image_capture*']
 		# ['rectype', 'is', 'ccd'],
 		# ['$@recname()', 'noop'],
 		# ['ctf_bfactor', 'any', ''],
 		# ['ctf_defocus_measured', 'any', ''],
 		# ['creationtime', 'any', '2011'],
+		['name_pi', 'contains', 'r']
 	]
 	# x = {'key':'creationtime'}
 	# y = {'key':'ctf_bfactor'}
@@ -26,7 +27,7 @@ with db:
 	# z = {'key':'$@parentvalue(tem_name,-1)'}
 
 	t = time.time()
-	q = db.table(c=c)
+	q = db.plot(c=c)
 	print q
 	print "=> total: %s results in %s"%(q['stats']['length'], time.time()-t)
 

@@ -79,6 +79,12 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
 
 	def checkpassword(self, password):
+		try:
+			if self._ctx.checkadmin():
+				return True
+		except AttributeError:
+			pass
+
 		# This needs to work even if there is no Context set.
 		if self.disabled:
 			self.error(e=emen2.db.exceptions.DisabledUserError)
@@ -87,12 +93,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		if self.password and self._hashpassword(password) == self.password:
 			return True
 			
-		try:
-			if self._ctx.checkadmin():
-				return True
-		except AttributeError:
-			pass
-
 		# Sleep for 2 seconds any time there is a wrong password!!
 		time.sleep(2)
 		self.error(e=emen2.db.exceptions.AuthenticationError)
@@ -442,7 +442,7 @@ class User(BaseUser):
 			hide = False
 
 		p = {}
-		if self._ctx.username != self.name and not self._ctx.checkreadadmin():
+		if self._ctx.username != self.name:
 			p['password'] = None
 
 		# You must access the User directly to get these attributes

@@ -1340,6 +1340,7 @@ class RelateDB(DBODB):
 		:return: Expanded DBO names.
 
 		"""
+
 		if not isinstance(names, set):
 			names = set(names)
 

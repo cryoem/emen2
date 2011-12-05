@@ -588,7 +588,7 @@
 		options: {
 			width: 0,
 			height: 0,
-			size: 512,
+			size: 256,
 			x: null,
 			y: null, 
 			scale: 'auto',
@@ -633,7 +633,7 @@
 						//alert("Error! Could not access tiles!");
 						$('.e2l-spinner', self.element).remove();
 						self.build_static();
-						//self.element.append('Could not access tiles!');
+						self.element.append('Could not access tiles!');
 					}
 				});
 			} else if (this.options.mode == "static") {
@@ -840,21 +840,20 @@
 			if (bounds[1] < 0) {bounds[1] = 0}
 			if (bounds[2] > this.options.width) {bounds[2] = this.options.width}
 			if (bounds[3] > this.options.height) {bounds[3] = this.options.height}
-			
-			for (var x = bounds[0]; x < bounds[2]; x += this.options.size * this.options.scale) {				
 
+			for (var x = bounds[0]; x < bounds[2]; x += this.options.size * this.options.scale) {				
 				for (var y = bounds[1]; y < bounds[3] ; y += this.options.size * this.options.scale) {
 					var id = 'tile-'+this.options.scale+'-'+x+'-'+y;
 					var img = document.getElementById(id);
 					if (!img) {
-						//var src = EMEN2WEBROOT+'/eman2/'+this.options.bdo+'/box?x='+x+'&y='+y+'&size='+this.options.size*this.options.scale+'&fill=1&scale='+this.options.scale;
 						var src = this.get_tile(x,y);
 						var img = $('<img src="'+src+'" id="'+id+'" alt="Tile '+x+' '+y+'" />');
 						img.css('position', 'absolute');
 						img.css('width', this.options.size);
 						img.css('height', this.options.size);					
 						img.css('left', x / this.options.scale);
-						img.css('top', y / this.options.scale);
+						// Tiles used to be inverted; now they aren't.
+						img.css('top', ((this.options.height - y) / this.options.scale) - this.options.size);
 						this.inner.append(img);							
 					}
 

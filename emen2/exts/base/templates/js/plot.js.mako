@@ -96,12 +96,14 @@
 
 			// Copy the query
 			var newq = {};
-			var copy = ['c', 'ignorecase', 'x', 'y', 'z'];
-			copy.map(function(key){
-				newq[key]=self.options.q[key]
+			var c = ['c', 'ignorecase', 'x', 'y', 'z'];
+			c.map(function(key){
+				newq[key] = self.options.q[key];
 			});
-			// newq['recs'] = true;
 			
+			console.log("newq:");
+			console.log(newq);
+
 			// Create query
 			emen2.db('plot', newq, function(q) {
 				self.options.q = q;
@@ -236,7 +238,6 @@
 			opts['key'] = $('input[name=key]', this.controls).val();
 			opts['bin'] = $('select[name=bin]', this.controls).val();
 			if (opts['key'] != this.options.key) {
-				console.log('Refresh opts', opts);
 				return opts
 			}
 			
@@ -249,9 +250,6 @@
 
 			// Hide these series
 			opts['hide'] = $("input[name=hide]:not(:checked)", this.controls).map(function(){return $(this).val()});
-
-			console.log('Non refresh opts', opts);
-
 			return opts
 		},
 		

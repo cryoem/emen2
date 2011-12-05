@@ -419,10 +419,10 @@ class vt_datetime(vt_string):
 				ret.append(i)
 		return self._rci(ret)
 
-	def process(self, value):
-		value = ci(value)
-		return ['<time datetime="%s">%s</time>'%(i,i) for i in value]
-
+	def _render(self, value, embedtype=None):
+		if self.markup:
+			value = ['<time datetime="%s">%s</time>'%(i,i) for i in value]
+		return super(vt_datetime, self)._render(value, embedtype=embedtype)
 
 
 @vtm.register_vartype('date')

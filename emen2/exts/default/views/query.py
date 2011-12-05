@@ -7,18 +7,24 @@ import urllib
 import emen2.util.listops
 from emen2.web.view import View
 
-
-
-
 cmp_order = [
-	".is.", "==", ".not.", "!=", ".contains.", 
-	".gte.", ">=", ".lte.", "<=", ".gt.", ">", 
-	".lt.", "<", ".any.", '.none.', '.noop.', 
-	'.name.']
-
-
-
-
+	".is.", 
+	"==", 
+	".not.", 
+	"!=", 
+	".contains.", 
+	".gte.", 
+	">=", 
+	".lte.", 
+	"<=", 
+	".gt.", 
+	">", 
+	".lt.", 
+	"<", 
+	".any.", 
+	'.none.', 
+	'.noop.'
+]
 
 
 def query_to_path(q):
@@ -84,13 +90,7 @@ class Query(View):
 	@View.add_matcher(r'^/query/(?P<path>.*)/$', name='query')
 	def main(self, path=None, q=None, c=None, **kwargs):
 		self.initq(path, q, c, **kwargs)
-		self.q['count'] = 100
-		self.q['table'] = True
-		self.q['stats'] = True
-		self.q['recs'] = True
-		self.q = self.db.query(**self.q)
-		# print "Query result:"
-		# print self.q
+		self.q = self.db.table(**self.q)
 		self.set_context_item('q', self.q)
 
 
@@ -104,9 +104,17 @@ class Query(View):
 	def edit(self, path=None, q=None, c=None):
 		self.initq(path, q, c)
 		self.template = '/pages/query.edit'
-		self.q = self.db.query(**self.q)
+		self.q = self.db.table(**self.q)
 		self.set_context_item('q', self.q)
 
+
+	@View.add_matcher(r'^/plot/(?P<path>.*)/edit/$', name='edit')
+	def edit(self, path=None, q=None, c=None):
+		self.initq(path, q, c)
+		self.template = '/pages/query.plot'
+		self.q = self.db.plot(**self.q)
+		self.set_context_item('q', self.q)
+	
 
 	# /download/ can't be in the path because of a emen2resource.getchild issue
 	@View.add_matcher(r'^/query/(?P<path>.*)/attachments/$', name='attachments')

@@ -19,14 +19,13 @@ EXTS = set(["dm3", "tiff", "tif", "mrc", "jpg", "jpeg", "png", "gif"])
 COMPRESS = set(["gz","bz2"])
 
 
-def run_from_bdo(bdoo, wait=False):
+def run_from_bdo(bdo, wait=False):
 	# Get config info to setup command
 	import emen2.db.config
 	e2t = emen2.db.config.get_filename('emen2','web/thumbs.py')
 
-	filepath = bdoo.get('filepath')
-	filename = bdoo.get('filename').split(".")
-
+	filepath = bdo.get('filepath', '')
+	filename = bdo.get('filename').split(".")
 	if not os.access(filepath, os.F_OK):
 		return
 
@@ -49,7 +48,7 @@ def run_from_bdo(bdoo, wait=False):
 		args.append(python)
 
 	args.append(e2t)
-	args.append("--outpath=%s/%s"%(tilepath, bdoo.get('name').replace(":",".")))
+	args.append("--outpath=%s/%s"%(tilepath, bdo.get('name').replace(":",".")))
 	args.append("--compress=%s"%compress)
 	args.append("--type=%s"%filetype)
 	args.append("--small")
@@ -58,7 +57,7 @@ def run_from_bdo(bdoo, wait=False):
 	args.append("--convert=%s"%convertpath)
 	args.append(filepath)
 
-	print "Thumbnails: %s"%args
+	print "Generating thumbnails: %s"%args
 	a = subprocess.Popen(args)
 	if wait:
 		a.wait()
@@ -288,7 +287,7 @@ class EMAN2Build(Builder):
 		levels = ceil( log( max(img.get_xsize(), img.get_ysize()) / tilesize) / log(2.0) )
 
 		# Step through shrink range creating tiles
-		tile_dict={}
+		tile_dict = {}
 		pos = 0
 		img2 = img.copy()
 		xs, ys = img2.get_xsize(), img2.get_ysize()
@@ -299,7 +298,6 @@ class EMAN2Build(Builder):
 
 			for x in range(0, img2.get_xsize(), tilesize):
 				for y in range(0, img2.get_ysize(), tilesize):
-					# print x,y
 					i = img2.get_clip(EMAN2.Region(x, y, tilesize, tilesize), fill=rmax)
 					i.set_attr("render_min", rmin)
 					i.set_attr("render_max", rmax)
@@ -374,7 +372,6 @@ class EMAN2Build(Builder):
 					os.remove(fsp)
 			xs /= 2
 			ys /= 2
-
 
 
 		tf.close()
