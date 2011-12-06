@@ -1397,6 +1397,9 @@ class DB(object):
 		q.run()
 		names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse, rendered=True)
 
+		# Additional time
+		t = time.time()
+
 		# Build the viewdef
 		defaultviewdef = "$@recname() $@thumbnail() $$rectype $$name"
 		rectypes = set(q.cache[i].get('rectype') for i in q.result)
@@ -1454,7 +1457,7 @@ class DB(object):
 		ret['table'] = table
 		ret['names'] = names
 		ret['stats']['length'] = len(q.result)
-		ret['stats']['time'] = q.time
+		ret['stats']['time'] = q.time + (time.time()-t)
 		return ret
 
 
