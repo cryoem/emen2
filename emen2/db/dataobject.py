@@ -392,6 +392,11 @@ class BaseDBObject(object, UserDict.DictMixin):
 				odict.pop(key, None)
 		return odict
 
+	# Debugging
+	# def __setstate__(self, data):
+	# 	print data
+	# 	self.__dict__.update(data)
+
 
 	##### Validation and error control #####
 

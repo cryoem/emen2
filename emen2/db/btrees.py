@@ -149,7 +149,6 @@ class EMEN2DB(object):
 
 	def _pickleload(self, data):
 		# Load a pickled DBO.
-		# See BaseDBObject.__setstate__
 		if data != None: return pickle.loads(data)
 
 

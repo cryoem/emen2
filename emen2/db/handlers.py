@@ -24,7 +24,6 @@ import emen2.db.log
 
 
 ##### File handler #####
-# This can be used as a temporary file, committed as DB Binary.
 
 class EMEN2File(object):
 	'''File.
@@ -44,7 +43,6 @@ class EMEN2File(object):
 	the normal temp file storage area. The close() method will remove any
 	temporary files.
 	'''
-	# , or a filename on disk (infile, currently disabled).
 
 	def __init__(self, filename, filedata=None, fileobj=None, param='file_binary'):
 		self.filename = filename
@@ -98,7 +96,10 @@ class EMEN2File(object):
 
 		return tmpfile
 
+	def extract(self):
+		return {}
 
+		
 ##### File handlers #####
 
 class Handler(object):
@@ -126,7 +127,7 @@ class Handler(object):
 	@classmethod
 	def register(cls, name):
 		def f(o):
-			if name in cls._handlers.keys():
+			if name in cls._handlers:
 				raise ValueError("""Handler %s already registered""" % name)
 			# emen2.db.log.info("REGISTERING HANDLER (%s)"% name)
 			cls._handlers[name] = o
