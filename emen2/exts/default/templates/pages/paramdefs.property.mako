@@ -35,9 +35,11 @@ for k,v in d.items():
 
 
 <%buttons:singlepage label='Index'>
+	<ul>
 	% for k in sorted(d.keys()):
-		<a href="#${k}">${k}</a>
+		<li><a href="#${k}">${str(k).capitalize()}</a></li>
 	% endfor
+	</ul>
 </%buttons:singlepage>
 
 

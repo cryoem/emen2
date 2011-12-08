@@ -14,12 +14,12 @@
 	<table cellpadding="0" cellspacing="0">
 	% if not secret:
 		<tr>
-			<td>Username or Email:</td>
+			<td>Email:</td>
 			<td><input type="text" name="email" value="${email or ''}" /></td>
 		</tr>
 	% else:
 		<tr>
-			<td>Username or Email:</td>
+			<td>Email:</td>
 			<td>${email or ''}</td>
 		</tr><tr>
 			<td>New Password:</td>

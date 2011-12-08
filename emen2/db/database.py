@@ -24,6 +24,7 @@ import collections
 import copy
 import functools
 import getpass
+import imp
 import inspect
 import operator
 import os
@@ -50,7 +51,7 @@ try:
 except ImportError:
 	markdown = None
 
-# EMEN2 imports
+
 # EMEN2 Config
 import emen2.db.config
 import emen2.db.log
@@ -82,6 +83,8 @@ import jsonrpc.jsonutil
 # EMEN2 Exceptions
 from emen2.db.exceptions import *
 
+# EMEN2 Extensions
+emen2.db.config.load_exts()
 
 ##### Conveniences #####
 publicmethod = emen2.db.proxy.publicmethod
@@ -111,25 +114,6 @@ set_lg_regionmax 1048576
 set_lg_max 8388608
 set_lg_bsize 2097152
 """
-
-
-def _fakemodules():
-	"""Backwards compatibility for old module/class names."""
-	import imp
-	#Database = imp.new_module("Database")
-	#Database.dataobjects = imp.new_module("dataobjects")
-	#sys.modules["emen2.Database"] = Database
-	#sys.modules["emen2.Database.dataobjects"] = Database.dataobjects
-	#sys.modules["emen2.Database.dataobjects.record"] = emen2.db.record
-	#sys.modules["emen2.Database.dataobjects.binary"] = emen2.db.binary
-	#sys.modules["emen2.Database.dataobjects.context"] = emen2.db.context
-	#sys.modules["emen2.Database.dataobjects.paramdef"] = emen2.db.paramdef
-	#sys.modules["emen2.Database.dataobjects.recorddef"] = emen2.db.recorddef
-	#sys.modules["emen2.Database.dataobjects.user"] = emen2.db.user
-	#sys.modules["emen2.Database.dataobjects.group"] = emen2.db.group
-	#sys.modules["emen2.Database.dataobjects.workflow"] = emen2.db.workflow
-
-_fakemodules()
 
 
 ##### Utility methods #####
@@ -722,15 +706,12 @@ class DB(object):
 		# Open the database
 		self.bdbs = EMEN2DBEnv(path=path, create=create)
 
-		# Load built in ParamDefs/RecordDefs
-		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
-
-		# Load extensions
-		for ext, path in self.extensions.items():
-			self.load_extension(ext, path)
-
 		#if not hasattr(self.periodic_operations, 'next'):
 		#	self.__class__.periodic_operations = self.periodic_operations()
+
+		# Load ParamDefs/RecordDefs from extensions.
+		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
+		emen2.db.config.load_jsons(cb=self.load_json)
 
 		# Periodic operations..
 		self.lastctxclean = time.time()
@@ -741,15 +722,6 @@ class DB(object):
 		# Create root account, groups, and root record if necessary
 		if self.bdbs.create:
 			self.setup()
-
-
-	def load_extension(self, ext, path):
-		"""Load an extension."""
-		
-		# ParamDefs/RecordDefs from JSON
-		for j in sorted(glob.glob(os.path.join(path, 'json', '*.json'))):
-			self.load_json(infile=j)
-		# Add extension to Mako Templates search path
 
 
 	def load_json(self, infile):
@@ -770,11 +742,6 @@ class DB(object):
 
 	def __str__(self):
 		return "<DB: %s>"%(hex(id(self)))
-
-
-	# def __del__(self):
-	# 	"""Close DB when deleted"""
-	# 	self.bdbs.close()
 
 
 	##### Open or create new database #####
@@ -4160,6 +4127,8 @@ class DB(object):
 	# def delworkflowitem(self, names, ctx=None, txn=None):
 	# 	"""This will remove a single workflow object based on wfid"""
 	#	return self.bdbs.workflow.get(name).delete(names, ctx=ctx, txn=txn)
+
+
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

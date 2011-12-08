@@ -23,11 +23,12 @@ import emen2.util.listops
 
 class Dumper(object):
 
-	def __init__(self, db, root=None, outfile=None, names=None, addfiles=True, uri=None, **kwargs):
+	def __init__(self, db, root=None, outfile=None, names=None, addfiles=True, uri=None, local=False, **kwargs):
 		mtime = time.time()
 		self.root = root
 		self.uri = uri
-
+		self.local = local
+		
 		# self.outfile = outfile or "backup-%s.tar.gz"%(time.strftime("%Y.%m.%d-%H.%M.%S"))
 		self.db = db
 
@@ -101,9 +102,6 @@ class Dumper(object):
 		print "\tbdos: %s"%len(self.bdos)
 		print ""
 
-		# tmp fix..
-		self.usernames.add("bendubin-thaler")
-
 		#print "Writing output to %s"%self.outfile
 		#outfile = tarfile.open(self.outfile, "w:gz")
 
@@ -161,7 +159,6 @@ class Dumper(object):
 
 
 	def checkrecords(self, names, addgroups=None, addusers=None, addparamdefs=None, addrecorddefs=None, addbdos=None):
-
 		users = set()
 		groups = set()
 		pds = set()
@@ -310,6 +307,9 @@ class Dumper(object):
 			recs = self.db.getrecord(chunk)
 			found |= set([i.name for i in recs])
 			for rec in recs:
+				if self.local and rec.uri:
+					print "Skipping...", rec.name
+					continue
 				if self.uri:
 					rec.uri = '%s/record/%s'%(self.uri, rec.name)
 				rec.parents &= self.names
@@ -330,6 +330,9 @@ class Dumper(object):
 			pds = self.db.getparamdef(chunk)
 			found |= set([pd.name for pd in pds])
 			for pd in pds:
+				if self.local and pd.uri:
+					print "Skipping imported paramdef...", pd.name
+					continue
 				if self.uri:
 					pd.uri = '%s/paramdef/%s'%(self.uri, pd.name)
 				pd.parents &= self.paramdefnames
@@ -350,6 +353,8 @@ class Dumper(object):
 			rds = self.db.getrecorddef(chunk)
 			found |= set([rd.name for rd in rds])
 			for rd in rds:
+				if self.local and rd.uri:
+					print "Skipping imported recorddef...", rd.name
 				if self.uri:
 					rd.uri = '%s/recorddef/%s'%(self.uri, rd.name)
 				rd.parents &= self.recorddefnames
@@ -456,11 +461,12 @@ def main():
 	dbo.add_option('--root', type="int", help="Root Record")
 	dbo.add_option('--uri', type="string", help="Export with base URI")
 	dbo.add_option('--core', action="store_true", help="Just dump core parameters and protocols")
+	dbo.add_option('--local', action="store_true", help="Only local items")
 
 	(options, args) = dbo.parse_args()
 
 	copy_to_kw = {}
-	for key in ['core', 'all','paramdef','recorddef','user','group','binary','allparamdef','allrecorddef','allrecord','alluser','allgroup','allbinary']:
+	for key in ['core', 'all','paramdef','recorddef','user','group','binary','allparamdef','allrecorddef','allrecord','alluser','allgroup','allbinary', 'local']:
 		v = getattr(options, key, None)
 		if v != None:
 			copy_to_kw[key] = v

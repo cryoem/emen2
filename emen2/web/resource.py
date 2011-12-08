@@ -360,7 +360,11 @@ class EMEN2Resource(object):
 
 		if request.method == "PUT":
 			# The param?..
-			f = emen2.db.handlers.EMEN2File(filename=request.getHeader('x-file-name'), param=request.getHeader('x-file-param'), fileobj=request.content)
+			f = emen2.db.handlers.BinaryHandler.get_handler(
+				filename=request.getHeader('x-file-name'), 
+				param=request.getHeader('x-file-param'), 
+				fileobj=request.content
+				)
 			files.append(f)
 
 		elif request.method == "POST":
@@ -375,9 +379,12 @@ class EMEN2Resource(object):
 			except:
 				pass
 
-			# Turn those pairs into EMEN2File instances
+			# Turn those pairs into emen2 File instances
 			for param, filename in r:
-				f = emen2.db.handlers.EMEN2File(param=param, filename=filename)
+				f = emen2.db.handlers.BinaryHandler.get_handler(
+					param=param, 
+					filename=filename
+					)
 				files.append(f)
 
 			# And match those up with the parsed data
@@ -394,7 +401,7 @@ class EMEN2Resource(object):
 				if len(datas) != len(fs):
 					raise ValueError, "Cannot upload empty file"
 
-				# Move the data into the EMEN2Files
+				# Move the data into the emen2 Files
 				for f, filedata in zip(fs, datas):
 					f.filedata = filedata
 

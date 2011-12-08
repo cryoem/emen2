@@ -352,22 +352,22 @@
 		build_controls: function() {
 			var self = this;
 			var controls = $('.e2-browse-controls', this.dialog);
-			controls.append(' \
-				<p>Current tool:</p> \
-				<ul> \
-					<li> \
-						<input id="e2-browse-tool-none" type="radio" name="settool" value="none" checked /> \
-						<label for="e2-browse-tool-none">None (links open normally)</label> \
-					</li> \
-					<li> \
-						<input id="e2-browse-tool-browse" type="radio" name="settool" value="browse" /> \
-						<label for="e2-browse-tool-browse">Re-center map when clicked</label> \
-					</li> \
-					<li> \
-						<input id="e2-browse-tool-move" type="radio" name="settool" value="move" /> \
-						<label for="e2-browse-tool-move">Select items &amp; drag to move them</label> \
-					</li> \
-				</ul>');
+			// controls.append(' \
+			// 	<p>Current tool:</p> \
+			// 	<ul> \
+			// 		<li> \
+			// 			<input id="e2-browse-tool-none" type="radio" name="settool" value="none" checked /> \
+			// 			<label for="e2-browse-tool-none">None (links open normally)</label> \
+			// 		</li> \
+			// 		<li> \
+			// 			<input id="e2-browse-tool-browse" type="radio" name="settool" value="browse" /> \
+			// 			<label for="e2-browse-tool-browse">Re-center map when clicked</label> \
+			// 		</li> \
+			// 		<li> \
+			// 			<input id="e2-browse-tool-move" type="radio" name="settool" value="move" /> \
+			// 			<label for="e2-browse-tool-move">Select items &amp; drag to move them</label> \
+			// 		</li> \
+			// 	</ul>');
 			$('input[name=settool]', controls).change(function() {
 				var tool = $(this).val();
 				self.settool(tool);

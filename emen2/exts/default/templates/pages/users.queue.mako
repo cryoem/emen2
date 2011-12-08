@@ -13,7 +13,7 @@
 
 <form method="post" action="${ctxt.reverse('Users/queue')}">
 
-<table class="e2l-shaded">
+<table class="e2l-shaded" cellpadding="0" cellspacing="0">
 	<thead>
 		<tr>
 

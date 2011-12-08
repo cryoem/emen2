@@ -15,6 +15,7 @@ import emen2.db.btrees
 import emen2.db.datatypes
 import emen2.db.exceptions
 import emen2.db.dataobject
+import emen2.db.recorddef
 import emen2.util.listops as listops
 
 
@@ -320,6 +321,11 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 				self.error("Required parameter: %s"%(param))
 
 		self.__dict__['rectype'] = unicode(rd.name)
+
+		# Look up any additional validators..
+		validator = emen2.db.recorddef.RecordDef.get_handler(self)
+		if validator:
+			validator.validate()
 
 
 

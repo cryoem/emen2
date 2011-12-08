@@ -44,10 +44,13 @@ for k,v in d.items():
 %>
 
 
-Protocol Name Index
-% for k in sorted(d.keys(), reverse=True):
-	<a href="#${k}">${k}</a>  
-% endfor
+<%buttons:singlepage label='Index'>
+	<ul>
+	% for k in sorted(d.keys(), reverse=True):
+		<li><a href="#${k}">${labels.get(k)}</a></li>
+	% endfor
+	</ul>
+</%buttons:singlepage>
 
 
 % for k in sorted(d.keys(), reverse=True):

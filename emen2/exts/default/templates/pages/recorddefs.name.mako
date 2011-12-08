@@ -33,10 +33,12 @@ for k,v in d.items():
 %>
 
 
-Protocol Name Index
-% for k in sorted(d.keys()):
-	<a href="#${k}">${k}</a>
-% endfor
+<%buttons:singlepage label='Index'>
+	% for k in sorted(d.keys()):
+		<a href="#${k}">${k}</a>
+	% endfor
+</%buttons:singlepage>
+
 
 
 % for k in sorted(d.keys()):
@@ -53,7 +55,7 @@ Protocol Name Index
 		if not c:
 			body = 'No records'
 		%>
-		${buttons.infobox(recorddef, body=body, autolink=True))}
+		${buttons.infobox(recorddef, body=body, autolink=True)}
 	% endfor
 
 % endfor

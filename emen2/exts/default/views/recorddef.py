@@ -63,7 +63,7 @@ class RecordDefs(View):
 
 
 	@View.add_matcher(r'^/recorddefs/tree/$')
-	def tree(self, action=None, q=None):
+	def tree(self, action=None, q=None, *args, **kwargs):
 		return self.main(action='tree', *args, **kwargs)
 
 

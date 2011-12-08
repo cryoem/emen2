@@ -7,4 +7,4 @@
 {"keytype":"group", "displayname": "Published Data", "name": "publish"}
 
 // Root record
-{"keytype":"record", "rectype": "folder", "name_folder": "Root"}
+{"keytype":"record", "rectype": "folder", "name_folder": "Root", "groups":["authenticated"]}

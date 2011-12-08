@@ -11,9 +11,6 @@ II. View Plugins
 	- class :py:class:`AdminView`
 	- class :py:class:`AuthView`
 
-III. View loader
-	- class :py:class:`ViewLoader`
-
 '''
 
 import sys
@@ -321,79 +318,6 @@ class AuthView(ViewPlugin):
 		context = self.db._getctx()
 		if not 'authenticated' in context.groups:
 			raise emen2.web.responsecodes.ForbiddenError, 'User %r is not authenticated.' % context.username
-
-
-
-
-###### III. View loader #####
-
-class ViewLoader(object):
-	routing_table = emen2.db.config.get('config.ROUTING', {})
-	redirects = emen2.db.config.get('config.REDIRECTS', {})
-	extensions = emen2.db.config.get('extensions.EXTS')
-
-	def view_callback(self, pwd, pth, mtch, name, ext, failures=None, extension_name=None):
-		if name == '__init__':
-			return
-		modulename = '.'.join([extension_name, 'views', name])
-
-		if not hasattr(failures, 'append'):
-			failures = []
-
-		assert ext == mtch
-
-		filpath = os.path.join(pwd[0], name)
-		data = emen2.util.fileops.openreadclose(filpath+ext)
-		viewname = os.path.join(pwd[0], name).replace(pth,'')
-		level = 'DEBUG'
-		msg = ["VIEW", "LOADED:"]
-
-		try:
-			__import__(modulename)
-		except BaseException, e:
-			# emen2.db.log.info(e)
-			level = 'ERROR'
-			msg[1] = "FAILED:"
-			failures.append(viewname)
-			emen2.db.log.print_exception()
-
-		msg.append(filpath+ext)
-		emen2.db.log.msg(level, ' '.join(msg))
-
-
-	def __init__(self):
-		self.get_views = emen2.util.fileops.walk_path('.py', self.view_callback)
-
-
-	def load_extensions(self):
-		# Load exts
-		# print self.extensions
-		for ext, path in self.extensions.items():
-			# print ext, path, 'extension loading'
-			self.load_extension(ext, path)
-		return True
-
-
-	def load_extension(self, ext, path):
-		# We'll be adding the extension paths with a low priority..
-		pth = list(reversed(sys.path))
-		emen2.db.log.info('Loading extension %s: %s' % (ext, path))
-
-		# ...add ext path to the python module search
-		pythondir = os.path.join(path, 'python')
-		if os.path.exists(pythondir):
-			pth.insert(-1,pythondir)
-
-		# ...load views
-		viewdir = os.path.join(path, 'views')
-		if os.path.exists(viewdir):
-			old_syspath = sys.path[:]
-			sys.path.append(os.path.dirname(path))
-			self.get_views(viewdir, extension_name=ext)
-			sys.path = old_syspath
-
-		# Restore the original sys.path
-		sys.path = list(reversed(pth))
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

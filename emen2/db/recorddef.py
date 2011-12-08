@@ -15,8 +15,6 @@ import emen2.db.btrees
 import emen2.db.dataobject
 
 
-# ian: todo: make this a classmethod of RecordDef ?
-
 def parseparmvalues(text):
 	regex = emen2.db.database.VIEW_REGEX
 
@@ -68,6 +66,8 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short", "owner"])
 	attr_required = set(['mainview'])
 
+	# Add custom validators
+	_handlers = {}
 
 	def init(self, d):
 		super(RecordDef, self).init(d)
@@ -111,10 +111,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		self.__dict__['paramsR'] = set()
 
 
-
-	#################################
-	# Setters..
-	#################################
+	##### Setters #####
 
 	def _set_mainview(self, key, value, vtm=None, t=None):
 		"""Only an admin may change the mainview"""
@@ -126,7 +123,6 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		self.findparams()
 		return ret
 
-
 	# These require normal record ownership
 	def _set_views(self, key, value, vtm=None, t=None):
 		views = {}
@@ -137,10 +133,8 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		self.findparams()
 		return ret
 
-
 	def _set_private(self, key, value, vtm=None, t=None):
 		return self._set('private', int(value), self.isowner())
-
 
 	# ian: todo: Validate that these are actually valid RecordDefs
 	def _set_typicalchld(self, key, value, vtm=None, t=None):
@@ -148,25 +142,19 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		value = filter(None, [unicode(i) for i in value]) or None
 		return self._set('typicalchld', value, self.isowner())
 
-
 	def _set_desc_short(self, key, value, vtm=None, t=None):
 		return self._set('desc_short', unicode(value or self.name), self.isowner())
 
-
 	def _set_desc_long(self, key, value, vtm=None, t=None):
 		return self._set('desc_long', unicode(value or ''), self.isowner())
-
 
 	def _set_owner(self, key, value, vtm=None, t=None):
 		return self._set('owner', unicode(value), self.isowner())
 
 
+	##### RecordDef Methods #####
 
-	#################################
-	# RecordDef methods
-	#################################
-
-	# ian: todo: critical!! setContext for RecordDef
+	# ian: todo: important!! setContext for RecordDef
 	# def setContext(self, ctx):
 		# def accessible(self):
 		# 	"""Does current Context allow access to this RecordDef?"""
@@ -179,10 +167,8 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		# 		result = True
 		# 	return result
 
-
 	def findparams(self):
 		"""This will update the list of params by parsing the views"""
-
 		t, d, r = parseparmvalues(self.mainview)
 
 		for i in self.views.values():
@@ -199,14 +185,39 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		p['paramsR'] = r
 		self.__dict__.update(p)
 
-
 	def validate(self, vtm=None, t=None):
 		# Run findparams one last time before we commit...
 		self.findparams()
 
+	# This handler implementation is not finalized.
+	@classmethod
+	def register(cls, names):
+		def f(o):
+			# print "Registering RecordDef handler:", o
+			for name in names:
+				if name in cls._handlers:
+					raise ValueError("""RecordDef handler %s already registered""" % name)
+				cls._handlers[name] = o
+			return o
+		return f
+
+	@classmethod
+	def get_handler(cls, rec=None):
+		handler = None
+		if rec:
+			handler = rec.get('rectype')
+		handler = cls._handlers.get(handler, RecordDefHandler)
+		return handler(rec)
 
 
+# This is not finalized. Subject to change. 
+class RecordDefHandler(object):
+	def __init__(self, rec):
+		self.rec = rec
 
+	def validate(self):
+		# print "Base validator...", self.rec
+		return
 
 
 class RecordDefDB(emen2.db.btrees.RelateDB):

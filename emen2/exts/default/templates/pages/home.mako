@@ -37,7 +37,18 @@
 % endif
 
 
-<h1>Projects</h1>
+<h1>
+	Equipment
+	## <span class="e2l-label"><a href="${EMEN2WEBROOT}/record/0/new/project/">Vitrobot</a></span>
+	## <span class="e2l-label"><a href="${EMEN2WEBROOT}/record/0/new/project/">Camera</a></span>
+	<span class="e2l-label"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> <a href="${EMEN2WEBROOT}/record/0/new/microscope/">New Microscope</a></span>
+</h1>
+
+
+<h1>
+	Projects
+	<span class="e2l-label"><a href="${EMEN2WEBROOT}/record/0/new/project/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New Project</a></span>
+</h1>
 
 <%
 ctsearch = [[None, ctroot]]

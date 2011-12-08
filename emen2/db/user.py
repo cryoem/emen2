@@ -73,7 +73,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 	def validate_password(self, password):
 		# Only root is allowed to have no password. All user accounts must have a password.
 		password = unicode(password or '')
-		if len(password) < 6 and self.name != 'root':
+		if len(password) < 6 and self.name != 'root' and len(password) != 40:
 			self.error("Password too short; minimum 6 characters required")
 		return password
 
@@ -436,13 +436,15 @@ class User(BaseUser):
 	def setContext(self, ctx, hide=True):
 		super(User, self).setContext(ctx)
 
+		admin = self._ctx.checkreadadmin()
+
 		# If the user has requested privacy, we return only basic info
 		hide = self._ctx.username == 'anonymous' or self.privacy
-		if self._ctx.checkreadadmin():
+		if admin:
 			hide = False
 
 		p = {}
-		if self._ctx.username != self.name:
+		if self._ctx.username != self.name and not admin:
 			p['password'] = None
 
 		# You must access the User directly to get these attributes

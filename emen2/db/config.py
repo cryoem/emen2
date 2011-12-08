@@ -14,11 +14,14 @@ Classes:
 
 import os
 import sys
+import glob
 import functools
+import operator
 import optparse
 import collections
 import threading
 import urlparse
+import imp
 
 import jsonrpc.jsonutil
 
@@ -32,8 +35,6 @@ globalns = emen2.db.globalns.GlobalNamespace()
 # 	Be very careful about importing EMEN2 modules here!
 # 	This module is loaded by many others, it can create circular
 # 	dependencies very easily!
-
-# import emen2.db.debug
 
 
 ##### Mako template lookup #####
@@ -62,12 +63,6 @@ class AddExtLookup(mako.lookup.TemplateLookup):
 # Mako Template Loader
 templates = AddExtLookup(input_encoding='utf-8')
 
-
-# ian: todo:
-# Module level 'get_template' and 'render_template' that
-# check if the Mako module is available before calling
-# templates.get_template/render_template, and provide
-# some kind of simple fallback for simple templates (e.g. email)
 
 
 ##### Module-level config methods #####
@@ -108,6 +103,68 @@ def set(key, value):
 
 
 
+##### Extensions #####
+
+def load_exts():
+	for ext in globalns.extensions.EXTS:
+		load_ext(ext)
+
+def load_views():
+	for ext in globalns.extensions.EXTS:
+		load_view(ext)
+
+def load_jsons(cb=None):
+	for ext in globalns.extensions.EXTS:
+		load_json(ext, cb=cb)
+	
+def load_ext(ext):
+	modulename = 'emen2.exts.%s'%ext
+	# print "Loading extension...", modulename
+	if modulename in sys.modules:
+		print "%s already loaded"%modulename
+		return
+	paths = list(globalns.paths.EXTPATHS)
+	module = imp.find_module(ext, paths)
+	ret = imp.load_module(ext, *module)
+	# Extensions may have an optional "templates" directory,
+	# which will be added to the template search path.
+	templates.directories.insert(0, os.path.join(module[1], 'templates'))
+	return ret
+
+def load_view(ext):
+	# Extensions may have an optional "views" module.
+	modulename = 'emen2.exts.%s.views'%ext
+	# print "Loading views...", modulename
+	if modulename in sys.modules:
+		print "%s already loaded"%modulename
+		return			
+	paths = list(globalns.paths.EXTPATHS)
+	module = imp.find_module(ext, paths)
+	path = module[1]
+	try:
+		viewmodule = imp.find_module('views', [path])
+	except ImportError, e:
+		viewmodule = None
+	if viewmodule:
+		imp.load_module(modulename, *viewmodule)
+
+
+def load_json(ext, cb=None):
+	modulename = 'emen2.exts.%s.json'%ext
+	# print "Loading json...", modulename
+	path = resolve_ext(ext)
+	if not cb:
+		return
+	for j in sorted(glob.glob(os.path.join(path, 'json', '*.json'))):
+		cb(j)
+
+def resolve_ext(ext):
+	paths = list(globalns.paths.EXTPATHS)
+	return imp.find_module(ext, paths)[1]
+
+
+
+
 ##### Default OptionParser #####
 
 class DBOptions(optparse.OptionParser):
@@ -134,7 +191,7 @@ class DBOptions(optparse.OptionParser):
 		group.add_option('-c', '--configfile', action='append', dest='configfile')
 		group.add_option('-l', '--loglevel', action='store', dest='loglevel')
 		group.add_option('--create', action="store_true", help="Create and initialize a new DB")
-		group.add_option('--ext', action="append", dest='exts', help="Add Extension")
+		group.add_option('--ext', action="append", dest='exts', help="Add Extension; can be comma-separated.")
 		group.add_option('--quiet', action='store_true', default=False, help="Quiet")
 		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
 		group.add_option('--version', action='store_true', help="EMEN2 Version")
@@ -156,31 +213,6 @@ class DBOptions(optparse.OptionParser):
 		import emen2.db.database
 		db = emen2.db.database.DB.opendb(*args, **kwargs)
 		return db
-
-
-	def resolve_ext(self, ext, extpaths):
-		# Find the path to the extension
-		path, name = os.path.split(ext)
-
-		# Absolute paths are loaded directly
-		if path:
-			paths = filter(os.path.isdir, [ext])
-		else:
-			# Search EXTPATHS for a directory matching the ext name
-			paths = []
-			for p in filter(os.path.isdir, extpaths):
-				for sp in os.listdir(p):
-					if os.path.isdir(os.path.join(p, sp)) and ext == sp:
-						paths.append(os.path.join(p, sp))
-
-		if not paths:
-			globalns.info('Couldn\'t find extension %s'%ext)
-			return '', ''
-			# continue
-
-		# If a suitable ext was found, load..
-		path = paths.pop()
-		return name, path
 
 
 	def load_config(self, **kw):
@@ -250,27 +282,24 @@ class DBOptions(optparse.OptionParser):
 			sys.path.extend(pp)
 
 		# Add any specified extensions
+		# EXTPATHS points to directories containing emen2 ext modules.
+		# This will be used with imp.find_module(ext, g.paths.EXTPATHS)
 		g.paths.EXTPATHS.append(get_filename('emen2', 'exts'))
 		if os.getenv('EMEN2EXTPATHS'):
 			for path in filter(None, os.getenv('EMEN2EXTPATHS','').split(":")):
 				g.paths.EXTPATHS.append(path)
-
-
-
+		
 		# Load the default extensions
 		# I plan to add a flag to disable automatic loading.
 		exts = self.values.exts or []
+		exts = reduce(operator.concat, [i.split(",") for i in exts])
 		if 'base' not in exts:
 			exts.insert(0,'base')
 		exts.extend(g.extensions.EXTS)
 
 		# Map the extensions back to their physical directories
 		# Use an OrderedDict to preserve the order
-		g.extensions.EXTS = collections.OrderedDict()
-		for ext in exts:
-			name, path = self.resolve_ext(ext, g.paths.EXTPATHS)
-			g.extensions.EXTS[name] = path
-			templates.directories.insert(0, os.path.join(path, 'templates'))
+		g.extensions.EXTS = exts
 
 		# Enable/disable snapshot
 		g.params.SNAPSHOT = self.values.snapshot

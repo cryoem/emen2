@@ -103,8 +103,7 @@ class EMEN2Server(object):
 	@contextlib.contextmanager
 	def start(self):
 		'''Run the server main loop'''
-
-		# emen2.db.log.info('starting EMEN2 version: %s'%emen2.db.config.get('params.VERSION')
+		# emen2.db.log.info('starting EMEN2 version: %s'%emen2.db.config.get('params.VERSION'))
 
 		# Routing resource. This will look up request.uri in the routing table
 		# and return View resources.
@@ -140,15 +139,16 @@ class EMEN2Server(object):
 def start_emen2():
 	# Start the EMEN2Server and load the View resources
 	with EMEN2Server().start() as (server, root):
-		import jsonrpc.server
-		import emen2.web.resource
-		import emen2.web.view
+		# You must import the database in the main thread.
+		import emen2.db.database
 
 		# Load all View extensions		
-		vl = emen2.web.view.ViewLoader()
-		vl.load_extensions()
-
+		import emen2.db.config
+		emen2.db.config.load_views()
+		
 		# Child resources that do not go through the Router.
+		import jsonrpc.server
+		import emen2.web.resource
 		root.putChild('jsonrpc', emen2.web.resource.JSONRPCResource())
 		root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('static-%s'%emen2.db.config.get('params.VERSION'), twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))

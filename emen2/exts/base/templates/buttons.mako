@@ -86,21 +86,20 @@
 	if autolink:
 		link = '%s/%s/%s/'%(EMEN2WEBROOT, item.get('keytype'), item.get('name'))
 
-
 	src = "%s/static/images/gears.png"%EMEN2WEBROOT
 	title = title or item.get('desc_short') or item.get('name')
 	body = ''
 		
 	if item.get('keytype') == 'user':
 		src = "%s/static/images/nophoto.png"%EMEN2WEBROOT
-		title = title or item.get('displayname') or item.get('name')
+		title = item.get('displayname') or item.get('name')
 		body = body or item.get('email')
 		photo = item.get('userrec', dict()).get('person_photo')
 		if photo:
 			src = "%s/download/%s/?size=thumb"%(EMEN2WEBROOT, photo)
 	elif item.get('keytype') == 'group':
 		src = "%s/static/images/group.png"%EMEN2WEBROOT
-		title = title or item.get('displayname') or item.get('name')
+		title = item.get('displayname')
 		body = body or '%s members'%sum([len(i) for i in item.get('permissions',[])])
 	elif item.get('keytype') == 'paramdef':
 		body = '%s (%s)'%(item.name, item.vartype)

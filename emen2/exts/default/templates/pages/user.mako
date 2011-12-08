@@ -54,7 +54,7 @@
 		
 				<tr>
 					<td>Email:</td>
-					<td><input name="email" type="email" value="${kwargs.get('email','')}" required /></td>
+					<td><input name="email" type="email" value="${kwargs.get('email','')}" required autocomplete="off" /></td>
 				</tr>
 
 				<tr>

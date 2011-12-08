@@ -22,29 +22,30 @@ import emen2.db.config
 import emen2.db.exceptions
 import emen2.db.log
 
-
 ##### File handler #####
 
-class EMEN2File(object):
-	'''File.
+class BinaryHandler(object):
+	'''EMEN2 managed file.'''
 
-	This is used in a few different ways. It is used for files uploaded
-	to the web server. It can also be used with the File Handlers defined
-	below (e.g. to extract header metadata.) These can also be passed
-	as items to db.putbinary() and stored as database Binary attachments.
+	# This is used in a few different ways. It is used for files uploaded
+	# to the web server. It can also be used with the File Handlers defined
+	# below (e.g. to extract header metadata.) These can also be passed
+	# as items to db.putbinary() and stored as database Binary attachments.
+	# 
+	# The original name of the file is self.filename. Sources can be a added in
+	# the constructor, and may be a string of data (filedata), or a file-like
+	# object supporting read() (fileobj). Consider the data to be read-only.
+	# 
+	# The writetmp() method will return an on-disk filename that can be used
+	# for operations that required a named file (e.g. EMAN2.) If the input
+	# source is filedata or fileobj, it will write out to a temporary file in
+	# the normal temp file storage area. The close() method will remove any
+	# temporary files.
+	
+	# File type handlers
+	_handlers = {}
 
-	The original name of the file is self.filename. Sources can be a added in
-	the constructor, and may be a string of data (filedata), or a file-like
-	object supporting read() (fileobj). Consider the data to be read-only.
-
-	The writetmp() method will return an on-disk filename that can be used
-	for operations that required a named file (e.g. EMAN2.) If the input
-	source is filedata or fileobj, it will write out to a temporary file in
-	the normal temp file storage area. The close() method will remove any
-	temporary files.
-	'''
-
-	def __init__(self, filename, filedata=None, fileobj=None, param='file_binary'):
+	def __init__(self, filename=None, filedata=None, fileobj=None, param='file_binary'):
 		self.filename = filename
 		self.filedata = filedata
 		self.fileobj = fileobj
@@ -55,6 +56,9 @@ class EMEN2File(object):
 	def get(self, key, default=None):
 		# Used for copying filename/filedata/fileobj/param into putbinary.
 		return self.__dict__.get(key, default)
+
+
+	##### Open the underlying data #####
 
 	def open(self):
 		'''Open the file'''
@@ -95,45 +99,44 @@ class EMEN2File(object):
 
 		return tmpfile
 
+	##### Extract metadata and build thumbnails #####
+
 	def extract(self):
 		return {}
-
 		
-##### File handlers #####
-
-class Handler(object):
-	rectypes = []
-	extensions = []
-	_handlers = {}
-
-	def __init__(self, files=None):
-		self.files = files
-
-	def extract(self):
-		return {}
-
-	def thumbnail(self, f):
+	def thumbnail(self):
 		pass
 
-	def filter_ext(sef, files, exts):
-		ret = []
-		for f in files:
-			b, _, ext = f.filename.rpartition(".")
-			if ext.lower() in exts:
-				ret.append(f)
-		return ret
+
+	##### Handler registration #####
 
 	@classmethod
-	def register(cls, name):
+	def register(cls, names):
 		def f(o):
-			if name in cls._handlers:
-				raise ValueError("""Handler %s already registered""" % name)
-			# emen2.db.log.info("REGISTERING HANDLER (%s)"% name)
-			cls._handlers[name] = o
+			for name in names:
+				if name in cls._handlers:
+					raise ValueError("""File handler %s already registered""" % name)
+				cls._handlers[name] = o
 			return o
 		return f
 
 	@classmethod
-	def get_handler(cls, handler):
-		return cls._handlers.get(handler, cls)
-
+	def get_handler(cls, filename=None, filedata=None, fileobj=None, param='file_binary'):
+		"""Return an appropriate file handler."""
+		handler = None
+		if filename:
+			f = filename.split(".")
+			if f[-1] in ['gz', 'bz2', 'zip']:
+				f.pop()
+			if f:
+				handler = f[-1]
+			
+		handler = cls._handlers.get(handler, cls)
+		return handler(filename=filename, filedata=filedata, fileobj=fileobj, param=param)
+		
+		
+		
+		
+		
+		
+		

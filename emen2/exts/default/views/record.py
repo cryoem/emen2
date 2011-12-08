@@ -144,15 +144,13 @@ class Record(RecordBase):
 
 		# Update the record
 		rec.update(kwargs)
-		
-		# Handle file uploads
-		handler = emen2.db.handlers.Handler.get_handler(rec.rectype)(self.request_files)
-		rec.update(handler.extract())
 
 		# Validate changes before we commit the binaries
 		self.db.validaterecord(rec)
 
 		for f in self.request_files:
+			rec.update(f.extract())
+
 			pd = self.db.getparamdef(f.param)
 			if pd.vartype != 'binary':
 				raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
@@ -274,12 +272,11 @@ class Record(RecordBase):
 		newrec = self.db.putrecord(newrec)
 		
 		if self.request_files:
-			# Extract attachment metadata
-			handler = emen2.db.handlers.Handler.get_handler(newrec.rectype)(self.request_files)
-			newrec.update(handler.extract())
-		
 			# Save the attachments
 			for f in self.request_files:
+				# Extract attachment metadata
+				newrec.update(f.extract())
+
 				pd = self.db.getparamdef(f.param)
 				if pd.vartype != 'binary':
 					raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
