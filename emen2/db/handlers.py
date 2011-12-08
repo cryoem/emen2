@@ -90,7 +90,6 @@ class EMEN2File(object):
 			args['dir'] = path
 
 		(fd, tmpfile) = tempfile.mkstemp(**args)
-
 		with os.fdopen(fd, "w+b") as f:
 			shutil.copyfileobj(infile, f)
 
@@ -137,36 +136,4 @@ class Handler(object):
 	@classmethod
 	def get_handler(cls, handler):
 		return cls._handlers.get(handler, cls)
-
-
-
-
-##### Specific file type handlers #####
-# In the future, these may be moved into
-#	extension modules and registered with the parent class
-
-# class TestHandler(Handler):
-# 	"""Test handler. Count the words in a file."""
-# 	def extract(self):
-# 		txtfile = self.files[0]
-# 		f = txtfile.open()
-# 		words = collections.defaultdict(int)
-# 		for w in f.read().split():
-# 			words[w] += 1
-# 		return words
-
-
-# @Handler.register('file_movie')
-# class file_movie(Handler):
-# 	extensions = ['avi', 'flv', 'mpg', 'mp4', 'mov']
-#
-#
-# @Handler.register('file_image')
-# class file_image(Handler):
-# 	extensions = ['jpg', 'jpeg', 'png', 'gif', 'tif', 'tiff', 'bmp', 'crw', 'nef', 'mng']
-#
-#
-# @Handler.register('file_pdf')
-# class file_pdf(Handler):
-# 	extensions = ['pdf']
 
