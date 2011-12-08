@@ -10,7 +10,7 @@ class Groups(View):
 	@View.add_matcher(r'^/groups/$')
 	def main(self,q=None):
 		self.template="/pages/groups"
-		self.title = "Group Directory"
+		self.title = "Group directory"
 		self.set_context_item("q","")
 		groups = self.db.getgroup(self.db.getgroupnames())
 		admin = self.db.checkadmin()
@@ -60,7 +60,7 @@ class Group(View):
 		group.name = "None"
 		self.set_context_item("admin",admin)
 		self.set_context_item("edit",True)
-		self.title = "New Group"
+		self.title = "New group"
 		self.set_context_item("group",group)
 		self.set_context_item("new",True)
 		self.template = "/pages/group"

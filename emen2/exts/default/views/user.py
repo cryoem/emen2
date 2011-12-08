@@ -38,7 +38,7 @@ class User(View):
 		if self.db.checkcontext()[0] != self.user.name and not self.ctxt['ADMIN']:
 			raise emen2.db.exceptions.SecurityError, "You may only edit your own user page"
 
-		self.title = "Profile Editor"
+		self.title = "Profile editor"
 
 
 	# @View.add_matcher("^/user/(?P<name>[\w\- ]+)/save/$")
@@ -101,7 +101,7 @@ class Users(View):
 	@View.add_matcher(r'^/users/$')	
 	def main(self, q=None):
 		self.template = "/pages/users"
-		self.title = "User Directory"
+		self.title = "User directory"
 
 		if q:
 			users = self.db.finduser(q)
@@ -120,7 +120,7 @@ class Users(View):
 	@View.add_matcher(r'^/users/admin/$', name='admin')	
 	def admin(self, sortby="name_last", reverse=0, q=None, **kwargs):
 		self.template="/pages/users.admin"
-		self.title = 'User Management'
+		self.title = 'User administration'
 		
 		if q:
 			users = self.db.finduser(q)
@@ -145,7 +145,7 @@ class NewUser(View):
 	@View.add_matcher("^/users/new/$", view='Users', name='new')
 	def new(self, **kwargs):
 		self.template = '/pages/users.new'
-		self.title = 'New User Application'
+		self.title = 'Account request'
 		self.ctxt['kwargs'] = kwargs
 		self.ctxt['invalid'] = set()
 		
@@ -223,7 +223,7 @@ class NewUser(View):
 	@View.add_matcher(r'^/users/queue/$', view='Users', name='queue')	
 	def queue(self, action=None, name=None, **kwargs):
 		self.template='/pages/users.queue'	
-		self.title = 'Users awaiting approval'
+		self.title = 'Account requests'
 
 		actions = kwargs.pop('actions', {})
 		self.ctxt['actions'] = actions

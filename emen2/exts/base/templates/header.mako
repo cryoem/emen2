@@ -25,10 +25,10 @@
 			<li>
 				<a href="${EMEN2WEBROOT}/query/">Query ${buttons.caret()}</a>
 				<ul>
-					<li><a href="${EMEN2WEBROOT}/query">All Records</a></li>
-					<li><a href="${EMEN2WEBROOT}/query/rectype.is.grid_imaging/">Imaging Sessions</a></li>
+					<li><a href="${EMEN2WEBROOT}/query">All records</a></li>
+					<li><a href="${EMEN2WEBROOT}/query/rectype.is.grid_imaging/">Imaging sessions</a></li>
 					<li><a href="${EMEN2WEBROOT}/query/rectype.is.image_capture*/">Images</a></li>
-					<li><a href="${EMEN2WEBROOT}/query/rectype.is.labnotebook/">Lab Notebooks</a></li>
+					<li><a href="${EMEN2WEBROOT}/query/rectype.is.labnotebook/">Lab notebooks</a></li>
 					<li><a href="${EMEN2WEBROOT}/query/rectype.is.publication*/">Publications</a></li>
 				</ul>
 			</li>
@@ -44,8 +44,8 @@
 		% if ADMIN:
 			<li><a href="${EMEN2WEBROOT}/">Admin ${buttons.caret()}</a>
 				<ul>
-					<li><a href="${ctxt.reverse('Users/queue')}">Account Requests</a></li>
-					<li><a href="${ctxt.reverse('Users/admin')}">User Administration</a></li>
+					<li><a href="${ctxt.reverse('Users/queue')}">Account requests</a></li>
+					<li><a href="${ctxt.reverse('Users/admin')}">User administration</a></li>
 					## <li><a href="">Configuration</a></li>
 					## <li><a href="">Backup</a></li>
 				</ul>
@@ -63,7 +63,7 @@
 		<li class="e2l-float-right">
 				<a href="${EMEN2WEBROOT}/user/${USER.name}/">${USER.displayname} ${buttons.caret()}</a>
 				<ul>				
-					<li><a href="${EMEN2WEBROOT}/user/${USER.name}/edit/">Edit Profile</a></li>
+					<li><a href="${EMEN2WEBROOT}/user/${USER.name}/edit/">Edit profile</a></li>
 					<li><a href="${EMEN2WEBROOT}/auth/logout/">Logout</a></li>
 				</ul>
 		</li>

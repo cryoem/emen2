@@ -44,6 +44,9 @@
 	<span class="e2l-label"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> <a href="${EMEN2WEBROOT}/record/0/new/microscope/">New Microscope</a></span>
 </h1>
 
+% for name in equipment:
+	<a href="${EMEN2WEBROOT}/record/${name}/">${recnames.get(name, name)|x}</a><br />
+% endfor
 
 <h1>
 	Projects

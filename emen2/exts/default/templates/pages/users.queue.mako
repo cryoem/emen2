@@ -18,10 +18,12 @@
 		<tr>
 
 			<th style="width:16px">
-				<input type="radio" name="all" value="approve" />
+				Approve
+				## <input type="radio" name="all" value="approve" />
 			</th>
 			<th style="width:16px">
-				<input type="radio" name="all" value="reject" />
+				Reject
+				## <input type="radio" name="all" value="reject" />
 			</th>
 			
 			<th>Email</th>
@@ -56,7 +58,7 @@
 </table>
 
 <ul class="e2l-controls">
-	<li><input type="submit" value="Accept checked users" /></li>
+	<li><input type="submit" value="Accept or reject account requests" /></li>
 </u>
 
 </form>

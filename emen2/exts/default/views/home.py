@@ -68,6 +68,11 @@ class Home(View):
 			recnames = {}
 			recnames.update(rn)
 
+			equipment = self.db.getchildren(0, rectype=['microscope'])
+			r = self.db.renderview(equipment)
+			recnames.update(r)
+			self.ctxt['equipment'] = equipment
+
 			self.set_context_item("banner", banner)
 			self.set_context_item("render_banner", render_banner)
 			self.set_context_item("user",user)
