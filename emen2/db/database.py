@@ -1565,7 +1565,7 @@ class DB(object):
 		return ret
 
 
-	@limit_result_length
+	# @limit_result_length
 	def _find_pdrd(self, cb, query=None, childof=None, keytype="paramdef", record=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
 		
@@ -1596,19 +1596,9 @@ class DB(object):
 		return ret
 
 
-	def _indcontains(self, param, term, keytype='record', txn=None):
-		termrecs = set()
-		ind = self.bdbs.keytypes[keytype].getindex(param, txn=txn)
-		if ind:
-			for key, records in ind.iteritems(txn=txn):
-				if term in key:
-					termrecs |= records
-		return termrecs
-		
-
 	@publicmethod("user.find")
-	@limit_result_length
-	def finduser(self, query=None, record=None, limit=None, ctx=None, txn=None, **kwargs):
+	# @limit_result_length
+	def finduser(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
 		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
 
 		Keywords can be combined.
@@ -1629,95 +1619,96 @@ class DB(object):
 		:keyword name_first: ... contains in first name
 		:keyword name_middle: ... contains in middle name		
 		:keyword name_last: ... contains in last name
+		:keyword name: ... contains in the user name
 		:keyword record: Referenced in Record name(s)
-		:keyword limit: Limit number of results
+		:keyword count: Limit number of results
 		:return: Users
 		"""
 
 		foundusers = None
 		foundrecs = None
-		query = [i.strip() for i in unicode(query or '').split()]
+		query = filter(None, [i.strip() for i in unicode(query or '').split()])
 		
 		# If no options specified, find all users
-		if not any(query, record, kwargs):
+		if not any([query, record, kwargs]):
 			foundusers = self.bdbs.user.names(ctx=ctx, txn=txn)
 
-
-		if record:
-			ret = self._findbyvartype(listops.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
-			rets.append(ret)
-
-
-		# Find users by either name_last OR name_first
+		cs = []
 		for term in query:
-			q = set()
-			q |= self._indcontains('name_first', term, txn=txn)
-			q |= self._indcontains('name_last', term, txn=txn)
+			cs.append([['name_first', 'contains', term], ['name_last', 'contains', term]])
+		for param in ['name_first', 'name_middle', 'name_last']:
+			if kwargs.get(param):
+				cs.append([[param, 'contains', kwargs.get(param)]])
+		for c in cs:
+			# btree.query supports nested constraints, 
+			# but I don't have the interface finalized.
+			q = self.bdbs.record.query(c=c, mode='OR', ctx=ctx, txn=txn)
+			q.run()
 			if foundrecs is None:
-				foundrecs = q
-			foundrecs &= q
-
-		# Find users by profile name parameters
-		for param in filter(kwargs.get, ['name_first', 'name_middle', 'name_last']):
-			term = kwargs.get(i)
-			q = self._indcontains(param, term, txn=txn)
-			if foundrecs is None:
-				foundrecs = q
-			foundrecs &= q
-
-		# Get the records returned by the profile record search queries
+				foundrecs = q.result
+			else:
+				foundrecs &= q.result
+		
+		# Get 'username' from the found records.
 		if foundrecs:
-			foundrecs = self.getrecord(foundrecs, ctx=ctx, txn=txn)
-			foundusers = set(filter([i.get('username') for i in recs]))
-
-		# Find users by user parameters
-		for param in filter(kwargs.get, ['email', 'record']):
-			term = kwargs.get(i)
-			q = self._indcontains(param, term, keytype='user', txn=txn)
+			recs = self.bdbs.record.cgets(foundrecs, ctx=ctx, txn=txn)
+			f = set([rec.get('username') for rec in recs])
 			if foundusers is None:
-				foundusers = q
-			foundusers &= q
-			
-		# for param in filter(kwargs.get, ['name']):
-		#	q = 
-		return
-
-		name = kwargs.get('name') or kwargs.get('username')
-		if name:
-			ret = set()
-			for i in self.bdbs.user.names(ctx=ctx, txn=txn):
-				if name in i:
-					ret.add(i)
-			rets.append(ret)
-
+				foundusers = f
+			else:
+				foundusers &= f
+		
+		# Also search for email and name in users
+		cs = []
+		if kwargs.get('email'):
+			cs.append([['email', 'contains', kwargs.get('email')]])
+		if kwargs.get('name'):
+			cs.append([['name', 'contains', kwargs.get('name')]])
+		for c in cs:
+			print c
+			q = self.bdbs.user.query(c=c, ctx=ctx, txn=txn)
+			q.run()
+			if foundusers is None:
+				foundusers = q.result
+			else:
+				foundusers &= q.result
+		
+		# Find users referenced in a record		
 		if record:
-			ret = self._findbyvartype(listops.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
-			rets.append(ret)
+			f = self._findbyvartype(listops.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
+			if foundusers is None:
+				foundusers = f
+			else:
+				foundusers &= f
 
-		allret = self._boolmode_collapse(rets, boolmode='AND')
-		return self.getuser(allret, ctx=ctx, txn=txn, filt=False)
+		foundusers = sorted(foundusers or [])
+		if count:
+			foundusers = foundusers[:count]
+
+		return self.bdbs.user.cgets(foundusers or [], ctx=ctx, txn=txn)
 
 
 	@publicmethod("group.find")
-	def findgroup(self, query=None, record=None, limit=None, ctx=None, txn=None):
+	def findgroup(self, query=None, record=None, count=100, ctx=None, txn=None):
 		"""Find a group.
 		
 		Keywords can be combined.
 		
 		Examples:
 		
-		>>> db.findgroup(query='authenticated')
-		[<Group authenticated>]
+		>>> db.findgroup('admin')
+		[<Group admin>, <Group readonlyadmin>]
 			
 		>>> db.findgroup(record=136)
 		[<Group authenticated>, <Group ncmiusers>]
 
 		:keyword query: Find in Group's name or displayname
 		:keyword record: Referenced in Record name(s)
-		:keyword limit: Limit number of results
+		:keyword count: Limit number of results
 		:keyword boolmode: AND / OR for each search constraint
 		:return: Groups
 		"""
+		
 		# No real indexes yet (small). Just get everything and sort directly.
 		items = self.bdbs.group.cgets(self.bdbs.group.names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 		ditems = listops.dictbykey(items, 'name')
@@ -1745,26 +1736,83 @@ class DB(object):
 		allret = self._boolmode_collapse(rets, boolmode='AND')
 		ret = map(ditems.get, allret)
 
-		if limit:
-			return ret[:int(limit)]
+		if count:
+			return ret[:count]
 		return ret
 
 
-	# Warning: This can be SLOW!
-	@publicmethod("binary.find")
-	def findbinary(self, query=None, record=None, limit=None, ctx=None, txn=None, **kwargs):
-		"""Find a binary by filename.
+
+	@publicmethod("record.find.byvalue")
+	def findvalue(self, param, query='', choices=True, count=100, ctx=None, txn=None):
+		"""Find values for a parameter. 
 		
-		Keywords can be combined.
+		This is mostly used for interactive UI elements: e.g. combobox.
+		More detailed results can be returned by using db.query directly.
 		
 		Examples:
 		
+		>>> db.findvalue('name_pi')
+		[['wah', 124], ['steve', 89], ['ian', 43]], ...]
+
+		>>> db.findvalue('ccd_id', limit=2)
+		[['Gatan 4k', 182845], ['Gatan 10k', 48181]]
+
+		>>> db.findvalue('tem_magnification', choices=True, limit=10)
+		[[10, ...], [20, ...], [60, ...], [100, ...], ...]
+
+		:param param: Parameter to search
+		:keyword query: Value to match
+		:keyword choices: Include any parameter-defined choices. These will preceede other results.
+		:keyword count: Limit number of results
+		:return: [[matching value, count], ...]
+		:exception KeyError: No such ParamDef
+		"""
+		
+		# Use db.plot because it returns the matched values.
+		c = [[param, 'contains', query]]
+		q = self.plot(c=c, ctx=ctx, txn=txn)
+
+		# Group the values by items.
+		inverted = collections.defaultdict(set)
+		for rec in q['recs']:
+			inverted[rec.get(param)].add(rec.get('name'))
+			
+		# Include the ParamDef choices if choices=True.
+		pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
+		if pd and choices:
+			choices = pd.get('choices') or []
+		else:
+			choices = []
+			
+		# Sort by the number of items.
+		keys = sorted(inverted, key=lambda x:len(inverted[x]), reverse=True)
+		keys = filter(lambda x:x not in choices, keys)
+
+		ret = []
+		for key in choices + keys:
+			ret.append([key, len(inverted[key])])
+
+		if count:
+			ret = ret[:count]
+
+		return ret
+		
+
+	# Warning: This can be SLOW!
+	@publicmethod("binary.find")
+	def findbinary(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
+		"""Find a binary by filename.
+
+		Keywords can be combined.
+
+		Examples:
+
 		>>> db.findbinary(filename='dm3')
 		[<Binary 2011... test.dm3.gz>, <Binary 2011... test2.dm3.gz>]
 
 		>>> db.findbinary(record=136)
 		[<Binary 2011... presentation.ppt>, <Binary 2011... retreat_photo.jpg>, ...]
-		
+
 		:keyword query: Contained in any item below
 		:keyword name: ... Binary name
 		:keyword filename: ... filename
@@ -1802,70 +1850,9 @@ class DB(object):
 			rets.append(ret)
 		allret = self._boolmode_collapse(rets, boolmode='AND')
 		ret = self.bdbs.binary.cgets(allret, ctx=ctx, txn=txn)
-		if limit:
-			return ret[:int(limit)]
-		return ret
-
-
-	# query should replace this... also, make two methods instead of changing return format
-	@publicmethod("record.find.byvalue")
-	def findvalue(self, param, query='', count=True, showchoices=True, limit=100, ctx=None, txn=None):
-		"""Find values for a parameter. 
-		
-		This is mostly used for interactive UI elements: e.g. combobox.
-		More detailed results can be returned by using db.query directly.
-		
-		Examples:
-		
-		>>> db.findvalue('name_pi')
-		[['wah', 124], ['steve', 89], ['ian', 43]], ...]
-
-		>>> db.findvalue('name_pi', count=False)
-		[['wah', [1,2,3,...]], ['steve', [7,8,9...]], ['ian', [10,11,...]]], ...]
-
-		>>> db.findvalue('ccd_id', limit=2)
-		[['Gatan 4k', 182845], ['Gatan 10k', 48181]]
-
-		>>> db.findvalue('tem_magnification', showchoices=True, limit=10)
-		[[10, ...], [20, ...], [60, ...], [100, ...], ...]
-
-		:param param: Parameter to search
-		:keyword query: Value to match
-		:keyword count: Return count of matches, otherwise return names
-		:keyword showchoices: Include any defined 'choices'. These will preceede other results.
-		:keyword limit: Limit number of results
-		:return: [[matching value, count], ...] if count is True, otherwise
-				[[matching value, [name, ...]], ...]
-		:exception KeyError: No such ParamDef
-		"""
-		
-		pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
-		c = [[pd.name, 'contains', query]]
-		q = self.plot(c=c, ctx=ctx, txn=txn)
-		inverted = collections.defaultdict(set)
-		for rec in q['recs']:
-			inverted[rec.get(param)].add(rec.get('name'))
-		
-		keys = sorted(inverted.items(), key=lambda x:len(x[1]), reverse=True)
-		if limit:
-			keys = keys[:int(limit)]
-		
-		ret = dict([(i[0], i[1]) for i in keys])
 		if count:
-			for k,v in ret.items():
-				ret[k] = len(v)
-		
-		ri = []
-		choices = pd.choices or []
-		if showchoices:
-			for i in choices:
-				ri.append((i, ret.get(i, 0)))
-		
-		for i,j in sorted(ret.items(), key=operator.itemgetter(1), reverse=True):
-			if i not in choices:
-				ri.append((i, ret.get(i, [])))
-		
-		return ri
+			return ret[:count]
+		return ret
 
 
 
@@ -2212,8 +2199,6 @@ class DB(object):
 			ret["headers"] = headers
 
 		return ret
-
-
 
 
 
