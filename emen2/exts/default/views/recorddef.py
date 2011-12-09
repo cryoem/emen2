@@ -8,11 +8,9 @@ from emen2.web.view import View
 @View.register
 class RecordDef(View):
 
-
 	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/new/$')	
 	def new(self, *args, **kwargs):
 		pass
-		
 
 	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/edit/$')	
 	def edit(self, *args, **kwargs):
@@ -28,7 +26,6 @@ class RecordDef(View):
 		self.template = '/pages/recorddef.edit'
 		self.ctxt['edit'] = True
 		self.title = 'Edit Protocol: %s'%self.paramdef.desc_short
-
 
 	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/$')	
 	def main(self, name=None):
