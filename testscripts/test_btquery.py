@@ -32,6 +32,15 @@ with db:
 	print "=> total: %s results in %s"%(q['stats']['length'], time.time()-t)
 
 
+
+
+
+
+
+
+
+
+
 # These are the old query methods
 class Blah(object):
 	"""General query.

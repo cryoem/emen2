@@ -59,24 +59,16 @@ class Home(View):
 				self.template = '/pages/home.noauth'
 				return
 
-			user = self.db.getuser(user)
-			admin = False
+			self.ctxt['projects_map'] = self.routing.execute('Map/embed', db=self.db, root=0, mode='children', recurse=2, rectype=['group', 'project'])
 
-			# childtree = self.routing.execute('Map/embed', db=self.db, root=0, recurse=2, rectype=["group","project"], id="projectmap")
-			ctroot = bookmarks.get('GROUPS', 0)
-			rn, childtree = self.db.renderchildtree(ctroot, recurse=2, rectype=["group","project"])
 			recnames = {}
-			recnames.update(rn)
-
 			equipment = self.db.getchildren(0, rectype=['microscope'])
 			r = self.db.renderview(equipment)
 			recnames.update(r)
 			self.ctxt['equipment'] = equipment
-
-			self.set_context_item("banner", banner)
-			self.set_context_item("render_banner", render_banner)
-			self.set_context_item("user",user)
-			self.ctxt.update({"admin":admin, "childtree":childtree, "recnames":recnames, 'ctroot': ctroot})
+			self.ctxt['banner'] = banner
+			self.ctxt['render_banner'] = render_banner
+			self.ctxt['recnames'] = recnames
 
 
 

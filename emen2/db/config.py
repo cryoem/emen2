@@ -292,7 +292,7 @@ class DBOptions(optparse.OptionParser):
 		# Load the default extensions
 		# I plan to add a flag to disable automatic loading.
 		exts = self.values.exts or []
-		exts = reduce(operator.concat, [i.split(",") for i in exts])
+		exts = reduce(operator.concat, [i.split(",") for i in exts], [])
 		if 'base' not in exts:
 			exts.insert(0,'base')
 		exts.extend(g.extensions.EXTS)

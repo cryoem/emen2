@@ -376,7 +376,7 @@ class Record(RecordBase):
 
 		self.initr(name=name)
 		self.template = "/pages/record.email"
-		self.title = "Users referenced by record %s"%(self.name)
+		self.title = "Users"
 
 		# ian: todo: replace!!
 		pds = self.db.findparamdef(record=self.rec.keys())

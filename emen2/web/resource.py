@@ -275,17 +275,17 @@ class EMEN2Resource(object):
 	# ian: todo: Use a config value to choose which error pages (mako, or emen2) to use.
 	def render_error(self, location, e):
 		return mako.exceptions.html_error_template().render()
-		#return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
+		# return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
 
 
 	def render_error_security(self, location, e):
-		return mako.exceptions.html_error_template().render()
-		# return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
+		# return mako.exceptions.html_error_template().render()
+		return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
 
 
 	def render_error_response(self, location, e):
-		return mako.exceptions.html_error_template().render()
-		# return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
+		# return mako.exceptions.html_error_template().render()
+		return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
 
 
 	def _request_broken(self, failure, request, deferred):

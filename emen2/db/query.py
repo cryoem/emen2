@@ -82,7 +82,7 @@ class Constraint(object):
 	def run(self):		
 		# Run the constraint
 		# print "\nrunning:", self.param, self.op, self.term, '(ind:%s)'%self.ind, '(prev found:%s)'%len(self.p.result or [])
-		t = time.time()
+		# t = time.time()
 		f = self._run()
 		# print "-> found: %s in %s"%(len(f or []), time.time()-t)
 
@@ -288,7 +288,7 @@ class Query(object):
 		if not self.constraints:
 			self.result = self.btree.names(ctx=self.ctx, txn=self.txn)
 		else:
-			self.result = self.btree.filter(self.result or set(), ctx=self.ctx, txn=self.txn)
+			self.result = self.btree.names(names=self.result or set(), ctx=self.ctx, txn=self.txn)
 		
 		# After all constraints have run, tidy up cache/items
 		self._prunecache()
@@ -299,7 +299,8 @@ class Query(object):
 		
 		return self.result
 
-	def sort(self, sortkey='name', reverse=None, pos=0, count=0, rendered=False):
+	def sort(self, sortkey='name', reverse=False, pos=0, count=0, rendered=False):
+		reverse = bool(reverse)
 		if sortkey == 'name':
 			# Shortcut
 			result = sorted(self.result, reverse=reverse)

@@ -3,23 +3,26 @@
 <%namespace name="buttons" file="/buttons"  /> 
 <%namespace name="pages_user_util" file="/pages/user"  /> 
 
+## Start map browser
+<%block name="js_ready">
+	${parent.js_ready()}
+	$('.e2-map-projects').MapControl({'attach':true});
+</%block>
 
 <h1>
-	${pages_user_util.page_title(user, False)} 
-	<span class="e2l-label"><a href="${EMEN2WEBROOT}/user/${user.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
+	${USER.displayname}
+	<span class="e2l-label"><a href="${EMEN2WEBROOT}/user/${USER.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
 </h1>
 
 <div class="e2l-cf">
 	<div class="e2l-float-left">
-		${pages_user_util.page_userrec(user, False)}
+		${pages_user_util.page_userrec(USER, False)}
 	</div>	
 	<div class="e2l-float-right">
-		${pages_user_util.page_photo(user, False)}
+		${pages_user_util.page_photo(USER, False)}
 	</div>
 </div>
 
-
-<br />
 
 % if banner:
 	<h1>
@@ -37,37 +40,20 @@
 % endif
 
 
-<h1>
-	Equipment
-	## <span class="e2l-label"><a href="${EMEN2WEBROOT}/record/0/new/project/">Vitrobot</a></span>
-	## <span class="e2l-label"><a href="${EMEN2WEBROOT}/record/0/new/project/">Camera</a></span>
-	<span class="e2l-label"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> <a href="${EMEN2WEBROOT}/record/0/new/microscope/">New Microscope</a></span>
-</h1>
-
-% for name in equipment:
-	<a href="${EMEN2WEBROOT}/record/${name}/">${recnames.get(name, name)|x}</a><br />
-% endfor
+## <h1>
+##	Equipment
+##	<span class="e2l-label"><a href="${EMEN2WEBROOT}/record/0/new/project/">Vitrobot</a></span>
+##	<span class="e2l-label"><a href="${EMEN2WEBROOT}/record/0/new/project/">Camera</a></span>
+##	<span class="e2l-label"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> <a href="${EMEN2WEBROOT}/record/0/new/microscope/">New Microscope</a></span>
+## </h1>
+## % for name in equipment:
+##	<a href="${EMEN2WEBROOT}/record/${name}/">${recnames.get(name, name)|x}</a><br />
+## % endfor
 
 <h1>
 	Projects
 	<span class="e2l-label"><a href="${EMEN2WEBROOT}/record/0/new/project/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New Project</a></span>
 </h1>
 
-<%
-ctsearch = [[None, ctroot]]
-rn = {}
-while ctsearch:
-	parent, child = ctsearch.pop()
-	if parent == None:
-		rn[child] = recnames.get(child,'child')		
-	else:
-		rn[child] = rn.get(parent,parent) + " / " + recnames.get(child,child)
-
-	n = [(child,j) for j in childtree.get(child, [])]
-	ctsearch.extend(n)
-%>
-
-% for name, recname in sorted(rn.items(), key=operator.itemgetter(1)):
-	<a href="${EMEN2WEBROOT}/record/${name}/">${recname|x}</a><br />
-% endfor
+<div class="e2-map e2-map-projects">${projects_map}</div>
 

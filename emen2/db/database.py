@@ -1644,7 +1644,9 @@ class DB(object):
 			# but I don't have the interface finalized.
 			q = self.bdbs.record.query(c=c, mode='OR', ctx=ctx, txn=txn)
 			q.run()
-			if foundrecs is None:
+			if q.result is None:
+				pass				
+			elif foundrecs is None:
 				foundrecs = q.result
 			else:
 				foundrecs &= q.result
@@ -1668,7 +1670,9 @@ class DB(object):
 			print c
 			q = self.bdbs.user.query(c=c, ctx=ctx, txn=txn)
 			q.run()
-			if foundusers is None:
+			if q.result is None:
+				pass
+			elif foundusers is None:
 				foundusers = q.result
 			else:
 				foundusers &= q.result

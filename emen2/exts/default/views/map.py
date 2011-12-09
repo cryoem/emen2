@@ -46,7 +46,7 @@ class Map(View):
 
 		parents = set()
 
-		# add 1 to recurse to get enough info to draw the next level
+		# add 2 to recurse to get enough info to draw the next level
 		if self.mode == "children":
 			self.tree = self.db.getchildtree(self.root, recurse=self.recurse+2, keytype=self.keytype, rectype=rectype)
 			# get one level of parents as well..
