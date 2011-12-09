@@ -7,7 +7,6 @@ import json
 import jsonrpc.jsonutil
 
 import emen2.db.config
-import emen2.web.thumbs
 from emen2.web.view import View
 
 
@@ -110,12 +109,11 @@ class PSpec1D(View):
 
 		# if not os.access(filepath, os.F_OK):
 		# raise ValueError, "Could not access cached spatial frequency data"
-		if self.rebuild or not os.access(filepath,os.R_OK):
-			try:
-				emen2.web.thumbs.run_from_bdo(self.bdo, wait=True)
-			except Exception, e:
-				raise ValueError, "Could not create tile: %s"%e
-
+		# if self.rebuild or not os.access(filepath,os.R_OK):
+		# 	try:
+		# 		emen2.web.thumbs.run_from_bdo(self.bdo, wait=True)
+		# 	except Exception, e:
+		# 		raise ValueError, "Could not create tile: %s"%e
 
 		f = open(filepath, "r")
 		y = json.load(f)
@@ -151,11 +149,11 @@ class TilesCheck(View):
 		tilepath = emen2.db.config.get('paths.TILEPATH')
 		filepath = os.path.join(tilepath, self.bid.replace(":",".")+".tile")
 
-		if self.rebuild or not os.access(filepath,os.R_OK):
-			try:
-				emen2.web.thumbs.run_from_bdo(bdo, wait=True)
-			except Exception, e:
-				raise ValueError, "Could not create tile: %s"%e
+		# if self.rebuild or not os.access(filepath,os.R_OK):
+		# 	try:
+		# 		emen2.web.thumbs.run_from_bdo(bdo, wait=True)
+		# 	except Exception, e:
+		# 		raise ValueError, "Could not create tile: %s"%e
 
 		dims = get_tile_dim(filepath)
 		dimsx = [i[0] for i in dims]
