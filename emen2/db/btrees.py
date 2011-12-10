@@ -150,6 +150,10 @@ class EMEN2DB(object):
 	def _pickleload(self, data):
 		# Load a pickled DBO.
 		if data != None: return pickle.loads(data)
+		
+		
+	def _timedump(self, data):
+		pass
 
 
 	def _setkeytype(self, keytype):

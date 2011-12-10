@@ -7,5 +7,4 @@ import paramdef
 import query
 import record
 import recorddef
-import tiles
 import user

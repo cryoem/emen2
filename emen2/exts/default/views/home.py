@@ -42,7 +42,7 @@ class Home(View):
 			self.template = '/pages/home.noauth'
 			return
 
-
+		
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -125,6 +125,11 @@ input.e2l-error,
 	border: solid 2px <%self:REMOVED />;
 }
 
+a.e2l-capsule {
+	padding:4px;
+	border:solid 2px #ccc;
+	background: #eee;
+}
 
 .e2l-nonlist {
 	list-style:none;

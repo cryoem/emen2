@@ -20,6 +20,7 @@
 		
 		build: function(recs) {
 			var self = this;
+			
 			// Build the controls stub first
 			$('.e2-plot-controls', this.element).remove();
 			var controls = $('<ul class="e2-plot-controls"></ul>');
@@ -70,9 +71,9 @@
 			if (q['x']['key'] == null) {q['x']['key'] = 'name'}
 			if (q['y']['key'] == null) {q['y']['key'] = 'name'}
 			if (q['z']['key'] == null) {q['z']['key'] = 'rectype'}
-			console.log('x:', x['key'], ':', q['x']['key']);
-			console.log('y:', y['key'], ':', q['y']['key']);
-			console.log('z:', z['key'], ':', q['z']['key']);
+			// console.log('x:', x['key'], ':', q['x']['key']);
+			// console.log('y:', y['key'], ':', q['y']['key']);
+			// console.log('z:', z['key'], ':', q['z']['key']);
 			
 			var query = (x['key'] != q['x']['key'] || y['key'] != q['y']['key'] || z['key'] != q['z']['key']);
 						
@@ -101,9 +102,6 @@
 				newq[key] = self.options.q[key];
 			});
 			
-			console.log("newq:");
-			console.log(newq);
-
 			// Create query
 			emen2.db('plot', newq, function(q) {
 				self.options.q = q;
@@ -277,11 +275,11 @@
 				}
 			}			
 			// Stuff the records into the bins
-			for (var i=0;i < recs.length;i++) {
+			for (var i=0;i<recs.length;i++) {
 				var bx = this.b(recs[i]);
-				if (bins[bx]==null) {
-					// console.log('No bin for ', bx);
-				}
+				// if (bins[bx]==null) {
+				// 	console.log('No bin for ', bx);
+				// }
 				bins[bx].y += 1;
 				bins[bx].ysum += 1;
 			}
@@ -292,7 +290,6 @@
 				ret.push(bins[this.keys[i]]);
 			}
 			return ret
-
 		},
 		
 		redraw: function() {
@@ -377,12 +374,10 @@
 	$.widget('emen2.PlotBase', {
 		options: {
 			// Padding: top, left, bottom, right
-			padding: [10,10,50,50],
+			padding: [20,20,50,50],
 			width: 600,
 			height: 600,
-			x: null,
-			y: null,
-			z: null
+			pan: true
 		},
 
 		_create: function() {
@@ -395,9 +390,10 @@
 			this.width = this.options.width - (this.options.padding[1] + this.options.padding[3]);
 
 			// Setup axes
-			if (this.options.x == null) {this.options.x = {}};
-			if (this.options.y == null) {this.options.y = {}};
-			if (this.options.z == null) {this.options.z = {}};
+			var q = this.options.q
+			if (q.x == null) {q.x = {}};
+			if (q.y == null) {q.y = {}};
+			if (q.z == null) {q.z = {}};
 			this.x = null;
 			this.y = null;
 			this.z = null;
@@ -405,7 +401,7 @@
 			// Subclass init and build
 			this.setup();
 			this.build();
-			this.plot(this.options.recs);
+			this.plot(q.recs);
 
 			// Build the controls
 			this.x.build_controls();
@@ -424,9 +420,13 @@
 				.append("svg:svg")
 				.attr("width", this.options.width) // outer width
 				.attr("height", this.options.height) // outer height
-				.call(d3.behavior.zoom().on("zoom", function(){self.redraw()}))
 				.append("svg:g")
 				.attr("transform", 'translate('+this.options.padding[1]+','+this.options.padding[0]+')')
+
+			// Support panning/zooming
+			if (this.options.pan) {
+				this.svg.call(d3.behavior.zoom().on("zoom", function(){self.redraw()}))
+			}
 
 			// Background for plot
 			this.svg.append('svg:rect')
@@ -459,9 +459,10 @@
 		
 		setup: function() {
 			// Setup axes
-			var x = this.options.x;
-			var y = this.options.y;
-			var z = this.options.z;
+			var q = this.options.q;
+			var x = q.x;
+			var y = q.y;
+			var z = q.z;
 			if (!x['key']) {x['key'] = 'name'}
 			if (!y['key']) {y['key'] = 'name'}
 			if (!z['key']) {z['key'] = 'rectype'}
@@ -569,9 +570,7 @@
 		setup: function() {
 			// Use a year/month/day/hour/minute/second bin
 			var self = this;
-			this.scale = d3.time.scale();
-			this.options.min = null;
-			this.options.max = null;
+			this.scale = d3.time.scale(); //.utc();
 			this.ax = d3.svg.axis().scale(this.scale).tickSize(-this.options.size[1],3,0);	
 			this.scale.range([0, this.options.size[0]]);
 		},
@@ -598,13 +597,31 @@
 			for (var i=0;i<recs.length;i++) {
 				keys.push(this.f(recs[i]));
 			}			
+			
+			console.log('keys?', keys);
+			// this.options.min = null;
+			// this.options.max = null;
+			
 			keys.sort(function(a,b){return a-b});		
 			var interval = emen2.time.range(keys[0], keys[keys.length-1], this.options.bin);
 			
 			// Update the keys
 			this.keys = interval;
-			this.options.min = this.keys[0];
-			this.options.max = this.keys[this.keys.length-1];
+
+			// Update the options
+			if (this.options.min) {
+				this.options.min = new Date(this.options.min)
+			} else {
+				this.options.min = this.keys[0];
+			}
+			if (this.options.max) {
+				this.options.max = new Date(this.options.max)
+			} else {
+				this.options.max = this.keys[this.keys.length-1];				
+			}
+			console.log('scale?', this.options.min, this.options.max);
+			
+			// Scale the axis
 			this.scale.domain([this.options.min, this.options.max]);
 		}
 	});
@@ -733,9 +750,10 @@
 	$.widget('emen2.PlotHistogram', $.emen2.PlotBase, {		
 		setup: function() {
 			// Axis options
-			var x = this.options.x;
-			var y = this.options.y;
-			var z = this.options.z;
+			var q = this.options.q;
+			var x = q.x;
+			var y = q.y;
+			var z = q.z;
 			if (!x['key']) {x['key'] = 'name'}
 			if (!y['key']) {y['key'] = 'name'}
 			if (!z['key']) {z['key'] = 'rectype'}
@@ -770,8 +788,7 @@
 			// Filter the records
 			var self = this;	
 			recs = recs.filter(function(d){return (self.x.f(d)!=null)});
-			// console.log("Filtered recs:", recs);
-			
+
 			// Separate by series key
 			var series = this.z.data(recs);
 
@@ -808,9 +825,18 @@
 			var rect = groups.selectAll("rect")
 				.data(Object)
 				.enter().append("svg:rect")
-				.attr('x', function(d) {return self.x.scale(d.x)})
-				.attr('y', function(d) {return self.y.scale(d.ysum)-(self.height-self.y.scale(d.yoff))})
-				.attr('height', function(d) {return self.height-self.y.scale(d.ysum)})
+				.attr('x', function(d) {
+					console.log('d.x', d.x, self.x.scale(d.x))
+					return self.x.scale(d.x)}
+					)
+				.attr('y', function(d) {
+					return self.y.scale(d.ysum) - self.height
+					//return self.y.scale(d.ysum)-(self.height-self.y.scale(d.yoff))
+					})
+				.attr('height', function(d) {
+					// console.log(d.ysum, self.y.scale(d.ysum));
+					return self.y.scale(d.ysum)
+					})
 				.attr("width", function(d) {return self.x.scale(self.x.bw(d))})
 		}
 	});	

@@ -1,4 +1,7 @@
-<%! import operator %>
+<%! 
+import jsonrpc.jsonutil
+import operator 
+%>
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 <%namespace name="pages_user_util" file="/pages/user"  /> 
@@ -7,6 +10,12 @@
 <%block name="js_ready">
 	${parent.js_ready()}
 	$('.e2-map-projects').MapControl({'attach':true});
+	var q = ${jsonrpc.jsonutil.encode(recent_activity)}; 
+	$('#recent_activity').PlotHistogram({
+		q:q,
+		pan: false,
+		height:200,
+	});
 </%block>
 
 <h1>
@@ -39,19 +48,36 @@
 ##	</div>
 ## % endif
 
-## <h1>
-##	Equipment
-##	<span class="e2l-label"><a href="${EMEN2WEBROOT}/record/0/new/project/">Vitrobot</a></span>
-##	<span class="e2l-label"><a href="${EMEN2WEBROOT}/record/0/new/project/">Camera</a></span>
-##	<span class="e2l-label"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> <a href="${EMEN2WEBROOT}/record/0/new/microscope/">New Microscope</a></span>
-## </h1>
-## % for name in equipment:
-##	<a href="${EMEN2WEBROOT}/record/${name}/">${recnames.get(name, name)|x}</a><br />
-## % endfor
+<h1>Recent activity</h1>
+
+<div id="recent_activity">
+	<div class="e2-plot"></div>
+</div>
+
+<%
+equipment = []
+%>
+<h1>
+	Equipment
+	<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/project/">Vitrobot</a></span>
+	<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/project/">Camera</a></span>
+	<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/microscope/">Microscope</a></span>
+	<span class="e2l-label">${buttons.image('edit.png')} New</span>
+ </h1>
+% for name in equipment:
+	<a href="${EMEN2WEBROOT}/record/${name}/">${recnames.get(name, name)|x}</a><br />
+% endfor
+
+
 
 <h1>
 	Projects
-	<span class="e2l-label"><a href="${EMEN2WEBROOT}/record/0/new/project/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New Project</a></span>
+	% for rd in recorddefs:
+		<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/${rd.name}/">${rd.desc_short}</a></span>
+	% endfor
+	<span class="e2l-label">
+		${buttons.image('edit.png')} New
+	</span>
 </h1>
 
 <div class="e2-map e2-map-projects">${projects_map}</div>

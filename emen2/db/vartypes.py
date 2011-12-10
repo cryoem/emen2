@@ -945,6 +945,7 @@ def parse_iso8601(d, result=None):
 
 	r2 = {}
 	# r2['tz'] = tz
+	
 	keys = ['year','month','day', 'hour','minute','second']
 	for key in keys:
 		if r.get(key):
