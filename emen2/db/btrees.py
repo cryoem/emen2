@@ -1072,10 +1072,9 @@ class DBODB(EMEN2DB):
 		"""
 		t = emen2.db.database.gettime()
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
-		# Return values
 		crecs = []
 		if not items:
-			return []
+			return crecs
 
 		# Note: children/parents used to be handled specially,
 		#	but now they are considered "more or less" regular params,
@@ -1222,12 +1221,7 @@ class DBODB(EMEN2DB):
 
 
 	##### Indexes. #####
-	# You must provide an openindex method.
-
-	def _indname(self, param):
-		# (Internal) Get the index filename
-		return os.path.join(self.path, 'index', param)
-
+	# Subclasses should provide an openindex method.
 
 	def openindex(self, param, txn=None):
 		"""Open a parameter index. Requires txn.
@@ -1246,6 +1240,11 @@ class DBODB(EMEN2DB):
 
 		"""
 		return
+
+
+	def _indname(self, param):
+		# (Internal) Get the index filename
+		return os.path.join(self.path, 'index', param)
 
 
 	def getindex(self, param, txn=None):
@@ -1279,6 +1278,15 @@ class DBODB(EMEN2DB):
 			ind.close()
 			self.index[param] = None
 
+
+	def rebuild_indexes(self, ctx=None, txn=None):
+		# Do this in chunks of 10,000 items
+		# Get all the keys -- do not include cached items
+		keys = map(self.loadkey, self.bdb.keys(txn))
+		for chunk in emen2.util.listops.chunk(keys):
+			items = self.cgets(chunk, ctx=ctx, txn=txn)
+			print "Got.. ", len(items)
+		
 
 	##### Query #####
 	

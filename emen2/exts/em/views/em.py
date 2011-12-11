@@ -39,8 +39,8 @@ class EMHome(View):
 
 		# Recent records
 		# Add 'Z" to datetime.isoformat()
-		now = datetime.datetime.utcnow().isoformat()+'Z'
-		t = (datetime.datetime.utcnow() - datetime.timedelta(hours=24)).isoformat()+'Z'
+		now = datetime.datetime.utcnow().isoformat()+'+00:00'
+		t = (datetime.datetime.utcnow() - datetime.timedelta(hours=24)).isoformat()+'+00:00'
 		self.ctxt['recent_activity'] = self.db.plot([['creationtime', '>', t]], x={'key':'creationtime', 'bin':'hour', 'min':t, 'max':now})
 		
 		# List of RecordDefs to show

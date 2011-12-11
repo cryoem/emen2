@@ -168,7 +168,7 @@ def getctime():
 
 def gettime():
 	"""Returns the current database UTC time in ISO 8601 format"""
-	return datetime.datetime.utcnow().replace(microsecond=0).isoformat()+'Z'
+	return datetime.datetime.utcnow().replace(microsecond=0).isoformat()+'+00:00'
 
 
 def ol(name, output=True):

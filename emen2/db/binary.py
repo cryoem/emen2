@@ -226,7 +226,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 				counter = int(bdokey[9:13],16)
 		else:
 			# Timestamps are now in ISO8601 format
-			# e.g.: "2011-10-16T02:00:00Z"
+			# e.g.: "2011-10-16T02:00:00+00:00"
 			bdokey = emen2.db.database.gettime()
 			year = int(bdokey[:4])
 			mon = int(bdokey[5:7])
