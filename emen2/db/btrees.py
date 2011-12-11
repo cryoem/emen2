@@ -628,12 +628,8 @@ class IndexDB(EMEN2DB):
 				data = set(map(self.loaddata, data))
 			yield (k, data)
 			pair = cursor.next_nodup()
-
-			if maxkey is not None:
-				print "Checking k/maxkey", k, maxkey
-				if k > maxkey:
-					print "Returning.."
-					pair = None
+			if k > maxkey:
+				pair = None
 
 		cursor.close()
 

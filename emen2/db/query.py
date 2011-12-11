@@ -156,12 +156,22 @@ class ParamConstraint(IndexedConstraint):
 			return set(f)
 
 		# Otherwise check constraint against all indexed values
+
+		# If the op is gt or gte, only check those keys..
+		# It is not necessary to pass more complicated instructions
+		# to iteritems because the returned keys will still be checked
+		# with the comparison function.
 		minkey = None
-		if self.op is '>':
+		maxkey = None
+		if self.op in ['>', '>=']:
 			minkey = term
+		elif self.op in ['<', '<=']:
+			maxkey = term
+
+		print "self.op/minkey/maxkey", self.op, minkey, maxkey
 
 		cfunc = getop(self.op)
-		for key, items in self.ind.iteritems(minkey=minkey, txn=self.p.txn):
+		for key, items in self.ind.iteritems(minkey=minkey, maxkey=maxkey, txn=self.p.txn):
 			if cfunc(term, key):
 				f.extend(items)
 				for i in items:
