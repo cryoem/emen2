@@ -129,6 +129,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		ctx = _d.pop('ctx', None)
 		t = _d.pop('t', None)
 		self.__dict__['_ctx'] = ctx
+		
 		vtm, t = self._vtmtime(t=t) # get time/user
 
 		# Validate the name -- the only always required parameter for all DBOs

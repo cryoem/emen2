@@ -18,18 +18,40 @@ var emen2 = {};
 // EMEN2 time functions
 emen2.time = {};
 
+emen2.time.pad = function(n) {
+    return n<10 ? '0'+n : n
+};
+
+// Print an ISO Date String in UTC time
+emen2.time.UTCISODateString = function(d) {
+    return d.getUTCFullYear()+'-'
+    + emen2.time.pad(d.getUTCMonth()+1)+'-'
+    + emen2.time.pad(d.getUTCDate())+'T'
+    + emen2.time.pad(d.getUTCHours())+':'
+    + emen2.time.pad(d.getUTCMinutes())+':'
+    + emen2.time.pad(d.getUTCSeconds())+'Z'
+}
+
 // Print an ISO Date String
 emen2.time.ISODateString = function(d) {
-    function pad(n){
-        return n<10 ? '0'+n : n
-    }
-    return d.getUTCFullYear()+'-'
-    + pad(d.getUTCMonth()+1)+'-'
-    + pad(d.getUTCDate())+'T'
-    + pad(d.getUTCHours())+':'
-    + pad(d.getUTCMinutes())+':'
-    + pad(d.getUTCSeconds())+'Z'
+	var sep = '-';
+	var offset = d.getTimezoneOffset();
+	if (offset < 0) {
+		sep = '+';
+		offset = Math.abs(offset);
+	}
+	var hours = Math.floor(offset/60);
+	var minutes = offset % 60;
+    return d.getFullYear() + '-'
+	+ emen2.time.pad(d.getMonth()+1) +'-'
+    + emen2.time.pad(d.getDate()) + 'T'
+    + emen2.time.pad(d.getHours()) + ':'
+    + emen2.time.pad(d.getMinutes()) + ':'
+    + emen2.time.pad(d.getSeconds()) + sep
+	+ emen2.time.pad(hours) + ':'
+	+ emen2.time.pad(minutes)
 }
+
 
 emen2.time.range = function(t1, t2, width) {
 	var t2 = t2 || new Date();

@@ -11,13 +11,19 @@ import cgi
 import operator
 import collections
 import urllib
-import time
-import datetime
-import dateutil
-import dateutil.rrule
-import calendar
 import htmlentitydefs
 import re
+
+# Working with time is fun..
+import time
+import calendar
+import datetime
+# ... dateutil helps.
+import dateutil
+import dateutil.parser
+import dateutil.tz
+import dateutil.rrule
+
 
 try:
 	import markdown2 as markdown
@@ -35,9 +41,123 @@ import emen2.util.listops
 import emen2.db.exceptions
 
 # Convenience
+tzutc = dateutil.tz.tzutc()
 ci = emen2.util.listops.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
 vtm = emen2.db.datatypes.VartypeManager
+
+
+
+###########################
+# Helper methods
+
+def check_rectype(engine, value):
+	key = engine.get_cache_key('paramdef', value)
+	hit, paramdef = engine.check_cache(key)
+	if not hit:
+		paramdef = engine.db.getparamdef(value, filt=False)
+		engine.store(key, paramdef)
+
+	return paramdef
+
+
+def check_rectypes(engine, values):
+	key = engine.get_cache_key('recorddefnames')
+	hit, rectypes = engine.check_cache(key)
+	if not hit:
+		rectypes = engine.db.getrecorddefnames()
+		engine.store(key, rectypes)
+
+	if set(values) - rectypes:
+		raise ValidationError, "Unknown protocols: %s"%(", ".join(set(values)-rectypes))
+
+
+def check_usernames(engine, values):
+	key = engine.get_cache_key('usernames')
+	hit, usernames = engine.check_cache(key)
+	if not hit:
+		usernames = engine.db.getusernames()
+		engine.store(key, usernames)
+
+	if set(values) - usernames:
+		raise ValidationError, "Unknown users: %s"%(", ".join(set(values)-usernames))
+
+
+def check_groupnames(engine, values):
+	key = engine.get_cache_key('groupnames')
+	hit, groupnames = engine.check_cache(key)
+	if not hit:
+		groupnames = engine.db.getgroupnames()
+		engine.store(key, groupnames)
+
+	if set(values) - groupnames:
+		raise ValidationError, "Unknown groups: %s"%(", ".join(set(values)-groupnames))
+
+
+def update_username_cache(engine, values):
+	# Check cache
+	to_cache = []
+	for v in values:
+		key = engine.get_cache_key('displayname', v)
+		hit, dn = engine.check_cache(key)
+		if not hit:
+			to_cache.append(v)
+
+	if to_cache:
+		users = engine.db.getuser(to_cache)
+		for user in users:
+			user.getdisplayname(lnf=True)
+			key = engine.get_cache_key('displayname', user.name)
+			engine.store(key, user.displayname)
+
+
+
+def iso8601duration(d):
+	"""
+	Parse ISO 8601 duration format.
+
+	From Wikipedia, ISO 8601 duration format is:
+		P[n]Y[n]M[n]DT[n]H[n]M[n]S
+
+	P is the duration designator (historically called "period") placed at the start of the duration representation.
+	Y is the year designator that follows the value for the number of years.
+	M is the month designator that follows the value for the number of months.
+	W is the week designator that follows the value for the number of weeks.
+	D is the day designator that follows the value for the number of days.
+	T is the time designator that precedes the time components of the representation.
+	H is the hour designator that follows the value for the number of hours.
+	M is the minute designator that follows the value for the number of minutes.
+	S is the second designator that follows the value for the number of seconds.
+
+	Examples:
+	d = 'P1M2D' # 1 month, 2 days
+	d = 'P1Y2M3DT4H5M6S' # 1 year, 2 months, 3 days, 4 hours, 5 minutes, 6 seconds
+	d = 'P3W' # 3 weeks
+
+	"""
+
+	regex = re.compile("""
+			(?P<type>.)
+			((?P<weeks>[0-9,]+)W)?
+			((?P<years>[0-9,]+)Y)?
+			((?P<months>[0-9,]+)M)?
+			((?P<days>[0-9,]+)D)?
+			(T
+				((?P<hours>[0-9,]+)H)?
+				((?P<minutes>[0-9,]+)M)?
+				((?P<seconds>[0-9,]+)S)?
+			)?
+			""", re.X)
+	match = regex.search(d)
+	rd = {} # return date
+
+	# rdate['type'] = match.group('type')
+	for key in ['weeks','years','months','days','hours','minutes','seconds']:
+		if match.group(key):
+			rd[key] = int(match.group(key))
+
+	return rd
+
 
 
 
@@ -404,19 +524,27 @@ class vt_text(vt_string):
 #	Indexed as keytype 's'
 ###################################
 
-# ian: todo: high priority: see fixes in parse_datetime, extend to other date validators
 @vtm.register_vartype('datetime')
 class vt_datetime(vt_string):
-	"""Date and time, yyyy/mm/dd HH:MM:SS"""
+	"""ISO 8601 Date time"""
 	#:
 	keytype = 's'
 
 	def validate(self, value):
 		ret = []
 		for i in ci(value):
-			i = parse_iso8601(value, result='datetime')
 			if i:
-				ret.append(i)
+				t = dateutil.parser.parse(i)
+				if not t.tzinfo:
+					raise ValidationError, "No UTC offset: %s"%i
+				# if any([t.hour, t.minute, t.second, t.microsecond, t.tzinfo]):
+				# 	print "Datetime.."
+				# else:
+				# 	print "Date.."
+				# print "dt:", t.isoformat()
+				# print "d:", t.date().isoformat()
+				# print "t:", t.time().isoformat()
+				ret.append(t.isoformat())
 		return self._rci(ret)
 
 	def _render(self, value, embedtype=None):
@@ -762,271 +890,9 @@ class vt_history(Vartype):
 
 
 
-
-
-###########################
-# Helper methods
-
-def check_rectype(engine, value):
-	key = engine.get_cache_key('paramdef', value)
-	hit, paramdef = engine.check_cache(key)
-	if not hit:
-		paramdef = engine.db.getparamdef(value, filt=False)
-		engine.store(key, paramdef)
-
-	return paramdef
-
-
-def check_rectypes(engine, values):
-	key = engine.get_cache_key('recorddefnames')
-	hit, rectypes = engine.check_cache(key)
-	if not hit:
-		rectypes = engine.db.getrecorddefnames()
-		engine.store(key, rectypes)
-
-	if set(values) - rectypes:
-		raise ValidationError, "Unknown protocols: %s"%(", ".join(set(values)-rectypes))
-
-
-def check_usernames(engine, values):
-	key = engine.get_cache_key('usernames')
-	hit, usernames = engine.check_cache(key)
-	if not hit:
-		usernames = engine.db.getusernames()
-		engine.store(key, usernames)
-
-	if set(values) - usernames:
-		raise ValidationError, "Unknown users: %s"%(", ".join(set(values)-usernames))
-
-
-def check_groupnames(engine, values):
-	key = engine.get_cache_key('groupnames')
-	hit, groupnames = engine.check_cache(key)
-	if not hit:
-		groupnames = engine.db.getgroupnames()
-		engine.store(key, groupnames)
-
-	if set(values) - groupnames:
-		raise ValidationError, "Unknown groups: %s"%(", ".join(set(values)-groupnames))
-
-
-def update_username_cache(engine, values):
-	# Check cache
-	to_cache = []
-	for v in values:
-		key = engine.get_cache_key('displayname', v)
-		hit, dn = engine.check_cache(key)
-		if not hit:
-			to_cache.append(v)
-
-	if to_cache:
-		users = engine.db.getuser(to_cache)
-		for user in users:
-			user.getdisplayname(lnf=True)
-			key = engine.get_cache_key('displayname', user.name)
-			engine.store(key, user.displayname)
-
-
-
-
-# """Following based on public domain code by Paul Harrison, 2006; modified by Ian"""
-#
-# time_formats = [
-# 	'%H:%M:%S',
-# 	'%H:%M',
-# 	'%H'
-# 	]
-#
-# date_formats = [
-# 	'%Y %m %d',
-# 	'%Y %m',
-# 	'%Y'
-# 	]
-#
-# # Foramts to check [0] and return [1] in order of priority
-# # (the return value will be used for the internal database value for consistency)
-# # The DB will return the first format that validates.
-#
-# datetime_formats = [
-# 	['%Y %m %d %H:%M:%S','%Y/%m/%d %H:%M:%S'],
-# 	['%Y %m %d %H:%M','%Y/%m/%d %H:%M'],
-# 	['%Y %m %d %H', '%Y/%m/%d %H'],
-# 	['%Y %m %d', '%Y/%m/%d'],
-# 	['%Y %m','%Y/%m'],
-# 	['%Y','%Y'],
-# 	['%m %Y','%Y/%m'],
-# 	['%d %m %Y','%Y/%m/%d'],
-# 	['%d %m %Y %H:%M:%S','%Y/%m/%d %H:%M:%S'],
-# 	['%m %d %Y','%Y/%m/%d'],
-# 	['%m %d %Y %H:%M:%S','%Y/%m/%d %H:%M:%S']
-# 	]
-#
-#
-#
-# def parse_datetime(string):
-# 	"""Return a tuple: datetime instance, and validated output"""
-# 	string = (string or '').strip()
-# 	if not string:
-# 		return None, None
-#
-# 	string = string.replace('/',' ').replace('-',' ').replace(',',' ').split(".")
-# 	msecs = 0
-# 	if len(string) > 1:
-# 		msecs = int(string.pop().ljust(6,'0'))
-# 	string = ".".join(string)
-#
-# 	for format, output in datetime_formats:
-# 		try:
-# 			string = datetime.datetime.strptime(string, format)
-# 			return string, datetime.datetime.strftime(string, output)
-# 		except ValueError, inst:
-# 			pass
-#
-# 	raise ValidationError()
-#
-#
-#
-# def parse_time(string):
-# 	string = string.strip().split(".")
-# 	msecs = 0
-# 	if len(string) > 1:
-# 		msecs = int(string.pop().ljust(6,'0'))
-# 	string = ".".join(string)
-#
-# 	for format in time_formats:
-# 		try:
-# 			return datetime.datetime.strptime(string, format).time(), string
-# 		except ValueError, inst:
-# 			pass
-#
-# 	raise ValidationError()
-#
-#
-# def parse_date(string):
-# 	string = string.strip()
-# 	if not string: return None, None
-#
-# 	string = string.replace('/',' ').replace('-',' ').replace(',',' ')
-#
-# 	for format in date_formats:
-# 		try:
-# 			return datetime.datetime.strptime(string, format).date(), string
-# 		except ValueError:
-# 			pass
-# 	raise ValidationError()
-
-
-
-def parse_iso8601(d, result=None):
-	"""Simple ISO 8601 Format parser"""
-	# [YYYY][MM][DD]T[hh][mm]
-	# 2007-03-01T13:00:00Z
-	def strip(i):
-		return i.replace('-','').replace(':','').replace(' ','')
-
-	dd, _, dt = d.partition('T')
-	tz = ''
-	for sep in ['Z', '-', '+']:
-		if sep in dt:
-			dt, _, tz = dt.partition(sep)
-			tz = '%s%s'%(sep,tz)
-
-	dd = strip(dd)
-	dt = strip(dt)
-
-	r = {}
-	r['year'] = dd[0:4]
-	r['month'] = dd[4:6]
-	r['day'] = dd[6:8]
-
-	r['hour'] = dt[0:2]
-	r['minute'] = dt[2:4]
-	r['second'] = dt[4:6]
-
-	r2 = {}
-	# r2['tz'] = tz
-	
-	keys = ['year','month','day', 'hour','minute','second']
-	for key in keys:
-		if r.get(key):
-			r2[key] = int(r.get(key))
-
-
-	r3 = datetime.datetime(**r2)
-
-	if result == 'datetime':
-		return r3.isoformat()+'Z'
-	elif result == 'date':
-		return r3.isoformat()[:10]
-
-	return r3
-
-
-
-
-def parse_iso8601duration(d):
-	"""
-	Parse ISO 8601 duration format.
-
-	From Wikipedia, ISO 8601 duration format is:
-		P[n]Y[n]M[n]DT[n]H[n]M[n]S
-
-	P is the duration designator (historically called "period") placed at the start of the duration representation.
-	Y is the year designator that follows the value for the number of years.
-	M is the month designator that follows the value for the number of months.
-	W is the week designator that follows the value for the number of weeks.
-	D is the day designator that follows the value for the number of days.
-	T is the time designator that precedes the time components of the representation.
-	H is the hour designator that follows the value for the number of hours.
-	M is the minute designator that follows the value for the number of minutes.
-	S is the second designator that follows the value for the number of seconds.
-
-	Examples:
-	d = 'P1M2D' # 1 month, 2 days
-	d = 'P1Y2M3DT4H5M6S' # 1 year, 2 months, 3 days, 4 hours, 5 minutes, 6 seconds
-	d = 'P3W' # 3 weeks
-
-	"""
-
-	regex = re.compile("""
-			(?P<type>.)
-			((?P<weeks>[0-9,]+)W)?
-			((?P<years>[0-9,]+)Y)?
-			((?P<months>[0-9,]+)M)?
-			((?P<days>[0-9,]+)D)?
-			(T
-				((?P<hours>[0-9,]+)H)?
-				((?P<minutes>[0-9,]+)M)?
-				((?P<seconds>[0-9,]+)S)?
-			)?
-			""", re.X)
-	match = regex.search(d)
-	rd = {} # return date
-
-	# rdate['type'] = match.group('type')
-	for key in ['weeks','years','months','days','hours','minutes','seconds']:
-		if match.group(key):
-			rd[key] = int(match.group(key))
-
-	return rd
-
-
-
 if __name__ == "__main__":
-
-	print parse_iso8601('2011-10-16T02:00:00Z', result='datetime')
-	print parse_iso8601('2011-10-16T02:00:00', result='datetime')
-	# print parse_iso8601('2007-03-01T13:00:00Z', result='datetime')
-	# print parse_iso8601('2007-03-01T13:00:00Z', result='date')
-	# print parse_iso8601('2007-03-01T13:00:00Z')
-	# print parse_iso8601('2007-03-01T13:00:00')
-	# print parse_iso8601('2007-03-01T13:00')
-	# print parse_iso8601('2007-03-01T13')
-	# print parse_iso8601('2007-03-01T')
-	# print parse_iso8601('2007-03-01')
-	# print parse_iso8601('2007-03')
-	# print parse_iso8601('2007')
-
+	v = vt_datetime()
+	v.validate(['2011-01-01'])
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

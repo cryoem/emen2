@@ -1053,7 +1053,6 @@ class DB(object):
 
 		:return: Current time string, YYYY/MM/DD HH:MM:SS
 		"""
-
 		return gettime()
 
 
