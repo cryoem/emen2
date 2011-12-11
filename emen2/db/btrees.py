@@ -603,7 +603,7 @@ class IndexDB(EMEN2DB):
 		return ret
 
 
-	def iteritems(self, minkey=None, mine=False, maxkey=None, maxe=False, txn=None, flags=0):
+	def iteritems(self, minkey=None, maxkey=None, txn=None, flags=0):
 		"""Accelerated iteritems. Transaction required.
 
 		:keyword minkey: Planned support for starting key
@@ -616,16 +616,24 @@ class IndexDB(EMEN2DB):
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
 		
-		# Start a minimum key
+		# Start a minimum key. 
+		# This only works well if the keys are sorted properly.
 		if minkey is not None:
 			pair = cursor.set_range(self.dumpkey(minkey))
 		
 		while pair != None:
 			data = self._get_method(cursor, pair[0], self.datatype)
+			k = self.loadkey(pair[0])
 			if bulk and self.datatype == "p":
 				data = set(map(self.loaddata, data))
-			yield (self.loadkey(pair[0]), data)
+			yield (k, data)
 			pair = cursor.next_nodup()
+
+			if maxkey is not None:
+				print "Checking k/maxkey", k, maxkey
+				if k > maxkey:
+					print "Returning.."
+					pair = None
 
 		cursor.close()
 
