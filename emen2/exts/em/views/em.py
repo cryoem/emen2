@@ -39,9 +39,11 @@ class EMHome(View):
 
 		# Recent records
 		# Add 'Z" to datetime.isoformat()
+		# t = '2011-01-01T00:00:00+00:00'
+		# now = '2011-02-01T00:00:00+00:00'
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
-		t = (datetime.datetime.utcnow() - datetime.timedelta(hours=24)).isoformat()+'+00:00'
-		self.ctxt['recent_activity'] = self.db.plot([['creationtime', '>', t]], x={'key':'creationtime', 'bin':'hour', 'min':t, 'max':now})
+		t = (datetime.datetime.utcnow() - datetime.timedelta(days=30)).isoformat()+'+00:00'
+		self.ctxt['recent_activity'] = self.db.plot([['creationtime', '>', t]], x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now})
 		
 		# List of RecordDefs to show
 		rds = self.db.getchildren('project', keytype='recorddef')

@@ -156,8 +156,12 @@ class ParamConstraint(IndexedConstraint):
 			return set(f)
 
 		# Otherwise check constraint against all indexed values
+		minkey = None
+		if self.op is '>':
+			minkey = term
+
 		cfunc = getop(self.op)
-		for key, items in self.ind.iteritems(txn=self.p.txn):
+		for key, items in self.ind.iteritems(minkey=minkey, txn=self.p.txn):
 			if cfunc(term, key):
 				f.extend(items)
 				for i in items:

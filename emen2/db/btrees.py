@@ -98,6 +98,7 @@ class EMEN2DB(object):
 
 		# Indexes
 		self.index = {}
+		self._truncate_index = False
 
 		# BDB Handle
 		self.bdb = None
@@ -442,8 +443,6 @@ class EMEN2DB(object):
 		"""
 		# todo: Do more checking before performing a dangerous operation.
 		self.bdb.truncate(txn=txn)
-		print "post truncation keys.."
-		print self.bdb.keys(txn)
 		emen2.db.log.msg('COMMIT', "%s.truncate"%self.filename)
 
 
@@ -473,7 +472,7 @@ class IndexDB(EMEN2DB):
 	'''EMEN2DB optimized for indexes.
 
 	IndexDB uses the Berkeley DB facility for storing multiple values for a
-	single key (DB_DUP, DB_DUPSORT). The Berkeley DB API has a method for
+	single key (DB_DUPSORT). The Berkeley DB API has a method for
 	quickly reading these multiple values.
 
 	This class is intended for use with an OPTIONAL C module, _bulk.so, that
@@ -508,7 +507,7 @@ class IndexDB(EMEN2DB):
 
 	def init(self):
 		"""Open DB with support for duplicate keys."""
-		self.DBSETFLAGS = [bsddb3.db.DB_DUP, bsddb3.db.DB_DUPSORT]
+		self.DBSETFLAGS = [bsddb3.db.DB_DUPSORT]
 		self._setbulkmode(True)
 		super(IndexDB, self).init()
 
@@ -604,7 +603,7 @@ class IndexDB(EMEN2DB):
 		return ret
 
 
-	def iteritems(self, minkey=None, maxkey=None, txn=None, flags=0):
+	def iteritems(self, minkey=None, mine=False, maxkey=None, maxe=False, txn=None, flags=0):
 		"""Accelerated iteritems. Transaction required.
 
 		:keyword minkey: Planned support for starting key
@@ -616,6 +615,11 @@ class IndexDB(EMEN2DB):
 		ret = []
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
+		
+		# Start a minimum key
+		if minkey is not None:
+			pair = cursor.set_range(self.dumpkey(minkey))
+		
 		while pair != None:
 			data = self._get_method(cursor, pair[0], self.datatype)
 			if bulk and self.datatype == "p":
@@ -706,7 +710,7 @@ class IndexDB(EMEN2DB):
 
 		cursor.close()
 
-		emen2.db.log.msg('INDEX', "%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
+		emen2.db.log.index("%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
 		return delindexitems
 
 
@@ -748,7 +752,7 @@ class IndexDB(EMEN2DB):
 
 		cursor.close()
 
-		emen2.db.log.msg('INDEX', "%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
+		emen2.db.log.index("%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
 		return addindexitems
 
 
@@ -1056,12 +1060,11 @@ class DBODB(EMEN2DB):
 		return ret[0]
 
 
-	def cputs(self, items, commit=True, indexonly=False, ctx=None, txn=None):
+	def cputs(self, items, commit=True, ctx=None, txn=None):
 		"""Update DBOs. Requires ctx and txn.
 
 		:param item: DBOs, or similar (e.g. dict)
 		:keyword commit: Actually commit (e.g. for validation only)
-		:keyword indexonly: Do not commit item, just update index
 		:keyword ctx: Context
 		:keyword txn: Transaction
 		:return: Updated DBOs
@@ -1120,10 +1123,7 @@ class DBODB(EMEN2DB):
 		namemap = self.update_sequence(crecs, txn=txn)
 
 		# Calculate all changed indexes
-		self.reindex(crecs, indexonly=indexonly, namemap=namemap, ctx=ctx, txn=txn)
-
-		if indexonly:
-			return
+		self.reindex(crecs, namemap=namemap, ctx=ctx, txn=txn)
 
 		# Commit "for real"
 		# This will raise an Exception for cached items.
@@ -1204,7 +1204,12 @@ class DBODB(EMEN2DB):
 		vt.pd = pd
 
 		# Process the changes into index addrefs / removerefs
-		addrefs, removerefs = vt.reindex(changes)
+		try:
+			addrefs, removerefs = vt.reindex(changes)
+		except Exception, e:
+			print "Could not reindex param %s: %s"%(pd.name, e)
+			print changes
+			return
 		# print "reindexing", pd.name
 		# print "changes:", changes
 		# print "addrefs:", addrefs
@@ -1258,12 +1263,13 @@ class DBODB(EMEN2DB):
 		:return: IndexDB
 
 		"""
-		ind = self.index.get(param)
-		if ind:
-			return ind
+		if param in self.index:
+			return self.index.get(param)
 
 		ind = self.openindex(param, txn=txn)
 		self.index[param] = ind
+		if self._truncate_index and ind:
+			ind.truncate(txn=txn)
 		return ind
 
 
@@ -1274,19 +1280,29 @@ class DBODB(EMEN2DB):
 		"""
 		ind = self.index.get(param)
 		if ind:
-			print "Close index", param
 			ind.close()
 			self.index[param] = None
 
 
 	def rebuild_indexes(self, ctx=None, txn=None):
+		# ugly hack..
+		self._truncate_index = True
+		for k in self.index:
+			self.index[k].truncate(txn=txn)
+		
 		# Do this in chunks of 10,000 items
 		# Get all the keys -- do not include cached items
-		keys = map(self.loadkey, self.bdb.keys(txn))
-		for chunk in emen2.util.listops.chunk(keys):
+		keys = sorted(map(self.loadkey, self.bdb.keys(txn)), reverse=True)
+		for chunk in emen2.util.listops.chunk(keys, 10000):
+			if chunk:
+				print chunk[0], "...", chunk[-1]
 			items = self.cgets(chunk, ctx=ctx, txn=txn)
-			print "Got.. ", len(items)
+			# Use self.reindex() instead of self.cputs() -- the data should
+			# already be validated, so we can skip that step.
+			# self.cputs(items, ctx=ctx, txn=txn)
+			self.reindex(items, indexonly=True, ctx=ctx, txn=txn)
 		
+		self._truncate_index = False
 
 	##### Query #####
 	
