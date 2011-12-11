@@ -606,8 +606,8 @@ class IndexDB(EMEN2DB):
 	def iteritems(self, minkey=None, maxkey=None, txn=None, flags=0):
 		"""Accelerated iteritems. Transaction required.
 
-		:keyword minkey: Planned support for starting key
-		:keyword maxkey: Planned support for end key
+		:keyword minkey: Minimum key
+		:keyword maxkey: Maximum key
 		:keyword txn: Transaction
 		:yield: (key, value)
 
