@@ -2185,7 +2185,7 @@ class DB(object):
 			if table:
 				ret[rec.name] = vs
 			else:
-				ret[rec.name] = a
+				ret[rec.name] = a.strip() or '(%s)'%rec.name
 
 		def pp(t, times):
 			for k,v in times.items():

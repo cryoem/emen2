@@ -168,8 +168,6 @@ class ParamConstraint(IndexedConstraint):
 		elif self.op in ['<', '<=']:
 			maxkey = term
 
-		print "self.op/minkey/maxkey", self.op, minkey, maxkey
-
 		cfunc = getop(self.op)
 		for key, items in self.ind.iteritems(minkey=minkey, maxkey=maxkey, txn=self.p.txn):
 			if cfunc(term, key):

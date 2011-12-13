@@ -188,10 +188,10 @@ class DBOptions(optparse.OptionParser):
 
 		group = optparse.OptionGroup(self, "EMEN2 Base Options")
 		group.add_option('-h', dest='home', type="string", help=dbhomehelp)
+		group.add_option('-e', '--ext', action="append", dest='exts', help="Add Extension; can be comma-separated.")
 		group.add_option('-c', '--configfile', action='append', dest='configfile')
 		group.add_option('-l', '--loglevel', action='store', dest='loglevel')
 		group.add_option('--create', action="store_true", help="Create and initialize a new DB")
-		group.add_option('--ext', action="append", dest='exts', help="Add Extension; can be comma-separated.")
 		group.add_option('--quiet', action='store_true', default=False, help="Quiet")
 		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
 		group.add_option('--version', action='store_true', help="EMEN2 Version")

@@ -590,17 +590,6 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 class JSONRPCResource(jsonrpc.server.JSON_RPC):
 	eventhandler = JSONRPCServerEvents
 
-	# We can move this to ServerEvents later..
-	def _defer(self, request, contents):
-		# Use the DB pool
-		deferred = emen2.web.server.pool.rundb(
-			self._action,
-			request=request,
-			contents=contents)
-		deferred.addCallback(self._cbRender, request)
-		deferred.addErrback(self._ebRender, request, contents.id if hasattr(contents, 'id') else None)
-		return twisted.web.static.server.NOT_DONE_YET
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

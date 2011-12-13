@@ -754,7 +754,7 @@
 		// more type-specific handling..
 		getname: function(item) {
 			if (this.options.keytype == 'record') {
-				return emen2.caches['recnames'][item] || String(item)
+				return emen2.caches['recnames'][item] || '('+String(item)+')'
 			} else if (this.options.keytype == 'paramdef') {
 				return emen2.caches['paramdef'][item].desc_short || item
 			} else if (this.options.keytype == 'recorddef') {

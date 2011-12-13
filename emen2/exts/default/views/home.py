@@ -11,8 +11,8 @@ from emen2.web.view import View
 @View.register
 class Home(View):
 
-	@View.add_matcher(r'^/$', view='Root', name='main')
-	@View.add_matcher(r'^/home/$')
+	#@View.add_matcher(r'^/$', view='Root', name='main')
+	#@View.add_matcher(r'^/home/$')
 	def main(self):
 		self.title = 'Home'
 		self.template = '/pages/home'

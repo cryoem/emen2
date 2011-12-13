@@ -322,7 +322,7 @@
 			});
 			this.counted = counted;
 			this.keys = emen2.util.sortdict(counted);
-
+			
 			// Filter out keys in this.options.hide... 
 			// Use map instead of filter to preserve Z colors
 			var series = [];
@@ -465,7 +465,7 @@
 			var z = q.z;
 			if (!x['key']) {x['key'] = 'name'}
 			if (!y['key']) {y['key'] = 'name'}
-			if (!z['key']) {z['key'] = 'rectype'}
+			if (!z['key']) {z['key'] = null}
 			x['name'] = 'x';
 			x['binnable'] = true;
 			x['size'] = [this.width, this.height];
@@ -597,17 +597,12 @@
 			for (var i=0;i<recs.length;i++) {
 				keys.push(this.f(recs[i]));
 			}			
-			
-			console.log('keys?', keys);
-			// this.options.min = null;
-			// this.options.max = null;
-			
 			keys.sort(function(a,b){return a-b});		
 			var interval = emen2.time.range(keys[0], keys[keys.length-1], this.options.bin);
 			
 			// Update the keys
 			this.keys = interval;
-
+			
 			// Update the options
 			if (this.options.min) {
 				this.options.min = new Date(this.options.min)
@@ -619,9 +614,9 @@
 			} else {
 				this.options.max = this.keys[this.keys.length-1];				
 			}
-			console.log('scale?', this.options.min, this.options.max);
 			
 			// Scale the axis
+			// console.log('scale?', this.options.min, this.options.max);
 			this.scale.domain([this.options.min, this.options.max]);
 		}
 	});
@@ -642,6 +637,7 @@
 			}
 			var min = d3.min(x);
 			var max = d3.max(x);			
+
 			// Calculate the bin width and the bin breaks
 			var binwidth = (max - min) / this.options.bin;
 			var keys = [];
@@ -650,6 +646,7 @@
 			}
 			// Update the keys
 			this.keys = keys;
+
 			// Update the domain
 			this.options.min = this.keys[0];
 			this.options.max = this.keys[this.keys.length-1];
@@ -714,6 +711,7 @@
 				}
 			}
 			
+			// for (var i=0;i<recs.length;i++) {console.log(recs[i])}
 			// console.log('Maxes:', max_single, max_series, max_stacked);
 			this.options.max = max_single;
 			if (this.options.cumulative) {
@@ -722,6 +720,10 @@
 			if (this.options.stacked) {
 				this.options.max = max_stacked;
 			}
+
+			// Bug.. Stacked doesn't work if only 1 series. Fix!
+			// console.log('Y max single/series/stacked', max_single, max_series, max_stacked);
+			if (max_single > this.options.max) {this.options.max = max_single}
 
 			// Update domain
 			this.scale.domain([this.options.min, this.options.max]);
@@ -756,7 +758,7 @@
 			var z = q.z;
 			if (!x['key']) {x['key'] = 'name'}
 			if (!y['key']) {y['key'] = 'name'}
-			if (!z['key']) {z['key'] = 'rectype'}
+			if (!z['key']) {z['key'] = ''}
 			
 			x['name'] = 'x';
 			x['size'] = [this.width, this.height];
@@ -792,6 +794,7 @@
 			// Separate by series key
 			var series = this.z.data(recs);
 
+
 			// Update the X bounds
 			this.x.data(recs);
 
@@ -799,15 +802,21 @@
 				alert('Too many bins');
 				return
 			}
-
+			
 			// Group each series into bins
 			var series_binned = [];
 			for (var i=0;i<series.length;i++) {
 				series_binned.push(this.x.bin(series[i]));
 			}
-			
+						
 			// Update Y axis acounts
 			this.y.data(series_binned);
+
+			console.log("X keys:", this.x.keys);
+			console.log("Y keys:", this.y.keys);
+			console.log("Z keys:", this.z.keys);
+			console.log("Series:", series);
+			console.log("Series binned:", series_binned);
 
 			// Update the X and Y axis domains
 			this.svg.select(".x.axis").call(this.x.ax);
@@ -819,25 +828,32 @@
 				.data(series_binned)
 				.enter().append("svg:g")
 				.attr("class", "group")
+				.attr('data-z', function(d, i) {return self.z.keys[i]})
+				.attr('data-length', function(d, i) {return series[i].length})
 				.style("fill", function(d, i) {return self.z.scale(i)});
 				
 			// Draw a rectangle for each group/bin
 			var rect = groups.selectAll("rect")
 				.data(Object)
 				.enter().append("svg:rect")
+				// .attr('data-x', function(d) {return d.x})
+				// .attr('data-y', function(d) {return d.ysum})
+				.attr("width", function(d) {
+					return self.x.scale(self.x.bw(d))
+					})
+				.attr('height', function(d) {
+					// self.y(0) == self.height
+					// self.y(max domain) == 0
+					return self.height - self.y.scale(d.ysum)
+					})
 				.attr('x', function(d) {
-					console.log('d.x', d.x, self.x.scale(d.x))
 					return self.x.scale(d.x)}
 					)
 				.attr('y', function(d) {
-					return self.y.scale(d.ysum) - self.height
-					//return self.y.scale(d.ysum)-(self.height-self.y.scale(d.yoff))
+					// Height is in pixels below the Y coordinate:
+					// 	set Y coordinate to the top of the box
+					return self.y.scale(d.ysum) - (self.height-self.y.scale(d.yoff))
 					})
-				.attr('height', function(d) {
-					// console.log(d.ysum, self.y.scale(d.ysum));
-					return self.y.scale(d.ysum)
-					})
-				.attr("width", function(d) {return self.x.scale(self.x.bw(d))})
 		}
 	});	
 })(jQuery);

@@ -28,14 +28,31 @@ class EMHome(View):
 			banner = None
 			render_banner = ""
 
+		# List of RecordDefs to show
+		rds = self.db.getchildren('project', keytype='recorddef')
+		rds.add('project')
+		rds -= set(['subproject', 'p41_project'])
+		self.ctxt['recorddefs'] = self.db.getrecorddef(rds)
+
 		self.ctxt['projects_map'] = self.routing.execute(
 			'Map/embed', 
 			db=self.db, 
 			root=0, 
 			mode='children', 
 			recurse=2, 
-			rectype=['group', 'project']
+			rectype=rds
 			)
+
+
+		self.ctxt['equipment_map'] = self.routing.execute(
+			'Map/embed', 
+			db=self.db, 
+			root=0, 
+			mode='children', 
+			recurse=2, 
+			rectype=['folder','microscope']
+			)
+
 
 		# Recent records
 		# Add 'Z" to datetime.isoformat()
@@ -43,13 +60,14 @@ class EMHome(View):
 		# now = '2011-02-01T00:00:00+00:00'
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
 		t = (datetime.datetime.utcnow() - datetime.timedelta(days=30)).isoformat()+'+00:00'
-		self.ctxt['recent_activity'] = self.db.plot([['creationtime', '>', t]], x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now})
+		q = self.db.plot(
+			[['creationtime', '>', t], ['rectype', 'any', '']], 
+			x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now}, 
+			y={'stacked':True}
+			)
+
+		self.ctxt['recent_activity'] = q
 		
-		# List of RecordDefs to show
-		rds = self.db.getchildren('project', keytype='recorddef')
-		rds.add('project')
-		rds -= set(['subproject', 'p41_project'])
-		self.ctxt['recorddefs'] = self.db.getrecorddef(rds)
 
 		# recnames = {}
 		# equipment = self.db.getchildren(0, rectype=['microscope'])

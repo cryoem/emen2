@@ -9,7 +9,7 @@ import operator
 ## Start map browser
 <%block name="js_ready">
 	${parent.js_ready()}
-	$('.e2-map-projects').MapControl({'attach':true});
+	$('#content .e2-map').MapControl({'attach':true});
 	var q = ${jsonrpc.jsonutil.encode(recent_activity)}; 
 	$('#recent_activity').PlotHistogram({
 		q:q,
@@ -59,15 +59,13 @@ equipment = []
 %>
 <h1>
 	Equipment
-	<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/project/">Vitrobot</a></span>
-	<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/project/">Camera</a></span>
+	## <span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/project/">Vitrobot</a></span>
+	## <span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/project/">Camera</a></span>
 	<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/microscope/">Microscope</a></span>
 	<span class="e2l-label">${buttons.image('edit.png')} New</span>
  </h1>
-% for name in equipment:
-	<a href="${EMEN2WEBROOT}/record/${name}/">${recnames.get(name, name)|x}</a><br />
-% endfor
 
+<div class="e2-map e2-map-equipment">${equipment_map}</div>
 
 
 <h1>

@@ -469,7 +469,7 @@ class vt_text(vt_string):
 	elem = 'div'
 
 	#:
-	unindexed_words = {"in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"}
+	unindexed_words = set(["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"])
 
 	def reindex(self, items):
 		"""(Internal) calculate param index updates for vartype == text"""

@@ -9,7 +9,6 @@
 			% for child in sorted(children, key=lambda x:(recnames.get(x) or '').lower()):
 				## Create a LI for each child.
 				<li data-name="${child}">
-					
 					<a href="${EMEN2WEBROOT}/${keytype}/${child}/">${recnames.get(child) or child}</a>
 					
 					% if tree.get(child) and (depth <= recurse or recurse < 0):

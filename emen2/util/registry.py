@@ -104,7 +104,7 @@ class Registry(object):
 				result = old_obj
 			else:
 				self.registry[obj.name] = obj
-
+			
 		return result
 
 class DataObj(RegisteredObj):
