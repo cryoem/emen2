@@ -8,6 +8,38 @@ import emen2.db.config
 from emen2.web.view import View
 
 
+
+@View.register
+class EMEquipment(View):
+	
+	@View.add_matcher(r'^/em/equipment/(?P<name>\d+)/$')
+	def main(self, name, **kwargs):
+		self.title = 'Equipment'
+		self.template = '/em/project.main'
+
+	@View.add_matcher(r'^/em/equipment/new/(?P<rectype>\w+)/$')
+	def new(self, rectype, **kwargs):
+		self.title = 'New Equipment'
+		self.template = '/em/project.new'
+		
+
+
+@View.register
+class EMProject(View):
+	
+	@View.add_matcher(r'^/em/project/(?P<name>\d+)/$')
+	def main(self, name, **kwargs):
+		self.title = 'Project'
+		self.template = '/em/project.main'
+
+	@View.add_matcher(r'^/em/project/new/(?P<rectype>\w+)/$')
+	def new(self, rectype, **kwargs):
+		self.title = 'New Project'
+		self.template = '/em/project.new'
+		
+
+		
+
 @View.register
 class EMHome(View):
 

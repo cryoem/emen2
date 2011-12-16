@@ -95,6 +95,19 @@
 
 <%def name="page_userrec(user, edit)">
 
+<%
+if user.name == 'root':
+	return """
+		<p>
+			The default administrator account (root) only supports basic account details, 
+			and does not provide preferences or detailed profile information. You may
+			want to <a href="%s">create a non-root user account</a>.
+		</p>"""%ctxt.reverse('Users/new')
+		
+if user.name is None:
+	return """<p>This account does not have an extended profile.</p>"""
+%>
+
 	<form method="post" action="${ctxt.reverse('User/save', name=user.name)}">
 
 	<table class="e2l-kv">
@@ -265,6 +278,13 @@
 
 
 <%def name="page_photo(user, edit)">
+
+<%
+if user.name == 'root' or user.name is None:
+	return ""
+%>
+
+
 	% if edit:
 	
 		% if user.userrec.get('person_photo'):

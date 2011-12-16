@@ -125,6 +125,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		email = self.validate_email(email)
 
 		# Check that we know the existing password, or an authentication secret
+		# Note that admin users always return True for _checksecret
 		# Note: the auth token is bound both to the method (setemail) and the
 		# 	specific requested email address.
 		if self._checksecret('setemail', email, secret):
@@ -343,9 +344,15 @@ class User(BaseUser):
 
 	# I only have this method available on User, and not BaseUser.
 	def _checksecret(self, action, args, secret):
-		#if and self._ctx.checkadmin():
-		#	return True
-
+		if self._ctx is not None:
+			print "Checking admin.."
+			try:
+				if self._ctx.checkadmin():
+					return True
+			except Exception, e:
+				print 'wtf'
+				print e
+			
 		if not hasattr(self, '_secret'):
 			self.__dict__['_secret'] = None
 

@@ -100,7 +100,7 @@ import operator
 <h1>
 	Projects
 	% for rd in project_rds:
-		<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/em/project/${rd.name}/">${rd.desc_short}</a></span>
+		<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/em/project/new/${rd.name}/">${rd.desc_short}</a></span>
 	% endfor
 	<span class="e2l-label">
 		${buttons.image('edit.png')} New

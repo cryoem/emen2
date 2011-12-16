@@ -1166,6 +1166,7 @@ class DBODB(EMEN2DB):
 			# Get the current record for comparison of updated values.
 			# Use an empty dict for new records so all keys
 			# will seen as new (or if reindexing)
+			# ian: todo: get or cget?
 			orec = self.cget(crec.name, ctx=ctx, txn=txn) or {}
 			if indexonly:
 				orec = {}

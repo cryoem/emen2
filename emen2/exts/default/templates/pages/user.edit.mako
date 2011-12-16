@@ -4,13 +4,17 @@
 
 <h1>${user_util.page_title(user, True)}</h1>
 
-${user_util.page_userrec(user, True)}
+% if user.name != 'root' and user.record != None:
 
-<br />
+	${user_util.page_userrec(user, True)}
 
-<%buttons:singlepage label='Update Photo'>
-	${user_util.page_photo(user, True)}
-</%buttons:singlepage>
+	<br />
+
+	<%buttons:singlepage label='Update Photo'>
+		${user_util.page_photo(user, True)}
+	</%buttons:singlepage>
+
+% endif
 
 <%buttons:singlepage label='Change Email'>
 	${user_util.page_email(user, True)}

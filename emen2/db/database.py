@@ -2770,9 +2770,15 @@ class DB(object):
 		# 2. An email will be sent to the new account specified,
 		# 	containing an auth token
 		# 3. The user comes back and calls the method with this token
-		# 4. Email address is updated, and reindexed
+		# 4. Email address is updated and reindexed
 
-		user = self.bdbs.user.cget(name, filt=False, ctx=ctx, txn=txn)
+		# Do not use cget; it will strip out the secret.
+		user = self.bdbs.user.get(name, filt=False, txn=txn)
+		# In this case, only setContext if we are a root user..
+		if ctx.checkadmin():
+			user.setContext(ctx)
+		
+		# Actually change user email.
 		oldemail = user.email
 		email = user.setemail(email, password=password, secret=secret)
 
@@ -2784,6 +2790,7 @@ class DB(object):
 			raise SecurityError, "The email address %s is already in use"%(email)
 
 		if user.email == oldemail:
+			emen2.db.log.msg("SECURITY","Sending email verification for user %s to %s"%(user.name, user.email))
 			# The email didn't change, but the secret did
 			# Note: cputs will always ignore the secret; write directly
 			self.bdbs.user.put(user.name, user, txn=txn)
@@ -2794,8 +2801,11 @@ class DB(object):
 
 		else:
 			# Email changed.
-			emen2.db.log.msg("SECURITY","Changing email for %s"%user.name)
-			self.bdbs.user.cputs([user], txn=txn)
+			emen2.db.log.msg("SECURITY","Changing email for user %s to %s"%(user.name, user.email))
+			# Note: Since we're putting directly, 
+			# 	have to force the index to update
+			self.bdbs.user.reindex([user], ctx=ctx, txn=txn)
+			self.bdbs.user.put(user.name, user, txn=txn)
 
 			# Send the user an email to acknowledge the change
 			sendmail(user.email, template='/email/email.verified', ctxt=ctxt)
