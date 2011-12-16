@@ -6,60 +6,46 @@
 <%block name="js_ready">
 	${parent.js_ready()}
 	${buttons.tocache(group)}
-
 	var edit = ${jsonrpc.jsonutil.encode(edit)};
-	
-	$('#group_members').PermissionControl({
+	$('#members').PermissionsControl({
 		keytype: 'group',
 		name: ${jsonrpc.jsonutil.encode(group.name)},
 		edit: edit,
-		embed: true
-	});
-
-	$('input[name=save]').click(function() {
-		var g = emen2.caches['group'][${jsonrpc.jsonutil.encode(group.name)}];
-		g["permissions"] = $('#group_members').PermissionControl('getusers');
-		g["displayname"] = $('input[name=group_displayname]').val();
-		g["name"] = $('input[name=group_name]').val();
-		emen2.db("putgroup", [g], function(group) {
-			window.location = EMEN2WEBROOT+'/group/'+group.name+'/';
-		})
-
+		embed: true,
+		groups: false
 	});
 </%block>
 
 
 
 <h1>
-
 	% if new:
 		New Group
 	% else:
-		${group.get('displayname')} (${group.name})
+		${group.get('displayname')}
+		## (${group.name})
 	% endif
 
-	% if admin and not edit:
+	% if (ADMIN or group.isowner()) and not edit:
 		<span class="e2l-label"><a href="${EMEN2WEBROOT}/group/${group.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
 	% endif
-
-	% if new or edit:
-		<div class="e2l-controls" id="ext_save">
-			${buttons.spinner(false)}
-			<input type="submit" value="Save" name="save">
-		</div>
-	% endif
-
 </h1>
 
-<%buttons:singlepage label='Group Info'>
+% if new:
+	<form method="post" action="${ctxt.reverse('Group/new')}">
+% else:
+	<form method="post" action="${ctxt.reverse('Group/edit', name=group.name)}">
+% endif
+
+<%buttons:singlepage label='Details'>
 	<table>
 		<tr>
 			<td>Group Name:</td>
 
 			% if new:
-				<td><input type="text" name="group_name" value="" /></td>
+				<td><input type="text" name="name" value="" /></td>
 			% else:
-				<td>${group.name}<input type="hidden" name="group_name" value="${group.name}" /></td>
+				<td>${group.name}<input type="hidden" name="name" value="${group.name}" /></td>
 			% endif
 
 		</tr>
@@ -68,9 +54,9 @@
 			<td>Display Name:</td>
 
 			% if new:
-				<td><input type="text" name="group_displayname" value="" /></td>
+				<td><input type="text" name="displayname" value="" /></td>
 			% elif edit:
-				<td><input type="text" name="group_displayname" value="${group.get('displayname')}" /></td>
+				<td><input type="text" name="displayname" value="${group.get('displayname')}" /></td>
 			% else:
 				<td>${group.get('displayname')}</td>
 			% endif
@@ -98,8 +84,17 @@
 
 
 
-<%buttons:singlepage label='Group Members'>
-	<div id="group_members"></div>
+<%buttons:singlepage label='Members'>
+	<div id="members"></div>
 </%buttons:singlepage>
 
 
+% if new or edit:
+	<div class="e2l-controls" id="ext_save">
+		${buttons.spinner(false)}
+		<input class="e2l-save" type="submit" value="Save">
+	</div>
+% endif
+
+
+</form>

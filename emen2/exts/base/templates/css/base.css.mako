@@ -261,6 +261,7 @@ h4
 /***** e2-tab: Tab/page switch. Similar to jQuery.tab *****/
 .e2-tab {
 	position:relative;
+	clear:both;
 }
 .e2-tab > ul {
 	padding-left: 0px;

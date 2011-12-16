@@ -40,6 +40,7 @@ for k,v in d.items():
 		<li><a href="#${k}">${k.capitalize()}</a></li>
 	% endfor
 	</ul>
+	<p>Showing ${len(paramdefs)} of ${len(paramdefnames)} parameters.</p>	
 </%buttons:singlepage>
 
 

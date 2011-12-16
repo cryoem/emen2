@@ -39,15 +39,17 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
 		# Secret takes the format:
 		# action type, args, ctime for when the token is set, and secret
-		self.__dict__['_secret'] = None
+		self.__dict__['secret'] = None
 
 
 	# Setters
 	def _set_password(self, key, value, vtm=None, t=None):
+		# This will always fail unless you're an admin
+		#	setpassword requires either a password or auth token as arguments.
 		self.setpassword(None, value)
 		return set(['password'])
-
-
+	
+	
 	def _set_email(self, key, value, vtm=None, t=None):
 		# This will always fail unless you're an admin --
 		#	setemail requires either a password or auth token as arguments.
@@ -103,6 +105,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		# checkpassword will sleep 2 seconds for each failed attempt
 		if not (self._checksecret('resetpassword', None, secret) or self.checkpassword(oldpassword)):
 			self.error(e=emen2.db.exceptions.AuthenticationError)
+
 		# You must be logged in as this user (or admin) AND know the old password.
 		newpassword = self._hashpassword(self.validate_password(newpassword))
 		self._set('password', newpassword, True)
@@ -152,20 +155,20 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
 	def _setsecret(self, action, args):
 		# secret is set using __dict__ (like _ctx/_ptest) because it's a secret, and not a normal attribute.
-		if not hasattr(self, '_secret'):
-			self.__dict__['_secret'] = None
+		if not hasattr(self, 'secret'):
+			self.__dict__['secret'] = None
 
-		if self._secret:
-			if action == self._secret[0] and args == self._secret[1]:
+		if self.secret:
+			if action == self.secret[0] and args == self.secret[1]:
 				return
 
 		import emen2.db.database
 		secret = emen2.db.database.getrandomid()
-		self.__dict__['_secret'] = (action, args, secret, time.time())
+		self.__dict__['secret'] = (action, args, secret, time.time())
 
 
 	def _delsecret(self):
-		self.__dict__['_secret'] = None
+		self.__dict__['secret'] = None
 
 
 	#################################
@@ -326,9 +329,10 @@ class User(BaseUser):
 	# Only admin can change enabled/disabled or record reference
 
 	def _set_disabled(self, key, value, vtm=None, t=None):
+		value = bool(value)
 		if self.name == self._ctx.username and value:
 			self.error("Cannot disable self!")
-		return self._set(key, bool(value), self._ctx.checkadmin())
+		return self._set(key, value, self._ctx.checkadmin())
 
 
 	def _set_record(self, key, value, vtm=None, t=None):
@@ -344,21 +348,18 @@ class User(BaseUser):
 
 	# I only have this method available on User, and not BaseUser.
 	def _checksecret(self, action, args, secret):
-		if self._ctx is not None:
-			print "Checking admin.."
-			try:
-				if self._ctx.checkadmin():
-					return True
-			except Exception, e:
-				print 'wtf'
-				print e
-			
-		if not hasattr(self, '_secret'):
-			self.__dict__['_secret'] = None
+		try:
+			if self._ctx.checkadmin():
+				return True
+		except Exception, e:
+			pass
+
+		if not hasattr(self, 'secret'):
+			self.__dict__['secret'] = None
 
 		# This should check expiration time...
-		if action and secret and self._secret:
-			if action == self._secret[0] and args == self._secret[1] and secret == self._secret[2]:
+		if action and secret and self.secret:
+			if action == self.secret[0] and args == self.secret[1] and secret == self.secret[2]:
 				return True
 
 		return False
@@ -442,29 +443,34 @@ class User(BaseUser):
 
 	def setContext(self, ctx, hide=True):
 		super(User, self).setContext(ctx)
-
 		admin = self._ctx.checkreadadmin()
-
-		# If the user has requested privacy, we return only basic info
-		hide = self._ctx.username == 'anonymous' or self.privacy
-		if admin:
-			hide = False
+		ctxuser = self._ctx.username
 
 		p = {}
-		if self._ctx.username != self.name and not admin:
+
+		# secret is never made available except through direct btree.get().
+		# This may cause the secret to be reset at some points...
+		p['secret'] = None
+
+		# Defaults for cached attributes..
+		p['_userrec'] = {}
+		p['_displayname'] = self.name
+		p['_groups'] = set()
+
+		# If the user has requested privacy, we return only basic info
+		hide = self.privacy or self._ctx.username == 'anonymous'
+		if admin or ctxuser == self.name:
+			hide = False
+		else:
+			# This is a bug that needs to be fixed.
 			p['password'] = None
 
 		# You must access the User directly to get these attributes
-		p['_secret'] = None
 
 		# Hide basic details from anonymous users
 		if hide:
 			p['email'] = None
 			p['record'] = None
-
-		p['_userrec'] = {}
-		p['_displayname'] = self.name
-		p['_groups'] = set()
 
 		self.__dict__.update(p)
 		self.getdisplayname()

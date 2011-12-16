@@ -20,7 +20,6 @@ class ParamDef(View):
 			units = self.db.getpropertyunits(self.paramdef.property)
 
 		vartypes = self.db.getvartypenames()
-
 		properties = self.db.getpropertynames()
 
 		self.ctxt.update(dict(
@@ -77,6 +76,9 @@ class ParamDefs(View):
 	@View.add_matcher(r'^/paramdefs/$')
 	def main(self, action=None, q=None):
 		
+
+		paramdefnames = self.db.getparamdefnames()
+
 		if action == None or action not in ["vartype", "name", "tree", "property"]:
 			action = "tree"
 
@@ -84,7 +86,8 @@ class ParamDefs(View):
 			action = "name"
 			paramdefs = self.db.findparamdef(q)
 		else:
-			paramdefs = self.db.getparamdef(self.db.getparamdefnames())
+			paramdefs = self.db.getparamdef(paramdefnames)
+
 
 
 		# Tab Switcher
@@ -106,10 +109,11 @@ class ParamDefs(View):
 		# Children
 		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="paramdef", root="root", recurse=-1, id='sitemap')
 
-		self.set_context_item('q',q)
-		self.set_context_item("paramdefs", paramdefs)
-		self.set_context_item("childmap", childmap)
-		self.set_context_item('create',self.db.checkcreate())
+		self.ctxt['paramdefnames'] = paramdefnames
+		self.ctxt['paramdefs'] = paramdefs
+		self.ctxt['q'] = q
+		self.ctxt['childmap'] = childmap
+		self.ctxt['create'] = self.db.checkcreate()
 
 
 	@View.add_matcher(r'^/paramdefs/vartype/$')

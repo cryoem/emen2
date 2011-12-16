@@ -1,5 +1,6 @@
 <%inherit file="/page" />
 <%namespace name="forms" file="/forms"  /> 
+<%namespace name="buttons"  file="/buttons"  /> 
 
 <%block name="js_ready">
 	${parent.js_ready()}
@@ -9,7 +10,13 @@
 	});
 </%block>
 
-<h1>${title} (${len(queue)})</h1>
+<h1>${title}</h1>
+
+<%buttons:singlepage label='Account requests'>
+	<p>Showing ${len(queue)} of ${len(queue)} pending accounts.</p>
+</%buttons:singlepage>
+
+<br />
 
 <form method="post" action="${ctxt.reverse('Users/queue')}">
 
@@ -26,9 +33,10 @@
 				## <input type="radio" name="all" value="reject" />
 			</th>
 			
+			<th>Groups</th>
+			
 			<th>Email</th>
 			<th>Name</th>
-			<th>Comments</th>
 			<th>Additional details</th>
 		</tr>
 	</thead>
@@ -39,18 +47,32 @@
 				<td><input type="radio" name="actions.${user.name}" value="approve" ${forms.ifchecked(actions.get(user.name)=='approve')} /></td>
 				<td><input type="radio" name="actions.${user.name}" value="reject" ${forms.ifchecked(actions.get(user.name)=='reject')} /></td>
 
+				<td>
+					<select multiple="multiple" name="groups.${user.name}">
+						% for group in groups:
+							<option value="${group.name}">${group.get('displayname', group.name)}</option>
+						% endfor
+					</select>
+					<input type="hidden" name="groups.${user.name}" value="create" />
+					<input type="hidden" name="groups.${user.name}" value="" />
+				</td>
+
 				<td>${user.email}</td>
-				<td>${user.signupinfo.get('name_last', '')}, ${user.signupinfo.get('name_first', '')} ${user.signupinfo.get('name_middle', '')}</td>
-				<td>${user.signupinfo.get('comments', '')}</td>
+				<td>${user.signupinfo.get('name_first', '')} ${user.signupinfo.get('name_middle', '')} ${user.signupinfo.get('name_last', '')}</td>
 				<td>
 					<%
 					details = {}
 					for k in set(user.signupinfo.keys())-set(['email','name_first','name_middle','name_last','comments']):
 						details[k] = user.signupinfo[k]
 					%>
+					<ul class="e2l-nonlist">
 					% for k,v in sorted(details.items()):
-						${k}: ${v}, 
-					% endfor				
+						<li>${k}: ${v}</li>
+					% endfor
+						<li>
+							Comments: ${user.signupinfo.get('comments', '')}
+						</li>
+					</ul>
 				</td>
 			</tr>
 		% endfor

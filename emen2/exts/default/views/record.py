@@ -447,11 +447,9 @@ class Records(View):
 		location = kwargs.pop('_location', None)
 		comments = kwargs.pop('comments', '')
 
-		# import pprint
-		# pprint.pprint(kwargs)
-
 		if self.request_method == 'post':
 			for k,v in kwargs.items():
+				print "Record/Values:", k, v
 				v['name'] = k
 
 			recs = self.db.putrecord(kwargs.values())

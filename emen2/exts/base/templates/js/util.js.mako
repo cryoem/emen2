@@ -141,6 +141,7 @@ emen2.cache.get = function(key, keytype) {
 
 emen2.cache.update = function(items) {
 	$.each(items, function() {
+		if (!this.keytype) {return}
 		emen2.caches[this.keytype][this.name] = this;
 	})
 };

@@ -12,7 +12,8 @@ class Groups(View):
 		self.template="/pages/groups"
 		self.title = "Group directory"
 		self.set_context_item("q","")
-		groups = self.db.getgroup(self.db.getgroupnames())
+		groupnames = self.db.getgroupnames()
+		groups = self.db.getgroup(groupnames)
 		admin = self.db.checkadmin()
 		self.set_context_item("admin",admin)
 
@@ -20,49 +21,64 @@ class Groups(View):
 			self.template="/simple"
 			self.set_context_item("content","""No groups found, or insufficient permissions to view group list.""")
 			return
-
-		self.set_context_item("groups",groups)
+		
+		self.ctxt['groupnames'] = groupnames
+		self.ctxt['groups'] = groups
 
 
 
 @View.register
 class Group(View):
 	
-	@View.add_matcher(r'^/group/(?P<groupname>[\w\- ]+)/$')
-	def main(self, groupname=None):
-		group = self.db.getgroup(groupname)
-		admin = group.isowner()
-		edit = False
-		self.set_context_item("admin",admin)
-		self.set_context_item("edit",edit)
-		self.set_context_item("new",False)
-		self.title = "Group: %s"%(groupname)
-		self.set_context_item("group",group)
+	@View.add_matcher(r'^/group/(?P<name>[\w\- ]+)/$')
+	def main(self, name=None):
+		group = self.db.getgroup(name)
+		self.title = "Group: %s"%(group.displayname)
 		self.template = "/pages/group"
+		self.ctxt['group'] = group
+		self.ctxt['new'] = False
+		self.ctxt['edit'] = False
 
 
-	@View.add_matcher(r'^/group/(?P<groupname>[\w\- ]+)/edit/$')
-	def edit(self, groupname=None):
-		self.main(groupname=groupname)
-		self.set_context_item("edit",True)
+	@View.add_matcher(r'^/group/(?P<name>[\w\- ]+)/edit/$')
+	def edit(self, name=None, **kwargs):
+		group = self.db.getgroup(name)
+		self.title = "Group: %s"%(group.displayname)
+		self.template = "/pages/group"
+		self.ctxt['group'] = group
+		self.ctxt['new'] = False
+		self.ctxt['edit'] = True
 
+		if self.request_method != 'post':
+			return
 
-	# @View.add_matcher(r'^/groups/new/$', name='new')
-	@View.add_matcher(r'^/group/(?P<groupname>[\w\- ]+)/new/$')
-	def new(self, groupname=None):
-		admin = self.db.checkadmin()
-		if groupname:
-			group = self.db.getgroup(groupname)
-		else:
-			# We have to supply a group name.. just use a random string.
-			group = self.db.newgroup('newgroup%s'%int(time.time()))
+		group.update(kwargs)
+		group = self.db.putgroup(group)
+		self.ctxt['group'] = group
+		self.redirect('/group/%s/'%group.name)
+		
 
-		group.name = "None"
-		self.set_context_item("admin",admin)
-		self.set_context_item("edit",True)
+	# @View.add_matcher(r'^/group/(?P<name>[\w\- ]+)/new/$')
+	@View.add_matcher(r'^/groups/new/$')
+	def new(self, name=None, **kwargs):
+		# We have to supply a group name.. just use a random string.
+		name = name or 'newgroup%s'%int(time.time())		
+		group = self.db.newgroup(name)		
+		self.ctxt['group'] = group
+		self.ctxt['new'] = True
+		self.ctxt['edit'] = True
 		self.title = "New group"
-		self.set_context_item("group",group)
-		self.set_context_item("new",True)
 		self.template = "/pages/group"
+
+		if self.request_method != 'post':
+			return
+			
+		group.update(kwargs)
+		group = self.db.putgroup(group)
+		self.ctxt['group'] = group
+		self.redirect('/group/%s/'%group.name)
+		
+		
+
 		
 __version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -581,7 +581,6 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 
 	def defer(self, method, *a, **kw):
 		# print "Deferring to DB Pool"
-		# Use the DB pool
 		deferred = emen2.web.server.pool.rundb(method, *a, **kw)
 		return deferred
 

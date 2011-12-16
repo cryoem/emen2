@@ -37,16 +37,38 @@
 			// Complicated callback chain...
 			// 1. Get the item...
 			var item = emen2.caches[this.options.keytype][this.options.name];
-			emen2.db('get', {'keytype':this.options.keytype, 'names':this.options.name}, function(item) {
-				emen2.cache.update([item]);
+			if (!item) {
+				emen2.db('get', {'keytype':this.options.keytype, 'names':this.options.name}, function(item) {
+					emen2.cache.update([item]);
 
-				// 2. Get all the users before we draw the infoboxes
+					// 2. Get all the users before we draw the infoboxes
+					var users = [];
+					$.each(item['permissions'] || [], function(k, v) {users = users.concat(v)});
+					users = emen2.cache.check('user', users);
+					emen2.db('getuser', [users], function(users) {
+						emen2.cache.update(users);
+
+						// 3. ... also get groups ...
+						var groups = item['groups'] || [];
+						groups = emen2.cache.check('group', groups);
+						emen2.db('getgroup', [groups], function(groups) {					
+							emen2.cache.update(groups)
+
+							// 4. Finally call real build method
+							self._build();
+						});	
+					});
+				});
+			} else {
+
+				// This should be broken down into a separate callback method
+				// for each step of the chain
 				var users = [];
 				$.each(item['permissions'] || [], function(k, v) {users = users.concat(v)});
 				users = emen2.cache.check('user', users);
 				emen2.db('getuser', [users], function(users) {
 					emen2.cache.update(users);
-					
+
 					// 3. ... also get groups ...
 					var groups = item['groups'] || [];
 					groups = emen2.cache.check('group', groups);
@@ -57,7 +79,8 @@
 						self._build();
 					});	
 				});
-			});
+				
+			}
 		},
 		
 		_build: function() {
@@ -103,7 +126,9 @@
 			}
 
 			// Build the permissions levels
-			this.element.append(this.build_level('Groups', 'groups', groups, 'group'));
+			if (this.options.groups) {
+				this.element.append(this.build_level('Groups', 'groups', groups, 'group'));
+			}
 			this.element.append(this.build_level('Read-only', 'read', permissions[0]));
 			this.element.append(this.build_level('Comment', 'comment', permissions[1]));
 			this.element.append(this.build_level('Write', 'write', permissions[2]));
@@ -213,7 +238,7 @@
 				show: false,
 				keytype: keytype,
 				name: name,
-				selectable: true,
+				selectable: this.options.edit,
 				input: ['checkbox', param, true],
 				selected: cb,
 				built: cb

@@ -1099,7 +1099,9 @@ class DB(object):
 			try:
 				user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
 				user.checkpassword(password)
-			except (KeyError, SecurityError):
+			except SecurityError, e:
+				raise AuthenticationError, str(e)
+			except KeyError, e:
 				raise AuthenticationError, AuthenticationError.__doc__
 
 			# Create the Context for this user/host
@@ -2774,7 +2776,9 @@ class DB(object):
 
 		# Do not use cget; it will strip out the secret.
 		user = self.bdbs.user.get(name, filt=False, txn=txn)
-		# In this case, only setContext if we are a root user..
+
+		# If we're an admin, the secret and password aren't required,
+		# but user._ctx is.
 		if ctx.checkadmin():
 			user.setContext(ctx)
 		
@@ -2796,7 +2800,7 @@ class DB(object):
 			self.bdbs.user.put(user.name, user, txn=txn)
 
 			# Send the verify email containing the auth token
-			ctxt['secret'] = user._secret[2]
+			ctxt['secret'] = user.secret[2]
 			sendmail(email, template='/email/email.verify', ctxt=ctxt, ctx=ctx, txn=txn)
 
 		else:
@@ -2892,7 +2896,7 @@ class DB(object):
 		#@postprocess
 		# Absolutely never reveal the secret via any mechanism
 		# but email to registered address
-		ctxt = {'secret': user._secret[2]}
+		ctxt = {'secret': user.secret[2]}
 		sendmail(user.email, template='/email/password.reset', ctxt=ctxt)
 
 		emen2.db.log.msg('SECURITY', "Setting resetpassword secret for %s"%user.name)

@@ -40,6 +40,7 @@ for k,v in d.items():
 	% for k in sorted(d.keys()):
 		<a href="#${k}">${k}</a>
 	% endfor
+	<p>Showing ${len(groups)} of ${len(groupnames)} groups.</p>	
 </%buttons:singlepage>
 
 

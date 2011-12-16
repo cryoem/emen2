@@ -46,7 +46,6 @@ def test(echo):
 </%def>
 
 
-
 <%def name="countries()">
 	<option value=""></option>
 	<option value="Afghanistan">Afghanistan</option>

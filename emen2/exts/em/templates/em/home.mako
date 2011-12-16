@@ -4,7 +4,7 @@ import operator
 %>
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
-<%namespace name="pages_user_util" file="/pages/user"  /> 
+<%namespace name="user_util" file="/pages/user"  /> 
 
 ## Start map browser
 <%block name="js_ready">
@@ -24,12 +24,7 @@ import operator
 </h1>
 
 <div class="e2l-cf">
-	<div class="e2l-float-left">
-		${pages_user_util.page_userrec(USER, False)}
-	</div>	
-	<div class="e2l-float-right">
-		${pages_user_util.page_photo(USER, False)}
-	</div>
+	${user_util.profile(user=USER, userrec=USER.userrec, edit=False)}
 </div>
 
 

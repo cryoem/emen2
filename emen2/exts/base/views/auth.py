@@ -153,12 +153,14 @@ class Auth(View):
 		if email:
 			try:
 				ret = self.db.setemail(email, password=opw, name=name)
+				if email == ret:
+					msg = 'Email address successfully updated to %s'%ret
+				else:
+					msg = 'A verification email has been sent to %s'%email
+					
 			except Exception, errmsg:
-				pass
+				ret = None
 
-			msg = 'A verification email has been sent to %s'%email
-			if email == ret.email:
-				msg = 'Email address successfully updated to %s'%ret.email
 
 		if msg:
 			self.ctxt['NOTIFY'].append(msg)

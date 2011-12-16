@@ -812,11 +812,11 @@
 			// Update Y axis acounts
 			this.y.data(series_binned);
 
-			console.log("X keys:", this.x.keys);
-			console.log("Y keys:", this.y.keys);
-			console.log("Z keys:", this.z.keys);
-			console.log("Series:", series);
-			console.log("Series binned:", series_binned);
+			// console.log("X keys:", this.x.keys);
+			// console.log("Y keys:", this.y.keys);
+			// console.log("Z keys:", this.z.keys);
+			// console.log("Series:", series);
+			// console.log("Series binned:", series_binned);
 
 			// Update the X and Y axis domains
 			this.svg.select(".x.axis").call(this.x.ax);

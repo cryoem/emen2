@@ -66,6 +66,8 @@ class RecordDefs(View):
 
 	@View.add_matcher(r'^/recorddefs/$')
 	def main(self, action=None, q=None):
+		recorddefnames = self.db.getrecorddefnames()
+		
 		if action == None or action not in ["tree", "name", "count"]:
 			action = "tree"
 
@@ -73,7 +75,7 @@ class RecordDefs(View):
 			recorddefs = self.db.findrecorddef(q)
 			action = "name"
 		else:
-			recorddefs = self.db.getrecorddef(self.db.getrecorddefnames())
+			recorddefs = self.db.getrecorddef(recorddefnames)
 
 		# Tab Switcher
 		pages = collections.OrderedDict()
@@ -99,6 +101,7 @@ class RecordDefs(View):
 			for pd in recorddefs:
 				count[pd.name] = len(self.db.getindexbyrectype(pd.name))
 
+		self.ctxt['recorddefnames'] = recorddefnames
 		self.set_context_item('q',q)
 		self.set_context_item('count', count)
 		self.set_context_item("recorddefs", recorddefs)

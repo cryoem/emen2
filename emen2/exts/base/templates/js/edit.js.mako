@@ -962,7 +962,7 @@
 	// Text editor
 	$.widget("emen2edit.textarea", $.emen2.EditBase, {
 		build_item: function(val, index) {
-			var editw = $('<textarea style="width:100%" name="'+this.cachepd().name+'" rows="10">'+val+'</textarea>');
+			var editw = $('<textarea style="width:100%" name="'+this.options.prefix+this.cachepd().name+'" rows="10">'+val+'</textarea>');
 			if (this.options.required && !index) {editw.attr('required',true)}			
 			this.element.addClass('e2l-fw');
 			return editw

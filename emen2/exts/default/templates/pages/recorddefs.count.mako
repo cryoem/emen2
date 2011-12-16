@@ -50,6 +50,7 @@ for k,v in d.items():
 		<li><a href="#${k}">${labels.get(k)}</a></li>
 	% endfor
 	</ul>
+	<p>Showing ${len(recorddefs)} of ${len(recorddefnames)} protocols.</p>	
 </%buttons:singlepage>
 
 
