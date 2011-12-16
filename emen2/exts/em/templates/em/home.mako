@@ -54,24 +54,53 @@ import operator
 	<div class="e2-plot"></div>
 </div>
 
-<%
-equipment = []
-%>
+<br /><br />
+
 <h1>
 	Equipment
-	## <span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/project/">Vitrobot</a></span>
-	## <span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/project/">Camera</a></span>
-	<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/microscope/">Microscope</a></span>
-	<span class="e2l-label">${buttons.image('edit.png')} New</span>
+	% if ADMIN:
+		% for rd in equipment_rds:
+			<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/em/equipment/new/${rd.name}/">${rd.desc_short}</a></span>
+		% endfor
+		<span class="e2l-label">
+			${buttons.image('edit.png')} New
+		</span>
+	% endif
  </h1>
 
-<div class="e2-map e2-map-equipment">${equipment_map}</div>
+% if not equipment:
+	<p>There is no equipment defined.</p>
+% else:
+	<table class="e2l-shaded" cellpadding="0" cellspacing="0">
+		<thead>
+			<tr>
+				<th>Type</th>
+				<th>Name</th>
+				<th>Calibration</th>
+				<th>Maintenance</th>
+				<th>Activity</th>
+			</tr>
+		</thead>
+		<tbody>
+			% for e in equipment:
+				<tr>
+					<td>${e.name}</td>
+					<td> -- </td>
+					<td> -- </td>
+					<td> -- </td>
+					<td> -- </td>
+				</tr>
+			% endfor
+		</tbody>
+	</table>
+% endif
 
+<br /><br />
 
 <h1>
 	Projects
-	% for rd in recorddefs:
-		<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/record/0/new/${rd.name}/">${rd.desc_short}</a></span>
+	% for rd in project_rds:
+		<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/em/project/${rd.name}/">${rd.desc_short}</a></span>
 	% endfor
 	<span class="e2l-label">
 		${buttons.image('edit.png')} New
