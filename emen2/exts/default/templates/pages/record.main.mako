@@ -225,15 +225,10 @@
 		%>
 		<li data-tab="comments" class="e2l-float-right">
 			<a href="#comments">
-				% if rec.get('modifytime'):	
-					${displaynames.get(rec.get('modifyuser'), rec.get('modifyuser'))} 
-					@ 
-					<time datetime="${rec.get('modifytime')}">${rec.get('modifytime', '')[:10]}</time>
-				% else:
+					## Ian: show date_occurred, modifytime, or creationtime...?
 					${displaynames.get(rec.get('creator'), rec.get('creator'))}
 					@
 					<time datetime="${rec.get('creationtime')}">${rec.get('creationtime', '')[:10]}</time>
-				% endif
 		
 				<span id="e2l-editbar-historycount">
 				% if historycount:
