@@ -66,7 +66,9 @@ users_sorted = sorted(users, key=sortkey, reverse=reverse)
 		</tbody>
 	</table>
 
-	<input type="button" value="Save" />
-
+	<ul class="e2l-controls">
+		<li><input type="submit" value="Save" /></li>
+	</ul>
+	
 </form>
 

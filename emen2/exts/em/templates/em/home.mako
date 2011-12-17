@@ -51,6 +51,7 @@ import operator
 
 <br /><br />
 
+<!--
 <h1>
 	Equipment
 	% if ADMIN:
@@ -91,15 +92,17 @@ import operator
 % endif
 
 <br /><br />
+--> 
+
 
 <h1>
 	Projects
-	% for rd in project_rds:
-		<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/em/project/new/${rd.name}/">${rd.desc_short}</a></span>
-	% endfor
-	<span class="e2l-label">
-		${buttons.image('edit.png')} New
-	</span>
+	## % for rd in project_rds:
+	##	<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/em/project/new/${rd.name}/">${rd.desc_short}</a></span>
+	## % endfor
+	## <span class="e2l-label">
+	##	${buttons.image('edit.png')} New
+	## </span>
 </h1>
 
 <div class="e2-map e2-map-projects">${projects_map}</div>
