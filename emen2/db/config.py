@@ -116,7 +116,7 @@ def load_views():
 def load_jsons(cb=None):
 	for ext in globalns.extensions.EXTS:
 		load_json(ext, cb=cb)
-	
+
 def load_ext(ext):
 	modulename = 'emen2.exts.%s'%ext
 	# print "Loading extension...", modulename
@@ -137,7 +137,7 @@ def load_view(ext):
 	# print "Loading views...", modulename
 	if modulename in sys.modules:
 		print "%s already loaded"%modulename
-		return			
+		return
 	paths = list(globalns.paths.EXTPATHS)
 	module = imp.find_module(ext, paths)
 	path = module[1]
@@ -288,7 +288,7 @@ class DBOptions(optparse.OptionParser):
 		if os.getenv('EMEN2EXTPATHS'):
 			for path in filter(None, os.getenv('EMEN2EXTPATHS','').split(":")):
 				g.paths.EXTPATHS.append(path)
-		
+
 		# Load the default extensions
 		# I plan to add a flag to disable automatic loading.
 		exts = self.values.exts or []

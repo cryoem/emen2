@@ -110,7 +110,7 @@ class EMEN2Server(object):
 		import emen2.web.resource
 		root = emen2.web.resource.Router()
 
-		# yield (self,root) to body of with statement 
+		# yield (self,root) to body of with statement
 		# allows this code to be more readable
 		yield self, root
 
@@ -142,10 +142,10 @@ def start_emen2():
 		# You must import the database in the main thread.
 		import emen2.db.database
 
-		# Load all View extensions		
+		# Load all View extensions
 		import emen2.db.config
 		emen2.db.config.load_views()
-		
+
 		# Child resources that do not go through the Router.
 		import jsonrpc.server
 		import emen2.web.resource
