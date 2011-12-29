@@ -35,10 +35,6 @@ class TemplateRender(View):
 
 
 
-
-
-
-
 # import twisted.web.static
 # 
 # @View.register
