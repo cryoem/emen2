@@ -5,6 +5,8 @@
 .*.swp
 .*project
 .DS*
+.git
+.gitignore
 .hg
 .hgignore
 MANIFEST
@@ -12,6 +14,7 @@ _darcs
 build
 config.py
 dist
+dropin.cache
 emen2config.py
 error.*
 jsonrpc

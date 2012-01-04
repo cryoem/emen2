@@ -22,6 +22,7 @@ import mako.exceptions
 
 # emen2 imports
 import emen2.db.config
+import emen2.db.log
 import emen2.db.exceptions
 import emen2.db.handlers
 import emen2.util.loganalyzer
@@ -30,45 +31,6 @@ import emen2.web.events
 import emen2.web.routing
 import emen2.web.responsecodes
 import emen2.web.server
-
-
-
-
-##### Routing Resource #####
-
-class Router(twisted.web.resource.Resource):
-	isLeaf = False
-
-	# Find a resource or view
-	def getChildWithDefault(self, path, request):
-		if path in self.children:
-			return self.children[path]
-
-		# Add a final slash.
-		# Most of the view matchers expect this.
-		path = request.path
-		if not path:
-			path = '/'
-		if path[-1] != "/":
-			path = "%s/"%path
-		request.path = path
-
-		try:
-			view, method = emen2.web.routing.resolve(path=request.path)
-		except:
-			return self
-
-		# This may move into routing.Router in the future.
-		view = view()
-		view.render = functools.partial(view.render, method=method)
-		return view
-
-
-	# Resource was not found
-	def render(self, request):
-		return 'Not found'
-
-
 
 ##### Base EMEN2 Resource #####
 
@@ -196,8 +158,11 @@ class EMEN2Resource(object):
 		headers = {}
 		headers.update(self.headers)
 		headers = dict( (k,v) for k,v in headers.iteritems() if v != None )
+
+		length = 0
 		if result is not None:
-			headers['Content-Length'] = len(result)
+			length = len(result)
+			headers['Content-Length'] = length
 
 		# Redirect if necessary
 		if headers.get('Location'):
@@ -361,8 +326,8 @@ class EMEN2Resource(object):
 		if request.method == "PUT":
 			# The param?..
 			f = emen2.db.handlers.BinaryHandler.get_handler(
-				filename=request.getHeader('x-file-name'), 
-				param=request.getHeader('x-file-param'), 
+				filename=request.getHeader('x-file-name'),
+				param=request.getHeader('x-file-param'),
 				fileobj=request.content
 				)
 			files.append(f)
@@ -382,7 +347,7 @@ class EMEN2Resource(object):
 			# Turn those pairs into emen2 File instances
 			for param, filename in r:
 				f = emen2.db.handlers.BinaryHandler.get_handler(
-					param=param, 
+					param=param,
 					filename=filename
 					)
 				files.append(f)
@@ -492,11 +457,13 @@ class EMEN2Resource(object):
 
 		# Register mtchers produced by the add_matcher decorator
 		for func in cls.__dict__.values():
+			if not callable(func): continue
+
 			for matcher in getattr(func, 'matcherinfo', []):
 				matcher, name, view = matcher
 				view = view or cls.__name__
 				name = '%s/%s'%(view, name)
-				with emen2.web.routing.Router().route(name=name, matcher=matcher, cls=cls, method=func) as url:
+				with emen2.web.routing._Router().route(name=name, matcher=matcher, cls=cls, method=func) as url:
 					pass
 		return cls
 
@@ -547,6 +514,7 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 
 	def callmethod(self, request, rpcrequest, db=None, ctxid=None, **kw):
 		# Lookup the method and call
+		print 'callmethod: %s, %s, %s, %s, %s, %s' % (self, request, rpcrequest, db, ctxid, kw)
 		if not db:
 			raise Exception, "No DBProxy"
 
@@ -580,9 +548,17 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 		return methodresult
 
 	def defer(self, method, *a, **kw):
-		# print "Deferring to DB Pool"
-		deferred = emen2.web.server.pool.rundb(method, *a, **kw)
+		print "Deferring to DB Pool"
+		deferred = emen2.web.server.pool.rundb(emen2.db.log.Variables.logger.debug_func(method), *a, **kw)
 		return deferred
+
+	def log(self, response, txrequest, error=False):
+		if error:
+			traceback.print_exc()
+		else:
+			print response.json_equivalent(), txrequest
+
+
 
 
 

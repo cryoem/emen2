@@ -5,7 +5,9 @@ import cgi
 import contextlib
 
 from functools import partial
+import functools
 from itertools import izip
+import twisted.web.resource
 
 import emen2.web.events
 import emen2.util.registry
@@ -13,6 +15,72 @@ import emen2.util.datastructures
 import emen2.web.events
 from emen2.web import responsecodes
 from emen2.util import listops
+
+
+
+
+##### Routing Resource #####
+
+import time
+class Router(twisted.web.resource.Resource):
+	isLeaf = False
+
+	# Find a resource or view
+	def getChildWithDefault(self, path, request):
+		d = request.notifyFinish()
+		d.addCallback(self.logrequest, request, t=time.time())
+
+		if path in self.children:
+			return self.children[path]
+
+		# Add a final slash.
+		# Most of the view matchers expect this.
+		path = request.path
+		if not path:
+			path = '/'
+		if path[-1] != "/":
+			path = "%s/"%path
+		request.path = path
+
+		try:
+			view, method = resolve(path=request.path)
+		except:
+			return self
+
+		# This may move into routing.Router in the future.
+		view = view()
+		view.render = functools.partial(view.render, method=method)
+		return view
+
+	def logrequest(self, x, request, t=0.0, *args, **kwargs):
+		ctxid = None
+		headers = request.responseHeaders.getAllRawHeaders()
+		tmp = {}
+		for k, v in headers:
+			k = k.lower()
+			if k not in tmp and k in set(['x-username', 'content-length', 'x-resource']):
+				tmp[k] = v
+
+		logline = emen2.util.loganalyzer.AccessLogLine(
+			host = request.getClientIP(),
+			ctxid = request.getCookie('ctxid'),
+			username = tmp.get('x-username',[''])[0],
+			rtime = time.strftime(emen2.util.loganalyzer.CTIME),
+			request = '"%s %s"' % (request.method, request.uri),
+			response_code = request.code,
+			size = tmp.get('content-length',[0])[0],
+			resource = tmp.get('x-resource', '-'),
+			cputime = (time.time()-t)*1000,
+		)
+		emen2.db.log.msg('WEB', str(logline))
+
+
+
+	# Resource was not found
+	def render(self, request):
+		return 'Not found'
+
+
 
 
 def resolve(name=None, path=None):
@@ -35,7 +103,7 @@ def resolve(name=None, path=None):
 	# Render the View
 	print view
 	"""
-	return Router.resolve(name=name, path=path)
+	return _Router.resolve(name=name, path=path)
 
 
 
@@ -43,7 +111,7 @@ def execute(_execute_name, db=None, *args, **kwargs):
 	"""Find and execute a route by name.
 	The route name (e.g. 'Home/main') must be the first positional argument.
 	"""
-	view, method = Router.resolve(name=_execute_name)
+	view, method = _Router.resolve(name=_execute_name)
 	view = view(db=db)
 	view.init()
 	method(view, *args, **kwargs)
@@ -54,7 +122,7 @@ def execute(_execute_name, db=None, *args, **kwargs):
 # 	"""Find and execute a route by a path URI.
 # 	The route path (e.g. '/home/') must be the first positional argument.
 # 	"""
-# 	cb, matched = Router.resolve(path=_execute_path)
+# 	cb, matched = _Router.resolve(path=_execute_path)
 # 	matched.update(kwargs)
 # 	view = cb(db=db)(*args, **kwargs)
 # 	return view
@@ -62,7 +130,7 @@ def execute(_execute_name, db=None, *args, **kwargs):
 
 
 def reverse(*args, **kwargs):
-	return Router.reverse(*args, **kwargs)
+	return _Router.reverse(*args, **kwargs)
 
 
 def add(*args, **kwargs):
@@ -92,7 +160,7 @@ class Route(object):
 
 
 @emen2.util.registry.Registry.setup
-class Router(emen2.util.registry.Registry):
+class _Router(emen2.util.registry.Registry):
 	"""Private"""
 
 	_prepend = ''
@@ -258,15 +326,6 @@ def force_unicode(string):
 		return unicode(result)
 	else:
 		return unicode(result, 'utf-8', errors='replace')
-
-
-
-if __name__ == '__main__':
-	from emen2.util.datastructures import doubledict
-	print doubledict()
-	a = Route('test', GET=('asda(?P<asdasd>sd)', lambda *args, **kwargs: (args, kwargs)))
-	print a.match('asdasd')[1].groupdict()
-	ur = Router();ur.register(a)
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
