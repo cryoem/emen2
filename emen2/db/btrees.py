@@ -34,6 +34,8 @@ except ImportError, inst:
 	bulk = None
 
 
+print "Bulk:", bulk
+
 # Berkeley DB wrapper classes
 class EMEN2DB(object):
 	"""BerkeleyDB Btree Wrapper.

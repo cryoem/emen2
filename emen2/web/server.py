@@ -32,7 +32,6 @@ class DBPool(object):
 
 	dbs = {}
 	def __init__(self, min=0, max=5):
-		print 'DBPool __init__'
 		# Minimum and maximum number of threads
 		self.min = min
 		self.max = max
@@ -66,7 +65,7 @@ class DBPool(object):
 			del self.dbs[tid]
 
 	def rundb(self, call, *args, **kwargs):
-		print 'DBPool', self.dbs
+		# print 'DBPool', self.dbs
 		return twisted.internet.threads.deferToThread(self._rundb, call, *args, **kwargs)
 
 	def _rundb(self, call, *args, **kwargs):
@@ -124,7 +123,6 @@ class EMEN2Server(object):
 
 		# Update the configuration
 		self.EMEN2PORT = self.options['port'] or self.EMEN2PORT
-		print '%r' % self.EMEN2PORT
 
 		self.EMEN2HTTPS = self.options.get('https', False)
 

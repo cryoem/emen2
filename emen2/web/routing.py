@@ -72,7 +72,7 @@ class Router(twisted.web.resource.Resource):
 			resource = tmp.get('x-resource', '-'),
 			cputime = (time.time()-t)*1000,
 		)
-		emen2.db.log.msg('WEB', str(logline))
+		# emen2.db.log.msg('WEB', str(logline))
 
 
 

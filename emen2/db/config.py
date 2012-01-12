@@ -25,16 +25,17 @@ import imp
 
 import jsonrpc.jsonutil
 
-basestring = (str, unicode)
 # EMEN2 imports
 # NOTHING else should import emen2.db.globalns.
-# It is a PRIVATE module.
+# It is a PRIVATE module!
 import emen2.db.globalns
 
 # Note:
 # 	Be very careful about importing EMEN2 modules here!
 # 	This module is loaded by many others, it can create circular
 # 	dependencies very easily!
+
+basestring = (str, unicode)
 
 
 ##### Mako template lookup #####
@@ -82,7 +83,7 @@ def get(key, default=None, rv=True):
 	:return: Configuration value
 
 	"""
-	result = globalns.watch(key, default=default)
+	result = Config.globalns.watch(key, default=default)
 	if rv:
 		result = result.get()
 	return result
@@ -104,24 +105,24 @@ def set(key, value):
 ##### Extensions #####
 
 def load_exts():
-	for ext in globalns.extensions.EXTS:
+	for ext in Config.globalns.extensions.EXTS:
 		load_ext(ext)
 
 def load_views():
-	for ext in globalns.extensions.EXTS:
+	for ext in Config.globalns.extensions.EXTS:
 		load_view(ext)
 
 def load_jsons(cb=None):
-	for ext in globalns.extensions.EXTS:
+	for ext in Config.globalns.extensions.EXTS:
 		load_json(ext, cb=cb)
 
 def load_ext(ext):
 	modulename = 'emen2.exts.%s'%ext
-	# print "Loading extension...", modulename
+	print "Loading extension...", modulename
 	if modulename in sys.modules:
 		print "%s already loaded"%modulename
 		return
-	paths = list(globalns.paths.EXTPATHS)
+	paths = list(Config.globalns.paths.EXTPATHS)
 	module = imp.find_module(ext, paths)
 	ret = imp.load_module(ext, *module)
 	# Extensions may have an optional "templates" directory,
@@ -136,7 +137,7 @@ def load_view(ext):
 	if modulename in sys.modules:
 		print "%s already loaded"%modulename
 		return
-	paths = list(globalns.paths.EXTPATHS)
+	paths = list(Config.globalns.paths.EXTPATHS)
 	module = imp.find_module(ext, paths)
 	path = module[1]
 	try:
@@ -157,23 +158,14 @@ def load_json(ext, cb=None):
 		cb(j)
 
 def resolve_ext(ext):
-	paths = list(globalns.paths.EXTPATHS)
+	paths = list(Config.globalns.paths.EXTPATHS)
 	return imp.find_module(ext, paths)[1]
 
 
+##### Configuration loader #####
+
 class Config(object):
 	globalns = emen2.db.globalns.GlobalNamespace()
-
-	def from_files(self, *files):
-		'''Load several files
-
-		:param files: a list of configuration file filenames to be loaded'''
-		for file_ in files:
-			self.load_file(file_)
-
-	def __init__(self):
-		default_config = get_filename('emen2', 'db/config.base.json')
-		self.load_file(default_config)
 
 	def load_file(self, fn):
 		'''Load a single configuration file
@@ -189,7 +181,9 @@ class Config(object):
 				self.load_data(**dct)
 
 		for key, value in data.items():
-			self.globalns.setattr(key, value)
+			# This needs to use setattr() so @properties will work.
+			setattr(self.globalns, key, value)
+			# self.globalns.setattr(key, value)
 
 	def require_variable(self, var_name, value=None, err_msg=None):
 		'''Assert that a certain variable has been loaded
@@ -207,10 +201,11 @@ class Config(object):
 		else:
 			return True
 
-#temporary
-globalns = Config.globalns
+
 
 ##### Default OptionParser #####
+# This has been converted to Twisted usage.Options parser
+# to work with "twistd".
 
 from twisted.python import usage
 
@@ -261,11 +256,10 @@ class CommandLineParser(object):
 		lc = kwargs.pop('lc', True)
 		self.options = options
 		self.kwargs = kwargs
-
+		
 		self.config = Config()
 		if lc:
 			self.load_config()
-
 
 	def opendb(self, *args, **kwargs):
 		import emen2.db.database
@@ -274,49 +268,44 @@ class CommandLineParser(object):
 
 
 	def load_config(self, **kw):
-		if self.config.globalns.getattr('CONFIG_LOADED', False): return
+		if self.config.globalns.getattr('CONFIG_LOADED', False):
+			return
 
 		# Eventually 'with' will unlock/lock the globalns
 		# with globalns:
-		self._load_config(self.config.globalns, **kw)
+		self._load_config(**kw)
 
 		self.config.globalns.CONFIG_LOADED = True
 
 
-	def _load_config(self, g, **kw):
-		# 'g' is the global GlobalNamespace instance
-
-		## Default configuration
-		#default_config = get_filename('emen2', 'db/config.base.json')
-
-		## Load a JSON file into the GlobalNS
-		#g.from_file(default_config)
-
-		# Look for EMEN2DBHOME and set to g.EMEN2DBHOME
-
+	def _load_config(self, **kw):
+		# Set EMEN2DBHOME from the options or environment variable.
 		self.config.load_data(
-			EMEN2DBHOME = self.options.get('home', os.getenv("EMEN2DBHOME"))
+			EMEN2DBHOME=self.options.get('home', os.getenv("EMEN2DBHOME"))
 		)
 
+		# Load the base configuration.
+		self.config.load_file(
+			get_filename('emen2', 'db/config.base.json')
+		)
+		
 		# Load other specified config files
-		print self.options.get('configfile', [])
-		self.config.from_files(
-			*self.options.get('configfile', [])
-		)
-		print self.config.globalns.EMEN2DBHOME
+		for f in self.options.get('configfile', []):
+			self.config.load_file(f)
 
-		# You must specify EMEN2DBHOME
-		self.config.require_variable('EMEN2DBHOME', None,
+		# EMEN2DBHOME must have been specified in either -h, $EMEN2DBHOME, 
+		# or set a configuration file.
+		self.config.require_variable(
+			'EMEN2DBHOME', 
+			None,
 			err_msg="No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h")
 
 		# Load any config file in EMEN2DBHOME
-		self.config.from_files(
-			os.path.join(g.EMEN2DBHOME, "config.json"),
-			os.path.join(g.EMEN2DBHOME, "config.yml")
-		)
+		# self.config.load_file(os.path.join(g.EMEN2DBHOME, "config.json"))
+		# self.config.load_file(os.path.join(g.EMEN2DBHOME, "config.yml"))
 
 		# Set default log levels
-		loglevel = g.getattr('LOG_LEVEL', 'INFO')
+		loglevel = self.config.globalns.getattr('LOG_LEVEL', 'INFO')
 		if self.options['quiet']:
 			loglevel = 'ERROR'
 		elif self.options['debug']:
@@ -326,190 +315,40 @@ class CommandLineParser(object):
 		self.config.load_data(LOG_LEVEL=loglevel)
 
 		# Make sure paths to log files exist
-		if not os.path.exists(g.paths.LOGPATH):
-			os.makedirs(g.paths.LOGPATH)
+		if not os.path.exists(self.config.globalns.paths.LOGPATH):
+			os.makedirs(self.config.globalns.paths.LOGPATH)
 
 		# Extend the python module path
-		if getattr(g.paths, 'PYTHONPATH', []):
-			pp = g.paths.PYTHONPATH
-			if not hasattr(pp, '__iter__'):
-				pp = [pp]
-			sys.path.extend(pp)
+		# if getattr(self.config.globalns.paths, 'PYTHONPATH', []):
+		#	pp = self.config.globalns.paths.PYTHONPATH
+		#	if not hasattr(pp, '__iter__'):
+		#		pp = [pp]
+		#	sys.path.extend(pp)
 
-		# Add any specified extensions
 		# EXTPATHS points to directories containing emen2 ext modules.
-		# This will be used with imp.find_module(ext, g.paths.EXTPATHS)
-		g.paths.EXTPATHS.append(get_filename('emen2', 'exts'))
+		# This will be used with imp.find_module(ext, self.config.globalns.paths.EXTPATHS)
+		self.config.globalns.paths.EXTPATHS.append(get_filename('emen2', 'exts'))
 		if os.getenv('EMEN2EXTPATHS'):
 			for path in filter(None, os.getenv('EMEN2EXTPATHS','').split(":")):
-				g.paths.EXTPATHS.append(path)
+				self.config.globalns.paths.EXTPATHS.append(path)
 
-		# Load the default extensions
-		# I plan to add a flag to disable automatic loading.
-		exts = kw.get('exts', [])
-		exts = ( i.split(",") for i in exts )
-		exts = sum(exts, [])
-
+		# Add the extensions, including the 'base' extension
+		exts = self.options.get('ext').split(',')
 		if 'base' not in exts:
 			exts.insert(0,'base')
-		exts.extend(g.extensions.EXTS)
-
-		# Map the extensions back to their physical directories
-		# Use an OrderedDict to preserve the order
-		g.extensions.EXTS = exts
+		exts.extend(self.config.globalns.extensions.EXTS)
+		self.config.globalns.extensions.EXTS = exts
 
 		# Enable/disable snapshot
-		g.params.SNAPSHOT = self.options['nosnapshot']
+		self.config.globalns.params.SNAPSHOT = self.options['nosnapshot']
 
 		# Create new database?
-		print self.options['create'], '<<<<<<<<<<<<<<<<<<<<<<<'
-		#g.params.CREATE = self.options['create']
+		# print self.options['create'], '<<<<<<<<<<<<<<<<<<<<<<<'
+		# self.config.globalns.params.CREATE = self.options['create']
 
 		# Enable root user?
-		# g.ENABLEROOT = self.values.enableroot or False
-
+		# self.config.globalns.ENABLEROOT = self.values.enableroot or False
 
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
-
-#class old_DBOptions(optparse.OptionParser):
-#
-#	def __init__(self, *args, **kwargs):
-#		kwargs["add_help_option"] = False
-#		loginopts = kwargs.pop('loginopts', False)
-#
-#		optparse.OptionParser.__init__(self, *args, **kwargs)
-#		# super(DBOptions, self).__init__(*args, **kwargs)
-#
-#		dbhomehelp = """EMEN2 Database Environment
-#		[default: $EMEN2DBHOME, currently "%s"]"""%os.getenv('EMEN2DBHOME')
-#
-#		if loginopts:
-#			logingroup = optparse.OptionGroup(self, "Login Options")
-#			logingroup.add_option('--username', '-U', type="string", help="Login with Account Name")
-#			logingroup.add_option('--password', '-P', type="string", help="... and this password")
-#			# logingroup.add_option('--admin', action="store_true", help="Open DB with an Admin (root) Context")
-#			self.add_option_group(logingroup)
-#
-#		group = optparse.OptionGroup(self, "EMEN2 Base Options")
-#		group.add_option('-h', dest='home', type="string", help=dbhomehelp)
-#		group.add_option('-e', '--ext', action="append", dest='exts', help="Add Extension; can be comma-separated.")
-#		group.add_option('-c', '--configfile', action='append', dest='configfile')
-#		group.add_option('-l', '--loglevel', action='store', dest='loglevel')
-#		group.add_option('--create', action="store_true", help="Create and initialize a new DB")
-#		group.add_option('--quiet', action='store_true', default=False, help="Quiet")
-#		group.add_option('--debug', action='store_true', default=False, help="Print debug information")
-#		group.add_option('--version', action='store_true', help="EMEN2 Version")
-#		group.add_option('--help', action="help", help="Print help message")
-#		group.add_option('--nosnapshot', action="store_false", dest="snapshot", default=True, help="Disable Berkeley DB Multiversion Concurrency Control (Snapshot)")
-#		# group.add_option('--enableroot', action="store_true", help="Enable root account. You will be prompted for an email and password.")
-#		self.add_option_group(group)
-#
-#
-#	def parse_args(self, lc=True, *args, **kwargs):
-#		r1, r2 = optparse.OptionParser.parse_args(self, *args, **kwargs)
-#		# r1, r2 = super(DBOptions, self).parse_args(*args, **kwargs)
-#		if lc:
-#			self.load_config()
-#		return r1, r2
-#
-#
-#	def opendb(self, *args, **kwargs):
-#		import emen2.db.database
-#		db = emen2.db.database.DB.opendb(*args, **kwargs)
-#		return db
-#
-#
-#	def load_config(self, **kw):
-#		if globalns.getattr('CONFIG_LOADED', False):
-#			return
-#
-#		# Eventually 'with' will unlock/lock the globalns
-#		# with globalns:
-#		self._load_config(globalns, **kw)
-#		globalns.CONFIG_LOADED = True
-#
-#
-#	def _load_config(self, g, **kw):
-#		# 'g' is the global GlobalNamespace instance
-#
-#		## Default configuration
-#		#default_config = get_filename('emen2', 'db/config.base.json')
-#
-#		## Load a JSON file into the GlobalNS
-#		#g.from_file(default_config)
-#
-#		# Look for EMEN2DBHOME and set to g.EMEN2DBHOME
-#		config = Config()
-#
-#		g.EMEN2DBHOME = self.values.home or os.getenv("EMEN2DBHOME")
-#		config.load_data(
-#			EMEN2DBHOME = self.values.home or os.getenv("EMEN2DBHOME")
-#		)
-#
-#		# Load other specified config files
-#		config.from_files( *(self.values.configfile or []) )
-#
-#		# You must specify EMEN2DBHOME
-#		config.require_variable(EMEN2DBHOME, False,
-#			err_msg="No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h")
-#
-#		# Load any config file in EMEN2DBHOME
-#		config.from_files(
-#			os.path.join(g.EMEN2DBHOME, "config.json"),
-#			os.path.join(g.EMEN2DBHOME, "config.yml")
-#		)
-#
-#		# Set default log levels
-#		loglevel = g.getattr('LOG_LEVEL', 'INFO')
-#		if self.values.quiet:
-#			loglevel = 'ERROR'
-#		elif self.values.debug:
-#			loglevel = 'DEBUG'
-#		elif self.values.loglevel:
-#			loglevel = self.values.loglevel
-#		config.load_data(LOG_LEVEL=loglevel)
-#
-#		# Make sure paths to log files exist
-#		if not os.path.exists(g.paths.LOGPATH):
-#			os.makedirs(g.paths.LOGPATH)
-#
-#		# Extend the python module path
-#		if getattr(g.paths, 'PYTHONPATH', []):
-#			pp = g.paths.PYTHONPATH
-#			if not hasattr(pp, '__iter__'):
-#				pp = [pp]
-#			sys.path.extend(pp)
-#
-#		# Add any specified extensions
-#		# EXTPATHS points to directories containing emen2 ext modules.
-#		# This will be used with imp.find_module(ext, g.paths.EXTPATHS)
-#		g.paths.EXTPATHS.append(get_filename('emen2', 'exts'))
-#		if os.getenv('EMEN2EXTPATHS'):
-#			for path in filter(None, os.getenv('EMEN2EXTPATHS','').split(":")):
-#				g.paths.EXTPATHS.append(path)
-#
-#		# Load the default extensions
-#		# I plan to add a flag to disable automatic loading.
-#		exts = kw.get('exts', [])
-#		exts = ( i.split(",") for i in exts )
-#		exts = sum(exts, [])
-#
-#		if 'base' not in exts:
-#			exts.insert(0,'base')
-#		exts.extend(g.extensions.EXTS)
-#
-#		# Map the extensions back to their physical directories
-#		# Use an OrderedDict to preserve the order
-#		g.extensions.EXTS = exts
-#
-#		# Enable/disable snapshot
-#		g.params.SNAPSHOT = self.values.snapshot
-#
-#		# Create new database?
-#		g.params.CREATE = self.values.create or False
-#
-#		# Enable root user?
-#		# g.ENABLEROOT = self.values.enableroot or False
-#

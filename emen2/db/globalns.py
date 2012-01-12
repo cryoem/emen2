@@ -1,5 +1,5 @@
 # $Id$
-"""Direct access of globalns.py and the GlobalNamespace class are deprecated.
+"""Do not use any of these classes or functions directly.
 Use the get() and set() functions in emen2.db.config instead.
 """
 
@@ -62,7 +62,6 @@ class Hier(collections.MutableMapping):
 		for segment in self._name.split('.'):
 			item = self._values.get(segment)
 			if hasattr(item, 'items'):
-				#print item
 				self._values = item
 			elif name != '':
 				raise ValueError('no such item: %r' % self._name)
@@ -130,18 +129,7 @@ class Hier(collections.MutableMapping):
 
 
 ##########################################################
-
-
-# """NOTE: locking is unnecessary when accessing globals, as they will automatically lock when necessary
-#
-# NOTE: access globals this way:
-# import emen2.globalns
-# g = emen2.globalns.GlobalNamespace('')
-# g.<varname> accesses the variable
-# g.<varname> = <value> sets a variable in a threadsafe manner.
-# """
 # Direct access is deprecated. Use emen2.db.config: get and set
-
 
 import re
 import collections
@@ -262,6 +250,7 @@ class GlobalNamespace(Hier):
 
 	@EMEN2DBHOME.setter
 	def EMEN2DBHOME(self, value):
+		# Whenever EMEN2DBHOME is set, it needs to update paths.root.
 		self.setattr('EMEN2DBHOME', value)
 		self.paths.root = value
 
@@ -343,7 +332,7 @@ class GlobalNamespace(Hier):
 
 	@classmethod
 	def from_file(cls, fn=None, data=None):
-		"""Alternate constructor which initializes a GlobalNamespace instance from a YAML file"""
+		"""Alternate constructor which initializes a GlobalNamespace instance from a JSON or YAML file"""
 
 		if not (fn or data):
 			raise ValueError, 'Either a filename or json/yaml data must be supplied'
@@ -357,8 +346,8 @@ class GlobalNamespace(Hier):
 			self.log("Loading config: %s"%fn)
 
 			# treat EMEN2DBHOME specially
-			self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
-			self.paths.root = self.EMEN2DBHOME
+			# self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
+			# self.paths.root = self.EMEN2DBHOME
 
 			for k,v in data.pop('paths', {}).items():
 				setattr(self.paths, k, v)
@@ -536,7 +525,7 @@ class listWrapper(object):
 		self.__list = list_
 		self.__prefix = prefix
 	def __repr__(self):
-		return '<listWrapper list: %r>' % self.__list
+		return '<listWrapper list: %r, prefix: %s>'%(self.__list, self.__prefix)
 	def check_item(self, item):
 		if isinstance(item, (str, unicode)):
 			item = os.path.join(self.__prefix, item)

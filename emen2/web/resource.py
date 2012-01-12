@@ -192,9 +192,6 @@ class EMEN2Resource(object):
 		e, data = '', ''
 		headers = {}
 
-		print "Failure:"
-		print failure
-
 		# Raise the exception
 		try:
 			# This method accepts either a regular Exception or Twisted Failure
@@ -514,7 +511,7 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 
 	def callmethod(self, request, rpcrequest, db=None, ctxid=None, **kw):
 		# Lookup the method and call
-		print 'callmethod: %s, %s, %s, %s, %s, %s' % (self, request, rpcrequest, db, ctxid, kw)
+		# print 'callmethod: %s, %s, %s, %s, %s, %s' % (self, request, rpcrequest, db, ctxid, kw)
 		if not db:
 			raise Exception, "No DBProxy"
 
@@ -548,15 +545,16 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 		return methodresult
 
 	def defer(self, method, *a, **kw):
-		print "Deferring to DB Pool"
-		deferred = emen2.web.server.pool.rundb(emen2.db.log.Variables.logger.debug_func(method), *a, **kw)
+		# deferred = emen2.web.server.pool.rundb(emen2.db.log.Variables.logger.debug_func(method), *a, **kw)
+		deferred = emen2.web.server.pool.rundb(method, *a, **kw)
 		return deferred
 
 	def log(self, response, txrequest, error=False):
 		if error:
 			traceback.print_exc()
 		else:
-			print response.json_equivalent(), txrequest
+			pass
+			# print response.json_equivalent(), txrequest
 
 
 
