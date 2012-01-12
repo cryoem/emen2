@@ -223,7 +223,7 @@ class DBOptions(usage.Options):
 
 	optParameters = [
 		['home', 'h', None, dbhomehelp],
-		['ext', 'e', None, 'Add Extension; can be comma-separated.'],
+		['ext', 'e', '', 'Add Extension; can be comma-separated.'],
 		['loglevel', 'l', None, ''],
 	]
 
@@ -333,11 +333,13 @@ class CommandLineParser(object):
 				self.config.globalns.paths.EXTPATHS.append(path)
 
 		# Add the extensions, including the 'base' extension
-		exts = self.options.get('ext').split(',')
-		if 'base' not in exts:
-			exts.insert(0,'base')
-		exts.extend(self.config.globalns.extensions.EXTS)
-		self.config.globalns.extensions.EXTS = exts
+		exts = self.options.get('ext')
+		if exts:
+			exts = exts.split(',')
+			if 'base' not in exts:
+				exts.insert(0,'base')
+			exts.extend(self.config.globalns.extensions.EXTS)
+			self.config.globalns.extensions.EXTS = exts
 
 		# Enable/disable snapshot
 		self.config.globalns.params.SNAPSHOT = self.options['nosnapshot']

@@ -156,25 +156,6 @@ import emen2.util.datastructures
 from emen2.db import debug
 import jsonrpc.jsonutil
 
-class LoggerStub(debug.DebugState):
-	def __init__(self, *args):
-		debug.DebugState.__init__(self, output_level='DEBUG', logfile=None, get_state=False, logfile_state=None, just_print=True)
-
-	def swapstdout(self):
-		pass
-
-	def capturestdout(self):
-		print 'cannot capture stdout'
-
-	def closestdout(self):
-		pass
-
-	def msg(self, sn, *args, **k):
-		sn = self.debugstates.get_name(self.debugstates[sn])
-		print u'   %s:%s :: %s' % (time.strftime('[%Y-%m-%d %H:%M:%S]'), sn, self.print_list(args))
-
-
-log = LoggerStub()
 inst = lambda x:x()
 
 
@@ -284,12 +265,12 @@ class GlobalNamespace(Hier):
 
 
 	hier = dict(
-		log = log,
-		info = lambda *a, **k: log.msg('INFO', *a, **k),
-		init = lambda *a, **k: log.msg('INIT', *a, **k),
-		error = lambda *a, **k: log.msg('ERROR', *a, **k),
-		warn = lambda *a, **k: log.msg('WARNING', *a, **k),
-		debug = lambda *a, **k: log.msg('DEBUG', *a, **k)
+		#log = log,
+		#info = lambda *a, **k: log.msg('INFO', *a, **k),
+		#init = lambda *a, **k: log.msg('INIT', *a, **k),
+		#error = lambda *a, **k: log.msg('ERROR', *a, **k),
+		#warn = lambda *a, **k: log.msg('WARNING', *a, **k),
+		#debug = lambda *a, **k: log.msg('DEBUG', *a, **k)
 	)
 
 	@classmethod
@@ -343,11 +324,11 @@ class GlobalNamespace(Hier):
 		self = cls()
 
 		if data:
-			self.log("Loading config: %s"%fn)
+			emen2.db.log.info("Loading config: %s"%fn)
 
 			# treat EMEN2DBHOME specially
-			# self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
-			# self.paths.root = self.EMEN2DBHOME
+			self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
+			self.paths.root = self.EMEN2DBHOME
 
 			for k,v in data.pop('paths', {}).items():
 				setattr(self.paths, k, v)
@@ -629,4 +610,9 @@ class LockedNamespaceError(TypeError):
 	pass
 
 
+try:
+	import emen2.db
+	emen2.db.log
+except AttributeError:
+	import emen2.db.log
 __version__ = "$Revision$".split(":")[1][:-1].strip()

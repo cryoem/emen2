@@ -203,6 +203,7 @@ def start_emen2(server, config=None):
 
 		emen2.db.log.log_init(True)
 		emen2.db.log.init('log initialized')
+		twisted.python.log.msg('asdasd', a='1')
 
 		# Child resources that do not go through the Router.
 		import jsonrpc.server

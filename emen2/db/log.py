@@ -44,26 +44,49 @@ class Variables:
 		if self.init_done:
 			raise ValueError('already initialized')
 
-		self.logger = emen2.db.debug.DebugState(
-			output_level=self.LOG_LEVEL,
-			logfile=file(os.path.join(self.LOGPATH, 'log.log'), 'a', 0),
-			get_state=False,
-			quiet = False #self.values.quiet
-		)
+		self.logger = emen2.db.debug.DebugState()
 
 		# Write out WEB and SECURITY messages to dedicated log files
-		self.logger.add_output(['WEB'], emen2.db.debug.Filter(os.path.join(self.LOGPATH, 'access.log'), 'a', 0))
-		self.logger.add_output(['SECURITY'], emen2.db.debug.Filter(os.path.join(self.LOGPATH, 'security.log'), 'a', 0))
 		self.init_done = done
 
 log_init = Variables.log_init
 
+log_levels = emen2.util.datastructures.Enum(dict(
+      DEBUG=-1,
+      TXN=1,
+      INIT=2,
+      INFO=3,
+      INDEX=4,
+      COMMIT=5,
+      WEB=6,
+      WARNING=8,
+      SECURITY=9,
+      ERROR=10,
+      CRITICAL=11,
+      ALL=0
+))
+
+import twisted.python.log
+
+@twisted.python.log.addObserver
+def emen2_logs(event, *args, **kwargs):
+	if 'level' in event:
+		level = event['level']
+		if level >= log_levels[Variables.LOG_LEVEL]:
+			print log_levels.get_name(event['level']), '::', ' '.join(str(k) for k in event['message'])
+	elif event['isError']:
+		print 'ERROR', '::', ' '.join(str(k) for k in event['message'])
+	else:
+		pass
+
+def EMEN2Logger(object):
+	pass
 
 def msg(level='INFO', msg=''):
 	#if level in IGNORE:
 	#	return
 	if Variables.logger:
-		Variables.logger.msg(level, msg)
+		twisted.python.log.msg(msg, level=log_levels[level])
 	else:
 		print '%s: %s'%(level, msg)
 

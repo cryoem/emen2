@@ -1,3 +1,4 @@
+import emen2.db.log
 from twisted.application import service, internet
 import emen2.web.server
 
@@ -6,6 +7,7 @@ class Variables:
 
 import emen2.db.config
 Options = Variables.server.options
+import twisted.python.log
 
 
 def makeService(config):
