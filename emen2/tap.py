@@ -1,18 +1,15 @@
 import emen2.db.log
 from twisted.application import service, internet
+import twisted.python.log
+import emen2.db.config
 import emen2.web.server
 
-class Variables:
-	server = emen2.web.server.EMEN2Server()
+server = emen2.web.server.EMEN2Server()
 
-import emen2.db.config
-Options = Variables.server.options
-import twisted.python.log
-
+# The 'Options' module attribute is used by twistd as the options
+Options = emen2.web.server.EMEN2Server.usage
 
 def makeService(config):
 	s = service.MultiService()
-
-	emen2.web.server.start_emen2(Variables.server, config=config).attach_to_service(s)
-
+	server.start(config=config, service=s)
 	return s

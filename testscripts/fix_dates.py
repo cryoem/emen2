@@ -46,9 +46,9 @@ def parselocal(d):
 # parseutc('2009/02/03')
 # parselocal('2009/02/03')
 # parselocal('2009/02/03 02:03:04')
-# 
-# import sys
-# sys.exit(0)
+
+import sys
+sys.exit(0)
 
 def updatebt(btree, txn):
 	for name, item in btree.items(txn=txn):

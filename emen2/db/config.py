@@ -53,7 +53,6 @@ class AddExtLookup(mako.lookup.TemplateLookup):
 		render_template		""
 
 	"""
-
 	def get_template(self, uri):
 		return super(AddExtLookup, self).get_template('%s.mako'%uri)
 
@@ -74,7 +73,6 @@ def get_filename(package, resource):
 	d = os.path.abspath(d)
 	return os.path.join(d, resource)
 
-
 def get(key, default=None, rv=True):
 	"""Get a configuration value.
 
@@ -88,7 +86,6 @@ def get(key, default=None, rv=True):
 		result = result.get()
 	return result
 
-
 # This will eventually help lock
 # the configuration for setting
 def set(key, value):
@@ -99,7 +96,6 @@ def set(key, value):
 
 	"""
 	raise NotImplementedError, "Soon."
-
 
 
 ##### Extensions #####
@@ -209,10 +205,9 @@ class Config(object):
 
 from twisted.python import usage
 
-dbhomehelp = """EMEN2 Database Environment
-[default: $EMEN2DBHOME, currently "%s"]"""%os.getenv('EMEN2DBHOME')
-
 class DBOptions(usage.Options):
+	"""Base database options for all programs."""
+	
 	optFlags = [
 		['create', None, 'Create and initialize a new DB'],
 		['quiet', None, 'Quiet'],
@@ -222,8 +217,8 @@ class DBOptions(usage.Options):
 	]
 
 	optParameters = [
-		['home', 'h', None, dbhomehelp],
-		['ext', 'e', '', 'Add Extension; can be comma-separated.'],
+		['home', 'h', None, 'EMEN2 database environment directory'],
+		['ext', 'e', None, 'Add extension; can be comma-separated.'],
 		['loglevel', 'l', None, ''],
 	]
 
@@ -251,12 +246,12 @@ class DBLoginOptions(DBOptions):
 	]
 
 class CommandLineParser(object):
-	#Note...
-	def __init__(self, _, options, **kwargs):
+
+	def __init__(self, options, **kwargs):
+		# options is the twisted usage.Options instance
 		lc = kwargs.pop('lc', True)
 		self.options = options
 		self.kwargs = kwargs
-		
 		self.config = Config()
 		if lc:
 			self.load_config()
@@ -265,7 +260,6 @@ class CommandLineParser(object):
 		import emen2.db.database
 		db = emen2.db.database.DB.opendb(*args, **kwargs)
 		return db
-
 
 	def load_config(self, **kw):
 		if self.config.globalns.getattr('CONFIG_LOADED', False):
@@ -276,7 +270,6 @@ class CommandLineParser(object):
 		self._load_config(**kw)
 
 		self.config.globalns.CONFIG_LOADED = True
-
 
 	def _load_config(self, **kw):
 		# Set EMEN2DBHOME from the options or environment variable.

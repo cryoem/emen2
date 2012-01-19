@@ -303,8 +303,9 @@ class DBProxy(object):
 			# if getattr(func, 'ext', False):
 			# 	kwargs['db'] = self._db
 
-			return func(self._db, *args, **kwargs)
-			# print "  <---------\t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
+			result = func(self._db, *args, **kwargs)
+			print "  <-- \t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
+			return result
 
 		return wrapper
 

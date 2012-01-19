@@ -8,9 +8,11 @@ import functools
 import contextlib
 import time
 import collections
+import sys
 
 # Twisted imports
 from twisted.application import internet
+import twisted.python.log
 import twisted.internet
 import twisted.internet.reactor
 import twisted.web.static
@@ -22,25 +24,22 @@ try:
 except ImportError:
 	ssl = None
 
-
 import emen2.db.config
+
 
 ##### Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool #####
 
 class DBPool(object):
-	running = False
-
+	# All connections, key is Thread ID
 	dbs = {}
+	running = False	
+
 	def __init__(self, min=0, max=5):
 		# Minimum and maximum number of threads
 		self.min = min
 		self.max = max
-
-		# All connections, hashed by Thread ID
-
 		# Generate Thread ID
 		self.threadID = thread.get_ident
-
 		# Connect to reactor
 		self.reactor = twisted.internet.reactor
 		self.threadpool = twisted.python.threadpool.ThreadPool(self.min, self.max)
@@ -74,133 +73,76 @@ class DBPool(object):
 		return result
 
 
-##### pool and reactor #####
-
 pool = DBPool()
 
-##### Server ######
 
-import emen2.db.config
+##### Web server ######
+
+import emen2.db.log
+import emen2.web.routing
+
 class WebServerOptions(emen2.db.config.DBOptions):
 	optParameters = [
-		['port', 'Web server port', None, None, int],
-		['httpsport', 'Web server port', None, None, int],
+		['port', 'HTTP port', None, None, int],
+		['httpsport', 'HTTPS port', None, None, int],
 	]
 
 	optFlags = [
 		['https', None, 'Use HTTPS']
 	]
 
-import emen2.db.config
-import emen2.db.log
-import emen2.web.routing
 
 class EMEN2Server(object):
 
-	def __init__(self, port=None, dbo=None):
-		if dbo is None:
-			self.options = WebServerOptions
-		elif issubclass(dbo, WebServerOptions):
-			self.options = dbo
-		elif issubclass(dbo, twisted.python.usage.Options):
-			self.options = type('ServerOptions', (dbo, WebServerOptions), {})
-		else:
-			raise TypeError("the value of 'dbo' should be a subclass of twisted.python.usage.Options")
+	usage = WebServerOptions
 
-
+	def __init__(self, port=None):
 		self.port = port
 
-
-	@contextlib.contextmanager
-	def start(self, config=None):
+	#@contextlib.contextmanager
+	def start(self, config=None, service=None):
 		'''Run the server main loop'''
-		if config is not None:
-			self.options = config
 
-		emen2.db.log.info('starting EMEN2 version: %s'%emen2.db.config.get('params.VERSION'))
-		self.EMEN2PORT = self.port or emen2.db.config.get('network.EMEN2PORT')
-		self.EMEN2PORT_HTTPS = 436
+		if config:
+			self.options = config
+		else:
+			self.options = self.usage()
+
+		# Parse the command line options and configuration.
+		emen2.db.config.CommandLineParser(self.options)
 
 		# Update the configuration
+		self.EMEN2PORT = self.port or emen2.db.config.get('network.EMEN2PORT')
+		self.EMEN2PORT_HTTPS = 436
 		self.EMEN2PORT = self.options['port'] or self.EMEN2PORT
-
 		self.EMEN2HTTPS = self.options.get('https', False)
-
 		self.EMEN2PORT_HTTPS = self.options.get('httpsport', 436)
-
 
 		# Routing resource. This will look up request.uri in the routing table
 		# and return View resources.
 		root = emen2.web.routing.Router()
 
-		# yield (self,root) to body of with statement
-		# allows this code to be more readable
-		yield self, root
+		# Previously this used contextmanager and yield to attach the resources.
+		self.attach_resources(root)
 
 		# The Twisted Web server protocol factory,
 		#  with our Routing resource as root
 		self.site = twisted.web.server.Site(root)
-
-	def listen(self):
-		self.site.logPath='/tmp/access.log'
-		self.site.noisy=False
-
-		# Setup the Twisted reactor to listen on web port
-		reactor = twisted.internet.reactor
-		reactor.listenTCP(self.EMEN2PORT, self.site)
-
-		# Setup the Twisted reactor to listen on the SSL port
-		if self.EMEN2HTTPS and ssl:
-			reactor.listenSSL(
-				self.EMEN2PORT_HTTPS,
-				self.site,
-				ssl.DefaultOpenSSLContextFactory(
-					os.path.join(self.SSLPATH, "server.key"),
-					os.path.join(self.SSLPATH, "server.crt")
-					))
-
-		# config._locked = True
-		reactor.run()
-
-	def parse_options(self):
-		self.options = self.options()
-		self.options.parseOptions()
-
-	def attach_to_service(self, service):
-		emen2_service = internet.TCPServer(8080, self.site)
-		emen2_service.setServiceParent(service)
-
-		if self.EMEN2HTTPS and ssl:
-			pass ##TODO: implement ssl
-
-
-
-
-def init_server():
-	server = EMEN2Server()
-	server.parse_options()
-	return server
-
-import twisted.python.log
-import sys
-def start_emen2(server, config=None):
-	# Start the EMEN2Server and load the View resources
-
-	if config is None:
-		server.parse_options()
-	else:
-		server.options = config
-
-	import emen2.db.config
-	emen2.db.config.CommandLineParser('', server.options, lc=True)
-
-	with server.start() as (server, root):
-		# You must import the database in the main thread.
-		import emen2.db.database
-
+		
+		if service:
+			self.attach_to_service(service)
+		else:
+			# Start standalone server
+			pass
+			
+		
+	def attach_resources(self, root):
 		# Load all View extensions
+		import emen2.db.config
 		emen2.db.config.load_views()
 
+		# Init log system
+		import emen2.db.log
 		emen2.db.log.log_init(True)
 		emen2.db.log.init('log initialized')
 		twisted.python.log.msg('asdasd', a='1')
@@ -214,13 +156,23 @@ def start_emen2(server, config=None):
 		root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
 		root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
 
-	return server
+		
+	def attach_to_service(self, service):
+		emen2_service = internet.TCPServer(8080, self.site)
+		emen2_service.setServiceParent(service)
+
+		if self.EMEN2HTTPS and ssl:
+			pass ##TODO: implement ssl
+
 
 
 if __name__ == "__main__":
-	twisted.python.log.startLogging(sys.stdout)
-	server = init_server()
-	start_emen2(server).listen()
+	# Fix
+	# twisted.python.log.startLogging(sys.stdout)
+	# server = EMEN2Server()
+	# server.parse_options()
+	# start_emen2(server).listen()
+	pass
 
 
 
