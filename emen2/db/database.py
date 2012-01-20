@@ -781,12 +781,12 @@ class DB(object):
 		@keyparam rootemail Root Account email
 		"""
 		
-		import pwd
 		import platform
 
 		def getpw(rootpw=None, rootemail=None):
 			host = platform.node() or 'localhost'
-			defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
+			# defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
+			defaultemail = 'root@localhost'
 			print "\n=== Setup Admin (root) account ==="
 			rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
 			rootpw = rootpw or getpass.getpass("Admin (root) password (default: none): ")

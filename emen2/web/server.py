@@ -107,6 +107,7 @@ class EMEN2Server(object):
 			self.options = config
 		else:
 			self.options = self.usage()
+			self.options.parseOptions()
 
 		# Parse the command line options and configuration.
 		emen2.db.config.CommandLineParser(self.options)
@@ -128,13 +129,12 @@ class EMEN2Server(object):
 		# The Twisted Web server protocol factory,
 		#  with our Routing resource as root
 		self.site = twisted.web.server.Site(root)
-		
+
+		# Attach to a service, or run standalone.
 		if service:
 			self.attach_to_service(service)
 		else:
-			# Start standalone server
-			pass
-			
+			self.attach_standalone()
 		
 	def attach_resources(self, root):
 		# Load all View extensions
@@ -155,7 +155,6 @@ class EMEN2Server(object):
 		root.putChild('static-%s'%emen2.db.config.get('params.VERSION'), twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
 		root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
-
 		
 	def attach_to_service(self, service):
 		emen2_service = internet.TCPServer(8080, self.site)
@@ -164,15 +163,18 @@ class EMEN2Server(object):
 		if self.EMEN2HTTPS and ssl:
 			pass ##TODO: implement ssl
 
+	def attach_standalone(self):
+		reactor = twisted.internet.reactor		
+		reactor.listenTCP(8080, self.site)
+		reactor.run()
+
 
 
 if __name__ == "__main__":
 	# Fix
 	# twisted.python.log.startLogging(sys.stdout)
-	# server = EMEN2Server()
-	# server.parse_options()
-	# start_emen2(server).listen()
-	pass
+	server = EMEN2Server()
+	server.start()
 
 
 

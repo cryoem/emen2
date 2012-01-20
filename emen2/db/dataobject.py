@@ -479,8 +479,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 		if not msg:
 			msg = e.__doc__
 
-		if warning:
-			emen2.db.log.warn(msg)
 		elif e:
 			raise e(msg)
 
