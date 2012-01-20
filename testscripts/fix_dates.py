@@ -8,7 +8,6 @@ tzlocal = dateutil.tz.gettz()
 default = datetime.datetime(2011, 1, 1)
 mintime = datetime.datetime(2000, 1, 1)
 
-
 import emen2.db
 db = emen2.db.opendb(admin=True)
 
@@ -47,8 +46,6 @@ def parselocal(d):
 # parselocal('2009/02/03')
 # parselocal('2009/02/03 02:03:04')
 
-import sys
-sys.exit(0)
 
 def updatebt(btree, txn):
 	for name, item in btree.items(txn=txn):
@@ -60,6 +57,7 @@ def updatebt(btree, txn):
 			btree.put(name, item, txn=txn)
 		except Exception, e:
 			print "Skipped...", e
+
 		
 with db:	
 	pds = set(db.query([['vartype','==','datetime']], keytype='paramdef', count=0)['names'])

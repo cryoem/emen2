@@ -247,8 +247,11 @@ class DBLoginOptions(DBOptions):
 
 class CommandLineParser(object):
 
-	def __init__(self, options, **kwargs):
+	def __init__(self, options=None, **kwargs):
 		# options is the twisted usage.Options instance
+		if not options:
+			options = DBOptions()
+			options.parseOptions()
 		lc = kwargs.pop('lc', True)
 		self.options = options
 		self.kwargs = kwargs
@@ -338,8 +341,8 @@ class CommandLineParser(object):
 		self.config.globalns.params.SNAPSHOT = self.options['nosnapshot']
 
 		# Create new database?
-		# print self.options['create'], '<<<<<<<<<<<<<<<<<<<<<<<'
-		# self.config.globalns.params.CREATE = self.options['create']
+		print 'create new database?', self.options['create']
+		self.config.globalns.params.CREATE = self.options['create']
 
 		# Enable root user?
 		# self.config.globalns.ENABLEROOT = self.values.enableroot or False

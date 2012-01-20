@@ -324,7 +324,7 @@ class GlobalNamespace(Hier):
 		self = cls()
 
 		if data:
-			emen2.db.log.info("Loading config: %s"%fn)
+			# emen2.db.log.info("Loading config: %s"%fn)
 
 			# treat EMEN2DBHOME specially
 			self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
@@ -610,9 +610,10 @@ class LockedNamespaceError(TypeError):
 	pass
 
 
-try:
-	import emen2.db
-	emen2.db.log
-except AttributeError:
-	import emen2.db.log
+# try:
+# 	import emen2.db
+# 	emen2.db.log
+# except AttributeError:
+# 	import emen2.db.log
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()
