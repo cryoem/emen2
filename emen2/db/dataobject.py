@@ -480,7 +480,8 @@ class BaseDBObject(object, UserDict.DictMixin):
 			
 		if warning:
 			# emen2.db.log.warn
-			print "Warning:", e(msg)
+			# print "Warning:", e(msg)
+			pass
 		else:
 			raise e(msg)
 

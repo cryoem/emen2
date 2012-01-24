@@ -114,7 +114,7 @@ def load_jsons(cb=None):
 
 def load_ext(ext):
 	modulename = 'emen2.exts.%s'%ext
-	print "Loading extension...", modulename
+	# print "Loading extension...", modulename
 	if modulename in sys.modules:
 		# print "%s already loaded"%modulename
 		return
