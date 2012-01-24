@@ -116,7 +116,7 @@ def load_ext(ext):
 	modulename = 'emen2.exts.%s'%ext
 	print "Loading extension...", modulename
 	if modulename in sys.modules:
-		print "%s already loaded"%modulename
+		# print "%s already loaded"%modulename
 		return
 	paths = list(Config.globalns.paths.EXTPATHS)
 	module = imp.find_module(ext, paths)
@@ -131,7 +131,7 @@ def load_view(ext):
 	modulename = 'emen2.exts.%s.views'%ext
 	# print "Loading views...", modulename
 	if modulename in sys.modules:
-		print "%s already loaded"%modulename
+		# print "%s already loaded"%modulename
 		return
 	paths = list(Config.globalns.paths.EXTPATHS)
 	module = imp.find_module(ext, paths)
@@ -167,7 +167,7 @@ class Config(object):
 		'''Load a single configuration file
 
 		:param fn: the filename of the configuration file'''
-		print 'Loading Configuration file: %s' % fn
+		# print 'Loading Configuration file: %s' % fn
 		self.globalns.from_file(fn)
 
 	def load_data(self, *args, **data):
@@ -341,7 +341,6 @@ class CommandLineParser(object):
 		self.config.globalns.params.SNAPSHOT = self.options['nosnapshot']
 
 		# Create new database?
-		print 'create new database?', self.options['create']
 		self.config.globalns.params.CREATE = self.options['create']
 
 		# Enable root user?

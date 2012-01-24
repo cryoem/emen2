@@ -475,11 +475,13 @@ class BaseDBObject(object, UserDict.DictMixin):
 		"""
 		if e == None:
 			e = emen2.db.exceptions.ValidationError
-
 		if not msg:
 			msg = e.__doc__
-
-		elif e:
+			
+		if warning:
+			# emen2.db.log.warn
+			print "Warning:", e(msg)
+		else:
 			raise e(msg)
 
 	def commit(self):
