@@ -556,7 +556,12 @@
 		},
 		
 		save: function(e) {
-			// We need to import values from some other forms..
+			// Check if we need to copy other values into the form...
+			if (!(this.options.permissions || this.options.controls)) {
+				return false
+			}
+
+			// Setup an area to copy the values
 			$("#e2-edit-copied", this.element).remove();
 			var copied = $('<div id="e2-edit-copied" style="display:none"></div>');
 			this.element.append(copied);
