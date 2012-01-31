@@ -786,7 +786,7 @@ class vt_acl(Vartype):
 		for user in self.engine.db.getuser(allusers):
 			unames[user.name] = user.displayname
 
-		levels = ["Read","Comment","Write","Admin"]
+		levels = ["Read","Comment","Write","Owner"]
 		ret = []
 		for level, names in zip(levels, value):
 			namesr = [unames.get(i,"(%s)"%i) for i in names]

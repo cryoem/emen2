@@ -515,7 +515,7 @@ class PermissionsDBObject(BaseDBObject):
 	Level 2 - Write
 		Permission to change record attributes/parameters
 
-	Level 3 - Admin
+	Level 3 - Owner
 		Permission to change the item's permissions and groups
 
 	The groups attribute is a set of group names. The permissions attribute of

@@ -207,12 +207,12 @@ from twisted.python import usage
 
 class DBOptions(usage.Options):
 	"""Base database options for all programs."""
-	
+		
 	optFlags = [
-		['create', None, 'Create and initialize a new DB'],
 		['quiet', None, 'Quiet'],
 		['debug', None, 'Print debug'],
 		['version', None, 'EMEN2 Version'],
+		['create', None, 'Create new database environment'],		
 		['nosnapshot', None, 'Disable Berkeley DB Multiversion Concurrency Control (Snapshot)']
 	]
 
@@ -224,6 +224,7 @@ class DBOptions(usage.Options):
 
 	def opt_configfile(self, file_):
 		self.setdefault('configfile', []).append(file_)
+		
 	opt_c = opt_configfile
 
 	def postProcess(self):
@@ -239,11 +240,6 @@ class DBOptions(usage.Options):
 			self[option_name] = not bool(self[option_name])
 
 
-class DBLoginOptions(DBOptions):
-	optParameters = [
-		['username', 'U', None, "Login with Account Name"],
-		['password', 'P', None, "... and this password"]
-	]
 
 class CommandLineParser(object):
 

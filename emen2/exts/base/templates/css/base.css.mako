@@ -5,11 +5,9 @@ body {
 	font-family: sans-serif;
 }
 
-/*table {
+table {
 	width: 100%;
 }
-
-*/
 
 /* Paragraphs and uls have an irritating default margin */
 ul {

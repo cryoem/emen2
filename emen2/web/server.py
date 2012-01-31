@@ -27,6 +27,7 @@ except ImportError:
 import emen2.db.config
 
 
+
 ##### Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool #####
 
 class DBPool(object):
@@ -115,9 +116,9 @@ class EMEN2Server(object):
 		# Update the configuration
 		self.EMEN2PORT = self.port or emen2.db.config.get('network.EMEN2PORT')
 		self.EMEN2PORT_HTTPS = 436
-		self.EMEN2PORT = self.options['port'] or self.EMEN2PORT
-		self.EMEN2HTTPS = self.options.get('https', False)
-		self.EMEN2PORT_HTTPS = self.options.get('httpsport', 436)
+		self.EMEN2PORT = 8080 # self.options['port'] or self.EMEN2PORT
+		self.EMEN2HTTPS = False # self.options.get('https', False)
+		self.EMEN2PORT_HTTPS = 436 # self.options.get('httpsport', 436)
 
 		# Routing resource. This will look up request.uri in the routing table
 		# and return View resources.
