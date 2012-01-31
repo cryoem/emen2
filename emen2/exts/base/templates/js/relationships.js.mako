@@ -106,7 +106,7 @@
 			this.element.append(this.build_level('Parents', 'parents', parents));
 			this.element.append(this.build_level('Children', 'children', children));
 			
-			if (this.options.controls) {
+			if (this.options.controls && this.options.edit) {
 				this.build_controls();
 			}
 
@@ -185,8 +185,10 @@
 			if (this.options.edit) {
 				header.prepend('<input data-level="'+level+'" type="button" value="+" /> ');
 			}
+
 			$('input:button', header).BrowseControl({
 				root: this.options.name,
+				selectable: this.options.edit,
 				keytype: this.options.keytype,
 				tool: 'browse',
 				selected: function(browse, name) {

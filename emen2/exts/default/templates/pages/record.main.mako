@@ -88,7 +88,7 @@
 	tab.TabControl('setcb', 'relationships', function(page) {
 		$('#e2-relationships', page).RelationshipControl({
 			name: rec.name,
-			edit: true,
+			edit: ptest[2] || ptest[3],
 			embed: true,
 			show: true,
 			summary: true,

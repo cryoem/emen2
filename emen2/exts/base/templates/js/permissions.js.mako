@@ -94,7 +94,7 @@
 			this.element.empty();
 
 			// Build the controls
-			if (this.options.controls) {
+			if (this.options.controls && this.options.edit) {
 				this.build_controls();
 			}
 			if (this.options.summary || this.options.help) {
