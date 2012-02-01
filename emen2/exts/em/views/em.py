@@ -8,7 +8,6 @@ import emen2.db.config
 from emen2.web.view import View
 
 
-
 @View.register
 class EMEquipment(View):
 	

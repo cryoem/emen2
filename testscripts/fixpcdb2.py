@@ -11,11 +11,6 @@ with db:
 	for i in ddb.bdbs.recorddefs.pcdb2.keys(txn):
 		rds[i] = map(pickle.loads, map(str, ddb.bdbs.recorddefs.pcdb2.get(i, txn)))
 	
-
-	print pds
-	print rds
-
-
 	ddb.bdbs.recorddefs.pcdb2.truncate(txn)
 	ddb.bdbs.paramdefs.pcdb2.truncate(txn)
 
@@ -29,4 +24,5 @@ with db:
 	for k,v in rds.items():
 		for v2 in v:
 			db.pclink(k, v2, keytype="recorddef")
+			
 __version__ = "$Revision$".split(":")[1][:-1].strip()

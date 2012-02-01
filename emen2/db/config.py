@@ -17,7 +17,6 @@ import sys
 import glob
 import functools
 import operator
-import optparse
 import collections
 import threading
 import urlparse
@@ -40,7 +39,6 @@ basestring = (str, unicode)
 
 ##### Mako template lookup #####
 
-# try:
 import mako
 import mako.lookup
 
@@ -65,7 +63,7 @@ templates = AddExtLookup(input_encoding='utf-8')
 
 
 
-##### Module-level config methods #####
+##### Config methods #####
 
 def get_filename(package, resource):
 	"""Get the absolute path to a file inside a given Python package"""
@@ -158,6 +156,7 @@ def resolve_ext(ext):
 	return imp.find_module(ext, paths)[1]
 
 
+
 ##### Configuration loader #####
 
 class Config(object):
@@ -167,7 +166,6 @@ class Config(object):
 		'''Load a single configuration file
 
 		:param fn: the filename of the configuration file'''
-		# print 'Loading Configuration file: %s' % fn
 		self.globalns.from_file(fn)
 
 	def load_data(self, *args, **data):
@@ -179,7 +177,6 @@ class Config(object):
 		for key, value in data.items():
 			# This needs to use setattr() so @properties will work.
 			setattr(self.globalns, key, value)
-			# self.globalns.setattr(key, value)
 
 	def require_variable(self, var_name, value=None, err_msg=None):
 		'''Assert that a certain variable has been loaded
@@ -206,7 +203,7 @@ class Config(object):
 from twisted.python import usage
 
 class DBOptions(usage.Options):
-	"""Base database options for all programs."""
+	"""Base database options."""
 		
 	optFlags = [
 		['quiet', None, 'Quiet'],
@@ -224,41 +221,37 @@ class DBOptions(usage.Options):
 
 	def opt_configfile(self, file_):
 		self.setdefault('configfile', []).append(file_)
-		
 	opt_c = opt_configfile
 
 	def postProcess(self):
 		## note that for optFlags self[option_name] is 1 if the option is given and 0 otherwise
 		## 	this converts those values into the appropriate bools
 
-		# these ones default to True:
+		# these default to True:
 		for option_name in ['create', 'quiet', 'debug', 'version']:
 			self[option_name] = bool(self[option_name])
 
-		# these ones default to False:
+		# these default to False:
 		for option_name in ['nosnapshot']:
 			self[option_name] = not bool(self[option_name])
 
 
 
 class CommandLineParser(object):
-
-	def __init__(self, options=None, **kwargs):
+	def __init__(self, options=None, lc=True):
 		# options is the twisted usage.Options instance
 		if not options:
+			# Use the default DBOptions if none is provided
 			options = DBOptions()
 			options.parseOptions()
-		lc = kwargs.pop('lc', True)
+						
 		self.options = options
-		self.kwargs = kwargs
 		self.config = Config()
 		if lc:
 			self.load_config()
 
 	def opendb(self, *args, **kwargs):
-		import emen2.db.database
-		db = emen2.db.database.DB.opendb(*args, **kwargs)
-		return db
+		raise Exception, "Use emen2.db.opendb(); pass DBOptions subclass as config="
 
 	def load_config(self, **kw):
 		if self.config.globalns.getattr('CONFIG_LOADED', False):

@@ -148,13 +148,6 @@ def check_output(args, **kwds):
 	return p.communicate()[0]
 
 
-# @atexit.register
-# def DB_Close(*args, **kwargs):
-# 	"""Close all open DBs"""
-# 	for i in EMEN2DBEnv.opendbs.keys():
-# 		i.close()
-
-
 def getrandomid():
 	"""Generate a random ID"""
 	return '%032x'%random.getrandbits(128)
@@ -748,12 +741,12 @@ class DB(object):
 	
 	@classmethod
 	def opendb(cls, name=None, password=None, admin=False, db=None):
-		"""Class method to open a database. Returns a DBProxy, with either a
+		"""Class method to open a database.
+		
+		Returns a DBProxy, with either a
 		user context (name and password specified), an administrative context
 		(admin is True), or no context.
-		
-		When DB and DBProxy are merged, this will be deprecated.
-		
+			
 		:keyparam name: Username
 		:keyparam password: Password
 		:keyparam admin: Open DBProxy with administrative context
@@ -782,7 +775,6 @@ class DB(object):
 		"""
 		
 		import platform
-
 		def getpw(rootpw=None, rootemail=None):
 			host = platform.node() or 'localhost'
 			# defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
@@ -800,13 +792,9 @@ class DB(object):
 					rootpw = getpass.getpass("Admin (root) password (default: none): ")
 			return rootpw, rootemail
 
-
 		db = self.opendb(db=self, admin=True)
 		with db:
-			#if self.bdbs.enableroot:
 			root = db.getuser('root')
-			if root:
-				print "Warning: root user already exists. Resetting password."
 			rootpw, rootemail = getpw(rootpw=rootpw, rootemail=rootemail)
 			root = {'name':'root','email':rootemail, 'password':rootpw}
 			db.put([root], keytype='user')

@@ -349,18 +349,18 @@ def rename():
 		
 
 
-if __name__ == "__main__":
-	import emen2.db.config
-	dbo = emen2.db.config.DBOptions()
-	dbo.add_option('--rename', action="store_true", help="Rename files")
-	(options, args) = dbo.parse_args()
-	if options.rename:
-		rename()
-	else:
-		db = dbo.opendb()
-		with db:
-			main(db)
-	
+# if __name__ == "__main__":
+# 	import emen2.db.config
+# 	dbo = emen2.db.config.DBOptions()
+# 	dbo.add_option('--rename', action="store_true", help="Rename files")
+# 	(options, args) = dbo.parse_args()
+# 	if options.rename:
+# 		rename()
+# 	else:
+# 		db = dbo.opendb()
+# 		with db:
+# 			main(db)
+# 	
 	
 	
 	

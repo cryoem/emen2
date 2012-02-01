@@ -8,8 +8,7 @@ import emen2.db.config
 import emen2.web.server
 
 class CommandStart(emen2.web.server.WebServerOptions):
-	def postOptions(self):
-		print "Starting with postOptions"
+	pass
 
 class CommandStop(emen2.web.server.WebServerOptions):
 	pass
@@ -73,6 +72,5 @@ def makeService(config):
 		print "Loading data"
 	elif sc == 'dump':
 		print "Dumping data"
-	
 	
 	return s

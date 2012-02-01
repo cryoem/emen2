@@ -26,7 +26,6 @@ def load_db():
 	dbo.parse_args()
 	db = dbo.opendb()
 
-
 	with db:
 		l.setup(rootpw='rootpw', rootemail='root@example.com', db=db)
 
