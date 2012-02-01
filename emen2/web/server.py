@@ -63,12 +63,12 @@ class DBPool(object):
 			del self.dbs[tid]
 
 	def rundb(self, call, *args, **kwargs):
-		# print 'DBPool', self.dbs
 		return twisted.internet.threads.deferToThread(self._rundb, call, *args, **kwargs)
 
 	def _rundb(self, call, *args, **kwargs):
 		db = self.connect()
-		result = call(db=db, *args, **kwargs)
+		kwargs['db'] = db
+		result = call(*args, **kwargs)
 		return result
 
 
