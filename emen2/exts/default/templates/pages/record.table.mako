@@ -7,5 +7,4 @@
 	}
 </%block>
 
-
 ${table}

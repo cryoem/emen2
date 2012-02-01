@@ -114,7 +114,7 @@
 			// Box title
 			var h4 = $('<h4 />');
 			if (link) {
-				title = '<a href="'+link+'">'+title+'</a>';
+				title = '<a href="'+link+'" target="_blank">'+title+'</a>';
 			}
 			h4.append(title);
 			if (this.options.time) {
@@ -136,7 +136,7 @@
 			} else if (this.options.keytype == 'binary') {
 				img.attr('src', EMEN2WEBROOT+'/download/'+item.name+'/'+item.filename+'?size=thumb');
 			}
-			if (link) {img = $('<a href="'+link+'" />').append(img)}
+			if (link) {img = $('<a href="'+link+'" target="_blank" />').append(img)}
 
 			// Widget!!
 			var input = ''
@@ -152,11 +152,11 @@
 			// Put it all together..
 			this.element.append(img, input, h4, p);
 			
-			// Select the element
-			this.element.click(function(e) {
-				self.toggle(e);
-				self.options.selected(self, e);
-			});
+			// I'm undecided on letting the entire element act as a click. Probably not.
+			// this.element.click(function(e) {
+			// 	self.toggle(e);
+			// 	self.options.selected(self, e);
+			// });
 			
 			// $('time.e2-timeago', this.element).timeago();
 			this.options.built();

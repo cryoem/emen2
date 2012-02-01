@@ -1,16 +1,14 @@
 <%! import jsonrpc.jsonutil %>
 
-<%def name="table(q, create=False, name=None, childtype=None, qc=True)">
+<%def name="table(q, parent=None, rectype=None, qc=True)">
 	<script type="text/javascript">
 	//<![CDATA[
 		var q = ${jsonrpc.jsonutil.encode(q)};
 		$(document).ready(function() {
 			$(".e2-query").TableControl({
 				q: q, 
-				% if create:
-					rectype: ${jsonrpc.jsonutil.encode(childtype)},
-					parent: ${jsonrpc.jsonutil.encode(name)}
-				% endif
+				rectype: ${jsonrpc.jsonutil.encode(rectype)},
+				parent: ${jsonrpc.jsonutil.encode(parent)}
 			})
 		});	
 	//]]>
@@ -68,4 +66,4 @@
 	
 </%def>
 
-${table(q)}
+${table(q, rectype=rectype, parent=parent)}

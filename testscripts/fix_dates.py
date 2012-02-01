@@ -39,14 +39,6 @@ def parselocal(d):
 	# return t.isoformat()
 
 
-# print "Test:"
-# parseutc('2009')
-# parselocal('2009')
-# parseutc('2009/02/03')
-# parselocal('2009/02/03')
-# parselocal('2009/02/03 02:03:04')
-
-
 def updatebt(btree, txn):
 	for name, item in btree.items(txn=txn):
 		# print name

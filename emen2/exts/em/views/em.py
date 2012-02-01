@@ -83,12 +83,35 @@ class EMHome(View):
 		# t = '2011-01-01T00:00:00+00:00'
 		# now = '2011-02-01T00:00:00+00:00'
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
-		t = (datetime.datetime.utcnow() - datetime.timedelta(days=30)).isoformat()+'+00:00'
+		t = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).isoformat()+'+00:00'
 		q = self.db.plot(
-			[['creationtime', '>', t], ['rectype', 'any', '']], 
-			x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now}, 
+			[['modifytime', '>=', t], ['rectype', 'any', '']], 
+			x={'key':'modifytime', 'bin':'day', 'min':t, 'max':now}, 
 			y={'stacked':True}
 			)
-
 		self.ctxt['recent_activity'] = q
+		
+		
+		# Groups and projects
+		groups = self.db.getindexbyrectype('group')
+		groups_projects = self.db.getchildren(groups, rectype=['project'])
+		projs = set()
+		for v in groups_projects.values():
+			projs |= v
+
+		projects_render = self.db.renderview(projs)
+		projects_children = self.db.getchildren(projs, recurse=-1)
+
+		self.ctxt['groups_projects'] = groups_projects
+		self.ctxt['projects_render'] = projects_render
+		self.ctxt['projects_children'] = projects_children
+
+
+		
+		
+		
+		
+		
+		
+		
 		

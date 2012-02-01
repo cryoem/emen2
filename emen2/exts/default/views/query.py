@@ -84,7 +84,10 @@ class Query(View):
 			self.q = path_to_query(path, **kwargs)
 		if c:
 			self.q['c'] = c
-			
+						
+		self.ctxt['parent'] = None
+		self.ctxt['rectyoe'] = None
+
 
 	@View.add_matcher(r'^/query/$', name='main')
 	@View.add_matcher(r'^/query/(?P<path>.*)/$', name='query')
@@ -93,11 +96,15 @@ class Query(View):
 		self.q = self.db.table(**self.q)
 		self.set_context_item('q', self.q)
 
-
 	@View.add_matcher(r'^/query/(?P<path>.*)/embed/$')
-	def embed(self, path=None, q=None, c=None):
+	def embed(self, path=None, q=None, c=None, create=False, rectype=None, parent=None):
+		# create/rectype/parent for convenience.
 		self.main(path, q, c)
 		self.template = '/pages/query'
+		# awful hack
+		self.ctxt['parent'] = parent
+		self.ctxt['rectype'] = rectype
+		
 
 
 	@View.add_matcher(r'^/query/(?P<path>.*)/edit/$', name='edit')

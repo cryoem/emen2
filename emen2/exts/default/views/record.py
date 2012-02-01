@@ -171,6 +171,14 @@ class Record(RecordBase):
 		self.redirect(self.routing.reverse('Record/main', name=name))
 
 
+
+	#@write
+	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/attachments/$', name='edit/attachments')
+	def edit_attachments(self, name=None, **kwargs):
+		self.edit(name=name, **kwargs)
+		self.redirect(self.routing.reverse('Record/main', name=name, anchor='attachments'))
+
+
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/relationships/$', name='edit/relationships')
 	def edit_relationships(self, name=None, parents=None, children=None):
@@ -302,10 +310,9 @@ class Record(RecordBase):
 		"""Main record rendering."""
 		self.initr(name=name)
 		self.template = "/pages/record.table"
-		self.ctxt["create"] = self.db.checkcreate()
-		self.ctxt["childtype"] = childtype
+				
 		c = [['children', '==', name], ['rectype', '==', childtype]]
-		query = self.routing.execute('Query/embed', db=self.db, c=c)
+		query = self.routing.execute('Query/embed', db=self.db, c=c, parent=name, rectype=childtype)
 
 		# ian: awful hack
 		query.request_location = self.request_location

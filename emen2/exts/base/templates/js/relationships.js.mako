@@ -267,6 +267,12 @@
 		
 		save: function(e) {
 			e.preventDefault();
+			var parents = $('input[type=checkbox][name=parents]', this.element);
+			var checkedparents = $('input[type=checkbox][name=parents]:checked', this.element);			
+			if (parents.length && !checkedparents.length) {
+				var ok = confirm("You are attempting to remove all parents of this record. This will not delete the record, but might make it difficult to find. Continue?");
+				if (!ok) {return false}
+			}
 			this.element.submit();
 		},
 		

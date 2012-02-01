@@ -26,9 +26,8 @@ ${emailtable(users)}
 
 <%
 allemails = ['%s &lt;%s&gt;'%(user.displayname, user.email) for user in users]
-allemails = ", ".join(allemails)
 %>
 
 <h1>Distribution list</h1>
 
-<a href="mailto:${allemails}">${allemails}</a>
+<a href="mailto:${','.join([user.email for user in users])}">${','.join(allemails)}</a>

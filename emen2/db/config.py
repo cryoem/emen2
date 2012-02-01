@@ -237,21 +237,20 @@ class DBOptions(usage.Options):
 
 
 
-class CommandLineParser(object):
-	def __init__(self, options=None, lc=True):
-		# options is the twisted usage.Options instance
+class UsageParser(object):
+	
+	def __init__(self, optclass=None, options=None):
+		# Use the default DBOptions if none is provided
+		if not optclass:
+			optclass = DBOptions
+
 		if not options:
-			# Use the default DBOptions if none is provided
-			options = DBOptions()
+			options = optclass()		
 			options.parseOptions()
-						
+
 		self.options = options
 		self.config = Config()
-		if lc:
-			self.load_config()
-
-	def opendb(self, *args, **kwargs):
-		raise Exception, "Use emen2.db.opendb(); pass DBOptions subclass as config="
+		self.load_config()
 
 	def load_config(self, **kw):
 		if self.config.globalns.getattr('CONFIG_LOADED', False):
@@ -265,14 +264,12 @@ class CommandLineParser(object):
 
 	def _load_config(self, **kw):
 		# Set EMEN2DBHOME from the options or environment variable.
-		self.config.load_data(
-			EMEN2DBHOME=self.options.get('home', os.getenv("EMEN2DBHOME"))
-		)
+		h = self.options.get('home', os.getenv("EMEN2DBHOME"))
+		# print "EMEN2 config loader: %s"%h
+		self.config.load_data(EMEN2DBHOME=h)
 
 		# Load the base configuration.
-		self.config.load_file(
-			get_filename('emen2', 'db/config.base.json')
-		)
+		self.config.load_file(get_filename('emen2', 'db/config.base.json'))
 		
 		# Load other specified config files
 		for f in self.options.get('configfile', []):

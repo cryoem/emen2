@@ -3,6 +3,11 @@
 
 def opendb(config=None, **kwargs):
 	"""Open a database."""
-	raise Exception, "being fixed"
+	# Import the config first and parse
+	import emen2.db.config
+	cmd = emen2.db.config.UsageParser()
+	import emen2.db.database
+	return emen2.db.database.DB.opendb(**kwargs)
+	
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

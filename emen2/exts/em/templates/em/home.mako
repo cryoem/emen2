@@ -51,59 +51,58 @@ import operator
 
 <br /><br />
 
-<!--
-<h1>
-	Equipment
-	% if ADMIN:
-		% for rd in equipment_rds:
-			<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/em/equipment/new/${rd.name}/">${rd.desc_short}</a></span>
-		% endfor
-		<span class="e2l-label">
-			${buttons.image('edit.png')} New
-		</span>
-	% endif
- </h1>
 
-% if not equipment:
-	<p>There is no equipment defined.</p>
-% else:
-	<table class="e2l-shaded" cellpadding="0" cellspacing="0">
-		<thead>
-			<tr>
-				<th>Type</th>
-				<th>Name</th>
-				<th>Calibration</th>
-				<th>Maintenance</th>
-				<th>Activity</th>
-			</tr>
-		</thead>
-		<tbody>
-			% for e in equipment:
-				<tr>
-					<td>${e.name}</td>
-					<td> -- </td>
-					<td> -- </td>
-					<td> -- </td>
-					<td> -- </td>
-				</tr>
-			% endfor
-		</tbody>
-	</table>
-% endif
+<%
+modifytimes = {}
+for rec in recent_activity['recs']:
+	modifytimes[rec.get('name')] = rec.get('modifytime')
 
-<br /><br />
---> 
+counted = {}
+for k,v in projects_children.items():
+	v.add(k)
+	counted[k] = sorted(v & recent_activity['names'], key=modifytimes.get)
 
+%>
 
 <h1>
 	Projects
-	## % for rd in project_rds:
-	##	<span class="e2l-label"><a class="e2l-capsule" href="${EMEN2WEBROOT}/em/project/new/${rd.name}/">${rd.desc_short}</a></span>
-	## % endfor
-	## <span class="e2l-label">
-	##	${buttons.image('edit.png')} New
-	## </span>
 </h1>
 
-<div class="e2-map e2-map-projects">${projects_map}</div>
+<table>
+	<thead>
+		<tr>
+			<th>Project</th>
+			<th>Total</th>
+			<th>Last 90 days</th>
+			<th>Last activity</th>
+		</tr>
+	</thead>
+	
+	% for group, projects in groups_projects.items():
+	<tbody>
+		<tr>
+			<td colspan="0">- ${group} -</td>
+		</tr>
+		% for project in projects:
+			<tr>
+				<td>${projects_render.get(project,project)}</td>
+				<td>${len(projects_children.get(project, []))}</td>
+				<td>${len(counted.get(project, []))}</td>
+				<td>
+					% if counted.get(project, []):
+						<%
+							lastcounted = counted.get(project, [])[0]
+							lasttime = modifytimes.get(lastcounted)
+						%>
+						<time datetime="${lasttime}">${lasttime}</time>
+					% else:
+						<em></em>
+						## <em>&gt; 6mo. ago</em>
+					% endif
+				</td>
+			</tr>
+		% endfor
+	</tbody>
+	% endfor
 
+</table>

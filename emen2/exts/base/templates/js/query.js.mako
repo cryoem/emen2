@@ -434,6 +434,7 @@
 		},
 				
 		_create: function() {
+			console.log(this.options);
 			this.build();
 		},
 		
@@ -475,14 +476,18 @@
 			
 			// Create new record
 			// if (this.options.rectype && this.options.parent != null) {
-			if (0) { // (this.options.create && this.options.rectype != null && this.options.parent != null) {
+			if (this.options.rectype != null && this.options.parent != null) {
 				var create = $(' \
-					<li data-tab="create" class="e2l-float-right"> \
+					<li class="e2l-float-right"> \
 						<span> \
-							<button data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
+						<form action="'+EMEN2WEBROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/" method="get"> \
+							<input type="submit" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
+						</form> \
 						</span> \
 					</li>');
 				ul.append(create);
+				// <input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
+				// $('input[type=submit]', create).NewRecordControl();
 			}			
 
 			// Init tab control
@@ -733,7 +738,8 @@
 			
 			// This was a easonably fast way to do this
 			$('tbody', t).empty();
-			$('tbody', t).append(rows.join(''));		
+			$('tbody', t).append(rows.join(''));
+			$('tbody time').localize();
 		}
 	});	
 	

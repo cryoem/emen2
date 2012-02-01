@@ -80,7 +80,7 @@
 </table>
 
 <ul class="e2l-controls">
-	<li><input type="submit" value="Accept or reject account requests" /></li>
+	<li><input type="submit" value="Save" /></li>
 </u>
 
 </form>

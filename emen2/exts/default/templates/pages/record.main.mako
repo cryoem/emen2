@@ -167,7 +167,7 @@
 		<%
 		attachments = []
 		# cheap filtering....
-		for k in rec.keys():
+		for k in rec.paramkeys():
 			v = rec[k]
 			if hasattr(v, "__iter__"):
 				attachments.extend(x for x in v if 'bdo:' in str(x))
@@ -264,7 +264,7 @@
 	</div>
 	
 	<div data-tab="attachments">
-		<form id="e2-attachments" method="post" enctype="multipart/form-data" action="${EMEN2WEBROOT}/record/${rec.name}/edit/"></form>
+		<form id="e2-attachments" method="post" enctype="multipart/form-data" action="${EMEN2WEBROOT}/record/${rec.name}/edit/attachments/"></form>
 	</div>
 	
 	<div data-tab="comments"></div>
@@ -274,7 +274,7 @@
 	<div data-tab="tools">
 		<h4>Tools</h4>
 		<ul>
-			<li><a href="${ctxt.reverse('RecordDef',action=None,name=rec.rectype)}">${rec.rectype} protocol page</a></li>
+			<li><a href="${ctxt.reverse('RecordDef',name=rec.rectype)}">${rec.rectype} protocol page</a></li>
 			<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
 			<li><a href="${EMEN2WEBROOT}/query/name==${rec.name}/attachments/">View / Download all attachments</a></li>
 			<li><a href="${EMEN2WEBROOT}/query/children.name.${rec.name}*/attachments/">View / Download all attachments in children</a></li>

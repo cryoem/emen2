@@ -2170,19 +2170,18 @@ class DB(object):
 				if table:
 					vs.append(v)
 				else:
-					a = a.replace(match.group(), v+s)
+					a = a.replace(match.group(), v+s, 1)
 
 			if table:
 				ret[rec.name] = vs
 			else:
 				ret[rec.name] = a.strip() or '(%s)'%rec.name
 
-		def pp(t, times):
-			for k,v in times.items():
-				p = (sum(v), sum(v)/float(len(v)), min(v), max(v))
-				p = [t[:5].ljust(5), k[:20].ljust(20)] + [("%2.2f"%i).rjust(5) for i in p] + [str(len(v)).rjust(5)]
-				print "   ".join(p)
-
+		# def pp(t, times):
+		# 	for k,v in times.items():
+		# 		p = (sum(v), sum(v)/float(len(v)), min(v), max(v))
+		# 		p = [t[:5].ljust(5), k[:20].ljust(20)] + [("%2.2f"%i).rjust(5) for i in p] + [str(len(v)).rjust(5)]
+		# 		print "   ".join(p)
 		# header = ["Type ", "Name".ljust(20), "Total", "  Avg", "  Min", "  Max", "Count"]
 		# print "   ".join(header)
 		# pp("param", pt)

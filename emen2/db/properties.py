@@ -253,7 +253,10 @@ class Property(object):
 	units = []
 
 	def validate(self, engine, pd, value, db):
-		if hasattr(value,"__float__"):
+		if hasattr(value, "__iter__"):
+			return [self.validate(engine, pd, i, db) for i in value]
+
+		if hasattr(value, "__float__"):
 			return float(value)
 
 		# print "Parsing for units: '%s'"%value			
@@ -267,7 +270,7 @@ class Property(object):
 		try:
 			r = q.match(value).groups()
 		except Exception, e:
-			raise ValueError,"Unable to parse '%s' for units"%(value)
+			raise ValueError, "Unable to parse '%s' for units"%(value)
 
 		value = float(r[0])
 		

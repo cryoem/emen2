@@ -431,7 +431,7 @@ class EMEN2DB(object):
 			raise emen2.db.exceptions.SecurityError, "Cannot modify read-only item %s"%key
 		# Write item to database
 		emen2.db.log.msg('COMMIT', "%s.put: %s"%(self.filename, key))
-		print data.__dict__
+		# print data.__dict__
 		self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)
 
 

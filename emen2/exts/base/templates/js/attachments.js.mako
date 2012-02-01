@@ -15,7 +15,7 @@
 			this.files = [];			
 			this.options.action = this.element.attr('action');
 			console.log(this.element);
-			this.options.location = $('input[name=location]', this.element).val();
+			this.options.location = $('input[name=location]', this.element).val() || '';
 			
 			// Check that we have browser support for File API
 			if (window.File && window.FileReader && window.FileList && window.Blob) {
@@ -50,7 +50,7 @@
 			this.dialog.append(table);
 			
 			// <li><input type="button" value="Cancel" /></li>
-			var ok = $('<form method="post" action="'+this.options.location+'"><ul class="e2l-controls"><li><input type="submit" value="Uploading..." disabled /></li></ul></form>');
+			var ok = $('<form method="post" action="'+this.options.location+'#attachments"><ul class="e2l-controls"><li><input type="submit" value="Uploading..." disabled /></li></ul></form>');
 			this.dialog.append(ok);
 			
 			if (this.options.modal) {
@@ -280,12 +280,13 @@
 			//if (this.bdos.length==0) {
 			//	this.element.append('<h4>There are currently no attachments</h4>');
 			//} else 
+			
 			if (this.options.summary || this.options.help) {
 				this.element.append('<h4 class="e2l-cf">Attachments</h4>');
 			}
 			if (this.options.summary) {
 				var summary = $('<p> \
-					This record currently has X attachments, totaling Y. \
+					This record currently has '+this.bdos.length+' attachments. \
 					Click to <a href="#">view all attachments in children</a>. \
 					</p>')
 				this.element.append(summary);

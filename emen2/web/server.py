@@ -26,8 +26,6 @@ except ImportError:
 
 import emen2.db.config
 
-
-
 ##### Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool #####
 
 class DBPool(object):
@@ -101,17 +99,8 @@ class EMEN2Server(object):
 		self.port = port
 
 	#@contextlib.contextmanager
-	def start(self, config=None, service=None):
+	def start(self, service=None):
 		'''Run the server main loop'''
-
-		if config:
-			self.options = config
-		else:
-			self.options = self.usage()
-			self.options.parseOptions()
-
-		# Parse the command line options and configuration.
-		emen2.db.config.CommandLineParser(self.options)
 
 		# Update the configuration
 		self.EMEN2PORT = self.port or emen2.db.config.get('network.EMEN2PORT')
