@@ -779,6 +779,14 @@ path.area {
 .e2-plot-totals td {
 	border-top:solid 1px #ccc;
 }
+.e2-plot-sparkbox {
+	width:10px;
+	border-bottom:solid 1px #ccc;
+	padding:0px;
+	margin:0px;
+	background:#1F77B4;
+	float:left;
+}
 /***** jQuery UI Overrides *****/
 
 .ui-autocomplete {

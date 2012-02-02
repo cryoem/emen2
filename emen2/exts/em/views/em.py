@@ -83,7 +83,7 @@ class EMHome(View):
 		# t = '2011-01-01T00:00:00+00:00'
 		# now = '2011-02-01T00:00:00+00:00'
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
-		t = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).isoformat()+'+00:00'
+		t = (datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat()+'+00:00'
 		q = self.db.plot(
 			[['modifytime', '>=', t], ['rectype', 'any', '']], 
 			x={'key':'modifytime', 'bin':'day', 'min':t, 'max':now}, 
@@ -93,18 +93,17 @@ class EMHome(View):
 		
 		
 		# Groups and projects
-		groups = self.db.getindexbyrectype('group')
-		groups_projects = self.db.getchildren(groups, rectype=['project'])
+		groups = self.db.getchildren(0, rectype=['group'])
+		# self.db.getindexbyrectype('group')
+		groups_projects = self.db.getchildren(groups, rectype=['project*'])
 		projs = set()
 		for v in groups_projects.values():
 			projs |= v
 
-		projects_render = self.db.renderview(projs)
-		projects_children = self.db.getchildren(projs, recurse=-1)
-
 		self.ctxt['groups_projects'] = groups_projects
-		self.ctxt['projects_render'] = projects_render
-		self.ctxt['projects_children'] = projects_children
+		self.ctxt['groups_render'] = self.db.renderview(groups)
+		self.ctxt['projects_render'] = self.db.renderview(projs)
+		self.ctxt['projects_children'] = self.db.getchildren(projs, recurse=-1)
 
 
 		

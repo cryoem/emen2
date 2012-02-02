@@ -129,7 +129,8 @@ class Record(RecordBase):
 
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$')
-	def edit(self, name=None, _extract=False, **kwargs):
+	def edit(self, name=None, _location=None, _extract=False, **kwargs):
+		
 		# Edit page and requests
 		if self.request_method not in ['post', 'put']:
 			# Show the form and return
@@ -168,8 +169,10 @@ class Record(RecordBase):
 		self.db.putrecord(rec)
 
 		# Redirect
-		self.redirect(self.routing.reverse('Record/main', name=name))
-
+		if _location:
+			self.redirect(_location)
+		else:
+			self.redirect(self.routing.reverse('Record/main', name=name))
 
 
 	#@write
@@ -236,7 +239,7 @@ class Record(RecordBase):
 
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$')
-	def new(self, name=None, rectype=None, _copy=False, _private=False, _extract=False, **kwargs):
+	def new(self, name=None, rectype=None, _copy=False, _location=None, _private=False, _extract=False, **kwargs):
 		self.template = '/pages/record.new'
 		viewname = 'mainview'
 
@@ -301,7 +304,11 @@ class Record(RecordBase):
 			# Save the record a 2nd time
 			newrec = self.db.putrecord(newrec)
 
-		self.redirect(self.routing.reverse('Record/main', name=newrec.name), content=newrec.name)
+		# Redirect
+		if _location:
+			self.redirect(_location)
+		else:
+			self.redirect(self.routing.reverse('Record/main', name=newrec.name), content=newrec.name)
 			
 
 

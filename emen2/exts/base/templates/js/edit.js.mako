@@ -167,7 +167,8 @@
 			rectype: null,
 			show: false,
 			action: null,
-			modal: true
+			modal: true,
+			redirect: null,
 		},
 		
 		_create: function() {
@@ -186,7 +187,7 @@
 		},
 		
 		show: function(e) {
-			e.preventDefault();
+			if (e) {e.preventDefault()}
 			this.build();
 			if (this.options.modal) {
 				this.dialog.dialog('open');
@@ -250,6 +251,10 @@
 			var form = $('<form method="post" data-name="None" />');
 			// ...add the rectype and parents as hidden inputs...
 			form.append('<input type="hidden" name="parents" value="'+this.options.parent+'" /><input type="hidden" name="rectype" value="'+this.options.rectype+'" />')
+			// ...redirect after submission
+			if (this.options.redirect) {
+				form.append('<input type="hidden" name="_location" value="'+this.options.redirect+'"/>');
+			}
 			// ...content
 			form.append(rendered);
 			// ...controls
@@ -409,13 +414,31 @@
 			// Action button
 			$('input[type=submit]', form).click(function(e) {
 				var rectype = $('input[name=rectype]:checked', this.element).val();
-				if (rectype) {
-					var uri = EMEN2WEBROOT+'/record/'+self.options.parent+'/new/'+rectype+'/';
-					var form = $('form[name=e2-newrecord]', this.element);
-					form.attr('action', uri);
-				} else {
+				if (!rectype) {
 					e.preventDefault();
-				}
+					return false
+				}			
+				console.log("building newrecordcontrol");
+				var asd = $('<input type="hidden" />');
+				self.element.append(asd);
+				asd.NewRecordControl({
+					parent: self.options.parent,
+					rectype: rectype,
+					show: true
+				});
+				return false
+				
+				var uri = EMEN2WEBROOT+'/record/'+self.options.parent+'/new/'+rectype+'/';
+				var form = $('form[name=e2-newrecord]', this.element);
+				form.attr('action', uri);
+				var f = $('<div />');
+				this.element.append(f);
+				f.NewRecordControl({
+					rectype: rectype,
+					parent: self.options.parent,
+					show: true,
+				});
+				return false
 			});
 
 			this.element.append(form);

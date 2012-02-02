@@ -481,13 +481,13 @@
 					<li class="e2l-float-right"> \
 						<span> \
 						<form action="'+EMEN2WEBROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/" method="get"> \
-							<input type="submit" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
+							<input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
 						</form> \
 						</span> \
 					</li>');
 				ul.append(create);
-				// <input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
-				// $('input[type=submit]', create).NewRecordControl();
+				// <input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" />
+				$('input[type=button]', create).NewRecordControl();
 			}			
 
 			// Init tab control
