@@ -94,17 +94,34 @@ class EMHome(View):
 		
 		# Groups and projects
 		groups = self.db.getchildren(0, rectype=['group'])
-		# self.db.getindexbyrectype('group')
 		groups_projects = self.db.getchildren(groups, rectype=['project*'])
 		projs = set()
 		for v in groups_projects.values():
 			projs |= v
+			
+		# Progress reports
+		progress_reports = self.db.getindexbyrectype('progress_report')
 
+		# Project contents
+		projects_children = self.db.getchildren(projs, recurse=-1)
+
+		# Last progress report by project
+		reports_by_project = {}
+		for k,v in projects_children.items():
+			r = v & progress_reports
+			r = sorted(r)
+			if r:
+				reports_by_project[k] = r[-1]
+
+
+		# Rendered..
+		rendered = {}
+		
 		self.ctxt['groups_projects'] = groups_projects
 		self.ctxt['groups_render'] = self.db.renderview(groups)
 		self.ctxt['projects_render'] = self.db.renderview(projs)
-		self.ctxt['projects_children'] = self.db.getchildren(projs, recurse=-1)
-
+		self.ctxt['projects_children'] = projects_children
+		self.ctxt['progress_reports'] = progress_reports
 
 		
 		
