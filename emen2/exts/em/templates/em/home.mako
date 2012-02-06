@@ -77,45 +77,6 @@ for k,v in projects_children.items():
 %>
 
 
-<h1>
-	Instrument schedule
-</h1>
-
-
-<%buttons:singlepage label='Drag to calendar'>
-	<div style="background:#ccc;float:left">Ian Rees</div>
-</%buttons:singlepage>
-
-<table class="e2l-shaded" cellpadding="0" cellspacing="0">
-	<thead>
-		<tr>
-			<th>Instrument</th>
-			<th>Monday</th>
-			<th>Tuesday</th>
-			<th>Wednesday</th>
-			<th>Thursday</th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr>
-			<td>JEOL 1400</td>
-			<td></td>
-			<td></td>
-			<td>Ian</td>
-			<td></td>
-		</tr>
-		<tr>
-			<td>JEOL 2100</td>
-			<td></td>
-			<td>Ian</td>
-			<td>Angel</td>
-			<td></td>
-		</tr>
-</table>
-
-
-
-
 
 
 
@@ -124,6 +85,7 @@ for k,v in projects_children.items():
 	% if ADMIN:
 		<span class="e2l-label"><a class="e2-newrecord-test" data-rectype="group" data-parent="0" href="${EMEN2WEBROOT}/record/0/new/group/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New Group</a></span>
 	% endif
+	<span class="e2l-label"><a href="${EMEN2WEBROOT}/sitemap/">Sitemap</a></span>
 </h1>
 
 <table class="e2l-shaded" cellpadding="0" cellspacing="0">
@@ -177,3 +139,8 @@ for k,v in projects_children.items():
 	% endfor
 
 </table>
+
+
+
+
+

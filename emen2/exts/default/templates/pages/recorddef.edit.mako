@@ -243,7 +243,7 @@
 		</tr>
 
 		<tr>
-			<td>Suggested Child Types</td>
+			<td>Suggested child protocols</td>
 			<td>
 				<ul id="typicalchld">
 				% for k,i in enumerate(recdef.typicalchld):

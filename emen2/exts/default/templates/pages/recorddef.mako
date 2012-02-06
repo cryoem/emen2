@@ -41,7 +41,7 @@
 			</tr>
 
 			<tr>
-				<td>Suggested Child Types</td>
+				<td>Suggested child protocols</td>
 				<td>
 				% if len(recorddef.typicalchld) == 0:
 					None Defined
