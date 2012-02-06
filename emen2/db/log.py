@@ -42,7 +42,8 @@ class Variables:
 		if self.init_done:
 			raise ValueError('already initialized')
 
-		self.logger = emen2.db.debug.DebugState()
+		self.logger = EMEN2Logger()
+		self.debug_state = emen2.db.debug.DebugState()
 
 		# Write out WEB and SECURITY messages to dedicated log files
 		self.init_done = done
@@ -51,7 +52,7 @@ log_init = Variables.log_init
 
 import twisted.python.log
 
-class EMEN2LogObserver(object):
+class EMEN2Logger(object):
 	LOG_LEVEL = emen2.db.config.get('LOG_LEVEL', None, False)
 	LOGPATH = emen2.db.config.get('paths.LOGPATH', None, False)
 
@@ -76,21 +77,16 @@ class EMEN2LogObserver(object):
 		self = cls()
 		self.process(event)
 
-	def process(self, event, *args, **kwargs):
-		level = event.get('level')
-		if 'level' in event:
-			level = event['level']
-			if level >= self.log_levels[self.LOG_LEVEL]:
-				print self.log_levels.get_name(event['level']), '::', ' '.join(str(k) for k in event['message'])
-		elif event['isError']:
-			print 'ERROR', '::', ' '.join(str(k) for k in event['message'])
+	def log(self, level, *args, **kwargs):
+		level = self.log_levels[level]
+		if level >= self.log_levels[self.LOG_LEVEL]:
+			message = '%s :: %s' % (self.log_levels.get_name(level), ' '.join(args))
+			print message
 		else:
 			pass
 
-twisted.python.log.addObserver(EMEN2LogObserver.emen2_logs)
-
 def msg(level='INFO', msg=''):
-	twisted.python.log.msg(msg, level=EMEN2LogObserver.log_levels[level])
+	Variables.logger.log(level, msg)
 
 def flip(func):
 	@functools.wraps(func)
@@ -99,9 +95,8 @@ def flip(func):
 	return _inner
 # Argghgh..
 msg_forwards = msg
-msg_backwards = flip(msg_forwards)
-#def msg_backwards(msg='', level='INFO'):
-#	return msg_forwards(msg=msg, level=level)
+def msg_backwards(msg='', level='INFO'):
+	return msg_forwards(msg=msg, level=level)
 
 def nothing(*args, **kwargs):
 	pass
