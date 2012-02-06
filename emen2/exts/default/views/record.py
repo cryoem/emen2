@@ -19,11 +19,11 @@ class RecordBase(View):
 	def initr(self, name=None, children=True, parents=True, **kwargs):
 		"""Main record rendering."""
 		recnames = {}
-		
+
 		# Get record..
 		try:
 			self.rec = self.db.getrecord(name, filt=False)
-		except (ValueError, KeyError, TypeError), inst: 
+		except (ValueError, KeyError, TypeError), inst:
 			raise RecordNotFoundError, name
 
 		self.name = self.rec.name
@@ -60,7 +60,7 @@ class RecordBase(View):
 			self.ctxt['NOTIFY'].append('Any authenticated user can read this record')
 		if 'anon' in self.rec.get('groups', []):
 			self.ctxt['NOTIFY'].append('Anyone may access this record anonymously')
-		
+
 		# Parent map
 		if parents:
 			parentmap = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='parents', recurse=3)
@@ -130,7 +130,7 @@ class Record(RecordBase):
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$')
 	def edit(self, name=None, _location=None, _extract=False, **kwargs):
-		
+
 		# Edit page and requests
 		if self.request_method not in ['post', 'put']:
 			# Show the form and return
@@ -156,7 +156,7 @@ class Record(RecordBase):
 			if pd.vartype != 'binary':
 				raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
 
-			f.record = rec.name			
+			f.record = rec.name
 			bdo = self.db.putbinary(f)
 			if pd.iter:
 				v = rec.get(pd.name) or []
@@ -198,7 +198,7 @@ class Record(RecordBase):
 			rec.parents = parents
 			rec.children = children
 			rec = self.db.putrecord(rec)
-		
+
 		self.template = '/redirect'
 		self.headers['Location'] = '%s/record/%s/#relationships'%(self.ctxt['EMEN2WEBROOT'], name)
 
@@ -216,17 +216,17 @@ class Record(RecordBase):
 		else:
 			for v in permissions:
 				users |= set(listops.check_iterable(v))
-		
+
 		if self.request_method == 'post':
 			if action == 'add':
-				self.db.setpermissions(names=name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt)			
+				self.db.setpermissions(names=name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt)
 
 			elif action == 'remove':
-				self.db.setpermissions(names=name, recurse=-1, removeusers=users, removegroups=groups, filt=filt)			
-				
+				self.db.setpermissions(names=name, recurse=-1, removeusers=users, removegroups=groups, filt=filt)
+
 			elif action == 'overwrite':
-				self.db.setpermissions(names=name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt, overwrite_users=True, overwrite_groups=True)			
-				
+				self.db.setpermissions(names=name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt, overwrite_users=True, overwrite_groups=True)
+
 			else:
 				rec = self.db.getrecord(name, filt=False)
 				rec['groups'] = groups
@@ -235,7 +235,7 @@ class Record(RecordBase):
 
 		self.template = '/redirect'
 		self.headers['Location'] = '%s/record/%s/#permissions'%(self.ctxt['EMEN2WEBROOT'], name)
-		
+
 
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$')
@@ -281,7 +281,7 @@ class Record(RecordBase):
 		# Save the new record
 		newrec.update(kwargs)
 		newrec = self.db.putrecord(newrec)
-		
+
 		if self.request_files:
 			# Save the attachments
 			for f in self.request_files:
@@ -292,7 +292,7 @@ class Record(RecordBase):
 				if pd.vartype != 'binary':
 					raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
 
-				f.record = newrec.name			
+				f.record = newrec.name
 				bdo = self.db.putbinary(f)
 				if pd.iter:
 					v = newrec.get(pd.name) or []
@@ -309,7 +309,7 @@ class Record(RecordBase):
 			self.redirect(_location)
 		else:
 			self.redirect(self.routing.reverse('Record/main', name=newrec.name), content=newrec.name)
-			
+
 
 
 	@View.add_matcher('^/record/(?P<name>\d+)/children/(?P<childtype>\w+)/$')
@@ -317,14 +317,14 @@ class Record(RecordBase):
 		"""Main record rendering."""
 		self.initr(name=name)
 		self.template = "/pages/record.table"
-				
+
 		c = [['children', '==', name], ['rectype', '==', childtype]]
 		query = self.routing.execute('Query/embed', db=self.db, c=c, parent=name, rectype=childtype)
 
 		# ian: awful hack
 		query.request_location = self.request_location
 		query.ctxt['REQUEST_LOCATION'] = self.request_location
-		
+
 		self.ctxt['table'] = query
 		self.ctxt['q'] = {}
 		self.ctxt["pages"].active = childtype
@@ -421,13 +421,13 @@ class Record(RecordBase):
 	# 	self.initr(name=name)
 	# 	self.template = '/pages/record.publish'
 	# 	self.title = 'Publish Records'
-	# 
+	#
 	# 	status = self.db.getindexbypermissions(groups=["publish"])
 	# 	childmap_view = Map(mode="children", keytype="record", recurse=-1, root=self.name, db=self.db)
 	# 	childmap = childmap_view.get_data()
-	# 
+	#
 	# 	# print status
-	# 
+	#
 	# 	self.set_context_item("childmap", childmap)
 	# 	self.set_context_item("collapsed", childmap_view.collapsed)
 	# 	self.set_context_item("children", childmap_view.collapsedchildren)
@@ -439,16 +439,16 @@ class Record(RecordBase):
 	# 	self.initr(name=name)
 	# 	self.template = '/pages/boxer'
 	# 	self.title = "web.boxer (EXPERIMENTAL!)"
-	# 
+	#
 	# 	boxrecords = self.db.getchildren(self.rec.name, rectype="box")
 	# 	bdo = self.rec.get('file_binary_image')
 	# 	bdo = self.db.getbinary(bdo)
 	# 	if not bdo:
 	# 		self.error("No ccd frames found! Cannot start web.boxer.")
 	# 		return
-	# 
+	#
 	# 	self.set_context_item("bdo",bdo)
-	
+
 
 
 
@@ -456,7 +456,7 @@ class Record(RecordBase):
 @View.register
 class Records(View):
 
-	@View.add_matcher("^/records/edit/$")	
+	@View.add_matcher("^/records/edit/$")
 	def edit(self, *args, **kwargs):
 		location = kwargs.pop('_location', None)
 		comments = kwargs.pop('comments', '')
@@ -475,11 +475,11 @@ class Records(View):
 			if location:
 				self.redirect(location)
 				return
-		
+
 			self.template = '/simple'
 			self.ctxt['content'] = "Saved %s records"%(len(recs))
-		
-		
+
+
 
 
 # moved from db...
