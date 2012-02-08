@@ -66,7 +66,8 @@
 		<%block name="js_inline" />
 		
 		$(document).ready(function() {
-			$('time').localize();
+			$('time.e2-localize').localize();
+			$('time.e2-timeago').timeago();
 			<%block name="js_ready" />
 		});	
 			

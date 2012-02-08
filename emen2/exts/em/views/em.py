@@ -28,14 +28,59 @@ class EMProject(View):
 	
 	@View.add_matcher(r'^/em/project/(?P<name>\d+)/$')
 	def main(self, name, **kwargs):
-		self.title = 'Project'
+		name = int(name)
 		self.template = '/em/project.main'
 
-	@View.add_matcher(r'^/em/project/new/(?P<rectype>\w+)/$')
-	def new(self, rectype, **kwargs):
-		self.title = 'New Project'
-		self.template = '/em/project.new'
+		# Recent records
+		recent = set()
+		recent.add(name)	
+
+		# Plot
+		now = datetime.datetime.utcnow().isoformat()+'+00:00'
+		t = (datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat()+'+00:00'
+		q = self.db.plot(
+			[['creationtime', '>=', t]], 
+			x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now}, 
+			y={'stacked':True}
+			)
+		self.ctxt['recent_activity'] = q
+
+		# All children
+		children = self.db.getchildren(name, recurse=-1)
+		children_grouped = self.db.groupbyrectype(children)
 		
+		# Split off subprojects
+		recorddefs = set(children_grouped.keys())
+
+
+		# project_recorddefs = self.db.getchildren('project', recurse=-1, keytype='recorddef')
+		# project_recorddefs.add('project')
+		# subprojects = set()
+		# for rd in project_recorddefs:
+		# 	subprojects |= children_grouped.pop(rd, set())
+		subprojects = self.db.getchildren(name, rectype=['project*'])
+		recent |= subprojects
+
+		# Show the 10 most recent for each type..
+		for k,v in children_grouped.items():
+			recent |= set(sorted(v)[:10])
+
+
+		# Render the record...
+		rec_rendered = self.db.renderview(name, viewname='defaultview')
+
+		rendered = self.db.renderview(recent)
+		self.title = rendered.get(name, 'Project: %s'%name)
+
+		self.ctxt['name'] = name
+		self.ctxt['rec_rendered'] = rec_rendered
+		self.ctxt['recorddefs'] = self.db.getrecorddef(recorddefs)
+		self.ctxt['subprojects'] = subprojects
+		self.ctxt['children'] = children
+		self.ctxt['children_grouped'] = children_grouped
+		self.ctxt['recent'] = recent
+		self.ctxt['recent_recs'] = self.db.getrecord(recent)
+		self.ctxt['rendered'] = rendered
 
 		
 
@@ -44,7 +89,7 @@ class EMHome(View):
 
 	@View.add_matcher(r'^/$', view='Root', name='main')
 	@View.add_matcher(r'^/em/home/$')
-	def main(self):
+	def main(self, hideinactive=False, sortkey='name', reverse=False):
 		self.title = 'Home'
 		self.template = '/em/home'
 		
@@ -52,31 +97,26 @@ class EMHome(View):
 			raise emen2.db.exceptions.SecurityError, "Please login."
 		
 		# Get the banner/welcome message
-		bookmarks = emen2.db.config.get('bookmarks.BOOKMARKS', {})
-		banner = emen2.db.config.get('customization.EMEN2LOGO')
-		try:
-			banner = self.db.getrecord(banner)
-			render_banner = self.db.renderview(banner, viewname="banner")
-		except Exception, inst:
-			banner = None
-			render_banner = ""
-
+		# bookmarks = emen2.db.config.get('bookmarks.BOOKMARKS', {})
+		# banner = emen2.db.config.get('customization.EMEN2LOGO')
+		# try:
+		# 	banner = self.db.getrecord(banner)
+		# 	render_banner = self.db.renderview(banner, viewname="banner")
+		# except Exception, inst:
+		# 	banner = None
+		# 	render_banner = ""
+		# 
 		# Project types
-		project_rds = ['project', 'workshop', 'project_software']
-		self.ctxt['project_rds'] = self.db.getrecorddef(project_rds)
-		self.ctxt['projects_map'] = self.routing.execute(
-			'Map/embed', 
-			db=self.db, 
-			root=0, 
-			mode='children', 
-			recurse=2, 
-			rectype=project_rds
-			)
-
-		# Equipment types
-		equipment_rds = ['camera', 'microscope', 'scanner', 'vitrification_device']
-		self.ctxt['equipment'] = self.db.getrecord(self.db.getchildren(0, rectype='equipment'))
-		self.ctxt['equipment_rds'] = self.db.getrecorddef(equipment_rds)
+		# project_rds = ['project', 'workshop', 'project_software']
+		# self.ctxt['project_rds'] = self.db.getrecorddef(project_rds)
+		# self.ctxt['projects_map'] = self.routing.execute(
+		# 	'Map/embed', 
+		# 	db=self.db, 
+		# 	root=0, 
+		# 	mode='children', 
+		# 	recurse=2, 
+		# 	rectype=project_rds
+		# 	)
 
 		# Recent records
 		# Add 'Z" to datetime.isoformat()
@@ -85,44 +125,56 @@ class EMHome(View):
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
 		t = (datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat()+'+00:00'
 		q = self.db.plot(
-			[['modifytime', '>=', t], ['rectype', 'any', '']], 
-			x={'key':'modifytime', 'bin':'day', 'min':t, 'max':now}, 
+			[['creationtime', '>=', t]], 
+			x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now}, 
 			y={'stacked':True}
 			)
 		self.ctxt['recent_activity'] = q
+
+		# Items to render
+		recent = set(q['names'])
+		torender = set()
+
+		# Groups; filter by NOT DELETED.
+		# groups = self.db.query([['rectype','is','group'], ['deleted', 'none']]).get('names')
+		groups = self.db.getchildren(0, rectype=['group'])		
+		# groups = self.db.getindexbyrectype('group')
+		torender |= groups
 		
-		
-		# Groups and projects
-		groups = self.db.getchildren(0, rectype=['group'])
-		groups_projects = self.db.getchildren(groups, rectype=['project*'])
+		# Children of groups (any rectype)
+		groups_children = self.db.getchildren(groups)
 		projs = set()
-		for v in groups_projects.values():
+		for v in groups_children.values():
 			projs |= v
+		torender |= projs
 			
 		# Progress reports
 		progress_reports = self.db.getindexbyrectype('progress_report')
+		torender |= progress_reports
 
-		# Project contents
+		# Get projects, most recent children, and progress reports
 		projects_children = self.db.getchildren(projs, recurse=-1)
-
-		# Last progress report by project
-		reports_by_project = {}
 		for k,v in projects_children.items():
-			r = v & progress_reports
-			r = sorted(r)
-			if r:
-				reports_by_project[k] = r[-1]
+			# Children past six months
+			# r = v & recent
+			# Most recent 
+			if v:
+				torender.add(sorted(v)[-1])
 
-
-		# Rendered..
-		rendered = {}
+		# Get all the recent records we want to display
+		rendered_recs = self.db.getrecord(torender)
+		rendered_recs = dict([(i.name,i) for i in rendered_recs])
+		rendered = self.db.renderview(torender)
 		
-		self.ctxt['groups_projects'] = groups_projects
-		self.ctxt['groups_render'] = self.db.renderview(groups)
-		self.ctxt['projects_render'] = self.db.renderview(projs)
+		self.ctxt['groups_children'] = groups_children
+		self.ctxt['rendered'] = rendered
+		self.ctxt['rendered_recs'] = rendered_recs
 		self.ctxt['projects_children'] = projects_children
 		self.ctxt['progress_reports'] = progress_reports
-
+		
+		self.ctxt['sortkey'] = sortkey
+		self.ctxt['hideinactive'] = int(hideinactive)
+		self.ctxt['reverse'] = int(reverse)
 		
 		
 		

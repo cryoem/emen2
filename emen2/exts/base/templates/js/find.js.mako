@@ -324,12 +324,12 @@
 					self.statusmsg.text('No results');
 					return
 				}
-				if (l>50) {
-					self.statusmsg.text(items.length + ' results; showing 1-50');
+				if (l>=100) {
+					self.statusmsg.text('More than 100 results; showing 1-100');
 				} else {
 					self.statusmsg.text(items.length + ' results');				
 				}
-				items = items.slice(0,50);
+				items = items.slice(0,100);
 				$.each(items, function() {
 					self.add(this)			
 				});

@@ -88,23 +88,35 @@ a:hover,
 
 /* I often show actions along 
 	the right side of a header */
-h1 .e2l-label {
+
+ul.e2l-actions {
+	list-style: none;
+	font-size:12pt;
+}
+ul.e2l-actions li {
+	float: right;
+}
+h1 .e2l-actions {
+	float: right;
+}
+
+/*h1 .e2l-actions {
 	float:right;
 	font-size:12pt;
 	margin:10px;
 	margin-right:0px;
 	margin-top:10px;
 }
-h4 .e2l-label {
+h4 .e2l-actions {
 	font-weight: normal;
 	float: right;
 	font-size: 10pt;
 }
-h4 .e2l-label input,
+h4 .e2l-actions input,
 h1 .e2l-label input {
 	margin-top:-10px;
 }
-
+*/
 /* e2-alert: Alerts, notifications, and errors */
 .e2-alert {
 	list-style: none;
@@ -192,7 +204,12 @@ table.e2l-kv td:first-child {
 	vertical-align: top;
 	width:250px;
 }
-
+table.e2l-shaded tr.e2l-shaded-header {
+	background: #ccc !important;
+}
+table.e2l-shaded tr.e2l-shaded-indent td:first-child {
+	padding-left: 30px;
+}
 
 
 

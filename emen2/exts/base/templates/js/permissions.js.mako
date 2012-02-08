@@ -194,11 +194,11 @@
 			if (this.options.edit) {
 				var add = $('<input type="button" data-level="'+level+'" data-keytype="'+keytype+'" value="+" /> ');
 				// Find control. Callback adds item to the correct box.
-				var minimum = 2;
-				if (keytype=='group'){minimum=0}
+				// var minimum = 0;
+				// if (keytype=='group'){minimum=0}
 				add.FindControl({
 					keytype: keytype,
-					minimum: minimum,
+					minimum: 0,
 					selected: function(w, value) {
 						var level = w.element.attr('data-level');
 						self.add(level, value);
