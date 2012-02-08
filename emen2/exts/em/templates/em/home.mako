@@ -21,16 +21,21 @@ import collections
 		height:200,
 	});
 	
+	$('.e2-button').button();
+
 	## New record controls
-	$('.e2-newrecord-test').NewRecordControl({
+	$('.e2-record-new').RecordControl({
 		redirect:'/'
 	});
+	
+
 </%block>
 
 <h1>
 	${USER.displayname}
-	<button class="e2l-label e2l-float-right">Edit profile</button>
-	## <span class="e2l-label"><a href="${EMEN2WEBROOT}/user/${USER.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
+	<ul class="e2l-actions">
+		<a class="e2-button" href="${EMEN2WEBROOT}/user/${USER.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></li>
+	</ul>
 </h1>
 
 <div class="e2l-cf">
@@ -51,9 +56,6 @@ import collections
 ##	${render_banner}
 ##	</div>
 ## % endif
-
-
-<br /><br />
 
 <h1>Activity</h1>
 
@@ -84,7 +86,7 @@ if sortkey == 'children':
 elif sortkey == 'activity':
 	lsortkey = asdf
 else:
-	lsortkey = lambda x:rendered.get(x, '').lower()
+	lsortkey = lambda x:recnames.get(x, '').lower()
 	
 %>
 
@@ -100,25 +102,21 @@ else:
 
 <h1>
 	Groups
-	<div class="e2l-label e2l-float-right">
 		
-		<form action="" method="get">
+	<ul class="e2l-actions">
+		<a target="_blank" class="e2-button" href="${EMEN2WEBROOT}/sitemap/">Sitemap</a></li>
 
-			<button>Sitemap</button>
+		% if hideinactive:
+			<a class="e2-button" href="${EMEN2WEBROOT}/?hideinactive=0">Show inactive</a></li>
+		% else:
+			<a class="e2-button" href="${EMEN2WEBROOT}/?hideinactive=1">Hide inactive</a></li>		
+		% endif
+		
+		% if ADMIN:
+			<span class="e2-button e2-button e2-record-new" data-parent="0" data-rectype="group"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New group</span>
+		% endif
+	</ul>
 
-			% if hideinactive:
-				<button>Show inactive</button>			
-			% else:
-				<button name="hideinactive" value="1">Hide inactive</button>
-			% endif
-
-			% if ADMIN:
-				<button><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New group</button>
-			% endif
-
-		</form>
-
-	</div>
 </h1>
 
 
@@ -150,10 +148,12 @@ else:
 	<tbody>
 
 		<tr>
-			<td style="background:#ccc" colspan="0">
-				<a href="${EMEN2WEBROOT}/em/group/${group}/">${rendered.get(group,group)}</a>
+			<td style="background:#ccc" colspan="5">
+				<a href="${EMEN2WEBROOT}/em/group/${group}/">${recnames.get(group,group)}</a>
+
+				<ul class="e2l-actions">
 				% if ADMIN:
-					<button class="e2l-label e2l-float-right"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New project</button>
+					<li><span class="e2-button e2-record-new" data-parent="${group}" data-rectype="project">${buttons.image('edit.png','')} New project</span></li>
 				% endif
 			</td>
 		</tr>
@@ -175,7 +175,7 @@ else:
 			
 			% else:
 				<tr>
-					<td style="padding-left:20px"><a href="${EMEN2WEBROOT}/em/project/${project}/">${rendered.get(project,project)}</a></td>
+					<td style="padding-left:20px"><a href="${EMEN2WEBROOT}/em/project/${project}/">${recnames.get(project,project)}</a></td>
 
 					<td>${len(projects_children.get(project, []))}</td>
 
@@ -190,7 +190,7 @@ else:
 							<time class="e2-timeago" datetime="${rendered_recs.get(lastitem)['creationtime']}">${rendered_recs.get(lastitem)['creationtime']}</time>
 						</td>
 						<td>
-							<a href="${EMEN2WEBROOT}/record/${lastitem}/">${rendered.get(lastitem, lastitem)}</a>
+							<a href="${EMEN2WEBROOT}/record/${lastitem}/">${recnames.get(lastitem, lastitem)}</a>
 						</td>
 					% else:
 						<td colspan="2"></td>

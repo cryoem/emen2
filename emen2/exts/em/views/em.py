@@ -29,6 +29,7 @@ class EMProject(View):
 	@View.add_matcher(r'^/em/project/(?P<name>\d+)/$')
 	def main(self, name, **kwargs):
 		name = int(name)
+		rec = self.db.getrecord(name)
 		self.template = '/em/project.main'
 
 		# Recent records
@@ -39,15 +40,24 @@ class EMProject(View):
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
 		t = (datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat()+'+00:00'
 		q = self.db.plot(
-			[['creationtime', '>=', t]], 
+			[['children','is','%s*'%name], ['creationtime', '>=', t]], 
 			x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now}, 
 			y={'stacked':True}
 			)
 		self.ctxt['recent_activity'] = q
 
+		# Standard parent map
+		parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=3)
+
 		# All children
 		children = self.db.getchildren(name, recurse=-1)
 		children_grouped = self.db.groupbyrectype(children)
+		
+		# Add in some tabs for all the typical children
+		rd = self.db.getrecorddef(rec.rectype)
+		for k in rd.typicalchld:
+			if not children_grouped.get(k):
+				children_grouped[k] = set()
 		
 		# Split off subprojects
 		recorddefs = set(children_grouped.keys())
@@ -61,17 +71,20 @@ class EMProject(View):
 		subprojects = self.db.getchildren(name, rectype=['project*'])
 		recent |= subprojects
 
-		# Show the 10 most recent for each type..
+		# Show the 5 most recent for each type..
 		for k,v in children_grouped.items():
 			recent |= set(sorted(v)[:10])
 
 
 		# Render the record...
-		rec_rendered = self.db.renderview(name, viewname='defaultview')
+		rec_rendered = self.db.renderview(name, viewname='defaultview', edit=True)
 
-		rendered = self.db.renderview(recent)
-		self.title = rendered.get(name, 'Project: %s'%name)
+		recnames = self.db.renderview(recent)
+		rendered_thumb = self.db.renderview(recent, viewdef='$@thumbnail()')
 
+		self.title = recnames.get(name, 'Project: %s'%name)
+
+		self.ctxt['rec'] = rec
 		self.ctxt['name'] = name
 		self.ctxt['rec_rendered'] = rec_rendered
 		self.ctxt['recorddefs'] = self.db.getrecorddef(recorddefs)
@@ -80,8 +93,9 @@ class EMProject(View):
 		self.ctxt['children_grouped'] = children_grouped
 		self.ctxt['recent'] = recent
 		self.ctxt['recent_recs'] = self.db.getrecord(recent)
-		self.ctxt['rendered'] = rendered
-
+		self.ctxt['recnames'] = recnames
+		self.ctxt['rendered_thumb'] = rendered_thumb
+		self.ctxt['parentmap'] = parentmap
 		
 
 @View.register
@@ -164,10 +178,10 @@ class EMHome(View):
 		# Get all the recent records we want to display
 		rendered_recs = self.db.getrecord(torender)
 		rendered_recs = dict([(i.name,i) for i in rendered_recs])
-		rendered = self.db.renderview(torender)
+		recnames = self.db.renderview(torender)
 		
 		self.ctxt['groups_children'] = groups_children
-		self.ctxt['rendered'] = rendered
+		self.ctxt['recnames'] = recnames
 		self.ctxt['rendered_recs'] = rendered_recs
 		self.ctxt['projects_children'] = projects_children
 		self.ctxt['progress_reports'] = progress_reports
