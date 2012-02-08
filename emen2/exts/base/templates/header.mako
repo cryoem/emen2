@@ -45,7 +45,7 @@
 			<li><a href="${EMEN2WEBROOT}/">Admin ${buttons.caret()}</a>
 				<ul>
 					<li><a href="${ctxt.reverse('Users/queue')}">Account requests</a></li>
-					<li><a href="${ctxt.reverse('Users/admin')}">User administration</a></li>
+					## <li><a href="${ctxt.reverse('Users/admin')}">User administration</a></li>
 					## <li><a href="">Configuration</a></li>
 					## <li><a href="">Backup</a></li>
 				</ul>
