@@ -14,7 +14,6 @@
 			this.built = 0;
 			this.files = [];			
 			this.options.action = this.element.attr('action');
-			console.log(this.element);
 			this.options.location = $('input[name=location]', this.element).val() || '';
 			
 			// Check that we have browser support for File API

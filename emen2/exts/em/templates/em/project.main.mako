@@ -2,7 +2,7 @@
 import jsonrpc.jsonutil
 import emen2.util.listops
 %>
-<%inherit file="/page" />
+<%inherit file="/pages/record" />
 <%namespace name="buttons" file="/buttons"  /> 
 
 <%block name="js_ready">
@@ -18,53 +18,51 @@ import emen2.util.listops
 		pan: false,
 		height:200,
 	});
+
+
+	$('.e2-button').button();
 	
 	## New record controls
-	$('.e2-newrecord-test').NewRecordControl({
-		redirect:'/'
+	$('.e2-record-new').RecordControl({
 	});
+	$('.e2-record-edit').RecordControl({
+	});	
+	
 </%block>
 
 <%
 recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
 %>
 
-
 <h1>
-	${title}
+	Project overview
 	<ul class="e2l-actions">
-		<li><button>${buttons.image('edit.png')} Edit</button></li>
-		<li><button>Sitemap</button></li>
-	</ul>	
-</h1>
-
-
-## ${rec_rendered}
-
-
-<h1>
-	Activity
-	<ul class="e2l-actions">
-		<li><button>View query</button></li>
+		<li><a class="e2-button e2-record-edit" data-name="${name}" href="${EMEN2WEBROOT}/record/${name}/#edit" target="_blank">${buttons.image('edit.png')} Edit</a></li>
+		<li><a class="e2-button" href="${EMEN2WEBROOT}/query/children.is.${name}*/" target="_blank">View all ${len(children)} records</a></li>
+		<li><a class="e2-button" href="${EMEN2WEBROOT}/sitemap/${name}/" target="_blank">Sitemap</a></li>
+		## <li><a class="e2-button" href="${EMEN2WEBROOT}/record/${name}/" target="_blank"></a></li>
 	</ul>
 </h1>
+
 <div id="recent_activity">
 	<div class="e2-plot"></div>
 </div>
 
 
 
+${rec_rendered}
+
 
 <h1>
-	Subprojects
+	Sub-projects (${len(subprojects)})
 	<ul class="e2l-actions">
-		<li><button>New subproject</button></li>
+		<li><a href="" class="e2-button e2-record-new" data-rectype="subproject" data-parent="${name}">${buttons.image('edit.png')} New</a></li>
 	</ul>
 </h1>
 
 <ul>
 % for subproject in subprojects:
-	<li>${rendered.get(subproject, subproject)}</li>
+	<li><a href="${EMEN2WEBROOT}/em/project/${subproject}/">${recnames.get(subproject, subproject)}</a></li>
 % endfor
 </ul>
 
@@ -74,22 +72,41 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
 <h1>In this project...</h1>
 
 <table class="e2l-shaded" cellpadding="0" cellspacing="0">
-	<thead>
-		<tr>
-			<th>Test</th>
-		</tr>
-	</thead>
 	
 	% for rectype,items in children_grouped.items():
 		<tbody>
+
 			<tr class="e2l-shaded-header">
-				<td colspan="0">${recorddefs_d.get(rectype, dict()).get('desc_short')} (${len(items)})</td>
+				<td colspan="2">
+					${recorddefs_d.get(rectype, dict()).get('desc_short')} (${len(items)})
+
+					<ul class="e2l-actions">
+						<li><span class="e2-button e2-record-new" data-rectype="${rectype}" data-parent="${name}">${buttons.image('edit.png')} New</span></li>
+						<li><a class="e2-button" href="${EMEN2WEBROOT}/query/children.is.${name}*/rectype.is.${rectype}/">View all</a></li>
+					</ul>
+
+				</td>
 			</tr>
+
 			% for item in items & recent:
 				<tr class="e2l-shaded-indent">
-					<td>${rendered.get(item, item)}</td>
+					<td>
+						<a href="${EMEN2WEBROOT}/record/${item}/">${recnames.get(item, item)}</a>
+					</td>
+					<td>
+						<a href="${EMEN2WEBROOT}/record/${item}/">${rendered_thumb.get(item,'')}</a>
+					</td>
 				</tr>
 			% endfor
+			
+			% if len(items) > 10:
+				<tr class="e2l-shaded-indent">
+					<td colspan="2">
+						<a href="${EMEN2WEBROOT}/query/children.is.${name}*/rectype.is.${rectype}/">... more</a>
+					</td>
+				</tr>
+			% endif
+
 		</tbody>
 	% endfor
 

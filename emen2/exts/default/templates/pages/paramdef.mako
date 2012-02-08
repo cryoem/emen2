@@ -103,7 +103,7 @@
 	
 		% if edit:
 		<tr>
-			<td colspan="0">
+			<td colspan="2">
 				The following attributes cannot be easily changed after the parameter is created because
 				they change the parameter's meaning, validation method, or index format. If you must change these
 				attributes, the database must be taken offline and modified using the migration scripts.

@@ -41,7 +41,7 @@
 				<tbody>
 			
 					% if not q['names']:
-						<tr><td colspan="0">No Records found for this query.</td></tr>
+						<tr><td>No Records found for this query.</td></tr>
 					% endif
 
 					% for rowid, name in enumerate(q['names']):

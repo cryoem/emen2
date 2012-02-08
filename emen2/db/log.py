@@ -86,7 +86,8 @@ class EMEN2Logger(object):
 			pass
 
 def msg(level='INFO', msg=''):
-	Variables.logger.log(level, msg)
+	print msg
+	#Variables.logger.log(level, msg)
 
 def flip(func):
 	@functools.wraps(func)

@@ -92,11 +92,9 @@ a:hover,
 ul.e2l-actions {
 	list-style: none;
 	font-size:12pt;
-}
-ul.e2l-actions li {
 	float: right;
 }
-h1 .e2l-actions {
+ul.e2l-actions li {
 	float: right;
 }
 
@@ -205,7 +203,7 @@ table.e2l-kv td:first-child {
 	width:250px;
 }
 table.e2l-shaded tr.e2l-shaded-header {
-	background: #ccc !important;
+	background: #BBDAEE !important;
 }
 table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 	padding-left: 30px;
@@ -805,6 +803,12 @@ path.area {
 	float:left;
 }
 /***** jQuery UI Overrides *****/
+.e2-button {
+	margin-left:4px;
+}
+.ui-button-text {
+	padding:4px !important;
+}
 
 .ui-autocomplete {
 	max-width: 300px;

@@ -2065,8 +2065,9 @@ class DB(object):
 
 		# We'll be working with a list of names
 		# ed: added the *() for better visual grouping :)
-		#
 		names, recs, newrecs, other = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject, dict)
+		other = map(int, other)
+		names.extend(other)
 		recs.extend(self.bdbs.record.cgets(names, ctx=ctx, txn=txn))
 
 		for newrec in newrecs:

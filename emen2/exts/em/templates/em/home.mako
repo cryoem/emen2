@@ -175,7 +175,7 @@ else:
 			
 			% else:
 				<tr>
-					<td style="padding-left:20px"><a href="${EMEN2WEBROOT}/em/project/${project}/">${recnames.get(project,project)}</a></td>
+					<td style="padding-left:20px"><a href="${EMEN2WEBROOT}/record/${project}/">${recnames.get(project,project)}</a></td>
 
 					<td>${len(projects_children.get(project, []))}</td>
 

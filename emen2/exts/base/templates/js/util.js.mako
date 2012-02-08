@@ -82,36 +82,42 @@ emen2.time.interval = {};
 
 // Return year interval
 emen2.time.interval.year = function(t1) {
+	var t1 = t1 || new Date();
 	var start = new Date(t1.getFullYear(), 0, 1, 0, 0, 0, 0);
 	var end = new Date(t1.getFullYear()+1, 0, 1, 0, 0, 0, 0);
 	return [start, end]
 };
 
 emen2.time.interval.month = function(t1) {
+	var t1 = t1 || new Date();
 	var start = new Date(t1.getFullYear(), t1.getMonth(), 1, 0, 0, 0, 0);
 	var end = new Date(t1.getFullYear(), t1.getMonth()+1, 1, 0, 0, 0, 0);
 	return [start, end]
 };
 
 emen2.time.interval.day = function(t1) {
+	var t1 = t1 || new Date();
 	var start = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), 0, 0, 0, 0);
 	var end = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate()+1, 0, 0, 0, 0);
 	return [start, end]	
 };
 
 emen2.time.interval.hour = function(t1) {
+	var t1 = t1 || new Date();
 	var start = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), 0, 0, 0);
 	var end = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours()+1, 0, 0, 0);
 	return [start, end]	
 };
 
 emen2.time.interval.minute = function(t1) {
+	var t1 = t1 || new Date();
 	var start = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), t1.getMinutes(), 0, 0);
 	var end = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), t1.getMinutes()+1, 0, 0);
 	return [start, end]	
 };
 
 emen2.time.interval.second = function(t1) {
+	var t1 = t1 || new Date();
 	var start = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), t1.getMinutes(), t1.getSeconds(), 0);
 	var end = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), t1.getMinutes(), t1.getSeconds()+1, 0);
 	return [start, end]

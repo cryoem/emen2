@@ -487,7 +487,7 @@
 					</li>');
 				ul.append(create);
 				// <input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" />
-				$('input[type=button]', create).NewRecordControl();
+				$('input[type=button]', create).RecordControl();
 			}			
 
 			// Init tab control
@@ -722,7 +722,7 @@
 
 			// Empty results
 			if (names.length == 0) {
-				var row = '<tr><td colspan="0">No Records found for this query.</td</tr>';
+				var row = '<tr><td>No Records found for this query.</td</tr>';
 				rows.push(row);
 			}
 

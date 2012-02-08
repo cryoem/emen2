@@ -161,7 +161,7 @@
 	});	
 	
 	// Create a new record in a dialog box
-	$.widget('emen2.NewRecordControl', {
+	$.widget('emen2.RecordControl', {
 		options: {
 			parent: null,
 			rectype: null,
@@ -169,6 +169,8 @@
 			action: null,
 			modal: true,
 			redirect: null,
+			name: null,
+			mode: 'new'
 		},
 		
 		_create: function() {
@@ -179,6 +181,11 @@
 			this.built = 0;
 			this.options.rectype = emen2.util.checkopt(this, 'rectype');
 			this.options.parent = emen2.util.checkopt(this, 'parent');
+			this.options.name = emen2.util.checkopt(this, 'name');
+			if (this.options.name != null) {
+				this.options.mode = 'edit';
+			}
+			
 			if (this.options.show) {
 				this.show();
 			} else {
@@ -200,7 +207,7 @@
 			
 			var self = this;
 			this.dialog = $('<div>Loading...</div>');
-			this.dialog.attr('title','New record');
+			this.dialog.attr('title','Loading...');
 			
 			if (this.options.modal) {
 				// grumble... get the viewport dimensions..
@@ -218,7 +225,17 @@
 			} else {
 				this.element.append(this.dialog);
 			}			
+			
+			if (this.options.mode=='new') {
+				this._record_new();
+			} else {
+				this._record_edit();
+			}
 
+		},
+		
+		_record_new: function() {
+			var self = this;
 			emen2.db('getrecorddef', [[self.options.rectype]], function(rds) {
 				emen2.cache.update(rds);
 				emen2.db('newrecord', {'rectype':self.options.rectype, 'inherit':self.options.parent}, function(rec) {
@@ -228,29 +245,48 @@
 						self._build(rendered);
 					});				
 				});
-			});
-			// self._build();
-
+			});			
 		},
 		
+		_record_edit: function() {
+			var self = this;
+			emen2.db('getrecord', [self.options.name], function(rec) {
+				emen2.cache.update([rec]);
+				
+				self.options.rectype = rec['rectype']
+				emen2.db('getrecorddef', [rec['rectype']], function(rds) {
+					emen2.cache.update([rds]);
+					emen2.db('renderview', {'names':self.options.name, 'viewname':'mainview', 'edit':true}, function(rendered) {
+						self._build(rendered);
+					});				
+				});			
+			});
+		},
+				
 		_build: function(rendered) {
 			this.dialog.empty();
-			
+
 			// Show the recorddef long description
 			var rd = emen2.caches['recorddef'][this.options.rectype];
-			var desc = $.trim(rd.desc_long).replace('\n','<br /><br />'); // hacked in line breaks
-			var desc = $('<p class="e2-newrecord-desc_long">'+desc+'</p>');
-			//<strong>Protocol description:</strong>
 
 			// Set the dialog title to show the record type and parent recname
 			if (this.options.modal) {
-				this.dialog.dialog('option', 'title', 'New '+rd.desc_short+', child of '+this.options.parent);
+				this.dialog.dialog('option', 'title', this.options.mode+' '+rd.desc_short);
 			}
 
 			// Create the form
-			var form = $('<form method="post" data-name="None" />');
-			// ...add the rectype and parents as hidden inputs...
-			form.append('<input type="hidden" name="parents" value="'+this.options.parent+'" /><input type="hidden" name="rectype" value="'+this.options.rectype+'" />')
+			var form = $('<form action="" method="post" data-name="'+this.options.name+'" />');
+
+			if (this.options.mode == 'new') {
+				var desc = $.trim(rd.desc_long).replace('\n','<br /><br />'); // hacked in line breaks
+				var desc = $('<p class="e2-newrecord-desc_long">'+desc+'</p>');
+				this.dialog.append(desc);
+				// Add the parent for a new record
+				form.attr('data-name', 'None');
+				// Add the rectype
+				form.append('<input type="hidden" name="parents" value="'+this.options.parent+'" /><input type="hidden" name="rectype" value="'+this.options.rectype+'" />')				
+			}
+			
 			// ...redirect after submission
 			if (this.options.redirect) {
 				form.append('<input type="hidden" name="_location" value="'+this.options.redirect+'"/>');
@@ -261,16 +297,18 @@
 			form.append('<ul class="e2l-controls"><li><input type="submit" value="Save" /></li></ul>');
 
 			// Set the form action
-			var action = this.options.action || this.element.attr('data-action') || EMEN2WEBROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/';
+			var action_alt = EMEN2WEBROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/';
+			if (this.options.mode == 'edit') {
+				var action_alt = EMEN2WEBROOT+'/record/'+this.options.name+'/edit/';
+			}
+			var action = this.options.action || this.element.attr('data-action') || action_alt;
 			form.attr('action',action);
-
-			this.dialog.append(desc, form);
-			
+		
 			// Add the editing control after it's in the DOM
+			this.dialog.append(form);
 			form.MultiEditControl({
 				show: true				
 			});
-
 		}
 	});
 	
@@ -418,10 +456,9 @@
 					e.preventDefault();
 					return false
 				}			
-				console.log("building newrecordcontrol");
 				var asd = $('<input type="hidden" />');
 				self.element.append(asd);
-				asd.NewRecordControl({
+				asd.RecordControl({
 					parent: self.options.parent,
 					rectype: rectype,
 					show: true
@@ -433,7 +470,7 @@
 				form.attr('action', uri);
 				var f = $('<div />');
 				this.element.append(f);
-				f.NewRecordControl({
+				f.RecordControl({
 					rectype: rectype,
 					parent: self.options.parent,
 					show: true,
@@ -498,7 +535,7 @@
 			
 			// jQuery selector for this multi-edit control to activate
 			this.options.selector = emen2.util.checkopt(this, 'selector', '.e2-edit[data-name='+this.options.name+']');
-
+			
 			// Show
 			if (this.options.show) {
 				this.show();
@@ -511,7 +548,7 @@
 				$('input', this.options.controls).hide();
 				$('.e2-edit-comments', this.options.controls).show();
 				$('.e2-edit-save', this.options.controls).show();
-			}			
+			}	
 		},
 	
 		hide: function() {
@@ -551,7 +588,9 @@
 			}
 			this.built = 1;
 			var self = this;			
-			
+						
+			console.log(this.options.selector);
+						
 			// Build the individual editing controls
 			$(this.options.selector).EditControl({
 				prefix: this.options.prefix
