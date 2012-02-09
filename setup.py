@@ -19,7 +19,30 @@ import os.path
 def prefix(pref, strs):
 	return [os.path.join(pref, name) for name in strs]
 
+
+
 if __name__ == "__main__":
+	# Base
+	packages = [
+		'emen2',
+		'emen2.db',
+		'emen2.web',
+		'emen2.util',
+		'twisted.plugins'
+		]
+		
+	package_data = {			
+		'emen2.db': ['config.base.json', 'skeleton.json', 'base.json'],
+		'emen2.web': ['static/*.*', 'static/*/*.*', 'static/*/*/*.*', 'static/*/*/*/*.*'],
+		'twisted': ['plugins/emen2_plugin.py']
+	}
+	
+	exts = ['base', 'default', 'em', 'eman2', 'site']
+	for ext in exts:
+		packages.append('emen2.exts.%s'%ext)
+		packages.append('emen2.exts.%s.views'%ext)
+		package_data['emen2.exts.%s'%ext] = ['json/*.json', 'templates/*.mako', 'templates/*/*.mako', 'templates/*/*/*.mako']
+
 	setup(
 		name='emen2',
 		version=VERSION,
@@ -28,21 +51,9 @@ if __name__ == "__main__":
 		author_email='ian.rees@bcm.edu',
 		url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',
 		download_url="%s/%s/emen2-%s.tar.gz"%(URLBASE, URLMAP.get(VERSION,'daily'), VERSION),
-		packages=[
-			'emen2',
-			'emen2.db',
-			'emen2.web',
-			'emen2.web.resources',
-			'emen2.exts',
-			'emen2.exts.base',
-			'emen2.exts.base.views',
-			'emen2.exts.default',
-			'emen2.exts.default.views',
-			'emen2.util',
-			],
-		package_data={
-			'emen2': prefix('web/plugins/default/templates', ['*.mako', '*/*.mako', '*/*/*.mako']) + prefix('web/static', ['*.*', '*/*.*', '*/*/*.*', '*/*/*/*.*']),
-			'emen2.db': ['config.base.json', 'skeleton.json'],
-		},
-		scripts=['scripts/emen2control.py']
+		packages=packages,
+		package_data=package_data
 	)
+
+
+	# 'emen2.exts.base': prefix('web/static', ),

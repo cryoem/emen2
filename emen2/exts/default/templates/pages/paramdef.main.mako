@@ -6,17 +6,17 @@
 <h1>
 	${title}
 
-	<span class="e2l-label">
-		<a href="${EMEN2WEBROOT}/query/${paramdef.name}.!None./">${buttons.image('query.png', 'Query')} Query</a>
-	</span>	
+	<ul class="e2l-actions">
+		<li><a class="e2-button" href="${EMEN2WEBROOT}/query/${paramdef.name}.!None./">${buttons.image('query.png', 'Query')} Query</a></li>
 
-	% if editable:
-		<span class="e2l-label"><a href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/edit/">${buttons.image('edit.png', 'Edit')} Edit</a></span>
-	% endif
+		% if editable:
+			<li><a class="e2-button" href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/edit/">${buttons.image('edit.png', 'Edit')} Edit</a></li>
+		% endif
 
-	% if create:
-		<span class="e2l-label"><a href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="New" /> New</a></span>
-	% endif
+		% if create:
+			<li><a class="e2-button" href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="New" /> New</a></li>
+		% endif
+	</ul>
 </h1>
 
 

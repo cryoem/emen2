@@ -3,9 +3,11 @@
 
 <h1>
 	${user.displayname}
-	% if ADMIN:
-		<span class="e2l-label"><a href="${EMEN2WEBROOT}/user/${user.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
-	% endif
+	<ul class="e2l-actions">
+		% if ADMIN:
+			<li><a class="e2-button" href="${EMEN2WEBROOT}/user/${user.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></li>
+		% endif
+	</li>
 </h1>
 
 

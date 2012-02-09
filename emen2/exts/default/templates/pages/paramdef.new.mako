@@ -7,10 +7,9 @@
 
 <h1>
 	${title}
-
-	<span class="e2l-label">
-		<input type="submit" value="Save" />
-	<span>
+	<ul class="e2l-actions">
+		<li><input type="submit" value="Save" /></li>
+	</ul>
 </h1>
 
 

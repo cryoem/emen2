@@ -286,7 +286,7 @@
 			if (this.options.summary) {
 				var summary = $('<p> \
 					This record currently has '+this.bdos.length+' attachments. \
-					Click to <a href="#">view all attachments in children</a>. \
+					Click to <a href="'+EMEN2WEBROOT+'/query/children.is.'+this.options.name+'*/attachments/">view all attachments in children</a>. \
 					</p>')
 				this.element.append(summary);
 			}

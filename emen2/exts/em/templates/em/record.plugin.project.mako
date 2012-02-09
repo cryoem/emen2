@@ -42,7 +42,7 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
 
 <ul>
 % for subproject in subprojects:
-	<li><a href="${EMEN2WEBROOT}/em/project/${subproject}/">${recnames.get(subproject, subproject)}</a></li>
+	<li><a href="${EMEN2WEBROOT}/record/${subproject}/">${recnames.get(subproject, subproject)}</a></li>
 % endfor
 </ul>
 

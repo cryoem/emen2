@@ -11,6 +11,6 @@
 	});
 </%block>
 
-<h1>Site Map</h1>
+<h1>Sitemap</h1>
 
 <div id="sitemap"></div>

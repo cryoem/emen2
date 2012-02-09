@@ -23,12 +23,14 @@
 		New Group
 	% else:
 		${group.get('displayname')}
-		## (${group.name})
 	% endif
+	
+	<ul class="e2l-actions">
+		% if (ADMIN or group.isowner()) and not edit:
+			<li><a class="e2-button" href="${EMEN2WEBROOT}/group/${group.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></li>
+		% endif	
+	</ul>
 
-	% if (ADMIN or group.isowner()) and not edit:
-		<span class="e2l-label"><a href="${EMEN2WEBROOT}/group/${group.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></span>
-	% endif
 </h1>
 
 % if new:

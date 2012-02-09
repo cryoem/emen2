@@ -38,8 +38,9 @@ def convert_bytes(bytes):
 		$('#filecount').text(c.length);
 	}
 
-	$('input[name=checkbids]').click(function() {
+	$('#allbids').click(function() {
 		var s = $(this).attr('checked');
+		if (!s) {s=false}
 		$('input[name=bids]').each(function() {
 			$(this).attr('checked', s);
 		});
@@ -50,14 +51,19 @@ def convert_bytes(bytes):
 		updatefilesize();
 	});
 
+	updatefilesize();
+
 </%block>
 
 
-<form method="post" action="${EMEN2WEBROOT}/download/save/">
-
+<form method="post" action="${EMEN2WEBROOT}/download/">
 <h1>
 	<span id="filecount">${len(bdos)}</span> files, <span id="filesize">${filesize}</span>
-	<span class="e2l-label"><input type="submit" value="Download Checked Files" name="download" /></span>
+	<ul class="e2l-actions">
+		<li>
+			<input type="submit" value="Download Checked Files" />
+		</li>
+	</ul>
 </h1>
 
 
@@ -65,7 +71,7 @@ def convert_bytes(bytes):
 <table class="e2l-shaded" cellpadding="0" cellspacing="0">
 	<thead>
 		<tr>
-			<th><input type="checkbox" checked="checked" name="checkbids" value="" /></th>
+			<th><input type="checkbox" checked="checked" id="allbids" value="" /></th>
 			<th>Filename</th>
 			<th>Size</th>
 			<th>Record</th>
@@ -79,7 +85,7 @@ def convert_bytes(bytes):
 		<tr>
 			<td><input type="checkbox" checked="checked" name="bids" value="${bdo.name}" data-filesize="${bdo.get('filesize',0)}" /></td>
 			<td>
-				<a href="${EMEN2WEBROOT}/download/${bdo.name}/${bdo.filename}/save/">
+				<a href="${EMEN2WEBROOT}/download/${bdo.name}/${bdo.filename}">
 					<img class="e2l-thumbnail" src="${EMEN2WEBROOT}/download/${bdo.name}/${bdo.filename}?size=thumb" alt="" /> 
 					${bdo.filename}
 				</a>

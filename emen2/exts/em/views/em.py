@@ -34,8 +34,8 @@ class EMRecordPlugin(View):
 		self.template = '/em/record.plugin.image'
 		self.ctxt['rec'] = rec
 
-	@View.add_matcher(r'^/em/plugin/project/(?P<name>\d+)/$', view='RecordPlugin')
-	@View.add_matcher(r'^/em/plugin/subproject/(?P<name>\d+)/$', view='RecordPlugin')
+	@View.add_matcher(r'^/em/plugin/project/(?P<name>\d+)/$', view='RecordPlugin', name='project')
+	@View.add_matcher(r'^/em/plugin/subproject/(?P<name>\d+)/$', view='RecordPlugin', name='subproject')
 	def project(self, name, **kwargs):
 		name = int(name)
 		rec = self.db.getrecord(name)
@@ -63,8 +63,9 @@ class EMRecordPlugin(View):
 		children_grouped = self.db.groupbyrectype(children)
 		
 		# Add in some tabs for all the typical children
-		rd = self.db.getrecorddef(rec.rectype)
-		for k in rd.typicalchld:
+		# rd = self.db.getrecorddef(rec.rectype)
+		# for k in rd.typicalchld:
+		for k in ['ccd', 'grid_imaging', 'progress_report', 'labnotebook', 'manuscript', 'publication', 'publication_abstract', 'presentation', 'purification']:
 			if not children_grouped.get(k):
 				children_grouped[k] = set()
 		

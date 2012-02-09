@@ -30,10 +30,13 @@ class Download(View):
 
 	defaultType = 'application/octet-stream'
 
-	# @View.add_matcher('^/download/(?P<bids>.+)/$')
+	@View.add_matcher('^/download/$', name='multi')
 	@View.add_matcher('^/download/(?P<bids>.+)/(?P<filename>.+)/$')
 	def main(self, bids, filename=None, size=None, format=None, q=None):
-		bids = [bids]
+		##??
+		if not hasattr(bids, '__iter__'):
+			bids = [bids]
+
 		# Query for BDOs
 		if q:
 			bdos = self.db.getbinary(q=q)
@@ -53,7 +56,7 @@ class Download(View):
 
 			# If we're looking for a particular size or format..
 			size = request.args.get('size')
-			format = request.args.get('format')
+			format = request.args.get('format', 'jpg')
 			if size:
 			 	thumbname = '%s.%s.%s'%(bdo.name.replace(':', '.'), size, format)
 				filepath = os.path.join(emen2.db.config.get('paths.TILEPATH'), thumbname)
