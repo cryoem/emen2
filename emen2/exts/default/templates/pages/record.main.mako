@@ -8,7 +8,8 @@
 		width: auto;
 		padding: 0px;
 	}
-	#content_inner {
+	#content_inner
+	{
 		padding: 10px;
 	}
 </%block>
@@ -21,7 +22,7 @@
 	var ptest = ${jsonrpc.jsonutil.encode(rec.ptest())}
 	
 	// Change View
-	$('li[data-viewname]').click(function(){
+	$('span[data-viewname]').click(function(){
 		var target = $("#content_inner");
 		var viewname = $(this).attr('data-viewname') || 'recname';
 		target.attr("data-viewname", viewname);
@@ -174,6 +175,7 @@
 			elif "bdo:" in unicode(v):
 				attachments.extend([v])
 		%>
+		
 		<li data-tab="attachments">
 			<a href="#attachments">
 				<span id="attachment_count">
@@ -192,13 +194,10 @@
 		historycount += len(filter(lambda x:x[2].startswith("LOG:"), rec.get('comments',[])))
 		lastitem = 'comments'
 		%>
-		<li data-tab="tools">
-			<a href="#tools"> ${rec.rectype} ${buttons.caret()}</a>
-		</li>
 
 		## Table View
-		<li data-tab="views">
-			<a data-viewname="dicttable" href="#views"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></a>
+		<li>
+			<span data-viewname="dicttable"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></span>
 		</li>
 
 		## Siblings
@@ -225,10 +224,11 @@
 		%>
 		<li data-tab="comments" class="e2l-float-right">
 			<a href="#comments">
-					## Ian: show date_occurred, modifytime, or creationtime...?
-					${displaynames.get(rec.get('creator'), rec.get('creator'))}
-					@
-					<time datetime="${rec.get('creationtime')}">${rec.get('creationtime', '')[:10]}</time>
+
+				## Ian: show date_occurred, modifytime, or creationtime...?
+				${displaynames.get(rec.get('creator'), rec.get('creator'))}
+				@
+				<time datetime="${rec.get('creationtime')}">${rec.get('creationtime', '')[:10]}</time>
 		
 				<span id="e2l-editbar-historycount">
 				% if historycount:
@@ -270,66 +270,16 @@
 	<div data-tab="comments"></div>
 	
 	<div data-tab="siblings"></div>
-	
-	<div data-tab="tools">
-		<h4>Tools</h4>
-		<ul>
-			<li><a href="${ctxt.reverse('RecordDef',name=rec.rectype)}">${rec.rectype} protocol page</a></li>
-			<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
-			<li><a href="${EMEN2WEBROOT}/query/name==${rec.name}/attachments/">View / Download all attachments</a></li>
-			<li><a href="${EMEN2WEBROOT}/query/children.name.${rec.name}*/attachments/">View / Download all attachments in children</a></li>
-			<li><a href="${EMEN2WEBROOT}/sitemap/${rec.name}/">Child tree</a></li>
-			% if rec.isowner():
-				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/delete/">Delete this record</a></li>
-			% endif
-		</ul>
 		
-		<br />
-
-		<h4>Common Queries:</h4>
-		<ul>
-			<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/">Child records, sorted by creation time</a></li>
-			<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/?sortkey=modifytime">Child records, sorted by last modification</a></li>
-			<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/rectype.is.image_capture*/">Child images (ccd, scan, tomogram)</a></li>
-			<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/rectype.is.grid_imaging/">Child grid imaging sessions</a></li>
-			<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/">${rec.rectype} records</a></li>
-			<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/creator.is.${rec.get('creator')}/">${rec.rectype} records, created by ${rec.get('creator')}</a></li>
-		</ul>				
-	</div>
-	
-	<div data-tab="views">
-		<h4>Available views</h4>
-		<ul>
-			<%
-			nicenames = {
-				"mainview": "Main Protocol Definition",
-				"defaultview": "Default view",
-				"recname": "Short description",
-				"dicttable": "Parameter/value table",
-				"recname": "One-line summary",
-				"onelineview": "One-line summary (deprecated)"
-			}
-			%>
-			% for i in sorted(set(recdef.views.keys()+['mainview', 'dicttable'])):
-				<li class="e2l-a" data-viewname="${i}">${nicenames.get(i, i)}</li>	
-			% endfor
-		</ul>
-	</div>
-	
 </div>
 
-
-## Tile viewer
-
-% if rec.get('file_binary_image'):
-	<div class="e2-tile-outer">
-		<div class="e2-tile" style="height:512px;overflow:hidden" data-bdo="${rec.get('file_binary_image')}" data-mode="cached"></div>
-	</div>
-% endif
-
+## Subview
+<div id="content_subview">
+${subview}
+</div>
 
 ## Main rendered record
-<form id="e2-edit" method="post" data-name="${rec.name}" action="${EMEN2WEBROOT}/record/${rec.name}/edit/">
+<form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${EMEN2WEBROOT}/record/${rec.name}/edit/">
 	<div id="content_inner" class="e2-view" data-viewname="${viewname}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
 		${rendered}
 	</div>

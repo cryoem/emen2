@@ -3,6 +3,7 @@ import jsonrpc.jsonutil
 import operator 
 import collections
 %>
+
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 <%namespace name="user_util" file="/pages/user"  /> 
@@ -21,14 +22,13 @@ import collections
 		height:200,
 	});
 	
-	$('.e2-button').button();
-
 	## New record controls
 	$('.e2-record-new').RecordControl({
 		redirect:'/'
 	});
 	
-
+	$('#activity time').timeago();
+	
 </%block>
 
 <h1>
@@ -75,7 +75,7 @@ for rec in recent_activity['recs']:
 	
 months = sorted(bymonth.keys())[-6:]
 
-def asdf(x):
+def sort_by_creationtime(x):
 	c = projects_children.get(x) or [None]
 	lastitem = sorted(c)[-1]
 	return rendered_recs.get(lastitem, dict()).get('creationtime')
@@ -84,7 +84,7 @@ def asdf(x):
 if sortkey == 'children':
 	lsortkey = lambda x:len(projects_children.get(x, []))
 elif sortkey == 'activity':
-	lsortkey = asdf
+	lsortkey = sort_by_creationtime
 else:
 	lsortkey = lambda x:recnames.get(x, '').lower()
 	
@@ -101,7 +101,7 @@ else:
 </%def>
 
 <h1>
-	Groups
+	Groups and projects
 		
 	<ul class="e2l-actions">
 		<a target="_blank" class="e2-button" href="${EMEN2WEBROOT}/sitemap/">Sitemap</a></li>
@@ -120,7 +120,7 @@ else:
 </h1>
 
 
-<table class="e2l-shaded" cellpadding="0" cellspacing="0">
+<table id="activity" class="e2l-shaded" cellpadding="0" cellspacing="0">
 	<thead>
 		<tr>
 			<th>
@@ -128,18 +128,16 @@ else:
 			</th>
 
 			<th>
-				${sortlink('children', 'Children')}
+				${sortlink('children', 'Records')}
 			</th>
 
 			<th style="width:80px">
 				Activity
 			</th>
 			
-			<th style="width:150px">
+			<th colspan="2" style="width:150px">
 				${sortlink('activity', 'Last activity')}
 			</th>
-
-			<th></th>
 
 		</tr>
 	</thead>
@@ -148,21 +146,29 @@ else:
 	<tbody>
 
 		<tr>
-			<td style="background:#ccc" colspan="5">
-				<a href="${EMEN2WEBROOT}/em/group/${group}/">${recnames.get(group,group)}</a>
-
+			<td class="e2l-gradient" colspan="5">
+				<a href="${EMEN2WEBROOT}/record/${group}/">
+					${recnames.get(group,group)}
+				</a>
 				<ul class="e2l-actions">
 				% if ADMIN:
 					<li><span class="e2-button e2-record-new" data-parent="${group}" data-rectype="project">${buttons.image('edit.png','')} New project</span></li>
 				% endif
+				</ul>
 			</td>
 		</tr>
+		
+		<%
+			skipped = 0
+		%>
 		
 		% for project in sorted(projects, key=lsortkey, reverse=reverse):
 
 			<%
-				c = projects_children.get(project) or [None]
-				lastitem = sorted(c)[-1]
+				c = projects_children.get(project)
+				lastitem = None
+				if c:
+					lastitem = rendered_recs[sorted(c)[-1]]
 
 				# Make a simple little inline chart showing distribution of record creation
 				chart = {}
@@ -172,10 +178,10 @@ else:
 			%>
 
 			% if hideinactive and lastitem is None:
-			
+
 			% else:
-				<tr>
-					<td style="padding-left:20px"><a href="${EMEN2WEBROOT}/record/${project}/">${recnames.get(project,project)}</a></td>
+				<tr class="e2l-shaded-indent">
+					<td><a href="${EMEN2WEBROOT}/record/${project}/">${recnames.get(project,project)}</a></td>
 
 					<td>${len(projects_children.get(project, []))}</td>
 
@@ -185,19 +191,36 @@ else:
 						% endfor
 					</td>
 
-					% if rendered_recs.get(lastitem):
+					% if lastitem and rendered_recs.get(lastitem.name):
 						<td>
-							<time class="e2-timeago" datetime="${rendered_recs.get(lastitem)['creationtime']}">${rendered_recs.get(lastitem)['creationtime']}</time>
+							<a href="${EMEN2WEBROOT}/record/${lastitem.name}">
+								<time class="e2-timeago" datetime="${lastitem.get('creationtime')}">${lastitem.get('creationtime')}</time>
+								by ${users.get(lastitem.get('creator'), dict()).get('displayname', lastitem.get('creator'))}
+							</a>
 						</td>
-						<td>
-							<a href="${EMEN2WEBROOT}/record/${lastitem}/">${recnames.get(lastitem, lastitem)}</a>
-						</td>
+						
+						<td></td>
 					% else:
 						<td colspan="2"></td>
 					% endif
+
 				</tr>
 			% endif
 		% endfor
+
+
+		% if skipped:
+			<tr class="e2l-shaded-indent">
+				<td colspan="5">${skipped} inactive projects not shown.</td>
+			</tr>
+		% endif
+		
+		% if not projects:
+			<tr class="e2l-shaded-indent">
+				<td colspan="5">No children</td>
+			</tr>
+		% endif
+		
 	</tbody>
 	% endfor
 

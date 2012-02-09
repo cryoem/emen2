@@ -23,78 +23,86 @@ class EMEquipment(View):
 		
 
 
-# @View.register
-# class EMProject(View):
-# 	
-# 	@View.add_matcher(r'^/em/project/(?P<name>\d+)/$')
-# 	def main(self, name, **kwargs):
-# 		name = int(name)
-# 		rec = self.db.getrecord(name)
-# 		self.template = '/em/project.main'
-# 
-# 		# Recent records
-# 		recent = set()
-# 		recent.add(name)	
-# 
-# 		# Plot
-# 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
-# 		t = (datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat()+'+00:00'
-# 		q = self.db.plot(
-# 			[['children','is','%s*'%name], ['creationtime', '>=', t]], 
-# 			x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now}, 
-# 			y={'stacked':True}
-# 			)
-# 		self.ctxt['recent_activity'] = q
-# 
-# 		# Standard parent map
-# 		parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=3)
-# 
-# 		# All children
-# 		children = self.db.getchildren(name, recurse=-1)
-# 		children_grouped = self.db.groupbyrectype(children)
-# 		
-# 		# Add in some tabs for all the typical children
-# 		rd = self.db.getrecorddef(rec.rectype)
-# 		for k in rd.typicalchld:
-# 			if not children_grouped.get(k):
-# 				children_grouped[k] = set()
-# 		
-# 		# Split off subprojects
-# 		recorddefs = set(children_grouped.keys())
-# 
-# 
-# 		# project_recorddefs = self.db.getchildren('project', recurse=-1, keytype='recorddef')
-# 		# project_recorddefs.add('project')
-# 		# subprojects = set()
-# 		# for rd in project_recorddefs:
-# 		# 	subprojects |= children_grouped.pop(rd, set())
-# 		subprojects = self.db.getchildren(name, rectype=['project*'])
-# 		recent |= subprojects
-# 
-# 		# Show the 5 most recent for each type..
-# 		for k,v in children_grouped.items():
-# 			recent |= set(sorted(v)[:10])
-# 
-# 		# Render the record...
-# 		rec_rendered = self.db.renderview(name, viewname='defaultview', edit=True)
-# 
-# 		recnames = self.db.renderview(recent)
-# 		rendered_thumb = self.db.renderview(recent, viewdef='$@thumbnail()')
-# 
-# 		self.title = recnames.get(name, 'Project: %s'%name)
-# 
-# 		self.ctxt['rec'] = rec
-# 		self.ctxt['name'] = name
-# 		self.ctxt['rec_rendered'] = rec_rendered
-# 		self.ctxt['recorddefs'] = self.db.getrecorddef(recorddefs)
-# 		self.ctxt['subprojects'] = subprojects
-# 		self.ctxt['children'] = children
-# 		self.ctxt['children_grouped'] = children_grouped
-# 		self.ctxt['recent'] = recent
-# 		self.ctxt['recent_recs'] = self.db.getrecord(recent)
-# 		self.ctxt['recnames'] = recnames
-# 		self.ctxt['rendered_thumb'] = rendered_thumb
-# 		self.ctxt['parentmap'] = parentmap
+@View.register
+class EMRecordPlugin(View):	
+	@View.add_matcher(r'^/em/plugin/ccd/(?P<name>\d+)/$', view='RecordPlugin', name='ccd')
+	@View.add_matcher(r'^/em/plugin/ddd/(?P<name>\d+)/$', view='RecordPlugin', name='ddd')
+	@View.add_matcher(r'^/em/plugin/scan/(?P<name>\d+)/$', view='RecordPlugin', name='scan')
+	def image(self, name, **kwargs):
+		name = int(name)
+		rec = self.db.getrecord(name)
+		self.template = '/em/record.plugin.image'
+		self.ctxt['rec'] = rec
+
+	@View.add_matcher(r'^/em/plugin/project/(?P<name>\d+)/$', view='RecordPlugin')
+	@View.add_matcher(r'^/em/plugin/subproject/(?P<name>\d+)/$', view='RecordPlugin')
+	def project(self, name, **kwargs):
+		name = int(name)
+		rec = self.db.getrecord(name)
+		self.template = '/em/record.plugin.project'
+
+		# Recent records
+		recent = set()
+		recent.add(name)	
+
+		# Plot
+		now = datetime.datetime.utcnow().isoformat()+'+00:00'
+		t = (datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat()+'+00:00'
+		q = self.db.plot(
+			[['children','is','%s*'%name], ['creationtime', '>=', t]], 
+			x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now}, 
+			y={'stacked':True}
+			)
+		self.ctxt['recent_activity'] = q
+
+		# Standard parent map
+		parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=3)
+
+		# All children
+		children = self.db.getchildren(name, recurse=-1)
+		children_grouped = self.db.groupbyrectype(children)
+		
+		# Add in some tabs for all the typical children
+		rd = self.db.getrecorddef(rec.rectype)
+		for k in rd.typicalchld:
+			if not children_grouped.get(k):
+				children_grouped[k] = set()
+		
+		# Split off subprojects
+		recorddefs = set(children_grouped.keys())
+
+		# project_recorddefs = self.db.getchildren('project', recurse=-1, keytype='recorddef')
+		# project_recorddefs.add('project')
+		# subprojects = set()
+		# for rd in project_recorddefs:
+		# 	subprojects |= children_grouped.pop(rd, set())
+		subprojects = self.db.getchildren(name, rectype=['project*'])
+		recent |= subprojects
+
+		# Show the 5 most recent for each type..
+		for k,v in children_grouped.items():
+			recent |= set(sorted(v)[:10])
+
+		# Render the record...
+		rec_rendered = self.db.renderview(name, viewname='defaultview', edit=True)
+
+		recnames = self.db.renderview(recent)
+		rendered_thumb = self.db.renderview(recent, viewdef='$@thumbnail()')
+
+		self.ctxt['groups'] = self.db.getparents(name, recurse=-1, rectype=['group'])
+		self.ctxt['rec'] = rec
+		self.ctxt['name'] = name
+		self.ctxt['rec_rendered'] = rec_rendered
+		self.ctxt['recorddefs'] = self.db.getrecorddef(recorddefs)
+		self.ctxt['subprojects'] = subprojects
+		self.ctxt['children'] = children
+		self.ctxt['children_grouped'] = children_grouped
+		self.ctxt['recent'] = recent
+		self.ctxt['recent_recs'] = self.db.getrecord(recent)
+		self.ctxt['recnames'] = recnames
+		self.ctxt['rendered_thumb'] = rendered_thumb
+		self.ctxt['parentmap'] = parentmap
+	
 		
 
 @View.register
@@ -176,12 +184,17 @@ class EMHome(View):
 
 		# Get all the recent records we want to display
 		rendered_recs = self.db.getrecord(torender)
+		users = self.db.getuser([i.get('creator') for i in rendered_recs])
+
 		rendered_recs = dict([(i.name,i) for i in rendered_recs])
+		users = dict([(i.name,i) for i in users])
 		recnames = self.db.renderview(torender)
+		
 		
 		self.ctxt['groups_children'] = groups_children
 		self.ctxt['recnames'] = recnames
 		self.ctxt['rendered_recs'] = rendered_recs
+		self.ctxt['users'] = users
 		self.ctxt['projects_children'] = projects_children
 		self.ctxt['progress_reports'] = progress_reports
 		

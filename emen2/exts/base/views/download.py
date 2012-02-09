@@ -16,7 +16,7 @@ import emen2.web.resource
 from emen2.web.view import View
 import emen2.web.responsecodes
 import emen2.db.exceptions
-
+import emen2.db.handlers
 
 @View.register
 class Download(View):
@@ -30,6 +30,7 @@ class Download(View):
 
 	defaultType = 'application/octet-stream'
 
+	# @View.add_matcher('^/download/(?P<bids>.+)/$')
 	@View.add_matcher('^/download/(?P<bids>.+)/(?P<filename>.+)/$')
 	def main(self, bids, filename=None, size=None, format=None, q=None):
 		bids = [bids]
@@ -52,17 +53,21 @@ class Download(View):
 
 			# If we're looking for a particular size or format..
 			size = request.args.get('size')
+			format = request.args.get('format')
 			if size:
-			 	thumbname = '%s.%s.jpg'%(bdo.name.replace(':', '.'), size)
+			 	thumbname = '%s.%s.%s'%(bdo.name.replace(':', '.'), size, format)
 				filepath = os.path.join(emen2.db.config.get('paths.TILEPATH'), thumbname)
 				if not os.access(filepath, os.F_OK):
-			 		filepath = emen2.db.config.get_filename('emen2', 'web/static/images/blank.png')
-			files[filepath] = "%s.%s.jpg"%(filename, size)
+					emen2.db.handlers.BinaryHandler.thumbnail_from_binary(bdo, tilepath=emen2.db.config.get('paths.TILEPATH'))
+					# filepath = emen2.db.config.get_filename('emen2', 'web/static/images/blank.png')						
+				files[filepath] = "%s.%s.%s"%(filename, size, format)
+			else:
+				files[filepath] = filename
+			
 			
 			# This will trigger render_eb if the file is not found
 			if not os.access(filepath, os.F_OK):
 				raise IOError, "Could not access file"
-
 
 		if len(files) > 1:
 			return self._transfer_tar(files, request)

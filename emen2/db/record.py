@@ -387,6 +387,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		crecs = []
 		for rec in recs:
 			rec.setpermissions([[],[],[],[]])
+			rec.setgroups([])
 			if rec.parents and rec.children:
 				rec["comments"] = "Record hidden by unlinking from parents %s and children %s"%(", ".join([unicode(x) for x in rec.parents]), ", ".join([unicode(x) for x in rec.children]))
 			elif rec.parents:
@@ -397,10 +398,8 @@ class RecordDB(emen2.db.btrees.RelateDB):
 				rec["comments"] = "Record hidden"
 
 			rec['deleted'] = True
-			print "delete parents and children?!!?"
 			rec.children = set()
 			rec.parents = set()
-			print rec.children, rec.parents
 			crecs.append(rec)
 
 		return self.cputs(crecs, ctx=ctx, txn=txn)

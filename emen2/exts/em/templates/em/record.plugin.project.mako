@@ -2,56 +2,36 @@
 import jsonrpc.jsonutil
 import emen2.util.listops
 %>
-<%inherit file="/pages/record" />
+
 <%namespace name="buttons" file="/buttons"  /> 
-
-<%block name="js_ready">
-	${parent.js_ready()}
-
-	## Start map browser
-	$('#content .e2-map').MapControl({'attach':true});
-
-	## Recent activity viewer
-	var q = ${jsonrpc.jsonutil.encode(recent_activity)}; 
-	$('#recent_activity').PlotHistogram({
-		q:q,
-		pan: false,
-		height:200,
-	});
-
-
-	$('.e2-button').button();
-	
-	## New record controls
-	$('.e2-record-new').RecordControl({
-	});
-	$('.e2-record-edit').RecordControl({
-	});	
-	
-</%block>
 
 <%
 recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
 %>
 
-<h1>
-	Project overview
-	<ul class="e2l-actions">
-		<li><a class="e2-button e2-record-edit" data-name="${name}" href="${EMEN2WEBROOT}/record/${name}/#edit" target="_blank">${buttons.image('edit.png')} Edit</a></li>
-		<li><a class="e2-button" href="${EMEN2WEBROOT}/query/children.is.${name}*/" target="_blank">View all ${len(children)} records</a></li>
-		<li><a class="e2-button" href="${EMEN2WEBROOT}/sitemap/${name}/" target="_blank">Sitemap</a></li>
-		## <li><a class="e2-button" href="${EMEN2WEBROOT}/record/${name}/" target="_blank"></a></li>
-	</ul>
-</h1>
+<script type="text/javascript">
+	$(document).ready(function() {
+
+		## Recent activity viewer
+		var q = ${jsonrpc.jsonutil.encode(recent_activity)}; 
+		$('#recent_activity').PlotHistogram({
+			q:q,
+			pan: false,
+			height:200,
+		});
+
+		## New record controls
+		$('.e2-record-new').RecordControl({});
+		$('.e2-record-edit').RecordControl({});	
+	});
+</script>	
+
+
+<h1>Recent activity</h1>
 
 <div id="recent_activity">
 	<div class="e2-plot"></div>
 </div>
-
-
-
-${rec_rendered}
-
 
 <h1>
 	Sub-projects (${len(subprojects)})
@@ -66,9 +46,6 @@ ${rec_rendered}
 % endfor
 </ul>
 
-
-
-
 <h1>In this project...</h1>
 
 <table class="e2l-shaded" cellpadding="0" cellspacing="0">
@@ -76,8 +53,8 @@ ${rec_rendered}
 	% for rectype,items in children_grouped.items():
 		<tbody>
 
-			<tr class="e2l-shaded-header">
-				<td colspan="2">
+			<tr>
+				<td colspan="2"  class="e2l-gradient">
 					${recorddefs_d.get(rectype, dict()).get('desc_short')} (${len(items)})
 
 					<ul class="e2l-actions">

@@ -98,23 +98,6 @@ ul.e2l-actions li {
 	float: right;
 }
 
-/*h1 .e2l-actions {
-	float:right;
-	font-size:12pt;
-	margin:10px;
-	margin-right:0px;
-	margin-top:10px;
-}
-h4 .e2l-actions {
-	font-weight: normal;
-	float: right;
-	font-size: 10pt;
-}
-h4 .e2l-actions input,
-h1 .e2l-label input {
-	margin-top:-10px;
-}
-*/
 /* e2-alert: Alerts, notifications, and errors */
 .e2-alert {
 	list-style: none;
@@ -349,7 +332,9 @@ h4
 }
 
 
+/* Linear gradient... */
 /* e2-tab-editbar: Editing Bar */
+.e2l-gradient,
 .e2-tab-editbar[role=tab] {
 	border-bottom: solid 1px #ccc;
 	/* background-image: -moz-linear-gradient(#fff, #fff, #eee); */
@@ -681,12 +666,6 @@ textarea.e2l-fw {
 	background:#eee;
 }
 
-/* tiny */
-.e2-tile .e2l-label {
-	font-size: 8pt;
-	text-align: center
-}
-
 .e2-tile .e2l-controls {
 	margin: 0px;
 	display: block;
@@ -803,12 +782,7 @@ path.area {
 	float:left;
 }
 /***** jQuery UI Overrides *****/
-.e2-button {
-	margin-left:4px;
-}
-.ui-button-text {
-	padding:4px !important;
-}
+
 
 .ui-autocomplete {
 	max-width: 300px;

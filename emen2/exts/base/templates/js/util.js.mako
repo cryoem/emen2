@@ -372,6 +372,7 @@ emen2.util.sortdictstr = function(o) {
 			var edit = elem.attr('data-edit');
 			emen2.db("renderview", {'names':name, 'viewname': viewname, 'edit': edit}, function(view) {
 				elem.html(view);
+				$('time', elem).localize();
 				//$('.e2-edit', elem).EditControl({});
 			},
 			function(view){}

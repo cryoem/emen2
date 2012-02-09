@@ -438,6 +438,7 @@ class EMEN2DBEnv(object):
 			'recorddef': self.recorddef,
 			'user': self.user,
 			'group': self.group,
+			'binary': self.binary
 		}
 
 
@@ -3556,24 +3557,24 @@ class DB(object):
 		return rec
 
 
-	@publicmethod("record.delete", write=True)
+	@publicmethod("record.hide", write=True)
 	@ol('names')
-	def deleterecord(self, names, filt=True, ctx=None, txn=None):
+	def hiderecord(self, names, childaction=None, filt=True, ctx=None, txn=None):
 		"""Unlink and hide a record; it is still accessible to owner.
 		Records are never truly deleted, just hidden.
 
 		Examples:
 		
-		>>> db.deleterecord(136)
+		>>> db.hiderecord(136)
 		<Record 136 group>
 
-		>>> db.deleterecord([136, 137])
+		>>> db.hiderecord([136, 137])
 		[<Record 136 group>]
 
-		>>> db.deleterecord([136, 137], filt=False)
+		>>> db.hiderecord([136, 137], filt=False)
 		SecurityError
 		
-		>>> db.deleterecord(12345, filt=False)
+		>>> db.hiderecord(12345, filt=False)
 		KeyError
 		
 		:param name: Record name(s) to delete
@@ -3582,8 +3583,53 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
+
+		names = set(names)
+
+		if childaction == 'orphaned':
+			names |= self.findorphans(names, ctx=ctx, txn=txn)
+		elif childaction == 'all':
+			c = self.getchildren(names, ctx=ctx, txn=txn)
+			for k,v in c.items():
+				names |= v
+				names.add(k)
+		
 		self.bdbs.record.delete(names, ctx=ctx, txn=txn)
 
+
+	@publicmethod("record.addcomment", write=True)
+	def findorphans(self, names, root=0, keytype='record', ctx=None, txn=None):
+		"""Find orphaned items that would occur if names were hidden.
+		@param name Return orphans that would result from deletion of these items
+		@return Orphaned items
+		"""
+
+		names = set(names)
+		
+		children = self.getchildtree(names, recurse=-1, ctx=ctx, txn=txn)
+		allchildren = set()
+		allchildren |= names
+		for k,v in children.items():
+			allchildren.add(k)
+			allchildren |= v
+		
+		parents = self.getparenttree(allchildren, ctx=ctx, txn=txn)
+		
+		# Find a path back to root for each child
+		orphaned = set()
+		for child in allchildren:
+			visited = set()
+			stack = set() | parents.get(child, set())
+			while stack:
+				cur = stack.pop()
+				visited.add(cur)
+				stack |= (parents.get(cur, set()) - names)
+			if root not in visited:
+				orphaned.add(child)
+				
+		return orphaned - names
+
+		
 
 	@publicmethod("record.addcomment", write=True)
 	@ol('names')

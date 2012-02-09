@@ -21,9 +21,10 @@ img {
 }
 
 h4 {
-	margin-top: 5px;
-	margin-bottom: 5px;
 }
+
+
+
 th,
 td
 {
@@ -54,6 +55,7 @@ ul {
 #precontent > .e2-tab-main,
 #content,
 #content_inner,
+#content_subview,
 .e2-tab-editbar > ul,
 .e2-tab-editbar > div
 {
@@ -159,48 +161,39 @@ button,
 select,
 input,
 textarea,
-label
+.e2-button
 {
-/*	-moz-border-radius: 4px;
+	-moz-border-radius: 4px;
 	-webkit-border-radius: 4px;
-	padding:2px;
-	border-width:1px;
-*/
 	font-size:12pt;
-	margin: 0px;
-	margin-top: 4px;
-	margin-bottom: 4px;
-	margin-right: 4px;
-}
-
-button, 
-input[type=button],
-input[type=submit],
-input[type=file],
-input[type=password],
-input[type=text]
-{
+	font-weight:normal;
 	display:inline-block;
+	margin: 4px;
+	padding: 4px;
+	background: #eee;
+	color: #000;
+	border:solid 1px #aaa;
+	box-sizing:  content-box;
 }
-button, input[type=button], input[type=submit] {
-	margin-left: 0px;
-	margin-right: 0px;	
+.e2-button img {
+	margin: 0px;
+	padding: 0px;
+	vertical-align: middle;
 }
 
+input[type=text],
+input[type=password],
+input[type=email],
+select,
+textarea {
+	background: white;
+}
 
 textarea {
-	margin: 0px;
 	width: 100%;
     -webkit-box-sizing: border-box;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
-}
-
-textarea, 
-input[type=text],
-input[type=password]
-{
-	border:solid 1px #aaa;
 }
 
 input.e2l-save {

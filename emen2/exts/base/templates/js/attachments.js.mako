@@ -312,8 +312,8 @@
 						Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Attachments">EMEN2 wiki</a>. \
 					</p></div>');	
 				this.element.append(help);
-				var helper = $('<div class="e2l-label"><input type="button" value="Help" /></div>');
-				$('input', helper).click(function(e){$('[role=help]', self.element).toggle()})
+				var helper = $('<span class="e2-button e2l-float-right">Help</span>');
+				helper.click(function(e){$('[role=help]', self.element).toggle()})
 				$('h4', this.element).append(helper);
 			}
 			

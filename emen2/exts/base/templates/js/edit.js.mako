@@ -275,7 +275,7 @@
 			}
 
 			// Create the form
-			var form = $('<form action="" method="post" data-name="'+this.options.name+'" />');
+			var form = $('<form enctype="multipart/form-data"  action="" method="post" data-name="'+this.options.name+'" />');
 
 			if (this.options.mode == 'new') {
 				var desc = $.trim(rd.desc_long).replace('\n','<br /><br />'); // hacked in line breaks
@@ -393,8 +393,8 @@
 						Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/NewRecord">EMEN2 wiki</a>. \
 					</p></div>');
 				this.element.append(help);
-				var helper = $('<div class="e2l-label"><input type="button" value="Help" /></div>');
-				$('input', helper).click(function(e){$('[role=help]', self.element).toggle()})
+				var helper = $('<span class="e2-button e2l-float-right">Help</span>');
+				helper.click(function(e){$('[role=help]', self.element).toggle()})
 				$('h4', this.element).append(helper);
 			}			
 			if (this.options.summary) {
@@ -588,9 +588,7 @@
 			}
 			this.built = 1;
 			var self = this;			
-						
-			console.log(this.options.selector);
-						
+												
 			// Build the individual editing controls
 			$(this.options.selector).EditControl({
 				prefix: this.options.prefix
@@ -605,10 +603,11 @@
 					placeholder = 'Please provide a reason for the changes. This comment will be added to all changed records.'
 				}
 				
+				// Add 10px padding to the hide button b/c aarrgghh.
 				var controls = $(' \
 					<textarea class="e2l-fw" name="comments" placeholder="'+placeholder+'"></textarea> \
-					<ul class="e2l-controls"> \
-						<li><input type="submit" class="e2-edit-save" value="Save" /></li> \
+					<ul class="e2l-controls e2l-fw"> \
+						<li><a style="padding-top:10px" class="e2l-float-left e2l-small" href="'+EMEN2WEBROOT+'/record/'+self.options.name+'/hide/">(Hide this record?)</a><input type="submit" class="e2-edit-save e2l-float-right" value="Save" /></li> \
 					</ul>');
 				$('.e2-edit-show', controls).click(function() {self.show()})
 				$('.e2-edit-cancel', controls).click(function() {self.hide()})
@@ -754,7 +753,7 @@
 				'acl':'not_ready',
 				'links':'not_ready',
 				'groups':'not_ready',
-				'binary':'not_ready',
+				'binary':'binary',
 				'comments':'textarea'
 			}
 			return defaults[vt] || vt;			
@@ -808,7 +807,8 @@
 				this.element.append(this.build_iter(val));
 			} else {
 				this.element.append(this.build_item(val));
-			}			
+			}
+			this.element.append(this.build_add());	
 		},
 		
 		build_iter: function(val) {
@@ -823,7 +823,7 @@
 			// var hidden = '';
 			// $('<input type="hidden" name="'+this.options.prefix+pd.name+'" value="" />');
 			this.element.addClass('e2l-fw');
-			return $('<div />').append(ul, this.build_add());
+			return $('<div />').append(ul);
 		},
 		
 		build_item: function(val, index) {
@@ -834,10 +834,11 @@
 		},
 		
 		build_add: function(e) {
-			var self = this;
-			var b = $('<input type="button" value="+" />');
-			b.click(function() {self.add_item('')});
-			return b
+			// var self = this;
+			// var b = $('<input type="button" value="+" />');
+			// b.click(function() {self.add_item('')});
+			// return b
+			return $('')
 		},
 
 		add_item: function(val) {
@@ -993,7 +994,7 @@
 			// Add a final empty element to detect empty result..
 			var empty = $('<input type="hidden" name="'+this.options.prefix+this.options.param+'" value="" />');
 			this.element.addClass('e2l-fw');
-			return $('<div />').append(ul, this.build_add(), empty);
+			return $('<div />').append(ul, empty);
 		},
 
 		build_item: function(val, index) {
@@ -1037,17 +1038,40 @@
 	});
 	
 	// Binary Editor
-	//     $.widget("emen2edit.binary", $.emen2.EditBase, {
-	// 	build_item: function(val, index) {
-	// 		return 'Edit Binary...'
-	// 	},
-	// 	sethidden: function() {
-	// 		var self = this;
-	// 		$('.e2-edit-container', this.element).each(function(){
-	// 			$('.e2-edit-val', this).val('');
-	// 		});
-	// 	}
-	// });	
+	$.widget("emen2edit.binary", $.emen2.EditBase, {
+		build_iter: function(val, index) {
+			val = val || [];			
+			var ul = $('<div class="e2-edit-iterul e2l-cf" />');
+			for (var i=0;i<val.length;i++) {
+				var control = this.build_item(val[i], i);
+				ul.append(control);
+			}
+			// Add a final empty element to detect empty result..
+			var empty = $('<input type="hidden" name="'+this.options.prefix+this.options.param+'" value="" />');
+			this.element.addClass('e2l-fw');
+			return $('<div />').append(ul, empty);
+		},
+
+		build_item: function(val, index) {
+			var d = $('<div class="e2-attachments-infobox" />').InfoBox({
+				name: val,
+				keytype: 'binary',
+				selectable: true,
+				input: ['checkbox', this.options.prefix+this.cachepd().name, true]
+			});
+			return d
+		},
+		
+		build_add: function(e) {
+			return $('<input type="file" name="'+this.options.prefix+this.options.param+'"/>')
+		}
+		// build_iter: function(val, index) {
+		// 	var editw = $('<input type="file" name="'+this.options.prefix+this.cachepd().name+'" />')
+		// 	if (this.options.required && !index) {editw.attr('required',true)}			
+		// 	this.element.addClass('e2l-fw');
+		// 	return editw
+		// }
+	});
 	
 	// Group Editor
 	//     $.widget("emen2edit.groups", $.emen2.EditBase, {

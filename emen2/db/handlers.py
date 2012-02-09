@@ -45,11 +45,12 @@ class BinaryHandler(object):
 	# File type handlers
 	_handlers = {}
 
-	def __init__(self, filename=None, filedata=None, fileobj=None, param='file_binary'):
+	def __init__(self, filename=None, filedata=None, fileobj=None, param='file_binary', binary=None):
 		self.filename = filename
 		self.filedata = filedata
 		self.fileobj = fileobj
 		self.param = param
+		self.binary = binary
 		self.readonly = True
 		self.tmp = None
 
@@ -107,7 +108,6 @@ class BinaryHandler(object):
 	def thumbnail(self):
 		pass
 
-
 	##### Handler registration #####
 
 	@classmethod
@@ -121,9 +121,12 @@ class BinaryHandler(object):
 		return f
 
 	@classmethod
-	def get_handler(cls, filename=None, filedata=None, fileobj=None, param='file_binary'):
+	def get_handler(cls, filename=None, filedata=None, fileobj=None, param='file_binary', binary=None):
 		"""Return an appropriate file handler."""
 		handler = None
+		if binary and not filename:
+			filename = binary.get('filename')
+		
 		if filename:
 			f = filename.split(".")
 			if f[-1] in ['gz', 'bz2', 'zip']:
@@ -132,7 +135,23 @@ class BinaryHandler(object):
 				handler = f[-1]
 			
 		handler = cls._handlers.get(handler, cls)
-		return handler(filename=filename, filedata=filedata, fileobj=fileobj, param=param)
+		return handler(filename=filename, filedata=filedata, fileobj=fileobj, param=param, binary=binary)
+	
+	
+	@classmethod
+	def thumbnail_from_binary(cls, binary, **options):
+		handler = cls.get_handler(binary=binary)
+		handler.thumbnail(**options)
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		
 		
 		

@@ -53,7 +53,7 @@ class RecordBase(View):
 
 		# Some warnings/alerts
 		if self.rec.get('deleted'):
-			self.ctxt['ERRORS'].append('Deleted Record')
+			self.ctxt['ERRORS'].append('Hidden record')
 		if 'publish' in self.rec.get('groups',[]):
 			self.ctxt['NOTIFY'].append('Record marked as published data')
 		if 'authenticated' in self.rec.get('groups',[]):
@@ -62,10 +62,7 @@ class RecordBase(View):
 			self.ctxt['NOTIFY'].append('Anyone may access this record anonymously')
 
 		# Parent map
-		if parents:
-			parentmap = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='parents', recurse=3)
-		else:
-			parentmap = ''
+		parentmap = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='parents', recurse=3)
 
 		# Children
 		pages = collections.OrderedDict()
@@ -95,13 +92,16 @@ class RecordBase(View):
 
 
 
-
+@View.register
+class RecordPlugin(View):
+	pass
+	
+	
 
 @View.register
 class Record(RecordBase):
-
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
-	def main(self, name=None, sibling=None):
+	def main(self, name=None, sibling=None, **kwargs):
 		self.initr(name=name)
 		self.template = '/pages/record.main'
 
@@ -111,15 +111,23 @@ class Record(RecordBase):
 		sibling = int(sibling)
 		siblings = self.db.getsiblings(sibling, rectype=self.rec.rectype)
 
+		# Render main view
 		viewname = "defaultview"
 		if not self.recdef.views.get("defaultview"):
 			viewname = "mainview"
-
-		# Render main view
 		rendered = self.db.renderview(self.rec, viewname=viewname, edit=self.rec.writable())
 
+		# Try to render any additional plugin views
+		# This might change
+		subview = ''
+		try:
+			subview = self.routing.execute('RecordPlugin/%s'%self.rec.rectype, db=self.db, name=self.name, **kwargs)
+		except Exception, e:
+			pass
+			
 		#######################################
 		self.ctxt.update(
+			subview = subview,
 			viewname = viewname,
 			rendered = rendered,
 			sibling = sibling,
@@ -186,15 +194,10 @@ class Record(RecordBase):
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/relationships/$', name='edit/relationships')
 	def edit_relationships(self, name=None, parents=None, children=None):
 		# ian: todo: Check orphans, show orphan confirmation page
-		# ian: add map(int) for now..
 		parents = set(map(int,listops.check_iterable(parents)))
 		children = set(map(int,listops.check_iterable(children)))
 		if self.request_method == 'post':
 			rec = self.db.getrecord(name, filt=False)
-			# print "Parents added:", parents - rec.parents
-			# print "Parents removed:", rec.parents - parents
-			# print "Children added:", children - rec.children
-			# print "Children removed:", rec.children - children
 			rec.parents = parents
 			rec.children = children
 			rec = self.db.putrecord(rec)
@@ -331,23 +334,26 @@ class Record(RecordBase):
 
 
 	#@write
-	@View.add_matcher("^/record/(?P<name>\d+)/delete/$")
-	def delete(self, commit=False, name=None):
+	@View.add_matcher("^/record/(?P<name>\d+)/hide/$")
+	def hide(self, commit=False, name=None, childaction=None):
 		"""Main record rendering."""
 
 		self.initr(name=name)
-		self.template = "/pages/record.delete"
-		self.title = "Delete Record"
+		self.template = "/pages/record.hide"
+		self.title = "Hide record"
 
-		orphans = checkorphans(self.db, self.name)
-		recnames = self.db.renderview(orphans)
+		orphans = self.db.findorphans([self.name])
+		recnames = {} #self.db.renderview([self.name])
+		children = self.db.getchildren(self.name, recurse=-1)
 
 		if commit:
-			self.db.deleterecord(self.name)
+			self.db.hiderecord(self.name, childaction=childaction)
 
-		self.set_context_item("commit", commit)
-		self.set_context_item("orphans", orphans)
-		self.set_context_item("recnames", recnames)
+		self.ctxt['name'] = name
+		self.ctxt['children'] = children
+		self.ctxt['commit'] = commit
+		self.ctxt['orphans'] = orphans
+		self.ctxt['recnames'] = recnames
 
 
 	@View.add_matcher(r'^/record/(?P<name>\d+)/history/$')
@@ -481,39 +487,6 @@ class Records(View):
 
 
 
-
-# moved from db...
-def checkorphans(db, name):
-	"""Find orphaned records that would occur if name was deleted.
-
-	@param name Return orphans that would result from deletion of this Record
-
-	@return Set of orphaned Record IDs
-	"""
-	sname = set([name])
-	saved = set()
-
-	# this is hard to calculate
-	children = db.getchildtree(name, recurse=-1)
-	orphaned = reduce(set.union, children.values(), set())
-	orphaned.add(name)
-	parents = db.getparenttree(orphaned)
-
-	# orphaned is records that will be orphaned if they are not rescued
-	# find subtrees that will be rescued by links to other places
-	for child in orphaned - sname:
-		if parents.get(child, set()) - orphaned:
-			saved.add(child)
-
-	children_saved = db.getchildtree(saved, recurse=-1)
-	children_saved_set = set()
-	for i in children_saved.values() + [set(children_saved.keys())]:
-		children_saved_set |= i
-	# .union( *(children_saved.values()+[set(children_saved.keys())], set()) )
-
-	orphaned -= children_saved_set
-
-	return orphaned
 
 
 

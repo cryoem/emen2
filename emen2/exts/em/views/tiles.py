@@ -148,12 +148,14 @@ class TilesCheck(View):
 		bdocounter = bdo.get('name')
 		tilepath = emen2.db.config.get('paths.TILEPATH')
 		filepath = os.path.join(tilepath, self.bid.replace(":",".")+".tile")
+		
+		# Build
+		if not os.access(filepath, os.F_OK):
+			try:
+				emen2.db.handlers.BinaryHandler.thumbnail_from_binary(bdo, tilepath=tilepath)
+			except:
+				raise ValueError, "Could not create tile"
 
-		# if self.rebuild or not os.access(filepath,os.R_OK):
-		# 	try:
-		# 		emen2.web.thumbs.run_from_bdo(bdo, wait=True)
-		# 	except Exception, e:
-		# 		raise ValueError, "Could not create tile: %s"%e
 
 		dims = get_tile_dim(filepath)
 		dimsx = [i[0] for i in dims]

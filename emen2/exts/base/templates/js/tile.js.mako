@@ -718,7 +718,7 @@
 				self.autocenter();
 			});			
 			controls.find("input[name=save]").click(function() {
-				var loc = EMEN2WEBROOT + '/download/' + self.options.bdo + '/' + self.options.filename + '/save/';
+				var loc = EMEN2WEBROOT + '/download/' + self.options.bdo + '/' + self.options.filename + '/';
 				window.open(loc);
 				// $('<iframe />', {
 				//     name:'myFrame',
@@ -756,7 +756,7 @@
 				this.inner.css('left',0);
 
 			} else if (mode == "pspec") {
-				var modeimg = $('<img src="'+EMEN2WEBROOT+'/download/'+this.options.bdo+'?size=pspec&format=png" alt="pspec" />');
+				var modeimg = $('<img src="'+EMEN2WEBROOT+'/download/'+this.options.bdo+'/pspec.png?size=pspec&format=png" alt="pspec" />');
 				this.inner.append(modeimg);				
 			}
 		},

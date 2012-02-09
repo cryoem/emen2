@@ -664,7 +664,7 @@ class vt_binary(Vartype):
 	#:
 	keytype = None
 	#:
-	elem_class = "e2-edit-binary"
+	elem_class = "e2-edit"
 
 	def validate(self, value):
 		return self._rci([i.name for i in self.engine.db.getbinary(ci(value), filt=False)])
