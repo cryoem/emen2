@@ -20,7 +20,6 @@ import emen2.db.datatypes
 
 # TODO: Remove UserDict, just do all the methods myself?
 # TODO: implement collections.MutableMapping instead of subclassing DictMixin
-
 class BaseDBObject(object, UserDict.DictMixin):
 	"""Base class for EMEN2 DBOs.
 
@@ -135,7 +134,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		# Validate the name -- the only always required parameter for all DBOs
 		p['name'] = self.validate_name(_d.pop('name', None))
 
-		# Base parameters
+		# Base owner/time parameters
 		p['creator'] = self._ctx.username
 		p['creationtime'] = t
 		p['modifyuser'] = self._ctx.username
@@ -197,7 +196,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 		if self._ctx.username == getattr(self, 'creator', None):
 			return True
 
-		return self._ctx.username == getattr(self, 'owner', None)
 
 	def writable(self, key=None):
 		"""Check write permissions."""
@@ -557,6 +555,7 @@ class PermissionsDBObject(BaseDBObject):
 
 		# Setup the base permissions
 		p['permissions'] = [[],[],[],[]]
+		p['permissions_inherit'] = set()
 		p['groups'] = set()
 
 		if self._ctx.username != 'root':
@@ -591,7 +590,7 @@ class PermissionsDBObject(BaseDBObject):
 		self.__dict__['_ctx'] = ctx
 
 		# test for owner access in this context.
-		if self._ctx.checkreadadmin():
+		if self._ctx.checkadmin():
 			self.__dict__['_ptest'] = [True, True, True, True]
 			return True
 
@@ -629,7 +628,9 @@ class PermissionsDBObject(BaseDBObject):
 
 		:rtype: bool
 		"""
-		return any(self._ptest)
+		# First check if we have any defined permission, then run
+		# checkreadadmin() as a last minute rescue
+		return any(self._ptest) or self._ctx.checkreadadmin()
 
 	def commentable(self):
 		"""Does user have permission to comment (level 1)?
