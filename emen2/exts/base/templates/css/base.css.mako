@@ -388,6 +388,9 @@ h4
 .e2-edit-widget {
 	display:inline-block;
 }
+.e2-edit-containers {
+	list-style: none;
+}
 
 /***** e2-newrecord: New Record *****/
 .e2-newrecord-desc_long {
@@ -455,12 +458,11 @@ h4
 	overflow-x: hidden;
 */	border-bottom: none;
 	margin-top: 0px;
-	margin-left: 50px;
 	margin-bottom: 5px;
 	font-weight:normal;
 	font-size:12pt;
 }
-.e2-infobox p {
+.e2-infobox > div {
 	margin:0px;
 	margin-left: 50px;
 }

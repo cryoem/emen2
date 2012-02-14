@@ -69,13 +69,13 @@
 
 			<tr>
 				<td>Created:</td>
-				<td><time datetime="${group.creationtime}">${group.creationtime}</time></td>
+				<td><time class="e2-localize" datetime="${group.creationtime}">${group.creationtime}</time></td>
 			</tr>
 
 
 			<tr>
 				<td>Modified:</td>
-				<td><time datetime="${group.modifytime}">${group.modifytime}</time></td>
+				<td><time class="e2-localize" datetime="${group.modifytime}">${group.modifytime}</time></td>
 			</tr>
 
 		% endif

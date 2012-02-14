@@ -353,7 +353,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'nikon_gain',
   'parents': ['scanner'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'float'},
 
@@ -416,7 +416,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_plax',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -552,7 +552,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'assess_image_quality',
   'parents': ['textual_descriptions'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -807,7 +807,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'zeiss_brightness',
   'parents': ['scanner'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'float'},
 
@@ -1082,7 +1082,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'lens_il4dac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -1352,7 +1352,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'grids_tem_lost',
   'parents': ['grid'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -1457,7 +1457,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'lens_il1dac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -1519,7 +1519,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_beamtiltx',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -1582,7 +1582,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'lens_cl1dac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -1645,7 +1645,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'lens_cmdac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -1694,7 +1694,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_imageshiftx',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -1715,7 +1715,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_imageshifty',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -1984,7 +1984,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_olstigx',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -2005,7 +2005,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_gunshifty',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -2425,7 +2425,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_gunshiftx',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -2488,7 +2488,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'lens_pl3dac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -2509,7 +2509,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_play',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -2690,7 +2690,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'film_screen_ratio',
   'parents': ['ratio', 'film'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'float'},
 
@@ -2758,7 +2758,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_guntilty',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -2779,7 +2779,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_guntiltx',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -2842,7 +2842,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'scan_average',
   'parents': ['scanner'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'float'},
 
@@ -3451,7 +3451,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'eos_htlevel',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -3514,7 +3514,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'lens_pl2dac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -3682,7 +3682,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_clstigy',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -3703,7 +3703,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_clstigx',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -4913,7 +4913,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'lens_cl3dac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -5237,7 +5237,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'ctf_snr_max',
   'parents': ['ctf'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'float'},
 
@@ -5436,7 +5436,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'eos_alpha',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -6199,7 +6199,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'eos_imagingmode',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -6625,7 +6625,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_beamshifty',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -6646,7 +6646,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_beamshiftx',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -7435,7 +7435,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'lens_pl1dac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -7632,7 +7632,7 @@ paramdefs =  [
   'parents': ['aliquot'],
   'property': None,
   'uri': None,
-  'vartype': 'string'},
+  'vartype': 'text'},
 
 
  {'children': [],
@@ -7861,7 +7861,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'eos_spectrummode',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -8374,7 +8374,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'grids_tem_good',
   'parents': ['grid'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -8599,7 +8599,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'aliquot_used',
   'parents': ['aliquot'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -8764,7 +8764,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'tem_spot_size',
   'parents': ['microscope', 'area'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'float'},
 
@@ -8915,7 +8915,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'dose_rate_scaling_factor',
   'parents': ['microscope'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'float'},
 
@@ -9407,7 +9407,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'defocus_absdac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -9449,7 +9449,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'eos_magcamindex',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -9512,7 +9512,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_beamtilty',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -9699,7 +9699,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'lens_il3dac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -9741,7 +9741,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'lens_cl2dac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -9804,7 +9804,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_ilstigx',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -10140,7 +10140,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'position_stage_y',
   'parents': ['microscope'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'float'},
 
@@ -10161,7 +10161,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'position_stage_x',
   'parents': ['microscope'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'float'},
 
@@ -10523,7 +10523,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'ccd_screen_ratio',
   'parents': ['ratio', 'ccd_camera'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'float'},
 
@@ -10610,7 +10610,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'lens_il2dac',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -10631,7 +10631,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'aliquot_count',
   'parents': ['aliquot'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -10717,7 +10717,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'digicamprm_binning',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -10885,7 +10885,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'eos_illuminationmode',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -11258,7 +11258,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'grids_tem_used',
   'parents': ['grid'],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -11640,7 +11640,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_olstigy',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -11703,7 +11703,7 @@ paramdefs =  [
   'modifyuser': 'root',
   'name': 'def_ilstigy',
   'parents': [],
-  'property': 'unitless',
+  'property': None,
   'uri': None,
   'vartype': 'int'},
 
@@ -11865,6 +11865,7 @@ $#date_occurred: $$date_occurred
 # Service performed
 $#service_engineer:  $$service_engineer  
 $#service_date:  $$service_date   
+(if different than date occurred above)
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
@@ -11882,7 +11883,7 @@ $$file_binary
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': {'recname': """Maintenance: $$service_type by $$service_engineer on $$service_date"""}},
+  'views': {'recname': """Maintenance: $$service_type on $$date_occurred"""}},
 
 
 
@@ -11944,7 +11945,7 @@ For glow discharge, the discharge time is $$time_glowdischarge
 # Freezing
 $#grid_volume_applied: $$grid_volume_applied  
 
-## Plunger settings
+# Plunger settings
 $#vitrobot_temp: $$vitrobot_temp    
 $#vitrobot_time_blot: $$vitrobot_time_blot   
 $#vitrobot_blots: $$vitrobot_blots  
@@ -11966,7 +11967,7 @@ $#description_storage: $$description_storage
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': { 'recname': """Freezing session with $$vitrification_device by $$performed_by on $$date_occurred"""}},
+  'views': { 'recname': """Freezing session: $$title_freezing using $$vitrification_device by $$performed_by on $$date_occurred"""}},
 
 
 
@@ -12007,7 +12008,8 @@ $#date_occurred: $$date_occurred
 
 # Service performed
 $#service_engineer:  $$service_engineer  
-$#service_date:  $$service_date   
+$#service_date:  $$service_date  
+(if different than the date occurred field above) 
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
@@ -12025,7 +12027,7 @@ $$file_binary
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': {'recname': """Equipment maintenance by $$performed_by on $$date_occurred"""}},
+  'views': {'recname': """Equipment maintenance: $$service_type on $$date_occurred"""}},
 
 
 
@@ -12059,7 +12061,7 @@ $$file_binary
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': { 'recname': """Project discussion about $$subject_notebook with $$author_list on $$date_occurred """}},
+  'views': { 'recname': """Project meeting: $$subject_notebook with $$author_list on $$date_occurred"""}},
 
 
 
@@ -12129,7 +12131,7 @@ Rotate the joystick to adjust the z-height.  When properly adjusted, the image s
 Disengage wobbler by pressing "Wobbler X" again.  
 Use the X Y shift knobs to center the beam.  
 
-## Aligning the Condenser Aperture
+# Aligning the Condenser Aperture
 Insert the condenser aperture.  
 Spread the beam to cover the outer echelons.  
 Center the aperture using the aperture knobs  
@@ -12334,7 +12336,7 @@ $$abstract
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': { 'recname': """Article: $$title_publication""",
+  'views': { 'recname': """Article: $$title_publication by $$author_corresponding""",
              'tabularview': """$$title_publication $$author_first $$author_list $$journal_date $$name_journal $$pmid $$pmcid"""}},
 
 
@@ -12350,8 +12352,13 @@ $$abstract
 # Software project: $$name_project
 
 <div style="border:solid 1px #ccc;padding:10px;margin:10px;margin-left:0px;width:400px">
+
 $#project_status: $$project_status  
+
 $#project_block: $$project_block  
+
+<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>  
+
 </div>
 
 # Important note
@@ -12360,7 +12367,7 @@ Please use nested projects going forward, instead of subprojects. This applies t
 $#name_pi: $$name_pi  
 $#project_investigators: $$project_investigators  
 
-### Project Description
+# Project Description
 
 $#project_type: $$project_type 
 
@@ -12423,7 +12430,7 @@ $#zeiss_brightness: $$zeiss_brightness
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': { 'recname': """Scanned using $$scanner_film by $$scanned_by / $$performed_by""",
+  'views': { 'recname': """Micrograph scan using $$scanner_film by $$performed_by""",
              'tabularview': """$$scanner_film $$scan_average $$scanner_cartridge $$file_binary_image $$scanned_by"""}},
 
 
@@ -12460,7 +12467,7 @@ $$file_binary
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': { 'recname': """Camera maintenance: $$service_type by $$service_engineer on $$service_date"""}},
+  'views': { 'recname': """Camera maintenance: $$service_type on $$date_occurred"""}},
 
 
 
@@ -12881,8 +12888,13 @@ Use the alignment protocol for the particular microscope to:
 # $#name_project: $$name_project
 
 <div style="border:solid 1px #ccc;padding:10px;margin:10px;margin-left:0px;width:400px">
-$#project_status: $$project_status 
-$#project_block: $$project_block 
+
+$#project_status: $$project_status  
+
+$#project_block: $$project_block  
+
+<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>  
+
 </div>
 
 $#name_pi: $$name_pi  
@@ -12890,7 +12902,7 @@ $#project_investigators: $$project_investigators
 
 $#project_type: $$project_type  
 
-### Specimen
+# Specimen
 $#name_specimen: $$name_specimen  
 $#symmetry_particle: $$symmetry_particle  
 $#mass_specimen: $$mass_specimen  
@@ -12898,12 +12910,12 @@ $#diameter_max: $$diameter_max
 $#diameter_min:    $$diameter_min  
 $#hazard_bl_max: $$hazard_bl_max   
 
-### Project Description
+# Project Description
 $#description_goals:  $$description_goals
 $#description_medical_relevance:  $$description_medical_relevance
 $#description_background: $$description_background
 
-### Associated sequence data
+# Associated sequence data
 $#description_genetic: $$description_genetic  
 (Or, for single components):
 $#sequence_dna: $$sequence_dna  
@@ -13101,7 +13113,7 @@ For glow discharge, the discharge time is $$time_glowdischarge
 
 $#grid_volume_applied: $$grid_volume_applied  
 
-## Plunger settings
+# Plunger settings
 
 $#vitrobot_temp: $$vitrobot_temp    
 $#vitrobot_time_blot: $$vitrobot_time_blot   
@@ -13147,12 +13159,12 @@ $$comments""",
 
 Note: currently being reworked
 
-## Specimen Holder Precheck
+# Specimen Holder Precheck
 Locate the $$specimen_holder specimen holder  
 Inspect the tip of the holder; ensure that the stage is clean, not coated with residue, and that an old grid is not loaded  
 Verify that the holder's rubber O-rings are dust-free, lubricated, and free of cracks  
 
-## Preparing the Specimen Holder
+# Preparing the Specimen Holder
 Place the specimen holder in its own appropriate holder  
 Attach the temperature sensor to the cryoholder  
 Note that there are two ends to the holder.  The end where the grid will eventually be added will be referred to as the open-end, while the other end will be called the heat-sink end.  
@@ -13163,7 +13175,7 @@ Submerge the end of a specimen holder loading stick in the liquid nitrogen in th
 Wait approximately 10 minutes for the holder to cool down.  Refill liquid nitrogen as needed.  
 The temperature should be no higher than -160 degrees C  
 
-## Loading the Grid
+# Loading the Grid
 Obtain the grid that will be used for imaging  
 Remove the grid (and its transfer stick) from its storage container and place it in the specimen holder's holder's open end.   
 Unscrew the grid from its transfer stick - make sure the grid remains submerged in the liquid nitrogen during this process.  
@@ -13281,6 +13293,7 @@ $#date_occurred: $$date_occurred
 # Service performed
 $#service_engineer:  $$service_engineer  
 $#service_date:  $$service_date   
+(if different than date occurred above)
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
@@ -13298,7 +13311,7 @@ $$file_binary
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': { 'recname': """Maintenance: $$service_type by $$service_engineer on $$service_date"""}},
+  'views': { 'recname': """Maintenance: $$service_type on $$date_occurred"""}},
 
 
 
@@ -13330,7 +13343,7 @@ $#grant_pi: $$grant_pi
   'private': 0,
   'typicalchld': ['p41_project'],
   'uri': None,
-  'views': { 'recname': """P41 APR($$p41_year)""",
+  'views': { 'recname': """P41 APR - $$p41_year""",
              'tabularview': """$$p41_year $$p41_title $$p41_report_start_date"""}},
 
 
@@ -13593,7 +13606,7 @@ $$file_binary
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': { 'recname': """Book: $$name_book, $$name_chapter  """,
+  'views': { 'recname': """Book: $$name_book, $$name_chapter""",
              'tabularview': """$$name_chapter $$author_first $$author_list $$name_book $$pmid $$pmcid"""}},
 
 
@@ -13823,7 +13836,7 @@ $#photo_manualexptime:  $$photo_manualexptime""",
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': { 'recname': """JADAS: $$id_ccd_frame""",
+  'views': { 'recname': """JADAS: $$file_binary_image""",
              'tabularview': """$@thumbnail() $$file_binary_image $$ctf_defocus_set $$ctf_defocus_measured $$tem_magnification_set $$ctf_bfactor $$time_exposure_tem $$tem_dose_rate $$assess_image_quality"""}},
 
 
@@ -13863,8 +13876,7 @@ This protocol is being worked on
   'mainview': """
 
 # $#subject_notebook: $$subject_notebook
-
-$#description_notebook: $$description_notebook
+$$description_notebook
 
 # Comments
 $$comments
@@ -14154,7 +14166,7 @@ $#description_storage: $$description_storage
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': { 'recname': """Pneumatic freezing session $$title_freezing by $$performed_by on $$date_occurred"""}},
+  'views': { 'recname': """Pneumatic freezing session: $$title_freezing by $$performed_by on $$date_occurred"""}},
 
 
 
@@ -14221,14 +14233,19 @@ Description: $$folder_description
 # Software project: $$name_project
 
 <div style="border:solid 1px #ccc;padding:10px;margin:10px;margin-left:0px;width:400px">
-$#project_status: $$project_status 
-$#project_block: $$project_block 
+
+$#project_status: $$project_status  
+
+$#project_block: $$project_block  
+
+<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>  
+
 </div>
 
 $#name_pi: $$name_pi
 $#project_investigators: $$project_investigators
 
-### Project Description
+# Project Description
 
 $#project_type: $$project_type 
 $#description_goals: $$description_goals
@@ -14306,18 +14323,23 @@ $$file_binary
 # Subproject: $$name_project
 
 <div style="border:solid 1px #ccc;padding:10px;margin:10px;margin-left:0px;width:400px">
-$#project_status: $$project_status 
-$#project_block: $$project_block 
+
+$#project_status: $$project_status  
+
+$#project_block: $$project_block  
+
+<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>  
+
 </div>
 
-## Subproject-specific information, if different from main project
+# Subproject-specific information, if different from main project
 
 $#name_pi: $$name_pi  
 $#project_investigators: $$project_investigators  
 
 $#project_type: $$project_type  
 
-### Specimen
+# Specimen
 $#name_specimen: $$name_specimen  
 $#symmetry_particle: $$symmetry_particle  
 $#mass_specimen: $$mass_specimen  
@@ -14325,12 +14347,12 @@ $#diameter_max: $$diameter_max
 $#diameter_min:    $$diameter_min  
 $#hazard_bl_max: $$hazard_bl_max   
 
-### Project Description
+# Project Description
 $#description_goals:  $$description_goals
 $#description_medical_relevance:  $$description_medical_relevance
 $#description_background: $$description_background
 
-### Associated sequence data
+# Associated sequence data
 $#description_genetic: $$description_genetic  
 (Or, for single components):
 $#sequence_dna: $$sequence_dna  
@@ -14468,7 +14490,7 @@ $#ctf_ampcont: $$ctf_ampcont
   'private': False,
   'typicalchld': ['box'],
   'uri': None,
-  'views': { 'recname': """DDD $$id_ccd_frame""",
+  'views': { 'recname': """DDD $$file_binary_image""",
              'tabularview': """$@thumbnail() $$file_binary_image $$ctf_defocus_set $$ctf_defocus_measured $$tem_magnification_set $$ctf_bfactor $$time_exposure_tem $$tem_dose_rate $$assess_image_quality"""}},
 
 
@@ -14576,7 +14598,7 @@ For glow discharge, the discharge time is $$time_glowdischarge
 # Freezing
 $#grid_volume_applied: $$grid_volume_applied  
 
-## Plunger settings
+# Plunger settings
 $#vitrobot_temp: $$vitrobot_temp    
 $#vitrobot_time_blot: $$vitrobot_time_blot   
 $#vitrobot_blots: $$vitrobot_blots  
@@ -14633,7 +14655,7 @@ For glow discharge, the discharge time is $$time_glowdischarge
 # Freezing
 $#grid_volume_applied: $$grid_volume_applied  
 
-## Plunger settings
+# Plunger settings
 $#vitrobot_temp: $$vitrobot_temp    
 $#vitrobot_time_blot: $$vitrobot_time_blot   
 $#vitrobot_blots: $$vitrobot_blots  
@@ -14849,17 +14871,17 @@ $#date_occurred: $$date_occurred
 # Attachments
 $$file_binary
 
+Note: uploading very large (&gt;1gb) files with this form may cause browser crashes; please use the "Attachments" tool (paper clip icon) after the record has been created.
+
+The following values will be harvested from the image stack header.
+
+# Values from header
 $#stack_size_nx: $$stack_size_nx  
 $#stack_size_ny: $$stack_size_ny  
 $#stack_size_nz: $$stack_size_nz  
 $#stack_maxangle: $$stack_maxangle  
 $#stack_minangle: $$stack_minangle  
 
-## Labels
-$#stack_data_nlabl: $$stack_data_nlabl 
-$#stack_data_labels: $$stack_data_labels 
-
-## Collected Values
 $#stack_slitwidth: $$stack_slitwidth  
 $#aperture_objective: $$aperture_objective  
 $#stack_saxtonincrement: $$stack_saxtonincrement  
@@ -14868,7 +14890,10 @@ $#ctf_defocus_set: $$ctf_defocus_set
 $#tem_magnification_set: $$tem_magnification_set  
 $#binning: $$binning  
 
-## Additional Values from Header
+$#stack_data_nlabl: $$stack_data_nlabl  
+$#stack_data_labels: $$stack_data_labels 
+
+# Additional Values from Header
 $#stack_data_mode: $$stack_data_mode  
 
 $#stack_start_nx: $$stack_start_nx  
@@ -15034,7 +15059,7 @@ $$agenda
   'private': 0,
   'typicalchld': ['presentation'],
   'uri': None,
-  'views': { 'recname': """Workshop: $$name_project on $$date_start""",
+  'views': { 'recname': """$$name_project Workshop on $$date_start""",
              'tabularview': """$$name_project $$date_start $$date_end"""}},
 
 
@@ -15131,6 +15156,7 @@ $#date_occurred: $$date_occurred
 # Service performed
 $#service_engineer:  $$service_engineer  
 $#service_date:  $$service_date   
+(if different than date occurred above)
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
@@ -15148,7 +15174,7 @@ $$file_binary
   'private': 0,
   'typicalchld': [],
   'uri': None,
-  'views': { 'recname': """Scanner maintenance: $$service_type by $$service_engineer on $$service_date"""}},
+  'views': { 'recname': """Scanner maintenance: $$service_type on $$service_date"""}},
 
 
 
@@ -15295,7 +15321,7 @@ $$file_binary_image
 
 # Additional details
 $#number_exposure:   $$number_exposure    
-$#status_energy_filter:   $$status_energy_filter 
+$#status_energy_filter:   $$status_energy_filter  
 $#beam_diameter_tem:   $$beam_diameter_tem  
 $#current_screen:    $$current_screen  
 
@@ -15321,7 +15347,7 @@ $#ctf_bfactor: $$ctf_bfactor
 $#ctf_snr_max: $$ctf_snr_max  
 $#ctf_ampcont: $$ctf_ampcont
 """,
-             'recname': """CCD $$id_ccd_frame""",
+             'recname': """CCD $$file_binary_image""",
              'tabularview': """$@thumbnail() $$file_binary_image $$ctf_defocus_set $$ctf_defocus_measured $$tem_magnification_set $$ctf_bfactor $$time_exposure_tem $$tem_dose_rate $$assess_image_quality"""}},
 
 

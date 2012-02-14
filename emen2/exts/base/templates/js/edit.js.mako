@@ -103,6 +103,7 @@
 			$.each(keys, function(i, date) {
 				$.each(bydate[date], function(user, events) {
 					var d = $('<div />');
+					// put the text as 'body' so it is rendered after the callback to get the user info
 					d.InfoBox({
 						'keytype':'user',
 						'name': user,
@@ -128,27 +129,18 @@
 		makebody: function(events) {
 			var comments = [];
 			var rows = [];
-			$.each(events, function(i, event) {
-				if (event.length == 3) {'<p>'+comments.push(event[2])+'</p>'}
-				if (event.length == 4) {
-					var pdname = event[2];
+			$.each(events, function(i, e) {
+				if (e.length == 3) {
+					comments.push(e[2]+'<br />');
+				} else if (e.length == 4) {
+					var pdname = e[2];
 					if (emen2.caches['paramdef'][pdname]){pdname=emen2.caches['paramdef'][pdname].desc_short}
-					var row = ' \
-						<tr> \
-							<td style="width:16px">'+emen2.template.image('edit.png')+'</td> \
-							<td>edited <a href="'+EMEN2WEBROOT+'/paramdef/'+event[2]+'/">'+pdname+'</a></td> \
-						</tr><tr> \
-							<td /> \
-							<td>Old value: '+event[3]+'</td> \
-						</tr>';
-					rows.push(row);
+					var row = '<p style="margin-left:0px">'+emen2.template.image('edit.png')+' edited <a href="'+EMEN2WEBROOT+'/paramdef/'+e[2]+'/">'+pdname+'</a>. Previous value was:</p><p style="margin-left:50px">'+e[3]+'</p';
+					comments.push(row);
 				}
 			});
 			comments = comments.join('');
-			if (rows) {
-				rows = '<table cellpadding="0" cellspacing="0"><tbody>'+rows.join('')+'</tbody></table>';
-			} else { rows = ''}
-			return comments + rows;
+			return comments
 		},
 		
 		save: function(e) {	
@@ -754,7 +746,7 @@
 				'links':'not_ready',
 				'groups':'not_ready',
 				'binary':'binary',
-				'comments':'textarea'
+				'comments':'comments'
 			}
 			return defaults[vt] || vt;			
 		},		
@@ -787,9 +779,8 @@
 	$.widget('emen2.EditBase', {
 		options: {
 			name: null,
-			param: null,
-			iterwrap: '<li />'
-		},				
+			param: null
+		},
 
 		_create: function() {
 			this.build_control();
@@ -803,7 +794,7 @@
 			if (this.options.block) {
 				this.element.addClass('e2l-fw');
 			}			
-			if (pd.iter) {
+			if (pd.iter && pd.name != 'comments') {
 				this.element.append(this.build_iter(val));
 			} else {
 				this.element.append(this.build_item(val));
@@ -814,36 +805,31 @@
 		build_iter: function(val) {
 			if (!val) {val == []}
 			var pd = this.cachepd();
-			var ul = $('<ul class="e2-edit-iterul" />');
+			var ul = $('<ul class="e2-edit-containers" />');
 			for (var i=0; i<val.length+1; i++) {
 				var control = this.build_item(val[i], i);
 				ul.append($('<li />').append(control));
 			}
-			// Must append a hidden element...
-			// var hidden = '';
-			// $('<input type="hidden" name="'+this.options.prefix+pd.name+'" value="" />');
 			this.element.addClass('e2l-fw');
-			return $('<div />').append(ul);
+			return ul
 		},
 		
 		build_item: function(val, index) {
 			var pd = this.cachepd();
 			var editw = $('<input type="text" name="'+this.options.prefix+pd.name+'" value="'+val+'" autocomplete="off" />');
-			if (this.options.required && !index) {editw.attr('required',true)}			
-			return editw
+			if (this.options.required && !index) {editw.attr('required',true)}
+			return $('<span class="e2-edit-container" />').append(editw)
 		},
 		
 		build_add: function(iter) {
-			// var self = this;
-			// var b = $('<input type="button" value="+" />');
-			// b.click(function() {self.add_item('')});
-			// return b
 			return $('')
 		},
 
 		add_item: function(val) {
-			var ul = $('.e2-edit-iterul', this.element);
-			ul.append($(this.options.iterwrap).append(this.build_item(val, -1)));
+			var ul = $('.e2-edit-containers', this.element);
+			ul.append(
+				$('<li />').append(this.build_item(val, -1))
+			);
 		},
 		
 		getval: function() {
@@ -916,10 +902,6 @@
 					});
 				}
 			});
-			//editw.click(function() {
-			//	$(this).autocomplete('search');
-			//});			
-			
 			return container
 		},
 
@@ -964,7 +946,7 @@
 				if (choices[i]==val) {choice.attr('selected', true)}
 				editw.append(choice);
 			}
-			return editw
+			return $('<span class="e2-edit-container" />').append(editw)
 		}
 	});
 
@@ -978,27 +960,14 @@
 			} else if (val === false) {
 				editw.val("False");
 			}
-			return editw
+			return $('<span class="e2-edit-container" />').append(editw)
 		}
 	});	
 	
 	// User editor
     $.widget("emen2edit.user", $.emen2.EditBase, {
-		build_iter: function(val, index) {
-			val = val || [];			
-			var ul = $('<div class="e2-edit-iterul e2l-cf" />');
-			for (var i=0;i<val.length;i++) {
-				var control = this.build_item(val[i], i);
-				ul.append(control);
-			}
-			// Add a final empty element to detect empty result..
-			var empty = $('<input type="hidden" name="'+this.options.prefix+this.options.param+'" value="" />');
-			this.element.addClass('e2l-fw');
-			return $('<div />').append(ul, empty);
-		},
-
 		build_item: function(val, index) {
-			var d = $('<div />');
+			var d = $('<div class="e2-edit-container" />');
 			d.InfoBox({
 				keytype: 'user',
 				name: val,
@@ -1008,23 +977,16 @@
 			return d
 		},
 		
-		sethidden: function() {
-			var self = this;
-			$('.e2-edit-container', this.element).each(function(){
-				$('.e2-edit-val', this).val('');
-			});
-		},
-
 		build_add: function(iter) {
 			var pfx = 'Change';
 			if (iter) {
 				var pfx = '+';
 			}
 			var self = this;
-			var button = $('<input type="button" value="'+pfx+'" />');
+			var button = $('<div style="clear:both"><input type="button" value="'+pfx+'" /></div>');
 			button.FindControl({
 				keytype: 'user',
-				minimum: 2,
+				minimum: 0,
 				selected: function(test, name){self.add_item(name)}
 			});
 			return button
@@ -1037,27 +999,14 @@
 			var editw = $('<textarea style="width:100%" name="'+this.options.prefix+this.cachepd().name+'" rows="10">'+val+'</textarea>');
 			if (this.options.required && !index) {editw.attr('required',true)}			
 			this.element.addClass('e2l-fw');
-			return editw
+			return $('<div class="e2-edit-container" />').append(editw)
 		}
 	});
 	
 	// Binary Editor
 	$.widget("emen2edit.binary", $.emen2.EditBase, {
-		build_iter: function(val, index) {
-			val = val || [];			
-			var ul = $('<div class="e2-edit-iterul e2l-cf" />');
-			for (var i=0;i<val.length;i++) {
-				var control = this.build_item(val[i], i);
-				ul.append(control);
-			}
-			// Add a final empty element to detect empty result..
-			var empty = $('<input type="hidden" name="'+this.options.prefix+this.options.param+'" value="" />');
-			this.element.addClass('e2l-fw');
-			return $('<div />').append(ul, empty);
-		},
-
 		build_item: function(val, index) {
-			var d = $('<div class="e2-attachments-infobox" />').InfoBox({
+			var d = $('<div class="e2-edit-container e2-attachments-infobox" />').InfoBox({
 				name: val,
 				keytype: 'binary',
 				selectable: true,
@@ -1067,73 +1016,52 @@
 		},
 		
 		build_add: function(iter) {
+			var elem = $('<input type="file" name="'+this.options.prefix+this.options.param+'"/>');
 			var pfx = 'Change file:';
 			if (iter) {
+				elem.attr('multiple', 'multiple')
 				var pfx = 'Add files:';
 			}
-			return $('<div>'+pfx+'<input type="file" name="'+this.options.prefix+this.options.param+'"/></div>')
+			return $('<div />').append(pfx, elem);
 		}
-		// build_iter: function(val, index) {
-		// 	var editw = $('<input type="file" name="'+this.options.prefix+this.cachepd().name+'" />')
-		// 	if (this.options.required && !index) {editw.attr('required',true)}			
-		// 	this.element.addClass('e2l-fw');
-		// 	return editw
-		// }
+
 	});
 	
 	// Group Editor
 	//     $.widget("emen2edit.groups", $.emen2.EditBase, {
-	// 	build_item: function(val, index) {
-	// 		return 'Edit Groups...'
-	// 	},
-	// 	sethidden: function() {
-	// 		var self = this;
-	// 		$('.e2-edit-container', this.element).each(function(){
-	// 			$('.e2-edit-val', this).val('');
-	// 		});
-	// 	}
 	// });	
 	
 	// Comments
-	//     $.widget("emen2edit.comments", $.emen2.EditBase, {
-	// 	build_item: function(val, index) {
-	// 		return 'Edit Comments...'
-	// 	}
-	// });
+    $.widget("emen2edit.comments", $.emen2.EditBase, {
+		build_item: function(val, index) {
+			var editw = $('<textarea style="width:100%" name="'+this.options.prefix+this.cachepd().name+'" rows="10"></textarea>');
+			if (this.options.required && !index) {editw.attr('required',true)}			
+			this.element.addClass('e2l-fw');
+			return $('<div class="e2-edit-container" />').append(editw)
+		}
+	});
 
 	// Coordinate
 	//     $.widget("emen2edit.coordinate", $.emen2.EditBase, {
-	// 	build_item: function(val, index) {
-	// 		return 'Edit coordinates...'
-	// 	}
 	// });
 	
 	// Rectype
 	//     $.widget("emen2edit.rectype", $.emen2.EditBase, {
-	// 	build_item: function(val, index) {
-	// 		return 'Rectype is not editable!'
-	// 	}
 	// });	
 
 	// Percent
     $.widget("emen2edit.percent", $.emen2.EditBase, {
 		build_item: function(val, index) {
 			return 'Edit Percent...'
-		},
-		sethidden: function() {
-			var self = this;
-			$('.e2-edit-container', this.element).each(function(){
-				$('.e2-edit-val', this).val('');
-			});
-		}		
+		}
 	});	
 
 	// Date Time
     $.widget("emen2edit.datetime", $.emen2.EditBase, {
 		build_item: function(val, index) {
-			var e = $('<input type="text" name="'+this.options.prefix+this.options.param+'" value="'+val+'" />');
-			if (this.options.required && !index) {e.attr('required',true)}
-			e.datetimepicker({
+			var editw = $('<input type="text" name="'+this.options.prefix+this.options.param+'" value="'+val+'" />');
+			if (this.options.required && !index) {editw.attr('required',true)}
+			editw.datetimepicker({
 				showButtonPanel: true,
 				changeMonth: true,
 				changeYear: true,
@@ -1142,16 +1070,16 @@
 				dateFormat: 'yy-mm-dd',
 				separator: 'T',
 			});
-			return e
+			return $('<span class="e2-edit-container" />').append(editw)
 		}
 	});	
 
 	// Date
     $.widget("emen2edit.date", $.emen2.EditBase, {
 		build_item: function(val, index) {
-			var e = $('<input type="text" name="'+this.options.prefix+this.options.param+'" value="'+val+'" />');
-			if (this.options.required && !index) {e.attr('required',true)}
-			e.datepicker({
+			var editw = $('<input type="text" name="'+this.options.prefix+this.options.param+'" value="'+val+'" />');
+			if (this.options.required && !index) {editw.attr('required',true)}
+			editw.datepicker({
 				showButtonPanel: true,
 				changeMonth: true,
 				changeYear: true,
@@ -1159,7 +1087,7 @@
 				yearRange: 'c-100:c+100',
 				dateFormat: 'yy-mm-dd'
 			});
-			return e
+			return $('<span class="e2-edit-container" />').append(editw)
 		}
 	});
 		
@@ -1167,14 +1095,12 @@
 	$.widget('emen2edit.checkbox', $.emen2.EditBase, {
 		build_item: function(val, index) {
 			var n = this.options.prefix+this.options.param;
-			var edit = $('<input type="checkbox" name="'+n+'" value="True" />');
+			var editw = $('<input type="checkbox" name="'+n+'" value="True" />');
 			if (this.options.required && !index) {editw.attr('required',true)}
-			
-			//<input type="hidden" name="'+n+'" value="" />');
 			if (val) {
 				$('input:checkbox', edit).attr('checked',true);
 			}
-			return edit
+			return $('<span class="e2-edit-container" />').append(editw)
 		}
 	});
 	
@@ -1184,7 +1110,7 @@
 			var self = this;
 			var pd = this.cachepd();
 			var choices = pd.choices || [];
-			var ul = $('<ul />');
+			var ul = $('<ul class="e2-edit-container" />');
 			$.each(choices, function(k,v) {
 				// grumble..
 				var rand = Math.ceil(Math.random()*10000000);

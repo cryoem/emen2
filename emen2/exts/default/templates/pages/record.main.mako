@@ -119,6 +119,9 @@
 	// Now that we have all the callbacks added...
 	tab.TabControl('checkhash');
 	
+	$('.e2-record-new').RecordControl({});
+	
+	
 </%block>
 
 
@@ -228,7 +231,7 @@
 				## Ian: show date_occurred, modifytime, or creationtime...?
 				${displaynames.get(rec.get('creator'), rec.get('creator'))}
 				@
-				<time datetime="${rec.get('creationtime')}">${rec.get('creationtime', '')[:10]}</time>
+				<time class="e2-localize" datetime="${rec.get('creationtime')}">${rec.get('creationtime', '')[:10]}</time>
 		
 				<span id="e2l-editbar-historycount">
 				% if historycount:

@@ -57,7 +57,8 @@
 
 <%def name="save(label='Save')">
 	<div class="e2l-controls">
-		<input value="${label}" type="submit" class="e2l-save">
+		## class="e2l-save"
+		<input value="${label}" type="submit">
 	</div>
 </%def>
 
@@ -113,21 +114,23 @@
 			<img alt="Photo" class="e2l-thumbnail" src="${src}" />
 		% endif
 
-		<h4>
-			% if link:
-				<a href="${link}">
-			% endif
+		<div>
+			<h4>
+				% if link:
+					<a href="${link}">
+				% endif
 
-			${title}
+				${title}
 
-			% if time:
-				@ ${time}
-			% endif	
+				% if time:
+					@ <time class="e2-localize" datetime="${time}">${time}</time>
+				% endif	
 
-			% if link:
-				</a>
-			% endif
-		</h4>
-		<p class="e2l-small">${body}</p>
+				% if link:
+					</a>
+				% endif
+			</h4>
+			<div class="e2l-small">${body}</div>
+		</div>
 	</div>
 </%def>

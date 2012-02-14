@@ -106,7 +106,7 @@ def update_username_cache(engine, values):
 	if to_cache:
 		users = engine.db.getuser(to_cache)
 		for user in users:
-			user.getdisplayname(lnf=True)
+			user.getdisplayname(lnf=False)
 			key = engine.get_cache_key('displayname', user.name)
 			engine.store(key, user.displayname)
 
@@ -548,8 +548,8 @@ class vt_datetime(vt_string):
 		return self._rci(ret)
 
 	def _render(self, value, embedtype=None):
-		if self.markup:
-			value = ['<time datetime="%s">%s</time>'%(i,i) for i in value]
+		# if self.markup:
+		value = ['<time class="e2-localize" datetime="%s">%s</time>'%(i,i) for i in value]
 		return super(vt_datetime, self)._render(value, embedtype=embedtype)
 
 
@@ -673,15 +673,17 @@ class vt_binary(Vartype):
 	def process(self, value):
 		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		value = ci(value)
+		t = self.table
 		if not self.markup:
-			return value
+			t = True
+			# return value
 
 		try:
 			v = self.engine.db.getbinary(value)
-			if self.table:
+			if t:
 				value = ['%s'%(cgi.escape(i.filename)) for i in v]
 			else:
-				value = ['<a href="%s/download/%s/%s">%s</a>'%(webroot, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
+				value = ['<a target="_blank" href="%s/download/%s/%s">%s</a>'%(webroot, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
 
 		except (ValueError, TypeError):
 			value = ['Error getting binary %s'%i for i in value]
@@ -865,7 +867,7 @@ class vt_comments(Vartype):
 			if self.table or not self.markup:
 				t = '%s @ %s: %s'%(user, time, comment)
 			else:
-				t = '<h4><a href="%s/user/%s">%s</a> @ %s</h4>%s'%(webroot, user, dn, time, comment)
+				t = '<div><h4><a href="%s/user/%s">%s</a> @ <time class="e2-localize" datetime="%s">%s</time></h4><p>%s</p></div>'%(webroot, user, dn, time, time, comment)
 			lis.append(t)
 
 		return lis

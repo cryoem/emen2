@@ -122,8 +122,8 @@
 
 
 <%buttons:singlepage label='History'>
-	<p>Created: <time datetime="${user.get("creationtime")}">${user.get("creationtime")}</time></p>
-	<p>Modified: <time datetime="${user.get("modifytime")}">${user.get("modifytime")}</time></p>
+	<p>Created: <time class="e2-localize" datetime="${user.get("creationtime")}">${user.get("creationtime")}</time></p>
+	<p>Modified: <time class="e2-localize" datetime="${user.get("modifytime")}">${user.get("modifytime")}</time></p>
 </%buttons:singlepage>
 
 

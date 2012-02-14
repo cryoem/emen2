@@ -202,15 +202,16 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		if value == None:
 			return set()
 
+		# Grumble...
 		newcomments = []
-		if hasattr(value, "__iter__"):
-			check = [(unicode(i[0]), unicode(i[1]), unicode(i[2])) for i in value]
-			existing = [(unicode(i[0]), unicode(i[1]), unicode(i[2])) for i in self.comments]
-			for c in check:
-				if c not in existing:
-					newcomments.append(c[2])
-		else:
-			newcomments.append(unicode(value))
+		existing = [i[2] for i in self.comments]
+		if not hasattr(value, "__iter__"):
+			value = [value]
+		for c in value:
+			if hasattr(c, "__iter__"):
+				c = c[-1]
+			if c and c not in existing:
+				newcomments.append(unicode(c))
 
 		# newcomments2 = []
 		# updvalues = {}

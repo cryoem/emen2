@@ -93,7 +93,7 @@ def convert_bytes(bytes):
 			<td>${convert_bytes(bdo.get('filesize',0))}</td>
 			<td><a href="${EMEN2WEBROOT}/record/${bdo.record}/">${rendered.get(bdo.record)}</a></td>
 			<td><a href="${EMEN2WEBROOT}/user/${bdo.get('creator')}/">${users.get(bdo.get('creator'), dict()).get('displayname')}</a></td>
-			<td><time datetime="${bdo.get('creationtime')}">${bdo.get('creationtime')}</time></td>
+			<td><time class="e2-localize" datetime="${bdo.get('creationtime')}">${bdo.get('creationtime')}</time></td>
 		</tr>
 	% endfor
 	</tbody>

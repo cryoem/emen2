@@ -73,7 +73,7 @@
 			var body = '';
 			if (this.options.keytype == 'user') {
 				title = $.trim(this.options.title || item.displayname) || item.name;
-				body = this.options.body || item.email;
+				body = item.email;
 			} else if (this.options.keytype == 'group') {
 				title = $.trim(item.displayname) || item.name;
 				var count = 0;
@@ -114,20 +114,16 @@
 			// Box title
 			var h4 = $('<h4 />');
 			if (link) {
-				title = '<a href="'+link+'" target="_blank">'+title+'</a>';
+				title = '<a href="'+link+'">'+title+'</a>';
 			}
 			h4.append(title);
 			if (this.options.time) {
 				// h4.append(' @ '+this.options.time);
 				// <abbr class="timeago" title="2008-07-17T09:24:17Z">July 17, 2008</abbr>
-				var t = $('<time class="e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
+				var t = $('<time class="e2-localize e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
 				t.localize();
 				h4.append(t);
 			}
-			
-			// Body body
-			var p = $('<p class="e2l-small" />');
-			p.append(body);
 			
 			// Images
 			var img = $(emen2.template.image('nophoto.png', '', 'e2l-thumbnail'));
@@ -149,8 +145,18 @@
 				input.attr('checked', state);
 			}
 
+			// Body body
+			var p = $('<div />');
+			p.append(h4);
+			if (this.options.body) {
+				p.append(this.options.body)
+			} else {
+				p.append('<div class="e2l-small">'+body+'</div>');
+			}
+
+
 			// Put it all together..
-			this.element.append(img, input, h4, p);
+			this.element.append(img, input, p);
 			
 			// I'm undecided on letting the entire element act as a click. Probably not.
 			// this.element.click(function(e) {

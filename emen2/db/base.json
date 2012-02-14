@@ -8,7 +8,7 @@
 {"immutable": true, "name": "keytype", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Type", "uri":"http://ncmidb.bcm.edu"}
 {"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "links", "desc_short": "Children", "uri":"http://ncmidb.bcm.edu"}
 {"immutable": true, "name": "creator", "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "Created by", "desc_long": "The user that initially created the record", "uri":"http://ncmidb.bcm.edu"}
-{"name": "comments", "keytype": "paramdef","parents": ["core"], "vartype": "comments", "desc_short": "Comments", "uri":"http://ncmidb.bcm.edu"}
+{"name": "comments", "keytype": "paramdef","parents": ["core"], "vartype": "comments", "desc_short": "Comments", "iter":true, "uri":"http://ncmidb.bcm.edu"}
 {"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "links", "desc_short": "Parents", "uri":"http://ncmidb.bcm.edu"}
 {"name": "email", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Email", "uri":"http://ncmidb.bcm.edu"}
 {"immutable": true, "name": "name", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "name", "desc_short": "Object Name", "uri":"http://ncmidb.bcm.edu"}
