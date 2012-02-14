@@ -499,7 +499,7 @@ class PermissionsDBObject(BaseDBObject):
 
 	Two additional attributes are provided:
 	-	permissions
-	-  groups
+	-	groups
 
 	The permissions attribute is of the "acl" vartype. It is a list comprised of four
 	lists or user names, denoting the following levels of permissions:
@@ -555,7 +555,6 @@ class PermissionsDBObject(BaseDBObject):
 
 		# Setup the base permissions
 		p['permissions'] = [[],[],[],[]]
-		p['permissions_inherit'] = set()
 		p['groups'] = set()
 
 		if self._ctx.username != 'root':
