@@ -136,7 +136,7 @@
 					var row = ' \
 						<tr> \
 							<td style="width:16px">'+emen2.template.image('edit.png')+'</td> \
-							<td><a href="'+EMEN2WEBROOT+'/paramdef/'+event[2]+'/">'+pdname+'</a></td> \
+							<td>edited <a href="'+EMEN2WEBROOT+'/paramdef/'+event[2]+'/">'+pdname+'</a></td> \
 						</tr><tr> \
 							<td /> \
 							<td>Old value: '+event[3]+'</td> \
@@ -808,7 +808,7 @@
 			} else {
 				this.element.append(this.build_item(val));
 			}
-			this.element.append(this.build_add());	
+			this.element.append(this.build_add(pd.iter));	
 		},
 		
 		build_iter: function(val) {
@@ -833,7 +833,7 @@
 			return editw
 		},
 		
-		build_add: function(e) {
+		build_add: function(iter) {
 			// var self = this;
 			// var b = $('<input type="button" value="+" />');
 			// b.click(function() {self.add_item('')});
@@ -1015,9 +1015,13 @@
 			});
 		},
 
-		build_add: function(e) {
+		build_add: function(iter) {
+			var pfx = 'Change';
+			if (iter) {
+				var pfx = '+';
+			}
 			var self = this;
-			var button = $('<input type="button" value="+" />');
+			var button = $('<input type="button" value="'+pfx+'" />');
 			button.FindControl({
 				keytype: 'user',
 				minimum: 2,
@@ -1062,8 +1066,12 @@
 			return d
 		},
 		
-		build_add: function(e) {
-			return $('<input type="file" name="'+this.options.prefix+this.options.param+'"/>')
+		build_add: function(iter) {
+			var pfx = 'Change file:';
+			if (iter) {
+				var pfx = 'Add files:';
+			}
+			return $('<div>'+pfx+'<input type="file" name="'+this.options.prefix+this.options.param+'"/></div>')
 		}
 		// build_iter: function(val, index) {
 		// 	var editw = $('<input type="file" name="'+this.options.prefix+this.cachepd().name+'" />')

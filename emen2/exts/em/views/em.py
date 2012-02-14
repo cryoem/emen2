@@ -115,7 +115,7 @@ class EMHome(View):
 		self.title = 'Home'
 		self.template = '/em/home'
 		
-		if not self.ctxt['USER']:
+		if not self.ctxt['USER']:			
 			raise emen2.db.exceptions.SecurityError, "Please login."
 		
 		# Get the banner/welcome message

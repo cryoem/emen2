@@ -1,3 +1,7 @@
+import os
+import json
+import sys
+
 paramdefs =  [
  {'children': [],
   'choices': None,
@@ -4985,7 +4989,7 @@ paramdefs =  [
   'controlhint': None,
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'defaultunits': '\xc5',
+  'defaultunits': u'\xc5',
   'desc_long': 'Fourier shell correlation',
   'desc_short': 'FSC',
   'immutable': None,
@@ -5652,7 +5656,7 @@ paramdefs =  [
   'controlhint': None,
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'defaultunits': '\xc5',
+  'defaultunits': u'\xc5',
   'desc_long': 'Height of the sample',
   'desc_short': 'Height sample',
   'immutable': None,
@@ -6016,7 +6020,7 @@ paramdefs =  [
   'controlhint': None,
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'defaultunits': '\xc5',
+  'defaultunits': u'\xc5',
   'desc_long': 'Actual defocus',
   'desc_short': 'Actual defocus',
   'immutable': None,
@@ -8170,7 +8174,7 @@ paramdefs =  [
   'controlhint': None,
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'defaultunits': '\xc5',
+  'defaultunits': u'\xc5',
   'desc_long': 'Resolution cutoff for low-pass filter',
   'desc_short': 'Cut-off point',
   'immutable': None,
@@ -8816,7 +8820,7 @@ paramdefs =  [
   'controlhint': None,
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'defaultunits': '\xc5',
+  'defaultunits': u'\xc5',
   'desc_long': 'Inner radius',
   'desc_short': 'Inner radius',
   'immutable': None,
@@ -9005,7 +9009,7 @@ paramdefs =  [
   'controlhint': None,
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'defaultunits': '\xc5/pixel',
+  'defaultunits': u'\xc5/pixel',
   'desc_long': 'Apixel',
   'desc_short': 'A/pixel',
   'immutable': None,
@@ -14651,7 +14655,7 @@ $#description_storage: $$description_storage
   'private': False,
   'typicalchld': [],
   'uri': None,
-  'views': { 'recname': """High pressure freezing session: $$title_freezing by $$performed_by on $$date_occurred"""},
+  'views': { 'recname': """High pressure freezing session: $$title_freezing by $$performed_by on $$date_occurred"""}},
 
 
 
@@ -15395,19 +15399,21 @@ if __name__ == "__main__":
 	if os.path.exists(sys.argv[1]):
 		print "Warning: File %s exists"%sys.argv[1]
 	print "Saving output to %s"%sys.argv[1]
-	print "ParamDefs:"
-	print set([i.get('name') for i in paramdefs])
-	print "RecordDefs:"
-	print set([i.get('name') for i in recorddefs])
+	# print "ParamDefs:"
+	# print set([i.get('name') for i in paramdefs])
+	# print "RecordDefs:"
+	# print set([i.get('name') for i in recorddefs])
 
 	with open(sys.argv[1],'w') as f:
 		for pd in paramdefs:
 			pd['keytype'] = 'paramdef'
 			pd['uri'] = 'http://ncmidb.bcm.edu/paramdef/%s'%pd['name']
+			print pd['name']
 			f.write(json.dumps(pd)+"\n")
 		for rd in recorddefs:
 			rd['keytype'] = 'recorddef'
 			rd['uri'] = 'http://ncmidb.bcm.edu/recorddef/%s'%rd['name']
+			print rd['name']
 			f.write(json.dumps(rd)+"\n")
 
 

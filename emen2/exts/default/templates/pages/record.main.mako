@@ -273,11 +273,6 @@
 		
 </div>
 
-## Subview
-<div id="content_subview">
-${subview}
-</div>
-
 ## Main rendered record
 <form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${EMEN2WEBROOT}/record/${rec.name}/edit/">
 	<div id="content_inner" class="e2-view" data-viewname="${viewname}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
@@ -285,4 +280,9 @@ ${subview}
 	</div>
 </form>
 
+
+## Subview
+<div id="content_subview">
+${subview}
+</div>
 
