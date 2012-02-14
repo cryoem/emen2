@@ -589,11 +589,14 @@ class PermissionsDBObject(BaseDBObject):
 		self.__dict__['_ctx'] = ctx
 
 		# test for owner access in this context.
-		if self._ctx.checkadmin():
+		if self._ctx.checkadmin() or self.creator == self._ctx.username:
 			self.__dict__['_ptest'] = [True, True, True, True]
 			return True
 
 		self.__dict__['_ptest'] = [self._ctx.username in level for level in self.permissions]
+
+		if self._ctx.checkreadadmin():
+			self._ptest[0] = True
 
 		for group in self.groups & self._ctx.groups:
 			self._ptest[self._ctx.grouplevels[group]] = True
@@ -629,7 +632,7 @@ class PermissionsDBObject(BaseDBObject):
 		"""
 		# First check if we have any defined permission, then run
 		# checkreadadmin() as a last minute rescue
-		return any(self._ptest) or self._ctx.checkreadadmin()
+		return any(self._ptest)
 
 	def commentable(self):
 		"""Does user have permission to comment (level 1)?

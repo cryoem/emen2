@@ -20,6 +20,8 @@ import emen2.db.dataobject
 import emen2.db.exceptions
 
 
+# ian: TODO: Groups "anon" and "authenticated" are r/o
+
 class Group(emen2.db.dataobject.PermissionsDBObject):
 	"""Groups of users.
 
@@ -73,10 +75,10 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 		self.__dict__['privacy'] = True
 
 
-	# Special groups are readable by anyone.
+	# Groups are readable by anyone.
 	def readable(self):
-		if any(self._ptest) or self.name in ['authenticated', 'anon']:
-			return True
+		# return any(self._ptest)
+		return True
 
 
 	# Setters
@@ -93,7 +95,7 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 
 	def _set_displayname(self, key, value, vtm=None, t=None):
 		return self._set(key, str(value or self.name), self.isowner())
-
+		
 
 	# Validate
 	def validate_create(self):

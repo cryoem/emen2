@@ -51,6 +51,7 @@ class Router(twisted.web.resource.Resource):
 		view = view()
 		view.render = functools.partial(view.render, method=method)
 		return view
+		
 
 	def logrequest(self, x, request, t=0.0, *args, **kwargs):
 		ctxid = None

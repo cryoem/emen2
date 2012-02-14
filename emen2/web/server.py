@@ -163,6 +163,7 @@ class EMEN2Server(object):
 if __name__ == "__main__":
 	# Fix
 	# twisted.python.log.startLogging(sys.stdout)
+	emen2.db.config.UsageParser(WebServerOptions)
 	server = EMEN2Server()
 	server.start()
 

@@ -451,8 +451,10 @@ class RecordDB(emen2.db.btrees.RelateDB):
 			return set(xrange(self.get_max(txn=txn)))
 
 		ind = self.getindex("permissions", txn=txn)
+		indc = self.getindex('creator', txn=txn)
 		indg = self.getindex("groups", txn=txn)
 		ret = ind.get(ctx.username, set(), txn=txn)
+		ret |= indc.get(ctx.username, set(), txn=txn)
 		for group in sorted(ctx.groups, reverse=True):
 			ret |= indg.get(group, set(), txn=txn)
 
@@ -488,9 +490,11 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 		# Use the permissions/groups index
 		ind = self.getindex('permissions', txn=txn)
+		indc = self.getindex('creator', txn=txn)
 		indg = self.getindex('groups', txn=txn)
 
 		find -= ind.get(ctx.username, set(), txn=txn)
+		find -= indc.get(ctx.username, set(), txn=txn)
 		for group in sorted(ctx.groups):
 			if find:
 				find -= indg.get(group, set(), txn=txn)

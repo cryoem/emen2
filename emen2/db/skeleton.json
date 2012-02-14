@@ -4,7 +4,7 @@
 {"keytype":"group", "displayname": "Record Creation Priveleges", "name": "create"}
 {"keytype":"group", "displayname": "Anonymous Access", "name": "anon"}
 {"keytype":"group", "displayname": "Authenticated Users", "name": "authenticated"}
-{"keytype":"group", "displayname": "Published Data", "name": "publish"}
+// {"keytype":"group", "displayname": "Published Data", "name": "publish"}
 
 // Root record
 {"keytype":"record", "rectype": "folder", "name_folder": "Root", "groups":["authenticated"]}

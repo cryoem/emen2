@@ -6,7 +6,9 @@ from twisted.python import usage
 
 # Take the base DBOptions and add subcommands.
 import emen2.db.config
-Options = emen2.db.config.DBOptions
+import emen2.web.server
+Options = emen2.web.server.WebServerOptions
+
 
 def makeService(options):
 	# Load the configuration
@@ -14,7 +16,6 @@ def makeService(options):
 	emen2.db.config.UsageParser(options=options)
 
 	# Start the service
-	import emen2.web.server
 	server = emen2.web.server.EMEN2Server()
 	s = service.MultiService()
 	server.start(service=s)	
