@@ -11,7 +11,7 @@ if __name__ == "__main__":
 		'emen2.db',
 		'emen2.web',
 		'emen2.util',
-		'twisted.plugins'
+		# 'twisted.plugins'
 		]
 		
 	package_data = {			

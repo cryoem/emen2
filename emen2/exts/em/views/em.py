@@ -82,7 +82,7 @@ class EMRecordPlugin(View):
 
 		# Show the 5 most recent for each type..
 		for k,v in children_grouped.items():
-			recent |= set(sorted(v)[:10])
+			recent |= set(sorted(v)[-10:])
 
 		# Render the record...
 		rec_rendered = self.db.renderview(name, viewname='defaultview', edit=True)

@@ -132,15 +132,15 @@ class Query(View):
 		self.set_context_item('q', self.q)
 
 		# Look up all the binaries
-		bdos = self.db.findbinary(record=self.q['names'])
+		bdos = self.db.findbinary(record=self.q['names'], count=0)
 		
 		for bdo in bdos:
 			if bdo.get('filesize') == None:
 				if os.access(bdo.get('filepath'), os.F_OK):
 					bdo.filesize = os.stat(bdo.get('filepath')).st_size
 
-		if len(bdos) > 1000:
-			raise TooManyFiles, "More than 1000 files returned. Are you sure you want to continue?"
+		if len(bdos) > 100000 and not confirm:
+			raise TooManyFiles, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
 
 		filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
 

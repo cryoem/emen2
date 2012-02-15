@@ -283,8 +283,7 @@ class UsageParser(object):
 			err_msg="No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h")
 
 		# Load any config file in EMEN2DBHOME
-		# self.config.load_file(os.path.join(g.EMEN2DBHOME, "config.json"))
-		# self.config.load_file(os.path.join(g.EMEN2DBHOME, "config.yml"))
+		self.config.load_file(os.path.join(h, "config.json"))
 
 		# Set default log levels
 		loglevel = self.config.globalns.getattr('LOG_LEVEL', 'INFO')

@@ -4008,7 +4008,7 @@ class DB(object):
 		# that remains for backwards compat
 		bdos, recnames, other = listops.typepartition(names, str, int)
 		if len(recnames) > 0:
-			return self.findbinary(record=recnames, ctx=ctx, txn=txn)
+			return self.findbinary(record=recnames, count=0, ctx=ctx, txn=txn)
 		return self.bdbs.binary.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
