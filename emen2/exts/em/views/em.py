@@ -25,14 +25,14 @@ class EMEquipment(View):
 
 @View.register
 class EMRecordPlugin(View):
-	@View.add_matcher(r'^/em/plugin/ccd/(?P<name>\d+)/$', view='RecordPlugin', name='ccd')
-	@View.add_matcher(r'^/em/plugin/ddd/(?P<name>\d+)/$', view='RecordPlugin', name='ddd')
-	@View.add_matcher(r'^/em/plugin/scan/(?P<name>\d+)/$', view='RecordPlugin', name='scan')
-	def image(self, name, **kwargs):
-		name = int(name)
-		rec = self.db.getrecord(name)
-		self.template = '/em/record.plugin.image'
-		self.ctxt['rec'] = rec
+	# @View.add_matcher(r'^/em/plugin/ccd/(?P<name>\d+)/$', view='RecordPlugin', name='ccd')
+	# @View.add_matcher(r'^/em/plugin/ddd/(?P<name>\d+)/$', view='RecordPlugin', name='ddd')
+	# @View.add_matcher(r'^/em/plugin/scan/(?P<name>\d+)/$', view='RecordPlugin', name='scan')
+	# def image(self, name, **kwargs):
+	# 	name = int(name)
+	# 	rec = self.db.getrecord(name)
+	# 	self.template = '/em/record.plugin.image'
+	# 	self.ctxt['rec'] = rec
 
 	@View.add_matcher(r'^/em/plugin/project/(?P<name>\d+)/$', view='RecordPlugin', name='project')
 	@View.add_matcher(r'^/em/plugin/subproject/(?P<name>\d+)/$', view='RecordPlugin', name='subproject')
