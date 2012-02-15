@@ -255,7 +255,7 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 	# ctx and txn arguments don't do anything. I accept them because it's a force of habit to include them.
 
 	mailadmin = emen2.db.config.get('mailsettings.MAILADMIN')
-	mailhost = emen2.db.config.get('mailsetings.MAILHOST')
+	mailhost = emen2.db.config.get('mailsettings.MAILHOST')
 
 	if not mailadmin:
 		emen2.db.log.warn("Couldn't get mail config: No admin email set")
