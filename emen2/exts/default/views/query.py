@@ -8,21 +8,21 @@ import emen2.util.listops
 from emen2.web.view import View
 
 cmp_order = [
-	".is.", 
-	"==", 
-	".not.", 
-	"!=", 
-	".contains.", 
-	".gte.", 
-	">=", 
-	".lte.", 
-	"<=", 
-	".gt.", 
-	">", 
-	".lt.", 
-	"<", 
-	".any.", 
-	'.none.', 
+	".is.",
+	"==",
+	".not.",
+	"!=",
+	".contains.",
+	".gte.",
+	">=",
+	".lte.",
+	"<=",
+	".gt.",
+	">",
+	".lt.",
+	"<",
+	".any.",
+	'.none.',
 	'.noop.'
 ]
 
@@ -80,11 +80,11 @@ class Query(View):
 		self.title = "Query"
 		if q:
 			self.q = q
-		else: 
+		else:
 			self.q = path_to_query(path, **kwargs)
 		if c:
 			self.q['c'] = c
-						
+
 		self.ctxt['parent'] = None
 		self.ctxt['rectyoe'] = None
 
@@ -94,6 +94,7 @@ class Query(View):
 	def main(self, path=None, q=None, c=None, **kwargs):
 		self.initq(path, q, c, **kwargs)
 		self.q = self.db.table(**self.q)
+		print self.q
 		self.set_context_item('q', self.q)
 
 	@View.add_matcher(r'^/query/(?P<path>.*)/embed/$')
@@ -104,7 +105,7 @@ class Query(View):
 		# awful hack
 		self.ctxt['parent'] = parent
 		self.ctxt['rectype'] = rectype
-		
+
 
 
 	@View.add_matcher(r'^/query/(?P<path>.*)/edit/$', name='edit')
@@ -121,7 +122,7 @@ class Query(View):
 		self.template = '/pages/query.plot'
 		self.q = self.db.plot(**self.q)
 		self.set_context_item('q', self.q)
-	
+
 
 	# /download/ can't be in the path because of a emen2resource.getchild issue
 	@View.add_matcher(r'^/query/(?P<path>.*)/attachments/$', name='attachments')
@@ -133,7 +134,7 @@ class Query(View):
 
 		# Look up all the binaries
 		bdos = self.db.findbinary(record=self.q['names'], count=0)
-		
+
 		for bdo in bdos:
 			if bdo.get('filesize') == None:
 				if os.access(bdo.get('filepath'), os.F_OK):
@@ -154,6 +155,6 @@ class Query(View):
 
 
 
-						
-		
+
+
 __version__ = "$Revision$".split(":")[1][:-1].strip()
