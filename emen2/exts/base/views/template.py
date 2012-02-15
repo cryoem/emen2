@@ -19,7 +19,7 @@ class TemplateRender(View):
 	'''
 
 	@View.add_matcher(r'^/tmpl/(?P<template>.+)/$', name='main')
-	@View.add_matcher(r'^/tmpl-%s/(?P<template>.+)/$'%emen2.db.config.get('params.VERSION'), name='main/version')
+	@View.add_matcher(r'^/tmpl-%s/(?P<template>.+)/$'%emen2.VERSION, name='main/version')
 	def main(self, template='/simple', **kwargs):
 		makot = emen2.db.config.templates.get_template(template)
 

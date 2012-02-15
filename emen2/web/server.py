@@ -141,7 +141,7 @@ class EMEN2Server(object):
 		import emen2.web.resource
 		root.putChild('jsonrpc', emen2.web.resource.JSONRPCResource())
 		root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
-		root.putChild('static-%s'%emen2.db.config.get('params.VERSION'), twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
+		root.putChild('static-%s'%emen2.VERSION, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
 		root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
 		
