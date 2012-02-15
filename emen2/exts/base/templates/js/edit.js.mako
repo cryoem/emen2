@@ -783,10 +783,10 @@
 		},
 
 		_create: function() {
-			this.build_control();
+			this.build();
 		},
 		
-		build_control: function() {
+		build: function() {
 			var self = this;
 			var pd = this.cachepd();
 			var val = this.cacheval();
@@ -803,6 +803,7 @@
 		},
 		
 		build_iter: function(val) {
+			// Build the container to hold each editing control
 			if (!val) {val == []}
 			var pd = this.cachepd();
 			var ul = $('<ul class="e2-edit-containers" />');
@@ -815,6 +816,7 @@
 		},
 		
 		build_item: function(val, index) {
+			// Build one editing control
 			var pd = this.cachepd();
 			var editw = $('<input type="text" name="'+this.options.prefix+pd.name+'" value="'+val+'" autocomplete="off" />');
 			if (this.options.required && !index) {editw.attr('required',true)}
@@ -822,20 +824,14 @@
 		},
 		
 		build_add: function(iter) {
-			// var pfx = 'Change';
-			// if (iter) {
-			// 	var pfx = '+';
-			// }
-			// var self = this;
-			// var button = $('<div style="clear:both"><input type="button" value="'+pfx+'" /></div>');
-			// button.FindControl({
-			// 	keytype: 'user',
-			// 	minimum: 0,
-			// 	selected: function(test, name){self.add_item(name)}
-			// });
-			// button.append('<input type="hidden" name="'+this.options.prefix+this.options.param+'" value="" />')
-			// return button
-			return $('')
+			// If the paramdef is iterable, draw a button to add items
+			if (!iter || this.options.param == 'comments') {
+				return
+			}			
+			var self = this;
+			var button = $('<input type="button" value="+" />');
+			button.click(function(e){self.add_item('')});
+			return $('<div style="clear:both" />').append(button);
 		},
 
 		add_item: function(val) {
@@ -871,14 +867,14 @@
 
 	// Not editable
     $.widget("emen2edit.none", $.emen2.EditBase, {
-		build_control: function() {
+		build: function() {
 			this.element.append('Not Editable');
 		}
 	});
 
 	// Use other widget
     $.widget("emen2edit.not_ready", $.emen2.EditBase, {
-		build_control: function() {
+		build: function() {
 			this.element.append('(editing tool under development; use toolbar, if possible)');
 		}
 	});

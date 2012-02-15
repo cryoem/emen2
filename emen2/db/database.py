@@ -3031,7 +3031,7 @@ class DB(object):
 		:exception ValidationError:
 		"""
 
-		group_defaults = emen2.db.config.get('users.GROUP_DEFAULTS', ['create'])
+		# group_defaults = emen2.db.config.get('users.GROUP_DEFAULTS', ['create'])
 		user_autoapprove = emen2.db.config.get('users.USER_AUTOAPPROVE', False)
 
 		# Get users from the new user approval queue
@@ -3050,10 +3050,10 @@ class DB(object):
 			user = self.bdbs.user.cput(user, ctx=ctx, txn=txn)
 
 			# Update default Groups
-			for group in group_defaults:
-				gr = self.bdbs.group.cget(group, ctx=ctx, txn=txn)
-				gr.adduser(user.name)
-				self.bdbs.group.cput(gr, ctx=ctx, txn=txn)
+			# for group in group_defaults:
+			#	gr = self.bdbs.group.cget(group, ctx=ctx, txn=txn)
+			#	gr.adduser(user.name)
+			#	self.bdbs.group.cput(gr, ctx=ctx, txn=txn)
 
 			# Create the "Record" for this user
 			rec = self.bdbs.record.new(rectype='person', ctx=ctx, txn=txn)

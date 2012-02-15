@@ -36,7 +36,7 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
 <h1>
 	Sub-projects (${len(subprojects)})
 	<ul class="e2l-actions">
-		<li><a href="" class="e2-button e2-record-new" data-rectype="subproject" data-parent="${name}">${buttons.image('edit.png')} New</a></li>
+		<li><a href="" class="e2-button e2-record-new" data-rectype="project" data-parent="${name}">${buttons.image('edit.png')} New</a></li>
 	</ul>
 </h1>
 

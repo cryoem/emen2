@@ -191,7 +191,6 @@ class NewUser(View):
 		groups = kwargs.pop('groups', {})
 
 		self.ctxt['actions'] = actions
-		# self.ctxt['groups'] = groups
 
 		if self.request_method == 'post':
 			# I don't care for this format, but it's a limitation of
@@ -220,9 +219,9 @@ class NewUser(View):
 		self.ctxt['queue'] = queue
 
 		groupnames = self.db.getgroupnames()
-		groupnames -= set(['anon', 'authenticated', 'create'])
+		groupnames -= set(['anon', 'authenticated'])
 		self.ctxt['groups'] = self.db.getgroup(groupnames)
-
+		self.ctxt['groups_default'] = set(['create'])
 
 
 

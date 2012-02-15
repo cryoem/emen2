@@ -47,13 +47,19 @@
 				<td><input type="radio" name="actions.${user.name}" value="approve" ${forms.ifchecked(actions.get(user.name)=='approve')} /></td>
 				<td><input type="radio" name="actions.${user.name}" value="reject" ${forms.ifchecked(actions.get(user.name)=='reject')} /></td>
 
-				<td>
-					<select multiple="multiple" name="groups.${user.name}">
-						% for group in groups:
-							<option value="${group.name}">${group.get('displayname', group.name)}</option>
-						% endfor
-					</select>
-					<input type="hidden" name="groups.${user.name}" value="create" />
+				<td>				
+					<ul class="e2l-nonlist">	
+					% for group in groups:
+						<li>
+						% if group.name in groups_default:
+							<input type="checkbox" name="groups.${user.name}" checked="checked" value="${group.name}">${group.get('displayname', group.name)} 
+						% else:
+							<input type="checkbox" name="groups.${user.name}" value="${group.name}">${group.get('displayname', group.name)} 	
+						% endif
+						</li>
+					% endfor
+					</ul>
+					<input type="hidden" name="groups.${user.name}" value="" />
 					<input type="hidden" name="groups.${user.name}" value="" />
 				</td>
 
