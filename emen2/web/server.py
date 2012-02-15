@@ -105,7 +105,6 @@ class EMEN2Server(object):
 		# Update the configuration
 		self.EMEN2PORT = self.port or emen2.db.config.get('network.EMEN2PORT')
 		self.EMEN2PORT_HTTPS = 436
-		self.EMEN2PORT = 8080 # self.options['port'] or self.EMEN2PORT
 		self.EMEN2HTTPS = False # self.options.get('https', False)
 		self.EMEN2PORT_HTTPS = 436 # self.options.get('httpsport', 436)
 
@@ -147,7 +146,7 @@ class EMEN2Server(object):
 		root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
 		
 	def attach_to_service(self, service):
-		emen2_service = internet.TCPServer(8080, self.site)
+		emen2_service = internet.TCPServer(self.port, self.site)
 		emen2_service.setServiceParent(service)
 
 		if self.EMEN2HTTPS and ssl:
@@ -155,7 +154,7 @@ class EMEN2Server(object):
 
 	def attach_standalone(self):
 		reactor = twisted.internet.reactor		
-		reactor.listenTCP(8080, self.site)
+		reactor.listenTCP(self.port, self.site)
 		reactor.run()
 
 
@@ -164,7 +163,7 @@ if __name__ == "__main__":
 	# Fix
 	# twisted.python.log.startLogging(sys.stdout)
 	emen2.db.config.UsageParser(WebServerOptions)
-	server = EMEN2Server()
+	server = EMEN2Server(port=8080)
 	server.start()
 
 
