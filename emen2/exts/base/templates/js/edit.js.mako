@@ -372,8 +372,7 @@
 				var help = $(' \
 					<div class="e2l-hide e2l-help" role="help"><p> \
 						The suggested protocols are those that are commonly \
-						used as children of this record\'s protocol. Related protocols are the \
-						child protocols of this record\'s protocol. \
+						used as children of this record\'s protocol. \
 						To select a protocol that is not displayed, click "Browse other protocols" \
 						and use the protocol chooser to select a different protocol. \
 					</p><p> \
@@ -402,9 +401,9 @@
 			
 			// Child protocols
 			// if (rd.children.length) {
-			var related = rd.children.slice();
-			related.push(rd.name);
-			this.element.append(this.build_level('Related protocols', 'related', related));
+			// var related = rd.children.slice();
+			// related.push(rd.name);
+			// this.element.append(this.build_level('Related protocols', 'related', []));
 			//}
 			
 			this.element.append('<p><input type="button" name="other" value="Browse other protocols" /></p>')
@@ -413,7 +412,7 @@
 				keytype: 'recorddef',
 				value: rd.name,
 				selected: function(widget, value) {
-					self.add('related', value);
+					self.add('typicalchld', value);
 				}
 			});
 			
@@ -823,6 +822,19 @@
 		},
 		
 		build_add: function(iter) {
+			// var pfx = 'Change';
+			// if (iter) {
+			// 	var pfx = '+';
+			// }
+			// var self = this;
+			// var button = $('<div style="clear:both"><input type="button" value="'+pfx+'" /></div>');
+			// button.FindControl({
+			// 	keytype: 'user',
+			// 	minimum: 0,
+			// 	selected: function(test, name){self.add_item(name)}
+			// });
+			// button.append('<input type="hidden" name="'+this.options.prefix+this.options.param+'" value="" />')
+			// return button
 			return $('')
 		},
 
@@ -1068,17 +1080,28 @@
 	// Date Time
     $.widget("emen2edit.datetime", $.emen2.EditBase, {
 		build_item: function(val, index) {
+			// Hack to put date_occurred into localtime
+			if (this.options.name == 'None' && this.options.param == 'date_occurred') {
+				// console.log('setting date_occurred to now');
+				val = emen2.time.now();
+			}			
+
 			var editw = $('<input type="text" name="'+this.options.prefix+this.options.param+'" value="'+val+'" />');
 			if (this.options.required && !index) {editw.attr('required',true)}
 			editw.datetimepicker({
 				showButtonPanel: true,
 				changeMonth: true,
 				changeYear: true,
+				showSecond: true,
 				showAnim: '',
 				yearRange: 'c-100:c+100',
 				dateFormat: 'yy-mm-dd',
+				timeFormat: 'hh:mm:ssz',
 				separator: 'T',
+				timezone: '+0500',
+				showTimezone: true
 			});
+			
 			return $('<span class="e2-edit-container" />').append(editw)
 		}
 	});	

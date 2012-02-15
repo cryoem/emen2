@@ -11865,7 +11865,7 @@ $#date_occurred: $$date_occurred
 # Service performed
 $#service_engineer:  $$service_engineer  
 $#service_date:  $$service_date   
-(if different than date occurred above)
+(if different than the date occurred above)  
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
@@ -11933,13 +11933,19 @@ $#title_freezing: $$title_freezing
 
 # Grids
 $$grid_tem_type grids will be used for this freezing session.  
+
 The grids should have a $$select_substrate_grid that was prepared by: $$select_substrate_grid_prep  
+
 Obtain the $$grids_tem_good grid(s) from grid batch $$id_grid_batch.  
+
 Each grid has a mesh size of $$grid_tem_mesh_size with a hole size of $$grid_tem_hole_size  
+
 Check the quality of each grid with a light microscope. Discard any grids that do not meet the experiment's standards.  
     $#grids_tem_lost = $$grids_tem_lost  
     $#grids_tem_used = $$grids_tem_used  
+
 $#description_grid_prefreezing: $$description_grid_prefreezing  
+
 For glow discharge, the discharge time is $$time_glowdischarge  
 
 # Freezing
@@ -11947,16 +11953,23 @@ $#grid_volume_applied: $$grid_volume_applied
 
 # Plunger settings
 $#vitrobot_temp: $$vitrobot_temp    
+
 $#vitrobot_time_blot: $$vitrobot_time_blot   
+
 $#vitrobot_blots: $$vitrobot_blots  
+
 $#direction_blotting:  $$direction_blotting   
+
 $#vitrobot_humid_on: $$vitrobot_humid_on  
+
 Note: If the humidifier is on, then also set  
 $#vitrobot_humidity to $$vitrobot_humidity  
 
 # After Freezing
 $#description_grid_postfreezing: $$description_grid_postfreezing  
+
 $#select_technique_freezing: $$select_technique_freezing  
+
 $#description_storage: $$description_storage  
 """,
   'modifytime': '2011-12-08T11:39:12Z',
@@ -12009,7 +12022,7 @@ $#date_occurred: $$date_occurred
 # Service performed
 $#service_engineer:  $$service_engineer  
 $#service_date:  $$service_date  
-(if different than the date occurred field above) 
+(if different than the date occurred above)  
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
@@ -12039,19 +12052,19 @@ $$file_binary
   'desc_short': 'Project meeting',
   'keytype': 'recorddef',
   'mainview': """
-# Project meeting
-$#subject_notebook: $$subject_notebook
-$#date_occurred: $$date_occurred
-Attending: $$author_list  
+# Project meeting  
+$#subject_notebook: $$subject_notebook   
+$#date_occurred: $$date_occurred   
+Attending: $$author_list   
 
-# Meeting notes
-$$description_notebook  
+# Meeting notes  
+$$description_notebook   
 
-# Comments
-$$comments
+# Comments  
+$$comments  
 
-# Attachments
-$$file_binary
+# Attachments  
+$$file_binary  
 """,
   'modifytime': '2011-12-08T11:39:12Z',
   'modifyuser': 'root',
@@ -12104,88 +12117,148 @@ Note: this protocol is in the process of being updated.
 
 # Inserting the Specimen Holder
 Blank the electron gun.  
+
 Inspect the specimen holder to ensure that the O-rings are dust-free, lubricated, and free of cracks / done in "loading grid on holder" (procedure associated with cryoholder).  
+
 Remove the goniometer's protective cap.   
+
 Grab cryoholder (that was already prepared with a grid on it) while it\'s in its holder.  
+
 Disconnect the temperature reader if connected.  
+
 Remove the cryoholder from its holder and quickly move it to the inside of the scope.  
+
 Align the specimen holder\'s guide pin with the goniometer\'s groove guide and insert the holder straight in until resistance is felt.  
+
 Using the toggle switch under the goniometer, switch to "PUMP".  At this point the orange light above the toggle switch will light up.  
+
 Wait for the orange light to disengage and the green light adjacent to it to engage.  
+
 Turn the specimen holder about 30 degrees counter-clockwise and push the holder in further.  
+
 Turn the specimen holder about 60 degrees counter-clockwise and push the holder in completely.  The liquid nitrogen in the heat-sink container of the specimen holder will likely spill out at this point - this is unavoidable.  
+
 Turn the specimen holder 90 degrees clockwise so that the heat sink is again vertical.  
+
 Switch the toggle switch under the goniometer to "AIR".  
+
 Refill the holder\'s heat-sink with liquid nitrogen.  
+
 Evaporate off the liquid nitrogen so that the level of nitrogen is below the rod in the heat-sink.  
+
 Wait approximately 45 minutes for the stage to stablize.  
 
 # Adjust the Z-height (procedure might vary based on the 'scope).
 Unlock the trackball by clicking "Close" (if using FastEM) and make sure that MDS is set to "OFF".  
+
 Use the focus knob to set DV = 0.  
+
 Press "Valve" to open the gun valve.  
+
 Use the trackball to find an open area on the grid.  
+
 Set the imaging magnification to the desired level.  
+
 Press "Wobbler X".  
+
 Rotate the joystick to adjust the z-height.  When properly adjusted, the image should not move.  
+
 Disengage wobbler by pressing "Wobbler X" again.  
+
 Use the X Y shift knobs to center the beam.  
 
 # Aligning the Condenser Aperture
 Insert the condenser aperture.  
+
 Spread the beam to cover the outer echelons.  
+
 Center the aperture using the aperture knobs  
 
 # Aligning the FEG
 Set the magnification to at least some minimum value, set the spot size to 1, and condense the beam.  
+
 Set the spot size to the smallest setting and center the beam with "Shift XY".  
+
 Set the spot size to the largest setting and center with Gun Shift.  
+
 Repeat the last 2 steps until all spot sizes are centered and beam expansion is symmetrical.  
 
 # Centering the High Voltage
 Begin viewing the grid at low magnification.  
+
 Find a noticeable feature on the grid that images will not be collected from.  
+
 Press "Wobbler HT" followed by "Bright tilt".  
+
 Use the "Def XY" knobs to align the current feature of interest.  If the microscope is aligned properly, then this feature should not drift or move.  
+
 Disengage "Wobbler HT" and "Bright tilt".  
+
 Increase the magnification and repeat this procedure until (param needed) magnification magnification is reached.  
 
 # Centering the Objective Aperture
 Spread the beam to cover the outer echelons. At this point the microscope magnification should set to (param needed) magnification.  
+
 Press "Diff" and condense the beam with "Diff Focus".  
+
 Set the objective aperture to (param needed) objective_aperture.  
+
 Press "Proj" and use "Shift XY" to center the beam.  
+
 Turn the "Diff Focus" knob counter-clockwise until the edge of the circular aperture is in sharp focus.  
+
 Use the objective arrows to center the objective aperture's shadow.  
+
 Press "Mag 1".
 
 # Correcting Objective Astigmatism  
 Locate carbon (grids always carbon?).  
+
 Set the magnification to 400K.  
+
 Press "MSC".  
+
 Using Digitalreconstruction_o, insert the CCD camera (click Camera -> Insert Camera).  
+
 Verify the CCD's setting, then acquire a live image in Focus Mode.  
+
 Create a Fourier transform of the image (Process -> Live -> FFT).  
+
 Use the "Mag/Diff" knob to alter the FFT such that there is only one ring when the microscope is underfocused.  If the ring diameter decreases ... (what is this saying?) ...    " focus so there is only one ring when underfocused. Use the FFT rings to determine if it is under or over focused. When defocusing at underfocused level, the ring diameter decreases".  
+
 Press "Stig" and use "Alignment XY" to adjust the astigmatism; the rings of the FFT should become circular.  
+
 Use the FFT to check for drift / specimen holder stability.  Look at the FFT, if all of the rings are complete then the specimen is stable.  Incomplete rings indicate drift and/or specimen holder instability.  
+
 Stop acquiring CCD images by clicking on the image and pressing "space".  
+
 Retract the camera.  
 
 # Setup Parallel Beam Condition
 
 # Setting the MDS
 Set the spot size to (param needed) spot_size and spread the beam to obtain an electron dose of (param needed) dose. Check software or a chart to determine the appropriate dosage.  
+
 Go to the "MDS" tab and click "Set".  
+
 Center the beam with "XY Shift" and recheck that the electron dose is (param needed) dose.  
+
 Click "Search2" under the "MDS" tab.  
+
 Set the spot size to 5 and spread the beam completely.  
+
 Press "Diff" and set the camera length to (param needed) camera_length.  
+
 Use the "Diff Focus" knob to overfocus the image to a level that is appropriate for visualizing and evaluating the specimen\'s ice.  
+
 Go to the "dPhoto" tab and make sure the Photo and Search modes are aligned.  If not aligned then press "Project" on the keyboard and use "Shift XY" to align the modes.  
+
 Go to the "MDS" tab and click on "Focus".  
+
 Burn a hole in the ice in order to see the deflection of the beam.  
+
 Use the "Def XY" knobs to deflect the beam to the correct position for focusing.  
+
 Go through the MDS cycle and make sure all of the modes are correcting.  
 
 # Notes
@@ -12369,13 +12442,10 @@ $#project_investigators: $$project_investigators
 
 # Project Description
 
-$#project_type: $$project_type 
-
-$#description_goals:
-$$description_goals
-
-$#description_background:
-$$description_background""",
+$#project_type: $$project_type  
+$#description_goals: $$description_goals  
+$#description_background: $$description_background
+""",
   'modifytime': '2011-12-08T11:39:12Z',
   'modifyuser': 'root',
   'name': 'subproject_software',
@@ -12450,6 +12520,7 @@ $#date_occurred: $$date_occurred
 # Service performed
 $#service_engineer:  $$service_engineer  
 $#service_date:  $$service_date   
+(if different than the date occurred above)  
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
@@ -12536,15 +12607,15 @@ Description: $$folder_description
   'keytype': 'recorddef',
   'mainview': """
 # Presentation
-$#subject_notebook: $$subject_notebook
-$#date_occurred: $$date_occurred
+$#subject_notebook: $$subject_notebook  
+$#date_occurred: $$date_occurred  
 Authors: $$author_list  
 
 # Notes
 $$description_notebook  
 
 # Comments
-$$comments
+$$comments  
 
 # Attachments
 $$file_binary
@@ -12814,7 +12885,7 @@ Deprecated; use publication_abstract.
                 'single_particle'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A session on the microscope. The start and end times are important for usage accounting. Each grid used in this microscopy session should have a grid_imaging record. Parent record should be the current microscope configuration.',
+  'desc_long': 'A session on the microscope. The start and end times are important for usage accounting. Each grid used in this microscopy session should have a grid_imaging record. Parent record should be the current microscope configuration.\n\nNote: microscopy sessions are usually created using EMDash, which manages all the other associated records and relationships, as well as logging the start and end time of the session.',
   'desc_short': 'Microscopy session',
   'keytype': 'recorddef',
   'mainview': """
@@ -12853,7 +12924,8 @@ $#aperture_objective: $$aperture_objective
 $#tem_spot_size: $$tem_spot_size   
 $#length_camera: $$length_camera   
 
-Use the alignment protocol for the particular microscope to: 
+Use the alignment protocol for the particular microscope to:  
+
 1. Align the Electron Gun  
 2. Center the Objective Aperture  
 3. Correct the Objective Astigmatism  
@@ -12911,14 +12983,14 @@ $#diameter_min:    $$diameter_min
 $#hazard_bl_max: $$hazard_bl_max   
 
 # Project Description
-$#description_goals:  $$description_goals
-$#description_medical_relevance:  $$description_medical_relevance
-$#description_background: $$description_background
+$#description_goals:  $$description_goals  
+$#description_medical_relevance:  $$description_medical_relevance  
+$#description_background: $$description_background  
 
 # Associated sequence data
 $#description_genetic: $$description_genetic  
-(Or, for single components):
-$#sequence_dna: $$sequence_dna  
+(Or, for single components):  
+$#sequence_dna: $$sequence_dna   
 $#sequence_rna: $$sequence_rna  
 $#sequence_protein: $$sequence_protein  
 """,
@@ -13161,29 +13233,43 @@ Note: currently being reworked
 
 # Specimen Holder Precheck
 Locate the $$specimen_holder specimen holder  
+
 Inspect the tip of the holder; ensure that the stage is clean, not coated with residue, and that an old grid is not loaded  
+
 Verify that the holder's rubber O-rings are dust-free, lubricated, and free of cracks  
 
 # Preparing the Specimen Holder
 Place the specimen holder in its own appropriate holder  
+
 Attach the temperature sensor to the cryoholder  
+
 Note that there are two ends to the holder.  The end where the grid will eventually be added will be referred to as the open-end, while the other end will be called the heat-sink end.  
+
 Fill the open-end of the holder with liquid nitrogen  
+
 Continue refilling with liquid nitrogen until the entire stage section is submerged  
+
 Fill the heat-sink end of the holder with liquid nitrogen as well  
+
 Submerge the end of a specimen holder loading stick in the liquid nitrogen in the holder's open-end.  
+
 Wait approximately 10 minutes for the holder to cool down.  Refill liquid nitrogen as needed.  
+
 The temperature should be no higher than -160 degrees C  
 
 # Loading the Grid
 Obtain the grid that will be used for imaging  
+
 Remove the grid (and its transfer stick) from its storage container and place it in the specimen holder's holder's open end.   
+
 Unscrew the grid from its transfer stick - make sure the grid remains submerged in the liquid nitrogen during this process.  
 
 Wait approximately 5 minutes.
 
 Now, attach the grid to the specimen holder loading stick by pressing the stick on the grid and turning it clockwise  
+
 Keeping the end of the loading stick submerged, move the grid to the tip of the specimen holder and release it (turn the stick counter-clockwise)  
+
 Now use the end of the loading stick to press the grid down on the tip until there is an audible click  
 """,
   'modifytime': '2011-12-08T11:39:12Z',
@@ -13293,7 +13379,7 @@ $#date_occurred: $$date_occurred
 # Service performed
 $#service_engineer:  $$service_engineer  
 $#service_date:  $$service_date   
-(if different than date occurred above)
+(if different than the date occurred above)  
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
@@ -13631,8 +13717,11 @@ $#grid_tem_mesh_size: $$grid_tem_mesh_size
 
 # Grid Preparation
 Get a grid $$description_storage (which canister) canister and fill it with liquid nitrogen.  
+
 Add a loading stick into the canister to cool as well.  
+
 Add a grid holder and a spider into the vitrobot's black rubber holder outside of the inner copper circle. Fill the rubber holder with liquid nitrogen.  
+
 The grids should have a $$select_substrate_grid that was prepared by the following procedure: $$select_substrate_grid_prep  
 
 Check the quality of each grid with a light microscope. Discard any grids that do not meet the experiment's standards.  
@@ -13648,6 +13737,7 @@ $#time_glowdischarge: $$time_glowdischarge
 
 # Freezing or Staining
 For a frozen-hydrated grid, please make sure a freezing session is linked as a parent. This will allow you to specify the full set of Vitrobot or freezing parameters.  
+
 If this particular grid deviates from the parent freezing session, you can override some of the freezing parameters below:  
 $#vitrobot_temp: $$vitrobot_temp   
 $#vitrobot_time_blot: $$vitrobot_time_blot   
@@ -13659,6 +13749,7 @@ $#vitrobot_time_drain: $$vitrobot_time_drain
 $#vitrobot_level_liquid: $$vitrobot_level_liquid   
 $#direction_blotting:  $$direction_blotting  
 $#vitrobot_humid_on: $$vitrobot_humid_on  
+
 Note: If the vitrobot's humidifier is on, then also set  
 $#vitrobot_humidity to $$vitrobot_humidity  
 
@@ -14337,7 +14428,6 @@ $#project_block: $$project_block
 
 $#name_pi: $$name_pi  
 $#project_investigators: $$project_investigators  
-
 $#project_type: $$project_type  
 
 # Specimen
@@ -14349,16 +14439,16 @@ $#diameter_min:    $$diameter_min
 $#hazard_bl_max: $$hazard_bl_max   
 
 # Project Description
-$#description_goals:  $$description_goals
-$#description_medical_relevance:  $$description_medical_relevance
-$#description_background: $$description_background
+$#description_goals:  $$description_goals  
+$#description_medical_relevance:  $$description_medical_relevance  
+$#description_background: $$description_background  
 
 # Associated sequence data
 $#description_genetic: $$description_genetic  
-(Or, for single components):
-$#sequence_dna: $$sequence_dna  
+(Or, for single components):   
+$#sequence_dna: $$sequence_dna   
 $#sequence_rna: $$sequence_rna  
-$#sequence_protein: $$sequence_protein  
+$#sequence_protein: $$sequence_protein   
 """,
   'modifytime': '2011-12-08T11:39:12Z',
   'modifyuser': 'root',
@@ -14444,31 +14534,52 @@ $#tem_magnification_set: $$tem_magnification_set
 
 # Setup
 Camera $$ccd_id will be used to take images with a frame size of $$size_image_ccd_x pixels by $$size_image_ccd_y pixels  
+
 Using DigitalMicrograph or the appropriate method, insert the CCD camera (click Camera -> Insert Camera)  
+
 Move the microscope stage to a completely empty area  
+
 Click Camera -> Prepare Gain Reference to properly minimize the CCD's quadrant effect  
+
 Start the appropriate software (e.g., pydb) and log in  
 
 # Imaging:  
 Switch MDS mode to "Search Mode"  
+
 Move to an area of interest at ($$position_stage_x, $$position_stage_y)  
 
 # Switch to "Focus Mode" under MDS
 Check the Z-height if necessary (this is usually only necessary when moving from one grid square to another)  
+
 Check that DV is close to 0  
+
 Check that the image is neither underfocused nor overfocused  
+
 Blank beam and set defocus value  
+
 Switch to "Photo Mode" under MDS  
+
 $#specimen_tilt to $$specimen_tilt   
+
 $#status_energy_filter to $$status_energy_filter  
+
 Choose whether a single image or focal pair will be taken  
+
 Set the defocus value(s) to $$ctf_defocus_set  
+
 Wait some time for the stage to stabilize  
+
 Acquire image (e.g. select "Acquire" or "Start Capture" etc.)   
+
 It is crucial that all vibrations from outside sources (such as talking and walking) be kept to a minimum at this pointOnce the image(s) have been taken, the "Acquire" button will become clickable again  
+
 Optionally, the grid hole can now be "marked" as imaged by burning a hole in it  
+
 Check the dose and screen current in an empty area  
-Switch to "Focus Mode" under MDS, intensify the electron beam, and melt the ice in the grid circleRemember to deintensify the beam once the ice has been meltedAt this point additional images can be taken by repeating the procedure above with new grid coordinates    
+
+Switch to "Focus Mode" under MDS, intensify the electron beam, and melt the ice in the grid circle.
+
+Remember to deintensify the beam once the ice has been meltedAt this point additional images can be taken by repeating the procedure above with new grid coordinates    
 
 # Assessment
 $#ice_type: $$ice_type  
@@ -14644,13 +14755,19 @@ Note: this protocol is under development.
 
 # Grids
 $$grid_tem_type grids will be used for this freezing session.  
+
 The grids should have a $$select_substrate_grid that was prepared by: $$select_substrate_grid_prep  
+
 Obtain the $$grids_tem_good grid(s) from grid batch $$id_grid_batch.  
+
 Each grid has a mesh size of $$grid_tem_mesh_size with a hole size of $$grid_tem_hole_size  
+
 Check the quality of each grid with a light microscope. Discard any grids that do not meet the experiment's standards.  
     $#grids_tem_lost = $$grids_tem_lost  
     $#grids_tem_used = $$grids_tem_used  
+
 $#description_grid_prefreezing: $$description_grid_prefreezing  
+
 For glow discharge, the discharge time is $$time_glowdischarge  
 
 # Freezing
@@ -14658,16 +14775,23 @@ $#grid_volume_applied: $$grid_volume_applied
 
 # Plunger settings
 $#vitrobot_temp: $$vitrobot_temp    
+
 $#vitrobot_time_blot: $$vitrobot_time_blot   
+
 $#vitrobot_blots: $$vitrobot_blots  
+
 $#direction_blotting:  $$direction_blotting   
+
 $#vitrobot_humid_on: $$vitrobot_humid_on  
+
 Note: If the humidifier is on, then also set  
 $#vitrobot_humidity to $$vitrobot_humidity  
 
 # After Freezing
 $#description_grid_postfreezing: $$description_grid_postfreezing  
+
 $#select_technique_freezing: $$select_technique_freezing  
+
 $#description_storage: $$description_storage
 """,
   'modifytime': '2011-12-08T11:39:12Z',
@@ -14824,7 +14948,7 @@ Reserved for future use
  {'children': ['tomography', 'virus', 'single_particle'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'This record represents a single grid during an imaging session. There may be several grid_imaging records per microscopy session. Children will be ccd, micrograph, or stack. Parents should be the project or subproject, the grid_preparation record (see freezing session), and the microscopy session.',
+  'desc_long': 'This record represents a single grid during an imaging session. There may be several grid_imaging records per microscopy session. Children will be ccd, micrograph, or stack. Parents should be the project or subproject, the grid_preparation record (see freezing session), and the microscopy session.\n\nNote: grid imaging sessions are usually created using EMDash, which manages all the other associated records and relationships.',
   'desc_short': 'Grid imaging session',
   'keytype': 'recorddef',
   'mainview': """
@@ -15033,24 +15157,23 @@ $$box
   'mainview': """
 
 # Workshop: $$name_project
-
-$#description_goals: $$description_goals 
-$#organizers: $$organizers
-$#instructors: $$instructors 
+$#description_goals: $$description_goals   
+$#organizers: $$organizers  
+$#instructors: $$instructors  
 
 # Address
-$#address_street:    $$address_street 
-$#address_city:  $$address_city 
-$#address_state:  $$address_state 
-$#address_zipcode:     $$address_zipcode    
-$#address_international:  $$address_international    
+$#address_street:    $$address_street  
+$#address_city:  $$address_city  
+$#address_state:  $$address_state   
+$#address_zipcode:     $$address_zipcode     
+$#address_international:  $$address_international     
 
 # Dates
-$#date_start: $$date_start 
-$#date_end: $$date_end 
+$#date_start: $$date_start  
+$#date_end: $$date_end  
 
-# Agenda
-$$agenda 
+# Agenda  
+$$agenda   
 """,
   'modifytime': '2011-12-08T11:39:12Z',
   'modifyuser': 'root',
@@ -15123,7 +15246,7 @@ $$description_purification
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Contact details for a person. These are usually associated with User accounts, but can also be used to store contact details in other places, e.g. a project or report.',
-  'desc_short': 'person',
+  'desc_short': 'Person',
   'keytype': 'recorddef',
   'mainview': """
 # Person
@@ -15157,7 +15280,7 @@ $#date_occurred: $$date_occurred
 # Service performed
 $#service_engineer:  $$service_engineer  
 $#service_date:  $$service_date   
-(if different than date occurred above)
+(if different than the date occurred above)  
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
@@ -15201,8 +15324,8 @@ $#contact_technical: $$contact_technical
 # Comments
 $#comments_editor: $$comments_editor  
 $#comments_creator: $$comments_creator  
-$#talk_audience: $$talk_audience
-General comments:
+$#talk_audience: $$talk_audience  
+General comments:  
 $$comments
 
 # Attachments
@@ -15251,31 +15374,52 @@ $#tem_magnification_set: $$tem_magnification_set
   
 # Setup
 Camera $$ccd_id will be used to take images with a frame size of $$size_image_ccd_x pixels by $$size_image_ccd_y pixels  
+
 Using DigitalMicrograph or the appropriate method, insert the CCD camera (click Camera -> Insert Camera)  
+
 Move the microscope stage to a completely empty area  
+
 Click Camera -> Prepare Gain Reference to properly minimize the CCD's quadrant effect  
+
 Start the appropriate software (e.g., pydb) and log in  
 
 # Imaging:  
 Switch MDS mode to "Search Mode"  
+
 Move to an area of interest at ($$position_stage_x, $$position_stage_y)  
 
 # Switch to "Focus Mode" under MDS
 Check the Z-height if necessary (this is usually only necessary when moving from one grid square to another)  
+
 Check that DV is close to 0  
+
 Check that the image is neither underfocused nor overfocused  
+
 Blank beam and set defocus value  
+
 Switch to "Photo Mode" under MDS  
+
 $#specimen_tilt to $$specimen_tilt   
+
 $#status_energy_filter to $$status_energy_filter  
+
 Choose whether a single image or focal pair will be taken  
+
 Set the defocus value(s) to $$ctf_defocus_set  
+
 Wait some time for the stage to stabilize  
+
 Acquire image (e.g. select "Acquire" or "Start Capture" etc.)   
+
 It is crucial that all vibrations from outside sources (such as talking and walking) be kept to a minimum at this pointOnce the image(s) have been taken, the "Acquire" button will become clickable again  
+
 Optionally, the grid hole can now be "marked" as imaged by burning a hole in it  
+
 Check the dose and screen current in an empty area  
-Switch to "Focus Mode" under MDS, intensify the electron beam, and melt the ice in the grid circleRemember to deintensify the beam once the ice has been meltedAt this point additional images can be taken by repeating the procedure above with new grid coordinates    
+
+Switch to "Focus Mode" under MDS, intensify the electron beam, and melt the ice in the grid circle.
+
+Remember to deintensify the beam once the ice has been meltedAt this point additional images can be taken by repeating the procedure above with new grid coordinates    
 
 # Assessment
 $#ice_type: $$ice_type  

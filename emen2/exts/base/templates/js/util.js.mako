@@ -52,6 +52,9 @@ emen2.time.ISODateString = function(d) {
 	+ emen2.time.pad(minutes)
 }
 
+emen2.time.now = function() {
+	return emen2.time.ISODateString(new Date());
+}
 
 emen2.time.range = function(t1, t2, width) {
 	var t2 = t2 || new Date();
