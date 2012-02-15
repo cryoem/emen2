@@ -12889,8 +12889,8 @@ Deprecated; use publication_abstract.
   'desc_short': 'Microscopy session',
   'keytype': 'recorddef',
   'mainview': """
-# Objective
-$#performed_by: $$performed_by
+# Objective  
+$#performed_by: $$performed_by  
 $#date_start: $$date_start  
 $#date_end: $$date_end  
 

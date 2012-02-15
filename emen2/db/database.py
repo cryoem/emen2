@@ -1038,9 +1038,9 @@ class DB(object):
 		Examples:
 
 		>>> db.time()
-		2011/10/10 14:23:11
+		2011-10-10T14:23:11+00:00
 
-		:return: Current time string, YYYY/MM/DD HH:MM:SS
+		:return: Current time string, YYYY-MM-DDTHH:MM:SS+00:00
 		"""
 		return gettime()
 
