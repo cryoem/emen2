@@ -131,11 +131,11 @@
 			var rows = [];
 			$.each(events, function(i, e) {
 				if (e.length == 3) {
-					comments.push(e[2]+'<br />');
+					comments.push('<div>'+emen2.template.image('comment.png')+' '+e[2]+'</div>');
 				} else if (e.length == 4) {
 					var pdname = e[2];
 					if (emen2.caches['paramdef'][pdname]){pdname=emen2.caches['paramdef'][pdname].desc_short}
-					var row = '<p style="margin-left:0px">'+emen2.template.image('edit.png')+' edited <a href="'+EMEN2WEBROOT+'/paramdef/'+e[2]+'/">'+pdname+'</a>. Previous value was:</p><p style="margin-left:50px">'+e[3]+'</p';
+					var row = '<div>'+emen2.template.image('edit.png')+' edited <a href="'+EMEN2WEBROOT+'/paramdef/'+e[2]+'/">'+pdname+'</a>. Previous value was:</div><div style="margin-left:50px">'+e[3]+'</div>';
 					comments.push(row);
 				}
 			});
@@ -746,7 +746,8 @@
 				'links':'not_ready',
 				'groups':'not_ready',
 				'binary':'binary',
-				'comments':'comments'
+				'comments':'comments',
+				'coordinate':'not_ready'
 			}
 			return defaults[vt] || vt;			
 		},		
@@ -826,10 +827,15 @@
 		},
 
 		add_item: function(val) {
-			var ul = $('.e2-edit-containers', this.element);
-			ul.append(
-				$('<li />').append(this.build_item(val, -1))
-			);
+			// Not particularly clean
+			var pd = this.cachepd();
+			if (pd.iter) {
+				var ul = $('.e2-edit-containers', this.element);
+				ul.append($('<li />').append(this.build_item(val, -1)));
+			} else {
+				$('.e2-edit-container', this.element).remove();
+				this.element.prepend(this.build_item(val));
+			}
 		},
 		
 		getval: function() {
@@ -861,7 +867,7 @@
 	// Use other widget
     $.widget("emen2edit.not_ready", $.emen2.EditBase, {
 		build_control: function() {
-			this.element.append('(Use toolbar to edit this)');
+			this.element.append('(editing tool under development; use toolbar, if possible)');
 		}
 	});
 
@@ -989,6 +995,7 @@
 				minimum: 0,
 				selected: function(test, name){self.add_item(name)}
 			});
+			button.append('<input type="hidden" name="'+this.options.prefix+this.options.param+'" value="" />')
 			return button
 		}
 	});	
@@ -1022,9 +1029,11 @@
 				elem.attr('multiple', 'multiple')
 				var pfx = 'Add files:';
 			}
-			return $('<div />').append(pfx, elem);
+			var button = $('<div style="clear:both"></div>');
+			button.append('<input type="hidden" name="'+this.options.prefix+this.options.param+'" value="" />')
+			button.append(pfx, elem);
+			return button
 		}
-
 	});
 	
 	// Group Editor

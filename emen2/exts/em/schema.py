@@ -11854,7 +11854,7 @@ recorddefs = [
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A maintenance event on the microscope. Any time there is change to the microscope or maintenance performed, this record should be used. If the microscope is altered in a way that affects imaging parameters, a new microscope record should be created. Parent should be the microscope folder.',
+  'desc_long': 'A maintenance event on the microscope. Any time there is change to the microscope or maintenance performed, this record should be used. If the microscope is altered in a way that affects imaging parameters, a new microscope record should be created.',
   'desc_short': 'Microscope maintenance',
   'keytype': 'recorddef',
   'mainview': """
@@ -11891,7 +11891,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'Manuscripts in preparation',
+  'desc_long': 'A manuscript in preparation',
   'desc_short': 'Manuscript',
   'keytype': 'recorddef',
   'mainview': """
@@ -11920,7 +11920,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'Similar to freezing_vitrobot.',
+  'desc_long': 'Manual plunger session',
   'desc_short': 'Manual plunger session',
   'keytype': 'recorddef',
   'mainview': """
@@ -11998,7 +11998,7 @@ $#description_storage: $$description_storage
                 'camera_maintenance'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Maintenance record for a piece of equipment',
   'desc_short': 'Equipment Maintenance',
   'keytype': 'recorddef',
   'mainview': """
@@ -12035,7 +12035,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A meeting about a project or subproject. Enter the details of the meeting, e.g. minutes, and upload any relevant attachments.',
+  'desc_long': 'A meeting about a project. Enter the details of the meeting, e.g. agenda, minutes, and any relevant attachments.',
   'desc_short': 'Project meeting',
   'keytype': 'recorddef',
   'mainview': """
@@ -12069,7 +12069,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': '',
+  'desc_long': 'Bookmarks. This is used by the system and should not be created directly.',
   'desc_short': 'Bookmarks',
   'keytype': 'recorddef',
   'mainview': """
@@ -12092,7 +12092,7 @@ $$bookmarks
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Microscope alignment',
   'desc_short': 'Microscope alignment',
   'keytype': 'recorddef',
   'mainview': """
@@ -12236,7 +12236,7 @@ Before taking images, wait for the specimen's temperature to reach (param needed
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A visualization or animation. The image or video should be attached to the record. Parent will usuually be a subproject.',
+  'desc_long': '(Deprecated) Use movie.',
   'desc_short': '(Deprecated) Use movie.',
   'keytype': 'recorddef',
   'mainview': """
@@ -12300,7 +12300,7 @@ $#address_international: $$address_international
  {'children': ['publication_abstract', 'publication_book'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A publication. This should be a child of the project or subproject is it associated with. It should also be linked to a common publication folder, or a p41_project report.',
+  'desc_long': 'A publication that results from the project. To add references of interest that were not produced by this group, the "reference" protocol may be more appropriate.',
   'desc_short': 'Publication',
   'keytype': 'recorddef',
   'mainview': """
@@ -12345,7 +12345,7 @@ $$abstract
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'This is a project specifically targeted at software development rather than a biological target.',
+  'desc_long': 'This is a project specifically for software development rather than a biological target.',
   'desc_short': 'Software project',
   'keytype': 'recorddef',
   'mainview': """
@@ -12393,7 +12393,7 @@ $$description_background""",
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'This record represents a single scan of a micrograph. There may be more than one scan records per micrograph.',
+  'desc_long': 'This record represents a single scan of a micrograph. There may be more than one scan record per micrograph.',
   'desc_short': 'Scanned micrograph',
   'keytype': 'recorddef',
   'mainview': """
@@ -12439,7 +12439,7 @@ $#zeiss_brightness: $$zeiss_brightness
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Maintenance record for a camera.',
   'desc_short': 'Camera maintenance',
   'keytype': 'recorddef',
   'mainview': """
@@ -12475,7 +12475,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'A camera or other imaging instrument.',
   'desc_short': 'Camera',
   'keytype': 'recorddef',
   'mainview': """
@@ -12504,7 +12504,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A folder. This is a general purpose organizational device. You will want to use more specific protocols such as project/subproject where appropriate.',
+  'desc_long': 'A folder, which is useful as a general purpose organization device.',
   'desc_short': 'Folder',
   'keytype': 'recorddef',
   'mainview': """
@@ -12531,7 +12531,7 @@ Description: $$folder_description
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A presentation given, e.g. at a Workshop or Lab Meeting.',
+  'desc_long': 'A presentation given, e.g. at a workshop or lab meeting. For talks given at conferences, the "publication_abstract" protocol may be more appropriate.',
   'desc_short': 'Presentation',
   'keytype': 'recorddef',
   'mainview': """
@@ -12667,7 +12667,7 @@ $$aliquot_storage
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': """A density map. For a finished reconstruction, you may want to use 'structure' protocol. Parent should be subproject""",
+  'desc_long': """A density map. For a finished reconstruction, you may want to use 'structure' protocol.""",
   'desc_short': 'Density map',
   'keytype': 'recorddef',
   'mainview': """
@@ -12719,7 +12719,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': '(Deprecated) All groups',
   'desc_short': '(Deprecated) All groups',
   'keytype': 'recorddef',
   'mainview': """
@@ -12743,7 +12743,7 @@ Deprecated. Use the 'group' protocol.
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': '(Deprecated) Project meeting or discussion',
   'desc_short': '(Deprecated) Project meeting or discussion',
   'keytype': 'recorddef',
   'mainview': """
@@ -12787,8 +12787,8 @@ Deprecated; use project_meeting
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
-  'desc_short': '(Deprecated) Use publication_abstract.',
+  'desc_long': '(Deprecated) Meeting',
+  'desc_short': '(Deprecated) Meeting',
   'keytype': 'recorddef',
   'mainview': """
 # Meeting
@@ -12881,7 +12881,7 @@ Use the alignment protocol for the particular microscope to:
                 'project_software'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A project. This should be used in a broad sense, such as an entire collaboration. For each specific goal, a subproject child should be created. Parent will usually be a group record.',
+  'desc_long': 'A project. This should be used in a broad sense, such as an entire collaboration. For each specific goal, an additional child project should be created. Parent will usually be a group record.',
   'desc_short': 'Project',
   'keytype': 'recorddef',
   'mainview': """
@@ -12949,7 +12949,7 @@ $#sequence_protein: $$sequence_protein
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Cryo-sectioned grid',
   'desc_short': 'Cryo-sectioned grid',
   'keytype': 'recorddef',
   'mainview': """
@@ -13076,7 +13076,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Gatan CP3 session',
   'desc_short': 'Gatan CP3 session',
   'keytype': 'recorddef',
   'mainview': """
@@ -13151,8 +13151,8 @@ $$comments""",
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': '',
-  'desc_short': 'Cryo-holder Loading',
+  'desc_long': 'Cryo-holder loading',
+  'desc_short': 'Cryo-holder loading',
   'keytype': 'recorddef',
   'mainview': """
 # Cryo-holder loading
@@ -13202,7 +13202,7 @@ Now use the end of the loading stick to press the grid down on the tip until the
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'A vitrification device; e.g. a vitrobot, Gatan plunger, etc.',
   'desc_short': 'Vitrification device',
   'keytype': 'recorddef',
   'mainview': """
@@ -13238,7 +13238,7 @@ $$file_binary
                 'information'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': '',
+  'desc_long': 'Root protocol. Do not use.',
   'desc_short': 'Root Protocol',
   'keytype': 'recorddef',
   'mainview': """Root Protocol""",
@@ -13258,8 +13258,8 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
-  'desc_short': 'Berriman session',
+  'desc_long': 'Berriman freezing session',
+  'desc_short': 'Berriman freezing session',
   'keytype': 'recorddef',
   'mainview': """
 # Berriman freezing session
@@ -13282,7 +13282,7 @@ Note: this is under development.
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Maintenance record for a vitrification device',
   'desc_short': 'Vitrobot maintenance',
   'keytype': 'recorddef',
   'mainview': """
@@ -13319,7 +13319,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'P41 annual grant report',
   'desc_short': 'P41 annual grant report',
   'keytype': 'recorddef',
   'mainview': """
@@ -13352,7 +13352,7 @@ $#grant_pi: $$grant_pi
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'A film scanner.',
   'desc_short': 'Film scanner',
   'keytype': 'recorddef',
   'mainview': """
@@ -13431,8 +13431,8 @@ $$file_binary
  {'children': ['person', 'group'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
-  'desc_short': 'People and Groups',
+  'desc_long': 'People and groups',
+  'desc_short': 'People and groups',
   'keytype': 'recorddef',
   'mainview': """This protocol is for organizational purposes, and is not intended to be used.""",
   'modifytime': '2011-12-08T11:39:12Z',
@@ -13451,7 +13451,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': '(Deprecated) Tilt series',
   'desc_short': '(Deprecated) Tilt series',
   'keytype': 'recorddef',
   'mainview': """ 
@@ -13475,7 +13475,7 @@ Deprecated; use stack.
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'JAMES frame',
   'desc_short': 'JAMES frame',
   'keytype': 'recorddef',
   'mainview': """
@@ -13541,7 +13541,7 @@ $#image_shift_2_deflectors:  $$image_shift_2_deflectors
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': '(Deprecated) Tilt series frame',
   'desc_short': '(Deprecated) Tilt series frame',
   'keytype': 'recorddef',
   'mainview': """
@@ -13615,7 +13615,7 @@ $$file_binary
  {'children': ['grid_cryosection'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Grid preparation.',
   'desc_short': 'Grid preparation',
   'keytype': 'recorddef',
   'mainview': """
@@ -13684,10 +13684,11 @@ $#description_storage: $$description_storage
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'JADAS frame',
   'desc_short': 'JADAS frame',
   'keytype': 'recorddef',
-  'mainview': """# CCD Micrograph
+  'mainview': """
+# JADAS frame
 
 $#id_ccd_frame:   $$id_ccd_frame   
 $#number_exposure:   $$number_exposure    
@@ -13845,7 +13846,7 @@ $#photo_manualexptime:  $$photo_manualexptime""",
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Tomography session',
   'desc_short': 'Tomography session',
   'keytype': 'recorddef',
   'mainview': """
@@ -13870,7 +13871,7 @@ This protocol is being worked on
  {'children': ['presentation'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'General purpose lab notebook entry; stores general notes, observations, results, etc.',
+  'desc_long': 'General purpose lab notebook entry; stores general notes, observations, results, etc. Attach any relevant files.',
   'desc_short': 'Lab notebook entry',
   'keytype': 'recorddef',
   'mainview': """
@@ -13901,7 +13902,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': '(Deprecated) JEOL Demo',
   'desc_short': '(Deprecated) JEOL Demo',
   'keytype': 'recorddef',
   'mainview': """
@@ -13925,7 +13926,7 @@ Deprecated
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': '(Deprecated) Microscope suite',
   'desc_short': '(Deprecated) Microscope suite',
   'keytype': 'recorddef',
   'mainview': """
@@ -14006,7 +14007,7 @@ $#vitrobot_humidity to $$vitrobot_humidity
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'Publication abstract. Please enter PMID/PMCID if available. Please link against relevant subprojects.',
+  'desc_long': 'An abstract based on the project\'s research; generally from a conference. Please enter PMID/PMCID if available. Please link against relevant subprojects. Attach any relevant files, such as posters or talk slides.',
   'desc_short': 'Conference abstract',
   'keytype': 'recorddef',
   'mainview': """# $#title_publication:  $$title_publication
@@ -14129,7 +14130,7 @@ $#grant_p41_ref_end:  $$grant_p41_ref_end""",
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Pneumatic plunger session',
   'desc_short': 'Pneumatic plunger session',
   'keytype': 'recorddef',
   'mainview': """
@@ -14174,7 +14175,7 @@ $#description_storage: $$description_storage
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': '(Deprecated) Discussion',
   'desc_short': '(Deprecated) Discussion',
   'keytype': 'recorddef',
   'mainview': """
@@ -14268,7 +14269,7 @@ $#description_background: $$description_background
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Reconstruction',
   'desc_short': 'Reconstruction',
   'keytype': 'recorddef',
   'mainview': """
@@ -14316,7 +14317,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'One goal or aim of a larger project or collaboration.',
+  'desc_long': 'Please use nested "project" records, instead of the "subproject" protocol.',
   'desc_short': 'Subproject',
   'keytype': 'recorddef',
   'mainview': """
@@ -14387,7 +14388,7 @@ $#sequence_protein: $$sequence_protein
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'This record represents a single frame from an uploaded image stack (usually tomogram).',
+  'desc_long': 'This record represents a single frame from an uploaded image stack (usually tomogram). This protocol is somewhat deprecated; individual frames are no longer separated out from the main stack.',
   'desc_short': 'Tilt-series image',
   'keytype': 'recorddef',
   'mainview': """
@@ -14395,7 +14396,7 @@ $#sequence_protein: $$sequence_protein
 
 See parent record for full details.
 
-This protocol is somewhat deprecated; there are no longer individual frames created when a tomogram or stack is uploaded.
+This protocol is somewhat deprecated; individual frames are no longer separated out from the main stack.
 
 $#specimen_tilt: $$specimen_tilt  
 $#stack_data_montage: $$stack_data_montage  
@@ -14571,7 +14572,7 @@ $$project_investigators
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Gatan MkII freezing session',
   'desc_short': 'Gatan MkII freezing session',
   'keytype': 'recorddef',
   'mainview': """ 
@@ -14628,11 +14629,11 @@ $#description_storage: $$description_storage
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
-  'desc_short': 'High pressure freezing',
+  'desc_long': 'High pressure freezing session',
+  'desc_short': 'High pressure freezing session',
   'keytype': 'recorddef',
   'mainview': """
-# High pressure freezing
+# High pressure freezing session
 $#date_occurred: $$date_occurred  
 $#performed_by: $$performed_by  
 $#frozen_by: $$frozen_by  
@@ -14705,7 +14706,7 @@ $#description_storage: $$description_storage
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'An update on progress in the project. Attach any relevant files.',
   'desc_short': 'Progress Report',
   'keytype': 'recorddef',
   'mainview': """
@@ -14755,7 +14756,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Single particle (virus) session',
   'desc_short': 'Single particle (virus) session',
   'keytype': 'recorddef',
   'mainview': """
@@ -14779,7 +14780,7 @@ Reserved for future use.
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Single particle microscopy session',
   'desc_short': 'Single particle microscopy session',
   'keytype': 'recorddef',
   'mainview': """
@@ -14962,7 +14963,7 @@ $#stack_data_tiltangles_current: $$stack_data_tiltangles_current
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A refined 3D structure. Parent should be a subproject.',
+  'desc_long': 'A refined 3D structure.',
   'desc_short': 'Structure',
   'keytype': 'recorddef',
   'mainview': """ 
@@ -15068,7 +15069,7 @@ $$agenda
  {'children': ['aliquot'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A biochemical purification. Parent should be a subproject. There should be at least one aliquot child record.',
+  'desc_long': 'A biochemical purification. There should be at least one aliquot child record.',
   'desc_short': 'Purification',
   'keytype': 'recorddef',
   'mainview': """
@@ -15145,7 +15146,7 @@ Do not edit directly. Use the user profile view.
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': None,
+  'desc_long': 'Maintenance record for a scanner.',
   'desc_short': 'Scanner maintenance',
   'keytype': 'recorddef',
   'mainview': """
@@ -15181,7 +15182,7 @@ $$file_binary
  {'children': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A visualization or movie',
+  'desc_long': 'A visualization or movie. Attach any relevant files.',
   'desc_short': 'Movie',
   'keytype': 'recorddef',
   'mainview': """
