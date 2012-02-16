@@ -317,7 +317,7 @@ class EMEN2DBEnv(object):
 	cachesize = emen2.db.config.get('BDB.CACHESIZE', 1024)
 	path = emen2.db.config.get('EMEN2DBHOME')
 	create = emen2.db.config.get('params.CREATE')
-	snapshot = False # emen2.db.config.get('params.SNAPSHOT')
+	snapshot = emen2.db.config.get('params.SNAPSHOT')
 
 	# paths from global configuration
 	LOGPATH = emen2.db.config.get('paths.LOGPATH')

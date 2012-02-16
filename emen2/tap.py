@@ -16,7 +16,7 @@ def makeService(options):
 	emen2.db.config.UsageParser(options=options)
 
 	# Start the service
-	server = emen2.web.server.EMEN2Server()
 	s = service.MultiService()
+	server = emen2.web.server.EMEN2Server(options)
 	server.start(service=s)	
 	return s

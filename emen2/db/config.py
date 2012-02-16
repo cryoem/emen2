@@ -235,6 +235,9 @@ class DBOptions(usage.Options):
 		for option_name in ['nosnapshot']:
 			self[option_name] = not bool(self[option_name])
 
+	def load_config(self):
+		# Do additional processing during configuration loading
+		pass
 
 
 class UsageParser(object):
@@ -251,6 +254,7 @@ class UsageParser(object):
 		self.options = options
 		self.config = Config()
 		self.load_config()
+		
 
 	def load_config(self, **kw):
 		if self.config.globalns.getattr('CONFIG_LOADED', False):
@@ -323,14 +327,17 @@ class UsageParser(object):
 			self.config.globalns.extensions.EXTS = exts
 
 		# Enable/disable snapshot
-		self.config.globalns.params.SNAPSHOT = self.options['nosnapshot']
+		self.config.globalns.params.SNAPSHOT = (not self.options['nosnapshot'])
 
 		# Create new database?
 		self.config.globalns.params.CREATE = self.options['create']
 
 		# Enable root user?
 		# self.config.globalns.ENABLEROOT = self.values.enableroot or False
-
+		
+		# Do anything defined by the usage.Options class
+		self.options.load_config()
+		
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

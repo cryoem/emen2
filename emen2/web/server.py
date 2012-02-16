@@ -95,18 +95,13 @@ class EMEN2Server(object):
 
 	usage = WebServerOptions
 
-	def __init__(self, port=None):
-		self.port = port
+	def __init__(self, options=None):
+		options = options or {}
+		self.port = options.get('port') or emen2.db.config.get('network.EMEN2PORT')
 
 	#@contextlib.contextmanager
 	def start(self, service=None):
 		'''Run the server main loop'''
-
-		# Update the configuration
-		self.EMEN2PORT = self.port or emen2.db.config.get('network.EMEN2PORT')
-		self.EMEN2PORT_HTTPS = 436
-		self.EMEN2HTTPS = False # self.options.get('https', False)
-		self.EMEN2PORT_HTTPS = 436 # self.options.get('httpsport', 436)
 
 		# Routing resource. This will look up request.uri in the routing table
 		# and return View resources.
@@ -148,9 +143,8 @@ class EMEN2Server(object):
 	def attach_to_service(self, service):
 		emen2_service = internet.TCPServer(self.port, self.site)
 		emen2_service.setServiceParent(service)
-
-		if self.EMEN2HTTPS and ssl:
-			pass ##TODO: implement ssl
+		# if self.EMEN2HTTPS and ssl:
+		#	pass
 
 	def attach_standalone(self):
 		reactor = twisted.internet.reactor		
@@ -159,12 +153,15 @@ class EMEN2Server(object):
 
 
 
-if __name__ == "__main__":
-	# Fix
+def start_standalone():
 	# twisted.python.log.startLogging(sys.stdout)
-	emen2.db.config.UsageParser(WebServerOptions)
-	server = EMEN2Server(port=8080)
+	opt = emen2.db.config.UsageParser(WebServerOptions)
+	server = EMEN2Server(opt.options)
 	server.start()
+
+
+if __name__ == "__main__":
+	start_standalone()
 
 
 
