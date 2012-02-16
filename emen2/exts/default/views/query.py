@@ -94,7 +94,6 @@ class Query(View):
 	def main(self, path=None, q=None, c=None, **kwargs):
 		self.initq(path, q, c, **kwargs)
 		self.q = self.db.table(**self.q)
-		print self.q
 		self.set_context_item('q', self.q)
 
 	@View.add_matcher(r'^/query/(?P<path>.*)/embed/$')

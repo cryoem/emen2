@@ -685,7 +685,7 @@
 				<h4 class="e2l-label">Image</h4> \
 				<input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /> \
 				<input type="button" name="autocenter" value="Center" /> <br />\
-				<input type="button" name="save" class="e2l-save" value="Save" /> \
+				<a href="'+EMEN2WEBROOT+'/download/'+self.options.bdo+'/'+self.options.filename+'" />Download</a> \
 				<h4 class="e2l-label">Mode</h4> \
 				<div style="text-align:left"> \
 				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /><label for="displaymode_image">Image</label><br />\
@@ -717,15 +717,6 @@
 				self.options.scale = self.autoscale();
 				self.autocenter();
 			});			
-			controls.find("input[name=save]").click(function() {
-				var loc = EMEN2WEBROOT + '/download/' + self.options.bdo + '/' + self.options.filename + '/';
-				window.open(loc);
-				// $('<iframe />', {
-				//     name:'myFrame',
-				//     id: 'myFrame',
-				// 	   src: loc
-				// }).appendTo('body');
-			});
 			controls.find("input[name=apix]").change(function() {
 				if (self.options.displaymode == '1d') {
 					self.setdisplaymode('1d')

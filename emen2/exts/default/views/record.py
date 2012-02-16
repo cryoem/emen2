@@ -158,8 +158,11 @@ class Record(RecordBase):
 		self.db.validaterecord(rec)
 
 		for f in self.request_files:
-			rec.update(f.extract())
-
+			try:
+				rec.update(f.extract())
+			except Exception, e:
+				print e
+				
 			pd = self.db.getparamdef(f.param)
 			if pd.vartype != 'binary':
 				raise KeyError, "ParamDef %s does not accept file attachments"%pd.name

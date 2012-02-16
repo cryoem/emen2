@@ -45,7 +45,7 @@ class BinaryHandler(object):
 	# File type handlers
 	_handlers = {}
 
-	def __init__(self, filename=None, filedata=None, fileobj=None, param='file_binary', binary=None):
+	def __init__(self, filename=None, filedata=None, fileobj=None, param='file_binary', binary=None, _filepath=None):
 		self.filename = filename
 		self.filedata = filedata
 		self.fileobj = fileobj
@@ -53,6 +53,12 @@ class BinaryHandler(object):
 		self.binary = binary
 		self.readonly = True
 		self.tmp = None
+
+		# For testing
+		self._filepath = _filepath
+		if self._filepath:
+			self.filename = os.path.basename(self._filepath)
+		
 
 	def get(self, key, default=None):
 		# Used for copying filename/filedata/fileobj/param into putbinary.
@@ -63,6 +69,9 @@ class BinaryHandler(object):
 
 	def open(self):
 		'''Open the file'''
+		if self._filepath:
+			return open(self._filepath)
+
 		readfile = None
 		if self.filedata:
 			# This is fine; strings are immutable,
@@ -142,8 +151,6 @@ class BinaryHandler(object):
 	def thumbnail_from_binary(cls, binary, **options):
 		handler = cls.get_handler(binary=binary)
 		handler.thumbnail(**options)
-		
-		
 		
 		
 		

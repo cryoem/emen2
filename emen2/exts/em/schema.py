@@ -13039,7 +13039,7 @@ $#grid_tem_mesh_size: $$grid_tem_mesh_size
 
 # Grid Preparation
 
-Get a grid $$description_storage (which canister) canister and fill it with liquid nitrogen.
+Get a grid from $$description_storage (which canister) canister and fill it with liquid nitrogen.
 
 Add a loading stick into the canister to cool as well.
 

@@ -61,8 +61,8 @@ class Download(View):
 			 	thumbname = '%s.%s.%s'%(bdo.name.replace(':', '.'), size, format)
 				filepath = os.path.join(emen2.db.config.get('paths.TILEPATH'), thumbname)
 				if not os.access(filepath, os.F_OK):
-					emen2.db.handlers.BinaryHandler.thumbnail_from_binary(bdo, tilepath=emen2.db.config.get('paths.TILEPATH'))
-					# filepath = emen2.db.config.get_filename('emen2', 'web/static/images/blank.png')						
+					# emen2.db.handlers.BinaryHandler.thumbnail_from_binary(bdo, tilepath=emen2.db.config.get('paths.TILEPATH'))
+					filepath = emen2.db.config.get_filename('emen2', 'web/static/images/blank.png')						
 				files[filepath] = "%s.%s.%s"%(filename, size, format)
 			else:
 				files[filepath] = filename

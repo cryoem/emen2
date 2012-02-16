@@ -355,10 +355,8 @@ class BaseDBObject(object, UserDict.DictMixin):
 		access = self._ctx.db.get(changed, keytype=self.keytype)
 
 		# Check write permissions
-		thiswrite = self.writable()
 		for item in access:
-			itemwrite = item.writable()
-			if not (thiswrite or itemwrite):
+			if not (self.writable() or item.writable()):
 				msg = 'Insufficient permissions to add or remove relationship: %s -> %s'%(self.name, item.name)
 				self.error(msg, e=emen2.db.exceptions.SecurityError)
 

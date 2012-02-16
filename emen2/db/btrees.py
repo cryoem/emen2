@@ -1626,10 +1626,7 @@ class RelateDB(DBODB):
 		indp = self.getindex('parents', txn=txn)
 		if not indc or not indp:
 			raise KeyError, "Relationships not supported"
-
-		# print "parent changeset:", parents
-		# print "children changeset:", children
-
+	
 		# Process change sets into new and removed links
 		add = []
 		remove = []
@@ -1669,12 +1666,13 @@ class RelateDB(DBODB):
 		# print "p_remove:", p_remove
 		# print "c_add:", c_add
 		# print "c_remove:", c_remove
+		# print "nmi:", nmi
 
 		if not indexonly:
 			# Go and fetch other items that we need to update
 			names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
 			# print "All affected items:", names
-			for name in names-nmi:
+			for name in names:
 				# Get and modify the item directly w/o Context:
 				# Linking only requires write permissions
 				# on ONE of the items. This might be changed
@@ -1686,8 +1684,11 @@ class RelateDB(DBODB):
 					rec.__dict__['children'] -= c_remove[rec.name]
 					rec.__dict__['children'] |= c_add[rec.name]
 					self.put(rec.name, rec, txn=txn)
-				except emen2.db.exceptions.SecurityError, e:
-					print "No permission to modify %s..."%name
+				except KeyError:
+					# If we're trying to update an item that isn't a new item in the current commit, raise.
+					if name not in nmi:
+						raise
+						
 
 		for k,v in p_remove.items():
 			if v:

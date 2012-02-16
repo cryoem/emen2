@@ -378,8 +378,10 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 		# Update all the record's links
 		for item in items:
-			item.parents = set([namemap.get(i,i) for i in item.parents])
-			item.children = set([namemap.get(i,i) for i in item.children])
+			# ian: TODO: directly update the dict, to avoid item._setrel(). However, this is not the proper way to do it. 
+			# It should see if item exists, or is new; otherwise, raise exception.
+			item.__dict__['parents'] = set([namemap.get(i,i) for i in item.parents])
+			item.__dict__['children'] = set([namemap.get(i,i) for i in item.children])
 
 		return namemap
 

@@ -4109,6 +4109,10 @@ class DB(object):
 			# print "Renaming file %s -> %s"%(newfile, filepath)
 			os.rename(newfile, filepath)
 	
+		# Build thumbnail
+		print "...building thumbnails"
+		emen2.db.handlers.BinaryHandler.thumbnail_from_binary(bdo, tilepath=emen2.db.config.get('paths.TILEPATH'))
+	
 		return bdos
 	
 
