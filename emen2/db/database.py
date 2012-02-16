@@ -452,8 +452,6 @@ class EMEN2DBEnv(object):
 		self.dbenv.close()
 
 
-	##### Load Extensions #####
-
 
 	##### Utility methods #####
 
@@ -691,8 +689,6 @@ class DB(object):
 	def __init__(self, path=None, create=False):
 		"""EMEN2 Database.
 		
-		Default path is config.EMEN2DBHOME, which checks $EMEN2DBHOME and program arguments.
-
 		:keyword path: Directory containing an EMEN2 Database Environment.
 		:keyword create: Create the environment if it does not already exist.
 		"""
