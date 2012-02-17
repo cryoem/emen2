@@ -17,10 +17,28 @@ import hashlib
 import cStringIO
 import tempfile
 
-# EMEN2 imports
-import emen2.db.config
-import emen2.db.exceptions
-import emen2.db.log
+
+# Do NOT import ANY emen2 packages at the module level.
+
+
+def thumbnail_from_binary(bdo, wait=True):
+	"""given a binary instance, run the thumbnail builder as a child process"""
+	import emen2.db.config
+	tilepath = emen2.db.config.get('paths.TILEPATH')	
+	filepath = bdo.get('filepath')
+	filename = bdo.get('filename')
+	name = bdo.get('name')
+
+	# Note: In the future, this should find the right binary handler, then fork a child process
+	# to run that handler and build thumbnails. However, since I switched to the plugin-based system
+	# I still deciding how to proceed with invoking the right handler in a separate process WITHOUT
+	# causing all of emen2 (e.g. config) to be opened each time. So, just run in process for now.
+	try:
+		handler = BinaryHandler.get_handler(filepath=filepath, filename=filename, name=name)
+		handler.thumbnail(tilepath=tilepath)
+	except Exception, e:
+		print e
+
 
 ##### File handler #####
 
@@ -45,19 +63,17 @@ class BinaryHandler(object):
 	# File type handlers
 	_handlers = {}
 
-	def __init__(self, filename=None, filedata=None, fileobj=None, param='file_binary', binary=None, _filepath=None):
+	def __init__(self, filename=None, filedata=None, fileobj=None, param='file_binary', filepath=None, name=None):
 		self.filename = filename
 		self.filedata = filedata
 		self.fileobj = fileobj
 		self.param = param
-		self.binary = binary
 		self.readonly = True
 		self.tmp = None
 
-		# For testing
-		self._filepath = _filepath
-		if self._filepath:
-			self.filename = os.path.basename(self._filepath)
+		# For testing and building binaries
+		self.filepath = filepath
+		self.name = name		
 		
 
 	def get(self, key, default=None):
@@ -69,8 +85,8 @@ class BinaryHandler(object):
 
 	def open(self):
 		'''Open the file'''
-		if self._filepath:
-			return open(self._filepath)
+		if self.filepath:
+			return open(self.filepath)
 
 		readfile = None
 		if self.filedata:
@@ -111,10 +127,10 @@ class BinaryHandler(object):
 
 	##### Extract metadata and build thumbnails #####
 
-	def extract(self):
+	def extract(self, **kwargs):
 		return {}
 		
-	def thumbnail(self):
+	def thumbnail(self, **kwargs):
 		pass
 
 	##### Handler registration #####
@@ -130,27 +146,24 @@ class BinaryHandler(object):
 		return f
 
 	@classmethod
-	def get_handler(cls, filename=None, filedata=None, fileobj=None, param='file_binary', binary=None):
+	def get_handler(cls, **kwargs):
 		"""Return an appropriate file handler."""
 		handler = None
-		if binary and not filename:
-			filename = binary.get('filename')
-		
+
+		filename = kwargs.get('filename')		
 		if filename:
+			# Ignore compression
 			f = filename.split(".")
 			if f[-1] in ['gz', 'bz2', 'zip']:
 				f.pop()
+			# Use remaining file ext to find the handler
 			if f:
 				handler = f[-1]
 			
 		handler = cls._handlers.get(handler, cls)
-		return handler(filename=filename, filedata=filedata, fileobj=fileobj, param=param, binary=binary)
+		return handler(**kwargs)
 	
 	
-	@classmethod
-	def thumbnail_from_binary(cls, binary, **options):
-		handler = cls.get_handler(binary=binary)
-		handler.thumbnail(**options)
 		
 		
 		

@@ -294,12 +294,13 @@ class EMEN2Resource(object):
 		# {'root': 1, 'child.key2': 2, 'child.key1.subkey1': 3, 'child.key1.subkey2':4}
 		# ->
 		# {'root': 1, 'child': {'key2': 2, key1: {'subkey1': 3, 'subkey2': 4}}}
+		test = {}
 		newargs = {}
 		# Sort by key length so child dictionaries are created in order
 		for k,v in sorted(args.items(), key=lambda x:len(x[0])):
 			if '.' in k:
 				cur = newargs
-				s = k.split('.')
+				s = k.split('.')					
 				for path in s[:-1]:
 					if not cur.get(path):
 						# Create child dict
@@ -307,10 +308,23 @@ class EMEN2Resource(object):
 					# Step down one level
 					cur = cur[path]
 					parent = path
+				
 				# Set the value for the leaf
 				cur[s[-1]] = v
+			elif ':' in k:
+				i, _, j = k.partition(':')
+				if not test.get(i):
+					test[i] = {}
+				test[i][j] = v
+				
 			else:
 				newargs[k] = v
+
+		# Transform colon-keyed items back into dict
+		for k,v in test.items():
+			v2 = zip(v.get('keys', []), v.get('values', []))
+			newargs[k] = dict(v2)
+			
 		return newargs
 
 
@@ -342,6 +356,7 @@ class EMEN2Resource(object):
 				pass
 
 			# Turn those pairs into emen2 File instances
+			# ... the filedata attribute will be set below
 			for param, filename in r:
 				f = emen2.db.handlers.BinaryHandler.get_handler(
 					param=param,

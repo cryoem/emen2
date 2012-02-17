@@ -783,6 +783,30 @@ path.area {
 	background:#1F77B4;
 	float:left;
 }
+
+
+/* Grumble */
+.e2-button
+{
+	-moz-border-radius: 4px;
+	-webkit-border-radius: 4px;
+	font-size:12pt;
+	font-weight:normal;
+	display:inline-block;
+	margin: 4px;
+	padding: 4px;
+	background: #eee;
+	color: #000;
+	border:solid 1px #aaa;
+	box-sizing:  content-box;
+}
+.e2-button img {
+	margin: 0px;
+	padding: 0px;
+	vertical-align: middle;
+}
+
+
 /***** jQuery UI Overrides *****/
 
 

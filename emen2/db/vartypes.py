@@ -642,15 +642,21 @@ class vt_uri(Vartype):
 # 		return ret
 
 
-# @vtm.register_vartype('dict')
-# class vt_dict(Vartype):
-# 	"""Dictionary with valid param keys"""
-# 	def validate(self, value):
-# 		ret = {}
-# 		for k,v in value.items():
-# 			ret[unicode(k)] = v
-# 		return ret
+@vtm.register_vartype('dict')
+class vt_dict(Vartype):
+	"""Dictionary with valid param keys"""
+	# ian: todo: parse with urlparse
+	def validate(self, value):
+		if not value:
+			return None
+		r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
+		return dict(r)
 
+	def process(self, value):
+		if not value:
+			return 'Empty'
+		r = [cgi.escape('%s: %s'%(k, v)) for k,v in value.items()]
+		return '<br />'.join(r)
 
 
 ###################################

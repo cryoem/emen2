@@ -144,7 +144,7 @@ class TilesCheck(View):
 		# Build
 		if not os.access(filepath, os.F_OK):
 			try:
-				emen2.db.handlers.BinaryHandler.thumbnail_from_binary(bdo, tilepath=tilepath)
+				emen2.db.handlers.thumbnail_from_binary(bdo)
 			except:
 				raise ValueError, "Could not create tile"
 

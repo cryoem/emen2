@@ -1404,6 +1404,9 @@ class DB(object):
 			# 	add_to_viewdef(viewdef, i)			
 			# viewdef = " ".join(viewdef)
 		
+		for i in ['performed_by', 'date_occurred']:
+			viewdef = '%s $$%s'%(viewdef.replace('$$%s'%i, ''), i) 
+		
 		# Render the table
 		table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
 
@@ -4104,10 +4107,6 @@ class DB(object):
 		for newfile, filepath in rename:
 			# print "Renaming file %s -> %s"%(newfile, filepath)
 			os.rename(newfile, filepath)
-	
-		# Build thumbnail
-		print "...building thumbnails"
-		emen2.db.handlers.BinaryHandler.thumbnail_from_binary(bdo, tilepath=emen2.db.config.get('paths.TILEPATH'))
 	
 		return bdos
 	

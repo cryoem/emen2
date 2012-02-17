@@ -434,7 +434,6 @@
 		},
 				
 		_create: function() {
-			console.log(this.options);
 			this.build();
 		},
 		

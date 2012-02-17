@@ -115,31 +115,12 @@ class EMHome(View):
 		self.title = 'Home'
 		self.template = '/em/home'
 		
-		if not self.ctxt['USER']:			
-			raise emen2.db.exceptions.SecurityError, "Please login."
+		banner = emen2.db.config.get('customization.EMEN2LOGO')
 		
-		# Get the banner/welcome message
-		# bookmarks = emen2.db.config.get('bookmarks.BOOKMARKS', {})
-		# banner = emen2.db.config.get('customization.EMEN2LOGO')
-		# try:
-		# 	banner = self.db.getrecord(banner)
-		# 	render_banner = self.db.renderview(banner, viewname="banner")
-		# except Exception, inst:
-		# 	banner = None
-		# 	render_banner = ""
-		# 
-		# Project types
-		# project_rds = ['project', 'workshop', 'project_software']
-		# self.ctxt['project_rds'] = self.db.getrecorddef(project_rds)
-		# self.ctxt['projects_map'] = self.routing.execute(
-		# 	'Map/embed', 
-		# 	db=self.db, 
-		# 	root=0, 
-		# 	mode='children', 
-		# 	recurse=2, 
-		# 	rectype=project_rds
-		# 	)
-
+		if not self.ctxt['USER']:			
+			self.template = '/em/home.noauth'
+			# raise emen2.db.exceptions.SecurityError, "Please login."
+		
 		# Recent records
 		# Add 'Z" to datetime.isoformat()
 		# t = '2011-01-01T00:00:00+00:00'
