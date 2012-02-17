@@ -15348,7 +15348,7 @@ $$file_binary
  {'children': ['ccd_james', 'ccd_jadas'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'A CCD frame. Please enter defocus, magnification, and dose at a minimum. The measured defocus and B-factor may be set after CTF correction by EMAN/EMAN2 scripts. Parent should be a grid_imaging session.',
+  'desc_long': 'A CCD frame. Please enter defocus, magnification, and dose at a minimum. The measured defocus and B-factor may be set after CTF correction by EMAN/EMAN2 scripts. Parent should be a grid_imaging session.\n\nNote: Please use EMDash to create images.',
   'desc_short': 'CCD frame',
   'keytype': 'recorddef',
   'mainview': """
