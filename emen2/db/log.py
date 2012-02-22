@@ -25,33 +25,6 @@ IGNORE = ['DEBUG', 'INDEX']
 
 inst = lambda x:x()
 
-@inst
-class Variables:
-	# set this to true when the configuration is fully loaded
-	_init_done = False
-	@property
-	def init_done(self):
-		return self._init_done
-	@init_done.setter
-	def init_done(self, value):
-		self._init_done = bool(value)
-
-	logger = None
-
-	def log_init(self, done=False):
-		if self.init_done:
-			raise ValueError('already initialized')
-
-		self.logger = EMEN2Logger()
-		self.debug_state = emen2.db.debug.DebugState()
-
-		# Write out WEB and SECURITY messages to dedicated log files
-		self.init_done = done
-
-log_init = Variables.log_init
-
-import twisted.python.log
-
 class EMEN2Logger(object):
 	LOG_LEVEL = emen2.db.config.get('LOG_LEVEL', None, False)
 	LOGPATH = emen2.db.config.get('paths.LOGPATH', None, False)
@@ -85,9 +58,23 @@ class EMEN2Logger(object):
 		else:
 			pass
 
+
+@inst
+class Variables:
+	'''Namespace for module-level variables'''
+
+	logger = EMEN2Logger()
+	debug_state = emen2.db.debug.DebugState()
+
+
+
+log_init = Variables.log_init
+
+import twisted.python.log
+
 def msg(level='INFO', msg=''):
-	print msg
-	#Variables.logger.log(level, msg)
+	#print msg
+	Variables.logger.log(level, msg)
 
 def flip(func):
 	@functools.wraps(func)
