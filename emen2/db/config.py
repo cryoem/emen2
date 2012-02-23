@@ -204,12 +204,12 @@ from twisted.python import usage
 
 class DBOptions(usage.Options):
 	"""Base database options."""
-		
+
 	optFlags = [
 		['quiet', None, 'Quiet'],
 		['debug', None, 'Print debug'],
 		['version', None, 'EMEN2 Version'],
-		['create', None, 'Create new database environment'],		
+		['create', None, 'Create new database environment'],
 		['nosnapshot', None, 'Disable Berkeley DB Multiversion Concurrency Control (Snapshot)']
 	]
 
@@ -241,20 +241,20 @@ class DBOptions(usage.Options):
 
 
 class UsageParser(object):
-	
+
 	def __init__(self, optclass=None, options=None):
 		# Use the default DBOptions if none is provided
 		if not optclass:
 			optclass = DBOptions
 
 		if not options:
-			options = optclass()		
+			options = optclass()
 			options.parseOptions()
 
 		self.options = options
 		self.config = Config()
 		self.load_config()
-		
+
 
 	def load_config(self, **kw):
 		if self.config.globalns.getattr('CONFIG_LOADED', False):
@@ -274,17 +274,20 @@ class UsageParser(object):
 
 		# Load the base configuration.
 		self.config.load_file(get_filename('emen2', 'db/config.base.json'))
-		
+
 		# Load other specified config files
 		for f in self.options.get('configfile', []):
 			self.config.load_file(f)
 
-		# EMEN2DBHOME must have been specified in either -h, $EMEN2DBHOME, 
+		# EMEN2DBHOME must have been specified in either -h, $EMEN2DBHOME,
 		# or set a configuration file.
 		self.config.require_variable(
-			'EMEN2DBHOME', 
+			'EMEN2DBHOME',
 			None,
 			err_msg="No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h")
+		if h is None:
+			h = self.config.globalns.getattr('EMEN2DBHOME', h)
+		print h
 
 		# Load any config file in EMEN2DBHOME
 		self.config.load_file(os.path.join(h, "config.json"))
@@ -334,10 +337,10 @@ class UsageParser(object):
 
 		# Enable root user?
 		# self.config.globalns.ENABLEROOT = self.values.enableroot or False
-		
+
 		# Do anything defined by the usage.Options class
 		self.options.load_config()
-		
+
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

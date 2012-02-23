@@ -127,9 +127,7 @@ class EMEN2Server(object):
 
 		# Init log system
 		import emen2.db.log
-		emen2.db.log.log_init(True)
 		emen2.db.log.init('log initialized')
-		twisted.python.log.msg('asdasd', a='1')
 
 		# Child resources that do not go through the Router.
 		import jsonrpc.server

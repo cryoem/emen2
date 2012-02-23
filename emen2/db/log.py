@@ -68,8 +68,6 @@ class Variables:
 
 
 
-log_init = Variables.log_init
-
 import twisted.python.log
 
 def msg(level='INFO', msg=''):
