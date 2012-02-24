@@ -34,7 +34,7 @@ import collections
 <h1>
 	${USER.displayname}
 	<ul class="e2l-actions">
-		<a class="e2-button" href="${EMEN2WEBROOT}/user/${USER.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></li>
+		<li><a class="e2-button" href="${EMEN2WEBROOT}/user/${USER.name}/edit/">${buttons.image('edit.png')}  Edit Profile</a></li>
 	</ul>
 </h1>
 
@@ -42,20 +42,19 @@ import collections
 	${user_util.profile(user=USER, userrec=USER.userrec, edit=False)}
 </div>
 
-## % if banner:
-##	<h1>
-##		Welcome to ${EMEN2DBNAME}
-##		% if banner.writable():
-##			<span class="e2l-label">
-##				<a href="${EMEN2WEBROOT}/record/${banner.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a>
-##			</span>
-##		% endif
-##	</h1>
-##
-##	<div>
-##	${render_banner}
-##	</div>
-## % endif
+% if banner:
+	<h1>
+		Welcome to ${EMEN2DBNAME}
+		% if banner.writable():
+			<ul class="e2l-actions">
+				<li><a class="e2-button" href="${EMEN2WEBROOT}/record/${banner.name}#edit">${buttons.image('edit.png')} Edit banner</a>
+			</span>
+		% endif
+	</h1>
+	<div>
+	${render_banner}
+	</div>
+% endif
 
 <h1>Activity</h1>
 

@@ -102,11 +102,9 @@
 
 	// Bookmarks to some key records.
 	"bookmarks":{
-		"BOOKMARKS":{
-			"EQUIPMENT":0,
-			"GROUPS":0,
-			"PROJECTS":0
-		}
+		"BANNER": 0,
+        "BANNER_NOAUTH": 0,
+		"BOOKMARKS":{}
 	},
 
 	// Verbose logging

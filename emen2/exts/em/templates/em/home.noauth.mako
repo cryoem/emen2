@@ -7,6 +7,6 @@
 
 <h1>Welcome to ${EMEN2DBNAME}</h1>
 
-${render_banner or ''}
+<div>${render_banner or ''}</div>
 
 ${login.login()}

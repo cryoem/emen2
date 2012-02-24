@@ -114,12 +114,30 @@ class EMHome(View):
 	def main(self, hideinactive=False, sortkey='name', reverse=False):
 		self.title = 'Home'
 		self.template = '/em/home'
-		
-		banner = emen2.db.config.get('customization.EMEN2LOGO')
+
+		banner = None
+		render_banner = ''
 		
 		if not self.ctxt['USER']:			
 			self.template = '/em/home.noauth'
-			# raise emen2.db.exceptions.SecurityError, "Please login."
+			try:
+				banner = self.db.getrecord(emen2.db.config.get('bookmarks.BANNER_NOAUTH'))
+				render_banner = self.db.renderview(banner, viewname="banner")
+			except:
+				pass
+			self.ctxt['banner'] = banner
+			self.ctxt['render_banner'] = render_banner
+			return
+
+
+		try:
+			banner = self.db.getrecord(emen2.db.config.get('bookmarks.BANNER'))
+			render_banner = self.db.renderview(banner, viewname="banner")
+		except:
+			pass
+		self.ctxt['banner'] = banner
+		self.ctxt['render_banner'] = render_banner
+
 		
 		# Recent records
 		# Add 'Z" to datetime.isoformat()
