@@ -285,7 +285,6 @@ class UsageParser(object):
 			err_msg="No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h")
 		if h is None:
 			h = self.config.globalns.getattr('EMEN2DBHOME', h)
-		print h
 
 		# Load any config file in EMEN2DBHOME
 		self.config.load_file(os.path.join(h, "config.json"))
@@ -317,6 +316,9 @@ class UsageParser(object):
 		if os.getenv('EMEN2EXTPATHS'):
 			for path in filter(None, os.getenv('EMEN2EXTPATHS','').split(":")):
 				self.config.globalns.paths.EXTPATHS.append(path)
+
+		self.config.globalns.paths.EXTPATHS.append(os.path.join(h, 'exts'))
+
 
 		# Add the extensions, including the 'base' extension
 		exts = self.options.get('ext')

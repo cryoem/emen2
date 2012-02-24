@@ -477,9 +477,7 @@ class EMEN2DBEnv(object):
 		paths = [
 			"data",
 			"log",
-			"overlay",
-			"overlay/views",
-			"overlay/templates"
+			"exts"
 			]
 
 		for i in ['record', 'paramdef', 'recorddef', 'user', 'newuser', 'group', 'workflow', 'context', 'binary']:
