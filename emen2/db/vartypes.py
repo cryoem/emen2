@@ -581,17 +581,17 @@ class vt_time(vt_datetime):
 
 
 ### iCalendar-like date types
-
-@vtm.register_vartype('duration')
-class vt_duration(Vartype):
-	"""ISO 8601 Duration"""
-	pass
-
-
-@vtm.register_vartype('recurrence')
-class vt_recurrence(Vartype):
-	"""Date, yyyy/mm/dd"""
-	pass
+# 
+# @vtm.register_vartype('duration')
+# class vt_duration(Vartype):
+# 	"""ISO 8601 Duration"""
+# 	pass
+# 
+# 
+# @vtm.register_vartype('recurrence')
+# class vt_recurrence(Vartype):
+# 	"""Date, yyyy/mm/dd"""
+# 	pass
 
 
 ###################################
@@ -628,18 +628,6 @@ class vt_uri(Vartype):
 ###################################
 # Mapping types
 ###################################
-
-# @vtm.register_vartype('uri')
-# class vt_paramdict(Vartype):
-# 	"""Dictionary with valid param keys"""
-# 	def validate(self, value):
-# 		ret = {}
-# 		for k,v in value.items():
-# 			pd = check_rectype(self.engine, k)
-# 			# will this work?
-# 			v = self.engine.validate(pd, v)
-# 			ret[pd.name] = v
-# 		return ret
 
 
 @vtm.register_vartype('dict')

@@ -125,12 +125,14 @@ class EMEN2Resource(object):
 
 
 	def _render_db(self, method, db=None, ctxid=None, host=None, args=None):
+
 		# Render method
 		self.db = db
 
 		# The DBProxy context manager will open a transaction, and abort
 		# on an uncaught exception.
-		with self.db:
+		write = getattr(method, "write", False)
+		with self.db._newtxn(write=write):
 			# Bind the ctxid/host to the DBProxy
 			self.db._setContext(ctxid,host)
 			# Any View init method is run inside the transaction
@@ -188,6 +190,9 @@ class EMEN2Resource(object):
 
 
 	def render_eb(self, failure, request, t=0, **_):
+		print "Error:"
+		print failure
+
 		# Error callback
 		e, data = '', ''
 		headers = {}
@@ -430,10 +435,13 @@ class EMEN2Resource(object):
 	@classmethod
 	def add_matcher(cls, *matchers, **kwargs):
 		'''Decorator used to add a matcher to an already existing class
-
+		
 		Named groups in matcher get passed as keyword arguments
 		Other groups in matcher get passed as positional arguments
 		Nothing else gets passed
+
+		write=True will hint to the database that writes will occur. 
+		This may do things like disable snapshot transactions.
 		'''
 		if not matchers:
 			raise ValueError, 'A view must have at least one matcher'
@@ -446,11 +454,12 @@ class EMEN2Resource(object):
 		def inner(func):
 			name = kwargs.pop('name', check_name(func.__name__))
 			view = kwargs.pop('view', None)
+			write = kwargs.pop('write', False)
 			matcherinfo = getattr(func, 'matcherinfo', [])
 			for count, m in enumerate(matchers):
 				if count>0:
 					name='%s/%s'%(name, count)
-				matcherinfo.append((m, name, view))
+				matcherinfo.append((m, name, view, write))
 
 			# save all matchers to the function
 			func.matcherinfo = matcherinfo
@@ -472,11 +481,13 @@ class EMEN2Resource(object):
 			if not callable(func): continue
 
 			for matcher in getattr(func, 'matcherinfo', []):
-				matcher, name, view = matcher
+				matcher, name, view, write = matcher
 				view = view or cls.__name__
 				name = '%s/%s'%(view, name)
-				with emen2.web.routing._Router().route(name=name, matcher=matcher, cls=cls, method=func) as url:
+				# These will be set as attributes on the Route instance
+				with emen2.web.routing._Router().route(name=name, matcher=matcher, cls=cls, method=func, write=write) as url:
 					pass
+					
 		return cls
 
 

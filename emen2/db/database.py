@@ -368,9 +368,9 @@ class EMEN2DBEnv(object):
 			bsddb3.db.DB_INIT_TXN | \
 			bsddb3.db.DB_INIT_LOCK | \
 			bsddb3.db.DB_INIT_LOG | \
-			bsddb3.db.DB_THREAD  | \
-			bsddb3.db.DB_REGISTER |	\
-			bsddb3.db.DB_RECOVER
+			bsddb3.db.DB_THREAD  # | \
+			# bsddb3.db.DB_RECOVER
+			# bsddb3.db.DB_REGISTER |	\
 
 		global DBENV
 
@@ -463,7 +463,8 @@ class EMEN2DBEnv(object):
 
 		if self.create:
 			if checkconfig:
-				raise ValueError, "Database environment already exists in EMEN2DBHOME directory: %s"%self.path
+				self.create = False
+				# raise ValueError, "Database environment already exists in EMEN2DBHOME directory: %s"%self.path
 			if not checkpath:
 				os.makedirs(self.path)
 		else:
@@ -538,7 +539,8 @@ class EMEN2DBEnv(object):
 		:keyword write: Transaction will be likely to write data; turns off Berkeley DB Snapshot
 		:return: New transaction
 		"""
-
+		
+		parent = None
 		flags = bsddb3.db.DB_TXN_SNAPSHOT
 		if write:
 			flags = 0
@@ -546,7 +548,6 @@ class EMEN2DBEnv(object):
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags) #
 		# emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
-		#try:
 		type(self).txncounter += 1
 		self.txnlog[id(txn)] = txn
 		#except KeyError:
@@ -4060,7 +4061,7 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:			
 		"""
-
+		
 		bdos = []
 		rename = []		
 		for bdo in items:
@@ -4087,8 +4088,9 @@ class DB(object):
 				rec = self.bdbs.record.cget(bdo.record, filt=False, ctx=ctx, txn=txn)
 				if not rec.writable():
 					raise SecurityError, "No write permissions for Record %s"%rec.name
-		
-			# Commit the BDO. This will set the Binary's name.
+			
+			
+			# Commit the BDO. This will set the Binary's name, and start the write txn.			
 			bdo = self.bdbs.binary.cput(bdo, ctx=ctx, txn=txn)
 			bdo.__dict__['_filepath'] = bdo.parse(bdo.name)['filepath']
 			bdos.append(bdo)
@@ -4101,13 +4103,16 @@ class DB(object):
 				#	raise SecurityError, "Cannot overwrite existing file!"
 				# Add to the list of files to rename/copy.
 				rename.append([newfile, bdo.filepath])
-							
+
+			
 		# Rename/copy temporary files to final destination.
 		# todo: Handle any exceptions that might arise here.	
 		for newfile, filepath in rename:
-			# print "Renaming file %s -> %s"%(newfile, filepath)
 			os.rename(newfile, filepath)
-	
+		
+		for bdo in bdos:
+			emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)		
+
 		return bdos
 	
 

@@ -26,9 +26,9 @@ except ImportError:
 
 import emen2.db.config
 
-##### Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool #####
 
 class DBPool(object):
+	"""Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool."""
 	# All connections, key is Thread ID
 	dbs = {}
 	running = False	
@@ -43,11 +43,15 @@ class DBPool(object):
 		self.reactor = twisted.internet.reactor
 		self.threadpool = twisted.python.threadpool.ThreadPool(self.min, self.max)
 
+	def start(self):
+		"""Start a database connection on startup to run recovery, setup, etc."""
+		self.connect()
+
 	def connect(self):
-		# Create a new database connection
+		"""Create a new database connection."""
 		import emen2.db.database
-		# print '# threads: %s'%len(self.dbs)
 		tid = self.threadID()
+		# print '# threads: %s -- this thread is %s'%(len(self.dbs), tid)
 		db = self.dbs.get(tid)
 		if not db:
 			db = emen2.db.database.DB.opendb()
@@ -55,6 +59,7 @@ class DBPool(object):
 		return db
 
 	def disconnect(self, db):
+		"""Disconnect a database connection."""
 		tid = self.threadID()
 		if db is not self.dbs.get(tid):
 			raise Exception('Wrong connection for thread')
@@ -103,6 +108,8 @@ class EMEN2Server(object):
 	def start(self, service=None):
 		'''Run the server main loop'''
 
+		pool.start()
+
 		# Routing resource. This will look up request.uri in the routing table
 		# and return View resources.
 		root = emen2.web.routing.Router()
@@ -113,6 +120,9 @@ class EMEN2Server(object):
 		# The Twisted Web server protocol factory,
 		#  with our Routing resource as root
 		self.site = twisted.web.server.Site(root)
+
+		reactor = twisted.internet.reactor		
+		reactor.suggestThreadPoolSize(8)
 
 		# Attach to a service, or run standalone.
 		if service:

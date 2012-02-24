@@ -685,7 +685,7 @@
 				<h4 class="e2l-label">Image</h4> \
 				<input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /> \
 				<input type="button" name="autocenter" value="Center" /> <br />\
-				<a href="'+EMEN2WEBROOT+'/download/'+self.options.bdo+'/'+self.options.filename+'" />Download</a> \
+				<a class="e2-button" href="'+EMEN2WEBROOT+'/download/'+self.options.bdo+'/'+self.options.filename+'">Download</a> \
 				<h4 class="e2l-label">Mode</h4> \
 				<div style="text-align:left"> \
 				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /><label for="displaymode_image">Image</label><br />\

@@ -136,7 +136,7 @@ class Record(RecordBase):
 
 
 	#@write
-	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$')
+	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$', write=True)
 	def edit(self, name=None, _location=None, _extract=False, **kwargs):
 
 		# Edit page and requests
@@ -187,14 +187,14 @@ class Record(RecordBase):
 
 
 	#@write
-	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/attachments/$', name='edit/attachments')
+	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/attachments/$', name='edit/attachments', write=True)
 	def edit_attachments(self, name=None, **kwargs):
 		self.edit(name=name, **kwargs)
 		self.redirect(self.routing.reverse('Record/main', name=name, anchor='attachments'))
 
 
 	#@write
-	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/relationships/$', name='edit/relationships')
+	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/relationships/$', name='edit/relationships', write=True)
 	def edit_relationships(self, name=None, parents=None, children=None):
 		# ian: todo: Check orphans, show orphan confirmation page
 		parents = set(map(int,listops.check_iterable(parents)))
@@ -211,7 +211,7 @@ class Record(RecordBase):
 
 
 	#@write
-	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/permissions/$', name='edit/permissions')
+	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/permissions/$', name='edit/permissions', write=True)
 	def edit_permissions(self, name=None, permissions=None, groups=None, action=None, filt=True):
 		permissions = permissions or {}
 		groups = groups or []
@@ -244,32 +244,29 @@ class Record(RecordBase):
 
 
 	#@write
-	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$')
-	def new(self, name=None, rectype=None, _copy=False, _location=None, _private=False, _extract=False, **kwargs):
-		self.template = '/pages/record.new'
+	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$', write=True)
+	def new(self, name=None, rectype=None, _copy=False, _location=None, _private=False, _extract=False, **kwargs): 
 		viewname = 'mainview'
-
-		inherit = None
-		try:
-			inherit = [int(name)]
-		except:
-			inherit = []
-
-		recnames = self.db.renderview(inherit)
-		parentrec = self.db.getrecord(name)
-		parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=3)
+		inherit = [int(name)]
 
 		if _private:
+			# Do not copy parent record permissions
 			newrec = self.db.newrecord(rectype)
 			newrec.parents = inherit
 		else:
 			newrec = self.db.newrecord(rectype, inherit=inherit)
 
 		if _copy:
+			# Copy values from parent records
 			for rec in self.db.getrecord(inherit):
 				newrec.update(rec)
 
 		if self.request_method not in ['post', 'put']:
+			# Show the form
+			self.template = '/pages/record.new'
+			recnames = self.db.renderview(inherit)
+			parentrec = self.db.getrecord(name)
+			parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=3)
 			recdef = self.db.getrecorddef(newrec.rectype)
 			rendered = self.db.renderview(newrec, edit=True, viewname=viewname)
 			self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
@@ -291,13 +288,14 @@ class Record(RecordBase):
 		if self.request_files:
 			# Save the attachments
 			for f in self.request_files:
-				# Extract attachment metadata
-				newrec.update(f.extract())
-
 				pd = self.db.getparamdef(f.param)
 				if pd.vartype != 'binary':
 					raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
 
+				# Extract attachment metadata
+				newrec.update(f.extract())
+
+				# Update the links between record and attachment
 				f.record = newrec.name
 				bdo = self.db.putbinary(f)
 				if pd.iter:
@@ -337,7 +335,7 @@ class Record(RecordBase):
 
 
 	#@write
-	@View.add_matcher("^/record/(?P<name>\d+)/hide/$")
+	@View.add_matcher("^/record/(?P<name>\d+)/hide/$", write=True)
 	def hide(self, commit=False, name=None, childaction=None):
 		"""Main record rendering."""
 
@@ -465,7 +463,7 @@ class Record(RecordBase):
 @View.register
 class Records(View):
 
-	@View.add_matcher("^/records/edit/$")
+	@View.add_matcher("^/records/edit/$", write=True)
 	def edit(self, *args, **kwargs):
 		location = kwargs.pop('_location', None)
 		comments = kwargs.pop('comments', '')

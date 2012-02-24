@@ -200,8 +200,10 @@ class DBProxy(object):
 	def __enter__(self):
 		# print "--> ENTER"
 		if self._txn:
-			raise Exception, "DBProxy: Existing open transaction."
-		self._txn = self._db.bdbs.txncheck(txn=self._txn)
+			pass
+			# raise Exception, "DBProxy: Existing open transaction."
+		else:
+			self._txn = self._db.bdbs.txncheck(txn=self._txn)
 		return self
 
 	def __exit__(self, exc_type, exc_value, traceback):
@@ -213,6 +215,11 @@ class DBProxy(object):
 		else:
 			self._txn = self._db.bdbs.txnabort(txn=self._txn)
 		self._txn = None
+	
+	# Allow to start with write=true/false
+	def _newtxn(self, write=False):
+		self._txn = self._db.bdbs.txncheck(txn=self._txn, write=write)
+		return self
 		
 	def _gettxn(self):
 		return self._txn

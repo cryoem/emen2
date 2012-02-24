@@ -56,17 +56,18 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
 
 			<tr>
 				<td colspan="2"  class="e2l-gradient">
-					${recorddefs_d.get(rectype, dict()).get('desc_short')} (${len(items)})
-
-					<ul class="e2l-actions">
-						<li><span class="e2-button e2-record-new" data-rectype="${rectype}" data-parent="${name}">${buttons.image('edit.png')} New</span></li>
-						<li><a class="e2-button" href="${EMEN2WEBROOT}/query/children.is.${name}*/rectype.is.${rectype}/">View all</a></li>
-					</ul>
+					<strong style="display:inline-block;padding:8px;padding-left:0px;">
+						${recorddefs_d.get(rectype, dict()).get('desc_short')} (${len(items)})
+					</strong>
+						<ul class="e2l-actions">
+							<li><span class="e2-button e2-record-new" data-rectype="${rectype}" data-parent="${name}">${buttons.image('edit.png')} New</span></li>
+							<li><a class="e2-button" href="${EMEN2WEBROOT}/query/children.is.${name}*/rectype.is.${rectype}/">View all</a></li>
+						</ul>
 
 				</td>
 			</tr>
 
-			% for item in items & recent:
+			% for item in sorted(items & recent, reverse=True):
 				<tr class="e2l-shaded-indent">
 					<td>
 						<a href="${EMEN2WEBROOT}/record/${item}/">${recnames.get(item, item)}</a>
@@ -77,7 +78,7 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
 				</tr>
 			% endfor
 			
-			% if len(items) > 10:
+			% if len(items) > 3:
 				<tr class="e2l-shaded-indent">
 					<td colspan="2">
 						<a href="${EMEN2WEBROOT}/query/children.is.${name}*/rectype.is.${rectype}/">... more</a>

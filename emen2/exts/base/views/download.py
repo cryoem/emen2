@@ -61,11 +61,11 @@ class Download(View):
 			 	thumbname = '%s.%s.%s'%(bdo.name.replace(':', '.'), size, format)
 				filepath = os.path.join(emen2.db.config.get('paths.TILEPATH'), thumbname)
 				if not os.access(filepath, os.F_OK):
-					# filepath = emen2.db.config.get_filename('emen2', 'web/static/images/blank.png')						
-					# Create the thumbnail and wait for a response
-					# This will generally check for a bdoname.lock to prevent multiple requests,
-					# 	or tries to build thumbs that fail.
-					emen2.db.handlers.thumbnail_from_binary(bdo)
+					# Start the thumbnail build, return a spinner image.
+					# ian: todo: thumbnail_from_binary could return an error image if failure.
+					emen2.db.handlers.thumbnail_from_binary(bdo, wait=True)
+					# filepath = emen2.db.config.get_filename('emen2', 'web/static/images/spinner.gif')
+					
 				files[filepath] = "%s.%s.%s"%(filename, size, format)
 			else:
 				files[filepath] = filename

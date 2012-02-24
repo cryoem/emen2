@@ -141,7 +141,7 @@ def add(*args, **kwargs):
 class Route(object):
 	"""Private"""
 
-	def __init__(self, name, matcher, cls=None, method=None):
+	def __init__(self, name, matcher, cls=None, method=None, write=False):
 		# print "Route:", name, matcher, cb
 		self.name = name
 		if not hasattr(matcher, 'match'):
@@ -149,6 +149,11 @@ class Route(object):
 		self.matcher = matcher
 		self.cls = cls
 		self.method = method
+
+		# Hint that this route will cause writes
+		# if write: print "Set self.write on", self, self.matcher, self.method
+		self.write = write
+		
 
 	def match(self, path):
 		result = None
@@ -210,10 +215,17 @@ class _Router(emen2.util.registry.Registry):
 			if path:
 				tmp = route.match(path)
 				if tmp != None:
-					return route.cls, partial(route.method, **tmp)
+					f = partial(route.method, **tmp)
+					# Temporary hack: since we don't return the full Route instance,
+					# copy the write attribute to the partial
+					f.write = getattr(route, 'write', False)
+					return route.cls, f
 			elif name:
 				if name == route.name:
-					return route.cls, route.method
+					# Temporary hack; see above. We should return the actual Route instance.
+					f = route.method
+					f.write = getattr(route, 'write', False)					
+					return route.cls, f
 
 		raise responsecodes.NotFoundError(path or name)
 

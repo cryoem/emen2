@@ -168,7 +168,7 @@ else:
 				c = projects_children.get(project)
 				lastitem = None
 				if c:
-					lastitem = rendered_recs[sorted(c)[-1]]
+					lastitem = rendered_recs.get(sorted(c)[-1], dict())
 
 				# Make a simple little inline chart showing distribution of record creation
 				chart = {}

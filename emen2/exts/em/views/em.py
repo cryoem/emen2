@@ -47,7 +47,7 @@ class EMRecordPlugin(View):
 
 		# Plot
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
-		t = (datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat()+'+00:00'
+		t = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).isoformat()+'+00:00'
 		q = self.db.plot(
 			[['children','is','%s*'%name], ['creationtime', '>=', t]], 
 			x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now}, 
@@ -82,7 +82,7 @@ class EMRecordPlugin(View):
 
 		# Show the 5 most recent for each type..
 		for k,v in children_grouped.items():
-			recent |= set(sorted(v)[-10:])
+			recent |= set(sorted(v)[-3:])
 
 		# Render the record...
 		rec_rendered = self.db.renderview(name, viewname='defaultview', edit=True)
@@ -126,7 +126,7 @@ class EMHome(View):
 		# t = '2011-01-01T00:00:00+00:00'
 		# now = '2011-02-01T00:00:00+00:00'
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
-		t = (datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat()+'+00:00'
+		t = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).isoformat()+'+00:00'
 		q = self.db.plot(
 			[['creationtime', '>=', t]], 
 			x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now}, 

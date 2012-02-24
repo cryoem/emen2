@@ -12472,7 +12472,7 @@ $#date_occurred: $$date_occurred
 $#performed_by: $$performed_by  
 $#scanned_by (deprecated): $$scanned_by  
 
-# Image file
+# Images
 $$file_binary_image
 
 # Scanner
@@ -13828,7 +13828,7 @@ $#ctf_bfactor: $$ctf_bfactor
 $#ctf_snr_max: $$ctf_snr_max  
 $#ctf_ampcont: $$ctf_ampcont
 
-# Image Files
+# Images
 
 $$file_binary_image
 
@@ -14523,6 +14523,13 @@ $#ccd_process_identifier:   $$ccd_process_identifier
 $#number_exposure:  $$number_exposure    
 $#id_ccd_frame:   $$id_ccd_frame   
 $#binning:   $$binning   
+
+# Images
+Summed image:  
+$$file_binary_image
+
+Raw data:  
+$$file_binary
 
 # MDS Setup:    
 Set up and note the following for Photo mode:       

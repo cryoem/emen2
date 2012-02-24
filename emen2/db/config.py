@@ -15,11 +15,6 @@ Classes:
 import os
 import sys
 import glob
-import functools
-import operator
-import collections
-import threading
-import urlparse
 import imp
 
 import jsonrpc.jsonutil
@@ -65,11 +60,14 @@ templates = AddExtLookup(input_encoding='utf-8')
 
 ##### Config methods #####
 
-def get_filename(package, resource):
+def get_filename(package, resource=None):
 	"""Get the absolute path to a file inside a given Python package"""
-	d = os.path.dirname(sys.modules[package].__file__)
-	d = os.path.abspath(d)
-	return os.path.join(d, resource)
+	d = sys.modules[package].__file__
+	if resource:
+		d = os.path.dirname(d)
+		d = os.path.abspath(d)
+		return os.path.join(d, resource)
+	return d
 
 def get(key, default=None, rv=True):
 	"""Get a configuration value.

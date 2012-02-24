@@ -189,7 +189,7 @@ table.e2l-shaded tr.e2l-shaded-header {
 	background: #BBDAEE !important;
 }
 table.e2l-shaded tr.e2l-shaded-indent td:first-child {
-	padding-left: 30px;
+	padding-left: 40px;
 }
 
 

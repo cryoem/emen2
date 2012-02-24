@@ -224,7 +224,9 @@ input.e2l-cancel {
 .e2l-shaded th:last-child {
 	border-right:none;
 }
-
+.e2l-shaded .e2l-gradient {
+	border-top:10px solid white;
+}
 
 <%!
 public = True
