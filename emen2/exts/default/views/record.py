@@ -62,7 +62,7 @@ class RecordBase(View):
 			self.ctxt['NOTIFY'].append('Anyone may access this record anonymously')
 
 		# Parent map
-		parentmap = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='parents', recurse=3)
+		parentmap = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='parents', recurse=-1)
 
 		# Children
 		pages = collections.OrderedDict()
@@ -159,7 +159,8 @@ class Record(RecordBase):
 
 		for f in self.request_files:
 			try:
-				rec.update(f.extract())
+				h = f.extract()
+				rec.update(h)
 			except Exception, e:
 				print e
 				
@@ -266,7 +267,7 @@ class Record(RecordBase):
 			self.template = '/pages/record.new'
 			recnames = self.db.renderview(inherit)
 			parentrec = self.db.getrecord(name)
-			parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=3)
+			parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=-1)
 			recdef = self.db.getrecorddef(newrec.rectype)
 			rendered = self.db.renderview(newrec, edit=True, viewname=viewname)
 			self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)

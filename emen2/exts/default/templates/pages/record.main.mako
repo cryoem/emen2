@@ -10,7 +10,9 @@
 	}
 	#content_inner
 	{
-		padding: 10px;
+		padding: 0px;
+		padding-left: 30px;
+		padding-right: 30px;
 	}
 </%block>
 

@@ -59,10 +59,15 @@ ul {
 .e2-tab-editbar > ul,
 .e2-tab-editbar > div
 {
-	width: 1000px;
+/*	width: 1000px; */
+	padding-left: 30px;
+	padding-right: 30px;
 	margin-left: auto;
 	margin-right: auto;
 }
+
+
+
 .e2-tab-editbar[data-tabgroup=query] > div {
 	width: auto;
 }
@@ -89,11 +94,8 @@ ul {
 
 /* Basic layout */
 #content {
-	padding:10px;
+	padding-top:10px;
 	padding-bottom:100px;
-	margin-bottom:20px;
-}
-#content_inner {
 	margin-bottom:100px;
 }
 #content_inner input[type=submit] {
