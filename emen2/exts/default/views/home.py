@@ -18,7 +18,7 @@ class Home(View):
 		self.template = '/pages/home'
 		
 		# Get the banner/welcome message
-		bookmarks = emen2.db.config.get('bookmarks.BOOKMARKS', {})
+		bookmarks = {}
 		banner = emen2.db.config.get('customization.EMEN2LOGO')
 
 		try:

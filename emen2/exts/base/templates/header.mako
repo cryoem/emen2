@@ -12,8 +12,6 @@
 			<li><a href="${EMEN2WEBROOT}/">Home ${buttons.caret()}</a>
 				<ul>
 					<li><a href="${EMEN2WEBROOT}/sitemap/">Sitemap</a></li>
-					##<li><a href="${ctxt.reverse('Record/children', BOOKMARKS.get('PROJECTS',1), 'project')}">Projects</a></li>
-					##<li><a href="${EMEN2WEBROOT}/record/${BOOKMARKS.get('EQUIPMENT',1)}/children/folder/">Equipment</a></li>
 					<li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/paramdefs/">Params</a></li>
 					<li><a href="${EMEN2WEBROOT}/recorddefs/">Protocols</a></li>
 					<li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/users/">Users</a></li>
@@ -36,6 +34,11 @@
 			<li id="bookmarks" data-parent="${USER.record}"><a href="">Bookmarks ${buttons.caret()}</a>
 				<ul id="bookmarks">
 					<li><a href="">${buttons.spinner()}</a></li>
+				</ul>
+				<ul id="bookmarks_system">
+					% for bookmark in BOOKMARKS:
+						<li>${bookmark}</li>
+					% endfor
 				</ul>
 			</li>
 	

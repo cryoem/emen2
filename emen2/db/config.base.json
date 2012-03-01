@@ -104,7 +104,7 @@
 	"bookmarks":{
 		"BANNER": 0,
         "BANNER_NOAUTH": 0,
-		"BOOKMARKS":{}
+		"BOOKMARKS": [[1,2]]
 	},
 
 	// Verbose logging
