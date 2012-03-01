@@ -1378,7 +1378,6 @@ class DB(object):
 			rectypes = set(q.cache[i].get('rectype') for i in q.result)
 			rectypes -= set([None])
 			
-			addparamdefs = ["creator","creationtime"]
 			# Get the viewdef
 			if len(rectypes) == 1:
 				rd = self.bdbs.recorddef.cget(rectypes.pop(), ctx=ctx, txn=txn)
@@ -1391,19 +1390,9 @@ class DB(object):
 				else:
 					viewdef = rd.views.get('tabularview', defaultviewdef)
 			
-			# viewdef = [i.strip() for i in viewdef.split()]
-			# for i in addparamdefs:
-			# 	if not i.startswith('$'):
-			# 		i = '$$%s'%i
-			# 	if i in viewdef:
-			# 		viewdef.remove(i)			
-			# for i in [i[0] for i in c] + addparamdefs:
-			# 	if not i.startswith('$'):
-			# 		i = '$$%s'%i
-			# 	add_to_viewdef(viewdef, i)			
-			# viewdef = " ".join(viewdef)
-		
-		for i in ['performed_by', 'date_occurred']:
+		# addparamdefs = ["creator","creationtime"]
+		addparamdefs = emen2.db.config.get('customization.TABLE_ADD_COLUMNS', ['creator', 'creationtime'])
+		for i in addparamdefs:
 			viewdef = '%s $$%s'%(viewdef.replace('$$%s'%i, ''), i) 
 		
 		# Render the table

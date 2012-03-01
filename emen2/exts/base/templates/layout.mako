@@ -12,12 +12,12 @@
 ## Javascript to run when the page is loaded
 <%block name="js_ready">
 	${parent.js_ready()}
-	$('#bookmarks').hover(
-		function() {
-			$(this).BookmarksControl();
-			$(this).BookmarksControl('showbookmarks')
-		}, function(){}
-	);
+	//$('#bookmarks').hover(
+	//	function() {
+	//		$(this).BookmarksControl();
+	//		$(this).BookmarksControl('showbookmarks')
+	//	}, function(){}
+	//);
 </%block>
 
 ## Basic page template:

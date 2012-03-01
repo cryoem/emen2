@@ -93,7 +93,9 @@
 		// "EMEN2LOGO": "ncmi2006-logo2-white.png",
 		
 		// These words will not be indexed
-		"UNINDEXED_WORDS": ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"]
+		"UNINDEXED_WORDS": ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"],
+		
+		"TABLE_ADD_COLUMNS": ["date_occurred", "performed_by", "creationtime", "creator"]
 	},
 
 	"extensions":{
@@ -104,7 +106,7 @@
 	"bookmarks":{
 		"BANNER": 0,
         "BANNER_NOAUTH": 0,
-		"BOOKMARKS": [[1,2]]
+		"BOOKMARKS": [["Projects", "/record/136/children/project/"], ["Equipment", "/record/270940/children/folder/"]]
 	},
 
 	// Verbose logging

@@ -30,15 +30,15 @@
 					<li><a href="${EMEN2WEBROOT}/query/rectype.is.publication*/">Publications</a></li>
 				</ul>
 			</li>
-	
-			<li id="bookmarks" data-parent="${USER.record}"><a href="">Bookmarks ${buttons.caret()}</a>
-				<ul id="bookmarks">
-					<li><a href="">${buttons.spinner()}</a></li>
-				</ul>
+			
+			<li id="bookmarks" data-parent="${USER.record}">
+				<a href="">Bookmarks ${buttons.caret()}</a>
 				<ul id="bookmarks_system">
-					% for bookmark in BOOKMARKS:
-						<li>${bookmark}</li>
+					% for i,j in BOOKMARKS:
+						<li><a href="${j}">${i}</a></li>
 					% endfor
+					<li class="e2l-menu-divider"></li>
+					<li><a href="">${buttons.image('spinner.gif')} Loading personal bookmarks</a></li>
 				</ul>
 			</li>
 	
