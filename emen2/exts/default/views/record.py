@@ -98,9 +98,6 @@ class Record(RecordBase):
 	def main(self, name=None, sibling=None, viewname='defaultview', **kwargs):
 		self.initr(name=name)
 		self.template = '/record/record.core'
-		
-		# Look for any recorddef-specific template.
-		emen2.db.config.templates.get_template('/asd')
 
 		# Siblings
 		if sibling == None:
