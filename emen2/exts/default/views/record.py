@@ -15,17 +15,12 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 
 
 class RecordBase(View):
-
 	def initr(self, name=None, children=True, parents=True, **kwargs):
 		"""Main record rendering."""
 		recnames = {}
 
 		# Get record..
-		try:
-			self.rec = self.db.getrecord(name, filt=False)
-		except (ValueError, KeyError, TypeError), inst:
-			raise RecordNotFoundError, name
-
+		self.rec = self.db.getrecord(name, filt=False)
 		self.name = self.rec.name
 		recnames = self.db.renderview([self.rec])
 
@@ -40,7 +35,6 @@ class RecordBase(View):
 				bookmarks = brec[-1].get('bookmarks', [])
 		except Exception, e:
 			pass
-
 		self.ctxt['bookmarks'] = bookmarks
 
 		# Get RecordDef
@@ -62,7 +56,7 @@ class RecordBase(View):
 			self.ctxt['NOTIFY'].append('Anyone may access this record anonymously')
 
 		# Parent map
-		parentmap = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='parents', recurse=-1)
+		parentmap = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='parents', recurse=-1, expandable=False)
 
 		# Children
 		pages = collections.OrderedDict()
@@ -101,9 +95,12 @@ class RecordPlugin(View):
 @View.register
 class Record(RecordBase):
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
-	def main(self, name=None, sibling=None, **kwargs):
+	def main(self, name=None, sibling=None, viewname='defaultview', **kwargs):
 		self.initr(name=name)
-		self.template = '/pages/record.main'
+		self.template = '/record/record.core'
+		
+		# Look for any recorddef-specific template.
+		emen2.db.config.templates.get_template('/asd')
 
 		# Siblings
 		if sibling == None:
@@ -112,22 +109,10 @@ class Record(RecordBase):
 		siblings = self.db.getsiblings(sibling, rectype=self.rec.rectype)
 
 		# Render main view
-		viewname = "defaultview"
-		if not self.recdef.views.get("defaultview"):
-			viewname = "mainview"
 		rendered = self.db.renderview(self.rec, viewname=viewname, edit=self.rec.writable())
-
-		# Try to render any additional plugin views
-		# This might change
-		subview = ''
-		try:
-			subview = self.routing.execute('RecordPlugin/%s'%self.rec.rectype, db=self.db, name=self.name, **kwargs)
-		except Exception, e:
-			pass
 			
 		#######################################
 		self.ctxt.update(
-			subview = subview,
 			viewname = viewname,
 			rendered = rendered,
 			sibling = sibling,
@@ -264,7 +249,7 @@ class Record(RecordBase):
 
 		if self.request_method not in ['post', 'put']:
 			# Show the form
-			self.template = '/pages/record.new'
+			self.template = '/record/record.new'
 			recnames = self.db.renderview(inherit)
 			parentrec = self.db.getrecord(name)
 			parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=-1)
@@ -321,7 +306,7 @@ class Record(RecordBase):
 	def children(self, name=None, childtype=None):
 		"""Main record rendering."""
 		self.initr(name=name)
-		self.template = "/pages/record.table"
+		self.template = "/record/record.table"
 
 		c = [['children', '==', name], ['rectype', '==', childtype]]
 		query = self.routing.execute('Query/embed', db=self.db, c=c, parent=name, rectype=childtype)
@@ -341,7 +326,7 @@ class Record(RecordBase):
 		"""Main record rendering."""
 
 		self.initr(name=name)
-		self.template = "/pages/record.hide"
+		self.template = "/record/record.hide"
 		self.title = "Hide record"
 
 		orphans = self.db.findorphans([self.name])
@@ -367,7 +352,7 @@ class Record(RecordBase):
 			revision = revision.replace("+", " ")
 
 		self.initr(name=name, parents=True, children=True)
-		self.template = "/pages/record.history"
+		self.template = "/record/record.history"
 
 
 		users = set()
@@ -397,7 +382,7 @@ class Record(RecordBase):
 		"""Main record rendering."""
 
 		self.initr(name=name)
-		self.template = "/pages/record.email"
+		self.template = "/record/record.email"
 		self.title = "Users"
 
 		# ian: todo: replace!!
@@ -427,7 +412,7 @@ class Record(RecordBase):
 	# @View.add_matcher(r'^/record/(?P<name>\d+)/publish/$')
 	# def publish(self, name=None):
 	# 	self.initr(name=name)
-	# 	self.template = '/pages/record.publish'
+	# 	self.template = '/record/record.publish'
 	# 	self.title = 'Publish Records'
 	#
 	# 	status = self.db.getindexbypermissions(groups=["publish"])

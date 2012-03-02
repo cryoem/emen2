@@ -252,15 +252,17 @@ class View(TemplateView):
 		except:
 			pass
 
+		# I am experimenting with allowing DB in templates.. This may not last.
 		self.ctxt.update(dict(
 			HOST = getattr(ctx, 'host', None),
 			USER = user,
 			ADMIN = admin,
+			DB = self.db,
+			VERSION = emen2.VERSION,
 			EMEN2WEBROOT = emen2.db.config.get('network.EMEN2WEBROOT'),
 			EMEN2DBNAME = emen2.db.config.get('customization.EMEN2DBNAME'),
 			EMEN2LOGO = emen2.db.config.get('customization.EMEN2LOGO'),
 			BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', []),
-			VERSION = emen2.VERSION,
 		))
 
 

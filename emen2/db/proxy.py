@@ -311,7 +311,10 @@ class DBProxy(object):
 			# 	kwargs['db'] = self._db
 
 			result = func(self._db, *args, **kwargs)
-			# print "  <-- \t\t%10d ms: %s"%((time.time()-t)*1000, func.func_name)
+			ms = (time.time()-t)*1000
+			if ms > 100:
+				print "\n\n\n  <-- \t\t%10d ms: %s\t%s\t%s"%(ms, func.func_name, args, kwargs)
+				traceback.print_stack()
 			return result
 
 		return wrapper

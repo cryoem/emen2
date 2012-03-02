@@ -1,4 +1,4 @@
-<%inherit file="/pages/record" />
+<%inherit file="/record/record" />
 <%block name="css_inline">
 	${parent.css_inline()}
 	#content {

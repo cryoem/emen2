@@ -45,11 +45,11 @@ class User(View):
 		if self.request_method != 'post':
 			return
 
-		userrec = kwargs.get('userrec', {})
-		if userrec:
-			user.userrec.update(userrec)
-			self.db.putrecord(user.userrec)
-			self.ctxt['NOTIFY'].append('Saved profile.')
+		# userrec = kwargs.get('userrec', {})
+		# if userrec:
+		#	user.userrec.update(userrec)
+		#	self.db.putrecord(user.userrec)
+		#	self.ctxt['NOTIFY'].append('Saved profile.')
 
 		u = kwargs.get('user', {})
 		if u:

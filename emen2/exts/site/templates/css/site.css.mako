@@ -13,7 +13,7 @@ body
 }
 
 a, .e2l-a {
-	color: #202060;
+	color: #2C2C94;
 }
 
 img {
@@ -55,7 +55,6 @@ ul {
 #precontent > .e2-tab-main,
 #content,
 #content_inner,
-#content_subview,
 .e2-tab-editbar > ul,
 .e2-tab-editbar > div
 {
@@ -66,6 +65,10 @@ ul {
 	margin-right: auto;
 }
 
+/* Hide overflow in the parent map */
+.e2-map-main .e2-map {
+	overflow: hidden;
+}
 
 
 .e2-tab-editbar[data-tabgroup=query] > div {
@@ -199,13 +202,9 @@ textarea {
 }
 
 input.e2l-save {
-	color: white;
-	border-color: #ccc;
-	background: #5B74A8;
 }
 input.e2l-cancel {
-	background-color: #eee;
-	color: #666;
+	color: red;
 }
 
 

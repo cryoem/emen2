@@ -37,8 +37,8 @@
 					% for i,j in BOOKMARKS:
 						<li><a href="${j}">${i}</a></li>
 					% endfor
-					<li class="e2l-menu-divider"></li>
-					<li><a href="">${buttons.image('spinner.gif')} Loading personal bookmarks</a></li>
+					## <li class="e2l-menu-divider"></li>
+					## <li><a href="">${buttons.image('spinner.gif')} Loading personal bookmarks</a></li>
 				</ul>
 			</li>
 	

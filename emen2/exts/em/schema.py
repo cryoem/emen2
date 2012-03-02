@@ -11869,9 +11869,6 @@ $#service_date:  $$service_date
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
-# Comments
-$$comments
-
 # Attachments
 $$file_binary  
 """,
@@ -11898,7 +11895,7 @@ $$file_binary
 # Manuscript in preparation  
 $#title_publication: $$title_publication  
 
-# Comments
+# Comments about this manuscript
 $$comments
 
 # Attachments  
@@ -12026,9 +12023,6 @@ $#service_date:  $$service_date
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
-# Comments
-$$comments
-
 # Attachments
 $$file_binary
 """,
@@ -12059,9 +12053,6 @@ Attending: $$author_list
 
 # Meeting notes  
 $$description_notebook   
-
-# Comments  
-$$comments  
 
 # Attachments  
 $$file_binary  
@@ -12395,9 +12386,6 @@ $#journal_date: $$journal_date
 $#page_range: $$page_range  
 $#publication_in_press: $$publication_in_press  
 
-# Comments
-$$comments
-
 # Abstract
 $$abstract
 """,
@@ -12431,6 +12419,8 @@ $#project_status: $$project_status
 $#project_block: $$project_block  
 
 <span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>  
+
+<span class="e2-button e2-record-new" data-rectype="labnotebook" data-parent="$$name">New lab notebook</span>  
 
 </div>
 
@@ -12524,9 +12514,6 @@ $#service_date:  $$service_date
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
-# Comments
-$$comments
-
 # Attachments
 $$file_binary
 """,
@@ -12614,9 +12601,6 @@ Authors: $$author_list
 # Notes
 $$description_notebook  
 
-# Comments
-$$comments  
-
 # Attachments
 $$file_binary
 """,
@@ -12644,9 +12628,6 @@ $$file_binary
 # Form Name: $$name_folder
 Form Description: $$folder_description  
 Submit to: $$name_contact  
-
-# Comments
-$$comments
 
 # Attachments and References
 $$file_binary  
@@ -12747,7 +12728,7 @@ The structure was completed:
 $#performed_by: $$performed_by  
 $#date_occurred: $$date_occurred  
 
-# Comments
+# Comments about this density map
 $$comments
 
 # Attachments
@@ -12965,7 +12946,9 @@ $#project_status: $$project_status
 
 $#project_block: $$project_block  
 
-<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>  
+<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>   <br />
+
+<span class="e2-button e2-record-new" data-rectype="labnotebook" data-parent="$$name">New lab notebook entry</span>  
 
 </div>
 
@@ -13204,9 +13187,7 @@ $#select_technique_freezing: $$select_technique_freezing
 
 $#description_storage: $$description_storage
 
-# Additional Comments
-
-$$comments""",
+""",
   'modifytime': '2011-12-08T11:39:12Z',
   'modifyuser': 'root',
   'name': 'freezing_gatancp3',
@@ -13296,7 +13277,7 @@ Now use the end of the loading stick to press the grid down on the tip until the
 
 Note: being reworked
 
-# Comments
+# Comments about this vitrification device
 $$comments
 
 # Attachments (e.g. manuals)
@@ -13382,9 +13363,6 @@ $#service_date:  $$service_date
 (if different than the date occurred above)  
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
-
-# Comments
-$$comments
 
 # Attachments
 $$file_binary
@@ -13493,9 +13471,6 @@ $#publication_in_press: $$publication_in_press
 
 # Abstract
 $$abstract
-
-# Comments
-$$comments
 
 # Attachments
 $$file_binary
@@ -13676,10 +13651,7 @@ $#publisher: $$publisher
 # Abstract
 $$abstract
 
-$#publication_in_press:    $$publication_in_press
-
-# Comments
-$$comments
+$#publication_in_press: $$publication_in_press
 
 # Attachments
 $$file_binary
@@ -13970,9 +13942,6 @@ This protocol is being worked on
 # $#subject_notebook: $$subject_notebook
 $$description_notebook
 
-# Comments
-$$comments
-
 # Attachments
 $$file_binary
 """,
@@ -14125,9 +14094,6 @@ $#publication_in_press:    $$publication_in_press
 $#name_conference:    $$name_conference  
 $#city_conference:    $$city_conference  
 $#year_published:  $$year_published
-
-# Comments
-$$comments
 
 # Attachments
 $$file_binary
@@ -14330,7 +14296,9 @@ $#project_status: $$project_status
 
 $#project_block: $$project_block  
 
-<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>  
+<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>   <br />
+
+<span class="e2-button e2-record-new" data-rectype="labnotebook" data-parent="$$name">New lab notebook entry</span>  
 
 </div>
 
@@ -14385,7 +14353,7 @@ $#x_value:  $$x_value
 # Comments
 $#comment_reconstruction:  $$comment_reconstruction
 
-Additional comments:  
+Additional comments about this reconstruction:
 $$comments
 
 # Attachments
@@ -14420,7 +14388,9 @@ $#project_status: $$project_status
 
 $#project_block: $$project_block  
 
-<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>  
+<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>   <br />
+
+<span class="e2-button e2-record-new" data-rectype="labnotebook" data-parent="$$name">New lab notebook entry</span>  
 
 </div>
 
@@ -14844,9 +14814,6 @@ $#description_storage: $$description_storage
 # Progress report
 $$description_progress
 
-# Comments
-$$comments
-
 # Attachments
 $$file_binary
 """,
@@ -14966,6 +14933,8 @@ $#description_purpose: $$description_purpose
 $#cryoholder: $$cryoholder  
 $#temperature_specimen: $$temperature_specimen  
 $#tem_lowdose_method: $$tem_lowdose_method  
+
+<a class="e2-button" href="/query/children.is.$$name*/attachments/">Download all files in this imaging session</a>
 
 # Micrograph Defaults
 $#ctf_defocus_set: $$ctf_defocus_set  
@@ -15291,9 +15260,6 @@ $#service_date:  $$service_date
 $#service_type:  $$service_type  
 $#service_description:  $$service_description  
 
-# Comments
-$$comments
-
 # Attachments
 $$file_binary
 """,
@@ -15332,8 +15298,6 @@ $#contact_technical: $$contact_technical
 $#comments_editor: $$comments_editor  
 $#comments_creator: $$comments_creator  
 $#talk_audience: $$talk_audience  
-General comments:  
-$$comments
 
 # Attachments
 $$file_binary

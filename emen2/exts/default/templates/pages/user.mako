@@ -59,51 +59,51 @@
 
 
 
-<%def name="profile(user=None, userrec=None, edit=False)">
+<%def name="profile(user=None, userrec=None, edit=False, prefix='userrec.')">
 	% if edit:
 	
 		<table  class="e2l-kv">	
 			<tbody>					
 				<tr>
 					<td>First Name:</td>
-					<td><input name="userrec.name_first" type="text" value="${userrec.get('name_first','')}" required /></td>
+					<td><input name="${prefix}name_first" type="text" value="${userrec.get('name_first','')}" required /></td>
 				</tr>
 				<tr>
 					<td>Middle Name:</td>
-					<td><input name="userrec.name_middle" type="text" value="${userrec.get('name_middle','')}" /></td>
+					<td><input name="${prefix}name_middle" type="text" value="${userrec.get('name_middle','')}" /></td>
 				</tr>
 				<tr>
 					<td>Last Name:</td>
-					<td><input name="userrec.name_last" type="text" value="${userrec.get('name_last','')}" required /></td>
+					<td><input name="${prefix}name_last" type="text" value="${userrec.get('name_last','')}" required /></td>
 				</tr>
 				<tr>
 					<td>Institution:</td>
-					<td><input name="userrec.institution" type="text" value="${userrec.get('institution','')}" required /></td>
+					<td><input name="${prefix}institution" type="text" value="${userrec.get('institution','')}" required /></td>
 				</tr>
 				<tr>
 					<td>Department:</td>
-					<td><input name="userrec.department" type="text" value="${userrec.get('department','')}" required /></td>
+					<td><input name="${prefix}department" type="text" value="${userrec.get('department','')}" required /></td>
 				</tr>
 				<tr>
 					<td>Street Address:</td>
-					<td><input name="userrec.address_street" type="text" value="${userrec.get('address_street','')}" required /></td>
+					<td><input name="${prefix}address_street" type="text" value="${userrec.get('address_street','')}" required /></td>
 				</tr>
 				<tr>
 					<td>City:</td>
-					<td><input name="userrec.address_city" type="text" value="${userrec.get('address_city','')}" required /></td>
+					<td><input name="${prefix}address_city" type="text" value="${userrec.get('address_city','')}" required /></td>
 				</tr>
 				<tr>
 					<td>State:</td>
-					<td><input name="userrec.address_state" type="text" value="${userrec.get('address_state','')}" required /></td>
+					<td><input name="${prefix}address_state" type="text" value="${userrec.get('address_state','')}" required /></td>
 				</tr>
 				<tr>
 					<td>Zipcode:</td>
-					<td><input name="userrec.address_zipcode" type="text" value="${userrec.get('address_zipcode','')}" required /></td>
+					<td><input name="${prefix}address_zipcode" type="text" value="${userrec.get('address_zipcode','')}" required /></td>
 				</tr>
 				<tr>
 					<td>Country:</td>
 					<td>			
-						<select name="userrec.country" required />
+						<select name="${prefix}country" required />
 							${forms.countries()}
 						</select>
 						<script type="text/javascript">
@@ -115,20 +115,25 @@
 				</tr>
 				<tr>
 					<td>Phone:</td>
-					<td><input name="userrec.phone_voice" type="text" value="${userrec.get('phone_voice','')}"></td>
+					<td><input name="${prefix}phone_voice" type="text" value="${userrec.get('phone_voice','')}"></td>
 				</tr>
 				<tr>
 					<td>Fax:</td>
-					<td><input name="userrec.phone_fax" type="text" value="${userrec.get('phone_fax','')}"></td>
+					<td><input name="${prefix}phone_fax" type="text" value="${userrec.get('phone_fax','')}"></td>
 				</tr>
 				<tr>
 					<td>Web page:</td>
-					<td><input name="userrec.website" type="text" value="${userrec.get('website','')}"></td>
+					<td><input name="${prefix}website" type="text" value="${userrec.get('website','')}"></td>
 				</tr>
 			</tbody>
 		</table>
 
 	% else:
+	
+		% if user.userrec.get('person_photo'):
+			<% pf_url = EMEN2WEBROOT + "/download/" + user.userrec.get('person_photo') + "/" + user.name %>
+			<a class="e2l-float-right" href="${pf_url}"><img src="${pf_url}" class="e2l-thumbnail-mainprofile" alt="profile photo" /></a>
+		% endif
 	
 		<table>
 			<tbody>
@@ -163,7 +168,8 @@
 				</tr>
 			</tbody>
 		</table>
-	
+
+			
 	% endif
 
 </%def>

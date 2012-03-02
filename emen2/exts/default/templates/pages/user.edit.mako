@@ -8,22 +8,24 @@
 
 	<%buttons:singlepage label='Profile'>
 
-		<form method="post" enctype="multipart/form-data" action="${ctxt.reverse('User/edit', name=user.name)}">
+		<form method="post" enctype="multipart/form-data" action="${EMEN2WEBROOT}/record/${user.record}/edit/">
 
-			${user_util.profile(user=user, userrec=user.userrec, edit=True)}
+			<input type="hidden" name="_location" value="${ctxt.reverse('User/edit', name=user.name)}" />
+		
+			${user_util.profile(user=user, userrec=user.userrec, edit=True, prefix='')}
 
 			<table class="e2l-kv">
 				<tbody>
 					<tr>
 						<td>Select a new photo:</td>
-						<td><input type="file" name="userrec.person_photo"/></td>
+						<td><input type="file" name="person_photo"/></td>
 					</tr>
 					<tr>
 						<td />
 						<td>
 						% if user.userrec.get('person_photo'):
 							<% pf_url = EMEN2WEBROOT + "/download/" + user.userrec.get('person_photo') + "/" + user.name %>
-							<a href="${pf_url}"><img src="${pf_url}.jpg?size=small" alt="profile photo" /></a>
+							<a href="${pf_url}"><img src="${pf_url}" class="e2l-thumbnail-mainprofile" alt="profile photo" /></a>
 						% else:
 							<div>There is currently no photo.</div>
 						% endif

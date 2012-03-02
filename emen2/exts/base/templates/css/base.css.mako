@@ -54,7 +54,10 @@ a:hover,
 	height:64px;
 	width:64px;
 }
-
+.e2l-thumbnail-mainprofile {
+	max-height: 256px;
+	max-width: 256px;
+}
 /* Basic text size */
 .e2l-small {
 	font-size: 10pt;
@@ -355,11 +358,15 @@ h4
 }
 .e2-tab-editbar > ul input,
 .e2-tab-editbar > ul select {
-	vertical-align: top;
 	font-size: 10pt;
+/*	vertical-align: top;*/
+/*	margin-top: -2px; */	
 	margin: 0px;
-	margin-top: -2px;
-	padding: 0px;
+	padding-top: 1px;
+	padding-bottom: 1px;
+	padding-left: 3px;
+	padding-right: 3px;
+	
 }
 .e2-tab-editbar > div {
 	padding:10px;
@@ -393,7 +400,7 @@ h4
 }
 
 /***** e2-newrecord: New Record *****/
-.e2-newrecord-desc_long {
+.e2l-shaded-drop {
 	margin:0px;
 	padding:5px;
 	background: #eee;

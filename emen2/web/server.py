@@ -122,7 +122,7 @@ class EMEN2Server(object):
 		self.site = twisted.web.server.Site(root)
 
 		reactor = twisted.internet.reactor		
-		reactor.suggestThreadPoolSize(8)
+		reactor.suggestThreadPoolSize(emen2.db.config.get('network.NUMTHREADS', 1))
 
 		# Attach to a service, or run standalone.
 		if service:

@@ -278,9 +278,10 @@
 		},
 
 		select: function(name) {
-			//this.elem.val(name);
-			this.options.selected(this, name);
-			this.dialog.dialog('close');		
+			if  (this.options.selected) {
+				this.options.selected(this, name);
+				this.dialog.dialog('close');				
+			}
 		},
 	
 		add: function(item) {

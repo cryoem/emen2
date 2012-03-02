@@ -94,7 +94,7 @@
 % if new or edit:
 	<div class="e2l-controls" id="ext_save">
 		${buttons.spinner(false)}
-		<input class="e2l-save" type="submit" value="Save">
+		<input type="submit" value="Save">
 	</div>
 % endif
 

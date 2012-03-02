@@ -1,4 +1,4 @@
-<%inherit file="/pages/record" />
+<%inherit file="/record/record" />
 
 <%namespace name="buttons"  file="/buttons"  /> 
 

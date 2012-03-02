@@ -119,7 +119,7 @@
 				var controls = $(' \
 					<ul class="e2l-controls e2l-fw"> \
 						<li><textarea name="comment" rows="2" placeholder="Add a comment"></textarea></li> \
-						<li><input type="submit" class="e2l-float-right e2l-save" value="Add Comment" /></li> \
+						<li><input type="submit" class="e2l-float-right" value="Add Comment" /></li> \
 					</ul>');
 				$('input:submit', controls).click(function(e) {self.save(e)});
 				this.options.controls.append(controls)
@@ -271,7 +271,7 @@
 
 			if (this.options.mode == 'new') {
 				var desc = $.trim(rd.desc_long).replace('\n','<br /><br />'); // hacked in line breaks
-				var desc = $('<p class="e2-newrecord-desc_long">'+desc+'</p>');
+				var desc = $('<p class="e2l-shaded-drop">'+desc+'</p>');
 				this.dialog.append(desc);
 				// Add the parent for a new record
 				form.attr('data-name', 'None');
@@ -376,11 +376,6 @@
 						To select a protocol that is not displayed, click "Browse other protocols" \
 						and use the protocol chooser to select a different protocol. \
 					</p><p> \
-						By default, child records will inherit permissions from the parent. \
-						If you want the new record to have an empty permissions list, click the \
-						"Private" checkbox. If you would like to create the child record as a copy \
-						of this record, click the "Copy" checkbox. \
-					</p><p> \
 						Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/NewRecord">EMEN2 wiki</a>. \
 					</p></div>');
 				this.element.append(help);
@@ -390,7 +385,7 @@
 			}			
 			if (this.options.summary) {
 				var summary = $('<p></p>');
-				summary.append('Select one of the protocols below and click "New record" to begin creating a new child record.');
+				summary.append('To create a new record select one of the protocols below, or <span class="e2l-a e2-newrecord-other">search for a different protocol</span>.');
 				this.element.append(summary);
 			}
 			
@@ -399,90 +394,45 @@
 				this.element.append(this.build_level('Suggested protocols', 'typicalchld', rd.typicalchld))
 			}
 			
-			// Child protocols
-			// if (rd.children.length) {
-			// var related = rd.children.slice();
-			// related.push(rd.name);
-			// this.element.append(this.build_level('Related protocols', 'related', []));
-			//}
-			
-			this.element.append('<p><input type="button" name="other" value="Browse other protocols" /></p>')
-			
-			$('input[name=other]', this.element).FindControl({
+			$('.e2-newrecord-other', this.element).FindControl({
 				keytype: 'recorddef',
 				value: rd.name,
 				selected: function(widget, value) {
-					self.add('typicalchld', value);
+					self.build_dialog(value);
 				}
 			});
 			
-			// Options
-			var form = $('<form name="e2-newrecord" action="" method="get"></form>')
-			form.append(' \
-				<ul class="e2l-options"> \
-					<li> \
-						<input type="checkbox" name="_private" id="e2-newrecord-private" /> \
-						<label for="e2-newrecord-private">Private</label> \
-					</li> \
-					<li> \
-						<input type="checkbox" name="_copy" id="e2-newrecord-copy" /> \
-						<label for="e2-newrecord-copy">Copy</label> \
-					</li>  \
-				</ul> \
-				<ul class="e2l-controls"> \
-					<li><input type="submit" value="New record" /></li> \
-				</ul>');
-
-			if (this.options.private) {
-				$("input[name=private]", form).attr("checked", "checked");
-			}
-			if (this.options.copy) {
-				$("input[name=copy]", form).attr("checked", "checked");
-			}
-			
+		},
+		
+		build_dialog: function(rectype) {
+			var self = this;
 			// Action button
-			$('input[type=submit]', form).click(function(e) {
-				var rectype = $('input[name=rectype]:checked', this.element).val();
-				if (!rectype) {
-					e.preventDefault();
-					return false
-				}			
-				var asd = $('<input type="hidden" />');
-				self.element.append(asd);
-				asd.RecordControl({
-					parent: self.options.parent,
-					rectype: rectype,
-					show: true
-				});
-				return false
-				
-				var uri = EMEN2WEBROOT+'/record/'+self.options.parent+'/new/'+rectype+'/';
-				var form = $('form[name=e2-newrecord]', this.element);
-				form.attr('action', uri);
-				var f = $('<div />');
-				this.element.append(f);
-				f.RecordControl({
-					rectype: rectype,
-					parent: self.options.parent,
-					show: true,
-				});
-				return false
+			if (!rectype) {
+				return
+			}			
+			var asd = $('<input type="hidden" />');
+			self.element.append(asd);
+			asd.RecordControl({
+				parent: self.options.parent,
+				rectype: rectype,
+				show: true
 			});
-
-			this.element.append(form);
 		},
 		
 		build_level: function(label, level, items) {
+			var self = this;
 			var header = $('<h4>'+label+'</h4>')
 			var boxes = $('<div class="e2l-cf"></div>');
 			boxes.attr('data-level', level);
 			$.each(items, function() {
 				var box = $('<div/>').InfoBox({
 					keytype: 'recorddef',
-					selectable: true,						
 					name: this,
-					input: ['radio', 'rectype']
+					selected: function(self, e) {
+						console.log(e);
+					}
 				});
+				box.click(function(){self.build_dialog($(this).attr('data-name'))});
 				boxes.append(box);
 			});
 			return $('<div/>').append(header, boxes);
@@ -1032,10 +982,10 @@
 		
 		build_add: function(iter) {
 			var elem = $('<input type="file" name="'+this.options.prefix+this.options.param+'"/>');
-			var pfx = 'Change file:';
+			var pfx = 'Change attachment:';
 			if (iter) {
 				elem.attr('multiple', 'multiple')
-				var pfx = 'Add files:';
+				var pfx = 'Add attachments:';
 			}
 			var button = $('<div style="clear:both"></div>');
 			button.append('<input type="hidden" name="'+this.options.prefix+this.options.param+'" value="" />')

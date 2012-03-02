@@ -11,5 +11,5 @@
 </%block>
 
 
-${query.table(q, qc=False)}
+${query.table(q)}
 

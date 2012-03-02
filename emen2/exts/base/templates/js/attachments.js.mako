@@ -284,10 +284,13 @@
 				this.element.append('<h4 class="e2l-cf">Attachments</h4>');
 			}
 			if (this.options.summary) {
-				var summary = $('<p> \
-					This record currently has '+this.bdos.length+' attachments. \
-					Click to <a href="'+EMEN2WEBROOT+'/query/children.is.'+this.options.name+'*/attachments/">view all attachments in children</a>. \
-					</p>')
+				var summary = $('<div />');
+				var sum2 = $('<p>This record has '+this.bdos.length+' attachments.</p>');
+				var rec = emen2.cache.get(this.options.name);
+				if (rec['children'].length) {
+					sum2.append(' There may be additional attachments in child records: click to <a href="'+EMEN2WEBROOT+'/query/children.is.'+this.options.name+'*/attachments/">download all attachments in child records</a>.');
+				}
+				summary.append(sum2);
 				this.element.append(summary);
 			}
 			if (this.options.help) {
@@ -364,13 +367,13 @@
 			// Controls includes it's own form for uploading files
 			var controls = $(' \
 				<ul class="e2l-options"> \
-					<li class="e2-select" /> \
-					<li><span class="e2l-a e2l-label e2-attachments-param">Regular Attachment</span></li> \
-					<li><input type="file" class="e2-attachments-fileinput" name="file_binary" multiple /></li> \
+					<li>Add attachments: <input type="file" class="e2-attachments-fileinput" name="file_binary" multiple /></li> \
 				</ul> \
 				<ul class="e2l-controls"> \
-					<li>'+emen2.template.spinner()+'<input type="submit" value="Save attachments" /></li> \
+					<li>'+emen2.template.spinner()+'<input type="submit" class="e2l-save" value="Save" /></li> \
 				</ul>');
+
+			//	<li><span class="e2l-a e2l-label e2-attachments-param">Regular Attachment</span></li>
 
 			// Selection control
 			$('.e2-select', controls).SelectControl({root: this.element});

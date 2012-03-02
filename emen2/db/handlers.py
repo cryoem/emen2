@@ -44,6 +44,8 @@ def thumbnail_from_binary(bdo, force=False, wait=True):
 		ext = _filename.pop()
 
 	handler = BinaryHandler.get_handler(filepath=filepath, filename=filename, name=name, tilepath=tilepath)
+	if not handler.file_exists():
+		return
 	if handler.thumbnail_exists(force=force):
 		return
 
@@ -258,6 +260,10 @@ class BinaryHandler(object):
 	def _thumbnail_build(self, workfile, **kwargs):
 		pass
 
+
+	def file_exists(self):
+		return not os.access(self.filepath, os.F_OK)
+	
 	def thumbnail_exists(self, force=False):
 		"""Check if the file exists, or there is a current lock file."""
 		if force:

@@ -31,6 +31,43 @@ import collections
 	
 </%block>
 
+<%
+# bymonth = collections.defaultdict(set)
+# for rec in recent_activity['recs']:
+#	t = rec.get('creationtime')
+#	n = rec.get('name')
+#	year, month = t[0:4], t[5:7]
+#	bymonth[(year,month)].add(n)	
+# months = sorted(bymonth.keys())[-6:]
+
+def sort_by_creationtime(x):
+	c = projects_children.get(x) or [None]
+	lastitem = sorted(c)[-1]
+	return most_recent_recs.get(lastitem, dict()).get('creationtime')
+
+
+if sortkey == 'children':
+	lsortkey = lambda x:len(projects_children.get(x, []))
+elif sortkey == 'activity':
+	lsortkey = sort_by_creationtime
+else:
+	lsortkey = lambda x:recnames.get(x, '').lower()
+	
+%>
+
+<%def name="sortlink(key, label)">
+	% if key == sortkey:
+		${buttons.image('sort_%s.png'%(int(not reverse)))}
+		<a href="?sortkey=${key}&amp;reverse=${int(not reverse)}">${label}</a>
+	% else:
+		<a href="?sortkey=${key}">${label}</a>	
+	% endif
+</%def>
+
+
+
+
+
 <h1>
 	${USER.displayname}
 	<ul class="e2l-actions">
@@ -41,6 +78,18 @@ import collections
 <div class="e2l-cf">
 	${user_util.profile(user=USER, userrec=USER.userrec, edit=False)}
 </div>
+
+
+
+
+
+
+
+
+
+
+
+<br /><br />
 
 % if banner:
 	<h1>
@@ -56,54 +105,45 @@ import collections
 	</div>
 % endif
 
-<h1>Activity</h1>
+
+
+
+
+
+
+
+
+<br /><br />
+
+<h1>
+	Activity and recent records
+	<ul class="e2l-actions">
+		<li><a class="e2-button" href="${EMEN2WEBROOT}/query/">View all records</a></li>
+	</ul>
+</h1>
 
 <div id="recent_activity">
 	<div class="e2-plot"></div>
 </div>
 
+${recent_activity_table}
 
 
-<%
-bymonth = collections.defaultdict(set)
-for rec in recent_activity['recs']:
-	t = rec.get('creationtime')
-	n = rec.get('name')
-	year, month = t[0:4], t[5:7]
-	bymonth[(year,month)].add(n)
-	
-months = sorted(bymonth.keys())[-6:]
-
-def sort_by_creationtime(x):
-	c = projects_children.get(x) or [None]
-	lastitem = sorted(c)[-1]
-	return rendered_recs.get(lastitem, dict()).get('creationtime')
 
 
-if sortkey == 'children':
-	lsortkey = lambda x:len(projects_children.get(x, []))
-elif sortkey == 'activity':
-	lsortkey = sort_by_creationtime
-else:
-	lsortkey = lambda x:recnames.get(x, '').lower()
-	
-%>
 
 
-<%def name="sortlink(key, label)">
-	% if key == sortkey:
-		${buttons.image('sort_%s.png'%(int(not reverse)))}
-		<a href="?sortkey=${key}&amp;reverse=${int(not reverse)}">${label}</a>
-	% else:
-		<a href="?sortkey=${key}">${label}</a>	
-	% endif
-</%def>
+
+
+
+
+<br /><br />
+
 
 <h1>
-	Groups and projects
-		
+	Groups and projects	
 	<ul class="e2l-actions">
-		<a target="_blank" class="e2-button" href="${EMEN2WEBROOT}/sitemap/">Sitemap</a></li>
+		<a class="e2-button" href="${EMEN2WEBROOT}/sitemap/">Sitemap</a></li>
 
 		% if hideinactive:
 			<a class="e2-button" href="${EMEN2WEBROOT}/?hideinactive=0">Show inactive</a></li>
@@ -115,9 +155,7 @@ else:
 			<span class="e2-button e2-button e2-record-new" data-parent="0" data-rectype="group"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New group</span>
 		% endif
 	</ul>
-
 </h1>
-
 
 <table id="activity" class="e2l-shaded" cellpadding="0" cellspacing="0">
 	<thead>
@@ -130,9 +168,9 @@ else:
 				${sortlink('children', 'Records')}
 			</th>
 
-			<th style="width:80px">
-				Activity
-			</th>
+			## <th style="width:80px">
+			##	Activity
+			## </th>
 			
 			<th colspan="2" style="width:150px">
 				${sortlink('activity', 'Last activity')}
@@ -145,9 +183,9 @@ else:
 	<tbody>
 
 		<tr>
-			<td class="e2l-gradient" colspan="5">
+			<td style="background:#BBDAEE;" colspan="5">
 				<a href="${EMEN2WEBROOT}/record/${group}/">
-					${recnames.get(group,group)}
+					<strong>Group: ${recnames.get(group,group)}</strong>
 				</a>
 				<ul class="e2l-actions">
 				% if ADMIN:
@@ -167,13 +205,13 @@ else:
 				c = projects_children.get(project)
 				lastitem = None
 				if c:
-					lastitem = rendered_recs.get(sorted(c)[-1], dict())
+					lastitem = most_recent_recs.get(sorted(c)[-1], dict())
 
 				# Make a simple little inline chart showing distribution of record creation
-				chart = {}
-				for month in months:
-					y = bymonth.get(month, set()) & projects_children.get(project, set())
-					chart[month] = (float(len(y)) / float(len(c) or 1)) * 20
+				# chart = {}
+				# for month in months:
+				#	y = bymonth.get(month, set()) & projects_children.get(project, set())
+				#	chart[month] = (float(len(y)) / float(len(c) or 1)) * 20
 			%>
 
 			% if hideinactive and lastitem is None:
@@ -184,13 +222,13 @@ else:
 
 					<td>${len(projects_children.get(project, []))}</td>
 
-					<td>
-						% for month in months:
-							<div class="e2-plot-sparkbox" style="height:${chart[month]}px;margin-top:${20-chart[month]}px">&nbsp;</div>
-						% endfor
-					</td>
+					## <td>
+					##	% for month in months:
+					##		<div class="e2-plot-sparkbox" style="height:${chart[month]}px;margin-top:${20-chart[month]}px">&nbsp;</div>
+					##	% endfor
+					## </td>
 
-					% if lastitem and rendered_recs.get(lastitem.name):
+					% if lastitem and most_recent_recs.get(lastitem.name):
 						<td>
 							<a href="${EMEN2WEBROOT}/record/${lastitem.name}">
 								<time class="e2-timeago" datetime="${lastitem.get('creationtime')}">${lastitem.get('creationtime')}</time>

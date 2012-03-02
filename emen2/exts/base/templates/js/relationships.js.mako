@@ -116,19 +116,19 @@
 		
 		build_summary: function(parents, children) {
 			// Make a descriptive summary of the parent and child relationships
-			var summary = $('<p class="e2-relationships-summary"></p>')
+			var summary = $('<div class="e2-relationships-summary"></div>')
 			var p = this.build_summary_label(parents);
 			var c = this.build_summary_label(children);
 			var label = 'parent';
 			if (parents.length > 1) {label = 'parents'}		
 
-			summary.append('This record has '+
+			summary.append('<p>This record has '+
 				this.build_summary_label(parents, 'parents')+
 				' and '+
 				this.build_summary_label(children, 'children')+
-				'. Select <span class="e2l-a e2-permissions-all">all</span> \
-				or <span class="e2l-a e2-permissions-none">none</span>. \
-				Click to <a href="'+EMEN2WEBROOT+'/sitemap/'+this.options.name+'/">view children in tree format</a>.');
+				'. Click to <a href="'+EMEN2WEBROOT+'/sitemap/'+this.options.name+'/">view the sitemap starting at this record</a>.</p>');
+			// '. Select <span class="e2l-a e2-permissions-all">all</span>
+			//	or <span class="e2l-a e2-permissions-none">none</span>.
 
 			// Select by rectype
 			$('.e2-relationships-rectype', summary).click(function() {

@@ -57,7 +57,6 @@
 
 <%def name="save(label='Save')">
 	<div class="e2l-controls">
-		## class="e2l-save"
 		<input value="${label}" type="submit">
 	</div>
 </%def>

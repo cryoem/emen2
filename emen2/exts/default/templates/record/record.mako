@@ -5,7 +5,7 @@
 ## Relationship Map
 <%block name="precontent">
 	${parent.precontent()}
-	<div class="e2-map-main">${parentmap}</div>
+	<div class="e2-map-main" style="overflow:hidden">${parentmap}</div>
 </%block>
 
 

@@ -531,7 +531,6 @@ class IndexDB(EMEN2DB):
 		while n:
 			r.add(n[1])
 			n = m()
-
 		return set(self.loaddata(x) for x in r)
 
 	# Default get method used by get()
@@ -551,16 +550,13 @@ class IndexDB(EMEN2DB):
 		:return: Values for key
 
 		"""
-		key = self.dumpkey(key)
-
 		if cursor:
-			r = self._get_method(cursor, key, self.datatype)
+			r = self._get_method(cursor, self.dumpkey(key), self.datatype)
 		else:
 			cursor = self.bdb.cursor(txn=txn)
-			r = self._get_method(cursor, key, self.datatype)
+			r = self._get_method(cursor, self.dumpkey(key), self.datatype)
 			cursor.close()
 
-		# generator expressions will be less pain when map() goes away
 		if bulk and self.datatype == 'p':
 			r = set(self.loaddata(x) for x in r)
 
@@ -1515,7 +1511,7 @@ class RelateDB(DBODB):
 		"""
 		result = {}
 		visited = {}
-
+		t = time.time()
 		for i in names:
 			result[i], visited[i] = self._dfs(i, rel=rel, recurse=recurse)
 
@@ -1714,7 +1710,6 @@ class RelateDB(DBODB):
 		if recurse == -1:
 			recurse = self.maxrecurse
 
-
 		# Cached items..
 		if rel == 'children':
 			cache = self.cache_children
@@ -1728,7 +1723,9 @@ class RelateDB(DBODB):
 		cursor = rel.bdb.cursor(txn=txn)
 
 		# Starting items
-		new = rel.get(key, cursor=cursor)
+		
+		# NOTE: I am using this ugly direct call 'rel._get_method' to the C module because it saves 10-20% time.		
+		new = rel._get_method(cursor, rel.dumpkey(key), rel.datatype) # rel.get(key, cursor=cursor)
 		if key in self.cache:
 			new |= cache.get(key, set())
 
@@ -1743,13 +1740,14 @@ class RelateDB(DBODB):
 
 			stack.append(set())
 			for key in stack[x] - visited:
-				new = rel.get(key, cursor=cursor)
+				new = rel._get_method(cursor, rel.dumpkey(key), rel.datatype) # rel.get(key, cursor=cursor)
 				if key in self.cache:
 					new |= cache.get(key, set())
 
 				if new:
 					stack[x+1] |= new #.extend(new)
 					result[key] = new
+
 			visited |= stack[x]
 
 		visited |= stack[-1]

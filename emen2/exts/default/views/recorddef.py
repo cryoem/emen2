@@ -23,14 +23,14 @@ class RecordDef(View):
 				return
 				
 		self.main(name=name)
-		self.template = '/pages/recorddef.edit'
+		self.template = '/record/recorddef.edit'
 		self.ctxt['edit'] = True
 		self.title = 'Edit Protocol: %s'%self.paramdef.desc_short
 
 	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/$')	
 	def main(self, name=None):
 		self.recorddef = self.db.getrecorddef(name, filt=False)
-		self.template = '/pages/recorddef'
+		self.template = '/record/recorddef'
 		self.title = "Protocol: %s"%self.recorddef.desc_short
 
 		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='recorddef', root=self.recorddef.name, mode='parents', recurse=3)
@@ -89,7 +89,7 @@ class RecordDefs(View):
 		pages.active = action
 		self.ctxt['pages'] = pages
 
-		self.template = '/pages/recorddefs.%s'%action		
+		self.template = '/record/recorddefs.%s'%action		
 		self.title = pages.get(action)
 
 		# Children

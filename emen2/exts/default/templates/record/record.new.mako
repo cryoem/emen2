@@ -2,7 +2,7 @@
 	import jsonrpc.jsonutil
 	import markdown
 %>
-<%inherit file="/pages/record" />
+<%inherit file="/record/record" />
 <%namespace name="buttons" file="/buttons" />
 
 <%block name="css_inline">

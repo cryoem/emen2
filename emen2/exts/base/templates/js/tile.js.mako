@@ -92,7 +92,7 @@
 				<input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /> \
 				<input type="button" name="newset" value="New Set" /><br /> \
 				'+emen2.template.spinner(false)+' \
-				<input type="button" name="saveall" class="e2l-save" value="Save All" /> \
+				<input type="button" name="saveall" value="Save All" /> \
 				');
 			controls.find("input[name=bigger]").click(function() {
 				self.resize_controls(1);
@@ -337,7 +337,7 @@
 				self.pen = $(this).attr('data-label');
 			});
 			
-			var save1 = $('<input data-label="'+label+'" type="button" class="e2l-save" value="Save" />');
+			var save1 = $('<input data-label="'+label+'" type="button" value="Save" />');
 			save1.click(function(e){
 				var label = $(this).attr("data-label");
 				self.save(label);

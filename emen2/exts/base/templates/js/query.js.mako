@@ -196,7 +196,7 @@
 
 			var save = $('<div class="e2l-controls"> \
 				'+emen2.template.spinner()+' \
-				<input type="button" value="Query" name="save" class="e2l-save" /></div>');				
+				<input type="button" value="Query" name="save" /></div>');				
 			this.container.append(save);
 			$('input[name=save]', this.container).bind("click", function(e){self.query()});			
 
@@ -229,7 +229,7 @@
 		},
 				
 		query_bookmark: function(self, q) {
-			window.location = query_build_path(q);
+			window.location = $.query_build_path(q);
 		},
 		
 		_getconstraint: function(elem) {
@@ -430,7 +430,9 @@
 		options: {
 			q: null,
 			create: null,
-			parent: null
+			parent: null,
+			header: true,
+			controls: true
 		},
 				
 		_create: function() {
@@ -438,6 +440,20 @@
 		},
 		
 		build: function() {
+			if (this.options.controls) {
+				// Rebuild the controls
+				this.build_controls();
+				// Set the control values from the current query state
+				this.update_controls();
+				// Rebind to table header controls
+				this.rebuild_thead();
+			}
+		
+			if (this.options.header) {				
+			}
+		},
+		
+		build_controls: function() {
 			var self = this;
 
 			// Tab control
@@ -445,14 +461,14 @@
 			var ul = $('.e2-tab ul', this.element);
 			
 			// Statistics
-			ul.append('<li data-tab="stats"><span class="e2l-a"><span class="e2-query-length">Records</span>'+emen2.template.caret()+'</span></li>');
+			ul.append('<li><span class="e2-query-length">Records</span></li>'); //'+emen2.template.caret()+'
 			ul.append('<li data-tab="controls"><span class="e2l-a">Query '+emen2.template.caret()+'</span></li>')
 
 			// Edit
 			ul.append('<li data-tab="edit"><span class="e2l-a">Edit '+emen2.template.caret()+'</span></li>')
 
 			// Plotting
-			ul.append('<li data-tab="plot"><span class="e2l-a">Plot '+emen2.template.caret()+'</span></li>')
+			// ul.append('<li data-tab="plot"><span class="e2l-a">Plot '+emen2.template.caret()+'</span></li>')
 
 			// Pages
 			ul.append('<li class="e2l-float-right e2-query-pages"></li>');
@@ -488,6 +504,10 @@
 				// <input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" />
 				$('input[type=button]', create).RecordControl();
 			}			
+
+
+			// Download all files
+			ul.append('<li class="e2l-float-right"><span><input type="button" value="Download attachments" /></span></li>')
 
 			// Init tab control
 			tab.TabControl({});
@@ -526,13 +546,12 @@
 			tab.TabControl('sethidecb', 'edit', function(page) {
 				var form = $('form.e2-query-tableform');				
 				form.MultiEditControl('hide');	
-			});
-						
-			// Set the control values from the current query state
-			this.update_controls();
-
-			// Rebind to table header controls
-			this.rebuild_thead();
+			});	
+			
+			if (this.options.qc) {
+				tab.TabControl('show', 'controls');
+			}
+					
 		},
 		
 		query_download: function() {
@@ -541,21 +560,22 @@
 			newq['c'] = this.options.q['c'];
 			newq['boolmode'] = this.options.q['boolmode'];
 			newq['ignorecase'] = this.options.q['ignorecase'];
-			window.location = query_build_path(newq, 'files');
+			window.location = $.query_build_path(newq, 'files');
 		},
 				
 		query: function(newq) {
-			$('.e2-query-activity', this.element).show();
-			// Update the query from the current settings
-			newq = newq || this.options.q;
-			$('.e2-query-header .e2l-spinner', this.element).show();
-			var self = this;
-			var count = $('.e2-query-header select[name=count]', this.element).val();
-			if (count) {newq["count"] = parseInt(count)}
-			newq['names'] = [];
-			newq['recs'] = true;
-			newq['table'] = true;
-			emen2.db("table", newq, function(q){self.update(q)});			
+			window.location = $.query_build_path(newq);
+			// $('.e2-query-activity', this.element).show();
+			// // Update the query from the current settings
+			// newq = newq || this.options.q;
+			// $('.e2-query-header .e2l-spinner', this.element).show();
+			// var self = this;
+			// var count = $('.e2-query-header select[name=count]', this.element).val();
+			// if (count) {newq["count"] = parseInt(count)}
+			// newq['names'] = [];
+			// newq['recs'] = true;
+			// newq['table'] = true;
+			// emen2.db("table", newq, function(q){self.update(q)});			
 		},
 		
 		setpos: function(pos) {

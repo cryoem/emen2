@@ -25,17 +25,9 @@ class EMEquipment(View):
 
 @View.register
 class EMRecordPlugin(View):
-	# @View.add_matcher(r'^/em/plugin/ccd/(?P<name>\d+)/$', view='RecordPlugin', name='ccd')
-	# @View.add_matcher(r'^/em/plugin/ddd/(?P<name>\d+)/$', view='RecordPlugin', name='ddd')
-	# @View.add_matcher(r'^/em/plugin/scan/(?P<name>\d+)/$', view='RecordPlugin', name='scan')
-	# def image(self, name, **kwargs):
-	# 	name = int(name)
-	# 	rec = self.db.getrecord(name)
-	# 	self.template = '/em/record.plugin.image'
-	# 	self.ctxt['rec'] = rec
 
-	@View.add_matcher(r'^/em/plugin/project/(?P<name>\d+)/$', view='RecordPlugin', name='project')
-	@View.add_matcher(r'^/em/plugin/subproject/(?P<name>\d+)/$', view='RecordPlugin', name='subproject')
+	# @View.add_matcher(r'^/em/plugin/project/(?P<name>\d+)/$', view='RecordPlugin', name='project')
+	# @View.add_matcher(r'^/em/plugin/subproject/(?P<name>\d+)/$', view='RecordPlugin', name='subproject')
 	def project(self, name, **kwargs):
 		name = int(name)
 		rec = self.db.getrecord(name)
@@ -140,11 +132,8 @@ class EMHome(View):
 
 		
 		# Recent records
-		# Add 'Z" to datetime.isoformat()
-		# t = '2011-01-01T00:00:00+00:00'
-		# now = '2011-02-01T00:00:00+00:00'
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
-		t = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).isoformat()+'+00:00'
+		t = (datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat()+'+00:00'
 		q = self.db.plot(
 			[['creationtime', '>=', t]], 
 			x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now}, 
@@ -152,44 +141,51 @@ class EMHome(View):
 			)
 		self.ctxt['recent_activity'] = q
 
+
+		q_table = self.routing.execute('Query/embed', db=self.db, q={'count':10}, controls=False)
+		self.ctxt['recent_activity_table'] = q_table
+
 		# Items to render
 		recent = set(q['names'])
 		torender = set()
 
-		# Groups; filter by NOT DELETED.
-		# groups = self.db.query([['rectype','is','group'], ['deleted', 'none']]).get('names')
+		# Groups
 		groups = self.db.getchildren(0, rectype=['group'])		
-		# groups = self.db.getindexbyrectype('group')
 		torender |= groups
 		
-		# Children of groups (any rectype)
+		# Top-level children of groups (any rectype)
 		groups_children = self.db.getchildren(groups)
 		projs = set()
 		for v in groups_children.values():
 			projs |= v
 		torender |= projs
-			
+
 		# Progress reports
-		progress_reports = self.db.getindexbyrectype('progress_report')
+		# self.db.getindexbyrectype('progress_report')
+		progress_reports = set()
 		torender |= progress_reports
 
 		# Get projects, most recent children, and progress reports
 		projects_children = self.db.getchildren(projs, recurse=-1)
+		most_recent = set()
 		for k,v in projects_children.items():
-			# Children past six months
-			# r = v & recent
-			# Most recent 
 			if v:
-				torender.add(sorted(v)[-1])
+				most_recent.add(sorted(v)[-1])
 
 		# Get all the recent records we want to display
+		most_recent_recs = self.db.getrecord(most_recent)
 		rendered_recs = self.db.getrecord(torender)
-		users = self.db.getuser([i.get('creator') for i in rendered_recs])
-
-		rendered_recs = dict([(i.name,i) for i in rendered_recs])
-		users = dict([(i.name,i) for i in users])
-		recnames = self.db.renderview(torender)
 		
+		# Display the usernames for all these records. This should probably be renderview.
+		users = self.db.getuser([i.get('creator') for i in most_recent_recs])
+		users = dict([(i.name,i) for i in users])
+		
+		# Convert to dict (do this in tmpl..)
+		most_recent_recs = dict([(i.name,i) for i in most_recent_recs])
+		rendered_recs = dict([(i.name,i) for i in rendered_recs])
+
+		# Rendered recnames
+		recnames = self.db.renderview(torender)
 		
 		self.ctxt['groups_children'] = groups_children
 		self.ctxt['recnames'] = recnames
@@ -197,6 +193,7 @@ class EMHome(View):
 		self.ctxt['users'] = users
 		self.ctxt['projects_children'] = projects_children
 		self.ctxt['progress_reports'] = progress_reports
+		self.ctxt['most_recent_recs'] = most_recent_recs
 		
 		self.ctxt['sortkey'] = sortkey
 		self.ctxt['hideinactive'] = int(hideinactive)

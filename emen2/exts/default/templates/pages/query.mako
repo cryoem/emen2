@@ -1,6 +1,6 @@
 <%! import jsonrpc.jsonutil %>
 
-<%def name="table(q, parent=None, rectype=None, qc=True)">
+<%def name="table(q, parent=None, rectype=None, qc=True, header=True, controls=True)">
 	<script type="text/javascript">
 	//<![CDATA[
 		var q = ${jsonrpc.jsonutil.encode(q)};
@@ -8,35 +8,38 @@
 			$(".e2-query").TableControl({
 				q: q, 
 				rectype: ${jsonrpc.jsonutil.encode(rectype)},
-				parent: ${jsonrpc.jsonutil.encode(parent)}
+				parent: ${jsonrpc.jsonutil.encode(parent)},
+				header: ${jsonrpc.jsonutil.encode(header)},
+				controls: ${jsonrpc.jsonutil.encode(controls)},
+				qc: ${jsonrpc.jsonutil.encode(qc)}
 			})
 		});	
 	//]]>
 	</script>
 
 	<div class="e2-query">
+		
+		% if controls:
+			<div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tab">
+				<ul class="e2-query-header e2l-cf" role="tablist"></ul>
+			</div>
 
-		<div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tab">
-			<ul class="e2-query-header e2l-cf" role="tablist"></ul>
-		</div>
-		<div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tabpanel"></div>
-
+			<div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tabpanel"></div>
+		% endif
 
 		## This form is used for editing table cells
 		<form class="e2-query-tableform" method="post" action="${ctxt.reverse('Records/edit')}">
 			<input type="hidden" name="_location" value="${REQUEST_LOCATION}" />
 		
 			<table class="e2-query-table e2l-shaded" cellspacing="0" cellpadding="0"> 
-				<thead>
-			
-					## <th>
-					##	<input type="checkbox" />
-					## </th>
-				
-					% for v in q['table']['headers'].get(None, []):
-						<th><div data-name="${v[2]}" data-args="${v[3]}">${v[0]}</div></th>
-					% endfor
-				</thead>
+
+				% if header:
+					<thead>
+						% for v in q['table']['headers'].get(None, []):
+							<th><div data-name="${v[2]}" data-args="${v[3]}">${v[0]}</div></th>
+						% endfor
+					</thead>
+				% endif
 
 				<tbody>
 			
@@ -66,4 +69,4 @@
 	
 </%def>
 
-${table(q, rectype=rectype, parent=parent)}
+${table(q, rectype=rectype, parent=parent, header=header, controls=controls, qc=False)}

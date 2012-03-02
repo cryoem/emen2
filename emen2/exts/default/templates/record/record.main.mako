@@ -1,5 +1,5 @@
 <%! import jsonrpc.jsonutil  %>
-<%inherit file="/pages/record" />
+<%inherit file="/record/record" />
 <%namespace name="buttons" file="/buttons"  /> 
 
 <%block name="css_inline">
@@ -11,6 +11,7 @@
 	#content_inner
 	{
 		padding: 0px;
+		padding-top: 10px;
 		padding-left: 30px;
 		padding-right: 30px;
 	}
@@ -23,14 +24,6 @@
 	var rec = emen2.caches['record'][${jsonrpc.jsonutil.encode(rec.name)}];
 	var ptest = ${jsonrpc.jsonutil.encode(rec.ptest())}
 	
-	// Change View
-	$('span[data-viewname]').click(function(){
-		var target = $("#content_inner");
-		var viewname = $(this).attr('data-viewname') || 'recname';
-		target.attr("data-viewname", viewname);
-		$.rebuild_views("#content_inner");
-	});
-
 	// Bookmarks control
 	// $('#e2l-editbar-record-setbookmark').BookmarksControl({'mode':'toggle'});
 
@@ -199,10 +192,15 @@
 		historycount += len(filter(lambda x:x[2].startswith("LOG:"), rec.get('comments',[])))
 		lastitem = 'comments'
 		%>
-
+		
 		## Table View
-		<li>
-			<span data-viewname="dicttable"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></span>
+		<li data-tab="views">
+			<a href="#views"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /></a>
+		</li>
+
+		## Tools
+		<li data-tab="tools">
+			<a href="#tools">Tools</a>
 		</li>
 
 		## Siblings
@@ -275,28 +273,35 @@
 	<div data-tab="comments"></div>
 	
 	<div data-tab="siblings"></div>
+	
+	<div data-tab="views">
+		<%
+		prettynames = {'defaultview': 'default', 'mainview': 'protocol', 'recname': 'record name', 'tabularview':'table columns'}
+		%>
+
+		<h4>Record views</h4>
+		
+		<p>You are viewing the ${prettynames.get(viewname, viewname)} view for this record.</p>
+
+		<p>This record uses the <a href="${EMEN2WEBROOT}/recorddef/${recdef.name}">${recdef.desc_short} protocol</a>, which provides ${len(recdef.views)+1} views:
+			<ul>
+				<li><a href="?viewname=mainview#views">Protocol</a></li>
+				% for v in recdef.views:
+					<li><a href="?viewname=${v}#views">${prettynames.get(v, v).capitalize()}</a></li>
+				% endfor
+			</ul>
+		</p>
+		
+	</div>
+	
+	<div data-tab="tools">
+		<%block name="tools">
+		Tool kit.
+		</%block>
+	</div>
 		
 </div>
 
+${next.body()}
 
-## Tile viewer
-% if rec.get('file_binary_image'):
-	<div class="e2-tile-outer">
-		<div class="e2-tile" style="height:512px;overflow:hidden" data-bdo="${rec.get('file_binary_image')}" data-mode="cached"></div>
-	</div>
-% endif
-
-
-## Main rendered record
-<form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${EMEN2WEBROOT}/record/${rec.name}/edit/">
-	<div id="content_inner" class="e2-view" data-viewname="${viewname}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>
-		${rendered}
-	</div>
-</form>
-
-
-## Subview
-<div id="content_subview">
-${subview}
-</div>
 

@@ -94,8 +94,9 @@
 		
 		// These words will not be indexed
 		"UNINDEXED_WORDS": ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"],
-		
-		"TABLE_ADD_COLUMNS": ["date_occurred", "performed_by", "creationtime", "creator"]
+
+		// "date_occurred", "performed_by", 
+		"TABLE_ADD_COLUMNS": ["creationtime", "creator"]
 	},
 
 	"extensions":{
