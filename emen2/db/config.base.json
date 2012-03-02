@@ -107,7 +107,7 @@
 	"bookmarks":{
 		"BANNER": 0,
         "BANNER_NOAUTH": 0,
-		"BOOKMARKS": [["Projects", "/record/136/children/project/"], ["Equipment", "/record/270940/children/folder/"]]
+		"BOOKMARKS": []
 	},
 
 	// Verbose logging

@@ -190,6 +190,9 @@
 		historycount = len(rec.get('history',[]))
 		historycount += len(filter(lambda x:x[2].startswith("LOG:"), rec.get('comments',[])))
 		lastitem = 'comments'
+		
+		pos_prev = ''
+		pos_next = ''
 		%>
 		
 		## Table View
