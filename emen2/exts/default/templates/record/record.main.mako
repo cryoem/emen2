@@ -303,15 +303,15 @@
 				<li><a href="${EMEN2WEBROOT}/sitemap/${rec.name}/">Sitemap</a></li>
 			</ul>
 
-			## <h4>Common Queries:</h4>
-			## <ul>
-			##	<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/">Child records, sorted by creation time</a></li>
-			##	<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/?sortkey=modifytime">Child records, sorted by last modification</a></li>
-			##	<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/rectype.is.image_capture*/">Child images (ccd, scan, tomogram)</a></li>
-			##	<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/rectype.is.grid_imaging/">Child grid imaging sessions</a></li>
-			##	<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/">${rec.rectype} records</a></li>
-			##	<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/creator.is.${rec.get('creator')}/">${rec.rectype} records, created by ${rec.get('creator')}</a></li>
-			## </ul>				
+			<h4>Common Queries:</h4>
+			<ul>
+				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/">Child records, sorted by creation time</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/?sortkey=modifytime">Child records, sorted by last modification</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/rectype.is.image_capture*/">Child images (ccd, scan, tomogram)</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/rectype.is.grid_imaging/">Child grid imaging sessions</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/">${rec.rectype} records</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/creator.is.${rec.get('creator')}/">${rec.rectype} records, created by ${rec.get('creator')}</a></li>
+			</ul>				
 
 		</%block>
 	</div>
