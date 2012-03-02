@@ -252,6 +252,15 @@ emen2.template.error = function(title, text, method, data) {
 	});
 };
 
+emen2.ui = {};
+
+emen2.ui.buttonfeedback = function(elem) {
+	var elem = $(elem);
+	$('.e2l-spinner', elem).show();
+	elem.addClass('e2l-disabled');
+}
+
+
 // Convert a byte count to human friendly
 emen2.template.prettybytes = function(bytes) {
 	var b = 0;
@@ -700,48 +709,66 @@ emen2.util.sortdictstr = function(o) {
 
 	// Siblings control
 	$.widget('emen2.SiblingsControl', {
-		// $("#e2l-editbar-record-siblings").EditbarControl({
-		// 	show: showsiblings,
-		// 	width:300,
-		// 	align: 'right',
-		// 	cb: function(self) {
-		// 		self.popup.empty();
-		// 		var sibling = self.element.attr('data-sibling') || rec.name;
-		// 		var prev = self.element.attr('data-prev') || null;
-		// 		var next = self.element.attr('data-next') || null;
-		// 		if ($('#siblings', self.popup).length) {
-		// 			return
-		// 		}
-		// 		var sibs = $('<div class="e2-siblings">'+emen2.template.spinner()+'</div>');
-		// 		self.popup.append(sibs);
-		// 		emen2.db("getsiblings", [rec.name, rec.rectype], function(siblings) {
-		// 			emen2.db("renderview", [siblings, null, "recname"], function(recnames) {
-		// 				siblings = siblings.sort(function(a,b){return a-b});
-		// 				sibs.empty();
-		// 				var prevnext = $('<h4 class="e2l-cf e2l-editbar-sibling-prevnext"></h4>');
-		// 				if (prev) {
-		// 					prevnext.append('<div class=".e2l-float-left"><a href="'+EMEN2WEBROOT+'/record/'+prev+'/#siblings">&laquo; Previous</a></div>');
-		// 				}
-		// 				if (next) {
-		// 					prevnext.append('<div class="e2l-float-right"><a href="'+EMEN2WEBROOT+'/record/'+next+'/#siblings">Next &raquo;</a></div>');
-		// 				}					
-		// 				sibs.append(prevnext);
-		// 
-		// 				var ul = $('<ul/>');
-		// 				$.extend(emen2.caches["recnames"], recnames);
-		// 				$.each(siblings, function(i,k) {
-		// 					if (k != rec.name) {
-		// 						// color:white here is a hack to have them line up
-		// 						ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+sibling+'#siblings">'+(emen2.caches["recnames"][k]||k)+'</a></li>');
-		// 					} else {
-		// 						ul.append('<li class="e2-siblings-active">'+(emen2.caches["recnames"][k]||k)+'</li>');
-		// 					}
-		// 				});
-		// 				sibs.append(ul);
-		// 			});
-		// 		});
-		// 	}
-		// });	
+		options: {
+			name: null,
+			prev: null,
+			next: null
+		},
+		
+		_create: function() {
+			var self = this;
+			this.options.name = emen2.util.checkopt(this, 'name');
+			this.options.sibling = emen2.util.checkopt(this, 'sibling');
+			this.options.prev = emen2.util.checkopt(this, 'prev');
+			this.options.next = emen2.util.checkopt(this, 'next');
+			this.build();
+		},
+		
+		build: function() {
+			var self = this;
+			var rec = emen2.cache.get(this.options.name);
+			var sibs = $('<div class="e2-siblings">'+emen2.template.spinner(true)+' Loading siblings...</div>');
+
+			this.element.empty();
+			this.element.append(sibs);
+			emen2.db("getsiblings", [rec.name, rec.rectype], function(siblings) {
+				emen2.db("renderview", [siblings], function(recnames) {
+					siblings = siblings.sort(function(a,b){return a-b});
+					$.each(recnames, function(k,v) {
+						emen2.caches['recnames'][k] = v;
+					});
+					self._build_siblings(siblings);
+				});			
+			});
+		},
+		
+		_build_siblings: function(siblings) {
+			var self = this;
+			var rec = emen2.cache.get(this.options.name);
+
+			this.element.empty();
+
+			var prevnext = $('<h4 class="e2l-cf" style="text-align:center">Siblings</h4>');
+			if (this.options.prev) {
+				prevnext.append('<div class="e2l-float-left"><a href="'+EMEN2WEBROOT+'/record/'+this.options.prev+'/#siblings">&laquo; Previous</a></div>');
+			}
+			if (this.options.next) {
+				prevnext.append('<div class="e2l-float-right"><a href="'+EMEN2WEBROOT+'/record/'+this.options.next+'/#siblings">Next &raquo;</a></div>');
+			}					
+			this.element.append(prevnext);
+			
+			var ul = $('<ul />');
+			$.each(siblings, function(i,k) {
+				var rn = emen2.cache.get(k, 'recnames') || k;
+				if (k != rec.name) {
+					ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+self.options.name+'#siblings">'+rn+'</a></li>');
+				} else {
+					ul.append('<li class="e2-siblings-active">'+rn+'</li>');
+				}
+			});
+			this.element.append(ul);
+		}
+
 	});
 
 	// A simple widget for counting words in a text field

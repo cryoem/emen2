@@ -1,3 +1,4 @@
+<%namespace name="buttons" file="/buttons"  />
 <%inherit file="/page" />
 
 <%def name="login(location='/')">
@@ -14,7 +15,7 @@
 			</tr>
 			<tr>
 				<td />
-				<td><input type="submit" value="Login" /> <span class="e2l-small">(<a href="${EMEN2WEBROOT}/auth/password/reset/">Forgot Password?</a>)</span></td>
+				<td><button type="submit" onclick="emen2.ui.buttonfeedback(this)">${buttons.spinner(False, "e2l-spinner-login")} Login</button> <span class="e2l-small">(<a href="${EMEN2WEBROOT}/auth/password/reset/">Forgot Password?</a>)</span></td>
 			</tr>
 		</table>
 	</form>

@@ -17,11 +17,11 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 class RecordBase(View):
 	def initr(self, name=None, children=True, parents=True, **kwargs):
 		"""Main record rendering."""
-		recnames = {}
 
 		# Get record..
 		self.rec = self.db.getrecord(name, filt=False)
 		self.name = self.rec.name
+		recnames = {}
 		recnames = self.db.renderview([self.rec])
 
 		# Find if this record is in the user's bookmarks
@@ -86,20 +86,22 @@ class RecordBase(View):
 
 
 
-@View.register
-class RecordPlugin(View):
-	pass
-	
-	
 
 @View.register
 class Record(RecordBase):
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
 	def main(self, name=None, sibling=None, viewname='defaultview', **kwargs):
 		self.initr(name=name)
-		self.template = '/record/record.core'
-
-		# Siblings
+		
+		# Look for any recorddef-specific template.
+		template = '/record/rectypes/%s'%self.rec.rectype
+		try:
+			emen2.db.config.templates.get_template(template)
+		except:
+			template = '/record/rectypes/root'
+		self.template = template
+		
+		# Find siblings
 		if sibling == None:
 			sibling = self.rec.name
 		sibling = int(sibling)
@@ -108,7 +110,6 @@ class Record(RecordBase):
 		# Render main view
 		rendered = self.db.renderview(self.rec, viewname=viewname, edit=self.rec.writable())
 			
-		#######################################
 		self.ctxt.update(
 			viewname = viewname,
 			rendered = rendered,
@@ -117,7 +118,7 @@ class Record(RecordBase):
 		)
 
 
-	#@write
+
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$', write=True)
 	def edit(self, name=None, _location=None, _extract=False, **kwargs):
 
@@ -226,7 +227,7 @@ class Record(RecordBase):
 		self.headers['Location'] = '%s/record/%s/#permissions'%(self.ctxt['EMEN2WEBROOT'], name)
 
 
-	#@write
+
 	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$', write=True)
 	def new(self, name=None, rectype=None, _copy=False, _location=None, _private=False, _extract=False, **kwargs): 
 		viewname = 'mainview'

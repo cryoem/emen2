@@ -14934,8 +14934,6 @@ $#cryoholder: $$cryoholder
 $#temperature_specimen: $$temperature_specimen  
 $#tem_lowdose_method: $$tem_lowdose_method  
 
-<a class="e2-button" href="/query/children.is.$$name*/attachments/">Download all files in this imaging session</a>
-
 # Micrograph Defaults
 $#ctf_defocus_set: $$ctf_defocus_set  
 $#tem_magnification_set: $$tem_magnification_set  

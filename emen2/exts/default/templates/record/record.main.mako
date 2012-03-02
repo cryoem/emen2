@@ -8,8 +8,7 @@
 		width: auto;
 		padding: 0px;
 	}
-	#content_inner
-	{
+	#content_inner {
 		padding: 0px;
 		padding-top: 10px;
 		padding-left: 30px;
@@ -141,7 +140,7 @@
 		## Edit Record
 		% if rec.writable():
 			<li data-tab="edit">
-				<a href="#edit"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a>
+				<a href="#edit"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit ${buttons.caret()}</a>
 			</li>
 		% endif
 
@@ -200,7 +199,7 @@
 
 		## Tools
 		<li data-tab="tools">
-			<a href="#tools">Tools</a>
+			<a href="#tools">Tools ${buttons.caret()}</a>
 		</li>
 
 		## Siblings
@@ -215,7 +214,7 @@
 				if pos+1 < len(siblings):
 					pos_next = siblings[pos+1]
 			%>
-			<li data-tab="siblings" class="e2l-float-right" data-sibling="${sibling}" data-prev="${pos_prev}" data-next="${pos_next}">
+			<li data-tab="siblings" class="e2l-float-right">
 				<a href="#siblings">${pos+1} of ${len(siblings)}</a>
 			</li>
 		% endif
@@ -272,7 +271,7 @@
 	
 	<div data-tab="comments"></div>
 	
-	<div data-tab="siblings"></div>
+	<div data-tab="siblings" data-sibling="${sibling}" data-prev="${pos_prev}" data-next="${pos_next}"></div>
 	
 	<div data-tab="views">
 		<%
@@ -296,12 +295,37 @@
 	
 	<div data-tab="tools">
 		<%block name="tools">
-		Tool kit.
+
+			<h4>Tools</h4>
+			<ul>
+				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
+				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/attachments/">Download all attachments in children</a></li>
+				<li><a href="${EMEN2WEBROOT}/sitemap/${rec.name}/">Sitemap</a></li>
+			</ul>
+
+			## <h4>Common Queries:</h4>
+			## <ul>
+			##	<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/">Child records, sorted by creation time</a></li>
+			##	<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/?sortkey=modifytime">Child records, sorted by last modification</a></li>
+			##	<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/rectype.is.image_capture*/">Child images (ccd, scan, tomogram)</a></li>
+			##	<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/rectype.is.grid_imaging/">Child grid imaging sessions</a></li>
+			##	<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/">${rec.rectype} records</a></li>
+			##	<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/creator.is.${rec.get('creator')}/">${rec.rectype} records, created by ${rec.get('creator')}</a></li>
+			## </ul>				
+
 		</%block>
 	</div>
 		
 </div>
 
-${next.body()}
+## Tile viewer
+% if rec.get('file_binary_image'):
+	<div class="e2-tile-outer">
+		<div class="e2-tile" style="height:512px;overflow:hidden" data-bdo="${rec.get('file_binary_image')}" data-mode="cached"></div>
+	</div>
+% endif
 
+<div id="content_inner">
+	${next.body()}
+</div>
 

@@ -1,9 +1,18 @@
 (function($) {
 	
 	$.query_build_path = function(q, postpend) {
+		var comparators_lookup = {
+			">": "gt",
+			"<": "lt",
+			">=": "gte",
+			"<=": "lte",
+			"==": "is",
+			"!=": "not"				
+		}
 		var output = [];
+		
 		$.each(q['c'], function() {
-			output.push(encodeURIComponent(this[0])+'.'+encodeURIComponent(this[1])+'.'+encodeURIComponent(this[2]));
+			output.push(encodeURIComponent(this[0])+'.'+(comparators_lookup[this[1]] || this[1])+'.'+encodeURIComponent(this[2]));
 		});
 		delete q['c'];
 
@@ -12,12 +21,12 @@
 		}
 
 		// remove some default arguments..
-		if (q['ignorecase'] == 1){
-			delete q['ignorecase'];
-		}
-		if (q['boolmode'] == 'AND') {
-			delete q['boolmode'];
-		}
+		// if (q['ignorecase'] == 1){
+		delete q['ignorecase'];
+		// }
+		// if (q['boolmode'] == 'AND') {
+		delete q['boolmode'];
+		// }
 		qs = '?' + $.param(q);
 		return EMEN2WEBROOT + '/query/' + output.join("/") + '/' + qs;
 	}
@@ -485,10 +494,7 @@
 			})			
 			count = $('<li class="e2l-float-right" />').append($('<span class="e2l-a"></span>').append(count));
 			ul.append(count);
-			
-			// Activity spinner
-			ul.append('<li class="e2l-float-right e2-query-activity" style="display:none"><span>'+emen2.template.spinner(true)+'</span></li>');
-			
+
 			// Create new record
 			// if (this.options.rectype && this.options.parent != null) {
 			if (this.options.rectype != null && this.options.parent != null) {
@@ -506,8 +512,12 @@
 			}			
 
 
-			// Download all files
-			ul.append('<li class="e2l-float-right"><span><input type="button" value="Download attachments" /></span></li>')
+			// Download all attachments
+			ul.append('<li class="e2l-float-right"><span><input type="button"  class="e2-query-download" value="Download attachments" /></span></li>')
+			$('.e2-query-download', ul).click(function() {self.query_download()});
+
+			// Activity spinner
+			ul.append('<li class="e2l-float-right e2-query-activity" style="display:none"><span>'+emen2.template.spinner(true)+'</span></li>');
 
 			// Init tab control
 			tab.TabControl({});
@@ -523,8 +533,8 @@
 			tab.TabControl('setcb', 'controls', function(page) {
 				page.QueryControl({
 					q: self.options.q,
-					keywords: false,
-					query: function(test, newq) {self.query(newq)} 
+					keywords: false
+					// query: function(test, newq) {self.query(newq)} 
 				});	
 			});
 			
@@ -560,22 +570,24 @@
 			newq['c'] = this.options.q['c'];
 			newq['boolmode'] = this.options.q['boolmode'];
 			newq['ignorecase'] = this.options.q['ignorecase'];
-			window.location = $.query_build_path(newq, 'files');
+			window.location = $.query_build_path(newq, 'attachments');
 		},
 				
 		query: function(newq) {
-			window.location = $.query_build_path(newq);
-			// $('.e2-query-activity', this.element).show();
-			// // Update the query from the current settings
-			// newq = newq || this.options.q;
-			// $('.e2-query-header .e2l-spinner', this.element).show();
-			// var self = this;
-			// var count = $('.e2-query-header select[name=count]', this.element).val();
-			// if (count) {newq["count"] = parseInt(count)}
-			// newq['names'] = [];
-			// newq['recs'] = true;
-			// newq['table'] = true;
-			// emen2.db("table", newq, function(q){self.update(q)});			
+			$('.e2-query-activity', this.element).show();
+			// Update the query from the current settings
+			newq = newq || this.options.q;
+			$('.e2-query-header .e2l-spinner', this.element).show();
+			var self = this;
+			var count = $('.e2-query-header select[name=count]', this.element).val();
+			if (count) {newq["count"] = parseInt(count)}
+			newq['names'] = [];
+			newq['recs'] = true;
+			newq['table'] = true;
+			emen2.db("table", newq, function(q){self.update(q)});			
+		},
+		
+		query_bookmark: function(newq) {
 		},
 		
 		setpos: function(pos) {
@@ -597,7 +609,8 @@
 				this.options.q['reverse'] = false;
 			}
 			this.options.q['sortkey'] = sortkey;
-			this.query();			
+			this.query();
+			// this.query_bookmark();
 		},
 		
 		update: function(q) {

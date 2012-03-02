@@ -100,7 +100,7 @@ class Query(View):
 
 
 	@View.add_matcher(r'^/query/(?P<path>.*)/embed/$')
-	def embed(self, path=None, q=None, c=None, create=False, rectype=None, parent=None, controls=True, header=True):
+	def embed(self, path=None, q=None, c=None, create=False, rectype=None, parent=None, controls=True, header=True, **kwargs):
 		# create/rectype/parent for convenience.
 		self.main(path, q, c)
 		self.template = '/pages/query'
@@ -112,7 +112,7 @@ class Query(View):
 		
 
 	@View.add_matcher(r'^/query/(?P<path>.*)/edit/$', name='edit')
-	def edit(self, path=None, q=None, c=None):
+	def edit(self, path=None, q=None, c=None, **kwargs):
 		self.initq(path, q, c)
 		self.template = '/pages/query.edit'
 		self.q = self.db.table(**self.q)
@@ -120,7 +120,7 @@ class Query(View):
 
 
 	@View.add_matcher(r'^/plot/(?P<path>.*)/edit/$', name='edit')
-	def edit(self, path=None, q=None, c=None):
+	def edit(self, path=None, q=None, c=None, **kwargs):
 		self.initq(path, q, c)
 		self.template = '/pages/query.plot'
 		self.q = self.db.plot(**self.q)
@@ -129,7 +129,7 @@ class Query(View):
 
 	# /download/ can't be in the path because of a emen2resource.getchild issue
 	@View.add_matcher(r'^/query/(?P<path>.*)/attachments/$', name='attachments')
-	def attachments(self, path=None, q=None, c=None, confirm=False):
+	def attachments(self, path=None, q=None, c=None, confirm=False, **kwargs):
 		self.initq(path, q, c)
 		self.template = '/pages/query.files'
 		self.q = self.db.query(**self.q)

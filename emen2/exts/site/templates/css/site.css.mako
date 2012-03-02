@@ -101,9 +101,6 @@ ul {
 	padding-bottom:100px;
 	margin-bottom:100px;
 }
-#content_inner input[type=submit] {
-	font-size:18pt;
-}
 
 #footer {
 	display:none;
@@ -201,6 +198,9 @@ textarea {
     box-sizing: border-box;
 }
 
+.e2l-disabled {
+	color:#ccc;
+}
 input.e2l-save {
 }
 input.e2l-cancel {

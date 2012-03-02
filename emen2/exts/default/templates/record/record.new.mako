@@ -12,7 +12,10 @@
 		padding: 0px;
 	}
 	#content_inner {
-		padding: 10px;
+		padding: 0px;
+		padding-top: 10px;
+		padding-left: 30px;
+		padding-right: 30px;
 	}
 </%block>
 

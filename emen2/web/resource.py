@@ -138,6 +138,9 @@ class EMEN2Resource(object):
 			# Any View init method is run inside the transaction
 			self.init()
 			result = method(self, **args)
+			# Ugly hack
+			if result is None:
+				result = str(self)
 
 		return result
 
