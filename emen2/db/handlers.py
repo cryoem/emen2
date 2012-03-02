@@ -44,10 +44,10 @@ def thumbnail_from_binary(bdo, force=False, wait=True):
 		ext = _filename.pop()
 
 	handler = BinaryHandler.get_handler(filepath=filepath, filename=filename, name=name, tilepath=tilepath)
-	if not handler.file_exists():
-		return
-	if handler.thumbnail_exists(force=force):
-		return
+	# if not handler.file_exists():
+	#	return
+	# if handler.thumbnail_exists(force=force):
+	#	return
 
 	args = []
 
