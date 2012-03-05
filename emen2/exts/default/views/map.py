@@ -56,7 +56,9 @@ class Map(View):
 
 		# connect the root to "None" to simplify drawing..
 		self.tree[None] = [self.root]
-
+		
+		
+		# Get all the names we need to render
 		stack = dfs(self.root, self.tree, recurse=self.recurse)
 		stack.add(self.root)
 		stack |= parents
