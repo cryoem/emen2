@@ -65,7 +65,6 @@ class Download(View):
 					# Start the thumbnail build, return a spinner image.
 					# ian: todo: thumbnail_from_binary could return an error image if failure.
 					emen2.db.handlers.thumbnail_from_binary(bdo, wait=True)
-					# filepath = emen2.db.config.get_filename('emen2', 'web/static/images/spinner.gif')
 					
 				files[filepath] = "%s.%s.%s"%(filename, size, format)
 			else:

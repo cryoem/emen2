@@ -63,6 +63,12 @@ def path_to_query(path, **kwargs):
 		if match:
 			q['c'].append(match)
 
+			
+	# General query...
+	keywords = kwargs.pop('keywords', None)
+	if keywords:
+		q['c'].append(['*','contains',keywords])
+
 	q.update(kwargs)
 	return q
 

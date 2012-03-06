@@ -6,8 +6,11 @@ import time
 import emen2.db.vartypes
 import emen2.util.listops
 
-INDEXMIN = 1000
-ITEMSMAX = 100000
+# Tuning options.
+# below this number, use the actual items instead of indexes.
+INDEXMIN = 1000 
+# max number of items that can be searched directly
+ITEMSMAX = 100000 
 
 # Synonyms
 synonyms = {
@@ -18,6 +21,10 @@ synonyms = {
 	"gt": ">",
 	"lt": "<"
 }
+
+
+# TODO: Allow DOM selector like query syntax. E.G.
+# [vartype=string] contains wheelbarrow
 
 
 def getop(op, ignorecase=True):
@@ -59,6 +66,15 @@ def keytypeconvert(keytype, term):
 	return term
 
 
+class QueryTimeOut(Exception):
+	pass
+
+class QuerySyntaxError(Exception):
+	pass
+
+class QueryMaxItems(Exception):
+	pass
+
 
 class Constraint(object):
 	"""Base Constraint"""
@@ -68,12 +84,15 @@ class Constraint(object):
 		self.param = param
 		self.op = op or 'contains'
 		self.term = term or ''
+
 		# Parent query group
 		self.p = None
 		self.priority = 10
+
 		# Param details
 		self.paramdef = None
 		self.ind = None
+
 				
 	def init(self, p):
 		"""Bind the parent query group."""
@@ -124,7 +143,9 @@ class ParamConstraint(IndexedConstraint):
 	def _run(self):
 		# Use either the items-based search or the index-based search.
 		r = self.p.result
-		if (r and len(r) < INDEXMIN) or not self.ind:
+		m = self.p.mode
+		# (make sure mode is AND if we're going to a more restrictive mode)
+		if (m == 'AND' and r and len(r) < INDEXMIN) or not self.ind:
 			return self._run_items()
 		return self._run_index()
 
@@ -190,7 +211,7 @@ class RectypeConstraint(ParamConstraint):
 			terms = self.p.btree.dbenv.recorddef.expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
 		else:
 			terms = [self.term]
-			
+
 		for i in terms:
 			self.term = i # ugly; pass as argument in the future
 			f2 = super(RectypeConstraint, self)._run()
@@ -256,7 +277,9 @@ class MacroConstraint(Constraint):
 class Query(object):
 	def __init__(self, constraints, mode='AND', ctx=None, txn=None, btree=None):
 		self.time = 0.0
-
+		self.maxtime = 60.0
+		self.starttime = time.time()
+		
 		# None or set() of query result
 		self.result = None 		
 		# boolean AND / OR
@@ -283,7 +306,7 @@ class Query(object):
 		self.constraints = []
 		for c in constraints:
 			self.constraints.append(self._makeconstraint(*c))
-	
+			
 	def init(self, p):
 		pass
 		
@@ -293,8 +316,9 @@ class Query(object):
 		
 		# Run the constraints
 		for c in sorted(self.constraints, key=lambda x:x.priority):
-			f = c.run()
+			f = c.run()			
 			self._join(f)
+			self._checktime()
 
 		# Filter by permissions
 		if not self.constraints:
@@ -302,13 +326,17 @@ class Query(object):
 		else:
 			self.result = self.btree.names(names=self.result or set(), ctx=self.ctx, txn=self.txn)
 		
+
+		self._checktime()
+
 		# After all constraints have run, tidy up cache/items
 		self._prunecache()
 		self._pruneitems()		
 
 		# Update the approx. running time.
-		self.time += time.time()-t
-		
+		self.time += time.time() - t
+		self._checktime()
+
 		return self.result
 
 	def sort(self, sortkey='name', reverse=False, pos=0, count=0, rendered=False):
@@ -330,11 +358,14 @@ class Query(object):
 			# This does not change the constraint, just gets values.
 			c = self._makeconstraint(sortkey, op='noop')
 			c.run()
-
+			self._checktime()
+			
 		# If the param is iterable, we need to get the actual values.
 		paramdef = self.btree.dbenv.paramdef.cget(sortkey, ctx=self.ctx, txn=self.txn)
 		if paramdef and paramdef.iter:
 			self._checkitems(sortkey)
+
+		self._checktime()
 
 		# Make a copy of the results
 		result = set() | (self.result or set())
@@ -355,7 +386,8 @@ class Query(object):
 			if paramdef.vartype == 'user':
 				for i in result:
 					sortvalues[i] = self.vtm.param_render_sort(paramdef, sortvalues[i])
-
+					self._checktime()
+					
 			# Case-insensitive sort
 			vt = self.vtm.getvartype(paramdef.vartype)
 			if vt.keytype == 's':
@@ -376,10 +408,17 @@ class Query(object):
 		if count > 0:
 			result = result[pos:pos+count]
 
-		self.time += time.time()-t
+		self.time += time.time() - t
+		self._checktime()
 
 		return result
 
+
+	def _checktime(self):
+		t = time.time() - self.starttime
+		if t > self.maxtime:
+			raise QueryTimeOut, "Max allowed query time exceeded: %5.2f seconds"%t
+			
 
 	##### Results/Cache methods #####
 	
@@ -394,7 +433,7 @@ class Query(object):
 		elif self.mode == 'OR':
 			self.result |= f
 		else:
-			raise Exception, "Unknown mode %s"%self.mode
+			raise QuerySyntaxError, "Unknown boolean mode %s"%self.mode
 
 	def _prunecache(self):
 		# Prune items from the cache that aren't in result set.
@@ -424,7 +463,7 @@ class Query(object):
 		toget -= current
 
 		if len(toget) > ITEMSMAX:
-			raise Exception, "This type of constraint has a limit of 100000 items; tried to get %s. Try narrowing the search by adding additional parameters."%(len(toget))
+			raise QueryMaxItems, "This type of constraint has a limit of 100000 items; tried to get %s. Try narrowing the search by adding additional parameters."%(len(toget))
 
 		if toget:
 			items = self.btree.cgets(toget, ctx=self.ctx, txn=self.txn)
@@ -440,6 +479,22 @@ class Query(object):
 		items = self.btree.cgets(checkitems - items, ctx=self.ctx, txn=self.txn)
 		self.items.extend(items)
 
+	def _keywords(self, op, term):
+		# print "Using keywords..", op, term
+		vartypes = ['string', 'choice', 'rectype', 'text']
+		c = []
+		pds = set()
+		for n,pd in self.btree.dbenv.paramdef.items(ctx=self.ctx, txn=self.txn):
+			if pd.indexed and pd.vartype in vartypes:
+				pds.add(pd.name)
+
+		pds -= set(['recname', 'id_ccd_frame']) # these are too slow and cause problems :(
+		for pd in pds:
+			c.append([pd, op, term])
+			
+		return Query(c, mode='OR', ctx=self.ctx, txn=self.txn, btree=self.btree)
+
+			
 	def _makeconstraint(self, param, op='noop', term=''):
 		op = synonyms.get(op, op)
 		
@@ -448,6 +503,9 @@ class Query(object):
 		if param.startswith('$@'):
 			# Macros
 			constraint = MacroConstraint(param, op, term)
+		elif param == '*':
+			constraint = self._keywords(op, term)
+			constraint.cache = self.cache			
 		elif param.endswith('*'):
 			# Turn expanded params into a new constraint group
 			params = self.btree.dbenv.paramdef.expand([param], ctx=self.ctx, txn=self.txn)

@@ -312,7 +312,7 @@ class DBProxy(object):
 
 			result = func(self._db, *args, **kwargs)
 			# ms = (time.time()-t)*1000
-			# if ms > 100:
+			# if ms > 0:
 			#	print "\n\n\n  <-- \t\t%10d ms: %s\t%s\t%s"%(ms, func.func_name, args, kwargs)
 			#	traceback.print_stack()
 			return result

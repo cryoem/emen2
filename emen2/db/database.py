@@ -372,8 +372,8 @@ class EMEN2DBEnv(object):
 			# bsddb3.db.DB_RECOVER
 			# bsddb3.db.DB_REGISTER |	\
 
-		global DBENV
-
+		# global DBENV
+		DBENV = None
 		# Open the Database Environment
 		if DBENV == None:
 			emen2.db.log.info("Opening Database Environment: %s"%self.path)
@@ -545,7 +545,7 @@ class EMEN2DBEnv(object):
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags) #
 		# emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
-
+		
 		type(self).txncounter += 1
 		self.txnlog[id(txn)] = txn
 		#except KeyError:

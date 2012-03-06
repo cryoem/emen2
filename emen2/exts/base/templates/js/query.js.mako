@@ -154,7 +154,7 @@
 					</thead> \
 					<tbody class="e2-query-base e2-query-constraints"> \
 						<tr> \
-							<td><input type="hidden" name="param" value="root" />Keywords</td> \
+							<td><input type="hidden" name="param" value="*" />Keywords</td> \
 							<td><input type="hidden" name="cmp" value="contains" /></td> \
 							<td><input type="text" size="12" name="value" /></td> \
 							<td><input type="checkbox" name="recurse_p" checked="checked" class="e2l-hide" /></td> \

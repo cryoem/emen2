@@ -454,7 +454,7 @@ class Records(View):
 
 		if self.request_method == 'post':
 			for k,v in kwargs.items():
-				print "Record/Values:", k, v
+				# print "Record/Values:", k, v
 				v['name'] = k
 
 			recs = self.db.putrecord(kwargs.values())

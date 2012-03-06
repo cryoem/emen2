@@ -251,8 +251,8 @@ class BinaryHandler(object):
 				self._thumbnail_build(workfile)
 			except Exception, e:
 				print "Could not build tiles:", e
-			else:
-				os.remove(workfile)				
+			os.remove(workfile)				
+
 		else:
 			self._thumbnail_build(self.filepath)
 

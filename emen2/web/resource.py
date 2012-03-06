@@ -125,13 +125,13 @@ class EMEN2Resource(object):
 
 
 	def _render_db(self, method, db=None, ctxid=None, host=None, args=None):
-
 		# Render method
 		self.db = db
 
 		# The DBProxy context manager will open a transaction, and abort
 		# on an uncaught exception.
 		write = getattr(method, "write", False)
+		# self.db._newtxn(write=write)
 		with self.db._newtxn(write=write):
 			# Bind the ctxid/host to the DBProxy
 			self.db._setContext(ctxid,host)
@@ -195,7 +195,6 @@ class EMEN2Resource(object):
 	def render_eb(self, failure, request, t=0, **_):
 		print "Error:"
 		print failure
-
 		# Error callback
 		e, data = '', ''
 		headers = {}
