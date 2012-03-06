@@ -556,9 +556,6 @@
 			show: false,
 			attach: false,
 			skiproot: false,
-			// events
-			// collapsed: null,
-			// expanded: null,
 			selected: null
 		},
 
@@ -731,7 +728,7 @@
 					var elem = $(e.target).parent();
 					var rel1 = elem.parent().attr('data-name');
 					var rel2 = elem.attr('data-name');
-					self.options.selected(self, e, elem, rel1, rel2);
+					self.options.selected(e, self, rel1, rel2);
 				});
 			}
 		},

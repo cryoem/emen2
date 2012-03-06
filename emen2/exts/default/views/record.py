@@ -407,22 +407,22 @@ class Record(RecordBase):
 		self.ctxt['users'] = users
 
 
-	# @View.add_matcher(r'^/record/(?P<name>\d+)/publish/$')
-	# def publish(self, name=None):
-	# 	self.initr(name=name)
-	# 	self.template = '/record/record.publish'
-	# 	self.title = 'Publish Records'
-	#
-	# 	status = self.db.getindexbypermissions(groups=["publish"])
-	# 	childmap_view = Map(mode="children", keytype="record", recurse=-1, root=self.name, db=self.db)
-	# 	childmap = childmap_view.get_data()
-	#
-	# 	# print status
-	#
-	# 	self.set_context_item("childmap", childmap)
-	# 	self.set_context_item("collapsed", childmap_view.collapsed)
-	# 	self.set_context_item("children", childmap_view.collapsedchildren)
-	# 	self.set_context_item("status", status)
+	@View.add_matcher(r'^/record/(?P<name>\d+)/publish/$')
+	def publish(self, name=None):
+		self.initr(name=name)
+		self.template = '/record/record.publish'
+		self.title = 'Publish Records'
+	
+		status = set() # self.db.getindexbypermissions(groups=["publish"])
+		childmap_view = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='children', recurse=-1)
+		childmap = childmap_view.get_data()
+	
+		# print status
+	
+		self.set_context_item("childmap", childmap)
+		self.set_context_item("collapsed", {})
+		self.set_context_item("children", {})
+		self.set_context_item("status", status)
 
 
 	# @View.add_matcher(r'^/record/(?P<name>\d+)/boxer/$')
