@@ -94,7 +94,7 @@ def check_groupnames(engine, values):
 		raise ValidationError, "Unknown groups: %s"%(", ".join(set(values)-groupnames))
 
 
-def update_username_cache(engine, values):
+def update_username_cache(engine, values, lnf=False):
 	# Check cache
 	to_cache = []
 	for v in values:
@@ -106,7 +106,7 @@ def update_username_cache(engine, values):
 	if to_cache:
 		users = engine.db.getuser(to_cache)
 		for user in users:
-			user.getdisplayname(lnf=False)
+			user.getdisplayname(lnf=lnf)
 			key = engine.get_cache_key('displayname', user.name)
 			engine.store(key, user.displayname)
 
@@ -733,7 +733,10 @@ class vt_user(Vartype):
 	def process(self, value):
 		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
 		value = ci(value)
-		update_username_cache(self.engine, value)
+		lnf = False
+		if self.table:
+			lnf = True
+		update_username_cache(self.engine, value, lnf=lnf)
 
 		lis = []
 		for i in value:
