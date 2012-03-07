@@ -407,19 +407,59 @@ class Record(RecordBase):
 		self.ctxt['users'] = users
 
 
-	@View.add_matcher(r'^/record/(?P<name>\d+)/publish/$')
-	def publish(self, name=None):
+	@View.add_matcher(r'^/record/(?P<name>\d+)/publish/$', write=True)
+	def publish(self, name=None, state=None):
 		self.initr(name=name)
 		self.template = '/record/record.publish'
 		self.title = 'Publish Records'
 	
-		published = self.db.query([['children', '==', '%s'%self.name], ['groups', 'contains', 'publish']])['names']	
+		# published = self.db.query([['children', '==', '%s'%self.name], ['groups', 'contains', 'publish']])['names']	
+		names = self.db.getchildren(self.name, recurse=-1)
+		names.add(self.name)
+
+		published = set()
+		state = set(map(int, state or [])) & names
+
+		recs = self.db.getrecord(names)
+		
+		for rec in recs:
+			if 'publish' in rec.groups:
+				published.add(rec.name)
+		
+		# Convert to dict
+		recs_d = emen2.util.listops.dictbykey(recs)
+
+		if self.request_method == 'post':
+			add = state - published
+			remove = published - state
+			commit = []
+			print "Adding:", len(add)
+			print "Removing:", len(remove)
+			
+			for i in remove:
+				recs_d[i].removegroup('publish')
+				commit.append(recs_d[i])
+			for i in add:
+				recs_d[i].addgroup('publish')
+				commit.append(recs_d[i])
+				
+			self.db.putrecord(commit)
+
+			# Update the published list
+			recs = self.db.getrecord(names)
+			published = set()
+			for rec in recs:
+				if 'publish' in rec.groups:
+					published.add(rec.name)
+			
+			
+		
 		childmap = self.routing.execute('Tree/embed', db=self.db, root=self.name, mode='children', recurse=-1, collapse_rectype='grid_imaging')
 	
 		self.set_context_item("childmap", childmap)
-		self.set_context_item("collapsed", {})
-		self.set_context_item("children", {})
 		self.set_context_item("published", published)
+
+
 
 
 	# @View.add_matcher(r'^/record/(?P<name>\d+)/boxer/$')

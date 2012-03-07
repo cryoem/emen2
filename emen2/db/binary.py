@@ -169,7 +169,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 	# Write contents to a temporary file.
 	def writetmp(self, filedata=None, fileobj=None):
-		'''Write to temporary storage.
+		'''Write to temporary storage, and calculate size/md5.
 		:return: Temporary file path, the file size, and an md5 digest.
 		'''
 		if filedata:

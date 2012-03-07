@@ -137,7 +137,7 @@ class BinaryHandler(object):
 	# the constructor, and may be a string of data (filedata), or a file-like
 	# object supporting read() (fileobj). Consider the data to be read-only.
 	# 
-	# The writetmp() method will return an on-disk filename that can be used
+	# The getfilepath() method will return an on-disk filename that can be used
 	# for operations that required a named file (e.g. EMAN2.) If the input
 	# source is filedata or fileobj, it will write out to a temporary file in
 	# the normal temp file storage area. The close() method will remove any
@@ -153,7 +153,7 @@ class BinaryHandler(object):
 		self.fileobj = fileobj
 		self.param = param
 		self.readonly = True
-		self.tmp = None
+		self.tmpfile = None
 
 		# For testing and building binaries
 		self.filepath = filepath
@@ -187,21 +187,25 @@ class BinaryHandler(object):
 			raise IOError, "No file given, or don't know how to read file.."
 		return readfile
 
+
 	def close(self):
 		# Should remove temporary file...
 		pass
 
-	def writetmp(self, path=None, suffix=None):
+
+	def getfilepath(self, path=None, suffix=None):
 		'''Write to temporary storage.
 		:return: Temporary file path.
 		'''
+		# if self.filepath:
+		#	return self.filepath
+		
 		# Get a file handle
 		infile = self.open()
 
 		# Make a temporary file
 		args = {}
-		if suffix:
-			args['suffix'] = suffix
+		args['suffix'] = suffix or '.tmp'
 		if path:
 			args['dir'] = path
 
@@ -209,6 +213,7 @@ class BinaryHandler(object):
 		with os.fdopen(fd, "w+b") as f:
 			shutil.copyfileobj(infile, f)
 
+		# self.tmpfile = tmpfile
 		return tmpfile
 
 	##### Extract metadata and build thumbnails #####

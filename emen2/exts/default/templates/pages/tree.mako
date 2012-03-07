@@ -13,15 +13,15 @@
 					% if not tree.get(child):
 					
 					% elif child in collapsed:
-						<img class="e2-map-expand" alt="collapsed" src="${EMEN2WEBROOT}/static/images/bg-open.${mode}.png" />
+						<img class="e2-tree-expand" alt="collapsed" src="${EMEN2WEBROOT}/static/images/bg-open.${mode}.png" />
 					% elif depth <= recurse or recurse < 0:
 						## If we're drawing the next level...
 						% if expandable:
-							<img class="e2-map-expand e2-map-expanded" alt="${len(tree.get(child, []))} children" src="${EMEN2WEBROOT}/static/images/bg-close.${mode}.png" />
+							<img class="e2-tree-expand e2-tree-expanded" alt="${len(tree.get(child, []))} children" src="${EMEN2WEBROOT}/static/images/bg-close.${mode}.png" />
 						% endif
 						${inner(child, tree.get(child), depth=depth+1)}
 					% elif depth > recurse and expandable:
-						<img class="e2-map-expand" alt="${len(tree.get(child, []))} children" src="${EMEN2WEBROOT}/static/images/bg-open.${mode}.png" />
+						<img class="e2-tree-expand" alt="${len(tree.get(child, []))} children" src="${EMEN2WEBROOT}/static/images/bg-open.${mode}.png" />
 					% endif
 
 				</li>
@@ -35,7 +35,7 @@
 	%>
 	
 	## The top level container
-	<div class="e2-map e2-map-${mode} e2l-cf" data-root="${root}" data-mode="${mode}" data-keytype="${keytype}" id="${id}">
+	<div class="e2-tree e2-tree-${mode} e2l-cf" data-root="${root}" data-mode="${mode}" data-keytype="${keytype}" id="${id}">
 		${inner(None, tree.get(None, [root]), depth=1)}
 	</div>
 	

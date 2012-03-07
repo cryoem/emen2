@@ -177,6 +177,15 @@ textarea,
 	border:solid 1px #aaa;
 	box-sizing:  content-box;
 }
+
+input[type=button]:hover,
+input[type=submit]:hover,
+button:hover,
+.e2-button:hover {
+	background: #fff;
+	color:#666;
+}
+
 .e2-button img {
 	margin: 0px;
 	padding: 0px;

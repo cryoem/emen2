@@ -447,6 +447,11 @@
 			} else if (this.options.show) {
 				this.build();
 			}
+			this.init();
+		},
+		
+		init: function() {
+			
 		},
 	
 		build: function() {
@@ -586,9 +591,9 @@
 		},
 		
 		bind: function(root) {
-			// this.bind_expand(root);
-			// this.bind_state(root);
-			// this.bind_select(root);
+			this.bind_expand(root);
+			this.bind_state(root);
+			this.bind_select(root);
 		},
 		
 		bind_expand: function(root) {
@@ -657,9 +662,30 @@
 	////////////////////////////
 	// Select items in a tree
 	$.widget('emen2.TreeSelectControl', $.emen2.TreeControl, {
+		init: function() {
+			var self = this;
+			// this option name might change; I was already using 'selected'
+			if (this.options.active.length) {
+				this.add(this.options.active);
+			}
+			//$(this.options.submit).click(function(e){self.submit(e)});
+			this.element.parent('form').submit(function(e){self.submit(e)});
+		},
+		
+		submit: function(e) {
+			var self = this;
+			// console.log("Submitting -- building inputs");
+			$('input[name=state]', this.element).remove();
+			$.each(this.state, function(k,v) {
+				if (v) {
+					// console.log('adding', k);
+					self.element.append('<input type="hidden" name="state" value="'+k+'" />');
+				}
+			});
+		},
+		
 		bind_state: function(root) {
 			var self = this;
-			return
 			$('li', root).each(function() {
 				var name = $(this).attr('data-name');
 				if (self.state[name]) {

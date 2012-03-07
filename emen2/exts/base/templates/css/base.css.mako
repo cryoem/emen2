@@ -548,11 +548,11 @@ textarea.e2l-fw {
 /* Nested lists */
 .e2-tree.e2-tree-children ul {
 	padding-left: 0px;
-	margin-left: 249px;	
+	margin-left: 299px;	
 }
 .e2-tree.e2-tree-parents ul {
 	padding-left: 0px;
-	margin-left: -249px;	
+	margin-left: -299px;	
 	/* text-align:right; */
 }
 
@@ -561,7 +561,7 @@ textarea.e2l-fw {
 	list-style: none;
 	padding-bottom: 4px;
 	position: relative;	
-	width: 249px;
+	width: 299px;
 }
 
 .e2-tree ul li a {

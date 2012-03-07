@@ -293,8 +293,7 @@
 					<li><a href="?viewname=${v}#views">${prettynames.get(v, v).capitalize()}</a></li>
 				% endfor
 			</ul>
-		</p>
-		
+		</p>		
 	</div>
 	
 	<div data-tab="tools">
@@ -302,8 +301,9 @@
 
 			<h4>Tools</h4>
 			<ul>
-				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
 				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/attachments/">Download all attachments in children</a></li>
+				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage published data</a></li>
+				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
 				<li><a href="${EMEN2WEBROOT}/sitemap/${rec.name}/">Sitemap</a></li>
 			</ul>
 

@@ -273,7 +273,7 @@ def dictbykey_2(l, key):
 	l = dict( (x[0].get(key), x) for x in l)
 	return l
 
-def dictbykey(l, key):
+def dictbykey(l, key='name'):
 	return dict( (i.get(key), i) for i in l )
 
 
