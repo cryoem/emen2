@@ -285,9 +285,10 @@
 		
 		<p>You are viewing the ${prettynames.get(viewname, viewname)} view for this record.</p>
 
-		<p>This record uses the <a href="${EMEN2WEBROOT}/recorddef/${recdef.name}">${recdef.desc_short} protocol</a>, which provides ${len(recdef.views)+1} views:
+		<p>This record uses the <a href="${EMEN2WEBROOT}/recorddef/${recdef.name}">${recdef.desc_short} protocol</a>, which provides ${len(recdef.views)+2} views:
 			<ul>
 				<li><a href="?viewname=mainview#views">Protocol</a></li>
+				<li><a href="?viewname=dicttable#views">Parameter-Value table</a></li>				
 				% for v in recdef.views:
 					<li><a href="?viewname=${v}#views">${prettynames.get(v, v).capitalize()}</a></li>
 				% endfor

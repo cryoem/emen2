@@ -27,62 +27,66 @@ class Map(View):
 
 
 	@View.add_matcher(r'^/map/(?P<keytype>\w+)/(?P<root>\w+)/(?P<mode>\w+)/$', name='embed')
-	def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", rectype=None, expandable=True, id=''):
+	def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", rectype=None, expandable=True, collapse_rectype=None, collapsed=None, id=''):
 		self.template = '/pages/map'
 		self.title = 'Sitemap'
-		self.root = root
-		self.keytype = keytype
-		self.recurse = int(recurse)
-		self.mode = mode
-		self.expandable = expandable
 
-		# Might not be strictly necessary..
-		if self.keytype == "record":
-			self.root = int(self.root)
+		root = root
+		keytype = keytype
+		recurse = int(recurse)
+		mode = mode
+		expandable = expandable
+		collapsed = collapsed or set()
 
 		# Expand all nodes. -3 turns into -1...
-		if action=="expand" or self.recurse == -1:
-			self.recurse = -3
+		if action=="expand" or recurse == -1:
+			recurse = -3
 
 		parents = set()
 
 		# add 2 to recurse to get enough info to draw the next level
-		if self.mode == "children":
-			self.tree = self.db.getchildtree(self.root, recurse=self.recurse+2, keytype=self.keytype, rectype=rectype)
+		if mode == "children":
+			tree = self.db.getchildtree(root, recurse=recurse+2, keytype=keytype, rectype=rectype)
 			# get one level of parents as well..
-			parents = self.db.getparents(self.root, keytype=self.keytype)
+			parents = self.db.getparents(root, keytype=keytype)
 		else:
-			self.tree = self.db.getparenttree(self.root, recurse=self.recurse+2, keytype=self.keytype)
+			tree = self.db.getparenttree(root, recurse=recurse+2, keytype=keytype)
+
+		if collapse_rectype:
+			collapsed |= self.db.getchildren(root, recurse=-1, rectype=collapse_rectype)
 
 		# connect the root to "None" to simplify drawing..
-		self.tree[None] = [self.root]
+		tree[None] = [root]
 		
 		
 		# Get all the names we need to render
-		stack = dfs(self.root, self.tree, recurse=self.recurse)
-		stack.add(self.root)
+		stack = dfs(root, tree, recurse=recurse)
+		stack.add(root)
 		stack |= parents
 
 		recnames = {}
-		if self.keytype == "record":
+		if keytype == "record":
 			recnames.update(self.db.renderview(stack))
-		elif self.keytype == "paramdef":
+		elif keytype == "paramdef":
 			pds = self.db.getparamdef(stack)
 			for pd in pds:
 				recnames[pd.name] = pd.desc_short
-		elif self.keytype == "recorddef":
+		elif keytype == "recorddef":
 			rds = self.db.getrecorddef(stack)
 			for rd in rds:
 				recnames[rd.name] = rd.desc_short
-		
-		self.set_context_item('mode', self.mode)
-		self.set_context_item('root', self.root)
-		self.set_context_item('tree', self.tree)
-		self.set_context_item('recurse', self.recurse)
+
+	
+		self.set_context_item('mode', mode)
+		self.set_context_item('root', root)
+		self.set_context_item('tree', tree)
+		self.set_context_item('recurse', recurse)
 		self.set_context_item('recnames', recnames)
 		self.set_context_item('keytype', keytype)
 		self.set_context_item('parents', parents)
 		self.set_context_item('expandable', expandable)
+		self.ctxt['collapsed'] = collapsed
+		self.ctxt['collapse_rectype'] = collapse_rectype
 		self.set_context_item('id', id)
 
 

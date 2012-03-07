@@ -337,6 +337,25 @@ emen2.util.sortdictstr = function(o) {
 };
 
 
+emen2.util.set_add = function(i, l) {
+	var pos = $.inArray(i, l);
+	if (pos == -1) {
+		l.push(i);
+	}
+	return l
+};
+
+
+emen2.util.set_remove = function(i, l) {
+	var pos = $.inArray(i, l);
+	if (pos > -1) {
+		l.splice(pos, 1);
+	}
+	return l
+};
+
+
+
 // $.getFromURL = function(args, data, callback, errback, dataType){
 // 	$.get_url(args.name, args.args, args.kwargs)(function(url) {
 // 		$.getJSON(EMEN2WEBROOT+url, data, callback, errback, dataType)

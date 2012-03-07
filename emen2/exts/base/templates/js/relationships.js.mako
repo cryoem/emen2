@@ -725,10 +725,7 @@
 			
 			if (this.options.selected) {
 				$('a', root).click(function(e) {
-					var elem = $(e.target).parent();
-					var rel1 = elem.parent().attr('data-name');
-					var rel2 = elem.attr('data-name');
-					self.options.selected(e, self, rel1, rel2);
+					self.options.selected(e, self, this);
 				});
 			}
 		},

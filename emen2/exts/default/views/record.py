@@ -413,8 +413,10 @@ class Record(RecordBase):
 		self.template = '/record/record.publish'
 		self.title = 'Publish Records'
 	
+		published = self.db.query([['children', '==', '%s'%self.name], ['groups', 'contains', 'publish']])['names']
+	
 		status = set() # self.db.getindexbypermissions(groups=["publish"])
-		childmap_view = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='children', recurse=-1)
+		childmap_view = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='children', recurse=-1, collapse_rectype='grid_imaging')
 		childmap = childmap_view.get_data()
 	
 		# print status
@@ -422,7 +424,7 @@ class Record(RecordBase):
 		self.set_context_item("childmap", childmap)
 		self.set_context_item("collapsed", {})
 		self.set_context_item("children", {})
-		self.set_context_item("status", status)
+		self.set_context_item("published", published)
 
 
 	# @View.add_matcher(r'^/record/(?P<name>\d+)/boxer/$')
