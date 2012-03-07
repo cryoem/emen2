@@ -87,7 +87,7 @@
 		build_map_controls: function() {
 			var self = this;
 
-			var controls = $('.e2-tile[data-bdo='+this.options.bdo+'] .tilemapcontrols');
+			var controls = $('.e2-tile[data-bdo='+this.options.bdo+'] .tileTreeControls');
 			controls.append('<h4 class="e2l-label">Boxes</h4>\
 				<input type="button" name="bigger" value="&laquo;" /> <input name="smaller" type="button" value="&raquo;" /><br /> \
 				<input type="button" name="newset" value="New Set" /><br /> \

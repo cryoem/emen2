@@ -541,93 +541,93 @@ textarea.e2l-fw {
 }
 
 
-/***** e2-map: Relationship Map *****/
+/***** e2-tree: Relationship tree *****/
 
 /* This very sensitive to changes. Be careful! */
 /* Total width per item should be 249px */
 /* Nested lists */
-.e2-map.e2-map-children ul {
+.e2-tree.e2-tree-children ul {
 	padding-left: 0px;
 	margin-left: 249px;	
 }
-.e2-map.e2-map-parents ul {
+.e2-tree.e2-tree-parents ul {
 	padding-left: 0px;
 	margin-left: -249px;	
 	/* text-align:right; */
 }
 
 /* List items */
-.e2-map li {
+.e2-tree li {
 	list-style: none;
 	padding-bottom: 4px;
 	position: relative;	
 	width: 249px;
 }
 
-.e2-map ul li a {
+.e2-tree ul li a {
 	top:0px;
 	z-index:100;
 	display:block;
 	margin-left:16px;
 	margin-right:16px;
 }
-.e2-map.e2-map-parents ul li a.draggable {
+.e2-tree.e2-tree-parents ul li a.draggable {
 	text-align:right;
 }
 
-.e2-map img.e2-map-expand {
+.e2-tree img.e2-tree-expand {
 	z-index:101;
 	position:absolute;
 	top:0px;
 }
-.e2-map.e2-map-children img.e2-map-expand {
+.e2-tree.e2-tree-children img.e2-tree-expand {
 	right:0px;	
 }
-.e2-map.e2-map-parents img.e2-map-expand {
+.e2-tree.e2-tree-parents img.e2-tree-expand {
 	left:0px;	
 }
 
 /* root element */
 
-.e2-map ul:first-child {
+.e2-tree ul:first-child {
 	margin-left: 0px;
 	margin-top: 0px;
 }
 
-.e2-map.e2-map-parents ul:first-child {
+.e2-tree.e2-tree-parents ul:first-child {
 	float:right;
 }
 
 /* Backgrounds */
-.e2-map.e2-map-children li {
+.e2-tree.e2-tree-children li {
 	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-F.children.png') repeat-y;	
 }
-.e2-map.e2-map-parents li {
+.e2-tree.e2-tree-parents li {
 	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-F.parents.png') repeat-y;	
 	background-position:top right;	
 }
-.e2-map.e2-map-children li:first-child {
+.e2-tree.e2-tree-children li:first-child {
 	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-T.children.png') repeat-y;	
 }
-.e2-map.e2-map-parents li:first-child {
+.e2-tree.e2-tree-parents li:first-child {
 	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-T.parents.png') repeat-y;	
 	background-position:top right;
 }
-.e2-map.e2-map-children li:last-child {
+.e2-tree.e2-tree-children li:last-child {
 	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-L.children.png') no-repeat;
 }
-.e2-map.e2-map-parents li:last-child {
+.e2-tree.e2-tree-parents li:last-child {
 	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg-L.parents.png') no-repeat;
 	background-position:top right;
 }
-.e2-map.e2-map-children ul li:only-child {
+.e2-tree.e2-tree-children ul li:only-child {
 	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg--.children.png') no-repeat;
 }
-.e2-map.e2-map-parents ul li:only-child {
+.e2-tree.e2-tree-parents ul li:only-child {
 	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg--.parents.png') no-repeat;
 	background-position:top right;
 }
-.e2-map:first-child > ul:first-child > li:first-child {
+.e2-tree:first-child > ul:first-child > li:first-child {
 	background:none
 }
 

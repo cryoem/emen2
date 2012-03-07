@@ -2,7 +2,7 @@
 
 <%block name="js_ready">
 	${parent.js_ready()}
-	$('#sitemap').MapControl({
+	$('#sitemap').TreeControl({
 		'attach': true,
 		'keytype': 'recorddef'
 	});

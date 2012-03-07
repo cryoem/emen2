@@ -50,7 +50,7 @@ ul {
 }
 
 #nav > ul,
-#precontent > .e2-map-main,
+#precontent > .e2-tree-main,
 #precontent > .e2-alert-main,
 #precontent > .e2-tab-main,
 #content,
@@ -66,7 +66,7 @@ ul {
 }
 
 /* Hide overflow in the parent map */
-.e2-map-main .e2-map {
+.e2-tree-main .e2-tree {
 	overflow: hidden;
 }
 
@@ -74,7 +74,7 @@ ul {
 .e2-tab-editbar[data-tabgroup=query] > div {
 	width: auto;
 }
-.e2-map-main > .e2-map {
+.e2-tree-main > .e2-tree {
 	background: white;
 	padding-top:4px;
 	padding-bottom:4px;

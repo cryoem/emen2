@@ -12,7 +12,7 @@ import collections
 	${parent.js_ready()}
 
 	## Start map browser
-	$('#content .e2-map').MapControl({'attach':true});
+	$('#content .e2-tree').TreeControl({'attach':true});
 
 	## Recent activity viewer
 	var q = ${jsonrpc.jsonutil.encode(recent_activity)}; 

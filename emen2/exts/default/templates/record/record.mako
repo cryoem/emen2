@@ -2,10 +2,10 @@
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 
-## Relationship Map
+## Relationship tree
 <%block name="precontent">
 	${parent.precontent()}
-	<div class="e2-map-main" style="overflow:hidden">${parentmap}</div>
+	<div class="e2-tree-main" style="overflow:hidden">${parentmap}</div>
 </%block>
 
 
@@ -14,7 +14,7 @@
 	${parent.js_ready()}
 	${buttons.tocache(rec)}
 	emen2.caches['recnames'] = ${jsonrpc.jsonutil.encode(recnames)};
-	$('.e2-map').MapControl({'attach':true});
+	$('.e2-tree').TreeControl({'attach':true});
 </%block>
 
 ${next.body()}

@@ -13,7 +13,7 @@ class ParamDef(View):
 		self.template = '/pages/paramdef.main'
 		self.title = "Parameter: %s"%self.paramdef.desc_short
 
-		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='paramdef', root=self.paramdef.name, mode='parents', recurse=3)
+		parentmap = self.routing.execute('Tree/embed', db=self.db, keytype='paramdef', root=self.paramdef.name, mode='parents', recurse=3)
 
 		units = set()
 		if self.paramdef and self.paramdef.property:
@@ -107,7 +107,7 @@ class ParamDefs(View):
 		self.title = pages.get(action)
 		
 		# Children
-		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="paramdef", root="root", recurse=-1, id='sitemap')
+		childmap = self.routing.execute('Tree/embed', db=self.db, mode="children", keytype="paramdef", root="root", recurse=-1, id='sitemap')
 
 		self.ctxt['paramdefnames'] = paramdefnames
 		self.ctxt['paramdefs'] = paramdefs

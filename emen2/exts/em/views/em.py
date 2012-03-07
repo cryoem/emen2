@@ -48,7 +48,7 @@ class EMEquipment(View):
 # 		self.ctxt['recent_activity'] = q
 # 
 # 		# Standard parent map
-# 		parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=3)
+# 		parentmap = self.routing.execute('Tree/embed', db=self.db, root=name, mode='parents', recurse=3)
 # 
 # 		# All children
 # 		children = self.db.getchildren(name, recurse=-1)

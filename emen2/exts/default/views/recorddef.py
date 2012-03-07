@@ -33,7 +33,7 @@ class RecordDef(View):
 		self.template = '/record/recorddef'
 		self.title = "Protocol: %s"%self.recorddef.desc_short
 
-		parentmap = self.routing.execute('Map/embed', db=self.db, keytype='recorddef', root=self.recorddef.name, mode='parents', recurse=3)
+		parentmap = self.routing.execute('Tree/embed', db=self.db, keytype='recorddef', root=self.recorddef.name, mode='parents', recurse=3)
 
 		self.ctxt.update(dict(
 			parentmap = parentmap,
@@ -93,7 +93,7 @@ class RecordDefs(View):
 		self.title = pages.get(action)
 
 		# Children
-		childmap = self.routing.execute('Map/embed', db=self.db, mode="children", keytype="recorddef", root="root", recurse=-1, id='sitemap')
+		childmap = self.routing.execute('Tree/embed', db=self.db, mode="children", keytype="recorddef", root="root", recurse=-1, id='sitemap')
 
 		# Record counts
 		count = {}

@@ -19,7 +19,7 @@
 		elem.parent().before('<li><input type="text" name="choices" value="" /></li>');
 	})
 	
-	$('.e2-map').MapControl({'attach':true});
+	$('.e2-tree').TreeControl({'attach':true});
 </%block>
 
 

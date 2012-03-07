@@ -42,7 +42,7 @@
 	   </ul>
 	</%block>
 
-	## Precontent -- usually a relationship Map
+	## Precontent -- usually a Relationship tree
 	<%block name="precontent" />
 
 	## Tabs

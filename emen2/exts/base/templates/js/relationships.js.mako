@@ -186,16 +186,15 @@
 				header.prepend('<input data-level="'+level+'" type="button" value="+" /> ');
 			}
 
-			$('input:button', header).BrowseControl({
+			$('input:button', header).TreeBrowseControl({
 				root: this.options.name,
 				selectable: this.options.edit,
 				keytype: this.options.keytype,
-				tool: 'browse',
 				selected: function(browse, name) {
 					self.add(level, name);
 				}
 			}).click(function(){
-				$(this).BrowseControl('show');
+				$(this).TreeBrowseControl('show');
 			})
 
 			var d = $('<div data-level="'+level+'"></div>');
@@ -284,14 +283,11 @@
 	
 	////////////////////////////
 	// Browse for an item
-	$.widget('emen2.BrowseControl', {
+	$.widget('emen2.TreeBrowseControl', {
 		options: {
 			root: null,
 			keytype: null,
-			action: 'view',
-			controls: false,
 			embed: false,
-			tool: 'none',
 			// events
 			selected: function(self, name) {},
 			moved: function() {},
@@ -313,7 +309,11 @@
 		
 		show: function(e) {
 			this.build();
-			this.dialog.dialog('open');
+			if (this.options.embed) {
+				// pass
+			} else {
+				this.dialog.dialog('open');
+			}
 		},
 
 		build: function() {
@@ -330,18 +330,13 @@
 					<div class="e2-browse-action e2l-float-left" style="width:249px;">&nbsp;</div> \
 					<div class="e2-browse-children e2l-float-left" style="width:249px;"> Children </div> \
 				</div> \
-				<div class="e2l-cf e2-browse-map" style="position:relative" />');
-
-			// build the switcher...
-			if (this.options.controls) {
-				this.build_controls();
-			}
-
-			// Set the tools..
-			this.settool(this.options.tool);
+				<div class="e2l-cf e2-browse-tree" style="position:relative" />');
 
 			// Refresh the map area
 			this.reroot(this.options.root);
+
+			// Build the browser controls
+			this.build_browse();
 
 			// Embed or show the dialog
 			if (this.options.embed) {
@@ -355,161 +350,6 @@
 					height: 600
 				});			
 			}
-		},
-		
-		build_controls: function() {
-			var self = this;
-			var controls = $('.e2-browse-controls', this.dialog);
-			// controls.append(' \
-			// 	<p>Current tool:</p> \
-			// 	<ul> \
-			// 		<li> \
-			// 			<input id="e2-browse-tool-none" type="radio" name="settool" value="none" checked /> \
-			// 			<label for="e2-browse-tool-none">None (links open normally)</label> \
-			// 		</li> \
-			// 		<li> \
-			// 			<input id="e2-browse-tool-browse" type="radio" name="settool" value="browse" /> \
-			// 			<label for="e2-browse-tool-browse">Re-center map when clicked</label> \
-			// 		</li> \
-			// 		<li> \
-			// 			<input id="e2-browse-tool-move" type="radio" name="settool" value="move" /> \
-			// 			<label for="e2-browse-tool-move">Select items &amp; drag to move them</label> \
-			// 		</li> \
-			// 	</ul>');
-			$('input[name=settool]', controls).change(function() {
-				var tool = $(this).val();
-				self.settool(tool);
-			});
-		},
-		
-		settool: function(tool) {
-			$('input[name=tool]', this.dialog).val(tool);
-			
-			// Empty current tool areas
-			$('.e2-browse-action', this.dialog).html('&nbsp;');
-
-			// What happens when a map item is clicked..
-			this.mapselect = function(w, e, elem, rel1, rel2){};
-			
-			if (tool == 'browse') {
-				this.build_browse();
-			} else if (tool == 'move') {
-				this.build_move();
-			}
-		},
-		
-		reroot: function(name) {
-			var self = this;
-			this.options.root = name;
-			$('input[name=value]', this.dialog).val(name);
-			
-			// Selected callback is an "outer callback" to pass off to this.mapselect
-			var cb = function(w, e, elem, rel1, rel2) {self.mapselect(w, e, elem, rel1, rel2)}
-			
-			var parents = $('<div class="e2-map e2l-float-left" style="position:absolute;left:0px;width:250px;">&nbsp;</span>');
-			parents.MapControl({
-				root: name, 
-				keytype: this.options.keytype, 
-				mode: 'parents',
-				skiproot: true,
-				show: true,
-				selected: cb
-			});			
-			
-			// The parents needs a spinner -- the MapControl one doesn't work right
-			parents.append(emen2.template.spinner(true));
-
-			var children = $('<div class="e2-map e2l-float-left" style="position:absolute;left:250px;" />');
-			children.MapControl({
-				root: name, 
-				keytype: this.options.keytype, 
-				mode: 'children',
-				show: true,
-				selected: cb
-			});
-			
-			// var input = $('input[name=value]', this.dialog);
-			// var val = input.val();
-			// input.focus();
-			// if (val.toString() == this.options.root.toString()) {
-			// 	$('input[name=submit]', this.dialog).val('Select');
-			// }
-			
-			$('.e2-browse-map', this.dialog).empty();
-			$('.e2-browse-map', this.dialog).append(parents, children);
-		},
-		
-		build_move: function() {
-			var self = this;
-			// When an element is clicked, make it draggable
-			this.mapselect = function(w, e, elem, rel1, rel2){
-				e.preventDefault();
-				var a = elem.children('a');
-				a.toggleClass('e2-browse-selected');
-				a.draggable({
-					addClasses: false,
-					helper: function(e, ui){return self.helper_move(self, e, ui)}
-				});
-			};
-		},
-
-		helper_move: function(self, e, ui) {
-			// Set droppables when I start dragging..
-			// this could be made simpler...
-			// be careful with binding of 'self'
-			$('li[data-name] > a:not(.e2-browse-selected)', self.dialog).droppable({
-				tolerance: 'pointer',
-				addClasses: false,
-				hoverClass: "e2-browse-hover",
-				activeClass: "e2-browse-active",
-				drop: function(e, ui) {
-					self.helper_drop(self, this, e, ui);
-				}
-			});
-			var selected = $('.e2-browse-selected', self.dialog);
-			return '<div class="e2-browse-helper">Moving '+selected.length+' '+self.options.keytype+'s</div>'
-		},
-		
-		helper_drop: function(self, dropped, e, ui) {
-			var removerels = [];
-			var addrels = [];
-			
-			var newparent = $(dropped).parent().attr('data-name');
-			$('.e2-browse-selected', self.dialog).each(function() {
-				var li = $(this).parent();
-				var child = li.attr('data-name')
-				var parent = li.parent().attr('data-name');
-				removerels.push([parent, child]);
-				addrels.push([newparent, child]);
-			});
-
-			var txt = 'Please be careful moving items. There is no "undo." \nKeep multiple-item moves as simple as possible, \
-				\n\te.g. moving siblings together to a new parent.\n\nRemoving these relationships ('+removerels.length+'):\n\n';			
-			for (var i=0;i<removerels.length;i++) {
-				var p = emen2.caches['recnames'][removerels[i][0]];
-				var c = emen2.caches['recnames'][removerels[i][1]];
-				txt += p+' -> '+c+'\n';
-			}
-			txt += '\nAnd adding these relationships ('+addrels.length+'):\n\n';
-			for (var i=0;i<addrels.length;i++) {
-				var p = emen2.caches['recnames'][addrels[i][0]];
-				var c = emen2.caches['recnames'][addrels[i][1]];
-				txt += p+' -> '+c+'\n';
-			}
-
-			if (!confirm(txt)) {return}
-
-			emen2.db('rel.relink', {removerels: removerels, addrels: addrels, keytype: self.options.keytype}, function (){
-				alert("Move was successful. Please reload the page to see the changes.");
-			});
-		},
-		
-		helper_confirm: function() {
-
-		},
-		
-		helper_success: function() {
-			
 		},
 
 		build_browse: function() {
@@ -526,7 +366,7 @@
 			
 			$('input[name=submit]', controls).click(function(e) {
 				var val = $('input[name=value]', self.dialog).val();
-				if (val.toString()==self.options.root.toString()) {
+				if (val.toString() == self.options.root.toString()) {
 					self.options.selected(self, val);
 					self.dialog.dialog('close');
 				} else {
@@ -536,18 +376,48 @@
 
 			var action = $('.e2-browse-action', this.dialog);
 			action.append(controls);
+		},
+		
+		reroot: function(name) {
+			var self = this;
+			this.options.root = name;
+			$('input[name=value]', this.dialog).val(name);
 			
-			this.mapselect = function(w, e, elem, rel1, rel2){
-				e.preventDefault();
-				self.reroot(rel2);
-			};			
-		},		
+			// Selected callback is an "outer callback" to pass off to this.mapselect
+			var cb = function(w, elem, name) {self.reroot(name)}
+			
+			var parents = $('<div class="e2-tree e2l-float-left" style="position:absolute;left:0px;width:250px;">&nbsp;</span>');
+			parents.TreeControl({
+				root: name, 
+				keytype: this.options.keytype, 
+				mode: 'parents',
+				skiproot: true,
+				show: true,
+				selected: cb
+			});			
+			
+			// The parents needs a spinner -- the TreeControl one doesn't work right
+			parents.append(emen2.template.spinner(true));
+
+			var children = $('<div class="e2-tree e2l-float-left" style="position:absolute;left:250px;" />');
+			children.TreeControl({
+				root: name, 
+				keytype: this.options.keytype, 
+				mode: 'children',
+				show: true,
+				selected: cb
+			});
+			
+			$('.e2-browse-tree', this.dialog).empty();
+			$('.e2-browse-tree', this.dialog).append(parents, children);
+		}		
 	});
 	
 	
 	////////////////////////////	
-	// Display a map
-    $.widget("emen2.MapControl", {		
+	// Relationship tree control
+	
+    $.widget("emen2.TreeControl", {		
 		options: {
 			root: null,
 			keytype: null,
@@ -562,14 +432,18 @@
 		_create: function() {
 			var self = this;
 			this.built = 0;
-
+			
+			// Selected/unselected item states
+			this.state = {};
+			
+			// Get options from data- attributes
 			this.options.mode = emen2.util.checkopt(this, 'mode', 'children');
 			this.options.root = emen2.util.checkopt(this, 'root');
 			this.options.keytype = emen2.util.checkopt(this, 'keytype', 'record');
 
-			this.element.addClass('e2-map-'+this.options.mode);			
+			this.element.addClass('e2-tree-'+this.options.mode);			
 			if (this.options.attach) {
-				this.attach(this.element);
+				this.bind(this.element);
 			} else if (this.options.show) {
 				this.build();
 			}
@@ -602,10 +476,10 @@
 			root.append(' \
 				<li data-name="'+name+'"> \
 					<a href="#">'+this.getname(this.options.root)+'</a>'+
-					emen2.template.image('bg-open.'+this.options.mode+'.png', '+', 'e2-map-expand')+
+					emen2.template.image('bg-open.'+this.options.mode+'.png', '+', 'e2-tree-expand')+
 				'</li>');
 			this.element.append(root);
-			this.attach(root);
+			this.bind(root);
 			this.expand(root.find('li'));			
 		},
 		
@@ -620,14 +494,14 @@
 			elem.find('img.e2l-spinner').remove();
 						
 			// Set the image to expanded
-			var img = elem.find('img.e2-map-expand');
-			img.addClass('e2-map-expanded');
+			var img = elem.find('img.e2-tree-expand');
+			img.addClass('e2-tree-expanded');
 			img.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg-close.'+this.options.mode+'.png');
 			
 			// The new ul
 			var ul = $('<ul data-name="'+name+'"></ul>');
 
-			// lower-case alpha sort...
+			// Lower-case alpha sort...
 			var sortby = {};
 			$.each(emen2.caches[this.options.mode][name], function() {
 				sortby[this] = self.getname(this);
@@ -649,20 +523,21 @@
 						'</a> \
 					</li>');
 				if (emen2.caches[self.options.mode][this] && self.options.expandable) {
-					var expand = $(emen2.template.image('bg-open.'+self.options.mode+'.png', emen2.caches[self.options.mode][this].length, 'e2-map-expand'))
+					var expand = $(emen2.template.image('bg-open.'+self.options.mode+'.png', emen2.caches[self.options.mode][this].length, 'e2-tree-expand'))
 					li.append(expand);
 				}
 				ul.append(li);
 			});
 			elem.find('ul').remove();
 
-			// don't forget to adjust top
+			// Don't forget to adjust top
 			elem.append(ul);
 			var h = ul.siblings('a').height();
 			ul.css('margin-top', -h);
 			ul.css('min-height', h);
+			
 			// Adjust the heights and bind the img events
-			this.attach(ul);
+			this.bind(ul);
 		},		
 
 		// rebuild a branch
@@ -695,14 +570,13 @@
 		},
 		
 		// expand/contract a branch		
-		toggle: function(elem) {
+		toggle_expand: function(elem) {
 			// elem is the expand image element
 			var self = this;
-			var elem = $(elem);
-			
-			if (elem.hasClass('e2-map-expanded')) {
+			var elem = $(elem);			
+			if (elem.hasClass('e2-tree-expanded')) {
 				// Contract this branch
-				elem.removeClass('e2-map-expanded');
+				elem.removeClass('e2-tree-expanded');
 				elem.siblings('ul').remove();
 				elem.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg-open.'+this.options.mode+'.png');
 			} else {
@@ -711,25 +585,40 @@
 			}			
 		},
 		
-		attach: function(root) {
+		bind: function(root) {
+			// this.bind_expand(root);
+			// this.bind_state(root);
+			// this.bind_select(root);
+		},
+		
+		bind_expand: function(root) {
 			var self = this;
+
 			// height adjustment
 			$('ul', root).each(function() {
 				var elem = $(this);
 				var h = elem.siblings('a').height();
 				elem.css('margin-top', -h);
 				elem.css('min-height', h);
-			});	
-					
-			$('img.e2-map-expand', root).click(function() {self.toggle(this)});
-			
+			});
+
+			// Click icon to toggle
+			$('img.e2-tree-expand', root).click(function(e) {self.toggle_expand(this)});
+		},
+		
+		bind_select: function(root) {
 			if (this.options.selected) {
 				$('a', root).click(function(e) {
-					self.options.selected(e, self, this);
+					e.preventDefault();
+					var name = $(this).parent().attr('data-name');
+					self.options.selected(self, this, name);
 				});
 			}
 		},
 
+		bind_state: function(root) {
+		},
+		
 		// cache items that we need, then go to the callback
 		getviews: function(names, cb) {
 			var self = this;
@@ -762,17 +651,91 @@
 			} else if (this.options.keytype == 'recorddef') {
 				return emen2.caches['recorddef'][item].desc_short || item
 			}			
+		}
+	});
+	
+	////////////////////////////
+	// Select items in a tree
+	$.widget('emen2.TreeSelectControl', $.emen2.TreeControl, {
+		bind_state: function(root) {
+			var self = this;
+			return
+			$('li', root).each(function() {
+				var name = $(this).attr('data-name');
+				if (self.state[name]) {
+					$(this).children('a').addClass('e2-browse-selected');
+				} else {
+					$(this).children('a').removeClass('e2-browse-selected');					
+				}
+			});
+		},
+
+		bind_select: function(root) {
+			var self = this;
+			$('a', root).click(function(e) {
+				e.preventDefault();
+				var name = $(this).parent().attr('data-name');
+				self.toggle_select(e, this, name);
+			});
+		},
+			
+		add: function(items) {
+			for (var i=0;i<items.length;i++) {
+				var name = items[i];
+				this.state[name] = true;
+				$('li[data-name='+name+'] > a').addClass('e2-browse-selected');
+			}
+			this.count_selected();		
 		},
 		
-		// rebuild all branches for key
-		refresh: function(name) {
-			var self = this;
-			$('a[data-name='+name+']', this.dialog).each(function() {
-				self.expand($(this).parent());
+		remove: function(items) {
+			for (var i=0;i<items.length;i++) {
+				var name = items[i];
+				this.state[name] = false;
+				$('li[data-name='+name+'] > a').removeClass('e2-browse-selected');
+			}
+			this.count_selected();		
+		},
+		
+		count_selected: function() {
+			var count = 0;
+			$.each(this.state, function(k,v) {
+				if (v) {count++}
 			});
-		}		
+			$(this.options.display_count).html(count);
+			return count
+		},
+		
+		toggle_select: function(e, elem, name) {
+			var state = this.state[name];
+			var self = this;
+			if (e.shiftKey) {
+				// This element and all children, recursively
+				emen2.db('getchildren', {names: name, recurse:-1}, function(children) {
+					children.push(name);
+					if (state) {
+						self.remove(children);
+					} else {
+						self.add(children);
+					}
+				});
+			} else {
+				// Just this element
+				if (state) {
+					this.remove([name]);
+				} else {
+					this.add([name]);
+				}
+			}
+		},
 	});
+	
+	
+	
+	
 })(jQuery);
+
+
 
 <%!
 public = True

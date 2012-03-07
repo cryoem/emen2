@@ -5,7 +5,7 @@
 <%block name="js_ready">
 	${parent.js_ready()}
 	$('.e2-tab').TabControl({});
-	$('.e2-map').MapControl({'attach':true});	
+	$('.e2-tree').TreeControl({'attach':true});	
 </%block>
 
 

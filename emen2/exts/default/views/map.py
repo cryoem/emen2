@@ -17,18 +17,18 @@ def dfs(root, tree, recurse=1):
 
 
 @View.register
-class Map(View):
+class Tree(View):
 
 	@View.add_matcher(r'^/sitemap/$', name='root')
 	@View.add_matcher(r'^/sitemap/(?P<root>\w+)/$')
 	def main(self, root=0, *args, **kwargs):
 		self.embed(root=root, *args, **kwargs)
-		self.template = '/pages/map.sitemap'
+		self.template = '/pages/tree.sitemap'
 
 
-	@View.add_matcher(r'^/map/(?P<keytype>\w+)/(?P<root>\w+)/(?P<mode>\w+)/$', name='embed')
+	@View.add_matcher(r'^/tree/(?P<keytype>\w+)/(?P<root>\w+)/(?P<mode>\w+)/$', name='embed')
 	def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", rectype=None, expandable=True, collapse_rectype=None, collapsed=None, id=''):
-		self.template = '/pages/map'
+		self.template = '/pages/tree'
 		self.title = 'Sitemap'
 
 		root = root
@@ -77,17 +77,17 @@ class Map(View):
 				recnames[rd.name] = rd.desc_short
 
 	
-		self.set_context_item('mode', mode)
-		self.set_context_item('root', root)
-		self.set_context_item('tree', tree)
-		self.set_context_item('recurse', recurse)
-		self.set_context_item('recnames', recnames)
-		self.set_context_item('keytype', keytype)
-		self.set_context_item('parents', parents)
-		self.set_context_item('expandable', expandable)
+		self.ctxt['mode'] = mode
+		self.ctxt['root'] = root
+		self.ctxt['tree'] = tree
+		self.ctxt['recurse'] = recurse
+		self.ctxt['recnames'] = recnames
+		self.ctxt['keytype'] = keytype
+		self.ctxt['parents'] = parents
+		self.ctxt['expandable'] = expandable
 		self.ctxt['collapsed'] = collapsed
 		self.ctxt['collapse_rectype'] = collapse_rectype
-		self.set_context_item('id', id)
+		self.ctxt['id'] = id
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

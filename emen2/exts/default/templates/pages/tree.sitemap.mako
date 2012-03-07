@@ -1,6 +1,5 @@
 <%! import jsonrpc.jsonutil  %>
 <%inherit file="/page" />
-<%namespace name="relmap" file="/pages/map"  /> 
 
 <%block name="js_ready">
 	$("#sitemap").BrowseControl({

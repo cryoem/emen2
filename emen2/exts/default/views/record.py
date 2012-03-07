@@ -56,7 +56,7 @@ class RecordBase(View):
 			self.ctxt['NOTIFY'].append('Anyone may access this record anonymously')
 
 		# Parent map
-		parentmap = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='parents', recurse=-1, expandable=False)
+		parentmap = self.routing.execute('Tree/embed', db=self.db, root=self.name, mode='parents', recurse=-1, expandable=False)
 
 		# Children
 		pages = collections.OrderedDict()
@@ -250,7 +250,7 @@ class Record(RecordBase):
 			self.template = '/record/record.new'
 			recnames = self.db.renderview(inherit)
 			parentrec = self.db.getrecord(name)
-			parentmap = self.routing.execute('Map/embed', db=self.db, root=name, mode='parents', recurse=-1)
+			parentmap = self.routing.execute('Tree/embed', db=self.db, root=name, mode='parents', recurse=-1)
 			recdef = self.db.getrecorddef(newrec.rectype)
 			rendered = self.db.renderview(newrec, edit=True, viewname=viewname)
 			self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
@@ -413,13 +413,8 @@ class Record(RecordBase):
 		self.template = '/record/record.publish'
 		self.title = 'Publish Records'
 	
-		published = self.db.query([['children', '==', '%s'%self.name], ['groups', 'contains', 'publish']])['names']
-	
-		status = set() # self.db.getindexbypermissions(groups=["publish"])
-		childmap_view = self.routing.execute('Map/embed', db=self.db, root=self.name, mode='children', recurse=-1, collapse_rectype='grid_imaging')
-		childmap = childmap_view.get_data()
-	
-		# print status
+		published = self.db.query([['children', '==', '%s'%self.name], ['groups', 'contains', 'publish']])['names']	
+		childmap = self.routing.execute('Tree/embed', db=self.db, root=self.name, mode='children', recurse=-1, collapse_rectype='grid_imaging')
 	
 		self.set_context_item("childmap", childmap)
 		self.set_context_item("collapsed", {})
