@@ -232,6 +232,7 @@ emen2.template.poll_notifications = function(freq) {
    $.jsonRPC.call('poll', {}, function(result) {
       emen2.template.notify(result, false);
       console.log('found_notification');
+      emen2.template.poll_notifications();
    }, function(result) {
       emen2.template.notify(result, true);
       console.log('found_error');
