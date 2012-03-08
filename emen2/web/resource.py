@@ -307,7 +307,7 @@ class EMEN2Resource(object):
 		for k,v in sorted(args.items(), key=lambda x:len(x[0])):
 			if '.' in k:
 				cur = newargs
-				s = k.split('.')					
+				s = k.split('.')
 				for path in s[:-1]:
 					if not cur.get(path):
 						# Create child dict
@@ -315,7 +315,7 @@ class EMEN2Resource(object):
 					# Step down one level
 					cur = cur[path]
 					parent = path
-				
+
 				# Set the value for the leaf
 				cur[s[-1]] = v
 			elif ':' in k:
@@ -323,7 +323,7 @@ class EMEN2Resource(object):
 				if not test.get(i):
 					test[i] = {}
 				test[i][j] = v
-				
+
 			else:
 				newargs[k] = v
 
@@ -331,7 +331,7 @@ class EMEN2Resource(object):
 		for k,v in test.items():
 			v2 = zip(v.get('keys', []), v.get('values', []))
 			newargs[k] = dict(v2)
-			
+
 		return newargs
 
 
@@ -437,12 +437,12 @@ class EMEN2Resource(object):
 	@classmethod
 	def add_matcher(cls, *matchers, **kwargs):
 		'''Decorator used to add a matcher to an already existing class
-		
+
 		Named groups in matcher get passed as keyword arguments
 		Other groups in matcher get passed as positional arguments
 		Nothing else gets passed
 
-		write=True will hint to the database that writes will occur. 
+		write=True will hint to the database that writes will occur.
 		This may do things like disable snapshot transactions.
 		'''
 		if not matchers:
@@ -489,7 +489,7 @@ class EMEN2Resource(object):
 				# These will be set as attributes on the Route instance
 				with emen2.web.routing._Router().route(name=name, matcher=matcher, cls=cls, method=func, write=write) as url:
 					pass
-					
+
 		return cls
 
 
@@ -519,8 +519,10 @@ class XMLRPCResource(object):
 	pass
 
 
-class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
+import emen2.web.notifications
+emen2.web.notifications.NotificationHandler().register_eventhandlers()
 
+class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 	q = Queue.Queue()
 
 	def processcontent(self, content, request):
@@ -543,18 +545,22 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 		if not db:
 			raise Exception, "No DBProxy"
 
+		methodresult = None
 		if rpcrequest.method.startswith('_'):
 			raise emen2.web.responsecodes.ForbiddenError, 'Method not accessible'
 
-		elif rpcrequest.method == 'pp':
-			return self.q.put((rpcrequest.args, rpcrequest.kwargs))
-
-		elif rpcrequest.method == 'gg':
-			return self.q.get()
-
 		elif rpcrequest.method not in db._publicmethods:
-			e = emen2.web.events.EventRegistry().event('pub.%s'%rpcrequest.method)
-			methodresult = e(self.ctxid, request.getClientIP(), db=db, *rpcrequest.args, **rpcrequest.kwargs)
+
+			if rpcrequest.method == 'queue_put':
+				methodresult = self.q.put((rpcrequest.args, rpcrequest.kwargs))
+			elif rpcrequest.method == 'queue_get':
+				methodresult = self.q.get()
+			else:
+				# Call an event, these can be added and removed through the event registry in emen2.web.events
+				#   Useful for setting up views to deliver results/notifications via JSON-RPC
+				#     This should work for COMET-style long-polling, but that hasn't be tested yet
+				e = emen2.web.events.EventRegistry().event('pub.%s'%rpcrequest.method)
+				methodresult = e(self.ctxid, request.getClientIP(), db=db, *rpcrequest.args, **rpcrequest.kwargs)
 
 		else:
 			# Start the DB with a write transaction
@@ -585,11 +591,6 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 			# print response.json_equivalent(), txrequest
 
 
-
-
-
-class JSONRPCResource(jsonrpc.server.JSON_RPC):
-	eventhandler = JSONRPCServerEvents
 
 
 

@@ -20,7 +20,8 @@ class NotificationHandler(object):
 	def set_db(self, db):
 		self.db = self.get_db_instance(db)
 		yield self
-		del self.db
+		if hasattr(self, 'db'):
+			del self.db
 
 	def start(self):
 		self.db = emen2.db.proxy.DBProxy()
@@ -78,7 +79,9 @@ class NotificationHandler(object):
 		with self.set_db(db):
 			self.db._setContext(ctxid, host)
 			try:
-				return self.get_notifications(ctxid)
+				result = self.get_notifications(ctxid)
+				print 'get_notifications', result
+				return result
 			finally:
 				self.db._clearcontext()
 

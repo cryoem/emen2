@@ -31,7 +31,7 @@ class DBPool(object):
 	"""Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool."""
 	# All connections, key is Thread ID
 	dbs = {}
-	running = False	
+	running = False
 
 	def __init__(self, min=0, max=5):
 		# Minimum and maximum number of threads
@@ -121,7 +121,7 @@ class EMEN2Server(object):
 		#  with our Routing resource as root
 		self.site = twisted.web.server.Site(root)
 
-		reactor = twisted.internet.reactor		
+		reactor = twisted.internet.reactor
 		reactor.suggestThreadPoolSize(emen2.db.config.get('network.NUMTHREADS', 1))
 
 		# Attach to a service, or run standalone.
@@ -129,7 +129,7 @@ class EMEN2Server(object):
 			self.attach_to_service(service)
 		else:
 			self.attach_standalone()
-		
+
 	def attach_resources(self, root):
 		# Load all View extensions
 		import emen2.db.config
@@ -142,12 +142,16 @@ class EMEN2Server(object):
 		# Child resources that do not go through the Router.
 		import jsonrpc.server
 		import emen2.web.resource
-		root.putChild('jsonrpc', emen2.web.resource.JSONRPCResource())
+
+		# if all the JSON_RPC class does is change the eventhandler, it can (and should) be instantiated this way:
+		from emen2.web.resource import JSONRPCServerEvents
+		root.putChild('jsonrpc', jsonrpc.server.JSON_RPC().customize(JSONRPCServerEvents))
+
 		root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('static-%s'%emen2.VERSION, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
 		root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
-		
+
 	def attach_to_service(self, service):
 		emen2_service = internet.TCPServer(self.port, self.site)
 		emen2_service.setServiceParent(service)
@@ -155,7 +159,7 @@ class EMEN2Server(object):
 		#	pass
 
 	def attach_standalone(self):
-		reactor = twisted.internet.reactor		
+		reactor = twisted.internet.reactor
 		reactor.listenTCP(self.port, self.site)
 		reactor.run()
 
