@@ -27,7 +27,7 @@ import tempfile
 def thumbnail_from_binary(bdo, force=False, wait=True):
 	"""Given a Binary instance, run the thumbnail builder as a separate process"""
 	import emen2.db.config
-	tilepath = emen2.db.config.get('paths.TILEPATH')	
+	tilepath = emen2.db.config.get('paths.TILEPATH')
 	filepath = bdo.get('filepath')
 	filename = bdo.get('filename')
 	basename = bdo.get('name')
@@ -49,7 +49,6 @@ def thumbnail_from_binary(bdo, force=False, wait=True):
 		return
 	if handler.thumbnail_exists(force=force):
 		return
-
 
 	# Prepare the command to run
 	# grumble...
@@ -89,7 +88,8 @@ def thumbnail_from_binary(bdo, force=False, wait=True):
 		a.wait()
 	
 
-def run_thumbnail(g):
+def main(g):
+	"""Use a Handler to build a thumbnail."""
 	parser = ThumbnailOptions()
 	options, (handler, filepath) = parser.parse_args()
 	
@@ -99,7 +99,6 @@ def run_thumbnail(g):
 	if options.compress:
 		filename = '%s.%s'%(filename, options.compress)
 	
-	# print "-->", filepath, filename, options.name, options.tilepath
 	handler = g[handler](filepath=filepath, filename=filename)
 	handler.thumbnail(basename=options.basename, tilepath=options.tilepath, force=options.force)
 	
@@ -153,35 +152,43 @@ class BinaryHandler(object):
 	_handlers = {}
 	_allow_gzip = False
 
-	def __init__(self, filename=None, filedata=None, fileobj=None, param='file_binary', filepath=None, name=None, tilepath=None):
-		# BDO name and parameter in the associated record
-		self.name = name		
-		self.param = param
-
-		self.filepath = filepath
+	def __init__(self, filename, filedata=None, fileobj=None, filepath=None, param='file_binary'):
+		# Original filename
 		self.filename = filename
+		if not self.filename:
+			raise ThumbnailError, "Filename required"
 
+		# Parameter in the associated record
+		self.param = param
+		
+		# Temporary files
+		self._tmpfiles = []
+
+		# One of the following is required: filepath / filedata / fileobj
+		self.filepath = filepath
 		self.filedata = filedata
 		self.fileobj = fileobj
-
+		if not any([self.filepath, self.filedata, self.fileobj]):
+			raise ThumbnailError, "No data; can be filepath, filedata, or fileobj."
 
 	def get(self, key, default=None):
-		# Used for copying filename/filedata/fileobj/param into putbinary.
 		return self.__dict__.get(key, default)
 
 
 	##### Open the underlying data #####
-
 		
 	def open(self):
-		'''Open the file'''
+		'''Open the file.
+		:return: File-like object
+		'''
+		
 		if self.filepath:
-			return open(self.filepath)
+			# If there is a filepath, open and return that
+			return open(self.filepath, "r")
 
 		readfile = None
 		if self.filedata:
-			# This is fine; strings are immutable,
-			# cStringIO will reuse the buffer
+			# Take a StringIO or string and make a StringIO
 			readfile = cStringIO.StringIO(self.filedata)
 		elif self.fileobj:
 			# ... use the fileobj
@@ -191,33 +198,38 @@ class BinaryHandler(object):
 			raise IOError, "No file given, or don't know how to read file.."
 		return readfile
 
-
-	def close(self):
-		# Should remove temporary file...
-		pass
-
-
-	def getfilepath(self, path=None, suffix=None):
+	def getfilepath(self, suffix=None):
 		'''Write to temporary storage.
 		:return: Temporary file path.
 		'''
+		
 		if self.filepath:
+			# If there is a filepath, return that
 			return self.filepath
 		
-		# Get a file handle
+		# .. or copy the filedata/fileobj to a temporary file
 		infile = self.open()
 
 		# Make a temporary file
-		args = {}
-		args['suffix'] = suffix or '.tmp'
-		if path:
-			args['dir'] = path
-
-		(fd, tmpfile) = tempfile.mkstemp(**args)
+		suffix = suffix or '.tmp'
+		(fd, tmpfile) = tempfile.mkstemp(suffix=suffix)
 		with os.fdopen(fd, "w+b") as f:
 			shutil.copyfileobj(infile, f)
 
+		# infile.close()
+			
+		# TODO: Set as self.filepath, for subsequent calls to self.getfilepath().
+
+		# TODO: Should probably fine a better way to remove the tmpfile.
+		self._tmpfiles.append(tmpfile)
 		return tmpfile
+
+	def close(self):
+		# Remove temporary files...
+		for f in self._tmpfiles
+		 	os.remove(f)
+		
+
 
 	##### Extract metadata and build thumbnails #####
 
@@ -227,12 +239,10 @@ class BinaryHandler(object):
 	def thumbnail(self, basename, tilepath, force=False):
 		if not basename or not tilepath:
 			raise ThumbnailError, "Base filename (basename) and output path (tilepath) are required."
-
-		if not self.filename:
-			raise ThumbnailError, "The original filename is required."
-			
-		if not os.access(self.filepath, os.F_OK):
-			raise ThumbnailError, "Could not access %s"%self.filepath
+		
+		fp = self.getfilepath()
+		if not os.access(fp, os.F_OK):
+			raise ThumbnailError, "Could not access %s"%fp
 
 		# These are used in self.getfilename()
 		self._basename = basename
@@ -261,7 +271,7 @@ class BinaryHandler(object):
 			pass
 		elif compress:
 			workfile = tempfile.mkstemp(suffix='.tmp')[1]
-			cmd = "%s -d -c %s > %s"%(compress, self.filepath, workfile)
+			cmd = "%s -d -c %s > %s"%(compress, fp, workfile)
 			print "Decompressing: ", cmd
 			os.system(cmd)
 			try:
@@ -272,7 +282,7 @@ class BinaryHandler(object):
 			os.remove(workfile)				
 
 		else:
-			self._thumbnail_build(self.filepath)
+			self._thumbnail_build(fp)
 
 	def _thumbnail_build(self, workfile, **kwargs):
 		pass
@@ -327,7 +337,7 @@ class BinaryHandler(object):
 		
 		
 if __name__ == "__main__":
-	run_thumbnail(globals())
+	main(globals())
 		
 		
 		
