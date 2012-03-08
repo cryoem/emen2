@@ -14,7 +14,11 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 	msg = 'Record %s not found'
 
 
-class RecordBase(View):
+
+
+@View.register
+class Record(View):
+	
 	def initr(self, name=None, children=True, parents=True, **kwargs):
 		"""Main record rendering."""
 
@@ -82,13 +86,9 @@ class RecordBase(View):
 			key = self.name,
 			keytype = "record",
 			create = self.db.checkcreate()
-		)
-
-
-
-
-@View.register
-class Record(RecordBase):
+		)	
+	
+	
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
 	def main(self, name=None, sibling=None, viewname='defaultview', **kwargs):
 		self.initr(name=name)
@@ -118,9 +118,8 @@ class Record(RecordBase):
 		)
 
 
-
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$', write=True)
-	def edit(self, name=None, _location=None, _extract=False, **kwargs):
+	def edit(self, name=None, _location=None, **kwargs):
 
 		# Edit page and requests
 		if self.request_method not in ['post', 'put']:
@@ -193,7 +192,6 @@ class Record(RecordBase):
 		self.headers['Location'] = '%s/record/%s/#relationships'%(self.ctxt['EMEN2WEBROOT'], name)
 
 
-
 	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/permissions/$', name='edit/permissions', write=True)
 	def edit_permissions(self, name=None, permissions=None, groups=None, action=None, filt=True):
@@ -229,7 +227,7 @@ class Record(RecordBase):
 
 
 	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$', write=True)
-	def new(self, name=None, rectype=None, _copy=False, _location=None, _private=False, _extract=False, **kwargs): 
+	def new(self, name=None, rectype=None, _location=None, _private=False, **kwargs): 
 		viewname = 'mainview'
 		inherit = [int(name)]
 
@@ -240,10 +238,10 @@ class Record(RecordBase):
 		else:
 			newrec = self.db.newrecord(rectype, inherit=inherit)
 
-		if _copy:
-			# Copy values from parent records
-			for rec in self.db.getrecord(inherit):
-				newrec.update(rec)
+		# if _copy:
+		# 	# Copy values from parent records
+		# 	for rec in self.db.getrecord(inherit):
+		# 		newrec.update(rec)
 
 		if self.request_method not in ['post', 'put']:
 			# Show the form

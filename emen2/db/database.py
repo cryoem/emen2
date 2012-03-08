@@ -4022,7 +4022,7 @@ class DB(object):
 
 	@publicmethod("binary.put", write=True)
 	@ol('items')
-	def putbinary(self, items, ctx=None, txn=None):
+	def putbinary(self, items, extract=False, ctx=None, txn=None):
 		"""Add or update a Binary (file attachment).
 				
 		For new items, data must be supplied using with either
@@ -4050,16 +4050,19 @@ class DB(object):
 		"""
 		
 		bdos = []
-		rename = []		
+		rename = []
 		for bdo in items:
 			# New BDO details
 			newfile = False
-
-			# If this is a new item, go through newbinary
+			handler = None
+			
+			# If this is a new item, go through newbinary to create a new Binary from the Handler
 			if not bdo.get('name'):
-				filedata = bdo.get('filedata', None)
-				fileobj = bdo.get('fileobj', None)
-				bdo = self.bdbs.binary.new(filename=bdo.get('filename'), record=bdo.get('record'), ctx=ctx, txn=txn)
+				handler = bdo
+				filedata = handler.get('filedata', None)
+				fileobj = handler.get('fileobj', None)
+				bdo = self.bdbs.binary.new(filename=handler.get('filename'), record=handler.get('record'), ctx=ctx, txn=txn)
+
 				# Write the file to temporary storage. This will update the
 				# filesize and MD5. This will generally be the same 
 				# filesystem as the final file location, so the final
