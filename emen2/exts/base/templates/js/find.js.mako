@@ -126,12 +126,22 @@
 			}
 			
 			// Images
-			var img = $(emen2.template.image('nophoto.png', '', 'e2l-thumbnail'));
-			if (this.options.keytype == 'user' && item.userrec['person_photo']) {
-				img.attr('src', EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/?size=thumb')
-			} else if (this.options.keytype == 'binary') {
-				img.attr('src', EMEN2WEBROOT+'/download/'+item.name+'/'+item.filename+'?size=thumb');
+			var src = 'gears.png';
+			if (this.options.keytype == 'group') {
+				src = 'group.png';
+			} else if (this.options.keytype == 'user') {
+				src = 'nophoto.png';
 			}
+			var img = $(emen2.template.image(src, '', 'e2l-thumbnail'));
+			
+			if (this.options.keytype == 'user' && item.userrec['person_photo']) {
+				src = EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/thumb.png?size=thumb';
+				img.attr('src', src);
+			} else if (this.options.keytype == 'binary') {
+				src = EMEN2WEBROOT+'/download/'+item.name+'/thumb.png?size=thumb';
+				img.attr('src', src);
+			} 
+			
 			if (link) {img = $('<a href="'+link+'" target="_blank" />').append(img)}
 
 			// Widget!!

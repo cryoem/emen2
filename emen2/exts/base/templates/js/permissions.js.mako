@@ -102,15 +102,21 @@
 			}
 			if (this.options.help) {
 				var help = (' \
-				<div class="e2l-hide e2l-help" role="help"><p> \
-					There are four increasing levels of permission: \
-					read (access record), \
-					comment (add comments), \
-					write (change values), \
-					and owner (change permissions). \
-					To add a new user or group, click the "+" button next to that permissions level. \
-					Group members will also be granted access, based on their permissions in that group. \
-				 	Saving this form will keep checked users and groups; unchecked users and groups will be removed. \
+				<div class="e2l-help" role="help"><p> \
+					There are four types of permissions: \
+				</p><ul><li><strong>Read-only</strong>: can access record</li> \
+					<li><strong>Comment</strong>: can access record and add comments</li> \
+					<li><strong>Write</strong>: can access record, add comments, and change values</li> \
+					<li><strong>Owner</strong>: can access record, add comments, change values, and change permissions</li> \
+				</ul><p>You can also assign <strong>Group</strong> permissions. The permissions of each specified group will be added to the record. \
+					For example, say user "John" is a member of the group "Technicians," and he has write permission in that group. If you added "Technicians" \
+					to this record, "John" would then have write access to this record. \
+					There are also a few special groups. <em>Authenticated</em> group will permit <em>all</em> logged-in users to access the record. \
+					<em>Anonymous</em> will make the record publicly accessible to anyone. \
+				</p><p>To <strong>add users or groups</strong>, click one of the <strong>+</strong> buttons below. \
+					This will show a chooser. Search for the user or group you wish to add, and click their name. \
+					They will be added to the list of users or groups. The changes will take effect when you click <strong>Save permissions</strong>. \
+				</p><p>To <strong>remove users or groups</strong>, uncheck their name, and click <strong>Save permissions</strong>. \
 				</p><p> \
 					Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Permissions">EMEN2 Wiki</a>. \
 				</p></div>');

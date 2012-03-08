@@ -398,15 +398,9 @@ h4
 .e2-edit-containers {
 	list-style: none;
 }
-
-/***** e2-newrecord: New Record *****/
-.e2l-shaded-drop {
-	margin:0px;
-	padding:5px;
-	background: #eee;
-	border:solid 1px #ccc;
+.e2l-help {
+	display:none;
 }
-
 
 /***** e2-upload: Upload Control *****/
 .e2-upload-table td {

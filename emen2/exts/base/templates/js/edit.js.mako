@@ -370,11 +370,13 @@
 			}
 			if (this.options.help) {
 				var help = $(' \
-					<div class="e2l-hide e2l-help" role="help"><p> \
-						The suggested protocols are those that are commonly \
+					<div class="e2l-help" role="help"><p> \
+						Records can have an arbitrary number of child records. \
+					</p><p>To <strong>create a new child record</strong>, select a Protocol from the list below, or use the button to search for a different protocol. \
+						When a protocol is chosen, a form will be displayed where you can fill in the details for the new record. Click <strong>Save</strong> to save the new record. \
+					</p><p> \
+						The protocols suggested below are those that are commonly \
 						used as children of this record\'s protocol. \
-						To select a protocol that is not displayed, click "Browse other protocols" \
-						and use the protocol chooser to select a different protocol. \
 					</p><p> \
 						Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/NewRecord">EMEN2 wiki</a>. \
 					</p></div>');

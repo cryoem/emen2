@@ -47,7 +47,7 @@ def thumbnail_from_binary(bdo, force=False, wait=True):
 	handler = BinaryHandler.get_handler(filepath=filepath, filename=filename)
 	if not handler.file_exists():
 		return
-	if handler.thumbnail_exists(force=force):
+	if handler.thumbnail_exists(basename, tilepath, force=force):
 		return
 
 	# Prepare the command to run
@@ -65,6 +65,7 @@ def thumbnail_from_binary(bdo, force=False, wait=True):
 		args.append(python)
 
 	args.append(cmd)
+
 	args.append('--tilepath')
 	args.append(tilepath)
 	
@@ -93,7 +94,7 @@ def main(g):
 	parser = ThumbnailOptions()
 	options, (handler, filepath) = parser.parse_args()
 	
-	filename = (options.name or 'filename').replace(':', '')
+	filename = (options.basename or 'filename').replace(':', '')
 	if options.ext:
 		filename = '%s.%s'%(filename, options.ext)
 	if options.compress:
@@ -105,7 +106,6 @@ def main(g):
 
 class ThumbnailError(Exception):
 	pass
-
 
 
 class ThumbnailOptions(optparse.OptionParser):
@@ -131,18 +131,19 @@ class ThumbnailOptions(optparse.OptionParser):
 ##### File handler #####
 
 class BinaryHandler(object):
-	'''EMEN2 managed file.'''
+	'''EMEN2 managed file.
 
-	# This is used in a few different ways. It is used for files uploaded
-	# to the web server. It can also be used with the File Handlers defined
-	# below (e.g. to extract header metadata.) These can also be passed
-	# as items to db.putbinary().
-	# 
-	# The original name of the file is self.filename. Sources can be a added in
-	# the constructor, and may be a string of data (filedata), or a file-like
-	# object supporting read() (fileobj). Consider the data to be read-only.
-	# 
-	# The getfilepath() method will return an on-disk filename that can be used
+	This is used in a few different ways. It is used for files uploaded
+	to the web server. It can also be used with the File Handlers defined
+	below (e.g. to extract header metadata.) Handlers can also be passed
+	as items to db.putbinary().
+	
+	The original name of the file is self.filename. Sources can be a added in
+	the constructor, and may be a string of data (filedata), or a file-like
+	object supporting read() (fileobj). Consider the data to be read-only.
+	'''
+
+	# The self._getfilepath() method will return an on-disk filename that can be used
 	# for operations that required a named file (e.g. EMAN2.) If the input
 	# source is filedata or fileobj, it will write out to a temporary file in
 	# the normal temp file storage area. The close() method will remove any
@@ -165,11 +166,14 @@ class BinaryHandler(object):
 		self._tmpfiles = []
 
 		# One of the following is required: filepath / filedata / fileobj
+		# ian: note... doesn't have to be set during init -- the main resource
+		# will do it later for post'd files.
 		self.filepath = filepath
 		self.filedata = filedata
 		self.fileobj = fileobj
-		if not any([self.filepath, self.filedata, self.fileobj]):
-			raise ThumbnailError, "No data; can be filepath, filedata, or fileobj."
+		# if not any([self.filepath, self.filedata, self.fileobj]):
+		#	raise ThumbnailError, "No data; can be filepath, filedata, or fileobj."
+
 
 	def get(self, key, default=None):
 		return self.__dict__.get(key, default)
@@ -198,7 +202,8 @@ class BinaryHandler(object):
 			raise IOError, "No file given, or don't know how to read file.."
 		return readfile
 
-	def getfilepath(self, suffix=None):
+	# Making this a private method for now
+	def _getfilepath(self, suffix=None):
 		'''Write to temporary storage.
 		:return: Temporary file path.
 		'''
@@ -218,7 +223,7 @@ class BinaryHandler(object):
 
 		# infile.close()
 			
-		# TODO: Set as self.filepath, for subsequent calls to self.getfilepath().
+		# TODO: Set as self.filepath, for subsequent calls to self._getfilepath().
 
 		# TODO: Should probably fine a better way to remove the tmpfile.
 		self._tmpfiles.append(tmpfile)
@@ -226,7 +231,7 @@ class BinaryHandler(object):
 
 	def close(self):
 		# Remove temporary files...
-		for f in self._tmpfiles
+		for f in self._tmpfiles:
 		 	os.remove(f)
 		
 
@@ -240,7 +245,7 @@ class BinaryHandler(object):
 		if not basename or not tilepath:
 			raise ThumbnailError, "Base filename (basename) and output path (tilepath) are required."
 		
-		fp = self.getfilepath()
+		fp = self._getfilepath()
 		if not os.access(fp, os.F_OK):
 			raise ThumbnailError, "Could not access %s"%fp
 
@@ -249,7 +254,7 @@ class BinaryHandler(object):
 		self._tilepath = tilepath
 
 		# Create a lock file to indicate work on this thumbnail has started
-		lockfile = self.outfile('lock')
+		lockfile = self._outfile('lock')
 		if os.access(lockfile, os.F_OK) and not force:
 			raise ThumbnailError, "Thumbnail already exists, or a previous attempt to build the thumbnail failed."
 
@@ -272,12 +277,12 @@ class BinaryHandler(object):
 		elif compress:
 			workfile = tempfile.mkstemp(suffix='.tmp')[1]
 			cmd = "%s -d -c %s > %s"%(compress, fp, workfile)
-			print "Decompressing: ", cmd
+			# print "Decompressing: ", cmd
 			os.system(cmd)
 			try:
 				self._thumbnail_build(workfile)
 			except Exception, e:
-				print "Could not build tiles:", e
+				# print "Could not build tiles:", e
 				pass
 			os.remove(workfile)				
 
@@ -287,20 +292,22 @@ class BinaryHandler(object):
 	def _thumbnail_build(self, workfile, **kwargs):
 		pass
 
-	def thumbnail_exists(self, force=False):
+	def thumbnail_exists(self, basename, tilepath, force=False):
 		"""Check if the file exists, or there is a current lock file."""
+		self._basename = basename
+		self._tilepath = tilepath
 		if force:
 			return False
-		lockfile = self.outfile('lock')
+		lockfile = self._outfile('lock')
 		return os.access(lockfile, os.F_OK)
-
-	def outfile(self, suffix):
-		# Strip out the ":" in the binary name
-		f = self._basename.replace(':', '.')
-		return str(os.path.join(self._tilepath, '%s.%s'%(f, suffix)))
 
 	def file_exists(self):
 		return os.access(self.filepath, os.F_OK)
+
+	def _outfile(self, suffix):
+		# Strip out the ":" in the binary name
+		f = self._basename.replace(':', '.')
+		return str(os.path.join(self._tilepath, '%s.%s'%(f, suffix)))
 
 	##### Handler registration #####
 
@@ -323,14 +330,88 @@ class BinaryHandler(object):
 		if filename:
 			# Ignore compression
 			f = filename.split(".")
-			if f[-1] in ['gz', 'bz2', 'zip']:
+			if f[-1].lower() in ['gz', 'bz2', 'zip']:
 				f.pop()
 			# Use remaining file ext to find the handler
 			if f:
-				handler = f[-1]
+				handler = f[-1].lower()
 			
 		handler = cls._handlers.get(handler, cls)
 		return handler(**kwargs)
+	
+	
+	
+	
+	
+@BinaryHandler.register(['jpg', 'jpeg', 'png', 'gif', 'bmp'])
+class ImageHandler(BinaryHandler):
+	# def _build_scale(self, img, size, outfile, convertutil="/usr/bin/convert"):
+	# 	# PIL...
+	# 	# im = self.Image.open(self.filepath)
+	# 	# im.thumbnail((size,size), self.Image.ANTIALIAS)
+	# 	# im.save(outfile, "JPEG")
+	# 
+	# 	# ImageMagick...
+	# 	# convert -resize 128x128 -background white -gravity center -format jpg -quality 75 bdo:2010011400000  bdo:2010011400000.thumb.jpg
+	# 	args = [convertutil, "-resize %sx%s"%(size, size), "-gravity center", "-format jpg", "-quality 80"]
+	# 	if size <= 128:
+	# 		args.append("-extent %sx%s"%(size, size))
+	# 
+	# 	args.append(self.filepath)
+	# 	args.append(outfile)
+	# 	# print "running: %s"%args
+	# 	# join to a string, not sure why it doesn't work without it..
+	# 	a = subprocess.Popen(" ".join(args), shell=True)
+	# 	a.wait()
+	# 
+	# def build(self, convertutil="/usr/bin/convert"):
+	# 
+	# 	if not os.access(self.filepath, os.F_OK):
+	# 		return
+	# 
+	# 	if self.options.get('small'):
+	# 		self._build_scale(None, 512, self.getoutfile("small.jpg"), convertutil=convertutil)
+	# 
+	# 	if self.options.get('thumb'):
+	# 		self._build_scale(None, 128, self.getoutfile("thumb.jpg"), convertutil=convertutil)
+
+	def build_scale(self, img, outfile, tilesize=256):
+		# ImageMagick...
+		# convert -resize 128x128 -background white -gravity center -format jpg -quality 75 bdo:2010011400000  bdo:2010011400000.thumb.jpg
+		args = []
+		args.append('convert')
+		
+		args.append('-resize')
+		args.append('%sx%s'%(tilesize, tilesize))
+
+		args.append('-gravity')
+		args.append('center')
+		
+		args.append('-format')
+		args.append('jpg')
+		
+		args.append('-quality')
+		args.append('80')
+		
+		if tilesize <= 128:
+			args.append('-extent')
+			args.append('%sx%s'%(tilesize, tilesize))
+
+		args.append(img)
+		args.append(outfile)
+
+		a = subprocess.Popen(args)
+		a.wait()
+		
+
+	def _thumbnail_build(self, workfile):
+		self.build_scale(workfile, self._outfile('thumb.jpg'), tilesize=128)
+		self.build_scale(workfile, self._outfile('small.jpg'), tilesize=512)
+		self.build_scale(workfile, self._outfile('medium.jpg'), tilesize=1024)
+
+	
+	
+	
 	
 	
 		

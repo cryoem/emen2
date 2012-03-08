@@ -780,7 +780,7 @@ emen2.util.set_remove = function(i, l) {
 			$.each(siblings, function(i,k) {
 				var rn = emen2.cache.get(k, 'recnames') || k;
 				if (k != rec.name) {
-					ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+self.options.name+'#siblings">'+rn+'</a></li>');
+					ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+self.options.name+'">'+rn+'</a></li>');
 				} else {
 					ul.append('<li class="e2-siblings-active">'+rn+'</li>');
 				}

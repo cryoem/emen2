@@ -13107,7 +13107,7 @@ $#dose_rate_scaling_factor: $$dose_rate_scaling_factor
 $#film_screen_ratio: $$film_screen_ratio
 
 # Comments about this microscope
-$$coments
+$$comments
 
 # Attachments (e.g. manuals)
 $$file_binary

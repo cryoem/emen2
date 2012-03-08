@@ -83,12 +83,13 @@
 			}
 			if (this.options.help) {
 				var help = $(' \
-				<div class="e2l-hide e2l-help" role="help"><p> \
-					Each record can have an arbitrary number of parent and child relationships. \
-					To add a new parent or child relationship, click the "+" button in that section. \
-					This will show a record chooser; you can either navigate to the record you want to add, or type \
-					the record ID directly into the input box. Saving this form will keep any relationships that are checked, \
-					and remove any unchecked relationships. \
+				<div class="e2l-help" role="help"><p> \
+					Records can have an arbitrary number of parent and child relationships. \
+				</p><p>To <strong>add parent or child relationships</strong>, click one of the <strong>+</strong> buttons below. \
+					This will show a record chooser. You can either navigate to the record you want to add, or type \
+					the record ID directly into the input box. This will add the chosen record to the list of parents or children. \
+					The changes will take effect when you click <strong>Save relationships</strong>. \
+				</p><p>To <strong>remove parent or child relationships</strong>, uncheck the relationships you want to remove and click <strong>Save relationships</strong>. \
 				</p><p> \
 					Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Relationships">EMEN2 Wiki</a>. \
 				</p></div>');
@@ -326,9 +327,9 @@
 			this.dialog.append(' \
 				<div class="e2-browse-controls"></div> \
 				<div class="e2l-cf e2-browse-header" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
-					<div class="e2-browse-parents e2l-float-left" style="width:249px;"> Parents </div> \
-					<div class="e2-browse-action e2l-float-left" style="width:249px;">&nbsp;</div> \
-					<div class="e2-browse-children e2l-float-left" style="width:249px;"> Children </div> \
+					<div class="e2-browse-parents e2l-float-left" style="width:299px;"> Parents </div> \
+					<div class="e2-browse-action e2l-float-left" style="width:299px;">&nbsp;</div> \
+					<div class="e2-browse-children e2l-float-left" style="width:299px;"> Children </div> \
 				</div> \
 				<div class="e2l-cf e2-browse-tree" style="position:relative" />');
 
@@ -346,7 +347,7 @@
 				this.dialog.attr("title", "Relationship Browser");
 				this.dialog.dialog({
 					modal: true,
-					width: 800,
+					width: 1000,
 					height: 600
 				});			
 			}
@@ -386,7 +387,7 @@
 			// Selected callback is an "outer callback" to pass off to this.mapselect
 			var cb = function(w, elem, name) {self.reroot(name)}
 			
-			var parents = $('<div class="e2-tree e2l-float-left" style="position:absolute;left:0px;width:250px;">&nbsp;</span>');
+			var parents = $('<div class="e2-tree e2l-float-left" style="position:absolute;left:0px;width:300px;">&nbsp;</span>');
 			parents.TreeControl({
 				root: name, 
 				keytype: this.options.keytype, 
@@ -399,7 +400,7 @@
 			// The parents needs a spinner -- the TreeControl one doesn't work right
 			parents.append(emen2.template.spinner(true));
 
-			var children = $('<div class="e2-tree e2l-float-left" style="position:absolute;left:250px;" />');
+			var children = $('<div class="e2-tree e2l-float-left" style="position:absolute;left:300px;" />');
 			children.TreeControl({
 				root: name, 
 				keytype: this.options.keytype, 
@@ -612,6 +613,7 @@
 		},
 		
 		bind_select: function(root) {
+			var self = this;
 			if (this.options.selected) {
 				$('a', root).click(function(e) {
 					e.preventDefault();

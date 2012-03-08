@@ -89,7 +89,7 @@ class RecordDefs(View):
 		pages.active = action
 		self.ctxt['pages'] = pages
 
-		self.template = '/record/recorddefs.%s'%action		
+		self.template = '/pages/recorddefs.%s'%action		
 		self.title = pages.get(action)
 
 		# Children

@@ -134,33 +134,13 @@ class Record(View):
 			raise emen2.db.exceptions.SecurityError, "No write permission for record %s"%rec.name
 
 		# Update the record
-		rec.update(kwargs)
-
-		# Validate changes before we commit the binaries
-		self.db.validaterecord(rec)
+		if kwargs:
+			rec.update(kwargs)
+			self.db.putrecord(rec)
 
 		for f in self.request_files:
-			try:
-				h = f.extract()
-				rec.update(h)
-			except Exception, e:
-				print e
-				
-			pd = self.db.getparamdef(f.param)
-			if pd.vartype != 'binary':
-				raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
-
 			f.record = rec.name
 			bdo = self.db.putbinary(f)
-			if pd.iter:
-				v = rec.get(pd.name) or []
-				v.append(bdo.name)
-			else:
-				v = bdo.name
-			rec[pd.name] = v
-
-		# Commit the record
-		self.db.putrecord(rec)
 
 		# Redirect
 		if _location:
@@ -227,17 +207,18 @@ class Record(View):
 
 
 	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$', write=True)
-	def new(self, name=None, rectype=None, _location=None, _private=False, **kwargs): 
+	def new(self, name=None, rectype=None, _location=None, **kwargs): 
 		viewname = 'mainview'
 		inherit = [int(name)]
 
-		if _private:
-			# Do not copy parent record permissions
-			newrec = self.db.newrecord(rectype)
-			newrec.parents = inherit
-		else:
-			newrec = self.db.newrecord(rectype, inherit=inherit)
-
+		# if _private:
+		# 	# Do not copy parent record permissions
+		# 	newrec = self.db.newrecord(rectype)
+		# 	newrec.parents = inherit
+		# else:
+		
+		newrec = self.db.newrecord(rectype, inherit=inherit)
+		
 		# if _copy:
 		# 	# Copy values from parent records
 		# 	for rec in self.db.getrecord(inherit):
@@ -267,28 +248,9 @@ class Record(View):
 		newrec.update(kwargs)
 		newrec = self.db.putrecord(newrec)
 
-		if self.request_files:
-			# Save the attachments
-			for f in self.request_files:
-				pd = self.db.getparamdef(f.param)
-				if pd.vartype != 'binary':
-					raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
-
-				# Extract attachment metadata
-				newrec.update(f.extract())
-
-				# Update the links between record and attachment
-				f.record = newrec.name
-				bdo = self.db.putbinary(f)
-				if pd.iter:
-					v = newrec.get(pd.name) or []
-					v.append(bdo.name)
-				else:
-					v = bdo.name
-				newrec[pd.name] = v
-
-			# Save the record a 2nd time
-			newrec = self.db.putrecord(newrec)
+		for f in self.request_files:
+			f.record = newrec.name
+			bdo = self.db.putbinary(f)
 
 		# Redirect
 		if _location:

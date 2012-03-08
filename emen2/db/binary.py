@@ -95,6 +95,9 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		self.__dict__['md5_compress'] = None
 		self._filepath = None
 
+
+	##### DBObject interface #####
+
 	def setContext(self, ctx):
 		super(Binary, self).setContext(ctx=ctx)
 		self.__dict__['_filepath'] = self.parse(self.name).get('filepath')
@@ -167,6 +170,17 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		# if self.record is None:
 		#	raise emen2.db.exceptions.ValidationError, "Record reference is required"
 
+
+	##### Implement the two Handler methods #####
+
+	def extract(self, **kwargs):
+		return {}
+	
+	def thumbnail(self, **kwargs):
+		pass
+		
+	##### Utility methods #####
+
 	# Write contents to a temporary file.
 	def writetmp(self, filedata=None, fileobj=None):
 		'''Write to temporary storage, and calculate size/md5.
@@ -203,6 +217,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		self.__dict__['filesize'] = filesize
 		self.__dict__['md5'] = md5sum
 		return tmpfile
+
 
 	@staticmethod
 	def parse(bdokey, counter=None):

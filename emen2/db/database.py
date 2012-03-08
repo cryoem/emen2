@@ -4055,9 +4055,18 @@ class DB(object):
 			# New BDO details
 			newfile = False
 			handler = None
-			
+			rec = None
+			param = bdo.get('param') # keep this
+
+			# Test that we can write to the record, this will catch errors before we do alot of file IO.
+			if bdo.get('record') is not None:
+				rec = self.bdbs.record.cget(bdo.get('record'), ctx=ctx, txn=txn)
+				if not rec.writable():
+					raise SecurityError, "No write permissions for Record %s"%rec.name
+
 			# If this is a new item, go through newbinary to create a new Binary from the Handler
 			if not bdo.get('name'):
+				# Create a new binary from the Handler details; keep the Handler around
 				handler = bdo
 				filedata = handler.get('filedata', None)
 				fileobj = handler.get('fileobj', None)
@@ -4072,20 +4081,14 @@ class DB(object):
 				# it will require a copy and remove operation. Not a big deal,
 				# just something to be aware of.
 				newfile = bdo.writetmp(filedata=filedata, fileobj=fileobj)
-
-			# Test that we can write to the record.
-			if bdo.get('record'):
-				rec = self.bdbs.record.cget(bdo.record, filt=False, ctx=ctx, txn=txn)
-				if not rec.writable():
-					raise SecurityError, "No write permissions for Record %s"%rec.name
 			
-			
-			# Commit the BDO. This will set the Binary's name, and start the write txn.			
+			# Commit the BDO. This will set the Binary's name.			
 			bdo = self.bdbs.binary.cput(bdo, ctx=ctx, txn=txn)
+			# Update the final destination for the file
 			bdo.__dict__['_filepath'] = bdo.parse(bdo.name)['filepath']
 			bdos.append(bdo)
 			
-			# If this is a new BDO..
+			# If this is a new BDO.. Please excuse this complicated block.
 			if newfile:
 				# Check that we won't be overwriting an existing file.
 				# Note: it's possible that an aborted txn left files...
@@ -4094,12 +4097,40 @@ class DB(object):
 				# Add to the list of files to rename/copy.
 				rename.append([newfile, bdo.filepath])
 
+				# Update the referenced record.
+				if rec:
+					# Extract any file metadata..
+					if handler:
+						header = {}
+						try:
+							header = handler.extract()
+						except Exception, e:
+							emen2.db.log.info("Could not extract metadata: %s"%e)
+
+						# Update the record from the file metadata
+						rec.update(header)
+					
+					pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
+					if pd.vartype != 'binary':
+						raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
+
+					if pd.iter:
+						v = rec.get(pd.name) or []
+						v.append(bdo.name)
+					else:
+						v = bdo.name
+					rec[pd.name] = v
+					
+					# Commit the record
+					self.bdbs.record.cput(rec, ctx=ctx, txn=txn)
+
 			
 		# Rename/copy temporary files to final destination.
 		# todo: Handle any exceptions that might arise here.	
 		for newfile, filepath in rename:
 			os.rename(newfile, filepath)
 		
+		# Run the thumbnail generator
 		for bdo in bdos:
 			emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)		
 

@@ -210,16 +210,31 @@
 			<%
 				lastitem = 'siblings'
 				pos = siblings.index(rec.name)
-				pos_prev = ''
+				pos_prev = None
 				if pos > 0:
 					pos_prev = siblings[pos-1]
-				pos_next = ''
+				pos_next = None
 				if pos+1 < len(siblings):
 					pos_next = siblings[pos+1]
 			%>
-			<li data-tab="siblings" class="e2l-float-right">
+
+			<li class="e2l-float-right" style="border:none">
+				% if pos_next is not None:
+					<a href="${EMEN2WEBROOT}/record/${pos_next}/">&raquo;</a>
+				% endif
+			</li>
+			
+			<li data-tab="siblings" class="e2l-float-right"  style="border:none">
 				<a href="#siblings">${pos+1} of ${len(siblings)}</a>
 			</li>
+			
+			<li class="e2l-float-right" style="border:none">
+				% if pos_prev is not None:
+					<a href="${EMEN2WEBROOT}/record/${pos_prev}/">&laquo;</a>
+				% endif
+			</li>
+			
+			<li class="e2l-float-right"><span>&nbsp;</span></li>		
 		% endif
 
 		## Comments!

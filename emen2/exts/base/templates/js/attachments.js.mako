@@ -283,6 +283,40 @@
 			if (this.options.summary || this.options.help) {
 				this.element.append('<h4 class="e2l-cf">Attachments</h4>');
 			}
+
+			if (this.options.help) {
+				var help = $(' \
+					<div class="e2l-help" role="help"><p> \
+						Records can have an arbitrary number of file attachments. \
+					</p><p> \
+						To <strong>upload attachments</strong>, click the <strong>Browse</strong> button below. \
+						Select the files you want to upload, and a dialog will appear \
+						showing current upload progress. After all the files have \
+						been uploaded, click "Ok" to view the updated record. \
+					</p><p> \
+						To <strong>remove attachments</strong>, uncheck the corresponding checkboxes \
+						and click <strong>Save attachments</strong>.  \
+					</p><p>Please note that attachments are never truly deleted; \
+						only the association with the record is removed. The person who originally \
+						uploaded the attachment will still be able to access the attachment and reassociate \
+						a different record. Additionally, attachments cannot be modified after they \
+						have been created. To make changes, upload a new copy of the file. \
+					</p><p> \
+						Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Attachments">EMEN2 wiki</a>. \
+					</p></div>');	
+
+				// 	There are several types of attachments. The default,
+				// 	"Regular attachment" (file_binary_image), allows multiple attachments
+				// 	and is fine for most purposes. Some parameters have special behaviors attached,
+				// 	such as Image (file_binary_image), which will show an interactive image preview.
+				// </p><p>
+
+				this.element.append(help);
+				var helper = $('<span class="e2-button e2l-float-right">Help</span>');
+				helper.click(function(e){$('[role=help]', self.element).toggle()})
+				$('h4', this.element).append(helper);
+			}
+			
 			if (this.options.summary) {
 				var summary = $('<div />');
 				var sum2 = $('<p>This record has '+this.bdos.length+' attachments.</p>');
@@ -293,32 +327,7 @@
 				summary.append(sum2);
 				this.element.append(summary);
 			}
-			if (this.options.help) {
-				var help = $(' \
-					<div class="e2l-hide e2l-help" role="help"><p> \
-						There are several types of attachments. The default, \
-						"Regular attachment" (file_binary_image), allows multiple attachments \
-						and is fine for most purposes. Some parameters have special behaviors attached, \
-						such as Image (file_binary_image), which will show an interactive image preview. \
-						To add a new attachment, click "Browse." \
-						Select the files you want to upload, and a dialog will appear \
-						showing current upload progress. After all the files have \
-						been uploaded, click "Ok" to refresh the page. \
-						Attachments have the same permissions as the associated record. \
-						To remove an attached file, uncheck the corresponding checkbox \
-						and save the form. Please note that attachments are never truly deleted; \
-						only the association with the record is removed. The person who originally \
-						uploaded the attachment will still be able to access the attachment and reassociate \
-						a different record. Additionally, attachments cannot be modified after they \
-						have been created. To make changes, upload a new copy of the file. \
-					</p><p> \
-						Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Attachments">EMEN2 wiki</a>. \
-					</p></div>');	
-				this.element.append(help);
-				var helper = $('<span class="e2-button e2l-float-right">Help</span>');
-				helper.click(function(e){$('[role=help]', self.element).toggle()})
-				$('h4', this.element).append(helper);
-			}
+
 			
 			// Build the items
 			$.each(this.bdomap, function(k,v) {
@@ -370,7 +379,7 @@
 					<li>Add attachments: <input type="file" class="e2-attachments-fileinput" name="file_binary" multiple /></li> \
 				</ul> \
 				<ul class="e2l-controls"> \
-					<li>'+emen2.template.spinner()+'<input type="submit" class="e2l-save" value="Save" /></li> \
+					<li>'+emen2.template.spinner()+'<input type="submit" class="e2l-save" value="Save attachments" /></li> \
 				</ul>');
 
 			//	<li><span class="e2l-a e2l-label e2-attachments-param">Regular Attachment</span></li>

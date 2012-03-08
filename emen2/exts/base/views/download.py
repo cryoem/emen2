@@ -33,7 +33,6 @@ class Download(View):
 	@View.add_matcher('^/download/$', name='multi')
 	@View.add_matcher('^/download/(?P<bids>.+)/(?P<filename>.+)/$')
 	def main(self, bids, filename=None, size=None, format=None, q=None):
-		##??
 		if not hasattr(bids, '__iter__'):
 			bids = [bids]
 
