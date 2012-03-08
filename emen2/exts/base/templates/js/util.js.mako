@@ -225,7 +225,17 @@ emen2.template.notify = function(msg, error, fade) {
 		});		
 	});
 	msg.append(killbutton);
-	$("#container > .e2-alert").append(msg); //.fadeIn();	
+	$("#container .e2-alert").append(msg); //.fadeIn();	
+};
+
+emen2.template.poll_notifications = function(freq) {
+   $.jsonRPC.call('poll', {}, function(result) {
+      emen2.template.notify(result, false);
+      console.log('found_notification');
+   }, function(result) {
+      emen2.template.notify(result, true);
+      console.log('found_error');
+   });
 };
 
 // Default error message dialog.
