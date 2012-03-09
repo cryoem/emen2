@@ -282,7 +282,7 @@ class UsageParser(object):
 		self.config.require_variable(
 			'EMEN2DBHOME',
 			None,
-			err_msg="No EMEN2DBHOME specified! You can either set the EMEN2DBHOME environment variable, or pass a directory with -h")
+			err_msg="You must specify an EMEN2 database environment, either using the -h (--home) argument or the environment variable $EMEN2DBHOME")
 		if h is None:
 			h = self.config.globalns.getattr('EMEN2DBHOME', h)
 

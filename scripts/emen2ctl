@@ -4,56 +4,64 @@
 #
 #  description: Start-up script for the Twisted service "emen2".
 
-# This script needs the location of the Python interpreter
+COMMAND=$1
+shift
+
+# Get the EMEN2DBHOME from the command line
+while getopts ":h:" opt; do
+  case $opt in
+    h)
+      # echo "-h was triggered, Parameter: $OPTARG" >&2
+	  EMEN2DBHOME=$OPTARG
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument." >&2
+      exit 1
+      ;;
+  esac
+done
 
 
+if [ -z $EMEN2DBHOME -a $COMMAND ]; then
+	echo "You must specify an EMEN2 database environment, either using the -h (--home) argument or the environment variable \$EMEN2DBHOME"
+	exit 1
+fi
 
-##### Configuration #####
 
-# Database environment
-EMEN2DBHOME=/Users/irees/data/db.ncmi
+pidfile=$EMEN2DBHOME/applog/emen2.pid
+logfile=$EMEN2DBHOME/applog/emen2.log
 
-# Extensions to load
-EMEN2EXTS=default,em,eman2,site
-
-# User account to use
-EMEN2USER=irees
-
-# EMAN2 Python environment to use
-EMAN2DIR=/Users/irees/EMAN2
-PYTHON=${EMAN2DIR}/Python/bin/python
-
-##### Init script #####
-
-pidfile=$rundir/applog/emen2.pid
-logfile=$rundir/applog/emen2.log
+EMAN2DIR=${HOME}/EMAN2
 PATH=${EMAN2DIR}/Python/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
-case "$1" in
+
+case $COMMAND in
 	start)
 		echo "Starting emen2: twistd"
 		twistd \
 			--pidfile=$pidfile \
 			--logfile=$logfile \
 			--rundir=$EMEN2DBHOME \
-			emen2 -h $EMEN2DBHOME -e ${EMEN2EXTS}
+			emen2 $@
+		# echo "[process `cat ${pidfile}`]"
 		;;
 
 	stop)
 		if [ -f $pidfile ] 
 		then
-			echo "Stopping emen2: twistd"
-			kill `cat "${pidfile}"`
+			pid=`cat ${pidfile}`
+			echo "Stopping emen2: twistd [process ${pid}]"
+			kill ${pid}
 		fi
 		;;
 
 	restart)
-		"${0}" stop
-		"${0}" start
+		"${0}" stop $@
+		"${0}" start $@
 		;;
 
     *)
-		echo "Usage: ${0} {start|stop|restart|}" >&2
+		echo "Usage: ${0} {start|stop|restart|} [options]" >&2
 		exit 1
 		;;
 esac

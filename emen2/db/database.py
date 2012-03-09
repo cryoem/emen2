@@ -344,7 +344,7 @@ class EMEN2DBEnv(object):
 			self.path = path
 
 		if not self.path:
-			raise ValueError, "No path specified; check $EMEN2DBHOME and config.json files"
+			raise ValueError, "No EMEN2 Database Environment specified."
 
 		# Check that all the needed directories exist
 		self.checkdirs()
