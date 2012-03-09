@@ -37,7 +37,7 @@ PATH=${EMAN2DIR}/Python/bin:/usr/bin:/bin:/usr/sbin:/sbin
 
 case $COMMAND in
 	start)
-		echo "Starting emen2: twistd"
+		echo "Starting emen2"
 		twistd \
 			--pidfile=$pidfile \
 			--logfile=$logfile \
@@ -50,7 +50,7 @@ case $COMMAND in
 		if [ -f $pidfile ] 
 		then
 			pid=`cat ${pidfile}`
-			echo "Stopping emen2: twistd [process ${pid}]"
+			echo "Stopping emen2 [process ${pid}]"
 			kill ${pid}
 		fi
 		;;
@@ -60,8 +60,12 @@ case $COMMAND in
 		"${0}" start $@
 		;;
 
+	recover)
+		echo "Running emen2 database recovery"
+		db_recover -v -h ${EMEN2DBHOME}
+		;;
     *)
-		echo "Usage: ${0} {start|stop|restart|} [options]" >&2
+		echo "Usage: ${0} {start|stop|restart|recover} [options]" >&2
 		exit 1
 		;;
 esac
