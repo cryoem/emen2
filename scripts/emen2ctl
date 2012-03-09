@@ -4,9 +4,8 @@
 #
 #  description: Start-up script for the Twisted service "emen2".
 
-# 1. Get database environment, EMEN2DBHOME, and extensions to load, EMEN2EXTS
-# 2. Find Python interpreter.
-# 3. Find twistd.py
+# This script needs the location of the Python interpreter
+
 
 
 ##### Configuration #####
