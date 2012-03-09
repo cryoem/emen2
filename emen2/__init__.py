@@ -1,5 +1,5 @@
 # $Id$
-VERSION = '2.1b3'
+VERSION = '2.1b4'
 __version__ = "$Revision$".split(":")[1][:-1].strip()
 
 # Support Python 2.6

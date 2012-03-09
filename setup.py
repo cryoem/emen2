@@ -11,14 +11,16 @@ if __name__ == "__main__":
 		'emen2.db',
 		'emen2.web',
 		'emen2.util',
-		# 'twisted.plugins'
+		'twisted.plugins'
 		]
 		
 	package_data = {			
-		'emen2.db': ['config.base.json', 'skeleton.json', 'base.json'],
+		'emen2.db': ['config.base.json', 'skeleton.json', 'base.json', 'bulk.c'],
 		'emen2.web': ['static/*.*', 'static/*/*.*', 'static/*/*/*.*', 'static/*/*/*/*.*'],
 		'twisted': ['plugins/emen2_plugin.py']
 	}
+	
+	scripts = ['scripts/emen2ctl']
 	
 	exts = ['base', 'default', 'em', 'eman2', 'site']
 	for ext in exts:
@@ -34,5 +36,6 @@ if __name__ == "__main__":
 		author_email='ian.rees@bcm.edu',
 		url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',
 		packages=packages,
-		package_data=package_data
+		package_data=package_data,
+		scripts=scripts
 	)
