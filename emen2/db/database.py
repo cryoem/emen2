@@ -372,8 +372,9 @@ class EMEN2DBEnv(object):
 			# bsddb3.db.DB_RECOVER
 			# bsddb3.db.DB_REGISTER |	\
 
-		# global DBENV
-		DBENV = None
+		global DBENV
+		# DBENV = None
+
 		# Open the Database Environment
 		if DBENV == None:
 			emen2.db.log.info("Opening Database Environment: %s"%self.path)

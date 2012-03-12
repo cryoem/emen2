@@ -33,12 +33,12 @@ logfile=$EMEN2DBHOME/applog/emen2.log
 
 EMAN2DIR=${HOME}/EMAN2
 PATH=${EMAN2DIR}/Python/bin:${EMAN2DIR}/usr/bin:/bin:/usr/sbin:/sbin
-
+TWISTD=`which twistd`
 
 case $COMMAND in
 	start)
 		echo "Starting emen2"
-		`which twistd` \
+		$TWISTD \
 			--pidfile=$pidfile \
 			--logfile=$logfile \
 			--rundir=$EMEN2DBHOME \
