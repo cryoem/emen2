@@ -25,7 +25,7 @@
 
 <%block name="precontent">
 	${parent.precontent()}
-	${parentmap}
+	<div class="e2-tree-main" style="overflow:hidden">${parentmap}</div>
 </%block>
 
 

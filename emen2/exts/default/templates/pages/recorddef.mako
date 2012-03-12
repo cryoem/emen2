@@ -8,6 +8,11 @@
 	$('.e2-tree').TreeControl({'attach':true});	
 </%block>
 
+<%block name="precontent">
+	${parent.precontent()}
+	<div class="e2-tree-main" style="overflow:hidden">${parentmap}</div>
+</%block>
+
 
 <h1>
 	${title}
