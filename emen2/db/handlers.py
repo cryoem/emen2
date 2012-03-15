@@ -356,7 +356,7 @@ class BinaryHandler(object):
 	
 	
 	
-@BinaryHandler.register(['jpg', 'jpeg', 'png', 'gif', 'bmp'])
+@BinaryHandler.register(['jpg', 'jpeg', 'png', 'gif', 'bmp', 'ai', 'pdf', 'eps', 'mpeg'])
 class ImageHandler(BinaryHandler):
 	def build_scale(self, img, outfile, tilesize=256):
 		# ImageMagick...
