@@ -28,8 +28,7 @@ class NotificationHandler(object):
 		self.register_eventhandlers()
 
 	def notify(self, ctxid, msg):
-		with self._nlock:
-			self.__getqueue(ctxid).put(msg)
+		self.__getqueue(ctxid).put(msg)
 		return self
 
 	def __getqueue(self, ctxid):

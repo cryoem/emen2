@@ -44,7 +44,6 @@ class Event(object):
 
 	def __call__(self, *args, **kwargs):
 		results = []
-		#with self._cb_lock:
 		for cb in self.callbacks:
 			result = cb(*args, **kwargs)
 			with self._o_lock:
