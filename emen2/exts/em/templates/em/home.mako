@@ -57,7 +57,7 @@ else:
 
 <%def name="sortlink(key, label)">
 	% if key == sortkey:
-		${buttons.image('sort_%s.png'%(int(not reverse)))}
+		${buttons.image('sort.%s.png'%(int(not reverse)))}
 		<a href="?sortkey=${key}&amp;reverse=${int(not reverse)}">${label}</a>
 	% else:
 		<a href="?sortkey=${key}">${label}</a>	

@@ -13,15 +13,15 @@
 					% if not tree.get(child):
 					
 					% elif child in collapsed:
-						<img class="e2-tree-expand" alt="collapsed" src="${EMEN2WEBROOT}/static/images/bg-open.${mode}.png" />
+						<img class="e2-tree-expand" alt="collapsed" src="${EMEN2WEBROOT}/static/images/bg.open.${mode}.png" />
 					% elif depth <= recurse or recurse < 0:
 						## If we're drawing the next level...
 						% if expandable:
-							<img class="e2-tree-expand e2-tree-expanded" alt="${len(tree.get(child, []))} children" src="${EMEN2WEBROOT}/static/images/bg-close.${mode}.png" />
+							<img class="e2-tree-expand e2-tree-expanded" alt="${len(tree.get(child, []))} children" src="${EMEN2WEBROOT}/static/images/bg.close.${mode}.png" />
 						% endif
 						${inner(child, tree.get(child), depth=depth+1)}
 					% elif depth > recurse and expandable:
-						<img class="e2-tree-expand" alt="${len(tree.get(child, []))} children" src="${EMEN2WEBROOT}/static/images/bg-open.${mode}.png" />
+						<img class="e2-tree-expand" alt="${len(tree.get(child, []))} children" src="${EMEN2WEBROOT}/static/images/bg.open.${mode}.png" />
 					% endif
 
 				</li>

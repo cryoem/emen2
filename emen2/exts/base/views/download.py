@@ -68,7 +68,7 @@ class Download(View):
 				else:
 					# Build the thumbnail; return a spinner image
 					status = emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
-					files[emen2.db.config.get_filename('emen2', 'web/static/images/blank.png')] = 'blank.png'
+					files[emen2.db.config.get_filename('emen2', 'web/static/images/handler.%s.png'%status)] = 'handler.%s.png'%status
 
 
 			elif os.access(filepath, os.F_OK):

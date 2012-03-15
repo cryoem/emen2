@@ -48,9 +48,9 @@
 
 <%def name="caret(state='down')">
 	% if state == 'up':
-		<img src="${EMEN2WEBROOT}/static/images/caret_up.png" alt="^" />
+		<img src="${EMEN2WEBROOT}/static/images/caret.up.png" alt="^" />
 	% elif state == 'down':
-		<img src="${EMEN2WEBROOT}/static/images/caret_down.png" alt="^" />	
+		<img src="${EMEN2WEBROOT}/static/images/caret.down.png" alt="^" />	
 	% endif
 </%def>
 

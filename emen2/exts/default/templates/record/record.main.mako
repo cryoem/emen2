@@ -129,9 +129,9 @@
 			<li id="e2l-editbar-bookmark">
 				<span class="e2l-a" data-parent="${USER.record}" data-name="${rec.name}">
 					% if rec.name in bookmarks:
-						<img src="${EMEN2WEBROOT}/static/images/star-closed.png" alt="Bookmarked" />
+						<img src="${EMEN2WEBROOT}/static/images/star.closed.png" alt="Bookmarked" />
 					% else:
-						<img src="${EMEN2WEBROOT}/static/images/star-open.png" alt="Add Bookmark" />
+						<img src="${EMEN2WEBROOT}/static/images/star.open.png" alt="Add Bookmark" />
 					% endif
 				</span>		
 			</li>
@@ -259,7 +259,7 @@
 		
 				<span id="e2l-editbar-commentcount">
 				% if comments:
-					<img id="e2l-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/comment.png" alt="Comments" />
+					<img id="e2l-editbar-comments-img" src="${EMEN2WEBROOT}/static/images/comment.closed.png" alt="Comments" />
 					${len(comments)}
 				% endif
 				</span>

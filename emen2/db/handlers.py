@@ -25,7 +25,14 @@ import tempfile
 
 
 def thumbnail_from_binary(bdo, force=False, wait=False):
-	"""Given a Binary instance, run the thumbnail builder as a separate process"""
+	"""Given a Binary instance, run the thumbnail builder as a separate process
+	
+	Returns a status:
+		"completed"
+		"building"
+		"error"
+	"""
+	
 	import emen2.db.config
 	import emen2.db.queues
 	

@@ -131,7 +131,7 @@
 			var rows = [];
 			$.each(events, function(i, e) {
 				if (e.length == 3) {
-					comments.push('<div>'+emen2.template.image('comment.png')+' '+e[2]+'</div>');
+					comments.push('<div>'+emen2.template.image('comment.closed.png')+' '+e[2]+'</div>');
 				} else if (e.length == 4) {
 					var pdname = e[2];
 					if (emen2.caches['paramdef'][pdname]){pdname=emen2.caches['paramdef'][pdname].desc_short}

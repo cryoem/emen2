@@ -185,13 +185,13 @@ emen2.template.caret = function(state, elem) {
 		var caret = $('.e2l-caret', elem);
 	}
 	if (!elem || !caret.length) {
-		caret = $(emen2.template.image('caret_up.png', '^', 'e2l-caret'));
+		caret = $(emen2.template.image('caret.up.png', '^', 'e2l-caret'));
 	}
 	state = state || 'down';
 	if (state == 'toggle') {
 		if (caret.attr('data-state')=='up') {state='down'} else {state='up'}
 	}		
-	caret.attr('src', emen2.template.static('images/caret_'+state+'.png'));
+	caret.attr('src', emen2.template.static('images/caret.'+state+'.png'));
 	caret.attr('data-state', state);
 	if (elem){return}
 	return $('<div />').append(caret).html()
@@ -725,9 +725,9 @@ emen2.util.set_remove = function(i, l) {
 					var pos = $.inArray(name, bookmarks);
 					emen2.db('record.put', [rec], function(updrec) {
 						if (pos == -1) {
-							var star = $(emen2.template.image('star-open.png', 'Add Bookmark'))
+							var star = $(emen2.template.image('star.open.png', 'Add Bookmark'))
 						} else {
-							var star = $(emen2.template.image('star-closed.png', 'Bookmarked'))
+							var star = $(emen2.template.image('star.closed.png', 'Bookmarked'))
 						}
 						self.element.empty();
 						self.element.append(star);

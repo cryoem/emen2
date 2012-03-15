@@ -482,7 +482,7 @@
 			root.append(' \
 				<li data-name="'+name+'"> \
 					<a href="#">'+this.getname(this.options.root)+'</a>'+
-					emen2.template.image('bg-open.'+this.options.mode+'.png', '+', 'e2-tree-expand')+
+					emen2.template.image('bg.open.'+this.options.mode+'.png', '+', 'e2-tree-expand')+
 				'</li>');
 			this.element.append(root);
 			this.bind(root);
@@ -502,7 +502,7 @@
 			// Set the image to expanded
 			var img = elem.find('img.e2-tree-expand');
 			img.addClass('e2-tree-expanded');
-			img.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg-close.'+this.options.mode+'.png');
+			img.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg.close.'+this.options.mode+'.png');
 			
 			// The new ul
 			var ul = $('<ul data-name="'+name+'"></ul>');
@@ -529,7 +529,7 @@
 						'</a> \
 					</li>');
 				if (emen2.caches[self.options.mode][this] && self.options.expandable) {
-					var expand = $(emen2.template.image('bg-open.'+self.options.mode+'.png', emen2.caches[self.options.mode][this].length, 'e2-tree-expand'))
+					var expand = $(emen2.template.image('bg.open.'+self.options.mode+'.png', emen2.caches[self.options.mode][this].length, 'e2-tree-expand'))
 					li.append(expand);
 				}
 				ul.append(li);
@@ -584,7 +584,7 @@
 				// Contract this branch
 				elem.removeClass('e2-tree-expanded');
 				elem.siblings('ul').remove();
-				elem.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg-open.'+this.options.mode+'.png');
+				elem.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg.open.'+this.options.mode+'.png');
 			} else {
 				// Expand this branch
 				this.expand(elem.parent());

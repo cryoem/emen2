@@ -728,7 +728,7 @@
 					var direction = 1;
 					if (self.options.q['reverse']) {direction = 0}
 				}				
-				var sortable = $('<button name="sort" class="e2l-float-right">'+emen2.template.image('sort_'+direction+'.png', 'Sort')+'</button>');
+				var sortable = $('<button name="sort" class="e2l-float-right">'+emen2.template.image('sort.'+direction+'.png', 'Sort')+'</button>');
 				var iw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');				
 				iw.append(sortable);
 				tr2.append(iw)
