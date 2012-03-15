@@ -20,8 +20,6 @@ import emen2.db.dataobject
 import emen2.db.exceptions
 
 
-# ian: TODO: Groups "anon" and "authenticated" are r/o
-
 class Group(emen2.db.dataobject.PermissionsDBObject):
 	"""Groups of users.
 

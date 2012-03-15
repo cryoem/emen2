@@ -23,7 +23,7 @@ class VartypeManager(object):
 	_vartypes = {}
 	_properties = {}
 	_macros = {}
-	nonevalues = [None,"","N/A","n/a","None"]
+	nonevalues = [None, "", "N/A", "n/a", "None"]
 
 	@classmethod
 	def register_vartype(cls, name):

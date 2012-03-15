@@ -27,6 +27,7 @@ def random_password(N):
 
 
 class BaseLoader(object):
+	"""Load database objects from a JSON file."""
 	def __init__(self, db=None, infile=None, path=''):
 		self.infile = infile
 		self.path = path
@@ -55,6 +56,7 @@ class BaseLoader(object):
 
 
 class Loader(BaseLoader):
+	"""Load database objects from a JSON file and put into a database."""
 	def load(self, overwrite=False):
 		# Changed names
 		userrelmap = {}

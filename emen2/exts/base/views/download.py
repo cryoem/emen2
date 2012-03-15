@@ -48,31 +48,37 @@ class Download(View):
 
 
 	def render_cb(self, bdos, request, t=0, **_):
-		# Override the EMEN2Resource default render callback
+		# Process the returned BDOs into files to send
+		tilepath = emen2.db.config.get('paths.TILEPATH')
+		size = request.args.get('size')
+		format = request.args.get('format', 'jpg')
 		files = {}
+		
 		for bdo in bdos:
 			filename = bdo.get("filename")
 			filepath = bdo.get("filepath")
-
-			# If we're looking for a particular size or format..
-			size = request.args.get('size')
-			format = request.args.get('format', 'jpg')
+			
 			if size:
+				# Thumbnail requested
 			 	thumbname = '%s.%s.%s'%(bdo.name.replace(':', '.'), size, format)
-				filepath = os.path.join(emen2.db.config.get('paths.TILEPATH'), thumbname)
-				if not os.access(filepath, os.F_OK):
-					# Start the thumbnail build, return a spinner image.
-					# ian: todo: thumbnail_from_binary could return an error image if failure.
-					emen2.db.handlers.thumbnail_from_binary(bdo, wait=True)
-					
-				files[filepath] = "%s.%s.%s"%(filename, size, format)
-			else:
+				thumbpath = os.path.join(tilepath, thumbname)
+				if os.access(thumbpath, os.F_OK):
+					# Return the thumbnail
+					files[thumbpath] = thumbname
+				else:
+					# Build the thumbnail; return a spinner image
+					status = emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
+					files[emen2.db.config.get_filename('emen2', 'web/static/images/blank.png')] = 'blank.png'
+
+
+			elif os.access(filepath, os.F_OK):
+				# Found the file
 				files[filepath] = filename
 			
-			
-			# This will trigger render_eb if the file is not found
-			if not os.access(filepath, os.F_OK):
+			else:
+				# This will trigger render_eb if the file is not found
 				raise IOError, "Could not access file"
+
 
 		if len(files) > 1:
 			return self._transfer_tar(files, request)

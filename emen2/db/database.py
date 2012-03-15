@@ -3,7 +3,6 @@
 
 Functions:
 	clock: Time a method's execution time
-	check_output: Run a command and read the output
 	getctime: Local ctime
 	gettime: Formatted time
 	ol: Decorator to make sure a method argument is iterable
@@ -26,19 +25,18 @@ import functools
 import getpass
 import imp
 import inspect
-import operator
 import os
 import re
-import smtplib
 import sys
 import time
 import traceback
 import weakref
 import shutil
 import glob
+import random
+import smtplib
 import email
 import email.mime.text
-import random
 
 # Berkeley DB
 # Note: the 'bsddb' module is not sufficient.
@@ -51,6 +49,8 @@ try:
 except ImportError:
 	markdown = None
 
+# JSON-RPC support
+import jsonrpc.jsonutil
 
 # EMEN2 Config
 import emen2.db.config
@@ -78,9 +78,8 @@ import emen2.db.workflow
 
 # EMEN2 Utilities
 import emen2.util.listops as listops
-import jsonrpc.jsonutil
 
-# EMEN2 Exceptions
+# EMEN2 Exceptions into local namespace
 from emen2.db.exceptions import *
 
 # EMEN2 Extensions
@@ -98,9 +97,6 @@ VERSIONS = {
 # Regular expression to parse Protocol views.
 VIEW_REGEX = '(\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?)|((?P<text>[^\$]+))'
 VIEW_REGEX = re.compile(VIEW_REGEX)
-
-# Global pointer to database environment
-DBENV = None
 
 # basestring goes away in Python 3
 basestring = (str, unicode)
@@ -135,17 +131,6 @@ def clock(times, key=0, t=0, limit=180):
 	if sum(times.values()) >= limit:
 		raise TimeError, "Operation timed out (max %s seconds)"%(limit)
 	return t2
-
-
-def check_output(args, **kwds):
-	"""Run a command using Popen and return the stdout.
-
-	:return: stdout from the program after exit (str)
-	"""
-	kwds.setdefault("stdout", subprocess.PIPE)
-	kwds.setdefault("stderr", subprocess.STDOUT)
-	p = subprocess.Popen(args, **kwds)
-	return p.communicate()[0]
 
 
 def getrandomid():
@@ -243,6 +228,7 @@ def error(e=None, msg='', warning=False):
 
 ##### Email #####
 
+# ian: TODO: put this in a separate module
 def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, txn=None):
 	"""(Semi-internal) Send an email. You can provide either a template or a message subject and body.
 
@@ -302,10 +288,11 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 
 ##### EMEN2 Database Environment #####
 
-# ian: todo: have DBEnv and all BDBs in here --
-#	DB should just be methods for dealing with this dbenv "core"
 class EMEN2DBEnv(object):
-	"""Manage an EMEN2 Database Environment."""
+	"""EMEN2 Database Environment.
+	
+	Each DBO table will be available in self.keytypes[keytype].
+	"""
 
 	# Manage open btrees
 	opendbs = weakref.WeakKeyDictionary()
@@ -327,13 +314,9 @@ class EMEN2DBEnv(object):
 	SSLPATH = emen2.db.config.get('paths.SSLPATH')
 
 
-	def __init__(self, path=None, maintenance=False, snapshot=False, create=False):
-		"""EMEN2 Database Environment.
-		
-		Each DBO table will be available in self.keytypes[keytype].
-
+	def __init__(self, path=None, create=None, snapshot=False):
+		"""
 		:keyword path: Directory containing environment.
-		:keyword maintenance: Open the environment in maintenance mode.
 		:keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
 		:keyword create: Create the environment if it does not already exist.
 		"""
@@ -345,6 +328,9 @@ class EMEN2DBEnv(object):
 
 		if not self.path:
 			raise ValueError, "No EMEN2 Database Environment specified."
+
+		if create is not None:
+			self.create = create
 
 		# Check that all the needed directories exist
 		self.checkdirs()
@@ -368,50 +354,38 @@ class EMEN2DBEnv(object):
 			bsddb3.db.DB_INIT_TXN | \
 			bsddb3.db.DB_INIT_LOCK | \
 			bsddb3.db.DB_INIT_LOG | \
-			bsddb3.db.DB_THREAD  # | \
+			bsddb3.db.DB_THREAD
 			# bsddb3.db.DB_RECOVER
-			# bsddb3.db.DB_REGISTER |	\
+			# bsddb3.db.DB_REGISTER
 
-		global DBENV
-		# DBENV = None
 
 		# Open the Database Environment
-		if DBENV == None:
+		dbenv = None
+		if dbenv == None:
 			emen2.db.log.info("Opening Database Environment: %s"%self.path)
-			DBENV = bsddb3.db.DBEnv()
+			dbenv = bsddb3.db.DBEnv()
 
 			if snapshot or self.snapshot:
-				DBENV.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
+				dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
 
 			cachesize = self.cachesize * 1024 * 1024l
 			txncount = (cachesize / 4096) * 2
 			if txncount > 1024*128:
 				txncount = 1024*128
 
-			DBENV.set_cachesize(0, cachesize)
-			DBENV.set_tx_max(txncount)
-			DBENV.set_lk_max_locks(300000)
-			DBENV.set_lk_max_lockers(300000)
-			DBENV.set_lk_max_objects(300000)
+			dbenv.set_cachesize(0, cachesize)
+			dbenv.set_tx_max(txncount)
+			dbenv.set_lk_max_locks(300000)
+			dbenv.set_lk_max_lockers(300000)
+			dbenv.set_lk_max_objects(300000)
 
-			DBENV.open(self.path, ENVOPENFLAGS)
+			dbenv.open(self.path, ENVOPENFLAGS)
 			self.opendbs[self] = 1
 
-		self.dbenv = DBENV
+		self.dbenv = dbenv
 
 		# Open Databases
-		if not maintenance:
-			self.init()
-
-
-	def getdbenv(self):
-		"""Return the Berkeley DB DBEnv handle."""
-		return self.dbenv
-
-
-	def __getitem__(self, key, default=None):
-		"""Handle dictionary gets with self.keytypes."""
-		return self.keytypes.get(key, default)
+		self.init()
 
 
 	def init(self):
@@ -453,6 +427,11 @@ class EMEN2DBEnv(object):
 		self.dbenv.close()
 
 
+	def __getitem__(self, key, default=None):
+		"""Pass dictionary gets to self.keytypes."""
+		return self.keytypes.get(key, default)
+
+
 
 	##### Utility methods #####
 
@@ -462,6 +441,7 @@ class EMEN2DBEnv(object):
 		checkpath = os.access(self.path, os.F_OK)
 		checkconfig = os.access(os.path.join(self.path, 'DB_CONFIG'), os.F_OK)
 
+		# Check if we are creating a new database environment.
 		if self.create:
 			if checkconfig:
 				self.create = False
@@ -474,7 +454,6 @@ class EMEN2DBEnv(object):
 			if not checkconfig:
 				raise ValueError, "No database environment in EMEN2DBHOME directory: %s"%self.path
 
-		# ian: todo: create the necessary subdirectories when creating a database
 		paths = [
 			"data",
 			"log",
@@ -489,7 +468,6 @@ class EMEN2DBEnv(object):
 		for path in paths:
 			if not os.path.exists(path):
 				os.makedirs(path)
-		#paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
 
 		paths = []
 		for path in [self.LOGPATH, self.LOG_ARCHIVE, self.TILEPATH, self.TMPPATH, self.SSLPATH]:
@@ -501,7 +479,7 @@ class EMEN2DBEnv(object):
 
 		configpath = os.path.join(self.path,"DB_CONFIG")
 		if not os.path.exists(configpath):
-			emen2.db.log.info("Installing default DB_CONFIG file: %s"%configpath)
+			emen2.db.log.info("Copying default DB_CONFIG file: %s"%configpath)
 			f = open(configpath, "w")
 			f.write(DB_CONFIG)
 			f.close()
@@ -549,9 +527,6 @@ class EMEN2DBEnv(object):
 		
 		type(self).txncounter += 1
 		self.txnlog[id(txn)] = txn
-		#except KeyError:
-		#	self.txnabort(txn=txn)
-		#	raise
 
 		return txn
 
@@ -667,7 +642,6 @@ class EMEN2DBEnv(object):
 				raise ValueError, "Log Archive: %s not found in backup archive!"%(archivefile)
 			removefiles.append(archivefile)
 
-
 		for removefile in removefiles:
 			emen2.db.log.info('Log Archive: Removing %s'%(removefile))
 			os.unlink(removefile)
@@ -717,7 +691,7 @@ class DB(object):
 	def load_json(self, infile):
 		"""Load and cache a JSON file containing DBOs."""
 		
-		# Create a root context to load the items
+		# Create a special root context to load the items
 		ctx = emen2.db.context.SpecialRootContext(db=self)
 		loader = emen2.db.load.BaseLoader(infile=infile)
 
@@ -738,7 +712,7 @@ class DB(object):
 	
 	@classmethod
 	def opendb(cls, name=None, password=None, admin=False, db=None):
-		"""Class method to open a database.
+		"""Class method to open a database proxy.
 		
 		Returns a DBProxy, with either a
 		user context (name and password specified), an administrative context
@@ -948,11 +922,6 @@ class DB(object):
 
 	##### Events #####
 
-	# ian: todo: hard: flesh this out into a proper cron system,
-	# with a registration model; right now just runs cleanupcontext
-	# Currently, this is called during _getcontext, and calls
-	# cleanupcontexts not more than once every 10 minutes
-
 	tasks = []
 	# ed: here's an implementation that seems to work, the first time
 	#     this class is instantiated, this is called and it is replaced
@@ -988,7 +957,7 @@ class DB(object):
 			yield
 
 
-	# ian: todo: hard: finish
+	# ian: todo: finish
 	# def cleanupcontexts(self, ctx=None, txn=None):
 	# 	"""(Internal) Clean up sessions that have been idle too long."""
 	# 	newtime = getctime()
@@ -1177,7 +1146,7 @@ class DB(object):
 
 
 	def _getcontext(self, ctxid, host, ctx=None, txn=None):
-		"""(Internal and DBProxy) Takes a ctxid key and returns a Context.
+		"""(Internal) Takes a ctxid key and returns a Context.
 		
 		Note: The host provided must match the host in the Context
 
@@ -1543,7 +1512,7 @@ class DB(object):
 		return ret
 
 
-	# @limit_result_length
+	# todo: This should just use the query system.
 	def _find_pdrd(self, cb, query=None, childof=None, keytype="paramdef", record=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
 		
@@ -1575,7 +1544,6 @@ class DB(object):
 
 
 	@publicmethod("user.find")
-	# @limit_result_length
 	def finduser(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
 		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
 
@@ -3684,7 +3652,8 @@ class DB(object):
 			for c in cp:
 				ret.append([rec.name]+list(c))
 
-		return sorted(ret, key=operator.itemgetter(2))
+		return sorted(ret, key=lambda x:x[2])
+		# return sorted(ret, key=operator.itemgetter(2))
 
 
 

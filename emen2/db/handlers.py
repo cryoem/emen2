@@ -19,20 +19,22 @@ import hashlib
 import cStringIO
 import tempfile
 
-
 #################################################
 # ** Do NOT import ANY emen2 packages here!! ** #
 #################################################
 
-def thumbnail_from_binary(bdo, force=False, wait=True):
+
+def thumbnail_from_binary(bdo, force=False, wait=False):
 	"""Given a Binary instance, run the thumbnail builder as a separate process"""
 	import emen2.db.config
+	import emen2.db.queues
+	
 	tilepath = emen2.db.config.get('paths.TILEPATH')
 	filepath = bdo.get('filepath')
 	filename = bdo.get('filename')
 	basename = bdo.get('name')
 	
-	# Sanitize the filename and pass compress= and ext=
+	# Sanitize the filename to check compress= and ext=
 	ext = ''
 	compress = ''
 	r = re.compile('[\w\-\.]', re.UNICODE)
@@ -45,11 +47,10 @@ def thumbnail_from_binary(bdo, force=False, wait=True):
 
 	# Get the handler, check if we're going to build the thumbnail
 	handler = BinaryHandler.get_handler(filepath=filepath, filename=filename)
-	if not handler.file_exists():
-		return
-	if handler.thumbnail_exists(basename, tilepath, force=force):
-		return
-
+	status = handler.thumbnail_status(basename, tilepath)
+	if status in ["building", "error"]:
+		return status
+	
 	# Prepare the command to run
 	# grumble...
 	args = []
@@ -71,22 +72,26 @@ def thumbnail_from_binary(bdo, force=False, wait=True):
 	
 	args.append('--basename')
 	args.append(basename)
-	
-	if ext:
-		args.append('--ext')
-		args.append(ext)
-	
+
 	if compress:
 		args.append('--compress')
 		args.append(compress)
 
+	# if ext:
+	#	args.append('--ext')
+	#	args.append(ext)
+
 	args.append(handler.__class__.__name__)
 	args.append(filepath)
-		
-	print "Generating thumbnails: %s"%args
-	a = subprocess.Popen(args)
+	
 	if wait:
+		a = subprocess.Popen(args)
 		a.wait()
+		return "complete"
+
+	emen2.db.queues.processqueue.add_task(args)
+	return "building"
+	
 	
 
 def main(g):
@@ -222,9 +227,7 @@ class BinaryHandler(object):
 			shutil.copyfileobj(infile, f)
 
 		# infile.close()
-			
 		# TODO: Set as self.filepath, for subsequent calls to self._getfilepath().
-
 		# TODO: Should probably fine a better way to remove the tmpfile.
 		self._tmpfiles.append(tmpfile)
 		return tmpfile
@@ -233,7 +236,6 @@ class BinaryHandler(object):
 		# Remove temporary files...
 		for f in self._tmpfiles:
 		 	os.remove(f)
-		
 
 
 	##### Extract metadata and build thumbnails #####
@@ -242,24 +244,18 @@ class BinaryHandler(object):
 		return {}
 
 	def thumbnail(self, basename, tilepath, force=False):
-		if not basename or not tilepath:
-			raise ThumbnailError, "Base filename (basename) and output path (tilepath) are required."
-		
 		fp = self._getfilepath()
 		if not os.access(fp, os.F_OK):
-			raise ThumbnailError, "Could not access %s"%fp
+			raise ThumbnailError, "Could not access: %s"%fp
 
-		# These are used in self.getfilename()
+		# These are used in self._outfile()
 		self._basename = basename
 		self._tilepath = tilepath
 
-		# Create a lock file to indicate work on this thumbnail has started
-		lockfile = self._outfile('lock')
-		if os.access(lockfile, os.F_OK) and not force:
-			raise ThumbnailError, "Thumbnail already exists, or a previous attempt to build the thumbnail failed."
-
-		with file(lockfile, 'w') as f:
-			f.write(str(os.getpid()))
+		# Create a status file to indicate work on this thumbnail has started
+		statusfile = self._outfile('status')
+		with file(statusfile, 'w') as f:
+			f.write("building")
 
 		# Check compression and file type
 		compress = False
@@ -271,13 +267,14 @@ class BinaryHandler(object):
 				fn.pop()
 			ext = fn.pop()
 
+		# Build the thumbnail.
 		if compress and not self._allow_gzip:
 			# This handler does not accept gzip'd files, for whatever reason.
 			pass
 		elif compress:
+			# Decompress the file
 			workfile = tempfile.mkstemp(suffix='.tmp')[1]
 			cmd = "%s -d -c %s > %s"%(compress, fp, workfile)
-			# print "Decompressing: ", cmd
 			os.system(cmd)
 			try:
 				self._thumbnail_build(workfile)
@@ -289,20 +286,29 @@ class BinaryHandler(object):
 		else:
 			self._thumbnail_build(fp)
 
+		# Finished the thumbnail; remove the status file.
+		os.remove(statusfile)
+		
+
 	def _thumbnail_build(self, workfile, **kwargs):
 		pass
 
-	def thumbnail_exists(self, basename, tilepath, force=False):
-		"""Check if the file exists, or there is a current lock file."""
+	def thumbnail_status(self, basename, tilepath):
+		"""Check the thumbnail status from the status file."""
 		self._basename = basename
 		self._tilepath = tilepath
-		if force:
-			return False
-		lockfile = self._outfile('lock')
-		return os.access(lockfile, os.F_OK)
+		if not os.access(self.filepath, os.F_OK):
+			return "error"
+		
+		statusfile = self._outfile('status')
+		if not os.access(statusfile, os.F_OK):
+			return "completed"
+		
+		f = open(statusfile, "r")
+		status = f.read().strip()
+		f.close()
+		return status
 
-	def file_exists(self):
-		return os.access(self.filepath, os.F_OK)
 
 	def _outfile(self, suffix):
 		# Strip out the ":" in the binary name
@@ -345,36 +351,6 @@ class BinaryHandler(object):
 	
 @BinaryHandler.register(['jpg', 'jpeg', 'png', 'gif', 'bmp'])
 class ImageHandler(BinaryHandler):
-	# def _build_scale(self, img, size, outfile, convertutil="/usr/bin/convert"):
-	# 	# PIL...
-	# 	# im = self.Image.open(self.filepath)
-	# 	# im.thumbnail((size,size), self.Image.ANTIALIAS)
-	# 	# im.save(outfile, "JPEG")
-	# 
-	# 	# ImageMagick...
-	# 	# convert -resize 128x128 -background white -gravity center -format jpg -quality 75 bdo:2010011400000  bdo:2010011400000.thumb.jpg
-	# 	args = [convertutil, "-resize %sx%s"%(size, size), "-gravity center", "-format jpg", "-quality 80"]
-	# 	if size <= 128:
-	# 		args.append("-extent %sx%s"%(size, size))
-	# 
-	# 	args.append(self.filepath)
-	# 	args.append(outfile)
-	# 	# print "running: %s"%args
-	# 	# join to a string, not sure why it doesn't work without it..
-	# 	a = subprocess.Popen(" ".join(args), shell=True)
-	# 	a.wait()
-	# 
-	# def build(self, convertutil="/usr/bin/convert"):
-	# 
-	# 	if not os.access(self.filepath, os.F_OK):
-	# 		return
-	# 
-	# 	if self.options.get('small'):
-	# 		self._build_scale(None, 512, self.getoutfile("small.jpg"), convertutil=convertutil)
-	# 
-	# 	if self.options.get('thumb'):
-	# 		self._build_scale(None, 128, self.getoutfile("thumb.jpg"), convertutil=convertutil)
-
 	def build_scale(self, img, outfile, tilesize=256):
 		# ImageMagick...
 		# convert -resize 128x128 -background white -gravity center -format jpg -quality 75 bdo:2010011400000  bdo:2010011400000.thumb.jpg
@@ -409,9 +385,6 @@ class ImageHandler(BinaryHandler):
 		self.build_scale(workfile, self._outfile('small.jpg'), tilesize=512)
 		self.build_scale(workfile, self._outfile('medium.jpg'), tilesize=1024)
 
-	
-	
-	
 	
 	
 		
