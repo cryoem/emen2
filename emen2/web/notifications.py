@@ -9,6 +9,13 @@ import emen2.db.proxy
 import Queue
 import collections
 
+# http://blog.enterthefoo.com/2009/02/twisted-sleep.html
+def sleep(secs):
+    d = Deferred()
+    reactor.callLater(secs, d.callback, None)
+    return d
+
+
 class NotificationHandler(object):
 	_notifications_by_ctxid = {}
 	_nlock = threading.RLock()
@@ -28,18 +35,18 @@ class NotificationHandler(object):
 		self.register_eventhandlers()
 
 	def notify(self, ctxid, msg):
-		self.__getqueue(ctxid).put(msg)
+		self.__getqueue(ctxid).appendleft(msg)
 		return self
 
 	def __getqueue(self, ctxid):
 		with self._nlock:
-			return self._notifications_by_ctxid.setdefault(ctxid, Queue.Queue())
+			return self._notifications_by_ctxid.setdefault(ctxid, collections.deque())
 
 	def get_notification(self, ctxid):
 		result = None
 		try:
-			result = self.__getqueue(ctxid).get(False)
-		except Queue.Empty:
+			result = self.__getqueue(ctxid).pop(False)
+		except IndexError:
 			pass # if the Queue is empty, just return None
 		return result
 
@@ -50,9 +57,9 @@ class NotificationHandler(object):
 
 		try:
 			while True:
-				result.append(q.get(False))
+				result.append(q.pop(False))
 				q.task_done()
-		except Queue.Empty: pass
+		except IndexError: pass
 		return result
 
 	##################
@@ -99,7 +106,12 @@ class NotificationHandler(object):
 			#self.db._setContext(ctxid, host)
 			try:
 				print 'getting'
-				result = self.__getqueue(ctxid).get()
+				result = None
+				while result is None:
+					try:
+						result = self.__getqueue(ctxid).pop()
+					except IndexError: pass
+					time.sleep(.01)
 				print 'done'
 				return result
 			finally:
