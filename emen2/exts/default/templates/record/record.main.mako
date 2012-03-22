@@ -293,7 +293,9 @@
 	
 	<div data-tab="views">
 		<%
-		prettynames = {'defaultview': 'default', 'mainview': 'protocol', 'recname': 'record name', 'tabularview':'table columns'}
+		prettynames = {'defaultview': 'default', 'mainview': 'protocol', 'recname': 'record name', 'tabularview':'table columns', 'dicttable':'parameter-value table'}
+		recdef.views['defaultview'] = recdef.views.get('defaultview') or recdef.mainview
+		
 		%>
 
 		<h4>Record views</h4>

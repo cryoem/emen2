@@ -548,8 +548,8 @@ class vt_datetime(vt_string):
 		return self._rci(ret)
 
 	def _render(self, value, embedtype=None):
-		# if self.markup:
-		value = ['<time class="e2-localize" datetime="%s">%s</time>'%(i,i) for i in value]
+		if self.markup:
+			value = ['<time class="e2-localize" datetime="%s">%s</time>'%(i,i) for i in value]
 		return super(vt_datetime, self)._render(value, embedtype=embedtype)
 
 
@@ -677,7 +677,11 @@ class vt_binary(Vartype):
 			if t:
 				value = ['%s'%(cgi.escape(i.filename)) for i in v]
 			else:
-				value = ['<a target="_blank" href="%s/download/%s/%s">%s</a>'%(webroot, i.name, urllib.quote(i.filename), cgi.escape(i.filename)) for i in v]
+				value = ['''
+					<a target="_blank" href="%s/download/%s/%s">
+					<img class="e2l-thumbnail" src="%s/download/%s/%s?size=thumb" />
+					%s
+					</a>'''%(webroot, i.name, cgi.escape(i.filename), webroot, i.name, cgi.escape(i.filename), cgi.escape(i.filename)) for i in v]
 
 		except (ValueError, TypeError):
 			value = ['Error getting binary %s'%i for i in value]

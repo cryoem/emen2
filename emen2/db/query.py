@@ -10,7 +10,7 @@ import emen2.util.listops
 # below this number, use the actual items instead of indexes.
 INDEXMIN = 1000 
 # max number of items that can be searched directly
-ITEMSMAX = 100000 
+ITEMSMAX = 500000 
 
 # Synonyms
 synonyms = {
