@@ -10,6 +10,11 @@ import emen2.db.config
 from emen2.web.view import View
 
 
+# header[index][slices][tiles][(level, x, y)]
+
+	
+
+
 def get_tile(tilefile,level,x,y):
 	"""get_tile(tilefile,level,x,y)
 	retrieve a tile from the file"""
@@ -72,7 +77,7 @@ class Tiles(View):
 		self.x = int(kwargs.get('x', 0)) / (self.level * 256)
 		self.y = int(kwargs.get('y', 0)) / (self.level * 256)
 		self.level = math.log(self.level, 2)
-				
+
 	def get_data(self):
 		tilepath = emen2.db.config.get('paths.TILEPATH')
 		filepath = os.path.join(tilepath, self.bid.replace(":",".")+".tile")
@@ -81,6 +86,58 @@ class Tiles(View):
 		return ret
 
 
+
+
+
+@View.register
+class Tiles2(View):
+	@View.add_matcher(r'^/preview/(?P<bid>.+)/(?P<mode>.+)/$')	
+	def main(self, bid=None, mode='tiles', **kwargs):
+		self.bid = bid
+		if self.bid == None:
+			return "No Binary ID supplied."
+
+		# Make sure we can access bdo
+		bdo = self.db.getbinary(self.bid, filt=False)
+
+		self.mode = mode
+		self.size = int(kwargs.get('size', 512))
+		self.index = int(kwargs.get('index', 0))
+		self.level = int(kwargs.get('level', 1))
+
+		self.z = int(kwargs.get('z', 0))
+		self.x = int(kwargs.get('x', 0)) / (self.level * 256)
+		self.y = int(kwargs.get('y', 0)) / (self.level * 256)
+
+
+	def get_data(self):
+		previewpath = emen2.db.binary.Binary.parse(self.bid).get('previewpath')
+		previewpath = '%s.eman2'%(previewpath)
+
+		f = file(previewpath, "r")
+		header = pickle.load(f)
+		h = header[self.index]['slices'][self.z]
+
+		key = self.size
+		if self.mode == 'tiles':
+			key = (self.level, self.x, self.y)
+
+		ret = h[self.mode][key]
+
+		f.seek(ret[0], 1)
+		data = f.read(ret[1])
+		f.close()
+
+		print "Found...", len(data)
+		if ret[2] == 'jpg':
+			self.set_header("Content-Type", "image/jpeg")
+		elif ret[2] == 'png':
+			self.set_header("Content-Type", "image/png")
+		elif ret[2] == 'json':
+			self.set_header("Content-Type", "application/json")
+
+		return data
+	
 
 
 

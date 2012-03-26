@@ -4096,7 +4096,7 @@ class DB(object):
 
 			
 		# Rename/copy temporary files to final destination.
-		# todo: Handle any exceptions that might arise here.	
+		# todo: Handle exceptions.
 		for newfile, filepath in rename:
 			os.rename(newfile, filepath)
 		

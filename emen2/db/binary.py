@@ -200,6 +200,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 		if not os.path.exists(dkey['basepath']):
 			os.makedirs(dkey['basepath'])
+			
 		(fd, tmpfile) = tempfile.mkstemp(dir=dkey['basepath'], suffix='.upload')
 
 		m = hashlib.md5()
@@ -250,17 +251,21 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 		# YYYYMMDD
 		datekey = "%04d%02d%02d"%(year, mon, day)
+		datedir = os.path.join('%04d'%year, '%02d'%mon, '%02d'%day)
 
 		# Get the binary storage paths from config
-		binarypaths = emen2.db.config.get('paths.BINARYPATH')
-
 		# Find the last item matching the current date
-		mp = [x for x in sorted(binarypaths.keys()) if str(x)<=datekey]
-		base = binarypaths[mp[-1]]
+		binarypaths = emen2.db.config.get('paths.BINARYPATH')
+		bp = [x for x in sorted(binarypaths.keys()) if str(x)<=datekey]
 
 		# Resolve the parsed bdo key to a directory (basepath) and file (filepath)
-		basepath = "%s/%04d/%02d/%02d/"%(base, year, mon, day)
+		basepath = os.path.join(binarypaths[bp[-1]], datedir)
 		filepath = os.path.join(basepath, "%05X"%counter)
+		
+		# ... same for previewpath
+		previewpaths = emen2.db.config.get('paths.PREVIEWPATH')
+		pp = [x for x in sorted(previewpaths.keys()) if str(x)<=datekey]
+		previewpath = os.path.join(previewpaths[pp[-1]], datedir, "%05X"%counter)
 
 		# The BDO name (bdo:YYYYMMDDXXXXX)
 		name = "%s:%s%05X"%(prot, datekey, counter)
@@ -274,6 +279,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 			"datekey":datekey,
 			"basepath":basepath,
 			"filepath":filepath,
+			"previewpath":previewpath,
 			"name":name
 			}
 

@@ -49,7 +49,6 @@ class Download(View):
 
 	def render_cb(self, bdos, request, t=0, **_):
 		# Process the returned BDOs into files to send
-		tilepath = emen2.db.config.get('paths.TILEPATH')
 		size = request.args.get('size')
 		format = request.args.get('format', 'jpg')
 		files = {}
@@ -57,14 +56,15 @@ class Download(View):
 		for bdo in bdos:
 			filename = bdo.get("filename")
 			filepath = bdo.get("filepath")
+			previewpath = emen2.db.binary.Binary.parse(bdo.get('name')).get('previewpath')
 			
 			if size:
 				# Thumbnail requested
-			 	thumbname = '%s.%s.%s'%(bdo.name.replace(':', '.'), size, format)
-				thumbpath = os.path.join(tilepath, thumbname)
+				thumbpath = '%s.%s.%s'%(previewpath, size, format)
+				print "Thumbnail: Checking for...", thumbpath
 				if os.access(thumbpath, os.F_OK):
 					# Return the thumbnail
-					files[thumbpath] = thumbname
+					files[thumbpath] = '%s.%s.%s'%(filename, size, format)
 				else:
 					# Build the thumbnail; return a spinner image
 					status = emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)

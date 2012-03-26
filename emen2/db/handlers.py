@@ -34,13 +34,13 @@ def thumbnail_from_binary(bdo, force=False, wait=False):
 	"""
 	
 	import emen2.db.config
+	import emen2.db.binary
 	import emen2.db.queues
 	
-	tilepath = emen2.db.config.get('paths.TILEPATH')
+	previewpath = emen2.db.binary.Binary.parse(bdo.get('name')).get('previewpath')
 	filepath = bdo.get('filepath')
 	filename = bdo.get('filename')
-	basename = bdo.get('name')
-	
+
 	# Sanitize the filename to check compress= and ext=
 	ext = ''
 	compress = ''
@@ -54,7 +54,7 @@ def thumbnail_from_binary(bdo, force=False, wait=False):
 
 	# Get the handler, check if we're going to build the thumbnail
 	handler = BinaryHandler.get_handler(filepath=filepath, filename=filename)
-	status = handler.thumbnail_status(basename, tilepath)
+	status = handler.thumbnail_status(previewpath)
 	if status in ["building", "error"]:
 		return status
 	
@@ -74,12 +74,9 @@ def thumbnail_from_binary(bdo, force=False, wait=False):
 
 	args.append(cmd)
 
-	args.append('--tilepath')
-	args.append(tilepath)
+	args.append('--previewpath')
+	args.append(previewpath)
 	
-	args.append('--basename')
-	args.append(basename)
-
 	if compress:
 		args.append('--compress')
 		args.append(compress)
@@ -95,7 +92,9 @@ def thumbnail_from_binary(bdo, force=False, wait=False):
 		a = subprocess.Popen(args)
 		a.wait()
 		return "complete"
-
+	
+	# Add to the task queue
+	print "Adding to task queue:", args
 	emen2.db.queues.processqueue.add_task(args)
 	return "building"
 	
@@ -106,14 +105,14 @@ def main(g):
 	parser = ThumbnailOptions()
 	options, (handler, filepath) = parser.parse_args()
 	
-	filename = (options.basename or 'filename').replace(':', '')
+	filename = 'filename'
 	if options.ext:
 		filename = '%s.%s'%(filename, options.ext)
 	if options.compress:
 		filename = '%s.%s'%(filename, options.compress)
 	
 	handler = g[handler](filepath=filepath, filename=filename)
-	handler.thumbnail(basename=options.basename, tilepath=options.tilepath, force=options.force)
+	handler.thumbnail(previewpath=options.previewpath, force=options.force)
 	
 
 class ThumbnailError(Exception):
@@ -125,8 +124,7 @@ class ThumbnailOptions(optparse.OptionParser):
 	
 	def __init__(self, *args, **kwargs):
 		optparse.OptionParser.__init__(self, *args, **kwargs)
-		self.add_option('--tilepath', type="string", help="Output directory; default is current directory")
-		self.add_option('--basename', type="string", help="Binary name")
+		self.add_option('--previewpath', type="string", help="Base output")
 		self.add_option('--ext', type="string", help="Original filename extension")
 		self.add_option('--compress', type="string", help="Compression type")
 		self.add_option('--force', action="store_true", help="Force rebuild")
@@ -250,14 +248,18 @@ class BinaryHandler(object):
 	def extract(self, **kwargs):
 		return {}
 
-	def thumbnail(self, basename, tilepath, force=False):
+	def thumbnail(self, previewpath, force=False):
 		fp = self._getfilepath()
 		if not os.access(fp, os.F_OK):
 			raise ThumbnailError, "Could not access: %s"%fp
 
-		# These are used in self._outfile()
-		self._basename = basename
-		self._tilepath = tilepath
+		# This is used in self._outfile()
+		self._previewpath = previewpath
+
+		# Make sure the output directory exists..
+		pdir = os.path.dirname(self._previewpath)
+		if not os.path.exists(pdir):
+			os.makedirs(pdir)
 
 		# Create a status file to indicate work on this thumbnail has started
 		statusfile = self._outfile('status')
@@ -288,22 +290,20 @@ class BinaryHandler(object):
 			except Exception, e:
 				# print "Could not build tiles:", e
 				pass
-			os.remove(workfile)				
-
+			os.remove(workfile)
 		else:
 			self._thumbnail_build(fp)
 
 		# Finished the thumbnail; remove the status file.
 		os.remove(statusfile)
-		
 
 	def _thumbnail_build(self, workfile, **kwargs):
 		pass
 
-	def thumbnail_status(self, basename, tilepath):
+	def thumbnail_status(self, previewpath):
 		"""Check the thumbnail status from the status file."""
-		self._basename = basename
-		self._tilepath = tilepath
+		self._previewpath = previewpath
+		
 		if not os.access(self.filepath, os.F_OK):
 			return "error"
 		
@@ -316,11 +316,8 @@ class BinaryHandler(object):
 		f.close()
 		return status
 
-
 	def _outfile(self, suffix):
-		# Strip out the ":" in the binary name
-		f = self._basename.replace(':', '.')
-		return str(os.path.join(self._tilepath, '%s.%s'%(f, suffix)))
+		return '%s.%s'%(self._previewpath, suffix)
 
 	##### Handler registration #####
 
@@ -393,20 +390,10 @@ class ImageHandler(BinaryHandler):
 		self.build_scale(workfile, self._outfile('medium.jpg'), tilesize=1024)
 
 	
-	
-		
 		
 		
 if __name__ == "__main__":
 	main(globals())
-		
-		
-		
-		
-		
-		
-		
-		
 		
 		
 		
