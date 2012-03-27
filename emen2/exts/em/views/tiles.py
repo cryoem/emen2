@@ -106,8 +106,8 @@ class Tiles2(View):
 		self.level = int(kwargs.get('level', 1))
 
 		self.z = int(kwargs.get('z', 0))
-		self.x = int(kwargs.get('x', 0)) / (self.level * 256)
-		self.y = int(kwargs.get('y', 0)) / (self.level * 256)
+		self.x = int(kwargs.get('x', 0))
+		self.y = int(kwargs.get('y', 0))
 
 
 	def get_data(self):
@@ -116,8 +116,14 @@ class Tiles2(View):
 
 		f = file(previewpath, "r")
 		header = pickle.load(f)
-		h = header[self.index]['slices'][self.z]
 
+		if self.mode == 'header':
+			# data = jsonrpc.jsonutil.encode(header)
+			data = {'nx':4096, 'ny':4096, 'nz':1, 'maxscale':3, 'filename':'asd.dm3'}
+			f.close()
+			return jsonrpc.jsonutil.encode(data)
+
+		h = header[self.index]['slices'][self.z]
 		key = self.size
 		if self.mode == 'tiles':
 			key = (self.level, self.x, self.y)

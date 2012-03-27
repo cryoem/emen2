@@ -586,14 +586,14 @@
 
     $.widget("emen2.TileControl", {
 		options: {
-			width: 0,
-			height: 0,
+			nx: 0,
+			ny: 0,
 			size: 256,
 			x: null,
 			y: null, 
 			scale: 'auto',
 			bdo: null,
-			mode: "live",
+			mode: 'cached',
 			displaymode: 'image',
 			show: true,
 			controlsinset: true,
@@ -618,12 +618,12 @@
 				this.element.append(emen2.template.spinner());
 				$.ajax({
 					type: 'POST',
-					url: EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/check/',
+					url: EMEN2WEBROOT+'/preview/'+this.options.bdo+'/header/',
 					dataType: 'json',
 					success: function(d) {
 						$('.e2l-spinner', self.element).remove();
-						self.options.width = d['width'];
-						self.options.height = d['height'];
+						self.options.nx = d['nx'];
+						self.options.ny = d['ny'];
 						self.options.filename = d['filename'];
 						self.options.maxscale = d['maxscale'];
 						self.build();
@@ -680,15 +680,21 @@
 
 			var controls = $('<div class="e2-tile-controls"> \
 				<h4 class="e2l-label">Image</h4> \
-				<input type="button" name="zoomout" value="-" /> <input type="button" name="zoomin" value="+" /><br /> \
-				<input type="button" name="autocenter" value="Center" /> <br />\
-				<a class="e2-button" href="'+EMEN2WEBROOT+'/download/'+self.options.bdo+'/'+self.options.filename+'">Download</a> \
+				<input type="button" name="zoomout" value="-" /> \
+				<input type="button" name="zoomin" value="+" /><br /> \
+				<input type="button" name="autocenter" value="Center" /><br /> \
+				<a class="e2-button" href="'+EMEN2WEBROOT+'/download/'+self.options.bdo+'/'+self.options.filename+'"> \
+				Download</a> \
 				<h4 class="e2l-label">Mode</h4> \
 				<div style="text-align:left"> \
-				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /><label for="displaymode_image">Image</label><br />\
-				<input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /><label for="displaymode_pspec">PSpec</label><br />\
-				<input type="radio" name="displaymode" value="1d" id="displaymode_1d" /><label for="displaymode_1d">1D</label> <br />\
-				<input type="text" name="apix" value="'+apix+'" size="1" /><span class="e2l-small">A/px</a><br />\
+				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /> \
+				<label for="displaymode_image">Image</label><br /> \
+				<input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /> \
+				<label for="displaymode_pspec">PSpec</label><br /> \
+				<input type="radio" name="displaymode" value="1d" id="displaymode_1d" /> \
+				<label for="displaymode_1d">1D</label> <br />\
+				<input type="text" name="apix" value="'+apix+'" size="1" /> \
+				<span class="e2l-small">A/px</span><br /> \
 				</div> \
 			</div>');
 			
@@ -715,10 +721,7 @@
 		
 		setdisplaymode: function(mode) {
 			$('img', this.inner).remove();
-			var mx = this.element.width();
-			var my = this.element.height();
 			this.options.displaymode = mode;
-			if (mx > my) {mx = my}
 			if (mode=="image") {
 				this.options.scale = this.autoscale();
 				this.setscale(this.options.scale);
@@ -729,12 +732,11 @@
 					apix = 1;
 				}
 				var modeimg = $('<img src="'+EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/1d/?angstroms_per_pixel='+apix+'" alt="apix" />');				
-				modeimg.height(mx);
 				this.inner.append(modeimg);
 				this.inner.css('top',0);
 				this.inner.css('left',0);
 			} else if (mode == "pspec") {
-				var modeimg = $('<img src="'+EMEN2WEBROOT+'/download/'+this.options.bdo+'/pspec.png?size=pspec&format=png" alt="pspec" />');
+				var modeimg = $('<img src="'+EMEN2WEBROOT+'/preview/'+this.options.bdo+'/pspec/" alt="pspec" />');
 				this.inner.append(modeimg);				
 			}
 		},
@@ -746,8 +748,8 @@
 			for (var i=0; Math.pow(2,i) <= mx; i++) {
 				this.options.scales.push(Math.pow(2, i));
 			}
-			var sx = this.options.width / this.element.width();
-			var sy = this.options.height / this.element.height();
+			var sx = this.options.nx / this.element.width();
+			var sy = this.options.ny / this.element.height();
 			if (sy > sx) {sx = sy}
 			var q = 1;
 			for (var i=0; i<this.options.scales.length; i++) {
@@ -759,7 +761,7 @@
 		},
 		
 		autocenter: function() {
-			this.move(this.options.width / 2, this.options.height / 2);
+			this.move(this.options.nx / 2, this.options.ny / 2);
 		},
 		
 		recenter: function() {
@@ -767,11 +769,11 @@
 		},
 		
 		move: function(x,y) {
-			this.options.x = x;
-			this.options.y = y;
-			var offset = this.center_to_offset();
-			this.inner.css('left', offset[0]);
-			this.inner.css('top', offset[1]);
+			// this.options.x = x;
+			// this.options.y = y;
+			// var offset = this.center_to_offset();
+			// this.inner.css('left', offset[0]);
+			// this.inner.css('top', offset[1]);
 			this.recalc();
 		},
 
@@ -808,19 +810,20 @@
 		},		
 		
 		recalc: function() {
-			var v = this.viewsize();
-			var bounds = this.getbounds();			
-			bounds[0] = bounds[0] - bounds[0] % (this.options.size * this.options.scale);
-			bounds[1] = bounds[1] - bounds[1] % (this.options.size * this.options.scale);
-			bounds[2] = bounds[2] + bounds[2] % (this.options.size * this.options.scale);
-			bounds[3] = bounds[3] + bounds[3] % (this.options.size * this.options.scale);
-			if (bounds[0] < 0) {bounds[0] = 0}
-			if (bounds[1] < 0) {bounds[1] = 0}
-			if (bounds[2] > this.options.width) {bounds[2] = this.options.width}
-			if (bounds[3] > this.options.height) {bounds[3] = this.options.height}
+			// var v = this.viewsize();
+			// var bounds = this.getbounds();
+			// bounds[0] = bounds[0] - bounds[0] % (this.options.size * this.options.scale);
+			// bounds[1] = bounds[1] - bounds[1] % (this.options.size * this.options.scale);
+			// bounds[2] = bounds[2] + bounds[2] % (this.options.size * this.options.scale);
+			// bounds[3] = bounds[3] + bounds[3] % (this.options.size * this.options.scale);
+			// if (bounds[0] < 0) {bounds[0] = 0}
+			// if (bounds[1] < 0) {bounds[1] = 0}
+			// if (bounds[2] > this.options.nx) {bounds[2] = this.options.nx}
+			// if (bounds[3] > this.options.ny) {bounds[3] = this.options.ny}
+			// console.log("Bounds:", bounds);
 
-			for (var x = bounds[0]; x < bounds[2]; x += this.options.size * this.options.scale) {				
-				for (var y = bounds[1]; y < bounds[3] ; y += this.options.size * this.options.scale) {
+			for (var x = 0; x < 2; x+=1) {				
+				for (var y = 0; y < 2 ; y += 1) {
 					var id = 'tile-'+this.options.scale+'-'+x+'-'+y;
 					var img = document.getElementById(id);
 					if (!img) {
@@ -829,9 +832,8 @@
 						img.css('position', 'absolute');
 						img.css('width', this.options.size);
 						img.css('height', this.options.size);					
-						img.css('left', x / this.options.scale);
-						// Tiles used to be inverted; now they aren't.
-						img.css('top', ((this.options.height - y) / this.options.scale) - this.options.size);
+						img.css('left', x * this.options.size);
+						img.css('top', y * this.options.size);
 						this.inner.append(img);
 					}
 
@@ -840,11 +842,7 @@
 		},
 		
 		get_tile: function(x, y) {
-			if (this.options.mode == "cached") {
-				return EMEN2WEBROOT+'/preview/'+this.options.bdo+'/tiles/?x='+x+'&y='+y+'&level='+this.options.scale
-			} else {
-				return EMEN2WEBROOT+'/eman2/'+this.options.bdo+'/tiles?x='+x+'&y='+y+'&size='+this.options.size*this.options.scale+'&fill=1&scale='+this.options.scale
-			}
+			return EMEN2WEBROOT+'/preview/'+this.options.bdo+'/tiles/?x='+x+'&y='+y+'&level='+this.options.scale
 		},
 		
 		setscale: function(scale) {

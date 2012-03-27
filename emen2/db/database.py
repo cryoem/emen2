@@ -660,7 +660,7 @@ class DB(object):
 	extensions = emen2.db.config.get('extensions.EXTS')
 	sync_contexts = threading.Event()
 
-	def __init__(self, path=None, create=False):
+	def __init__(self, path=None, create=None):
 		"""EMEN2 Database.
 		
 		:keyword path: Directory containing an EMEN2 Database Environment.

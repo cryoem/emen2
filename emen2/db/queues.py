@@ -15,6 +15,8 @@ try:
 except:
 	CPU_COUNT = 2
 
+CPU_COUNT = 1
+
 ##### Subprocess queues #####
 
 # threading.Thread style
