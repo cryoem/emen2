@@ -94,10 +94,8 @@ def thumbnail_from_binary(bdo, force=False, wait=False):
 		return "complete"
 	
 	# Add to the task queue
-	print "Adding to task queue:", args
 	emen2.db.queues.processqueue.add_task(args)
 	return "building"
-	
 	
 
 def main(g):
@@ -280,6 +278,7 @@ class BinaryHandler(object):
 		if compress and not self._allow_gzip:
 			# This handler does not accept gzip'd files, for whatever reason.
 			pass
+			
 		elif compress:
 			# Decompress the file
 			workfile = tempfile.mkstemp(suffix='.tmp')[1]

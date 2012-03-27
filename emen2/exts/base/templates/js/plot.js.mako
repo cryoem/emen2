@@ -521,7 +521,6 @@
 			var self = this;		
 			// Filter the records
 			recs = recs.filter(function(d){return (self.x.f(d)!=null && self.y.f(d)!=null)});
-
 			if (!recs.length) {
 				this.element.empty();
 				this.element.append('<p>No records to display</p>');

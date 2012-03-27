@@ -12,85 +12,9 @@ from emen2.web.view import View
 
 # header[index][slices][tiles][(level, x, y)]
 
-	
-
-
-def get_tile(tilefile,level,x,y):
-	"""get_tile(tilefile,level,x,y)
-	retrieve a tile from the file"""
-
-
-	tf=file(tilefile,"r")
-	td=pickle.load(tf)
-
-	try:
-		a=td[(level,x,y)]
-	except:
-		raise KeyError,"Invalid Tile"
-		
-	tf.seek(a[0],1)
-	ret = tf.read(a[1])
-	tf.close()
-
-	return ret
-
-
-
-
-def get_tile_dim(tilefile):
-	"""This will determine the number of tiles available in
-	x and y at each level and return a list of (nx,ny) tuples"""
-
-	tf=file(tilefile,"r")
-	td=pickle.load(tf)
-	tf.close()
-
-	ret=[]
-	for l in range(10):
-		x,y= -1, -1
-		for i in td:
-			if i[0] == l:
-				x,y = max(x,i[1]),max(y,i[2])
-		if x==-1 and y==-1:
-			break
-		ret.append((x+1,y+1))
-
-	return ret
-
-
-
 
 @View.register
-class Tiles(View):
-	mimetype = "image/jpeg"
-
-	@View.add_matcher(r'^/tiles/(?P<bid>.+)/image/$', view='Tiles', name='image')	
-	def main(self, bid=None, **kwargs):
-		self.bid=bid
-		if self.bid == None:
-			return "No Binary ID supplied."
-
-		bdo = self.db.getbinary(self.bid, filt=False)
-
-		# transform TileImg params to old-style tile file
-		self.level = int(kwargs.get('level', 0))
-		self.x = int(kwargs.get('x', 0)) / (self.level * 256)
-		self.y = int(kwargs.get('y', 0)) / (self.level * 256)
-		self.level = math.log(self.level, 2)
-
-	def get_data(self):
-		tilepath = emen2.db.config.get('paths.TILEPATH')
-		filepath = os.path.join(tilepath, self.bid.replace(":",".")+".tile")
-		ret = get_tile(filepath, int(self.level), int(self.x), int(self.y))
-		self.set_header("Content-Type", "image/jpeg")
-		return ret
-
-
-
-
-
-@View.register
-class Tiles2(View):
+class Preview(View):
 	@View.add_matcher(r'^/preview/(?P<bid>.+)/(?P<mode>.+)/$')	
 	def main(self, bid=None, mode='tiles', **kwargs):
 		self.bid = bid
@@ -100,11 +24,11 @@ class Tiles2(View):
 		# Make sure we can access bdo
 		bdo = self.db.getbinary(self.bid, filt=False)
 
+		self.filename = bdo.get('filename')
 		self.mode = mode
 		self.size = int(kwargs.get('size', 512))
 		self.index = int(kwargs.get('index', 0))
-		self.level = int(kwargs.get('level', 1))
-
+		self.scale = int(kwargs.get('scale', 1))
 		self.z = int(kwargs.get('z', 0))
 		self.x = int(kwargs.get('x', 0))
 		self.y = int(kwargs.get('y', 0))
@@ -118,15 +42,21 @@ class Tiles2(View):
 		header = pickle.load(f)
 
 		if self.mode == 'header':
-			# data = jsonrpc.jsonutil.encode(header)
-			data = {'nx':4096, 'ny':4096, 'nz':1, 'maxscale':3, 'filename':'asd.dm3'}
+			h = header[self.index]
+			data = {
+				'nx': h['nx'],
+				'ny': h['ny'],
+				'nz': h['nz'],
+				'maxscale': 8,
+				'filename': self.filename
+			}
 			f.close()
 			return jsonrpc.jsonutil.encode(data)
 
 		h = header[self.index]['slices'][self.z]
 		key = self.size
 		if self.mode == 'tiles':
-			key = (self.level, self.x, self.y)
+			key = (self.scale, self.x, self.y)
 
 		ret = h[self.mode][key]
 
@@ -134,7 +64,6 @@ class Tiles2(View):
 		data = f.read(ret[1])
 		f.close()
 
-		print "Found...", len(data)
 		if ret[2] == 'jpg':
 			self.set_header("Content-Type", "image/jpeg")
 		elif ret[2] == 'png':
@@ -146,110 +75,6 @@ class Tiles2(View):
 	
 
 
-
-@View.register
-class PSpec1D(View):
-	mimetype = "image/jpeg"
-
-	@View.add_matcher(r'^/tiles/(?P<bid>.+)/1d/$', view='Tiles', name='pspec1d')
-	def main(self, bid=None, **kwargs):
-		self.bid=bid
-		if self.bid == None:
-			return "No Binary ID supplied."
-
-		self.bdo = self.db.getbinary(self.bid, filt=False)
-		self.angstroms_per_pixel = float(kwargs.get('angstroms_per_pixel', 1))
-		self.tem_magnification_set = float(kwargs.get('tem_magnification_set', 0))
-		self.length_camera = float(kwargs.get('length_camera', 0))
-		self.binning = float(kwargs.get('binning', 1))
-		self.pixel_pitch = float(kwargs.get('pixel_pitch', 0))
-		self.rebuild = kwargs.get('rebuild')
-
-
-	def get_data(self):
-		tilepath = emen2.db.config.get('paths.TILEPATH')
-		filepath = os.path.join(tilepath, self.bid.replace(":",".")+".radial.txt")
-
-		f = open(filepath, "r")
-		y = json.load(f)
-		f.close()
-				
-		dx = 1.0 / (2.0 * self.angstroms_per_pixel * (len(y)+1))
-		x = [dx*(i+1) for i in range(len(y))]
-		
-		q = self.db.plot(x, y, plotmode="xy", xlabel="Spatial Freq. (1/A); A/pix set to %s"%self.angstroms_per_pixel, ylabel="Log Intensity (10^x)")
-		f = open(q['plots']['png'], "r")
-		ret = f.read()
-		f.close()
-
-		self.set_header("Content-Type", "image/png")
-		return ret
-
-
-
-@View.register
-class TilesCheck(View):
-
-	@View.add_matcher(r'^/tiles/(?P<bid>.+)/check/$', view='Tiles', name='check')	
-	def main(self, bid=None):
-		self.bid = bid
-		self.rebuild = False
-
-	def get_data(self):	
-		ret = ()
-		bdo = self.db.getbinary(self.bid, filt=False)
-		bname = bdo.get('filename')
-		ipath = bdo.get('filepath')
-		bdocounter = bdo.get('name')
-		tilepath = emen2.db.config.get('paths.TILEPATH')
-		filepath = os.path.join(tilepath, self.bid.replace(":",".")+".tile")
-		
-		# Build
-		if not os.access(filepath, os.F_OK):
-			try:
-				emen2.db.handlers.thumbnail_from_binary(bdo, wait=True)
-			except:
-				raise ValueError, "Could not create tile"
-
-
-		dims = get_tile_dim(filepath)
-		dimsx = [i[0] for i in dims]
-		dimsy = [i[1] for i in dims]
-			
-		ret = {}
-		ret['width'] = max(dimsx) * 256
-		ret['height'] = max(dimsy) * 256
-		ret['maxscale'] = math.pow(2, len(dimsx)-1)
-		ret['filename'] = bdo.get('filename')
-		return jsonrpc.jsonutil.encode(ret)
-
-
-
-
-@View.register
-class TilesCreate(View):
-
-	@View.add_matcher(r'^/tiles/(?P<bid>.+)/create/$', view='Tiles', name='create')
-	def main(self,bid=None):
-		self.bid=bid
-
-	def get_data(self):
-		ret = ()
-		bdo = self.db.getbinary(self.bid, filt=False)
-		bname = bdo.get('filename')
-		ipath = bdo.get('filepath')
-		bdocounter = bdo.get('name')
-
-		if not os.access(filepath,os.R_OK):
-			raise Exception,"Unable to create tile"
-			#return (-1,-1,bid)
-		else:
-			dims=get_tile_dim(filepath)
-			dimsx=[i[0] for i in dims]
-			dimsy=[i[1] for i in dims]
-			ret=(dimsx,dimsy,self.bid)
-
-		return jsonrpc.jsonutil.encode(ret)
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

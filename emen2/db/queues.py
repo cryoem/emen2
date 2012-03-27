@@ -37,14 +37,18 @@ class ProcessWorker(object):
 			
 			
 
-class ProcessQueue(Queue.PriorityQueue):
+class ProcessQueue(Queue.LifoQueue):
 	"""A queue of processes to run."""
 	worker = ProcessWorker
 	
 	def add_task(self, task, priority=100):
 		"""Add a task to the queue. Highest priority is 0, lowest priority is 1000. Default is 100."""
+		if task:
+			task = tuple(task)
+
 		if priority < 0 or priority > 1000:
 			raise ValueError, "Highest priority is 0, lowest priority is 1000"
+
 		return self.put((priority, task))
 
 	def end(self):

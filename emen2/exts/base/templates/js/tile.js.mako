@@ -586,18 +586,16 @@
 
     $.widget("emen2.TileControl", {
 		options: {
-			nx: 0,
-			ny: 0,
+			width: 0,
+			height: 0,
 			size: 256,
 			x: null,
 			y: null, 
 			scale: 'auto',
 			bdo: null,
-			mode: 'cached',
 			displaymode: 'image',
 			show: true,
 			controlsinset: true,
-			scales: [1, 2, 4, 8, 16],
 			name: null
 		},
 		
@@ -614,48 +612,40 @@
 		
 		show: function() {
 			var self = this;
-			if (this.options.mode == "cached") {
-				this.element.append(emen2.template.spinner());
-				$.ajax({
-					type: 'POST',
-					url: EMEN2WEBROOT+'/preview/'+this.options.bdo+'/header/',
-					dataType: 'json',
-					success: function(d) {
-						$('.e2l-spinner', self.element).remove();
-						self.options.nx = d['nx'];
-						self.options.ny = d['ny'];
-						self.options.filename = d['filename'];
-						self.options.maxscale = d['maxscale'];
-						self.build();
-					},
-					error: function(x,y,z) {
-						//alert("Error! Could not access tiles!");
-						$('.e2l-spinner', self.element).remove();
-						self.build_static();
-						self.element.append('<p><strong>Could not access tiles!</strong></p>');
-					}
-				});
-			} else if (this.options.mode == "static") {
-				this.build_static();
-			} else {
-				this.build();
-			}
+			this.element.append(emen2.template.spinner());
+			// Get the details about this image
+			$.ajax({
+				type: 'POST',
+				url: EMEN2WEBROOT+'/preview/'+this.options.bdo+'/header/',
+				dataType: 'json',
+				success: function(d) {
+					$('.e2l-spinner', self.element).remove();
+					self.options.nx = d['nx'];
+					self.options.ny = d['ny'];
+					self.options.filename = d['filename'];
+					self.options.maxscale = d['maxscale'];
+					self.build();
+				},
+				error: function(x,y,z) {
+					$('.e2l-spinner', self.element).remove();
+					self.element.empty();
+					self.element.append('<p><strong>Could not access tiles!</strong></p>');
+				}
+			});
 		},
-		
-		build_static: function() {
-			this.element.empty();
-			this.element.append('<img src="'+EMEN2WEBROOT+'/download/'+this.options.bdo+'/" />');
-		},
+
 		
 		build: function() {
 			var self = this;
 			this.inner = $('<div style="position:relative;top:0px;left:0px" />');
 			this.element.append(this.inner);
+
 			this.element.attr('data-bdo', this.options.bdo);			
 
-			//this.setscale(this.options.scale);
+			// Set the display mode
 			this.setdisplaymode(this.options.displaymode);
 			
+			// Drag handler
 			this.inner.draggable({
 				drag:function(){
 					var offset = self.offset_to_center();
@@ -665,6 +655,7 @@
 				}
 			});
 			
+			// Click handler
 			// this.inner.click(function(e) {
 			// 	e.stopPropagation();
 			// 	parentpos = self.inner.position();
@@ -672,7 +663,14 @@
 			// 	var y = (e.clientY - parentpos.top) * self.options.scale;
 			// 	$('div[data-bdo='+self.options.bdo+']').Boxer('addbox', x, y); // callback to the Boxer controller
 			// });
-
+			
+			this.build_controls();
+			
+		},
+		
+		build_controls: function() {				
+			// Controls
+			var self = this;			
 			var apix = null; //emen2.caches['record'][this.options.name]['angstroms_per_pixel'];
 			if (!apix) {
 				apix = 1.0;
@@ -690,14 +688,14 @@
 				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /> \
 				<label for="displaymode_image">Image</label><br /> \
 				<input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /> \
-				<label for="displaymode_pspec">PSpec</label><br /> \
+				<label for="displaymode_pspec">FFT</label><br /> \
 				<input type="radio" name="displaymode" value="1d" id="displaymode_1d" /> \
 				<label for="displaymode_1d">1D</label> <br />\
 				<input type="text" name="apix" value="'+apix+'" size="1" /> \
 				<span class="e2l-small">A/px</span><br /> \
 				</div> \
 			</div>');
-			
+
 			this.element.append(controls);			
 
 			controls.find("input[name=displaymode]").click(function() {
@@ -720,44 +718,90 @@
 		},
 		
 		setdisplaymode: function(mode) {
-			$('img', this.inner).remove();
+			var self = this;
 			this.options.displaymode = mode;
+
+			// Remove all images
+			this.inner.hide();
+			$('.e2-tile-pspec', this.element).remove();
+			$('.e2-tile-pspec1d', this.element).remove();
+
 			if (mode=="image") {
+				// Tiled image
+				this.inner.show();
 				this.options.scale = this.autoscale();
 				this.setscale(this.options.scale);
 				this.autocenter();
-			} else if (mode == "1d") {
-				var apix = $('input[name=apix]').val(); // this should include [data-bdo=..]
-				if (!apix) {
-					apix = 1;
-				}
-				var modeimg = $('<img src="'+EMEN2WEBROOT+'/tiles/'+this.options.bdo+'/1d/?angstroms_per_pixel='+apix+'" alt="apix" />');				
-				this.inner.append(modeimg);
-				this.inner.css('top',0);
-				this.inner.css('left',0);
 			} else if (mode == "pspec") {
-				var modeimg = $('<img src="'+EMEN2WEBROOT+'/preview/'+this.options.bdo+'/pspec/" alt="pspec" />');
-				this.inner.append(modeimg);				
+				// Draw 2D FFT
+				var modeimg = $('<img class="e2-tile-pspec" src="'+EMEN2WEBROOT+'/preview/'+this.options.bdo+'/pspec/" alt="pspec" />');
+				var w = this.element.width() / 2;
+				modeimg.css('margin-left', w-256);
+				this.element.append(modeimg);			
+			} else if (mode == "1d") {
+				var apix = $('input[name=apix]', this.element).val();
+				$.ajax({
+					type: 'POST',
+					url: EMEN2WEBROOT+'/preview/'+this.options.bdo+'/pspec1d/',
+					dataType: 'json',
+					success: function(d) {
+						self.plot1d(d, apix);
+					}
+				});
+
 			}
 		},
 
-		autoscale: function(refresh) {
-			var mx = this.options.maxscale;
-			if (mx == null) {mx = 32}
-			this.options.scales = [];
-			for (var i=0; Math.pow(2,i) <= mx; i++) {
-				this.options.scales.push(Math.pow(2, i));
+		plot1d: function(d, apix) {
+			// Convert to query format...
+			var recs = [];
+			var dx = 1.0 / (2.0 * apix * (d.length+1));
+			for (var i=0;i<d.length;i++) {
+				var rec = {'x':dx*(i+1), y:d[i]}
+				recs.push(rec);
 			}
-			var sx = this.options.nx / this.element.width();
-			var sy = this.options.ny / this.element.height();
-			if (sy > sx) {sx = sy}
-			var q = 1;
-			for (var i=0; i<this.options.scales.length; i++) {
-				if ( sx > this.options.scales[i-1] ){
-					q = this.options.scales[i];
+
+			// Plot.
+			var plot = $('<div class="e2-tile-pspec1d"></div>')
+			plot.css('width', 512);
+			plot.css('height', 512);
+			
+			var w = this.element.width() / 2;
+			plot.css('margin-left', w-256);
+			
+			plot.append('<strong class="e2-tile-pspec1d">Spatial freq. (1/A) vs. Log Intensity (10^x). A/pix set to '+apix+'</strong>');			
+			var plotelem = $('<div class="e2-plot"></div>');
+			plot.append(plotelem);
+			this.element.append(plot);
+
+			plotelem.PlotScatter({
+				height: 512,
+				q: {
+					recs:recs,
+					x: {key: 'x'},
+					y:  {key: 'y'}
 				}
-			};
-			return Math.round(q);
+			});			
+		},
+
+		autoscale: function(refresh) {
+			return this.options.maxscale
+			// var mx = this.options.maxscale;
+			// if (mx == null) {mx = 32}
+			// this.options.scales = [];
+			// for (var i=0; Math.pow(2,i) <= mx; i++) {
+			// 	this.options.scales.push(Math.pow(2, i));
+			// }
+			// var sx = this.options.nx / this.element.width();
+			// var sy = this.options.ny / this.element.height();
+			// if (sy > sx) {sx = sy}
+			// var q = 1;
+			// for (var i=0; i<this.options.scales.length; i++) {
+			// 	if ( sx > this.options.scales[i-1] ){
+			// 		q = this.options.scales[i];
+			// 	}
+			// };
+			// return Math.round(q);
 		},
 		
 		autocenter: function() {
@@ -766,19 +810,6 @@
 		
 		recenter: function() {
 			this.move(this.options.x, this.options.y);
-		},
-		
-		move: function(x,y) {
-			// this.options.x = x;
-			// this.options.y = y;
-			// var offset = this.center_to_offset();
-			// this.inner.css('left', offset[0]);
-			// this.inner.css('top', offset[1]);
-			this.recalc();
-		},
-
-		viewsize: function() {
-			return [(this.element.width() / 2) * this.options.scale, (this.element.height() / 2) * this.options.scale]
 		},
 		
 		offset_to_center: function() {
@@ -794,57 +825,15 @@
 			return [-left/this.options.scale, -top/this.options.scale]
 		},
 		
-		getbounds: function() {
-			var v = this.viewsize();			
-			var bounds = [
-				this.options.x - v[0], 
-				this.options.y - v[1],
-				this.options.x + v[0],
-				this.options.y + v[1]
-				];
-			return bounds			
+		move: function(x,y) {
+			this.options.x = x;
+			this.options.y = y;
+			var offset = this.center_to_offset();
+			this.inner.css('left', offset[0]);
+			this.inner.css('top', offset[1]);
+			this.recalc();
 		},
-		
-		getinner: function() {
-			return this.inner
-		},		
-		
-		recalc: function() {
-			// var v = this.viewsize();
-			// var bounds = this.getbounds();
-			// bounds[0] = bounds[0] - bounds[0] % (this.options.size * this.options.scale);
-			// bounds[1] = bounds[1] - bounds[1] % (this.options.size * this.options.scale);
-			// bounds[2] = bounds[2] + bounds[2] % (this.options.size * this.options.scale);
-			// bounds[3] = bounds[3] + bounds[3] % (this.options.size * this.options.scale);
-			// if (bounds[0] < 0) {bounds[0] = 0}
-			// if (bounds[1] < 0) {bounds[1] = 0}
-			// if (bounds[2] > this.options.nx) {bounds[2] = this.options.nx}
-			// if (bounds[3] > this.options.ny) {bounds[3] = this.options.ny}
-			// console.log("Bounds:", bounds);
 
-			for (var x = 0; x < 2; x+=1) {				
-				for (var y = 0; y < 2 ; y += 1) {
-					var id = 'tile-'+this.options.scale+'-'+x+'-'+y;
-					var img = document.getElementById(id);
-					if (!img) {
-						var src = this.get_tile(x,y);
-						var img = $('<img src="'+src+'" id="'+id+'" alt="Tile '+x+' '+y+'" />');
-						img.css('position', 'absolute');
-						img.css('width', this.options.size);
-						img.css('height', this.options.size);					
-						img.css('left', x * this.options.size);
-						img.css('top', y * this.options.size);
-						this.inner.append(img);
-					}
-
-				}
-			}
-		},
-		
-		get_tile: function(x, y) {
-			return EMEN2WEBROOT+'/preview/'+this.options.bdo+'/tiles/?x='+x+'&y='+y+'&level='+this.options.scale
-		},
-		
 		setscale: function(scale) {
 			var autoscale = this.autoscale();
 			if (scale == 'auto' || scale > autoscale) { scale = autoscale } 
@@ -863,9 +852,71 @@
 		zoomin: function() {
 			var scale = this.options.scale / 2;
 			this.setscale(scale);
-		}
+		},
+
+		viewsize: function() {
+			return [(this.element.width() / 2) * this.options.scale, (this.element.height() / 2) * this.options.scale]
+		},
+
+		get_tile: function(x, y) {
+			return EMEN2WEBROOT+'/preview/'+this.options.bdo+'/tiles/?x='+x+'&y='+y+'&scale='+this.options.scale
+		},
+		
+		recalc: function() {
+			// Get the current viewport boundaries
+			var v = this.viewsize();
+
+			// Don't forget to invert Y coords...
+			var bounds = [
+				this.options.x - v[0], 
+				this.options.ny - this.options.y - v[1],
+				this.options.x + v[0],
+				this.options.ny - this.options.y + v[1] // this.options.y + v[1]
+			];
+			// console.log("viewsize:", v);
+			// console.log("x,y:", this.options.x, this.options.y);
+
+			// Adjust based on image size
+			if (bounds[0] < 0) {bounds[0] = 0}
+			if (bounds[1] < 0) {bounds[1] = 0}
+			if (bounds[2] >= this.options.nx) {bounds[2] = this.options.nx-1}
+			if (bounds[3] >= this.options.ny) {bounds[3] = this.options.ny-1}
+
+			// Convert to tile x,y coordinates
+			var stepsize = this.options.size * this.options.scale;
+			for (var i=0;i<bounds.length;i++) {
+				bounds[i] = Math.floor(bounds[i]/stepsize);
+			}
+			// console.log("Updated bounds:", bounds);
+
+			for (var x = bounds[0]; x <= bounds[2]; x++) {
+				for (var y = bounds[1]; y <= bounds[3]; y++) {
+					// Check if the tile exits; if not, add it.
+					// console.log("tile:", x, y);
+					var id = 'tile-'+this.options.scale+'-'+x+'-'+y;
+					var img = document.getElementById(id);
+					if (!img) {
+						// console.log("Building:", x, y);
+						var src = this.get_tile(x,y);
+						var img = $('<img src="'+src+'" id="'+id+'" alt="Tile x:'+x+' y:'+y+'" />');
+						// Coordinate system inverted
+						var top = (this.options.ny - y*this.options.size*this.options.scale) / this.options.scale - this.options.size;
+						// img.css('border', 'solid red 1px');
+						img.css('position', 'absolute');
+						img.css('width', this.options.size);
+						img.css('height', this.options.size);					
+						img.css('left', x * this.options.size);
+						img.css('top', top);
+						this.inner.append(img);							
+					}					
+				}
+			}
+		},
+
 	});
+	
 })(jQuery);
+
 
 
 <%!
