@@ -619,7 +619,8 @@
 				url: EMEN2WEBROOT+'/preview/'+this.options.bdo+'/header/',
 				dataType: 'json',
 				success: function(d) {
-					$('.e2l-spinner', self.element).remove();
+					self.element.empty();
+					// $('.e2l-spinner', self.element).remove();
 					self.options.nx = d['nx'];
 					self.options.ny = d['ny'];
 					self.options.filename = d['filename'];
@@ -629,7 +630,9 @@
 				error: function(x,y,z) {
 					$('.e2l-spinner', self.element).remove();
 					self.element.empty();
-					self.element.append('<p><strong>Could not access tiles!</strong></p>');
+					self.element.append('<p style="text-align:center">'+emen2.template.spinner(true)+' Waiting for tiles...</p>');
+					setTimeout(function(){self.show()}, 2000);
+
 				}
 			});
 		},
@@ -685,12 +688,9 @@
 				Download</a> \
 				<h4 class="e2l-label">Mode</h4> \
 				<div style="text-align:left"> \
-				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /> \
-				<label for="displaymode_image">Image</label><br /> \
-				<input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /> \
-				<label for="displaymode_pspec">FFT</label><br /> \
-				<input type="radio" name="displaymode" value="1d" id="displaymode_1d" /> \
-				<label for="displaymode_1d">1D</label> <br />\
+				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /><label for="displaymode_image"> Image</label><br /> \
+				<input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /><label for="displaymode_pspec"> FFT</label><br /> \
+				<input type="radio" name="displaymode" value="1d" id="displaymode_1d" /><label for="displaymode_1d"> 1D</label> <br />\
 				<input type="text" name="apix" value="'+apix+'" size="1" /> \
 				<span class="e2l-small">A/px</span><br /> \
 				</div> \
@@ -774,7 +774,7 @@
 			plot.append(plotelem);
 			this.element.append(plot);
 
-			plotelem.PlotScatter({
+			plotelem.PlotLine({
 				height: 512,
 				q: {
 					recs:recs,

@@ -61,7 +61,7 @@ class Download(View):
 			if size:
 				# Thumbnail requested
 				thumbpath = '%s.%s.%s'%(previewpath, size, format)
-				print "Thumbnail: Checking for...", thumbpath
+				# print "Thumbnail: Checking for...", thumbpath
 				if os.access(thumbpath, os.F_OK):
 					# Return the thumbnail
 					files[thumbpath] = '%s.%s.%s'%(filename, size, format)

@@ -740,6 +740,10 @@ path.area {
   fill: #e7e7e7;
 }
 
+line {
+	stroke: black;
+}
+
 .axis {
   shape-rendering: crispEdges;
 }

@@ -15,7 +15,7 @@ try:
 except:
 	CPU_COUNT = 2
 
-CPU_COUNT = 1
+# CPU_COUNT = 1
 
 ##### Subprocess queues #####
 
@@ -26,12 +26,12 @@ class ProcessWorker(object):
 
 	def run(self):
 		while True:
-			priority, item = self.queue.get()
-			if item is None:
+			priority, name, task = self.queue.get()
+			if task is None:
 				self.queue.add_task(None)
 				return
-			print "ProcessWorker:", item
-			a = subprocess.Popen(item)
+			print "ProcessWorker:", task
+			a = subprocess.Popen(task)
 			a.wait()
 			self.queue.task_done()
 			
@@ -41,23 +41,26 @@ class ProcessQueue(Queue.LifoQueue):
 	"""A queue of processes to run."""
 	worker = ProcessWorker
 	
-	def add_task(self, task, priority=100):
+	def add_task(self, task, priority=0, name=None):
 		"""Add a task to the queue. Highest priority is 0, lowest priority is 1000. Default is 100."""
 		if task:
 			task = tuple(task)
 
-		if priority < 0 or priority > 1000:
-			raise ValueError, "Highest priority is 0, lowest priority is 1000"
+		if priority < -100 or priority > 100:
+			raise ValueError, "Highest priority is -100, lowest priority is 100"
 
-		return self.put((priority, task))
+		if name in [i[1] for i in self.queue]:
+			raise ValueError, "Task name already in queue: %s"%name
+
+		return self.put((priority, name, task))
 
 	def end(self):
 		"""Allow all queued jobs to complete, then exit."""
-		return self.put((1001, None))
+		return self.put((101, None))
 
 	def stop(self):
 		"""Allow running jobs to complete, then exit."""
-		return self.put((-1, None))
+		return self.put((-101, None))
 
 	def start(self, processes=1):
 		for i in range(processes):

@@ -545,13 +545,53 @@
 				.attr("class", "group")
 				.style("fill", function(d, i) {return self.z.scale(i)});
 			
-			// Add a rect for each date.
+			// Add a circle for each date.
 			var rect = groups.selectAll("circle")
 				.data(function(d,i){return d})
 				.enter().append("svg:circle")
 				.attr("cx", function(d,i) {return self.x.scale(self.x.f(d))})
 				.attr("cy", function(d,i) {return self.y.scale(self.y.f(d))})
 				.attr("r", 3);								
+		}
+	});
+
+	/***** Line Chart Control *****/
+
+	$.widget('emen2.PlotLine', $.emen2.PlotBase, {
+		plot: function(recs) {	
+			var self = this;		
+			// Filter the records
+			recs = recs.filter(function(d){return (self.x.f(d)!=null && self.y.f(d)!=null)});
+			if (!recs.length) {
+				this.element.empty();
+				this.element.append('<p>No records to display</p>');
+				return
+			}
+			
+			// Bin into series
+			var series = this.z.data(recs);
+
+			// Bind the data to the axes..?
+			this.x.data(recs);
+			this.y.data(recs);
+			
+			// Update the X and Y axis domains
+			this.svg.select(".x.axis").call(this.x.ax);
+			this.svg.select(".y.axis").call(this.y.ax);
+
+			// Add a path for each cause.
+			var groups = this.plotarea.selectAll("g.group")
+				.data(series)
+				.enter().append("svg:path")
+				.attr('class', 'line')
+				.attr('fill', 'none')
+				.attr('stroke', 'red')
+				.attr('stroke-width', 2)
+				.attr('d', d3.svg.line()
+					.x(function(d) {return self.x.scale(self.x.f(d))})
+					.y(function(d) {return self.y.scale(self.y.f(d))})
+				);
+
 		}
 	});
 	

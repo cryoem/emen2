@@ -314,7 +314,10 @@ class BinaryHandler(object):
 			self._thumbnail_build(fp)
 
 		# Finished the thumbnail; remove the status file.
-		os.remove(statusfile)
+		try:
+			os.remove(statusfile)
+		except:
+			pass
 
 	def _thumbnail_build(self, workfile, **kwargs):
 		# Override this method to actually build the thumbnails.
