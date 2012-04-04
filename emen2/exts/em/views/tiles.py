@@ -9,6 +9,7 @@ import jsonrpc.jsonutil
 import emen2.db.config
 from emen2.web.view import View
 
+import emen2.db.handlers
 
 # header[index][slices][tiles][(level, x, y)]
 
@@ -23,7 +24,7 @@ class Preview(View):
 
 		# Make sure we can access bdo
 		bdo = self.db.getbinary(self.bid, filt=False)
-
+		self.bdo = bdo
 		self.filename = bdo.get('filename')
 		self.mode = mode
 		self.size = int(kwargs.get('size', 512))
@@ -37,6 +38,11 @@ class Preview(View):
 	def get_data(self):
 		previewpath = emen2.db.binary.Binary.parse(self.bid).get('previewpath')
 		previewpath = '%s.eman2'%(previewpath)
+
+		if not os.path.exists(previewpath):
+			status = emen2.db.handlers.thumbnail_from_binary(self.bdo, wait=False)
+			raise Exception, "Building tile..."
+
 
 		f = file(previewpath, "r")
 		header = pickle.load(f)
