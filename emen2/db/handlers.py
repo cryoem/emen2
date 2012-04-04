@@ -24,7 +24,8 @@ import tempfile
 #################################################
 
 
-def thumbnail_from_binary(bdo, force=False, wait=False):
+
+def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
 	"""Given a Binary instance, run the thumbnail builder as a separate process
 	
 	Returns a status:
@@ -33,10 +34,12 @@ def thumbnail_from_binary(bdo, force=False, wait=False):
 		"error"
 	"""
 	
+	# Import the EMEN2 modules here to prevent circular imports.
 	import emen2.db.config
 	import emen2.db.binary
 	import emen2.db.queues
 	
+	# Paths and filenames
 	previewpath = emen2.db.binary.Binary.parse(bdo.get('name')).get('previewpath')
 	filepath = bdo.get('filepath')
 	filename = bdo.get('filename')
@@ -52,14 +55,18 @@ def thumbnail_from_binary(bdo, force=False, wait=False):
 	if _filename:
 		ext = _filename.pop()
 
-	# Get the handler, check if we're going to build the thumbnail
+	# Get the handler.
 	handler = BinaryHandler.get_handler(filepath=filepath, filename=filename)
+
+	# If the thumbnail is currently building, or an error occurred previously,
+	# then return that status.
 	status = handler.thumbnail_status(previewpath)
 	if status in ["building", "error"]:
 		return status
 	
-	# Prepare the command to run
-	# grumble...
+	# Prepare the command to run.
+	
+	# Grumble... Come up with a better way to get the script name.
 	args = []
 	cmd = emen2.db.config.get_filename(handler.__module__)
 	fix = ['.pyc', '.pyo']
@@ -67,13 +74,14 @@ def thumbnail_from_binary(bdo, force=False, wait=False):
 		for f in fix:
 			cmd = cmd.replace(f, '.py')
 
-	# Use a specific Python interpreter if configured
+	# Use a specific Python interpreter if configured.
 	python = emen2.db.config.get('EMAN2.EMAN2PYTHON')
 	if python:
 		args.append(python)
 
 	args.append(cmd)
 
+	# Add the command arguments.
 	args.append('--previewpath')
 	args.append(previewpath)
 	
@@ -89,17 +97,20 @@ def thumbnail_from_binary(bdo, force=False, wait=False):
 	args.append(filepath)
 	
 	if wait:
+		# Run directly and wait.
 		a = subprocess.Popen(args)
 		a.wait()
 		return "complete"
 	
-	# Add to the task queue
-	emen2.db.queues.processqueue.add_task(args)
+	# Otherwise, add to the task queue.
+	emen2.db.queues.processqueue.add_task(args, name=filepath, priority=priority)
 	return "building"
+	
 	
 
 def main(g):
 	"""Use a Handler to build a thumbnail."""
+	# g is the module namespace...
 	parser = ThumbnailOptions()
 	options, (handler, filepath) = parser.parse_args()
 	
@@ -109,16 +120,20 @@ def main(g):
 	if options.compress:
 		filename = '%s.%s'%(filename, options.compress)
 	
+	# Get the handler and build the thumbnail.
 	handler = g[handler](filepath=filepath, filename=filename)
 	handler.thumbnail(previewpath=options.previewpath, force=options.force)
 	
+	
+	
+##### Exceptions and Options #####	
 
 class ThumbnailError(Exception):
 	pass
 
 
 class ThumbnailOptions(optparse.OptionParser):
-	"""Options to run a Binary thumbnail generator"""
+	"""Options to run a Binary thumbnail generator."""
 	
 	def __init__(self, *args, **kwargs):
 		optparse.OptionParser.__init__(self, *args, **kwargs)
@@ -174,8 +189,8 @@ class BinaryHandler(object):
 		self._tmpfiles = []
 
 		# One of the following is required: filepath / filedata / fileobj
-		# ian: note... doesn't have to be set during init -- the main resource
-		# will do it later for post'd files.
+		# ian: note... doesn't have to be set during init -- the resource
+		# will do it later for POST'd files.
 		self.filepath = filepath
 		self.filedata = filedata
 		self.fileobj = fileobj
@@ -257,10 +272,15 @@ class BinaryHandler(object):
 		# Make sure the output directory exists..
 		pdir = os.path.dirname(self._previewpath)
 		if not os.path.exists(pdir):
-			os.makedirs(pdir)
+			try:
+				os.makedirs(pdir)
+			except OSError:
+				pass
 
 		# Create a status file to indicate work on this thumbnail has started
 		statusfile = self._outfile('status')
+		
+		# Write out "building" to the status file.
 		with file(statusfile, 'w') as f:
 			f.write("building")
 
@@ -297,6 +317,7 @@ class BinaryHandler(object):
 		os.remove(statusfile)
 
 	def _thumbnail_build(self, workfile, **kwargs):
+		# Override this method to actually build the thumbnails.
 		pass
 
 	def thumbnail_status(self, previewpath):
