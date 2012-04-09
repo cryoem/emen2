@@ -1,6 +1,5 @@
-import os
-import json
 import sys
+import emen2.db.load
 
 paramdefs =  [
  {'children': [],
@@ -192,27 +191,6 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Year grant started being referenced in P41 APR',
-  'desc_short': 'Start for p41',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant_p41_ref_start',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'datetime'},
-
-
  {'children': ['category_image',
                 'assess_grid',
                 'comment_analysis',
@@ -272,27 +250,6 @@ paramdefs =  [
   'property': None,
   'uri': None,
   'vartype': 'string'},
-
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'End date for a P41 Report',
-  'desc_short': 'Report End',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_report_end_date',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'datetime'},
 
 
  {'children': [],
@@ -419,27 +376,6 @@ paramdefs =  [
   'property': None,
   'uri': None,
   'vartype': 'int'},
-
-
- {'children': [],
-  'choices': ['Usa_Federal', 'Industry', 'Foundation'],
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Type of entity providing support',
-  'desc_short': 'Grant Source Type',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant_source_type',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'choice'},
 
 
  {'children': [],
@@ -1107,26 +1043,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'float'},
 
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Start date for a P41 Report',
-  'desc_short': 'Report Start',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_report_start_date',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'datetime'},
 
 
  {'children': [],
@@ -2135,26 +2051,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'float'},
 
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Amount of grant in USD',
-  'desc_short': 'Grant Amount',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant_funds',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'int'},
 
 
  {'children': ['voltage_lens'],
@@ -3960,26 +3856,6 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Recent progress on a P41 subproject',
-  'desc_short': 'Recent Progress',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_progress',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'text'},
-
 
  {'children': [],
   'choices': ['Gatan   2kx2k  MSC',
@@ -4026,25 +3902,6 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Title of a research grant',
-  'desc_short': 'Grant Title',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant_title',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'string'},
 
 
  {'children': ['ctf', 'magnification', 'binning'],
@@ -4131,25 +3988,6 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Grant Start Date',
-  'desc_short': 'Grant Start Date',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant_start_date',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'datetime'},
 
 
  {'children': [],
@@ -4624,26 +4462,6 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Project PI for the P41 APR',
-  'desc_short': 'Project PI',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_project_pi',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'user'},
-
 
  {'children': [],
   'choices': [],
@@ -4748,27 +4566,6 @@ paramdefs =  [
   'property': None,
   'uri': None,
   'vartype': 'float'},
-
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Serial number of a P41 grant',
-  'desc_short': 'P41 Number',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_serial',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'string'},
 
 
  {'children': [],
@@ -4918,25 +4715,6 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Grant End Date',
-  'desc_short': 'Grant End Date',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant_end_date',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'datetime'},
 
 
  {'children': [],
@@ -5175,26 +4953,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'int'},
 
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'The year of a P41 APR',
-  'desc_short': 'P41 Year',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_year',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'int'},
 
 
  {'children': ['specimen_tilt',
@@ -5546,25 +5304,6 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'co-PIs on a grant',
-  'desc_short': 'Grant co-PIs',
-  'immutable': None,
-  'indexed': True,
-  'iter': True,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant_copi',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'string'},
 
 
  {'children': [],
@@ -5608,26 +5347,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'string'},
 
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Principle Investigator on a grant',
-  'desc_short': 'Grant PI',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant_pi',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'user'},
 
 
  {'children': [],
@@ -6230,27 +5949,6 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Project abstract for P41 APR',
-  'desc_short': 'Project Abstract',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_abstract',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'text'},
-
-
  {'children': ['ccd_screen_ratio',
                 'ccd_serialno',
                 'ccd_id',
@@ -6376,26 +6074,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'string'},
 
-
- {'children': [],
-  'choices': ['Journal Article', 'Abstract', 'Book', 'P', ''],
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Type of publication for P41 APR',
-  'desc_short': 'Publication Type',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_publication_type',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'choice'},
 
 
  {'children': ['aperture_objective',
@@ -7122,26 +6800,6 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Federal agency or other source for a research grant',
-  'desc_short': 'Grant Source',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant_source',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'string'},
-
 
  {'children': [],
   'choices': None,
@@ -7354,30 +7012,6 @@ paramdefs =  [
 
 
  {'children': [],
-  'choices': ['Technical_Core',
-               'Dissemination',
-               'Collaboration',
-               'Service'],
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Project type for P41 APR',
-  'desc_short': 'Project Type',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_project_type',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'choice'},
-
-
- {'children': [],
   'choices': None,
   'controlhint': None,
   'creationtime': '2011-12-08T11:39:12Z',
@@ -7397,26 +7031,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'float'},
 
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Title of a project for P41 APR',
-  'desc_short': 'Project Title',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_project_title',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'string'},
 
 
  {'children': [],
@@ -7655,26 +7269,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'float'},
 
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Unique sequential identifier for P41 projects',
-  'desc_short': 'Subproject ID',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_subprojectid',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'string'},
 
 
  {'children': ['assess_ice_comments', 'ice_type', 'assess_ice_thick'],
@@ -8054,26 +7648,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'int'},
 
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'List of usernames associated with project',
-  'desc_short': 'Project Investigators',
-  'immutable': None,
-  'indexed': True,
-  'iter': True,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_project_investigators',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'user'},
 
 
  {'children': [],
@@ -8706,26 +8280,6 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Title of a P41 grant',
-  'desc_short': 'P41 Title',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_title',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'string'},
-
 
  {'children': [],
   'choices': None,
@@ -8835,26 +8389,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'float'},
 
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Select when complete and ready for the APR',
-  'desc_short': 'Ready for APR (Wah)',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_project_ready',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'boolean'},
 
 
  {'children': [],
@@ -9245,26 +8779,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'float'},
 
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Id number of a grant',
-  'desc_short': 'Grant Number',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant_number',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'string'},
 
 
  {'children': [],
@@ -10018,26 +9532,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'int'},
 
-
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Percent of grant applied to a P41 subproject',
-  'desc_short': 'Percent Effort',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_percent',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'float'},
 
 
  {'children': [],
@@ -11289,26 +10783,6 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'children': [],
-  'choices': None,
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Year grant stopped being referenced in P41 APR',
-  'desc_short': 'End for p41',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant_p41_ref_end',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'datetime'},
-
 
  {'children': [],
   'choices': [],
@@ -11462,26 +10936,6 @@ paramdefs =  [
   'uri': None,
   'vartype': 'string'},
 
-
- {'children': [],
-  'choices': [],
-  'controlhint': None,
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'defaultunits': None,
-  'desc_long': 'Whether the P41 was acknowledged in a publication',
-  'desc_short': 'Include in P41 Report',
-  'immutable': None,
-  'indexed': True,
-  'iter': False,
-  'keytype': 'paramdef',
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_acknowledged',
-  'parents': [],
-  'property': None,
-  'uri': None,
-  'vartype': 'boolean'},
 
 
  {'children': ['processed_structure'],
@@ -12929,7 +12383,6 @@ Use the alignment protocol for the particular microscope to:
 
 
  {'children': ['workshop',
-                'p41_project',
                 'subproject',
                 'project_software'],
   'creationtime': '2011-12-08T11:39:12Z',
@@ -13379,36 +12832,6 @@ $$file_binary
 
 
 
-
- {'children': [],
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'desc_long': 'P41 annual grant report',
-  'desc_short': 'P41 annual grant report',
-  'keytype': 'recorddef',
-  'mainview': """
-# Annual P41 Grant Report
-
-This record describes the summary information for an NCRR P41 annual progress report.
-
-$#p41_title:  $$p41_title  
-$#p41_serial:  $$p41_serial  
-$#p41_year:  $$p41_year  
-$#p41_report_start_date:  $$p41_report_start_date  
-$#p41_report_end_date:  $$p41_report_end_date  
-$#institution:  $$institution  
-$#grant_pi: $$grant_pi  
-""",
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_grant_info',
-  'owner': 'root',
-  'parents': ['information'],
-  'private': 0,
-  'typicalchld': ['p41_project'],
-  'uri': None,
-  'views': { 'recname': """P41 APR - $$p41_year""",
-             'tabularview': """$$p41_year $$p41_title $$p41_report_start_date"""}},
 
 
 
@@ -14107,79 +13530,9 @@ $$file_binary
   'typicalchld': [],
   'uri': None,
   'views': { 'recname': """Abstract: $$title_publication. $$name_conference, $$year_published, $$city_conference""",
-             'tabularview': """$$year_published $$p41_year $$author_list $$title_publication $$name_conference $$city_conference $@recid() $$modifytime"""}},
+             'tabularview': """$$year_published $$author_list $$title_publication $$name_conference $$city_conference $@recid() $$modifytime"""}},
 
 
-
-
- {'children': [],
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'desc_long': 'A P41 Project. These are used for the NCRR reporting system. Generally, each top level project will have a p41_project record.',
-  'desc_short': 'P41 project',
-  'keytype': 'recorddef',
-  'mainview': """$#p41_project_title  $$p41_project_title  
-$#p41_abstract  $$p41_abstract  
-$#p41_project_type  $$p41_project_type  
-$#p41_project_pi  $$p41_project_pi  
-$#p41_project_investigators  $$p41_project_investigators  
-$#p41_progress  $$p41_progress  
-$#p41_percent  $$p41_percent  
-$#p41_project_ready  $$p41_project_ready""",
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'p41_project',
-  'owner': 'root',
-  'parents': ['project', 'information'],
-  'private': 0,
-  'typicalchld': [],
-  'uri': None,
-  'views': { 'recname': """P41 Report: $$p41_project_title ($$p41_project_pi)""",
-             'tabularview': """$$p41_project_title
-$$p41_project_pi
-$$p41_project_investigators  
-$$p41_project_type
-$$p41_percent
-$@childcount(publication*)
-$$modifytime
-$$modifyuser
-"""}},
-
-
-
-
- {'children': [],
-  'creationtime': '2011-12-08T11:39:12Z',
-  'creator': 'root',
-  'desc_long': 'Represents a funding source',
-  'desc_short': 'Grant',
-  'keytype': 'recorddef',
-  'mainview': """
-# $#grant_title: $$grant_title  
-$#grant_pi:     $$grant_pi  
-$#grant_copi:  $$grant_copi  
-
-# Sources
-$#grant_source:     $$grant_source  
-$#grant_source_type:  $$grant_source_type  
-$#grant_number:     $$grant_number  
-$#grant_funds:    $$grant_funds  
-
-# Dates
-$#grant_start_date:     $$grant_start_date  
-$#grant_end_date:  $$grant_end_date  
-$#grant_p41_ref_start:    $$grant_p41_ref_start  
-$#grant_p41_ref_end:  $$grant_p41_ref_end""",
-  'modifytime': '2011-12-08T11:39:12Z',
-  'modifyuser': 'root',
-  'name': 'grant',
-  'owner': 'root',
-  'parents': ['information'],
-  'private': 0,
-  'typicalchld': ['publication'],
-  'uri': None,
-  'views': { 'recname': """Grant: $$grant_source ($$grant_number)""",
-             'tabularview': """$$grant_source $$grant_number $$grant_pi $$grant_funds $$grant_start_date $$grant_title"""}},
 
 
 
@@ -14618,15 +13971,12 @@ $$project_investigators
 
 
 
- {'children': ['p41_grant_info',
-                'reference',
+ {'children': [ 'reference',
                 'project_meeting',
                 'labnotebook',
                 'working_group',
                 'publication_abstract',
-                'p41_project',
                 'manuscript',
-                'grant',
                 'movie',
                 'reconstruction',
                 'folder',
@@ -15536,24 +14886,5 @@ $#ctf_ampcont: $$ctf_ampcont
 
 
 if __name__ == "__main__":
-	if os.path.exists(sys.argv[1]):
-		print "Warning: File %s exists"%sys.argv[1]
-	print "Saving output to %s"%sys.argv[1]
-	# print "ParamDefs:"
-	# print set([i.get('name') for i in paramdefs])
-	# print "RecordDefs:"
-	# print set([i.get('name') for i in recorddefs])
-
-	with open(sys.argv[1],'w') as f:
-		for pd in paramdefs:
-			pd['keytype'] = 'paramdef'
-			pd['uri'] = 'http://ncmidb.bcm.edu/paramdef/%s'%pd['name']
-			print pd['name']
-			f.write(json.dumps(pd)+"\n")
-		for rd in recorddefs:
-			rd['keytype'] = 'recorddef'
-			rd['uri'] = 'http://ncmidb.bcm.edu/recorddef/%s'%rd['name']
-			print rd['name']
-			f.write(json.dumps(rd)+"\n")
-
+	emen2.db.load.write_json(sys.argv[1], paramdefs=paramdefs, recorddefs=recorddefs)
 
