@@ -242,6 +242,7 @@ class EMEN2Resource(object):
 	##### Error handlers #####
 
 	# ian: todo: Use a config value to choose which error pages (mako, or emen2) to use.
+	# ed: Couldn't that be based on the DEBUG flag?
 	def render_error(self, location, e):
 		return mako.exceptions.html_error_template().render()
 		# return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
