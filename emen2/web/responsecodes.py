@@ -16,23 +16,29 @@ class HTTPResponseCode(Exception):
 
 
 class MethodNotSupported(HTTPResponseCode):
+	'''Set the response status to 501'''
 	code = 501
 
 
 class HTTPCancelledResponse(HTTPResponseCode):
+	'''Set the response status to 500'''
 	code = 500
-	
+
 
 class HTTP200Response(HTTPResponseCode):
+	'''Set the response status to 200'''
 	code = 200
 
 
 class HTTP300Response(HTTPResponseCode):
+	'''Set the response status to 300'''
 	code = 300
 
 
 class HTTPMovedPermanently(HTTP300Response):
-	'''If this is caught the resource should send a redirect'''
+	'''Set the response status to 301.
+
+	If this is caught the resource should send a redirect'''
 	code = 301
 	def __init__(self, msg, dest):
 		HTTP300Response.__init__(self, msg)
@@ -40,7 +46,9 @@ class HTTPMovedPermanently(HTTP300Response):
 
 
 class HTTPFound(HTTP300Response):
-	'''If this is caught the resource should send a redirect'''
+	'''Set the response status to 302
+
+	If this is caught the resource should send a redirect'''
 	code = 302
 	def __init__(self, msg, dest):
 		HTTP300Response.__init__(self, msg)
@@ -48,22 +56,27 @@ class HTTPFound(HTTP300Response):
 
 
 class HTTPNotModified(HTTP300Response):
+	'''Set the response status to 304'''
 	code = 304
 
 
 class HTTP400Response(HTTPResponseCode):
+	'''Set the response status to 400'''
 	code = 400
 
 
 class UnauthorizedError(HTTP400Response):
+	'''Set the response status to 401'''
 	code = 401
 
 
 class ForbiddenError(HTTP400Response):
+	'''Set the response status to 403'''
 	code = 403
 
 
 class NotFoundError(HTTP400Response):
+	'''Set the response status to 404 (Not Found)'''
 	title = 'Page Not Found'
 	msg = 'The requested URL (%s) was not found on this server.'
 	code = 404
@@ -73,6 +86,7 @@ class NotFoundError(HTTP400Response):
 
 
 class MethodNotAllowedError(HTTP400Response):
+	'''Set the response status to 405'''
 	title = 'Method Not Allowed'
 	msg = 'Method Not Allowed: %r'
 	code = 405
@@ -82,6 +96,7 @@ class MethodNotAllowedError(HTTP400Response):
 
 
 class GoneError(HTTP400Response):
+	'''Set the response status to 410'''
 	code = 410
 
 
