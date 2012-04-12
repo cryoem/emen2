@@ -558,7 +558,7 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 			else:
 				# Call an event, these can be added and removed through the event registry in emen2.web.events
 				#   Useful for setting up views to deliver results/notifications via JSON-RPC
-				#     This should work for COMET-style long-polling, but that hasn't be tested yet
+				#     This should work for COMET-style long-polling, but that results in server hangs on exit :)
 				e = emen2.web.events.EventRegistry().event('pub.%s'%rpcrequest.method)
 				methodresult = e(self.ctxid, request.getClientIP(), db=db, *rpcrequest.args, **rpcrequest.kwargs)
 
