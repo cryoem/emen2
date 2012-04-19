@@ -133,9 +133,11 @@ def clock(times, key=0, t=0, limit=180):
 	return t2
 
 
+import uuid
 def getrandomid():
 	"""Generate a random ID"""
-	return '%032x'%random.getrandbits(128)
+	return uuid.uuid4().hex
+	# return '%032x'%random.getrandbits(128)
 
 
 # ian: todo: make these express GMT, then localize using a user preference
@@ -405,6 +407,9 @@ class EMEN2DBEnv(object):
 		self.record = emen2.db.record.RecordDB(path="record", dbenv=self)
 		self.paramdef = emen2.db.paramdef.ParamDefDB(path="paramdef", dbenv=self)
 		self.recorddef = emen2.db.recorddef.RecordDefDB(path="recorddef", dbenv=self)
+
+		# Uploaded files.
+		# self.binarytmp = emen2.db.binary.BinaryTmpDB(path="binarytmp", dbenv=self)
 
 		# access by keytype..
 		self.keytypes = {
@@ -4101,8 +4106,8 @@ class DB(object):
 			os.rename(newfile, filepath)
 		
 		# Run the thumbnail generator
-		for bdo in bdos:
-			emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)		
+		# for bdo in bdos:
+		#	emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)		
 
 		return bdos
 	

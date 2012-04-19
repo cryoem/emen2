@@ -198,10 +198,6 @@ class NewUser(BaseUser):
 	# displayname, userrec, and groups are unset when committing, so they can skip validation.
 	attr_public = BaseUser.attr_public | set(['signupinfo'])
 
-	def validate_create(self):
-		# Anyone can create a NewUSer
-		return True
-
 
 	def init(self, d):
 		super(NewUser, self).init(d)
@@ -291,11 +287,6 @@ class User(BaseUser):
 		self.__dict__['privacy'] = 0
 		self.__dict__['record'] = None
 
-
-	# Validate
-	def validate_create(self):
-		if not self._ctx.checkadmin():
-			raise emen2.db.exceptions.SecurityError, "Only admins may create new Users"
 
 
 	#################################

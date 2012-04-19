@@ -61,7 +61,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 		init			Set attributes
 		setContext		Check read permissions and bind Context
-		validate_name	Check the access protocol (bdo:YYYYMMDDXXXXX)
 		validate		Check required attributes
 
 	And the following method is provided:
@@ -105,12 +104,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 			return True
 		if self.record is not None:
 			rec = self._ctx.db.getrecord(self.record, filt=False)
-
-	def validate_name(self, name):
-		"""Validate the name of this object"""
-		if name in ['None', None]:
-			return
-		return self.parse(name)['name']
 
 	# filepath is set during setContext, and discarded during commit (todo)
 	def _set_filepath(self, key, value, vtm=None, t=None):
@@ -171,14 +164,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		#	raise emen2.db.exceptions.ValidationError, "Record reference is required"
 
 
-	##### Implement the two Handler methods #####
-
-	def extract(self, **kwargs):
-		return {}
-	
-	def thumbnail(self, **kwargs):
-		pass
-		
 	##### Utility methods #####
 
 	# Write contents to a temporary file.
@@ -284,11 +269,33 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 			}
 
 
+
+class BinaryTmp(Binary):
+	def setContext(self, ctx):
+		"""Set permissions and create reference to active database."""
+		self.__dict__['_ctx'] = ctx
+		if self.isowner():
+			return True
+
+
+class BinaryTmpDB(emen2.db.btrees.DBODB):
+	def openindex(self, param, txn=None):
+		"""Index on filename (and possibly MD5 in the future.)"""
+		if param == 'filename':
+			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
+		elif param == 'md5':
+			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
+		else:
+			ind = super(BinaryDB, self).openindex(param, txn=txn)
+		return ind
+		
+		
+
 class BinaryDB(emen2.db.btrees.DBODB):
 	"""DBODB for Binaries
 
 	Extends:
-		update_sequence		Binaries are assigned a name based on date
+		update_names		Binaries are assigned a name based on date
 		openindex			Indexed by: filename (maybe md5 in future)
 
 	"""
@@ -296,7 +303,7 @@ class BinaryDB(emen2.db.btrees.DBODB):
 	dataclass = Binary
 
 	# Update the database sequence.. Probably move this to the parent class.
-	def update_sequence(self, items, txn=None):
+	def update_names(self, items, txn=None):
 		"""Assign a name based on date, and the counter for that day."""
 		# Which recs are new?
 		newrecs = [i for i in items if i.name < 0]

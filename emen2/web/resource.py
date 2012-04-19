@@ -2,6 +2,7 @@
 
 import re
 import time
+import cgi
 import random
 import traceback
 import collections
@@ -95,7 +96,7 @@ class EMEN2Resource(object):
 		# Parse and filter the request arguments
 		args = self.parse_args(request)
 
-		# Find the authentication token
+		# Authentication token
 		ctxid = args.pop('ctxid', None) or request.getCookie("ctxid")
 		host = request.getClientIP()
 
@@ -272,32 +273,86 @@ class EMEN2Resource(object):
 		# deferred.errback(failure)
 
 
-	##### Process HTTP request arguments #####
+	##### Process request arguments #####
 
 	def parse_args(self, request):
 		# Massage the post and querystring arguments
 
-		# Parse the content body for additional args:
-		# Upload (twisted is broken), JSON POST, etc.
-		args = self.parse_content(request)
+		# PUT requests, and
+		# twistd's handling of POST is broken
+		args = self._parse_content(request)
 
 		# Twisted provides all args as lists.
 		# If we only got one value, pop it
-		for k, v in request.args.items():
+		for k, v in args.items():
 			if len(v) == 1:
 				v = v[0]
 			args[k] = v
 
 		# Unicode.. grumble.. Web forms will submit UTF-8 encoded data; decode that
-		args = self.parse_coerce_unicode(args)
+		args = self._parse_coerce_unicode(args)
 
 		# HTTP arguments with '.' will be turned into dicts, e.g. 'child.key' -> child['key']
-		args = self.parse_args_dict(args)
+		args = self._parse_args_dict(args)
 
 		return args
 
 
-	def parse_args_dict(self, args):
+	def _parse_content(self, request):
+		# Fix things.
+		files = []
+		args = request.args
+
+		if request.method == "PUT":
+			# The param?..
+			f = emen2.db.handlers.BinaryHandler.get_handler(
+				filename=request.getHeader('x-file-name'),
+				param=request.getHeader('x-file-param'),
+				fileobj=request.content
+				)
+			files.append(f)
+
+		elif request.method == "POST":
+			# Fix Twisted's broken handling of multipart/form-data file uploads
+			headers = request.getAllHeaders()
+			img = cgi.FieldStorage(
+				fp = request.content,
+				headers = headers,
+				environ = {
+					'REQUEST_METHOD':'POST',
+					'CONTENT_TYPE': headers.get('content-type'),
+				}
+			)
+
+			# Rebuild the request args.
+			args = {}
+			for param in img:
+				# img.getlist() only returns the values.
+				newvalues = []
+				values = img[param]
+				# grumble.. hasattr(__iter__) doesn't work.
+				if not isinstance(values, list):
+					values = [values]
+				for value in values:
+					# print k, type(i), getattr(i, 'filename', None), getattr(i, 'file', None)
+					if getattr(value, 'filename', None):
+						f = emen2.db.handlers.BinaryHandler.get_handler(
+							param=param,
+							filename=value.filename,
+							fileobj=value.file or value.value
+							)
+						files.append(f)
+					else:
+						newvalues.append(value.value)
+
+				args[param] = newvalues
+		
+		# Make available to Views...
+		self.request_files = files
+		return args
+
+
+	def _parse_args_dict(self, args):
 		# Break keys with '.' into child dictionaries, recursively.
 		# {'root': 1, 'child.key2': 2, 'child.key1.subkey1': 3, 'child.key1.subkey2':4}
 		# ->
@@ -328,7 +383,7 @@ class EMEN2Resource(object):
 			else:
 				newargs[k] = v
 
-		# Transform colon-keyed items back into dict
+		# Transform :-keyed items back into dict
 		for k,v in test.items():
 			v2 = zip(v.get('keys', []), v.get('values', []))
 			newargs[k] = dict(v2)
@@ -336,94 +391,20 @@ class EMEN2Resource(object):
 		return newargs
 
 
-	def parse_content(self, request):
-		'''This is called first, and should parse any content body for relevant View arguments.'''
-		# Look for filename; if PUT, add a reference to the request.content file handle.
-		files = []
-		args = request.args
-
-		if request.method == "PUT":
-			# The param?..
-			f = emen2.db.handlers.BinaryHandler.get_handler(
-				filename=request.getHeader('x-file-name'),
-				param=request.getHeader('x-file-param'),
-				fileobj=request.content
-				)
-			files.append(f)
-
-		elif request.method == "POST":
-			# Fix Twisted's broken handling of multipart/form-data file uploads
-			# Look for name=...;filename=... pairs in the multipart data
-			request.content.seek(0)
-			content = request.content.read()
-			b = re.compile('name="(.+)"; filename="(.+)"')
-			r = []
-			try:
-				r = b.findall(content)
-			except:
-				pass
-
-			# Turn those pairs into emen2 File instances
-			# ... the filedata attribute will be set below
-			for param, filename in r:
-				f = emen2.db.handlers.BinaryHandler.get_handler(
-					param=param,
-					filename=filename
-					)
-				files.append(f)
-
-			# And match those up with the parsed data
-			isbdo = lambda x:(len(x)==17 and x.startswith('bdo:')) or not x
-			for k, v in args.items():
-				fs = filter(lambda x:x.param == k, files)
-				if not fs:
-					continue
-
-				# Filter
-				bdos, datas = emen2.util.listops.filter_partition(isbdo, v)
-				args[k] = bdos
-
-				if len(datas) != len(fs):
-					raise ValueError, "Cannot upload empty file"
-
-				# Move the data into the emen2 Files
-				for f, filedata in zip(fs, datas):
-					f.filedata = filedata
-
-		# Make available to Views...
-		self.request_files = files
-		return args
-
-		# Check for any JSON-encoded data in the POST body.
-		# You should remove this method in anything that handles
-		# big uploads.
-		# postargs = {}
-		# if request.method.lower() == "post":
-		# 	request.content.seek(0)
-		# 	content = request.content.read()
-		# 	if content:
-		# 		try:
-		# 			postargs = jsonrpc.jsonutil.decode(content)
-		# 		except:
-		# 			pass
-		# return postargs
-
-
-	def parse_coerce_unicode(self, args, keyname=''):
-		# This is terribly hacky, to recursively deal with various Unicode issues
+	def _parse_coerce_unicode(self, args, keyname=''):
+		# This is terribly hacky, to deal with various Unicode issues
 		# To disable this for a class, override and return {}
 		if isinstance(args, unicode):
 			return args
 
 		elif keyname == 'filedata':
-			# See UploadResource.
-			# This requirement might be changed or dropped in the future.
+			# Ignore
 			return args
 
 		elif hasattr(args, 'items'):
 			newargs = {}
 			for k, v in args.items():
-				newargs[k] = self.parse_coerce_unicode(v, keyname=k)
+				newargs[k] = self._parse_coerce_unicode(v, keyname=k)
 			return newargs
 
 		elif hasattr(args, '__iter__'):

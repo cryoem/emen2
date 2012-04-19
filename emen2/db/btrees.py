@@ -772,7 +772,7 @@ class DBODB(EMEN2DB):
 
 	The sequence class attribute, if True, will allow sequence support for
 	this DB. This is currently implemented using a separate BDB (to minimize
-	locks on data) and handled directly, although at some point the
+	locks), although at some point the
 	BerkeleyDB Sequence may be used (it caused problems last time I tried.)
 
 	Like EMEN2DB, most methods require a transaction. Additionally, because
@@ -785,10 +785,8 @@ class DBODB(EMEN2DB):
 		close			Also cloes sequencdb and indexes
 
 	And adds the following methods:
-		opensequence	Open the sequence
-		closesequence	Close the sequence
 		get_max			Return the current maximum item in the sequence
-		update_sequence	Update items with new names from sequence
+		update_names	Update items with new names from sequence
 		new				Dataclass factory
 		cget			Get a single item, with a Context
 		cgets			Get items, with a Context
@@ -827,36 +825,23 @@ class DBODB(EMEN2DB):
 	def open(self):
 		"""Open the sequence with the main DB."""
 		super(DBODB, self).open()
-		self.opensequence()
+		if self.sequence:
+			self.sequencedb = bsddb3.db.DB(self.dbenv.dbenv)
+			self.sequencedb.open(os.path.join('%s.sequence.bdb'%self.filename), dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
 
 
 	def close(self):
 		"""Close the sequence, and any open indexes, with the main DB."""
 		super(DBODB, self).close()
-		self.closesequence()
+		if self.sequencedb:
+			self.sequencedb.close()
+			self.sequencedb = None
 		for k in self.index:
 			self.closeindex(k)
 
 
+
 	##### Sequence #####
-
-	def opensequence(self):
-		"""Open the sequence."""
-		if not self.sequence:
-			return
-		self.sequencedb = bsddb3.db.DB(self.dbenv.dbenv)
-		self.sequencedb.open(os.path.join('%s.sequence.bdb'%self.filename), dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
-
-
-	def closesequence(self):
-		"""Close the sequence."""
-		if not self.sequence:
-			return
-		if self.sequencedb:
-			print "Close sequence"
-			self.sequencedb.close()
-			self.sequencedb = None
-
 
 	def get_max(self, txn=None):
 		"""Return the current maximum item in the sequence. Requires txn.
@@ -873,18 +858,50 @@ class DBODB(EMEN2DB):
 		return val
 
 
-	def update_sequence(self, items, txn=None):
-		"""Update items with new names from sequence. Requires txn.
-
-		:param items: Items to check
+	def update_names(self, items, namemap=None, txn=None):
+		"""Update items with new names. Requires txn.
+	
+		:param items: Items to update.
 		:keyword txn: Transaction
-
+	
 		"""
-		namemap = {}
-		for i in items:
-			if not self.exists(i.name, txn=txn):
-				namemap[i.name] = i.name
+		namemap = namemap or {}
+		# for i in items:
+		# 	if not self.exists(i.name, txn=txn):
+		# 		namemap[i.name] = i.name
+		
+		# New items will have 'None' or a negative integer as name
+		
+
 		return namemap
+
+
+
+	# Update the database sequence.. Probably move this to the parent class.
+	# def update_names(self, items, txn=None):
+	# 	# Which items are new?
+	# 	newrecs = [i for i in items if i.name < 0] # also valid for None
+	# 	namemap = {}
+	# 
+	# 	# Reassign new record IDs and update record counter
+	# 	if newrecs:
+	# 		basename = self._set_sequence(delta=len(newrecs), txn=txn)
+	# 
+	# 	# We have to manually update the rec.__dict__['name'] because this is normally considered a reserved attribute.
+	# 	for offset, newrec in enumerate(newrecs):
+	# 		oldname = newrec.name
+	# 		newrec.__dict__['name'] = offset + basename
+	# 		namemap[oldname] = newrec.name
+	# 
+	# 	# Update all the record's links
+	# 	for item in items:
+	# 		# ian: TODO: directly update the dict, to avoid item._setrel(). However, this is not the proper way to do it. 
+	# 		# It should see if item exists, or is new; otherwise, raise exception.
+	# 		item.__dict__['parents'] = set([namemap.get(i,i) for i in item.parents])
+	# 		item.__dict__['children'] = set([namemap.get(i,i) for i in item.children])
+	# 
+	# 	return namemap
+
 
 
 	def _set_sequence(self, delta=1, key='sequence', txn=None):
@@ -908,7 +925,7 @@ class DBODB(EMEN2DB):
 	##### New items.. #####
 
 	def new(self, *args, **kwargs):
-		"""DBO factory. Returns new DBO. Requires ctx and txn.
+		"""Returns new DBO. Requires ctx and txn.
 
 		All the method args and keywords will be passed to the constructor.
 
@@ -918,10 +935,9 @@ class DBODB(EMEN2DB):
 
 		"""
 		txn = kwargs.pop('txn', None) # don't pass the txn..
-		name = kwargs.get('name')
 		item = self.dataclass(*args, **kwargs)
 		if self.exists(item.name, txn=txn):
-			raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%name
+			raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%item.name
 		return item
 
 
@@ -1077,35 +1093,27 @@ class DBODB(EMEN2DB):
 		t = emen2.db.database.gettime()
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 		crecs = []
-		if not items:
-			return crecs
+		namemap = {}
 
-		# Note: children/parents used to be handled specially,
-		#	but now they are considered "more or less" regular params,
-
-		# Process the items
+		# Get the existing records, or create new records.
 		for name, updrec in enumerate(items, start=1):
-			# Get the name
-			name = updrec.get('name') # or (name * -1)
+			name = updrec.get('name')
 			cp = set()
 
 			# Get the existing item or create a new one.
-			# Security error will be raised.
-			try:
-				# Acquire the lock immediately (DB_RMW)
-				# because we are going to change the record
-				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
-				orec.setContext(ctx)
-				# if orec.get('uri'):
-				# 	raise emen2.db.exceptions.SecurityError,
-				# 	"Imported items are read-only: %s"%(orec.get('uri'))
-
-			except (TypeError, AttributeError, KeyError), inst:
-				# AttributeError might have been raised if
-				# the key was the wrong type
+			# Acquire the write lock immediately (DB_RMW).
+			# Names can be unassigned (None, negative integer) or assigned (a string).
+			# Some BDOs require names (paramdef, recorddef); 
+			#	others (e.g. user) will assign the name in update_names.
+			# Note: this used to just be a try/except, with new items on KeyError.
+			if name < 0 or not self.exists(name, txn=txn, flags=bsddb3.db.DB_RMW):
 				p = dict((k,updrec.get(k)) for k in self.dataclass.attr_required)
 				orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
+				namemap[name] = orec.name
 				cp.add('name')
+			else:
+				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
+				orec.setContext(ctx)
 
 			# Update the item.
 			cp |= orec.update(updrec, vtm=vtm, t=t)
@@ -1115,19 +1123,18 @@ class DBODB(EMEN2DB):
 			if cp:
 				crecs.append(orec)
 
-		# If we just wanted to validate the changes.
-		if not commit:
+		# If we just wanted to validate the changes, return before writing changes.
+		if not commit or not crecs:
 			return crecs
 
-		# Assign new names based on the DB sequence.
+		# Assign names for new items.
 		# This will also update any relationships to uncommitted records.
-		namemap = self.update_sequence(crecs, txn=txn)
+		namemap = self.update_names(crecs, txn=txn)
 
 		# Calculate all changed indexes
 		self.reindex(crecs, namemap=namemap, ctx=ctx, txn=txn)
 
 		# Commit "for real"
-		# This will raise an Exception for cached items.
 		for crec in crecs:
 			self.put(crec.name, crec, txn=txn)
 

@@ -75,8 +75,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 	BaseDBObject also provides the following methods for extending/overriding:
 
 		init			Subclass init
-		validate_create	Check permissions to create items
-		validate_name	Validate the name
 		validate_param	Validate a parameter
 		changedparams 	Check parameters to re-index
 		commit			Commit and return the updated item
@@ -122,17 +120,18 @@ class BaseDBObject(object, UserDict.DictMixin):
 		# Copy input and kwargs into one dict
 		_d = dict(_d or {})
 		_d.update(_k)
-		p = {}
 
 		# Temporary setContext
 		ctx = _d.pop('ctx', None)
 		t = _d.pop('t', None)
 		self.__dict__['_ctx'] = ctx
-		
-		vtm, t = self._vtmtime(t=t) # get time/user
+				
+		vtm, t = self._vtmtime(t=t) # get current time.
 
-		# Validate the name -- the only always required parameter for all DBOs
-		p['name'] = self.validate_name(_d.pop('name', None))
+		# Assign a name; 
+		# Names are now assigned and validated by the BTree.
+		p = {}
+		p['name'] = _d.pop('name', None)
 
 		# Base owner/time parameters
 		p['creator'] = self._ctx.username
@@ -140,16 +139,13 @@ class BaseDBObject(object, UserDict.DictMixin):
 		p['modifyuser'] = self._ctx.username
 		p['modifytime'] = t
 
-		# Other parameters
+		# Other attributes.
 		p['uri'] = unicode(_d.pop('uri', '')) or None
 		p['children'] = set()
 		p['parents'] = set()
 
-		# Directly update these base params
+		# Directly update the base attributes.
 		self.__dict__.update(p)
-
-		# Check that we can create this type of record
-		self.validate_create()
 
 		# Subclass init
 		self.init(_d)
@@ -162,7 +158,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 
 
 	def init(self, d):
-		"""Hook for subclass init."""
+		"""Subclass init."""
 		pass
 
 	def validate(self, vtm=None, t=None):
@@ -174,7 +170,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		return self.__class__.__name__.lower()
 
 	def setContext(self, ctx):
-		"""Set permissions and create reference to active database."""
+		"""Set permissions and bind the context."""
 		self.__dict__['_ctx'] = ctx
 
 	def changedparams(self, item=None):
@@ -192,10 +188,8 @@ class BaseDBObject(object, UserDict.DictMixin):
 		"""Check ownership privileges on item."""
 		if self._ctx.checkadmin():
 			return True
-
 		if self._ctx.username == getattr(self, 'creator', None):
 			return True
-
 
 	def writable(self, key=None):
 		"""Check write permissions."""
@@ -203,7 +197,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 
 
 	##### Delete and rename. #####
-	# These methods will affect the item's name or protected attributes.
 
 	def delete(self):
 		self.error("No permission to delete.")
@@ -251,7 +244,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		return cp
 
 	# Low level mapping methods
-	# Behave like dict.get(key) instead of db[key]
+	# Behave like dict.get(key) instead of dict[key]
 	def __getitem__(self, key, default=None):
 		if key in self.attr_public:
 			return getattr(self, key, default)
@@ -336,8 +329,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 	##### Update parents / children #####
 
 	def _setrel(self, key, value):
-		"""Set a relationship.
-		Make sure we have permissions to edit the relationship."""
+		"""Set a relationship. Make sure we have permissions to edit the relationship."""
 		# Filter out changes to permissions on records
 		# that we can't access...
 		value = emen2.util.listops.check_iterable(value)
@@ -397,12 +389,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 
 	##### Validation and error control #####
 
-	# Check that we have permissions to create this type of item
-	def validate_create(self):
-		"""Can we create this type of item?"""
-		if not self._ctx.checkcreate():
-			raise emen2.db.exceptions.SecurityError, "No creation privileges"
-
 	# This is the main mechanism for validation.
 	def validate_param(self, key, value, vtm=None):
 		"""Validate a single parameter value."""
@@ -439,21 +425,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 				(pd.name, pd.vartype, type(value), value, type(v), v), warning=True)
 
 		return v
-
-	def validate_name(self, name):
-		"""Validate the name of this item."""
-		if not name:
-			name = emen2.db.database.getrandomid()
-			# self.error("No name specified")
-
-		# have to compile since flags= is a Python 2.7+ keyword
-		r = re.compile('[\w-]', re.UNICODE)
-
-		newname = "".join(r.findall(name)).lower()
-		if name != newname or not name[0].isalnum():
-			self.error("Name '%s' can only include a-z, 0-9, underscore, must be lowercase, and must start with a number or letter."%name)
-
-		return name
 
 
 	##### Convenience methods #####
@@ -532,7 +503,9 @@ class PermissionsDBObject(BaseDBObject):
 	#These methods are overridden from BaseDBObject:
 	#	init, setContext, isowner, writable,
 	#The following methods are added to BaseDBObject:
-	#	addumask, addgroup, removegroup, removeuser, adduser, getlevel, ptest, readable, commentable, members, owners, setgroups, setpermissions
+	#	addumask, addgroup, removegroup, removeuser, 
+	# 	adduser, getlevel, ptest, readable, commentable, 
+	# 	members, owners, setgroups, setpermissions
 
 	# Changes to permissions and groups, along with parents/children,
 	# are not logged.
@@ -606,7 +579,7 @@ class PermissionsDBObject(BaseDBObject):
 		return self._ptest[0]
 
 	def getlevel(self, user):
-		"""Get the users permissions for this object
+		"""Get the user's permissions for this object
 
 		:rtype: int
 		"""
@@ -624,7 +597,7 @@ class PermissionsDBObject(BaseDBObject):
 		return self._ptest[3]
 
 	def readable(self):
-		"""Does the user have permission to read the stored data (level 0)
+		"""Does the user have permission to read the stored data (level 0)?
 
 		:rtype: bool
 		"""
@@ -649,7 +622,7 @@ class PermissionsDBObject(BaseDBObject):
 		return any(self._ptest[2:])
 
 	def members(self):
-		"""Get all users with read permissions
+		"""Get all users with read permissions.
 
 		:rtype: [str]
 		"""
@@ -657,7 +630,7 @@ class PermissionsDBObject(BaseDBObject):
 		return set(reduce(operator.concat, self.permissions))
 
 	def owners(self):
-		"""Get all users with ownership permissions
+		"""Get all users with ownership permissions.
 
 		:rtype: [str]
 		"""
@@ -674,10 +647,11 @@ class PermissionsDBObject(BaseDBObject):
 	def _check_permformat(self, value):
 		if hasattr(value, 'items'):
 			v = [[],[],[],[]]
-			v[0] = emen2.util.listops.check_iterable(value.get('read'))
-			v[1] = emen2.util.listops.check_iterable(value.get('comment'))
-			v[2] = emen2.util.listops.check_iterable(value.get('write'))
-			v[3] = emen2.util.listops.check_iterable(value.get('admin'))
+			ci = emen2.util.listops.check_iterable
+			v[0] = ci(value.get('read'))
+			v[1] = ci(value.get('comment'))
+			v[2] = ci(value.get('write'))
+			v[3] = ci(value.get('admin'))
 			value = v
 		return [[unicode(y) for y in x] for x in value]
 

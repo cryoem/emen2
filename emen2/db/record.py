@@ -273,21 +273,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 	##### Validation #####
 
-	def validate_name(self, name):
-		"""Validate the name of this object
-
-		:param int name: the name to be validated
-		:returns: int
-		:raises: :py:class:`ValueError`
-		"""
-		if name in ['None', None]:
-			return
-		try:
-			name = int(name)
-		except ValueError:
-			self.error("Name must be an integer")
-		return name
-
 	def validate(self, vtm=None, t=None):
 		"""Validate the record before committing.
 
@@ -297,6 +282,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 		"""
 		# Cut out any None's
+		# The rest of the parameters are validated 
+		# when they are set or updated.
 		pitems = self.params.items()
 		for k,v in pitems:
 			if not v and v != 0 and v != False:
@@ -344,46 +331,41 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		if ind:
 			return ind
 
-		# print "Attempting to open index %s"%param
-
 		# Check the paramdef to see if it's indexed
-		# ian: todo: use the context
-		# pd = ctx.getparamdef(param, filt=False)
 		pd = self.dbenv.paramdef.get(param, filt=False, txn=txn)
 		if not pd or pd.vartype not in self.dbenv.indexablevartypes or not pd.indexed:
 			return None
 
-		# disable this check, and always create index.
+		# Open the index
 		vtm = emen2.db.datatypes.VartypeManager()
 		tp = vtm.getvartype(pd.vartype).keytype
-
 		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keytype=tp, datatype='d', dbenv=self.dbenv)
 		return ind
 
-	# Update the database sequence.. Probably move this to the parent class.
-	def update_sequence(self, items, txn=None):
-		# Which recs are new?
-		newrecs = [i for i in items if i.name < 0]
-		namemap = {}
-
-		# Reassign new record IDs and update record counter
-		if newrecs:
-			basename = self._set_sequence(delta=len(newrecs), txn=txn)
-
-		# We have to manually update the rec.__dict__['name'] because this is normally considered a reserved attribute.
-		for offset, newrec in enumerate(newrecs):
-			oldname = newrec.name
-			newrec.__dict__['name'] = offset + basename
-			namemap[oldname] = newrec.name
-
-		# Update all the record's links
-		for item in items:
-			# ian: TODO: directly update the dict, to avoid item._setrel(). However, this is not the proper way to do it. 
-			# It should see if item exists, or is new; otherwise, raise exception.
-			item.__dict__['parents'] = set([namemap.get(i,i) for i in item.parents])
-			item.__dict__['children'] = set([namemap.get(i,i) for i in item.children])
-
-		return namemap
+	# # Update the database sequence.. Probably move this to the parent class.
+	# def update_names(self, items, txn=None):
+	# 	# Which recs are new?
+	# 	newrecs = [i for i in items if i.name < 0]
+	# 	namemap = {}
+	# 
+	# 	# Reassign new record IDs and update record counter
+	# 	if newrecs:
+	# 		basename = self._set_sequence(delta=len(newrecs), txn=txn)
+	# 
+	# 	# We have to manually update the rec.__dict__['name'] because this is normally considered a reserved attribute.
+	# 	for offset, newrec in enumerate(newrecs):
+	# 		oldname = newrec.name
+	# 		newrec.__dict__['name'] = offset + basename
+	# 		namemap[oldname] = newrec.name
+	# 
+	# 	# Update all the record's links
+	# 	for item in items:
+	# 		# ian: TODO: directly update the dict, to avoid item._setrel(). However, this is not the proper way to do it. 
+	# 		# It should see if item exists, or is new; otherwise, raise exception.
+	# 		item.__dict__['parents'] = set([namemap.get(i,i) for i in item.parents])
+	# 		item.__dict__['children'] = set([namemap.get(i,i) for i in item.children])
+	# 
+	# 	return namemap
 
 	def delete(self, names, ctx=None, txn=None):
 		recs = self.cgets(names, ctx=ctx, txn=txn)
@@ -418,7 +400,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 		# Allow either Record(s) or Record name(s) as input
 		ret = collections.defaultdict(set)
-		recnames, recs, other = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
+		recnames, recs, other = listops.typepartition(names, (int, str), emen2.db.dataobject.BaseDBObject)
 
 		if len(recnames) < 1000:
 			# Just get the rest of the records directly
@@ -444,7 +426,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 		return ret
 
-	# This builds UP instead of prunes DOWN; filter does the opposite..
+	# This builds UP the accessible items, instead of pruning a big list DOWN; filter does the opposite..
 	def names(self, names=None, ctx=None, txn=None, **kwargs):
 
 		if names is not None:

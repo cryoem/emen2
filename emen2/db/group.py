@@ -56,7 +56,6 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 
 		init			Init disabled, displayname, and privacy
 		readable		Some special groups are readable by all
-		validate_create Only administrators are allowed to create groups
 
 
 	:attr privacy: Hide members from non-members
@@ -94,11 +93,6 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 	def _set_displayname(self, key, value, vtm=None, t=None):
 		return self._set(key, str(value or self.name), self.isowner())
 		
-
-	# Validate
-	def validate_create(self):
-		if not self._ctx.checkadmin():
-			raise emen2.db.exceptions.SecurityError, "Only admins may create groups"
 
 
 
