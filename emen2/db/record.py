@@ -320,9 +320,9 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 
 class RecordDB(emen2.db.btrees.RelateDB):
-	sequence = True
-	cfunc = False
-	keytype = 'd'
+	sequence = True # Use a sequence counter for item names
+	cfunc = False # Do not sort the BTree keys as integers
+	keytype = 'd' # Integer keys
 	dataclass = Record
 
 	def openindex(self, param, txn=None):
@@ -342,30 +342,6 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keytype=tp, datatype='d', dbenv=self.dbenv)
 		return ind
 
-	# # Update the database sequence.. Probably move this to the parent class.
-	# def update_names(self, items, txn=None):
-	# 	# Which recs are new?
-	# 	newrecs = [i for i in items if i.name < 0]
-	# 	namemap = {}
-	# 
-	# 	# Reassign new record IDs and update record counter
-	# 	if newrecs:
-	# 		basename = self._set_sequence(delta=len(newrecs), txn=txn)
-	# 
-	# 	# We have to manually update the rec.__dict__['name'] because this is normally considered a reserved attribute.
-	# 	for offset, newrec in enumerate(newrecs):
-	# 		oldname = newrec.name
-	# 		newrec.__dict__['name'] = offset + basename
-	# 		namemap[oldname] = newrec.name
-	# 
-	# 	# Update all the record's links
-	# 	for item in items:
-	# 		# ian: TODO: directly update the dict, to avoid item._setrel(). However, this is not the proper way to do it. 
-	# 		# It should see if item exists, or is new; otherwise, raise exception.
-	# 		item.__dict__['parents'] = set([namemap.get(i,i) for i in item.parents])
-	# 		item.__dict__['children'] = set([namemap.get(i,i) for i in item.children])
-	# 
-	# 	return namemap
 
 	def delete(self, names, ctx=None, txn=None):
 		recs = self.cgets(names, ctx=ctx, txn=txn)

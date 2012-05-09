@@ -455,7 +455,7 @@ class EMEN2DB(object):
 		:keyword txn: Transaction
 
 		"""
-		# Read-only items can't be killed.
+		# Read-only items can't be removed.
 		if key in self.cache:
 			raise KeyError, "Cannot delete read-only item %s"%key
 		# If the item exists, remove it.
@@ -535,6 +535,7 @@ class IndexDB(EMEN2DB):
 
 	# Default get method used by get()
 	_get_method = _get_method_nonbulk
+
 
 	def get(self, key, default=None, cursor=None, txn=None, flags=0):
 		"""Return all the values for this key.
@@ -841,68 +842,7 @@ class DBODB(EMEN2DB):
 
 
 
-	##### Sequence #####
-
-	def get_max(self, txn=None):
-		"""Return the current maximum item in the sequence. Requires txn.
-
-		:keyword txn: Transaction
-
-		"""
-		if not self.sequence:
-			raise ValueError, "Sequences not supported"
-		sequence = self.sequencedb.get("sequence", txn=txn)
-		if sequence == None:
-			sequence = 0
-		val = int(sequence)
-		return val
-
-
-	def update_names(self, items, namemap=None, txn=None):
-		"""Update items with new names. Requires txn.
-	
-		:param items: Items to update.
-		:keyword txn: Transaction
-	
-		"""
-		namemap = namemap or {}
-		# for i in items:
-		# 	if not self.exists(i.name, txn=txn):
-		# 		namemap[i.name] = i.name
-		
-		# New items will have 'None' or a negative integer as name
-		
-
-		return namemap
-
-
-
-	# Update the database sequence.. Probably move this to the parent class.
-	# def update_names(self, items, txn=None):
-	# 	# Which items are new?
-	# 	newrecs = [i for i in items if i.name < 0] # also valid for None
-	# 	namemap = {}
-	# 
-	# 	# Reassign new record IDs and update record counter
-	# 	if newrecs:
-	# 		basename = self._set_sequence(delta=len(newrecs), txn=txn)
-	# 
-	# 	# We have to manually update the rec.__dict__['name'] because this is normally considered a reserved attribute.
-	# 	for offset, newrec in enumerate(newrecs):
-	# 		oldname = newrec.name
-	# 		newrec.__dict__['name'] = offset + basename
-	# 		namemap[oldname] = newrec.name
-	# 
-	# 	# Update all the record's links
-	# 	for item in items:
-	# 		# ian: TODO: directly update the dict, to avoid item._setrel(). However, this is not the proper way to do it. 
-	# 		# It should see if item exists, or is new; otherwise, raise exception.
-	# 		item.__dict__['parents'] = set([namemap.get(i,i) for i in item.parents])
-	# 		item.__dict__['children'] = set([namemap.get(i,i) for i in item.children])
-	# 
-	# 	return namemap
-
-
+	##### Sequences #####
 
 	def _set_sequence(self, delta=1, key='sequence', txn=None):
 		# Update the sequence. Requires txn.
@@ -920,6 +860,55 @@ class DBODB(EMEN2DB):
 		self.sequencedb.put(key, str(val+delta), txn=txn)
 		emen2.db.log.msg('COMMIT', "%s.sequence: %s"%(self.filename, val+delta))
 		return val
+
+
+	def _newname(self, name, txn=None):
+		if name >= 0:
+			pass
+		if self.sequence:
+			name = self._set_sequence(txn=txn)
+		else:
+		 	name = emen2.db.database.getrandomid()	
+		return name
+		
+
+	def update_names(self, items, txn=None):
+		"""Update items with new names. Requires txn.
+	
+		:param items: Items to update.
+		:keyword txn: Transaction
+	
+		"""
+
+		namemap = {}
+
+		# Which items are new?
+		newitems = [i for i in items if i.name < 0] # also valid for None
+
+		# Update names
+		for item in newitems:
+			oldname = item.name
+			newname = self._newname(name=oldname, txn=txn)
+			namemap[oldname] = newname
+			item.__dict__['name'] = newname
+
+		return namemap
+
+
+	def get_max(self, txn=None):
+		"""Return the current maximum item in the sequence. Requires txn.
+
+		:keyword txn: Transaction
+
+		"""
+		if not self.sequence:
+			raise ValueError, "Sequences not supported"
+		sequence = self.sequencedb.get("sequence", txn=txn)
+		if sequence == None:
+			sequence = 0
+		val = int(sequence)
+		return val
+
 
 
 	##### New items.. #####
@@ -1093,7 +1082,6 @@ class DBODB(EMEN2DB):
 		t = emen2.db.database.gettime()
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 		crecs = []
-		namemap = {}
 
 		# Get the existing records, or create new records.
 		for name, updrec in enumerate(items, start=1):
@@ -1109,7 +1097,6 @@ class DBODB(EMEN2DB):
 			if name < 0 or not self.exists(name, txn=txn, flags=bsddb3.db.DB_RMW):
 				p = dict((k,updrec.get(k)) for k in self.dataclass.attr_required)
 				orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
-				namemap[name] = orec.name
 				cp.add('name')
 			else:
 				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
@@ -1129,10 +1116,10 @@ class DBODB(EMEN2DB):
 
 		# Assign names for new items.
 		# This will also update any relationships to uncommitted records.
-		namemap = self.update_names(crecs, txn=txn)
+		self.update_names(crecs, txn=txn)
 
 		# Calculate all changed indexes
-		self.reindex(crecs, namemap=namemap, ctx=ctx, txn=txn)
+		self.reindex(crecs, ctx=ctx, txn=txn)
 
 		# Commit "for real"
 		for crec in crecs:
@@ -1146,7 +1133,7 @@ class DBODB(EMEN2DB):
 
 	# Calculate and write index changes
 	# if indexonly, assume items are new, to rebuild all params.
-	def reindex(self, items, indexonly=False, namemap=None, ctx=None, txn=None):
+	def reindex(self, items, indexonly=False, ctx=None, txn=None):
 		"""Update indexes. This is really a private method.
 
 		The original items will be retrieved and compared to the updated
@@ -1158,7 +1145,6 @@ class DBODB(EMEN2DB):
 
 		:param items: Updated DBOs
 		:keyword indexonly:
-		:keyword namemap:
 		:keyword ctx: Context
 		:keyword txn: Transaction
 
@@ -1177,17 +1163,18 @@ class DBODB(EMEN2DB):
 			for param in crec.changedparams(orec):
 				ind[param].append((crec.name, crec.get(param), orec.get(param)))
 
-		# These are complex changes, so pass them off to different reindex method
+
+		# The other side of the relationship will also need to be updated.
 		parents = ind.pop('parents', None)
 		children = ind.pop('children', None)
-		# If the BTree supports permissions...
-		self._reindex_relink(parents, children, namemap=namemap, indexonly=indexonly, ctx=ctx, txn=txn)
+		self._reindex_relink(parents, children, indexonly=indexonly, ctx=ctx, txn=txn)
 
+		# Update indexes.
 		for k,v in ind.items():
 			self._reindex_param(k, v, ctx=ctx, txn=txn)
 
 
-	def _reindex_relink(self, parents, children, namemap=None, indexonly=False, ctx=None, txn=None):
+	def _reindex_relink(self, parents, children, indexonly=False, ctx=None, txn=None):
 		# (Internal) see RelateDB
 		return
 
@@ -1219,6 +1206,7 @@ class DBODB(EMEN2DB):
 			print "Could not reindex param %s: %s"%(pd.name, e)
 			print changes
 			return
+			
 		# print "reindexing", pd.name
 		# print "changes:", changes
 		# print "addrefs:", addrefs
@@ -1347,7 +1335,16 @@ class RelateDB(DBODB):
 		pcunlink		Remove a parent/child relationship
 
 	"""
+
 	maxrecurse = emen2.db.config.get('params.MAXRECURSE', 50)
+
+	def update_names(self, items, txn=None):
+		# Update all the record's links
+		namemap = super(RelateDB, self).update_names(items, txn=txn)		
+		for item in items:
+			item.__dict__['parents'] = set([namemap.get(i,i) for i in item.parents])
+			item.__dict__['children'] = set([namemap.get(i,i) for i in item.children])
+
 
 	def openindex(self, param, txn=None):
 		"""Extends openindex to add support for parents and children."""
@@ -1619,17 +1616,19 @@ class RelateDB(DBODB):
 
 
 	# Handle the reindexing...
-	def _reindex_relink(self, parents, children, namemap=None, indexonly=False, ctx=None, txn=None):
+	def _reindex_relink(self, parents, children, indexonly=False, ctx=None, txn=None):
 		# (Internal) Relink relationships
 		# This method will grab both items, and add or remove the rels from
 		# each item, and then update the parents/children IndexDBs.
 
-		namemap = namemap or {}
 		indc = self.getindex('children', txn=txn)
 		indp = self.getindex('parents', txn=txn)
 		if not indc or not indp:
 			raise KeyError, "Relationships not supported"
-	
+
+		# The names of new items.
+		names = []
+		
 		# Process change sets into new and removed links
 		add = []
 		remove = []
@@ -1640,6 +1639,7 @@ class RelateDB(DBODB):
 				add.append((i, name))
 			for i in old - new:
 				remove.append((i, name))
+			names.append(name)
 
 		for name, new, old in (children or []):
 			old = old or set()
@@ -1648,6 +1648,7 @@ class RelateDB(DBODB):
 				add.append((name, i))
 			for i in old - new:
 				remove.append((name, i))
+			names.append(name)
 
 
 		# print "Add links:", add
@@ -1663,13 +1664,6 @@ class RelateDB(DBODB):
 		for p,c in remove:
 			p_remove[c].add(p)
 			c_remove[p].add(c)
-
-		nmi = set(namemap.keys()) | set(namemap.values())
-		# print "p_add:", p_add
-		# print "p_remove:", p_remove
-		# print "c_add:", c_add
-		# print "c_remove:", c_remove
-		# print "nmi:", nmi
 
 		if not indexonly:
 			# Go and fetch other items that we need to update
@@ -1689,7 +1683,7 @@ class RelateDB(DBODB):
 					self.put(rec.name, rec, txn=txn)
 				except KeyError:
 					# If we're trying to update an item that isn't a new item in the current commit, raise.
-					if name not in nmi:
+					if name not in names:
 						raise
 						
 
