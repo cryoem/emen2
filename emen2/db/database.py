@@ -155,12 +155,12 @@ def ol(name, output=True):
 	"""Use method argument introspection to convert an argument value to a list.
 	If the value was originally a list, return a list. If it was not, return
 	a single value.
-	
+
 	:param name: Argument name to transform to list.
 	:keyword output: Transform output.
 	"""
 	# This will be easier in Python 2.7 using inspect.getcallargs.
-	
+
 	def wrap(f):
 		olpos = inspect.getargspec(f).args.index(name)
 
@@ -292,7 +292,7 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 
 class EMEN2DBEnv(object):
 	"""EMEN2 Database Environment.
-	
+
 	Each DBO table will be available in self.keytypes[keytype].
 	"""
 
@@ -425,7 +425,7 @@ class EMEN2DBEnv(object):
 	# ian: todo: make this nicer.
 	def close(self):
 		"""Close the Database Environment"""
-		
+
 		for k,v in self.keytypes.items():
 			# print "Closing", v
 			v.close()
@@ -521,7 +521,7 @@ class EMEN2DBEnv(object):
 		:keyword write: Transaction will be likely to write data; turns off Berkeley DB Snapshot
 		:return: New transaction
 		"""
-		
+
 		parent = None
 		flags = bsddb3.db.DB_TXN_SNAPSHOT
 		if write:
@@ -529,7 +529,7 @@ class EMEN2DBEnv(object):
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags) #
 		# emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
-		
+
 		type(self).txncounter += 1
 		self.txnlog[id(txn)] = txn
 
@@ -658,7 +658,7 @@ class EMEN2DBEnv(object):
 
 class DB(object):
 	"""EMEN2 Database
-	
+
 	This class provides access to the public API methods.
 	"""
 
@@ -667,11 +667,11 @@ class DB(object):
 
 	def __init__(self, path=None, create=None):
 		"""EMEN2 Database.
-		
+
 		:keyword path: Directory containing an EMEN2 Database Environment.
 		:keyword create: Create the environment if it does not already exist.
 		"""
-		
+
 		# Open the database
 		self.bdbs = EMEN2DBEnv(path=path, create=create)
 
@@ -695,7 +695,7 @@ class DB(object):
 
 	def load_json(self, infile):
 		"""Load and cache a JSON file containing DBOs."""
-		
+
 		# Create a special root context to load the items
 		ctx = emen2.db.context.SpecialRootContext(db=self)
 		loader = emen2.db.load.BaseLoader(infile=infile)
@@ -714,21 +714,21 @@ class DB(object):
 
 
 	##### Open or create new database #####
-	
+
 	@classmethod
 	def opendb(cls, name=None, password=None, admin=False, db=None):
 		"""Class method to open a database proxy.
-		
+
 		Returns a DBProxy, with either a
 		user context (name and password specified), an administrative context
 		(admin is True), or no context.
-			
+
 		:keyparam name: Username
 		:keyparam password: Password
 		:keyparam admin: Open DBProxy with administrative context
 		:keyparam db: Use an existing DB instance.
 		"""
-		
+
 		# Import here to avoid issues with publicmethod.
 		import emen2.db.proxy
 		# Use self or create new instance..
@@ -745,11 +745,11 @@ class DB(object):
 
 	def setup(self, rootpw=None, rootemail=None):
 		"""Initialize a new DB.
-		
+
 		@keyparam rootpw Root Account Password
 		@keyparam rootemail Root Account email
 		"""
-		
+
 		import platform
 		def getpw(rootpw=None, rootemail=None):
 			host = platform.node() or 'localhost'
@@ -792,7 +792,7 @@ class DB(object):
 
 	def _findrecorddefnames(self, names, ctx=None, txn=None):
 		"""(Internal) Find referenced recorddefs."""
-		
+
 		recnames, recs, rds = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
 		rds = set(rds)
 		rds |= set([i.rectype for i in recs])
@@ -804,7 +804,7 @@ class DB(object):
 
 	def _findparamdefnames(self, names, ctx=None, txn=None):
 		"""(Internal) Find referenced paramdefs."""
-		
+
 		recnames, recs, params = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
 		params = set(params)
 		if recnames:
@@ -872,7 +872,7 @@ class DB(object):
 	def _mapcommit(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
 		"""(Internal) Get keytype items, run a method with *args **kwargs, and commit.
 
-		This method is used to get a bunch of DBOs, run each instance's 
+		This method is used to get a bunch of DBOs, run each instance's
 		specified method and commit.
 
 		:param keytype: DBO keytype
@@ -991,10 +991,10 @@ class DB(object):
 
 		>>> db.version()
 		2.0rc7
-		
+
 		>>> db.version(program='API')
 		2.0rc7
-		
+
 		:keyword program: Check version for this program (API, emen2client, etc.)
 		:return: Version string
 		"""
@@ -1018,7 +1018,7 @@ class DB(object):
 	@publicmethod('time.difference')
 	def timedifference(self, t1, t2=None, ctx=None, txn=None):
 		t1 = emen2.db.vartypes.parse_iso8601(t1)[0]
-		if t2:			
+		if t2:
 			t2 = emen2.db.vartypes.parse_iso8601(t2)[0]
 		else:
 			t2 = datetime.datetime.now()
@@ -1029,18 +1029,18 @@ class DB(object):
 
 	@publicmethod("auth.login", write=True)
 	def login(self, name="anonymous", password="", host=None, ctx=None, txn=None):
-		"""Login. 
-		
+		"""Login.
+
 		Returns auth token (ctxid), or fails with AuthenticationError.
 
 		Examples:
-		
+
 		>>> db.login(name='my.account@example.com', password='foobar')
 		654067667525479cba8eb2940a3cf745de3ce608
-				
+
 		>>> db.login(name='ian@example.com', password='fobar')
-		AuthenticationError, "Invalid user name, email, or password"		
-				
+		AuthenticationError, "Invalid user name, email, or password"
+
 		:keyword name: Account name or email address
 		:keyword password: Account password
 		:keyword host: Bind auth token to this host. Set by proxy.
@@ -1083,9 +1083,9 @@ class DB(object):
 	@publicmethod("auth.logout", write=True)
 	def logout(self, ctx=None, txn=None):
 		"""Delete context and logout.
-		
+
 		Examples:
-		
+
 		>>> db.logout()
 		None
 		"""
@@ -1099,7 +1099,7 @@ class DB(object):
 		"""Return basic information about the current Context.
 
 		Examples:
-		
+
 		>>> db.checkcontext()
 		(ian, set(['admin', 'authenticated']))
 
@@ -1113,7 +1113,7 @@ class DB(object):
 		"""Checks if the user has global write access.
 
 		Examples:
-		
+
 		>>> db.checkadmin()
 		True
 
@@ -1127,7 +1127,7 @@ class DB(object):
 		"""Checks if the user has global read access.
 
 		Examples:
-		
+
 		>>> db.checkreadadmin()
 		True
 
@@ -1152,7 +1152,7 @@ class DB(object):
 
 	def _getcontext(self, ctxid, host, ctx=None, txn=None):
 		"""(Internal) Takes a ctxid key and returns a Context.
-		
+
 		Note: The host provided must match the host in the Context
 
 		:param ctxid: ctxid
@@ -1263,7 +1263,7 @@ class DB(object):
 		:exception KeyError: Broken constraint
 		:exception ValidationError: Broken constraint
 		:exception SecurityError: Unable to access specified RecordDefs or other constraint parameters.
-		"""		
+		"""
 		c = c or []
 		ret = dict(
 			c=c[:], #copy
@@ -1276,32 +1276,32 @@ class DB(object):
 			stats={},
 			keytype=keytype
 		)
-		
-		# Run the query		
+
+		# Run the query
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
 		ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
 		ret['stats']['length'] = len(q.result)
-		ret['stats']['time'] = q.time		
+		ret['stats']['time'] = q.time
 		return ret
-		
+
 
 	@publicmethod("record.table")
 	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, viewdef=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""Query results suitable for making a table.
-		
-		This method extends query() to include rendered views in the results. 
+
+		This method extends query() to include rendered views in the results.
 		These are available in the 'rendered' key in the return value. Key is
 		the item name, value is a list of the values for each column. The
 		headers for each column are in the 'headers' key.
-		
+
 		The maximum number of items returned in the table is 1000.
 		"""
 
 		# Limit tables to 1000 items per page.
 		if count < 1 or count > 1000:
 			count = 1000
-			
+
 		# Records are shown newest-first by default...
 		if keytype == "record" and sortkey in ['name', 'recid', 'creationtime'] and reverse is None:
 			reverse = True
@@ -1317,7 +1317,7 @@ class DB(object):
 			ignorecase=True,
 			stats={},
 			keytype=keytype
-		)		
+		)
 
 		# Run the query
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
@@ -1334,7 +1334,7 @@ class DB(object):
 
 		if not rectypes:
 			viewdef = defaultviewdef
-			
+
 		elif not viewdef:
 			# todo: move this to q.check('rectype') or similar..
 			# Check which views we need to fetch
@@ -1352,7 +1352,7 @@ class DB(object):
 			# Update..
 			rectypes = set(q.cache[i].get('rectype') for i in q.result)
 			rectypes -= set([None])
-			
+
 			# Get the viewdef
 			if len(rectypes) == 1:
 				rd = self.bdbs.recorddef.cget(rectypes.pop(), ctx=ctx, txn=txn)
@@ -1364,12 +1364,12 @@ class DB(object):
 					viewdef = defaultviewdef
 				else:
 					viewdef = rd.views.get('tabularview', defaultviewdef)
-			
+
 		# addparamdefs = ["creator","creationtime"]
 		addparamdefs = emen2.db.config.get('customization.TABLE_ADD_COLUMNS', ['creator', 'creationtime'])
 		for i in addparamdefs:
-			viewdef = '%s $$%s'%(viewdef.replace('$$%s'%i, ''), i) 
-		
+			viewdef = '%s $$%s'%(viewdef.replace('$$%s'%i, ''), i)
+
 		# Render the table
 		table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
 
@@ -1383,7 +1383,7 @@ class DB(object):
 	@publicmethod("record.plot")
 	def plot(self, c=None, mode='AND', x=None, y=None, z=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""Query results suitable for plotting.
-		
+
 		This method extends query() to help generate a plot. The results are
 		not sorted; the sortkey, pos, count, and reverse keyword arguments
 		are ignored.
@@ -1394,14 +1394,14 @@ class DB(object):
 			bin:	Number of bins, or date width for time parameters.
 			min:	Minimum
 			max:	Maximum
-			
+
 		Currently only the 'key' from each x, y, z attribute is used to make
 		sure it is part of the query that runs.
-		
+
 		The matching values for each constraint are available in the "items"
 		key in the return value. This is a list of stub items.
-		
-		"""		
+
+		"""
 		x = x or {}
 		y = y or {}
 		z = z or {}
@@ -1422,7 +1422,7 @@ class DB(object):
 		for axis in [x.get('key'), y.get('key'), z.get('key')]:
 			if axis and axis not in qparams:
 				c.append([axis, 'any', None])
-		# Run the query		
+		# Run the query
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
 		ret['names'] = q.result
@@ -1434,7 +1434,7 @@ class DB(object):
 	##### Other query methods #####
 
 	def _boolmode_collapse(self, rets, boolmode):
-		"""(Internal) Perform bool operation on results."""		
+		"""(Internal) Perform bool operation on results."""
 		if not rets:
 			rets = [set()]
 		if boolmode == 'AND':
@@ -1447,7 +1447,7 @@ class DB(object):
 	@publicmethod("recorddef.find")
 	def findrecorddef(self, *args, **kwargs):
 		"""Find a RecordDef, by general search string, or by searching attributes.
-		
+
 		Keywords can be combined.
 
 		Examples:
@@ -1463,7 +1463,7 @@ class DB(object):
 
 		>>> db.findrecorddef(record=[1,2,3])
 		[<RecordDef folder>, <RecordDef project>]
-			
+
 		>>> db.findrecorddef(name='project*', record='136*')
 		[<RecordDef folder>, <RecordDef project>, <RecordDef subproject>, ...]
 
@@ -1485,9 +1485,9 @@ class DB(object):
 		"""Find a ParamDef, by general search string, or by searching attributes.
 
 		Keywords can be combined.
-		
+
 		Examples:
-		
+
 		>>> db.findparamdef(query='temperature')
 		[<ParamDef temperature>, <ParamDef temperature_ambient>, <ParamDef temperature_cryoholder>, ...]
 
@@ -1520,7 +1520,7 @@ class DB(object):
 	# todo: This should just use the query system.
 	def _find_pdrd(self, cb, query=None, childof=None, keytype="paramdef", record=None, vartype=None, ctx=None, txn=None, **qp):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
-		
+
 		rets = []
 		# This can still be done much better
 		names, items = zip(*self.bdbs.keytypes[keytype].items(ctx=ctx, txn=txn))
@@ -1553,7 +1553,7 @@ class DB(object):
 		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
 
 		Keywords can be combined.
-		
+
 		Examples:
 
 		>>> db.finduser(name_last='rees')
@@ -1568,7 +1568,7 @@ class DB(object):
 		:keyword query: Contained in name_first or name_last
 		:keyword email: ... contains in email
 		:keyword name_first: ... contains in first name
-		:keyword name_middle: ... contains in middle name		
+		:keyword name_middle: ... contains in middle name
 		:keyword name_last: ... contains in last name
 		:keyword name: ... contains in the user name
 		:keyword record: Referenced in Record name(s)
@@ -1579,7 +1579,7 @@ class DB(object):
 		foundusers = None
 		foundrecs = None
 		query = filter(None, [i.strip() for i in unicode(query or '').split()])
-		
+
 		# If no options specified, find all users
 		if not any([query, record, kwargs]):
 			foundusers = self.bdbs.user.names(ctx=ctx, txn=txn)
@@ -1591,17 +1591,17 @@ class DB(object):
 			if kwargs.get(param):
 				cs.append([[param, 'contains', kwargs.get(param)]])
 		for c in cs:
-			# btree.query supports nested constraints, 
+			# btree.query supports nested constraints,
 			# but I don't have the interface finalized.
 			q = self.bdbs.record.query(c=c, mode='OR', ctx=ctx, txn=txn)
 			q.run()
 			if q.result is None:
-				pass				
+				pass
 			elif foundrecs is None:
 				foundrecs = q.result
 			else:
 				foundrecs &= q.result
-		
+
 		# Get 'username' from the found records.
 		if foundrecs:
 			recs = self.bdbs.record.cgets(foundrecs, ctx=ctx, txn=txn)
@@ -1610,7 +1610,7 @@ class DB(object):
 				foundusers = f
 			else:
 				foundusers &= f
-		
+
 		# Also search for email and name in users
 		cs = []
 		if kwargs.get('email'):
@@ -1627,8 +1627,8 @@ class DB(object):
 				foundusers = q.result
 			else:
 				foundusers &= q.result
-		
-		# Find users referenced in a record		
+
+		# Find users referenced in a record
 		if record:
 			f = self._findbyvartype(listops.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
 			if foundusers is None:
@@ -1646,14 +1646,14 @@ class DB(object):
 	@publicmethod("group.find")
 	def findgroup(self, query=None, record=None, count=100, ctx=None, txn=None):
 		"""Find a group.
-		
+
 		Keywords can be combined.
-		
+
 		Examples:
-		
+
 		>>> db.findgroup('admin')
 		[<Group admin>, <Group readonlyadmin>]
-			
+
 		>>> db.findgroup(record=136)
 		[<Group authenticated>, <Group ncmiusers>]
 
@@ -1663,7 +1663,7 @@ class DB(object):
 		:keyword boolmode: AND / OR for each search constraint
 		:return: Groups
 		"""
-		
+
 		# No real indexes yet (small). Just get everything and sort directly.
 		items = self.bdbs.group.cgets(self.bdbs.group.names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 		ditems = listops.dictbykey(items, 'name')
@@ -1699,13 +1699,13 @@ class DB(object):
 
 	@publicmethod("record.find.byvalue")
 	def findvalue(self, param, query='', choices=True, count=100, ctx=None, txn=None):
-		"""Find values for a parameter. 
-		
+		"""Find values for a parameter.
+
 		This is mostly used for interactive UI elements: e.g. combobox.
 		More detailed results can be returned by using db.query directly.
-		
+
 		Examples:
-		
+
 		>>> db.findvalue('name_pi')
 		[['wah', 124], ['steve', 89], ['ian', 43]], ...]
 
@@ -1722,7 +1722,7 @@ class DB(object):
 		:return: [[matching value, count], ...]
 		:exception KeyError: No such ParamDef
 		"""
-		
+
 		# Use db.plot because it returns the matched values.
 		c = [[param, 'contains', query]]
 		q = self.plot(c=c, ctx=ctx, txn=txn)
@@ -1731,14 +1731,14 @@ class DB(object):
 		inverted = collections.defaultdict(set)
 		for rec in q['recs']:
 			inverted[rec.get(param)].add(rec.get('name'))
-			
+
 		# Include the ParamDef choices if choices=True.
 		pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
 		if pd and choices:
 			choices = pd.get('choices') or []
 		else:
 			choices = []
-			
+
 		# Sort by the number of items.
 		keys = sorted(inverted, key=lambda x:len(inverted[x]), reverse=True)
 		keys = filter(lambda x:x not in choices, keys)
@@ -1751,7 +1751,7 @@ class DB(object):
 			ret = ret[:count]
 
 		return ret
-		
+
 
 	# Warning: This can be SLOW!
 	@publicmethod("binary.find")
@@ -1817,21 +1817,21 @@ class DB(object):
 	@ol('names', output=False)
 	def getindexbyrectype(self, names, ctx=None, txn=None):
 		"""Get Record names by RecordDef.
-		
+
 		Note: Not currently filtered for permissions. This is not
 		considered sensitive information.
-		
+
 		Examples:
 
 		>>> db.getindexbyrectype('ccd')
 		set([4180, 4513, 4514, ...])
-			
+
 		>>> db.getindexbyrectype('image_capture*')
 		set([141, 142, 4180, ...])
 
 		>>> db.getindexbyrectype(['scan','micrograph'])
 		set([141, 142, 262153, ...])
-		
+
 		:param names: RecordDef name(s)
 		:keyword filt: Ignore failures
 		:return: Set of Record names
@@ -1850,15 +1850,15 @@ class DB(object):
 	@ol('names')
 	def groupbyrectype(self, names, filt=True, ctx=None, txn=None):
 		"""Group Record(s) by RecordDef.
-		
+
 		Examples:
-		
+
 		>>> db.groupbyrectype([136,137,138])
 		{u'project': set([137]), u'subproject': set([138]), u'group': set([136])}
-		
+
 		>>> db.groupbyrectype([<Record instance 1>, <Record instance 2>])
 		{u'all_microscopes': set([1]), u'folder': set([2])}
-		
+
 		:param names: Record name(s) or Record(s)
 		:keyword filt: Ignore failures
 		:return: Dictionary of Record names by RecordDef
@@ -1878,10 +1878,10 @@ class DB(object):
 		records and simple relationships.
 
 		Examples:
-		
+
 		>>> db.renderchildtree(0, recurse=1, rectype=["group"])
 		(
-			{0: u'EMEN2', 136: u'NCMI', 358307: u'Visitors'}, 
+			{0: u'EMEN2', 136: u'NCMI', 358307: u'Visitors'},
 			{0: set([136, 358307])}
 		)
 
@@ -1963,31 +1963,31 @@ class DB(object):
 	def renderview(self, names, viewname='recname', viewdef=None, edit=False, markup=True, table=False, mode=None, vtm=None, ctx=None, txn=None):
 		"""Render record(s).
 
-		For each record, render the view given either by the viewdef keyword, 
-		or the viewname keyword in the record's protocol. The default action 
+		For each record, render the view given either by the viewdef keyword,
+		or the viewname keyword in the record's protocol. The default action
 		is to render the "recname" view.
-		
+
 		The keywords markup, edit, and table affect rendering. markup=True
 		will cause HTML to be returned and, with edit=True, editable parameters
 		wrapped in elements with the "e2-edit" class. If table=True, the results
 		will differ slightly. Each result will be a list of elements, representing
 		each parameter defined in the view, and an additional 'header' item in the
 		returned dictionary. Both edit and table will imply markup=True.
-		
+
 		The special view 'dicttable' will returned a markup=True result with each
 		record parameter/value pair rendered as a two-column HTML table.
-		
+
 		Examples:
 
 		>>> db.renderview([0, 136, 137])
 		{0: u'EMEN2', 136: u'NCMI', 137: u'A Project'}
-		
+
 		>>> db.renderview([0, 136], viewname="mainview")
 		{0: u'<p>Folder: EMEN2</p>...', 136: u'<h1><span class="e2-paramdef">Group</span>: NCMI</h1>...'}
-		
+
 		>>> db.renderview([0, 136], viewdef="$$creator $$creationtime")
 		{0: u'<p><a href="/user/root">Admin</a> 2007/07/23 10:30:22</p>', 136: u'<p><a href="/user/ian">Rees, Ian</a> 2008/07/05</p>'}
-		
+
 		>>> db.renderview(0, viewname="defaultview", edit=True, markup=True)
 		u'<p>Folder: <span class="e2-edit" data-name="0" data-param="name_folder">EMEN2</span>...'
 
@@ -2006,7 +2006,7 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		
+
 		if viewname == "tabularview":
 			table = True
 
@@ -2109,7 +2109,7 @@ class DB(object):
 			_edit = edit
 			if edit == "auto":
 				_edit = rec.writable()
-				
+
 			a = groupviews.get(key)
 			vs = []
 
@@ -2175,13 +2175,13 @@ class DB(object):
 
 		>>> db.get(0)
 		<Record 0, folder>
-		
+
 		>>> db.get([0, 136])
 		[<Record 0, folder>, <Record 136, group>]
 
 		>>> db.get('creator', keytype='paramdef')
 		<ParamDef creator>
-		
+
 		>>> db.get(['ian', 'steve'], keytype='user')
 		[<User ian>, <User steve>]
 
@@ -2204,13 +2204,13 @@ class DB(object):
 			db.<keytype>.put(items)
 
 		Examples:
-		
+
 		>>> db.put({'rectype':'folder', 'name_folder':'Test', 'parents':[0]})
 		<Record 499203, folder>
 
 		>>> db.put([<Record 0, folder>, <Record 136, group])
 		[<Record 0, folder>]
-		
+
 		>>> db.put({'name': 'silly_name', 'vartype':'string', 'desc_short':'Silly name'}, keytype='paramdef')
 		<ParamDef silly_name>
 
@@ -2227,15 +2227,15 @@ class DB(object):
 	@publicmethod("new")
 	def new(self, *args, **kwargs):
 		"""Create a new item.
-		
+
 		This method is effectively the same as:
 			db.<keytype>.new(*args, **kwargs)
 
 		The keytype keyword is required. See the db.<keytype>.new methods for
 		other arguments and keywords.
-		
+
 		Examples:
-		
+
 		>>> db.new(name='sillier_name', vartype='string', keytype='paramdef')
 		<ParamDef sillier_name>
 
@@ -2247,14 +2247,14 @@ class DB(object):
 
 		>>> db.new(rectype='folder', keytype='record')
 		ExistingKeyError, "RecordDef folder already exists."
-		
+
 		:keyword keytype:
 		:return: New, uncommitted item
 		:exception ExistingKeyError:
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		
+
 		keytype = kwargs.pop('keytype', 'record')
 		return dict(
 			user = self.newuser,
@@ -2273,17 +2273,17 @@ class DB(object):
 	@publicmethod("rel.siblings")
 	def getsiblings(self, name, rectype=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""Get the siblings of the object as a tree.
-		
+
 		Siblings are any items that share a common parent.
 
 		Examples:
 
 		>>> db.getsiblings(136, rectype='group')
 		set([136, 358307])
-		
+
 		>>> db.getsiblings('creationtime', keytype='paramdef')
 		set([u'website', u'date_start', u'name_first', u'observed_by', ...])
-		
+
 		>>> db.getsiblings('ccd', keytype='recorddef')
 		set([u'ccd', u'micrograph', u'ddd', u'stack', u'scan'])
 
@@ -2310,8 +2310,8 @@ class DB(object):
 		Examples:
 
 		>>> db.getparenttree(46604, recurse=-1)
-		{136: set([0]), 46604: set([136])}		
-		
+		{136: set([0]), 46604: set([136])}
+
 		>>> db.getparenttree([46604, 74547], recurse=-1)
 		{136: set([0]), 74547: set([136]), 46604: set([136])}
 
@@ -2320,7 +2320,7 @@ class DB(object):
 
 		>>> db.getparenttree('ccd', recurse=2, keytype='recorddef')
 		{'ccd': set([u'image_capture']), u'image_capture': set([u'tem'])}
-		
+
 		:param names: Item name(s)
 		:keyword recurse: Recursion depth
 		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
@@ -2342,13 +2342,13 @@ class DB(object):
 		This method is the same as as db.rel(rel='children', tree=True, *args, **kwargs)
 
 		Examples:
-		
+
 		>>> db.getchildtree(0, rectype='group')
 		{0: set([136, 358307])}
-		
+
 		>>> db.getchildtree([46604, 74547], rectype='subproject')
 		{74547: set([75585, 270211, ...]), 46604: set([380432, 57474, ...])}
-		
+
 		>>> db.getchildtree(136, recurse=2, rectype=['project*'])
 		{432645: set([449391]), 268295: set([268296]), 299528: set([460329, 299529]), ...}
 
@@ -2372,13 +2372,13 @@ class DB(object):
 		This method is the same as as db.rel(rel='parents', tree=False, *args, **kwargs)
 
 		Examples:
-		
+
 		>>> db.getparents(0)
 		set([])
-		
+
 		>>> db.getparents(46604, recurse=-1)
 		set([136, 0])
-		
+
 		>>> db.getparents('ccd', recurse=-1, keytype='recorddef')
 		set([u'image_capture', u'experiments', u'root', u'tem'])
 
@@ -2387,7 +2387,7 @@ class DB(object):
 		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
 		:keyword param keytype: Item keytype
 		:keyword filt: Ignore failures
-		:return:		
+		:return:
 		:exception KeyError:
 		:exception SecurityError:
 		"""
@@ -2398,18 +2398,18 @@ class DB(object):
 	@ol('names')
 	def getchildren(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
 		"""Get the children of an object.
-		
+
 		This method is the same as db.rel(rel='children', tree=False, *args, **kwargs)
 
 		>>> db.rel.children(0)
 		set([136, 358307, 270940])
-		
+
 		>>> db.rel.children(0, recurse=2)
 		set([2, 4, 268295, 260104, ...])
-		
+
 		>>> db.rel.children(0, recurse=2, rectype=["project*"])
 		set([344513, 432645, 237313, 260104, ...])
-		
+
 		>>> db.rel.children('root', keytype='paramdef')
 		set([u'core', u'descriptive_information', ...])
 
@@ -2418,7 +2418,7 @@ class DB(object):
 		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
 		:keyword keytype: Item keytype
 		:keyword filt: Ignore failures
-		:return:		
+		:return:
 		:exception KeyError:
 		:exception SecurityError:
 		"""
@@ -2429,11 +2429,11 @@ class DB(object):
 	@ol('names')
 	def rel(self, names, keytype="record", recurse=1, rel="children", tree=False, ctx=None, txn=None, **kwargs):
 		"""Get relationships.
-		
+
 		Examples:
-		
+
 		See also rel.children(), rel.parents(), rel.children.tree(), rel.parents.tree().
-		
+
 		:param names: Item name(s)
 		:keyword keytype: Item keytype
 		:keyword recurse: Recursion depth
@@ -2441,7 +2441,7 @@ class DB(object):
 		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
 		:keyword tree: Return tree
 		:keyword filt: Ignore failures
-		:return:		
+		:return:
 		:exception KeyError:
 		:exception SecurityError:
 		"""
@@ -2451,12 +2451,12 @@ class DB(object):
 	@publicmethod('rel.pclink', write=True)
 	def pclink(self, parent, child, keytype='record', ctx=None, txn=None):
 		"""Link a parent object with a child
-		
+
 		Examples:
-		
+
 		>>> db.pclink(0, 46604)
 		None
-		
+
 		>>> db.pclink('physical_property', 'temperature', keytype='paramdef')
 		None
 
@@ -2464,7 +2464,7 @@ class DB(object):
 		:param child: Child name
 		:param keytype: Item type
 		:keyword filt: Ignore failures
-		:return:		
+		:return:
 		:exception KeyError:
 		:exception SecurityError:
 		"""
@@ -2476,10 +2476,10 @@ class DB(object):
 		"""Remove a parent-child link
 
 		Examples:
-		
+
 		>>> db.pcunlink(0, 46604)
 		None
-		
+
 		>>> db.pcunlink('physical_property', 'temperature', keytype='paramdef')
 		None
 
@@ -2487,7 +2487,7 @@ class DB(object):
 		:param child: Child name
 		:keyword keytype: Item type
 		:keyword filt: Ignore failures
-		:return:	
+		:return:
 		:exception KeyError:
 		:exception SecurityError:
 		"""
@@ -2497,21 +2497,21 @@ class DB(object):
 	@publicmethod('rel.relink', write=True)
 	def relink(self, removerels=None, addrels=None, keytype='record', ctx=None, txn=None):
 		"""Add and remove a number of parent-child relationships at once.
-		
+
 		Examples:
-		
+
 		>>> db.relink([0,136], [100, 136])
 		None
-		
+
 		:keyword removerels: Relationships to remove. Can be a single or list of tuples.
 		:keyword addrels: Relationships to add. Can be a single or list of tuples.
 		:keyword keytype: Item keytype
 		:keyword filt: Ignore failures
-		:return:		
+		:return:
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		
+
 		# Uses the new .parents/.children attributes to do this simply
 		removerels = removerels or []
 		addrels = addrels or []
@@ -2527,7 +2527,7 @@ class DB(object):
 			remove[parent].add(child)
 		for parent, child in addrels:
 			add[parent].add(child)
-			
+
 		# print "Adding:", add
 		# print "Removing:", remove
 		items = set(remove.keys()) | set(add.keys())
@@ -2550,12 +2550,12 @@ class DB(object):
 		"""Get user information.
 		Information may be limited to name and id if the user
 		requested additional privacy.
-		
+
 		Examples:
-		
+
 		>>> db.getuser('ian')
 		<User ian>
-		
+
 		>>> db.getuser(['ian', 'steve'])
 		[<User ian>, <User steve>]
 
@@ -2571,17 +2571,17 @@ class DB(object):
 	@publicmethod("user.names")
 	def getusernames(self, names=None, ctx=None, txn=None):
 		"""Get all accessible user names.
-		
+
 		Examples:
-		
+
 		>>> db.getusernames()
 		set([u'ian', u'steve', ...])
-		
+
 		:keyword names: Restrict to this subset of names
 		:return: User names
 		:exception KeyError:
 		:exception SecurityError:
-		"""				
+		"""
 		return self.bdbs.user.names(names=names, ctx=ctx, txn=txn)
 
 
@@ -2591,7 +2591,7 @@ class DB(object):
 		"""Allow a User to change some of their account settings.
 
 		Examples:
-		
+
 		>>> db.putuser({'name':'ian', 'privacy': 1})
 		<User ian>
 
@@ -2610,10 +2610,10 @@ class DB(object):
 		"""(Admin Only) Disable a User.
 
 		Examples:
-		
+
 		>>> db.disableuser('steve')
 		<User steve>
-		
+
 		>>> db.disableuser(['wah', 'steve'])
 		[<User wah>, <User steve>]
 
@@ -2629,12 +2629,12 @@ class DB(object):
 	@publicmethod("user.enable", write=True, admin=True)
 	def enableuser(self, names, filt=True, ctx=None, txn=None):
 		"""(Admin Only) Re-enable a User.
-		
+
 		Examples:
-		
+
 		>>> db.enableuser('steve')
 		<User steve>
-		
+
 		>>> db.enableuser(['wah', 'steve'])
 		[<User wah>, <User steve>]
 
@@ -2658,7 +2658,7 @@ class DB(object):
 
 		>>> db.setprivacy(2, names=['ian', 'wah'])
 		[<User ian>, <User wah>]
-		
+
 		:param state: 0, 1, or 2, in increasing level of privacy.
 		:keyword names: User name(s). Default is the current context user.
 		:return: Updated user(s)
@@ -2677,14 +2677,14 @@ class DB(object):
 	# These methods sometimes use put instead of cput because they need to modify
 	# the user's secret auth token.
 	#####
-	
+
 	@publicmethod("user.setemail", write=True)
 	def setemail(self, email, secret=None, password=None, name=None, ctx=None, txn=None):
 		"""Change a User's email address.
-		
+
 		This will require you to verify that you own the account by
-		responding with an auth token sent to the new email address. 
-		Use the received auth token to sign the call using the 
+		responding with an auth token sent to the new email address.
+		Use the received auth token to sign the call using the
 		'secret' keyword.
 
 		Note: This method only takes a single User name.
@@ -2692,13 +2692,13 @@ class DB(object):
 		Note: An Admin can change a user's email without the user's password or auth token.
 
 		Examples:
-		
+
 		>>> db.setemail('ian@example.com', password='foobar')
 		<User ian>
 
 		>>> db.setemail('ian@example.com', secret='654067667525479cba8eb2940a3cf745de3ce608')
 		<User ian>
-		
+
 		:param str email: New email address
 		:param str secret: Auth token to verify email address is owned by user.
 		:param str password: Current User password
@@ -2709,7 +2709,7 @@ class DB(object):
 		:exception ValidationError:
 		"""
 		# :exception InvalidEmail:
-		
+
 		#@action
 		# Get the record.
 		# Keep the existing email address to see if it changes.
@@ -2731,7 +2731,7 @@ class DB(object):
 		# but user._ctx is.
 		if ctx.checkadmin():
 			user.setContext(ctx)
-		
+
 		# Actually change user email.
 		oldemail = user.email
 		email = user.setemail(email, password=password, secret=secret)
@@ -2756,14 +2756,14 @@ class DB(object):
 		else:
 			# Email changed.
 			emen2.db.log.msg("SECURITY","Changing email for user %s to %s"%(user.name, user.email))
-			# Note: Since we're putting directly, 
+			# Note: Since we're putting directly,
 			# 	have to force the index to update
 			self.bdbs.user.reindex([user], ctx=ctx, txn=txn)
 			self.bdbs.user.put(user.name, user, txn=txn)
 
 			# Send the user an email to acknowledge the change
 			sendmail(user.email, template='/email/email.verified', ctxt=ctxt)
-		
+
 		return self.bdbs.user.cget(user.name, ctx=ctx, txn=txn)
 
 
@@ -2772,11 +2772,11 @@ class DB(object):
 		"""Change password.
 
 		Note: This method only takes a single User name.
-		
+
 		The 'secret' keyword can be used for 'password reset' auth tokens. See db.resetpassword().
 
 		Examples:
-		
+
 		>>> db.setpassword('foobar', 'barfoo')
 		<User ian>
 
@@ -2793,7 +2793,7 @@ class DB(object):
 		:exception ValidationError:
 		"""
 		# :exception InvalidPassword:
-		
+
 		#@action
 		# Try to authenticate using either the password OR the secret!
 		# Note: The password will be hidden if ctx.username != user.name
@@ -2816,15 +2816,15 @@ class DB(object):
 	@publicmethod("auth.resetpassword", write=True)
 	def resetpassword(self, name=None, ctx=None, txn=None):
 		"""Reset User password.
-		
+
 		This is accomplished by sending a password reset auth token to the
 		User's currently registered email address. Use this auth token
 		to sign a call to db.setpassword() using the 'secret' keyword.
-		
+
 		Note: This method only takes a single User name.
 
 		Examples:
-		
+
 		>>> db.resetpassword()
 		<User ian>
 
@@ -2833,9 +2833,9 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		
+
 		name = name or ctx.username
-		
+
 		#@action
 		user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
 		user.resetpassword()
@@ -2850,7 +2850,7 @@ class DB(object):
 		sendmail(user.email, template='/email/password.reset', ctxt=ctxt)
 
 		emen2.db.log.msg('SECURITY', "Setting resetpassword secret for %s"%user.name)
-		
+
 		return self.bdbs.user.cget(user.name, ctx=ctx, txn=txn)
 
 
@@ -2860,12 +2860,12 @@ class DB(object):
 	@publicmethod("user.queue.names", admin=True)
 	def getuserqueue(self, names=None, ctx=None, txn=None):
 		"""(Admin only) Get the queue of users awaiting approval.
-		
+
 		Examples:
 
 		>>> db.getuserqueue()
 		set(['spambot', 'kay'])
-		
+
 		:keyword names: Restrict to these names
 		:keyword filt: Ignore failures
 		:return: Set of names of users in the new user queue.
@@ -2882,10 +2882,10 @@ class DB(object):
 		"""(Admin Only) Get users from the new user approval queue.
 
 		Examples:
-		
+
 		>>> db.getqueueduser('kay')
 		<NewUser kay>
-		
+
 		>>> db.getqeueuduser(['spambot', 'kay'])
 		[<NewUser spambot>, <NewUser kay>]
 
@@ -2903,7 +2903,7 @@ class DB(object):
 		"""Create a new User.
 
 		Examples:
-		
+
 		>>> db.newuser(name='kay', password='foobar', email='kay@example.com')
 		<NewUser kay>
 
@@ -2923,13 +2923,13 @@ class DB(object):
 	@ol('users')
 	def adduser(self, users, ctx=None, txn=None):
 		"""Add a new user.
-		
+
 		Note: This only adds the user to the new user queue. The
 		account must be processed by an administrator before it
 		becomes active.
 
 		Examples:
-		
+
 		>>> db.adduser(<NewUser kay>)
 		<NewUser kay>
 
@@ -2943,10 +2943,10 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		
+
 		users = self.bdbs.newuser.cputs(users, ctx=ctx, txn=txn)
 		user_autoapprove = emen2.db.config.get('users.USER_AUTOAPPROVE', False)
-		
+
 		if user_autoapprove:
 			# print "Autoapproving........"
 			rootctx = self._sudo()
@@ -2971,13 +2971,13 @@ class DB(object):
 		"""(Admin Only) Approve account in user queue.
 
 		Examples:
-		
+
 		>>> db.approveuser('kay')
 		<User kay>
-		
+
 		>>> db.approveuser(['kay', 'matt'])
 		[<User kay>, <User matt>]
-		
+
 		>>> db.approveuser('kay', secret='654067667525479cba8eb2940a3cf745de3ce608')
 		<User kay>
 
@@ -3040,7 +3040,7 @@ class DB(object):
 				crec.parents.add(rec.name)
 				crec.update(childrec)
 				crec = self.bdbs.record.cput(crec, ctx=ctx, txn=txn)
-				
+
 
 		# Send the 'account approved' emails
 		for user in cusers:
@@ -3060,10 +3060,10 @@ class DB(object):
 		"""(Admin Only) Remove a user from the new user queue.
 
 		Examples:
-		
+
 		>>> db.rejectuser('spambot')
 		set(['spambot'])
-		
+
 		>>> db.rejectuser(['kay', 'spambot'])
 		set(['kay', 'spambot'])
 
@@ -3097,15 +3097,15 @@ class DB(object):
 	@publicmethod("group.names")
 	def getgroupnames(self, names=None, ctx=None, txn=None):
 		"""Get all accessible group names.
-		
+
 		Examples:
-		
+
 		>>> db.getgroupnames()
 		set([u'readadmin', u'authenticated', u'admin', u'create', u'publish', u'ncmi', u'anon'])
-		
+
 		>>> db.getgroupnames(names=['admin','create'])
 		set(['admin', 'create'])
-		
+
 		:keyword names: Restrict to this subset.
 		:keyword filt: Ignore failures
 		:return: Set of all Group names.
@@ -3122,10 +3122,10 @@ class DB(object):
 		"""Get a Group.
 
 		Examples:
-		
+
 		>>> db.getgroup('admin')
 		<Group admin>
-		
+
 		>>> db.getgroup(['create', 'admin'])
 		[<Group admin>, <Group create>]
 
@@ -3143,7 +3143,7 @@ class DB(object):
 		"""Construct a new Group.
 
 		Examples:
-		
+
 		>>> db.newgroup(name='demo')
 		<Group demo>
 
@@ -3168,14 +3168,14 @@ class DB(object):
 
 		>>> db.putgroup({'name':'demo', 'displayname': 'Demo', 'permissions':[['ian','wah'],[],[],[]]))
 		<Group demo>
-		
+
 		>>> db.putgroup([<Group admin>, <Group readadmin>])
 		[<Group admin>, <Group readadmin>]
 
 		:param items: Group(s)
 		:return: Updated Group(s)
 		:exception SecurityError:
-		:exception ValidationError:		
+		:exception ValidationError:
 		"""
 		return self.bdbs.group.cputs(items, ctx=ctx, txn=txn)
 
@@ -3186,16 +3186,16 @@ class DB(object):
 	@publicmethod("paramdef.vartypes")
 	def getvartypenames(self, ctx=None, txn=None):
 		"""Get all supported datatypes.
-		
+
 		A number of parameter data types (vartypes) are included by default.
 		Extensions may add extend this by subclassing emen2.db.vartypes.Vartype()
 		and using the registration decorator. See that module for details.
-		
+
 		Examples:
 
 		>>> db.getvartypenames()
 		set(['text', 'string', 'binary', 'user', ...])
-		
+
 		:return: Set of all available datatypes.
 		"""
 		vtm = emen2.db.datatypes.VartypeManager()
@@ -3205,14 +3205,14 @@ class DB(object):
 	@publicmethod("paramdef.properties")
 	def getpropertynames(self, ctx=None, txn=None):
 		"""Get all supported physical properties.
-		
+
 		A number of physical properties are included by default.
 		Extensions may extend this by subclassing emen2.db.properties.Property()
 		and using the registration decorator. See that module for details.
-		
+
 		>>> db.getpropertynames()
 		set(['transmittance', 'force', 'bytes', 'energy', 'resistance', ...])
-		
+
 		:return: Set of all available properties.
 		"""
 		vtm = emen2.db.datatypes.VartypeManager()
@@ -3226,10 +3226,10 @@ class DB(object):
 		default units.
 
 		Examples:
-		
+
 		>>> db.getpropertyunits('volume')
 		set(['nL', 'mL', 'L', 'uL', 'gallon', 'm^3'])
-		
+
 		>>> db.getpropertyunits('length')
 		set([u'\xc5', 'nm', 'mm', 'm', 'km', 'um'])
 
@@ -3249,7 +3249,7 @@ class DB(object):
 		"""Construct a new ParamDef.
 
 		Examples:
-		
+
 		>>> db.newparamdef(name='silly_name', vartype='string')
 		<ParamDef silly_name>
 
@@ -3259,7 +3259,7 @@ class DB(object):
 		:return: New ParamDef
 		:exception ExistingKeyError:
 		:exception SecurityError:
-		:exception ValidationError:		
+		:exception ValidationError:
 		"""
 		return self.bdbs.paramdef.new(name=name, vartype=vartype, ctx=ctx, txn=txn)
 
@@ -3270,17 +3270,17 @@ class DB(object):
 		"""Add or update ParamDef(s).
 
 		Examples:
-		
+
 		>>> db.putparamdef(<ParamDef silly_name>)
 		<ParamDef silly_name>
-		
+
 		>>> db.putparamdef({'name':'silly_name', 'desc_short':'A silly name'})
 		<ParamDef silly_name>
 
 		:param items: ParamDef(s)
 		:return: Updated ParamDef(s)
 		:exception SecurityError:
-		:exception ValidationError:		
+		:exception ValidationError:
 		"""
 		return self.bdbs.paramdef.cputs(items, ctx=ctx, txn=txn)
 
@@ -3289,12 +3289,12 @@ class DB(object):
 	@ol('names')
 	def getparamdef(self, names, filt=True, ctx=None, txn=None):
 		"""Get ParamDefs.
-		
+
 		Examples:
-		
+
 		>>> db.getparamdef('creator')
 		<ParamDef creator>
-		
+
 		>>> db.getparamdef(['silly_name', 'creator', 'modifyuser'])
 		[<ParamDef silly_name>, <ParamDef creator>, <ParamDef modifyuser>]
 
@@ -3310,15 +3310,15 @@ class DB(object):
 	@publicmethod("paramdef.names")
 	def getparamdefnames(self, names=None, ctx=None, txn=None):
 		"""Get all ParamDef names.
-		
+
 		Examples:
-		
+
 		>>> db.getparamdefnames()
 		set(['creator', 'creationtime', 'permissions', ...])
-		
+
 		>>> db.getparamdefnames(names=['name_first', 'name_last', 'unknown_parameter'])
 		set(['name_first', 'name_last'])
-		
+
 		:keyword names: Restrict to this subset.
 		:keyword filt: Ignore failures
 		:return: Set of all ParamDef names.
@@ -3330,7 +3330,7 @@ class DB(object):
 
 
 	##### RecordDefs #####
-	
+
 	@publicmethod("recorddef.new")
 	def newrecorddef(self, name, mainview, ctx=None, txn=None):
 		"""Construct a new RecordDef.
@@ -3339,7 +3339,7 @@ class DB(object):
 		(mainview) are required.
 
 		Examples:
-		
+
 		>>> db.newrecorddef(name='dna_miniprep', mainview='DNA purification. $#performed_by: $$performed_by')
 		<RecordDef dna_miniprep>
 
@@ -3361,27 +3361,27 @@ class DB(object):
 	def putrecorddef(self, items, ctx=None, txn=None):
 		"""Add or update RecordDef(s).
 
-		Note: RecordDef main protocol descriptions (mainview) should never 
-		be changed once used, since this will change the meaning of data 
+		Note: RecordDef main protocol descriptions (mainview) should never
+		be changed once used, since this will change the meaning of data
 		already in the database.
-		
+
 		Examples:
-		
+
 		>>> db.putrecorddef(<RecordDef folder>)
 		<RecordDef folder>
-		
+
 		>>> db.putrecorddef([<RecordDef folder>, <RecordDef project>])
 		[<RecordDef folder>, <RecordDef project>]
-		
+
 		>>> db.putrecorddef({'name':'folder', ...., {'views':{'recname':'Folder: $$creator'}}})
 		<RecordDef folder>
-		
+
 		>>> db.putrecorddef({'name':'dna_miniprep', 'mainview': 'DNA purification....', 'desc_short':'DNA miniprep'})
 		<RecordDef dna_miniprep>
-		
+
 		>>> db.putrecorddef({'name':'folder', mainview:'Changed mainview', ....})
 		ValidationError: Cannot change mainview.
-		
+
 		:param items: RecordDef(s)
 		:return: Updated RecordDef(s)
 		:exception SecurityError:
@@ -3394,12 +3394,12 @@ class DB(object):
 	@ol('names')
 	def getrecorddef(self, names, filt=True, ctx=None, txn=None):
 		"""Get RecordDef(s).
-		
+
 		Examples:
-		
+
 		>>> db.getrecorddef('folder')
 		<RecordDef folder>
-		
+
 		>>> db.getrecorddef(['folder', 'project'])
 		[<RecordDef folder>, <RecordDef project>]
 
@@ -3418,18 +3418,18 @@ class DB(object):
 	@publicmethod("recorddef.names")
 	def getrecorddefnames(self, names=None, ctx=None, txn=None):
 		"""Get all RecordDef names.
-		
+
 		Examples:
-		
+
 		>>> db.getrecorddefnames()
 		set(['folder', 'project', 'person', ...])
-		
+
 		>>> db.getrecorddefnames(['folder', 'project', 'unknown_recorddef'])
 		set(['folder', 'project'])
 
 		>>> db.getrecorddefnames(['folder', 'project', 'unknown_recorddef'], filt=False)
 		KeyError, "No such key unknown_recorddef"
-				
+
 		:keyword names: Restrict to this subset.
 		:keyword filt: Ignore failures
 		:return: All RecordDef names.
@@ -3439,25 +3439,25 @@ class DB(object):
 		return self.bdbs.recorddef.names(names=names, ctx=ctx, txn=txn)
 
 
-	
+
 	##### Records #####
 
 	@publicmethod("record.get")
 	@ol('names')
 	def getrecord(self, names, filt=True, ctx=None, txn=None):
 		"""Get Record(s).
-		
+
 		Examples:
-		
+
 		>>> db.getrecord(0)
 		<Record 0, folder>
-		
+
 		>>> db.getrecord([0, 136])
 		[<Record 0, folder>, <Record 136, group>]
-		
+
 		>>> db.getrecord([0, 136, -1, 181828], filt=True)
 		[<Record 0, folder>, <Record 136, group>]
-		
+
 		>>> db.getrecord([0, 136, 181828], filt=False)
 		KeyError
 
@@ -3475,26 +3475,26 @@ class DB(object):
 		"""Construct a new Record.
 
 		Examples:
-		
+
 		>>> db.newrecord('folder')
 		<Record None, folder>
-		
+
 		>>> db.newrecord('folder', inherit=0)
-		<Record None, folder>		
-		
+		<Record None, folder>
+
 		>>> db.newrecord('folder')
 		SecurityError
 
 		>>> db.newrecord('unknown_recorddef')
 		ValidationError
-		
+
 		:param rectype: RecordDef name
 		:keyword inherit: Use these Record(s) as parents, and copy their permissions.
 		:exception ExistingKeyError:
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		
+
 		rec = self.bdbs.record.new(rectype=rectype, ctx=ctx, txn=txn)
 
 		#@postprocess
@@ -3525,7 +3525,7 @@ class DB(object):
 		Records are never truly deleted, just hidden.
 
 		Examples:
-		
+
 		>>> db.hiderecord(136)
 		<Record 136 group>
 
@@ -3534,10 +3534,10 @@ class DB(object):
 
 		>>> db.hiderecord([136, 137], filt=False)
 		SecurityError
-		
+
 		>>> db.hiderecord(12345, filt=False)
 		KeyError
-		
+
 		:param name: Record name(s) to delete
 		:keyword filt: Ignore failures
 		:return: Deleted Record(s)
@@ -3554,7 +3554,7 @@ class DB(object):
 			for k,v in c.items():
 				names |= v
 				names.add(k)
-		
+
 		self.bdbs.record.delete(names, ctx=ctx, txn=txn)
 
 
@@ -3566,16 +3566,16 @@ class DB(object):
 		"""
 
 		names = set(names)
-		
+
 		children = self.getchildtree(names, recurse=-1, ctx=ctx, txn=txn)
 		allchildren = set()
 		allchildren |= names
 		for k,v in children.items():
 			allchildren.add(k)
 			allchildren |= v
-		
+
 		parents = self.getparenttree(allchildren, ctx=ctx, txn=txn)
-		
+
 		# Find a path back to root for each child
 		orphaned = set()
 		for child in allchildren:
@@ -3587,10 +3587,10 @@ class DB(object):
 				stack |= (parents.get(cur, set()) - names)
 			if root not in visited:
 				orphaned.add(child)
-				
+
 		return orphaned - names
 
-		
+
 
 	@publicmethod("record.addcomment", write=True)
 	@ol('names')
@@ -3603,10 +3603,10 @@ class DB(object):
 
 		>>> db.addcomment(136, 'Test comment')
 		<Record 136, group>
-		
+
 		>>> db.addcomment(137, 'No comment permissions!?')
 		SecurityError
-		
+
 		>>> db.addcomment(12345, 'Record does not exist')
 		KeyError
 
@@ -3630,7 +3630,7 @@ class DB(object):
 			is specified, or only one comment is found.
 
 		Examples:
-		
+
 		>>> db.getcomments(1)
 		[[1, u'root', u'2010/07/19 14:43:03', u'Record marked for deletion and unlinked from parents: 270940']]
 
@@ -3670,13 +3670,13 @@ class DB(object):
 		"""Convenience method to update Records.
 
 		Examples:
-		
+
 		>>> db.putrecordvalues([0,136], {'performed_by':'ian'})
 		[<Record 0, folder>, <Record 136, group>]
-		
+
 		>>> db.putrecordvalues([0,136, 137], {'performed_by':'ian'}, filt=False)
 		SecurityError
-	
+
 		:param names: Record name(s)
 		:param update: Update Records with this dictionary
 		:return: Updated Record(s)
@@ -3699,7 +3699,7 @@ class DB(object):
 
 		>>> db.validaterecord([<Record 499177, folder>, <Record 499178, folder>])
 		[<Record 499177, folder>, <Record 499178, folder>]
-		
+
 		>>> db.validaterecord({'rectype':'folder', 'performed_by':'unknown_user'})
 		ValidationError
 
@@ -3713,7 +3713,7 @@ class DB(object):
 		:return: Validated Record(s)
 		:exception KeyError:
 		:exception SecurityError:
-		:exception ValidationError:		
+		:exception ValidationError:
 		"""
 		return self.bdbs.record.validate(items, ctx=ctx, txn=txn)
 
@@ -3724,7 +3724,7 @@ class DB(object):
 		"""Add or update Record.
 
 		Examples:
-		
+
 		>>> db.putrecord({'rectype':'folder', 'name_folder':'Test folder'})
 		<Record 499176, folder>
 
@@ -3734,24 +3734,24 @@ class DB(object):
 		>>> db.putrecord([<Record 499177, folder>, <Record 499178, folder>])
 		[<Record 499177, folder>, <Record 499178, folder>]
 
-		>>> db.putrecord([<Record 499177, folder>, <Record 499178, folder>], filt=False)		
+		>>> db.putrecord([<Record 499177, folder>, <Record 499178, folder>], filt=False)
 		SecurityError
 
 		>>> db.putrecord({'rectype':'folder', 'performed_by':'unknown_user'})
 		ValidationError
-		
+
 		:param items: Record(s)
 		:return: Updated Record(s)
 		:exception KeyError:
 		:exception SecurityError:
-		:exception ValidationError:		
+		:exception ValidationError:
 		"""
 		return self.bdbs.record.cputs(items, ctx=ctx, txn=txn)
 
 
 
 	##### Record Permissions #####
-	
+
 	# These map to the normal Record methods
 	@publicmethod("record.adduser", write=True)
 	@ol('names')
@@ -3760,10 +3760,10 @@ class DB(object):
 
 		>>> db.addpermission(0, 'ian')
 		<Record 0, folder>
-		
+
 		>>> db.addpermission([0, 136], ['ian', 'steve'])
 		[<Record 0, folder>, <Record 136, group>]
-		
+
 		>>> db.addpermission([0, 136], ['ian', 'steve'], filt=False)
 		SecurityError
 
@@ -3774,7 +3774,7 @@ class DB(object):
 		:return: Updated Record(s)
 		:exception KeyError:
 		:exception SecurityError:
-		:exception ValidationError:		
+		:exception ValidationError:
 		"""
 		return self._mapcommit('record', names, 'adduser', ctx, txn, users)
 
@@ -3785,13 +3785,13 @@ class DB(object):
 		"""Remove users from a Record's permissions.
 
 		Examples:
-		
+
 		>>> db.removepermission(0, 'ian')
 		<Record 0, folder>
-		
+
 		>>> db.removepermission([0, 136], ['ian', 'steve'])
 		[<Record 0, folder>, <Record 136, group>]
-		
+
 		>>> db.removepermission([0, 136], ['ian', 'steve'], filt=False)
 		SecurityError
 
@@ -3801,7 +3801,7 @@ class DB(object):
 		:return: Updated Record(s)
 		:exception KeyError:
 		:exception SecurityError:
-		:exception ValidationError:				
+		:exception ValidationError:
 		"""
 		return self._mapcommit('record', names, 'removeuser', ctx, txn, users)
 
@@ -3812,7 +3812,7 @@ class DB(object):
 		"""Add groups to a Record's permissions.
 
 		Examples:
-		
+
 		>>> db.addgroup(0, 'authenticated')
 		<Record 0, folder>
 
@@ -3831,7 +3831,7 @@ class DB(object):
 		:return: Updated Record(s)
 		:exception KeyError:
 		:exception SecurityError:
-		:exception ValidationError:				
+		:exception ValidationError:
 		"""
 		return self._mapcommit('record', names, 'addgroup', ctx, txn, groups)
 
@@ -3842,7 +3842,7 @@ class DB(object):
 		"""Remove groups from a Record's permissions.
 
 		Examples:
-		
+
 		>>> db.removegroup(0, 'authenticated')
 		<Record 0, folder>
 
@@ -3861,7 +3861,7 @@ class DB(object):
 		:return: Updated Record(s)
 		:exception KeyError:
 		:exception SecurityError:
-		:exception ValidationError:				
+		:exception ValidationError:
 		"""
 		return self._mapcommit('record', names, 'removegroup', ctx, txn, groups)
 
@@ -3872,13 +3872,13 @@ class DB(object):
 	@ol('names')
 	def setpermissions(self, names, addumask=None, addgroups=None, removeusers=None, removegroups=None, recurse=None, overwrite_users=False, overwrite_groups=False, filt=True, ctx=None, txn=None):
 		"""Update a Record's permissions.
-		
+
 		This method is mostly for convenience and backwards compatibility.
 
 		Examples:
 
 		>>> db.setpermissions(names=[137, 138], addumask=[['ian'], [], [], []])
-		
+
 		>>> db.setpermissions(names=[137], recurse=-1, addumask=[['ian', 'steve'], [], [], ['wah']])
 
 		>>> db.setpermissions(names=[137], recurse=-1, removegroups=['anon'], addgroups=['authenticated])
@@ -3887,7 +3887,7 @@ class DB(object):
 
 		>>> db.setpermissions(names=[137], recurse=-1, addgroups=['authenticated'], overwrite_groups=True, filt=False)
 		SecurityError
-		
+
 		:param names: Record name(s)
 		:keyword addumask: Add this permissions mask to the record's current permissions.
 		:keyword addgroups: Add these groups to the records' current groups.
@@ -3900,9 +3900,9 @@ class DB(object):
 		:return:
 		:exception KeyError:
 		:exception SecurityError:
-		:exception ValidationError:			
+		:exception ValidationError:
 		"""
-		
+
 		recs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
 		crecs = []
 
@@ -3913,7 +3913,7 @@ class DB(object):
 				c = self.bdbs.record.rel([rec.name], recurse=recurse, ctx=ctx, txn=txn).get(rec.name, set())
 				c = self.bdbs.record.cgets(c, ctx=ctx, txn=txn)
 				children.extend(c)
-				
+
 			# Apply the operations
 			for crec in children:
 				# Filter out items we can't edit..
@@ -3935,22 +3935,22 @@ class DB(object):
 					crec['groups'] = addgroups
 				elif addgroups:
 					crec.addgroup(addgroups)
-				
+
 				crecs.append(crec)
-				
+
 		return self.bdbs.record.cputs(crecs, ctx=ctx, txn=txn)
-				
+
 
 
 	##### Binaries #####
-	
+
 	@publicmethod("binary.get")
 	@ol('names')
 	def getbinary(self, names=None, filt=True, ctx=None, txn=None):
 		"""Get Binaries.
-		
+
 		Examples:
-		
+
 		>>> db.getbinary('bdo:2011101000000')
 		<Binary bdo:2011101000000>
 
@@ -3978,7 +3978,7 @@ class DB(object):
 	def newbinary(self, ctx=None, txn=None):
 		"""Construct a new Binary.
 
-		Note: This is not very useful. Instead, use the 
+		Note: This is not very useful. Instead, use the
 			keyword arguments to db.putbinary():
 			infile, filename, record, param.
 
@@ -3990,7 +3990,7 @@ class DB(object):
 		:return: New Binary
 		:exception ExistingKeyError:
 		:exception SecurityError:
-		:exception ValidationError:				
+		:exception ValidationError:
 		"""
 		return self.bdbs.binary.new(name=None, ctx=ctx, txn=txn)
 
@@ -3999,31 +3999,31 @@ class DB(object):
 	@ol('items')
 	def putbinary(self, items, extract=False, ctx=None, txn=None):
 		"""Add or update a Binary (file attachment).
-				
+
 		For new items, data must be supplied using with either
 		bdo.get('filedata') or bdo.get('fileobj').
 
-		The contents of a Binary cannot be changed after uploading. The file 
+		The contents of a Binary cannot be changed after uploading. The file
 		size and md5 checksum will be calculated as the file is written to
-		binary storage. Any attempt to change the contents raise a 
+		binary storage. Any attempt to change the contents raise a
 		SecurityError. Not even admin users may override this.
 
 		Examples:
-		
+
 		>>> db.putbinary({filename='hello.txt', filedata='Hello, world', record=0})
 		<Binary bdo:2011101000000>
-		
+
 		>>> db.putbinary({'name':'bdo:2011101000000', 'filename':'newfilename.txt'})
 		<Binary bdo:2011101000000>
 
 		>>> db.putbinary({'name':'bdo:2011101000000', 'filedata':'Goodbye'})
 		SecurityError
-		
+
 		:param item: Binary
 		:exception SecurityError:
-		:exception ValidationError:			
+		:exception ValidationError:
 		"""
-		
+
 		bdos = []
 		rename = []
 		for bdo in items:
@@ -4048,7 +4048,7 @@ class DB(object):
 				bdo = self.bdbs.binary.new(filename=handler.get('filename'), record=handler.get('record'), ctx=ctx, txn=txn)
 
 				# Write the file to temporary storage. This will update the
-				# filesize and MD5. This will generally be the same 
+				# filesize and MD5. This will generally be the same
 				# filesystem as the final file location, so the final
 				# operation in this method will be a rename operation. But in
 				# situations where the file storage area changes between the
@@ -4056,13 +4056,13 @@ class DB(object):
 				# it will require a copy and remove operation. Not a big deal,
 				# just something to be aware of.
 				newfile = bdo.writetmp(filedata=filedata, fileobj=fileobj)
-			
-			# Commit the BDO. This will set the Binary's name.			
+
+			# Commit the BDO. This will set the Binary's name.
 			bdo = self.bdbs.binary.cput(bdo, ctx=ctx, txn=txn)
 			# Update the final destination for the file
 			bdo.__dict__['_filepath'] = bdo.parse(bdo.name)['filepath']
 			bdos.append(bdo)
-			
+
 			# If this is a new BDO.. Please excuse this complicated block.
 			if newfile:
 				# Check that we won't be overwriting an existing file.
@@ -4084,7 +4084,7 @@ class DB(object):
 
 						# Update the record from the file metadata
 						rec.update(header)
-					
+
 					pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
 					if pd.vartype != 'binary':
 						raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
@@ -4095,38 +4095,38 @@ class DB(object):
 					else:
 						v = bdo.name
 					rec[pd.name] = v
-					
+
 					# Commit the record
 					self.bdbs.record.cput(rec, ctx=ctx, txn=txn)
 
-			
+
 		# Rename/copy temporary files to final destination.
 		# todo: Handle exceptions.
 		for newfile, filepath in rename:
 			os.rename(newfile, filepath)
-		
+
 		# Run the thumbnail generator
 		# for bdo in bdos:
-		#	emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)		
+		#	emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
 
 		return bdos
-	
+
 
 	@publicmethod("ping")
 	def ping(self, *a, **kw):
 		"""Utitlity method to ensure the server is up
-		
+
 		Examples:
-		
+
 		>>> db.ping()
 		'pong'
-		
-		:return: Ping? 'pong'		
+
+		:return: Ping? 'pong'
 		"""
 		return 'pong'
 
 
-	##### Workflow ##### 
+	##### Workflow #####
 
 	# Workflows are currently turned off, need to be fixed.
 

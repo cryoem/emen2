@@ -51,7 +51,7 @@ class Router(twisted.web.resource.Resource):
 		view = view()
 		view.render = functools.partial(view.render, method=method)
 		return view
-		
+
 
 	def logrequest(self, x, request, t=0.0, *args, **kwargs):
 		ctxid = None
@@ -153,7 +153,7 @@ class Route(object):
 		# Hint that this route will cause writes
 		# if write: print "Set self.write on", self, self.matcher, self.method
 		self.write = write
-		
+
 
 	def match(self, path):
 		result = None
@@ -224,7 +224,7 @@ class _Router(emen2.util.registry.Registry):
 				if name == route.name:
 					# Temporary hack; see above. We should return the actual Route instance.
 					f = route.method
-					f.write = getattr(route, 'write', False)					
+					f.write = getattr(route, 'write', False)
 					return route.cls, f
 
 		raise responsecodes.NotFoundError(path or name)

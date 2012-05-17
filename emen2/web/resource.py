@@ -346,7 +346,7 @@ class EMEN2Resource(object):
 						newvalues.append(value.value)
 
 				args[param] = newvalues
-		
+
 		# Make available to Views...
 		self.request_files = files
 		return args

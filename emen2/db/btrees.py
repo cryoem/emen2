@@ -151,8 +151,8 @@ class EMEN2DB(object):
 	def _pickleload(self, data):
 		# Load a pickled DBO.
 		if data != None: return pickle.loads(data)
-		
-		
+
+
 	def _timedump(self, data):
 		pass
 
@@ -613,12 +613,12 @@ class IndexDB(EMEN2DB):
 		ret = []
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
-		
-		# Start a minimum key. 
+
+		# Start a minimum key.
 		# This only works well if the keys are sorted properly.
 		if minkey is not None:
 			pair = cursor.set_range(self.dumpkey(minkey))
-		
+
 		while pair != None:
 			data = self._get_method(cursor, pair[0], self.datatype)
 			k = self.loadkey(pair[0])
@@ -868,16 +868,16 @@ class DBODB(EMEN2DB):
 		if self.sequence:
 			name = self._set_sequence(txn=txn)
 		else:
-		 	name = emen2.db.database.getrandomid()	
+			name = emen2.db.database.getrandomid()
 		return name
-		
+
 
 	def update_names(self, items, txn=None):
 		"""Update items with new names. Requires txn.
-	
+
 		:param items: Items to update.
 		:keyword txn: Transaction
-	
+
 		"""
 
 		namemap = {}
@@ -1091,7 +1091,7 @@ class DBODB(EMEN2DB):
 			# Get the existing item or create a new one.
 			# Acquire the write lock immediately (DB_RMW).
 			# Names can be unassigned (None, negative integer) or assigned (a string).
-			# Some BDOs require names (paramdef, recorddef); 
+			# Some BDOs require names (paramdef, recorddef);
 			#	others (e.g. user) will assign the name in update_names.
 			# Note: this used to just be a try/except, with new items on KeyError.
 			if name < 0 or not self.exists(name, txn=txn, flags=bsddb3.db.DB_RMW):
@@ -1206,7 +1206,7 @@ class DBODB(EMEN2DB):
 			print "Could not reindex param %s: %s"%(pd.name, e)
 			print changes
 			return
-			
+
 		# print "reindexing", pd.name
 		# print "changes:", changes
 		# print "addrefs:", addrefs
@@ -1286,7 +1286,7 @@ class DBODB(EMEN2DB):
 		self._truncate_index = True
 		for k in self.index:
 			self.index[k].truncate(txn=txn)
-		
+
 		# Do this in chunks of 10,000 items
 		# Get all the keys -- do not include cached items
 		keys = sorted(map(self.loadkey, self.bdb.keys(txn)), reverse=True)
@@ -1298,15 +1298,15 @@ class DBODB(EMEN2DB):
 			# already be validated, so we can skip that step.
 			# self.cputs(items, ctx=ctx, txn=txn)
 			self.reindex(items, indexonly=True, ctx=ctx, txn=txn)
-		
+
 		self._truncate_index = False
 
 	##### Query #####
-	
+
 	def query(self, c=None, mode='AND', ctx=None, txn=None):
 		"""Return a Query Constraint Group.
-		
-		You will need to call constraint.run() to execute the query, 
+
+		You will need to call constraint.run() to execute the query,
 		and constraint.sort() to sort the values.
 		"""
 		return emen2.db.query.Query(constraints=c, mode=mode, ctx=ctx, txn=txn, btree=self)
@@ -1340,7 +1340,7 @@ class RelateDB(DBODB):
 
 	def update_names(self, items, txn=None):
 		# Update all the record's links
-		namemap = super(RelateDB, self).update_names(items, txn=txn)		
+		namemap = super(RelateDB, self).update_names(items, txn=txn)
 		for item in items:
 			item.__dict__['parents'] = set([namemap.get(i,i) for i in item.parents])
 			item.__dict__['children'] = set([namemap.get(i,i) for i in item.children])
@@ -1628,7 +1628,7 @@ class RelateDB(DBODB):
 
 		# The names of new items.
 		names = []
-		
+
 		# Process change sets into new and removed links
 		add = []
 		remove = []
@@ -1685,7 +1685,7 @@ class RelateDB(DBODB):
 					# If we're trying to update an item that isn't a new item in the current commit, raise.
 					if name not in names:
 						raise
-						
+
 
 		for k,v in p_remove.items():
 			if v:
@@ -1724,8 +1724,8 @@ class RelateDB(DBODB):
 		cursor = rel.bdb.cursor(txn=txn)
 
 		# Starting items
-		
-		# NOTE: I am using this ugly direct call 'rel._get_method' to the C module because it saves 10-20% time.		
+
+		# NOTE: I am using this ugly direct call 'rel._get_method' to the C module because it saves 10-20% time.
 		new = rel._get_method(cursor, rel.dumpkey(key), rel.datatype) # rel.get(key, cursor=cursor)
 		if key in self.cache:
 			new |= cache.get(key, set())
