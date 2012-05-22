@@ -28,7 +28,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 
 		name, keytype, creator, creationtime, modifytime, modifyuser, uri
 
-	The name attribute is specified by the user when a new item is created,
+	The name attribute is usually specified by the user when a new item is created,
  	but the rest are set by the database when an item is committed. The creator
 	and creationtime attributes are set on initial commit, and modifyuser and
 	modifytime attributes are usually updated on subsequent commits. The uri
@@ -412,7 +412,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 			vtm.store(cachekey, pd)
 
 		# Is it an immutable param?
-		if self.name and pd.get('immutable'):
+		if pd.get('immutable') and (self.creationtime != self.modifytime):
 			self.error('Cannot change immutable param %s'%pd.name)
 
 		# Validate

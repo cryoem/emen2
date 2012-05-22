@@ -100,7 +100,7 @@ class EMEN2DB(object):
 		self.index = {}
 		self._truncate_index = False
 
-		# BDB Handle
+		# BDB handle and open flags
 		self.bdb = None
 		self.DBOPENFLAGS = bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE
 		self.DBSETFLAGS = []
@@ -193,9 +193,6 @@ class EMEN2DB(object):
 			self.loaddata = int
 		elif datatype == 'f':
 			# Float datatype; these do not sort natively, so pickle them.
-			# This will make a not very fast index :(
-			# Todo: find a float representation that is very fast and has
-			# 	lexicographical sorting.
 			self.dataclass = float
 			self.dumpdata = self._pickledump
 			self.loaddata = self._pickleload
@@ -306,28 +303,22 @@ class EMEN2DB(object):
 			yield (k, pickle.loads(v))
 
 
-	def has_key(self, key, txn=None):
-		"""Mapping interface: has_key. Requires txn.
-
-		:param key: Key
-		:keyword txn: Transaction
-		:return: True if key exists
-
-		"""
-		return self.bdb.has_key(self.dumpkey(key), txn=txn) or self.cache.has_key(key)
-
-
 	def exists(self, key, txn=None, flags=0):
 		"""Checks to see if key exists in BDB. Requires txn.
 
+		Override this method to set a name policy. For instance, allowed
+		or disallowed names, minimum length, maximum length, format, etc.
+
 		:param key: Key
 		:keyword txn: Transaction
 		:return: True if key exists
 
 		"""
-		if key == None:
-			return False
 		return self.bdb.exists(self.dumpkey(key), txn=txn, flags=flags) or self.cache.has_key(key)
+
+
+	# Compatibility.
+	has_key = exists
 
 
 	##### Cache items #####
@@ -416,6 +407,7 @@ class EMEN2DB(object):
 		return default
 
 
+
 	##### Write #####
 
 	def put(self, key, data, txn=None, flags=0):
@@ -443,6 +435,9 @@ class EMEN2DB(object):
 
 		"""
 		# todo: Do more checking before performing a dangerous operation.
+		self.cache = {}
+		self.cache_children = {}
+		self.cache_parents = {}
 		self.bdb.truncate(txn=txn)
 		emen2.db.log.msg('COMMIT', "%s.truncate"%self.filename)
 
@@ -459,7 +454,7 @@ class EMEN2DB(object):
 		if key in self.cache:
 			raise KeyError, "Cannot delete read-only item %s"%key
 		# If the item exists, remove it.
-		if self.bdb.exists(self.dumpkey(key), txn=txn):
+		if self.exists(key, txn=txn):
 			ret = self.bdb.delete(self.dumpkey(key), txn=txn, flags=flags)
 			emen2.db.log.msg('COMMIT', "%s.delete: %s"%(self.filename, key))
 
@@ -774,7 +769,7 @@ class DBODB(EMEN2DB):
 	The sequence class attribute, if True, will allow sequence support for
 	this DB. This is currently implemented using a separate BDB (to minimize
 	locks), although at some point the
-	BerkeleyDB Sequence may be used (it caused problems last time I tried.)
+	BerkeleyDB Sequence may be used,
 
 	Like EMEN2DB, most methods require a transaction. Additionally, because
 	this class manages DBOs, most methods also require a Context.
@@ -784,6 +779,7 @@ class DBODB(EMEN2DB):
 		init			Supports sequences if allowed
 		open			Also opens sequencedb
 		close			Also cloes sequencdb and indexes
+		exists			Handles items that will have automatically assigned names
 
 	And adds the following methods:
 		get_max			Return the current maximum item in the sequence
@@ -813,14 +809,14 @@ class DBODB(EMEN2DB):
 		self.path = path
 		name = self.dataclass.__name__
 		filename = os.path.join(self.path, name).lower()
-		super(DBODB, self).__init__(filename, *args, **kwargs)
+		return super(DBODB, self).__init__(filename, *args, **kwargs)
 
 
 	def init(self):
 		"""Add support for sequences."""
 		self.sequence = self.sequence
 		self.sequencedb = None
-		super(DBODB, self).init()
+		return super(DBODB, self).init()
 
 
 	def open(self):
@@ -841,15 +837,29 @@ class DBODB(EMEN2DB):
 			self.closeindex(k)
 
 
+	def exists(self, key, txn=None, flags=0):
+		if self.sequence:
+			# Sequences use negative ints as temp keys.
+			# Zero is allowed as a key.
+			if key < 0:
+				return False
+		else:
+			# Non-sequence DBs allow None as a key; it will be renamed
+			# 	to a random hash during update_names.
+			if not key:
+				return False
+		return super(DBODB, self).exists(key, txn=txn, flags=flags)
+
+
 
 	##### Sequences #####
 
 	def _set_sequence(self, delta=1, key='sequence', txn=None):
-		# Update the sequence. Requires txn.
-		# The Sequence DB can handle multiple sequences -- e.g., for
-		# binaries, each day has its own sequence item.
+		# Update a sequence key. Requires txn.
+		# The Sequence DB can handle multiple keys -- e.g., for
+		# binaries, each day has its own sequence key.
 		if not self.sequence:
-			raise ValueError, "Sequences not supported"
+			raise Exception, "Sequences not supported"
 
 		# print "Setting sequence += %s, txn: %s, newtxn: %s, flags:%s"%
 		# (delta, txn, newtxn, bsddb3.db.DB_RMW)
@@ -863,12 +873,14 @@ class DBODB(EMEN2DB):
 
 
 	def _newname(self, name, txn=None):
-		if name >= 0:
-			pass
 		if self.sequence:
 			name = self._set_sequence(txn=txn)
 		else:
-			name = emen2.db.database.getrandomid()
+			name = name or emen2.db.database.getrandomid()
+
+		# Acquire a write lock on this name.
+		if self.exists(item.name, txn=txn, flags=bsddb3.db.DB_RMW):
+			raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%item.name
 		return name
 
 
@@ -880,12 +892,11 @@ class DBODB(EMEN2DB):
 
 		"""
 
-		namemap = {}
-
 		# Which items are new?
 		newitems = [i for i in items if i.name < 0] # also valid for None
 
 		# Update names
+		namemap = {}
 		for item in newitems:
 			oldname = item.name
 			newname = self._newname(name=oldname, txn=txn)
@@ -903,11 +914,13 @@ class DBODB(EMEN2DB):
 		"""
 		if not self.sequence:
 			raise ValueError, "Sequences not supported"
+
 		sequence = self.sequencedb.get("sequence", txn=txn)
 		if sequence == None:
 			sequence = 0
 		val = int(sequence)
 		return val
+
 
 
 
@@ -923,9 +936,10 @@ class DBODB(EMEN2DB):
 		:exception ExistingKeyError:
 
 		"""
-		txn = kwargs.pop('txn', None) # don't pass the txn..
+		txn = kwargs.pop('txn', None) # Don't pass the txn..
 		item = self.dataclass(*args, **kwargs)
-		if self.exists(item.name, txn=txn):
+		# Acquire a write lock on this name.
+		if self.exists(item.name, txn=txn, flags=bsddb3.db.DB_RMW):
 			raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%item.name
 		return item
 
@@ -1079,28 +1093,31 @@ class DBODB(EMEN2DB):
 		:exception ValidationError:
 
 		"""
+		# Time and validation helper.
 		t = emen2.db.database.gettime()
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
+
+		# Updated items
 		crecs = []
 
-		# Get the existing records, or create new records.
-		for name, updrec in enumerate(items, start=1):
+		for updrec items:
 			name = updrec.get('name')
 			cp = set()
 
 			# Get the existing item or create a new one.
-			# Acquire the write lock immediately (DB_RMW).
 			# Names can be unassigned (None, negative integer) or assigned (a string).
-			# Some BDOs require names (paramdef, recorddef);
-			#	others (e.g. user) will assign the name in update_names.
-			# Note: this used to just be a try/except, with new items on KeyError.
-			if name < 0 or not self.exists(name, txn=txn, flags=bsddb3.db.DB_RMW):
+			# Some BDOs require names (paramdef, recorddef); 
+			#	others (e.g. record, user) will assign the name in update_names.
+			# This will acquire a write lock if there is an assigned name.
+			if self.exists(name, txn=txn, flags=bsddb3.db.DB_RMW):
+				# Get the existing item.
+				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
+				orec.setContext(ctx)
+			else:
+				# Create a new item.
 				p = dict((k,updrec.get(k)) for k in self.dataclass.attr_required)
 				orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
 				cp.add('name')
-			else:
-				orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
-				orec.setContext(ctx)
 
 			# Update the item.
 			cp |= orec.update(updrec, vtm=vtm, t=t)
