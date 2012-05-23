@@ -409,7 +409,7 @@ class EMEN2DBEnv(object):
 		self.recorddef = emen2.db.recorddef.RecordDefDB(path="recorddef", dbenv=self)
 
 		# Uploaded files.
-		# self.binarytmp = emen2.db.binary.BinaryTmpDB(path="binarytmp", dbenv=self)
+		self.binarytmp = emen2.db.binary.BinaryTmpDB(path="binarytmp", dbenv=self)
 
 		# access by keytype..
 		self.keytypes = {
@@ -418,7 +418,8 @@ class EMEN2DBEnv(object):
 			'recorddef': self.recorddef,
 			'user': self.user,
 			'group': self.group,
-			'binary': self.binary
+			'binary': self.binary,
+			'binarytmp': self.binarytmp
 		}
 
 
@@ -465,7 +466,7 @@ class EMEN2DBEnv(object):
 			"exts"
 			]
 
-		for i in ['record', 'paramdef', 'recorddef', 'user', 'newuser', 'group', 'workflow', 'context', 'binary']:
+		for i in ['record', 'paramdef', 'recorddef', 'user', 'newuser', 'group', 'workflow', 'context', 'binary', 'binarytmp']:
 			for j in ['', '/index']:
 				paths.append('data/%s%s'%(i,j))
 
@@ -4051,14 +4052,11 @@ class DB(object):
 				# operation in this method will be a rename operation. But in
 				# situations where the file storage area changes between the
 				# time the temp file is written and the sequence is updated,
-				# it will require a copy and remove operation. Not a big deal,
-				# just something to be aware of.
+				# it will require a copy and remove operation.
 				newfile = bdo.writetmp(filedata=handler.get('filedata', None), fileobj=handler.get('fileobj', None))
 
 			# Commit the BDO. This will set the Binary's name.
 			bdo = self.bdbs.binary.cput(bdo, ctx=ctx, txn=txn)
-			# Update the final destination for the file
-			bdo.__dict__['_filepath'] = bdo.parse(bdo.name)['filepath']
 			bdos.append(bdo)
 
 			# If this is a new BDO.. Please excuse this complicated block.
@@ -4109,6 +4107,50 @@ class DB(object):
 
 		return bdos
 
+
+	##### Temporary binaries #####
+
+	@publicmethod("binarytmp.get")
+	@ol('names')
+	def getbinarytmp(self, names=None, filt=True, ctx=None, txn=None):
+		return self.bdbs.binarytmp.cgets(names, filt=filt, ctx=ctx, txn=txn)
+
+
+	@publicmethod("binarytmp.new")
+	def newbinarytmp(self, ctx=None, txn=None):
+		return self.bdbs.binarytmp.new(name=None, ctx=ctx, txn=txn)
+	
+	
+	@publicmethod("binarytmp.put", write=True)
+	@ol('items')
+	def putbinarytmp(self, items, extract=False, ctx=None, txn=None):
+		raise NotImplementedError
+		tmpdir = '/Users/irees/'
+		
+		bdos = []
+		rename = []
+		for bdo in items:
+			newfile = False
+			if not bdo.get('name'):
+				handler = bdo
+				bdo = self.bdbs.binarytmp.new(filename=handler.get('filename'), ctx=ctx, txn=txn)
+				newfile = bdo.writetmp(filedata=handler.get('filedata', None), fileobj=handler.get('fileobj', None), basepath=tmpdir)
+
+			bdo = self.bdbs.binarytmp.cput(bdo, ctx=ctx, txn=txn)
+			bdos.append(bdo)
+
+			if newfile:
+				dest = os.path.join(tmpdir, bdo.name)
+				rename.append([newfile, dest])
+
+		# Rename/copy temporary files to final destination.
+		for newfile, filepath in rename:
+			os.rename(newfile, filepath)
+
+		return bdos
+		
+
+	##### Debugging #####
 
 	@publicmethod("ping")
 	def ping(self, *a, **kw):

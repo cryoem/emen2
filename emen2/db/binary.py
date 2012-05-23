@@ -92,6 +92,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		self.__dict__['compress'] = False
 		self.__dict__['filesize_compress'] = None
 		self.__dict__['md5_compress'] = None
+		self.__dict__['_filepath'] = None
 		self._filepath = None
 
 
@@ -167,7 +168,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 	##### Utility methods #####
 
 	# Write contents to a temporary file.
-	def writetmp(self, filedata=None, fileobj=None):
+	def writetmp(self, filedata=None, fileobj=None, basepath=None, suffix="upload"):
 		'''Write to temporary storage, and calculate size/md5.
 		:return: Temporary file path, the file size, and an md5 digest.
 		'''
@@ -181,12 +182,12 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		# In narrow circumstances, this might not be the same filesystem
 		# as the final file destination. So use a higher level tool like
 		# shutil to rename the file, instead of just os.rename.
-		dkey = self.parse('')
+		basepath = basepath or self.parse('')['basepath']
 
-		if not os.path.exists(dkey['basepath']):
-			os.makedirs(dkey['basepath'])
+		if not os.path.exists(basepath):
+			os.makedirs(basepath)
 			
-		(fd, tmpfile) = tempfile.mkstemp(dir=dkey['basepath'], suffix='.upload')
+		(fd, tmpfile) = tempfile.mkstemp(dir=basepath, suffix='.%s'%suffix)
 
 		m = hashlib.md5()
 		filesize = 0
@@ -199,6 +200,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 		md5sum = m.hexdigest()
 		emen2.db.log.info("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfile, filesize, md5sum))
+
 		# Update filesize/md5
 		self.__dict__['filesize'] = filesize
 		self.__dict__['md5'] = md5sum
@@ -278,16 +280,23 @@ class BinaryTmp(Binary):
 			return True
 
 
+
 class BinaryTmpDB(emen2.db.btrees.DBODB):
-	def openindex(self, param, txn=None):
-		"""Index on filename (and possibly MD5 in the future.)"""
-		if param == 'filename':
-			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
-		elif param == 'md5':
-			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
-		else:
-			ind = super(BinaryDB, self).openindex(param, txn=txn)
-		return ind
+	dataclass = BinaryTmp
+
+	def _name_generator(self, item, txn=None):
+		return emen2.db.database.getrandomid()
+		
+	
+	# def openindex(self, param, txn=None):
+	# 	"""Index on filename (and possibly MD5 in the future.)"""
+	# 	if param == 'filename':
+	# 		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
+	# 	elif param == 'md5':
+	# 		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
+	# 	else:
+	# 		ind = super(BinaryDB, self).openindex(param, txn=txn)
+	# 	return ind
 		
 		
 
