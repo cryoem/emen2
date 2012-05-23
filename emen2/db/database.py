@@ -4031,7 +4031,7 @@ class DB(object):
 			newfile = False
 			handler = None
 			rec = None
-			param = bdo.get('param') # keep this
+			param = bdo.get('param', 'file_binary') # keep this
 
 			# Test that we can write to the record, this will catch errors before we do alot of file IO.
 			if bdo.get('record') is not None:
@@ -4043,8 +4043,6 @@ class DB(object):
 			if not bdo.get('name'):
 				# Create a new binary from the Handler details; keep the Handler around
 				handler = bdo
-				filedata = handler.get('filedata', None)
-				fileobj = handler.get('fileobj', None)
 				bdo = self.bdbs.binary.new(filename=handler.get('filename'), record=handler.get('record'), ctx=ctx, txn=txn)
 
 				# Write the file to temporary storage. This will update the
@@ -4055,7 +4053,7 @@ class DB(object):
 				# time the temp file is written and the sequence is updated,
 				# it will require a copy and remove operation. Not a big deal,
 				# just something to be aware of.
-				newfile = bdo.writetmp(filedata=filedata, fileobj=fileobj)
+				newfile = bdo.writetmp(filedata=handler.get('filedata', None), fileobj=handler.get('fileobj', None))
 
 			# Commit the BDO. This will set the Binary's name.
 			bdo = self.bdbs.binary.cput(bdo, ctx=ctx, txn=txn)

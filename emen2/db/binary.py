@@ -299,28 +299,26 @@ class BinaryDB(emen2.db.btrees.DBODB):
 		openindex			Indexed by: filename (maybe md5 in future)
 
 	"""
-	sequence = True
+
 	dataclass = Binary
 
-	# Update the database sequence.. Probably move this to the parent class.
-	def update_names(self, items, txn=None):
-		"""Assign a name based on date, and the counter for that day."""
-		# Which recs are new?
-		newrecs = [i for i in items if i.name < 0]
+	def _name_generator(self, item, txn=None):
+	 	"""Assign a name based on date, and the counter for that day."""
+		# Get the current date and counter.
 		dkey = emen2.db.binary.Binary.parse('')
-		datekey = dkey['datekey']
-		name = dkey['name']
 
-		# Get a blank bdo key
-		if newrecs:
-			basename = self._set_sequence(delta=len(newrecs), key=datekey, txn=txn)
+		# Increment the day's counter.
+		counter = self._incr_sequence(delta=1, key=dkey['datekey'], txn=txn)
+		
+		# Make the new name.
+		newdkey = emen2.db.binary.Binary.parse(dkey['name'], counter=counter)
 
-		for offset, newrec in enumerate(newrecs):
-			dkey = emen2.db.binary.Binary.parse(name, counter=offset+basename)
-			newrec.__dict__['name'] = dkey['name']
-			newrec.__dict__['filepath'] = dkey['filepath']
-
-		return {}
+		# Update the item's filepath..
+		item.__dict__['_filepath'] = newdkey['filepath']
+		
+		# Return the new name.
+		return newdkey['name']
+		
 
 	def openindex(self, param, txn=None):
 		"""Index on filename (and possibly MD5 in the future.)"""

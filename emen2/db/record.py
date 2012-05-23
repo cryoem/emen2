@@ -320,9 +320,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 
 class RecordDB(emen2.db.btrees.RelateDB):
-	sequence = True # Use a sequence counter for item names
-	cfunc = False # Do not sort the BTree keys as integers
-	keytype = 'd' # Integer keys
+	cfunc = False 	# Do not sort the BTree keys as integers
+	keytype = 'd' 	# Integer keys
 	dataclass = Record
 
 	def openindex(self, param, txn=None):
@@ -341,6 +340,10 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		tp = vtm.getvartype(pd.vartype).keytype
 		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keytype=tp, datatype='d', dbenv=self.dbenv)
 		return ind
+
+
+	def _name_generator(self, item, txn=None):
+		return self._incr_sequence(delta=1, txn=txn)
 
 
 	def delete(self, names, ctx=None, txn=None):

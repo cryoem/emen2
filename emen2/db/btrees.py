@@ -421,8 +421,10 @@ class EMEN2DB(object):
 		# Check cache; these are read-only
 		if key in self.cache:
 			raise emen2.db.exceptions.SecurityError, "Cannot modify read-only item %s"%key
+			
 		# Write item to database
 		emen2.db.log.msg('COMMIT', "%s.put: %s"%(self.filename, key))
+		
 		# print data.__dict__
 		self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)
 
@@ -801,7 +803,6 @@ class DBODB(EMEN2DB):
 	'''
 
 	datatype = 'p'
-	sequence = False
 	dataclass = None
 
 	def __init__(self, path='', *args, **kwargs):
@@ -814,7 +815,6 @@ class DBODB(EMEN2DB):
 
 	def init(self):
 		"""Add support for sequences."""
-		self.sequence = self.sequence
 		self.sequencedb = None
 		return super(DBODB, self).init()
 
@@ -822,44 +822,72 @@ class DBODB(EMEN2DB):
 	def open(self):
 		"""Open the sequence with the main DB."""
 		super(DBODB, self).open()
-		if self.sequence:
-			self.sequencedb = bsddb3.db.DB(self.dbenv.dbenv)
-			self.sequencedb.open(os.path.join('%s.sequence.bdb'%self.filename), dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
+		self.sequencedb = bsddb3.db.DB(self.dbenv.dbenv)
+		self.sequencedb.open(os.path.join('%s.sequence.bdb'%self.filename), dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
 
 
 	def close(self):
 		"""Close the sequence, and any open indexes, with the main DB."""
 		super(DBODB, self).close()
-		if self.sequencedb:
-			self.sequencedb.close()
-			self.sequencedb = None
+		self.sequencedb.close()
+		self.sequencedb = None
 		for k in self.index:
 			self.closeindex(k)
 
 
 	def exists(self, key, txn=None, flags=0):
-		if self.sequence:
-			# Sequences use negative ints as temp keys.
-			# Zero is allowed as a key.
-			if key < 0:
-				return False
-		else:
-			# Non-sequence DBs allow None as a key; it will be renamed
-			# 	to a random hash during update_names.
-			if not key:
-				return False
+		# Check if a key exists.
+		# Names that are None or a negative int will be automatically assigned.
+		# In this case, return immediately and don't acquire any locks.
+		if key < 0:
+			return False
 		return super(DBODB, self).exists(key, txn=txn, flags=flags)
 
 
 
 	##### Sequences #####
 
-	def _set_sequence(self, delta=1, key='sequence', txn=None):
+
+	def update_names(self, items, txn=None):
+		"""Update items with new names. Requires txn.
+
+		:param items: Items to update.
+		:keyword txn: Transaction
+
+		"""
+		namemap = {}
+		
+		for item in items:
+			if not self.exists(item.name, txn=txn):
+				# Get a new name.
+				newname = self._name_generator(item, txn=txn)
+
+				try:
+					newname = self.typekey(newname)
+				except:
+					raise Exception, "Invalid name: %s"%newname
+
+				# Check the name is still available, and acquire lock.
+				if self.exists(newname, txn=txn, flags=bsddb3.db.DB_RMW):
+					raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%newname
+
+				# Update the item's name.
+				namemap[item.name] = newname
+				item.__dict__['name'] = newname
+
+		return namemap
+
+
+	def _name_generator(self, item, txn=None):
+		# Set name policy in this method.
+		# name = self._incr_sequence(delta=1, txn=txn)
+		return item.name or emen2.db.database.getrandomid()
+
+
+	def _incr_sequence(self, delta=1, key='sequence', txn=None):
 		# Update a sequence key. Requires txn.
 		# The Sequence DB can handle multiple keys -- e.g., for
 		# binaries, each day has its own sequence key.
-		if not self.sequence:
-			raise Exception, "Sequences not supported"
 
 		# print "Setting sequence += %s, txn: %s, newtxn: %s, flags:%s"%
 		# (delta, txn, newtxn, bsddb3.db.DB_RMW)
@@ -872,50 +900,13 @@ class DBODB(EMEN2DB):
 		return val
 
 
-	def _newname(self, name, txn=None):
-		if self.sequence:
-			name = self._set_sequence(txn=txn)
-		else:
-			name = name or emen2.db.database.getrandomid()
-
-		# Acquire a write lock on this name.
-		if self.exists(item.name, txn=txn, flags=bsddb3.db.DB_RMW):
-			raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%item.name
-		return name
-
-
-	def update_names(self, items, txn=None):
-		"""Update items with new names. Requires txn.
-
-		:param items: Items to update.
-		:keyword txn: Transaction
-
-		"""
-
-		# Which items are new?
-		newitems = [i for i in items if i.name < 0] # also valid for None
-
-		# Update names
-		namemap = {}
-		for item in newitems:
-			oldname = item.name
-			newname = self._newname(name=oldname, txn=txn)
-			namemap[oldname] = newname
-			item.__dict__['name'] = newname
-
-		return namemap
-
-
-	def get_max(self, txn=None):
+	def get_max(self, key="sequence", txn=None):
 		"""Return the current maximum item in the sequence. Requires txn.
 
 		:keyword txn: Transaction
 
 		"""
-		if not self.sequence:
-			raise ValueError, "Sequences not supported"
-
-		sequence = self.sequencedb.get("sequence", txn=txn)
+		sequence = self.sequencedb.get(key, txn=txn)
 		if sequence == None:
 			sequence = 0
 		val = int(sequence)
@@ -1100,7 +1091,7 @@ class DBODB(EMEN2DB):
 		# Updated items
 		crecs = []
 
-		for updrec items:
+		for updrec in items:
 			name = updrec.get('name')
 			cp = set()
 
