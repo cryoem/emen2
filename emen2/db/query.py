@@ -385,9 +385,9 @@ class Query(object):
 			# Users need to be rendered... ugly hack.
 			if paramdef.vartype == 'user':
 				for i in result:
-					sortvalues[i] = self.vtm.param_render_sort(paramdef, sortvalues[i])
+					sortvalues[i] = self.vtm.param_render(paramdef, sortvalues[i], table=True)
 					self._checktime()
-					
+
 			# Case-insensitive sort
 			vt = self.vtm.getvartype(paramdef.vartype)
 			if vt.keytype == 's':

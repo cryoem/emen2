@@ -142,20 +142,20 @@ class VartypeManager(object):
 		return self._vartypes[pd.vartype](engine=self, pd=pd).render(value, **kwargs)
 
 
-	def param_render_sort(self, pd, value, **kwargs):
-		"""Render for native sorting, e.g. lexicographical vs. numerical"""
-
-		vt = self._vartypes[pd.vartype](engine=self, pd=pd)
-
-		if vt.getkeytype() in ["d","f"]:
-			return rec.get(pd.name)
-
-		value = vt.render(value=value)
-
-		if value == None:
-			return value
-
-		return value.lower()
+	# def param_render_sort(self, pd, value, **kwargs):
+	# 	"""Render for native sorting, e.g. lexicographical vs. numerical"""
+	# 
+	# 	vt = self._vartypes[pd.vartype](engine=self, pd=pd)
+	# 
+	# 	if vt.getkeytype() in ["d","f"]:
+	# 		return rec.get(pd.name)
+	# 
+	# 	value = vt.render(value=value)
+	# 
+	# 	if value == None:
+	# 		return value
+	# 
+	# 	return value.lower()
 
 
 	###################################
