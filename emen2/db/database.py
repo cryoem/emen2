@@ -409,7 +409,7 @@ class EMEN2DBEnv(object):
 		self.recorddef = emen2.db.recorddef.RecordDefDB(path="recorddef", dbenv=self)
 
 		# Uploaded files.
-		self.binarytmp = emen2.db.binary.BinaryTmpDB(path="binarytmp", dbenv=self)
+		self.upload = emen2.db.binary.BinaryTmpDB(path="upload", dbenv=self)
 
 		# access by keytype..
 		self.keytypes = {
@@ -419,7 +419,7 @@ class EMEN2DBEnv(object):
 			'user': self.user,
 			'group': self.group,
 			'binary': self.binary,
-			'binarytmp': self.binarytmp
+			'upload': self.upload
 		}
 
 
@@ -466,7 +466,7 @@ class EMEN2DBEnv(object):
 			"exts"
 			]
 
-		for i in ['record', 'paramdef', 'recorddef', 'user', 'newuser', 'group', 'workflow', 'context', 'binary', 'binarytmp']:
+		for i in ['record', 'paramdef', 'recorddef', 'user', 'newuser', 'group', 'workflow', 'context', 'binary', 'upload']:
 			for j in ['', '/index']:
 				paths.append('data/%s%s'%(i,j))
 
@@ -870,8 +870,8 @@ class DB(object):
 		return values
 
 
-	def _mapcommit(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
-		"""(Internal) Get keytype items, run a method with *args **kwargs, and commit.
+	def _mapput(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
+		"""(Internal) Get keytype items, run a method with *args **kwargs, and put.
 
 		This method is used to get a bunch of DBOs, run each instance's
 		specified method and commit.
@@ -890,13 +890,13 @@ class DB(object):
 		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
 
 
-	def _mapcommit_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
-		"""(Internal) See _mapcommit."""
+	def _mapput_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
+		"""(Internal) See _mapput."""
 
 		if names is None:
 			names = default
 		ol, names = listops.oltolist(names)
-		ret = self._mapcommit(keytype, names, method, ctx, txn, *args, **kwargs)
+		ret = self._mapput(keytype, names, method, ctx, txn, *args, **kwargs)
 		if ol: return listops.first_or_none(ret)
 		return ret
 
@@ -1071,12 +1071,6 @@ class DB(object):
 		emen2.db.log.msg('SECURITY', "Login succeeded: %s -> %s" % (name, newcontext.name))
 
 		return newcontext.name
-
-
-	@publicmethod("auth.login_compat", write=True)
-	def _login(self, *args, **kwargs):
-		"""Compatibility with older login method."""
-		return self.login(*args, **kwargs)
 
 
 	# Logout is the same as delete context
@@ -2624,7 +2618,7 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self._mapcommit('user', names, 'disable', ctx=ctx, txn=txn)
+		return self._mapput('user', names, 'disable', ctx=ctx, txn=txn)
 
 
 	@publicmethod("user.enable", write=True, admin=True)
@@ -2645,7 +2639,7 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self._mapcommit('user', names, 'enable', ctx=ctx, txn=txn)
+		return self._mapput('user', names, 'enable', ctx=ctx, txn=txn)
 
 
 	@publicmethod("user.setprivacy", write=True)
@@ -2667,9 +2661,9 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		# This is a modification of _mapcommit to allow if names=None
+		# This is a modification of _mapput to allow if names=None
 		# ctx.username will be used as the default.
-		return self._mapcommit_ol('user', names, 'setprivacy', ctx.username, ctx, txn, state)
+		return self._mapput_ol('user', names, 'setprivacy', ctx.username, ctx, txn, state)
 
 
 
@@ -2768,7 +2762,7 @@ class DB(object):
 		return self.bdbs.user.cget(user.name, ctx=ctx, txn=txn)
 
 
-	@publicmethod("auth.setpassword", write=True)
+	@publicmethod("user.setpassword", write=True)
 	def setpassword(self, oldpassword, newpassword, secret=None, name=None, ctx=None, txn=None):
 		"""Change password.
 
@@ -2814,7 +2808,7 @@ class DB(object):
 		return self.bdbs.user.cget(user.name, ctx=ctx, txn=txn)
 
 
-	@publicmethod("auth.resetpassword", write=True)
+	@publicmethod("user.resetpassword", write=True)
 	def resetpassword(self, name=None, ctx=None, txn=None):
 		"""Reset User password.
 
@@ -2916,7 +2910,6 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		# ian: todo: automatically generate names.
 		return self.bdbs.newuser.new(name=name, password=password, email=email, ctx=ctx, txn=txn)
 
 
@@ -3559,7 +3552,7 @@ class DB(object):
 		self.bdbs.record.delete(names, ctx=ctx, txn=txn)
 
 
-	@publicmethod("record.addcomment", write=True)
+	@publicmethod("record.findorphans")
 	def findorphans(self, names, root=0, keytype='record', ctx=None, txn=None):
 		"""Find orphaned items that would occur if names were hidden.
 		@param name Return orphans that would result from deletion of these items
@@ -3619,7 +3612,7 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		return self._mapcommit('record', names, 'addcomment', ctx, txn, comment)
+		return self._mapput('record', names, 'addcomment', ctx, txn, comment)
 
 
 	@publicmethod("record.find.comments")
@@ -3685,7 +3678,7 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		return self._mapcommit('record', names, 'update', ctx, txn, update)
+		return self._mapput('record', names, 'update', ctx, txn, update)
 
 
 	@publicmethod("record.validate")
@@ -3777,7 +3770,7 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		return self._mapcommit('record', names, 'adduser', ctx, txn, users)
+		return self._mapput('record', names, 'adduser', ctx, txn, users)
 
 
 	@publicmethod("record.removeuser", write=True)
@@ -3804,7 +3797,7 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		return self._mapcommit('record', names, 'removeuser', ctx, txn, users)
+		return self._mapput('record', names, 'removeuser', ctx, txn, users)
 
 
 	@publicmethod("record.addgroup", write=True)
@@ -3834,7 +3827,7 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		return self._mapcommit('record', names, 'addgroup', ctx, txn, groups)
+		return self._mapput('record', names, 'addgroup', ctx, txn, groups)
 
 
 	@publicmethod("record.removegroup", write=True)
@@ -3864,7 +3857,7 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		return self._mapcommit('record', names, 'removegroup', ctx, txn, groups)
+		return self._mapput('record', names, 'removegroup', ctx, txn, groups)
 
 
 
@@ -4110,20 +4103,20 @@ class DB(object):
 
 	##### Temporary binaries #####
 
-	@publicmethod("binarytmp.get")
+	@publicmethod("upload.get")
 	@ol('names')
-	def getbinarytmp(self, names=None, filt=True, ctx=None, txn=None):
-		return self.bdbs.binarytmp.cgets(names, filt=filt, ctx=ctx, txn=txn)
+	def getupload(self, names=None, filt=True, ctx=None, txn=None):
+		return self.bdbs.upload.cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
-	@publicmethod("binarytmp.new")
-	def newbinarytmp(self, ctx=None, txn=None):
-		return self.bdbs.binarytmp.new(name=None, ctx=ctx, txn=txn)
+	@publicmethod("upload.new")
+	def newupload(self, ctx=None, txn=None):
+		return self.bdbs.upload.new(name=None, ctx=ctx, txn=txn)
 	
 	
-	@publicmethod("binarytmp.put", write=True)
+	@publicmethod("upload.put", write=True)
 	@ol('items')
-	def putbinarytmp(self, items, extract=False, ctx=None, txn=None):
+	def putupload(self, items, extract=False, ctx=None, txn=None):
 		raise NotImplementedError
 		tmpdir = '/Users/irees/'
 		
@@ -4133,10 +4126,10 @@ class DB(object):
 			newfile = False
 			if not bdo.get('name'):
 				handler = bdo
-				bdo = self.bdbs.binarytmp.new(filename=handler.get('filename'), ctx=ctx, txn=txn)
+				bdo = self.bdbs.upload.new(filename=handler.get('filename'), ctx=ctx, txn=txn)
 				newfile = bdo.writetmp(filedata=handler.get('filedata', None), fileobj=handler.get('fileobj', None), basepath=tmpdir)
 
-			bdo = self.bdbs.binarytmp.cput(bdo, ctx=ctx, txn=txn)
+			bdo = self.bdbs.upload.cput(bdo, ctx=ctx, txn=txn)
 			bdos.append(bdo)
 
 			if newfile:
