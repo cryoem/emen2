@@ -211,19 +211,8 @@ class Record(View):
 		viewname = 'mainview'
 		inherit = [int(name)]
 
-		# if _private:
-		# 	# Do not copy parent record permissions
-		# 	newrec = self.db.newrecord(rectype)
-		# 	newrec.parents = inherit
-		# else:
-		
 		newrec = self.db.newrecord(rectype, inherit=inherit)
 		
-		# if _copy:
-		# 	# Copy values from parent records
-		# 	for rec in self.db.getrecord(inherit):
-		# 		newrec.update(rec)
-
 		if self.request_method not in ['post', 'put']:
 			# Show the form
 			self.template = '/record/record.new'

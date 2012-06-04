@@ -1002,7 +1002,7 @@ class DB(object):
 		return VERSIONS.get(program)
 
 
-	@publicmethod("time")
+	@publicmethod("time.now")
 	def gettime(self, ctx=None, txn=None):
 		"""Get current time.
 
@@ -3973,7 +3973,7 @@ class DB(object):
 		"""Construct a new Binary.
 
 		Note: This is not very useful. Instead, use the
-			keyword arguments to db.putbinary():
+			keyword arguments to db.putbinary:
 			infile, filename, record, param.
 
 		Examples:
