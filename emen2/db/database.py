@@ -322,7 +322,6 @@ class EMEN2DBEnv(object):
 		:keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
 		:keyword create: Create the environment if it does not already exist.
 		"""
-
 		self.keytypes =  {}
 
 		if path is not None:
@@ -357,9 +356,6 @@ class EMEN2DBEnv(object):
 			bsddb3.db.DB_INIT_LOCK | \
 			bsddb3.db.DB_INIT_LOG | \
 			bsddb3.db.DB_THREAD
-			# bsddb3.db.DB_RECOVER
-			# bsddb3.db.DB_REGISTER
-
 
 		# Open the Database Environment
 		dbenv = None
@@ -392,16 +388,15 @@ class EMEN2DBEnv(object):
 
 	def init(self):
 		"""Open the databases."""
-
-		# Authentication
+		# Authentication.
 		self.context = emen2.db.context.ContextDB(path="context", dbenv=self)
 
-		# Security items
+		# Security items.
 		self.newuser = emen2.db.user.NewUserDB(path="newuser", dbenv=self)
 		self.user = emen2.db.user.UserDB(path="user", dbenv=self)
 		self.group = emen2.db.group.GroupDB(path="group", dbenv=self)
 
-		# Main database items
+		# Main database items.
 		self.workflow = emen2.db.workflow.WorkFlowDB(path="workflow", dbenv=self)
 		self.binary = emen2.db.binary.BinaryDB(path="binary", dbenv=self)
 		self.record = emen2.db.record.RecordDB(path="record", dbenv=self)
@@ -411,7 +406,7 @@ class EMEN2DBEnv(object):
 		# Uploaded files.
 		self.upload = emen2.db.binary.BinaryTmpDB(path="upload", dbenv=self)
 
-		# access by keytype..
+		# Access by keytype..
 		self.keytypes = {
 			'record': self.record,
 			'paramdef': self.paramdef,
@@ -443,7 +438,6 @@ class EMEN2DBEnv(object):
 
 	def checkdirs(self):
 		"""Check that all necessary directories exist."""
-
 		checkpath = os.access(self.path, os.F_OK)
 		checkconfig = os.access(os.path.join(self.path, 'DB_CONFIG'), os.F_OK)
 
@@ -493,7 +487,6 @@ class EMEN2DBEnv(object):
 
 	def stat():
 		"""Print some statistics about the environment."""
-
 		sys.stdout.flush()
 
 		tx_max = self.dbenv.get_tx_max()
@@ -522,7 +515,6 @@ class EMEN2DBEnv(object):
 		:keyword write: Transaction will be likely to write data; turns off Berkeley DB Snapshot
 		:return: New transaction
 		"""
-
 		parent = None
 		flags = bsddb3.db.DB_TXN_SNAPSHOT
 		if write:
@@ -545,7 +537,6 @@ class EMEN2DBEnv(object):
 		:keyword txn: An existing open transaction
 		:return: Open transaction
 		"""
-
 		txn = self.txnlog.get(txnid, txn)
 		if not txn:
 			txn = self.newtxn(write=write)
@@ -559,7 +550,6 @@ class EMEN2DBEnv(object):
 		:keyword txn: An existing open transaction
 		:exception: KeyError if transaction was not found
 		"""
-
 		txn = self.txnlog.get(txnid, txn)
 		# emen2.db.log.msg('TXN', "TXN ABORT --> %s"%txn)
 
@@ -579,7 +569,6 @@ class EMEN2DBEnv(object):
 		:keyword txn: An existing open transaction
 		:exception: KeyError if transaction was not found
 		"""
-
 		txn = self.txnlog.get(txnid, txn)
 		# emen2.db.log.msg('TXN', "TXN COMMIT --> %s"%txn)
 
@@ -610,7 +599,6 @@ class EMEN2DBEnv(object):
 		:keyword remove: Remove the log files after moving them to the backup location
 		:keyword checkpoint: Run a checkpoint first; this will allow more files to be archived
 		"""
-
 		outpath = self.LOG_ARCHIVE
 
 		if checkpoint:
@@ -629,7 +617,6 @@ class EMEN2DBEnv(object):
 
 	def _log_archive(self, archivefiles, outpath, remove=False):
 		"""(Internal) Backup database log files"""
-
 		outpaths = []
 		for archivefile in archivefiles:
 			dest = os.path.join(outpath, os.path.basename(archivefile))
@@ -653,6 +640,7 @@ class EMEN2DBEnv(object):
 			os.unlink(removefile)
 
 		return removefiles
+		
 
 
 ##### Main Database Class #####
@@ -672,19 +660,12 @@ class DB(object):
 		:keyword path: Directory containing an EMEN2 Database Environment.
 		:keyword create: Create the environment if it does not already exist.
 		"""
-
 		# Open the database
 		self.bdbs = EMEN2DBEnv(path=path, create=create)
-
-		#if not hasattr(self.periodic_operations, 'next'):
-		#	self.__class__.periodic_operations = self.periodic_operations()
 
 		# Load ParamDefs/RecordDefs from extensions.
 		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
 		emen2.db.config.load_jsons(cb=self.load_json)
-
-		# Periodic operations..
-		self.lastctxclean = time.time()
 
 		# Cache contexts
 		self.contexts_cache = {}
@@ -696,7 +677,6 @@ class DB(object):
 
 	def load_json(self, infile):
 		"""Load and cache a JSON file containing DBOs."""
-
 		# Create a special root context to load the items
 		ctx = emen2.db.context.SpecialRootContext(db=self)
 		loader = emen2.db.load.BaseLoader(infile=infile)
@@ -729,9 +709,9 @@ class DB(object):
 		:keyparam admin: Open DBProxy with administrative context
 		:keyparam db: Use an existing DB instance.
 		"""
-
 		# Import here to avoid issues with publicmethod.
 		import emen2.db.proxy
+		
 		# Use self or create new instance..
 		db = db or cls()
 		proxy = emen2.db.proxy.DBProxy(db=db)
@@ -750,7 +730,6 @@ class DB(object):
 		@keyparam rootpw Root Account Password
 		@keyparam rootemail Root Account email
 		"""
-
 		import platform
 		def getpw(rootpw=None, rootemail=None):
 			host = platform.node() or 'localhost'
@@ -791,9 +770,59 @@ class DB(object):
 		return ctx
 
 
+	def _mapput(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
+		"""(Internal) Get keytype items, run a method with *args **kwargs, and put.
+
+		This method is used to get a bunch of DBOs, run each instance's
+		specified method and commit.
+
+		:param keytype: DBO keytype
+		:param names: DBO names
+		:param method: DBO method
+		:param *args: method args
+		:param *kwargs: method kwargs
+		:return: Results of commit/puts
+		"""
+		items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
+		for item in items:
+			getattr(item, method)(*args, **kwargs)
+		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
+
+
+	def _mapput_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
+		"""(Internal) See _mapput."""
+		if names is None:
+			names = default
+		ol, names = listops.oltolist(names)
+		ret = self._mapput(keytype, names, method, ctx, txn, *args, **kwargs)
+		if ol: return listops.first_or_none(ret)
+		return ret
+
+
+	def _run_macro(self, macro, names, ctx=None, txn=None):
+		"""(Internal) Run a macro over a set of Records.
+
+		:param macro: Macro in view format: $@macro(args)
+		:param names: Record names
+		:return: Macro keytype ('d'/'s'/'f'/None), and dict of processed Records
+		"""
+		recs = {}
+		mrecs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
+		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
+		regex = VIEW_REGEX
+		
+		k = regex.match(macro)
+		keytype = vtm.getmacro(k.group('name')).getkeytype()
+		vtm.macro_preprocess(k.group('name'), k.group('args'), mrecs)
+
+		for rec in mrecs:
+			recs[rec.name] = vtm.macro_process(k.group('name'), k.group('args'), rec)
+
+		return keytype, recs
+
+
 	def _findrecorddefnames(self, names, ctx=None, txn=None):
 		"""(Internal) Find referenced recorddefs."""
-
 		recnames, recs, rds = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
 		rds = set(rds)
 		rds |= set([i.rectype for i in recs])
@@ -869,66 +898,8 @@ class DB(object):
 
 		return values
 
-
-	def _mapput(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
-		"""(Internal) Get keytype items, run a method with *args **kwargs, and put.
-
-		This method is used to get a bunch of DBOs, run each instance's
-		specified method and commit.
-
-		:param keytype: DBO keytype
-		:param names: DBO names
-		:param method: DBO method
-		:param *args: method args
-		:param *kwargs: method kwargs
-		:return: Results of commit/puts
-		"""
-
-		items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
-		for item in items:
-			getattr(item, method)(*args, **kwargs)
-		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
-
-
-	def _mapput_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
-		"""(Internal) See _mapput."""
-
-		if names is None:
-			names = default
-		ol, names = listops.oltolist(names)
-		ret = self._mapput(keytype, names, method, ctx, txn, *args, **kwargs)
-		if ol: return listops.first_or_none(ret)
-		return ret
-
-
-	def _run_macro(self, macro, names, ctx=None, txn=None):
-		"""(Internal) Run a macro over a set of Records.
-
-		:param macro: Macro in view format: $@macro(args)
-		:param names: Record names
-		:return: Macro keytype ('d'/'s'/'f'/None), and dict of processed Records
-		"""
-		recs = {}
-		mrecs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
-
-		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
-
-		regex = VIEW_REGEX
-		k = regex.match(macro)
-
-		keytype = vtm.getmacro(k.group('name')).getkeytype()
-		vtm.macro_preprocess(k.group('name'), k.group('args'), mrecs)
-
-		for rec in mrecs:
-			recs[rec.name] = vtm.macro_process(k.group('name'), k.group('args'), rec)
-
-		return keytype, recs
-
-
-
 	##### Events #####
 
-	tasks = []
 	# ed: here's an implementation that seems to work, the first time
 	#     this class is instantiated, this is called and it is replaced
 	#     by the generator that results.  Then, everytime a function is
@@ -940,43 +911,28 @@ class DB(object):
 	#     next() appropriately, but I don't think its complicated enough
 	#     to justify that :)
 
-	def periodic_operations(self):
-		"""(Internal) Maintenance task scheduler.
-		Eventually this will be replaced with a more complete system."""
-		ctx = emen2.db.context.SpecialRootContext(db=self)
-		first_run = True
-		while 1:
-			t = getctime()
-			if first_run or t > (self.lastctxclean + 600):
-				for task in self.tasks:
-					txn = self.bdbs.newtxn()
-					try:
-							task(self, ctx=ctx, txn=txn)
-					except Exception, e:
-						txn.abort()
-						emen2.db.log.error('Exception in periodic_operations:', e)
-					else:
-						txn.commit()
-					finally:
-						self.lastctxclean = t
-			if first_run: first_run = False
-			yield
-
-
-	# ian: todo: finish
-	# def cleanupcontexts(self, ctx=None, txn=None):
-	# 	"""(Internal) Clean up sessions that have been idle too long."""
-	# 	newtime = getctime()
-	# 	for ctxid, context in self.bdbs.context.items(txn=txn):
-	# 		# If the item is in the cache, use the current last-access time..
-	# 		c = self.contexts_cache.get(ctxid)
-	# 		if c:
-	# 			context.time = c.time
-	#
-	# 		# Delete any expired contexts
-	# 		if context.time + (context.maxidle or 0) < newtime:
-	# 			emen2.db.log.info("Expire context (%s) %d" % (ctxid, time.time() - context.time))
-	# 			self.bdbs.context.delete(ctxid, txn=txn)
+	# tasks = []
+	# def periodic_operations(self):
+	# 	"""(Internal) Maintenance task scheduler.
+	# 	Eventually this will be replaced with a more complete system."""
+	# 	ctx = emen2.db.context.SpecialRootContext(db=self)
+	# 	first_run = True
+	# 	while 1:
+	# 		t = getctime()
+	# 		if first_run or t > (self.lastctxclean + 600):
+	# 			for task in self.tasks:
+	# 				txn = self.bdbs.newtxn()
+	# 				try:
+	# 						task(self, ctx=ctx, txn=txn)
+	# 				except Exception, e:
+	# 					txn.abort()
+	# 					emen2.db.log.error('Exception in periodic_operations:', e)
+	# 				else:
+	# 					txn.commit()
+	# 				finally:
+	# 					self.lastctxclean = t
+	# 		if first_run: first_run = False
+	# 		yield
 
 
 
@@ -1018,6 +974,12 @@ class DB(object):
 
 	@publicmethod('time.difference')
 	def timedifference(self, t1, t2=None, ctx=None, txn=None):
+		"""Returns the difference between two times in seconds.
+		
+		:param t1: The first time.
+		:keyword t2: The second time; defaults to now.
+		:return: Time difference, in seconds.
+		"""
 		t1 = emen2.db.vartypes.parse_iso8601(t1)[0]
 		if t2:
 			t2 = emen2.db.vartypes.parse_iso8601(t2)[0]
@@ -1036,15 +998,15 @@ class DB(object):
 
 		Examples:
 
-		>>> db.login(name='my.account@example.com', password='foobar')
+		>>> db.login(name='example@example.com', password='foobar')
 		654067667525479cba8eb2940a3cf745de3ce608
 
-		>>> db.login(name='ian@example.com', password='fobar')
+		>>> db.login(name='ian@example.com', password='foobar')
 		AuthenticationError, "Invalid user name, email, or password"
 
 		:keyword name: Account name or email address
 		:keyword password: Account password
-		:keyword host: Bind auth token to this host. Set by proxy.
+		:keyword host: Bind auth token to this host. This is set by the proxy.
 		:return: Auth token (ctxid)
 		:exception AuthenticationError: Invalid user name, email, or password
 		"""
@@ -1067,6 +1029,7 @@ class DB(object):
 			# Create the Context for this user/host
 			newcontext = emen2.db.context.Context(username=user.name, host=host)
 
+		# This puts directly, instead of using cput.
 		self.bdbs.context.put(newcontext.name, newcontext, txn=txn)
 		emen2.db.log.msg('SECURITY', "Login succeeded: %s -> %s" % (name, newcontext.name))
 
@@ -1084,6 +1047,7 @@ class DB(object):
 		>>> db.logout()
 		None
 		"""
+		# Remove the cached context and delete the stored one.
 		self.contexts_cache.pop(ctx.name, None)
 		self.bdbs.context.delete(ctx.name, txn=txn)
 		self.sync_contexts.set()
@@ -1156,9 +1120,6 @@ class DB(object):
 		:exception: SessionError
 		"""
 
-		# Check for any scheduled actions
-		# self.periodic_operations(ctx=ctx, txn=txn)
-
 		# Find the context; check the cache first, then the bdb.
 		# If no ctxid was provided, make an Anonymous Context.
 		if ctxid:
@@ -1197,7 +1158,7 @@ class DB(object):
 
 	##### Query #####
 
-	@publicmethod("record.query")
+	@publicmethod("query")
 	def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""General query.
 
@@ -1281,7 +1242,7 @@ class DB(object):
 		return ret
 
 
-	@publicmethod("record.table")
+	@publicmethod("table")
 	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, viewdef=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""Query results suitable for making a table.
 
@@ -1375,7 +1336,7 @@ class DB(object):
 		return ret
 
 
-	@publicmethod("record.plot")
+	@publicmethod("plot")
 	def plot(self, c=None, mode='AND', x=None, y=None, z=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""Query results suitable for plotting.
 
@@ -1417,6 +1378,7 @@ class DB(object):
 		for axis in [x.get('key'), y.get('key'), z.get('key')]:
 			if axis and axis not in qparams:
 				c.append([axis, 'any', None])
+				
 		# Run the query
 		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
@@ -1425,6 +1387,8 @@ class DB(object):
 		ret['stats']['length'] = len(q.result)
 		ret['stats']['time'] = q.time
 		return ret
+
+
 
 	##### Other query methods #####
 
@@ -1907,52 +1871,6 @@ class DB(object):
 		return rendered, c_all
 
 
-	def _make_tables(self, recdefs, rec, markup, ctx, txn):
-		"""(Internal) Find "out-of-band" parameters."""
-		# move built in params to end of table
-		#par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
-		# Default params
-		public = set() | emen2.db.record.Record.attr_public
-		show = set(rec.keys()) | recdefs.get(rec.rectype).paramsK | public
-		descs = dict((i.name,i.desc_short) for i in self.getparamdef(show, ctx=ctx, txn=txn))
-		show -= public
-		par = []
-		par.extend(sorted(show, key=lambda x:descs.get(x, x)))
-		par.extend(sorted(public, key=lambda x:descs.get(x, x)))
-		# par = [p for p in recdefs.get(rec.rectype).paramsK if p not in builtinparams]
-		# par += [p for p in rec.keys() if p not in par]
-		return self._view_dicttable(par, markup=markup, ctx=ctx, txn=txn)
-
-
-	def _view_dicttable(self, params, paramdefs={}, markup=False, ctx=None, txn=None):
-		"""(Internal) Create an HTML table for rendering.
-
-		:param params: Use these ParamDef names
-		:keyword paramdefs: ParamDef cache
-		:keyword markup: Use HTML Markup (default=False)
-		:return: HTML table of params
-		"""
-
-		if markup:
-			dt = ["""<table class="e2l-kv e2l-shaded" cellspacing="0" cellpadding="0">
-					<thead><th>Parameter</th><th>Value</th></thead>
-					<tbody>"""]
-			for count, i in enumerate(params):
-				if count%2:
-					dt.append("\t\t<tr class=\"s\"><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
-				else:
-					dt.append("\t\t<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
-
-			dt.append("\t<thead>\n</table>")
-
-		else:
-			dt = []
-			for i in params:
-				dt.append("$#%s:\t$$%s\n"%(i,i))
-
-		return "\n".join(dt)
-
-
 	@publicmethod("record.render")
 	@ol('names')
 	def renderview(self, names, viewname='recname', viewdef=None, edit=False, markup=True, table=False, mode=None, vtm=None, ctx=None, txn=None):
@@ -2151,6 +2069,52 @@ class DB(object):
 		return ret
 
 
+	def _make_tables(self, recdefs, rec, markup, ctx, txn):
+		"""(Internal) Find "out-of-band" parameters."""
+		# move built in params to end of table
+		#par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
+		# Default params
+		public = set() | emen2.db.record.Record.attr_public
+		show = set(rec.keys()) | recdefs.get(rec.rectype).paramsK | public
+		descs = dict((i.name,i.desc_short) for i in self.getparamdef(show, ctx=ctx, txn=txn))
+		show -= public
+		par = []
+		par.extend(sorted(show, key=lambda x:descs.get(x, x)))
+		par.extend(sorted(public, key=lambda x:descs.get(x, x)))
+		# par = [p for p in recdefs.get(rec.rectype).paramsK if p not in builtinparams]
+		# par += [p for p in rec.keys() if p not in par]
+		return self._view_dicttable(par, markup=markup, ctx=ctx, txn=txn)
+
+
+	def _view_dicttable(self, params, paramdefs={}, markup=False, ctx=None, txn=None):
+		"""(Internal) Create an HTML table for rendering.
+
+		:param params: Use these ParamDef names
+		:keyword paramdefs: ParamDef cache
+		:keyword markup: Use HTML Markup (default=False)
+		:return: HTML table of params
+		"""
+
+		if markup:
+			dt = ["""<table class="e2l-kv e2l-shaded" cellspacing="0" cellpadding="0">
+					<thead><th>Parameter</th><th>Value</th></thead>
+					<tbody>"""]
+			for count, i in enumerate(params):
+				if count%2:
+					dt.append("\t\t<tr class=\"s\"><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
+				else:
+					dt.append("\t\t<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
+
+			dt.append("\t<thead>\n</table>")
+
+		else:
+			dt = []
+			for i in params:
+				dt.append("$#%s:\t$$%s\n"%(i,i))
+
+		return "\n".join(dt)
+
+
 
 
 	#************************************************************************
@@ -2159,7 +2123,6 @@ class DB(object):
 	#* 	BDB/BTree methods.
 	#************************************************************************
 
-	# This was incorrectly tagged as an admin method
 	@publicmethod("get")
 	@ol('names')
 	def get(self, names, keytype='record', filt=True, ctx=None, txn=None):
@@ -2418,29 +2381,6 @@ class DB(object):
 		:exception SecurityError:
 		"""
 		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', ctx=ctx, txn=txn, **kwargs)
-
-
-	@publicmethod("rel.rel")
-	@ol('names')
-	def rel(self, names, keytype="record", recurse=1, rel="children", tree=False, ctx=None, txn=None, **kwargs):
-		"""Get relationships.
-
-		Examples:
-
-		See also rel.children(), rel.parents(), rel.children.tree(), rel.parents.tree().
-
-		:param names: Item name(s)
-		:keyword keytype: Item keytype
-		:keyword recurse: Recursion depth
-		:keyword rel: Relationship type: children, parents
-		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
-		:keyword tree: Return tree
-		:keyword filt: Ignore failures
-		:return:
-		:exception KeyError:
-		:exception SecurityError:
-		"""
-		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel=rel, tree=tree, ctx=ctx, txn=txn, **kwargs)
 
 
 	@publicmethod('rel.pclink', write=True)
@@ -3552,7 +3492,7 @@ class DB(object):
 		self.bdbs.record.delete(names, ctx=ctx, txn=txn)
 
 
-	@publicmethod("record.findorphans")
+	@publicmethod("record.find.orphans")
 	def findorphans(self, names, root=0, keytype='record', ctx=None, txn=None):
 		"""Find orphaned items that would occur if names were hidden.
 		@param name Return orphans that would result from deletion of these items
@@ -4117,9 +4057,7 @@ class DB(object):
 	@publicmethod("upload.put", write=True)
 	@ol('items')
 	def putupload(self, items, extract=False, ctx=None, txn=None):
-		raise NotImplementedError
-		tmpdir = '/Users/irees/'
-		
+		tmpdir = emen2.db.config.get('paths.TMPPATH')		
 		bdos = []
 		rename = []
 		for bdo in items:
@@ -4135,10 +4073,9 @@ class DB(object):
 			if newfile:
 				dest = os.path.join(tmpdir, bdo.name)
 				rename.append([newfile, dest])
-
-		# Rename/copy temporary files to final destination.
-		for newfile, filepath in rename:
-			os.rename(newfile, filepath)
+			
+			# Rename the file at the end of the txn.
+			txn._callback.append(['rename', newfile, filepath])
 
 		return bdos
 		

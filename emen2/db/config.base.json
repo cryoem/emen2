@@ -7,7 +7,7 @@
 		// Berkeley DB Log Archive directory. You will want to carefully back these up.
 		"LOG_ARCHIVE": "log_archive",
 
-		// Temporary directory to use for graphs and other temporary files
+		// Temporary directory to use for uploaded files, graphs and other temporary files
 		"TMPPATH": "tmp",
 		
 		/* Raw data storage area. You may want to place this on a large raid array.
