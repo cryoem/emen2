@@ -2,6 +2,11 @@
 
 <%def name="traverse(tree, root, recnames, recurse, mode='children', keytype='record', expandable=True, collapsed=None, id='')">
 	<%def name="inner(parent, children, depth)">
+		<%
+		## MAXRECURSE
+		if depth >= 50:
+			return
+		%>
 		## ul for this depth level
 		<ul data-depth="${depth}" data-name="${parent}">
 

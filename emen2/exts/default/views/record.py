@@ -120,7 +120,6 @@ class Record(View):
 
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$', write=True)
 	def edit(self, name=None, _location=None, **kwargs):
-
 		# Edit page and requests
 		if self.request_method not in ['post', 'put']:
 			# Show the form and return
@@ -139,8 +138,9 @@ class Record(View):
 			self.db.putrecord(rec)
 
 		for f in self.request_files:
-			f.record = rec.name
+			param = f.get('param', 'file_binary')
 			bdo = self.db.putbinary(f)
+			self.db.binaryaddreference(rec.name, param, bdo.name)
 
 		# Redirect
 		if _location:
@@ -149,14 +149,12 @@ class Record(View):
 			self.redirect(self.routing.reverse('Record/main', name=name))
 
 
-	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/attachments/$', name='edit/attachments', write=True)
 	def edit_attachments(self, name=None, **kwargs):
 		self.edit(name=name, **kwargs)
 		self.redirect(self.routing.reverse('Record/main', name=name, anchor='attachments'))
 
 
-	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/relationships/$', name='edit/relationships', write=True)
 	def edit_relationships(self, name=None, parents=None, children=None):
 		# ian: todo: Check orphans, show orphan confirmation page
@@ -172,7 +170,6 @@ class Record(View):
 		self.headers['Location'] = '%s/record/%s/#relationships'%(self.ctxt['EMEN2WEBROOT'], name)
 
 
-	#@write
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/permissions/$', name='edit/permissions', write=True)
 	def edit_permissions(self, name=None, permissions=None, groups=None, action=None, filt=True):
 		permissions = permissions or {}
@@ -238,8 +235,11 @@ class Record(View):
 		newrec = self.db.putrecord(newrec)
 
 		for f in self.request_files:
-			f.record = newrec.name
+			param = f.get('param', 'file_binary')
 			bdo = self.db.putbinary(f)
+			self.db.binaryaddreference(rec.name, param, bdo.name)
+
+
 
 		# Redirect
 		if _location:
@@ -267,7 +267,6 @@ class Record(View):
 		self.ctxt["pages"].active = childtype
 
 
-	#@write
 	@View.add_matcher("^/record/(?P<name>\d+)/hide/$", write=True)
 	def hide(self, commit=False, name=None, childaction=None):
 		"""Main record rendering."""

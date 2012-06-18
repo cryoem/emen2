@@ -114,7 +114,6 @@ class Users(View):
 @View.register
 class NewUser(View):
 
-	#@write
 	@View.add_matcher("^/users/new/$", view='Users', name='new')
 	def new(self, user=None, userrec=None, **kwargs):
 		self.template = '/pages/users.new'

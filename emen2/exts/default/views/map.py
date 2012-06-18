@@ -1,8 +1,13 @@
 # $Id$
 from emen2.web.view import View
+import emen2.db.config
+
 
 def dfs(root, tree, recurse=1):
+	maxrecurse = emen2.db.config.get('params.MAXRECURSE', 50)
 	def inner(stack, children, depth=0):
+		if depth >= maxrecurse:
+			return
 		if recurse > 0 and depth >= recurse:
 			return
 		for child in children:
@@ -56,7 +61,7 @@ class Tree(View):
 			parents = self.db.getparents(root, keytype=keytype)
 		else:
 			tree = self.db.getparenttree(root, recurse=recurse+2, keytype=keytype)
-
+		
 		if collapse_rectype:
 			collapsed |= self.db.getchildren(root, recurse=-1, rectype=collapse_rectype)
 
@@ -80,7 +85,6 @@ class Tree(View):
 			for rd in rds:
 				recnames[rd.name] = rd.desc_short
 
-	
 		self.ctxt['mode'] = mode
 		self.ctxt['root'] = root
 		self.ctxt['tree'] = tree

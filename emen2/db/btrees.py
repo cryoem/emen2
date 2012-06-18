@@ -888,9 +888,7 @@ class DBODB(EMEN2DB):
 		# Update a sequence key. Requires txn.
 		# The Sequence DB can handle multiple keys -- e.g., for
 		# binaries, each day has its own sequence key.
-
-		# print "Setting sequence += %s, txn: %s, newtxn: %s, flags:%s"%
-		# (delta, txn, newtxn, bsddb3.db.DB_RMW)
+		# print "Setting sequence key: %s += %s, txn: %s, flags: %s"%(key, delta, txn, bsddb3.db.DB_RMW)
 		val = self.sequencedb.get(key, txn=txn, flags=bsddb3.db.DB_RMW)
 		if val == None:
 			val = 0
@@ -904,14 +902,12 @@ class DBODB(EMEN2DB):
 		"""Return the current maximum item in the sequence. Requires txn.
 
 		:keyword txn: Transaction
-
 		"""
 		sequence = self.sequencedb.get(key, txn=txn)
 		if sequence == None:
 			sequence = 0
 		val = int(sequence)
 		return val
-
 
 
 
@@ -925,7 +921,6 @@ class DBODB(EMEN2DB):
 		:keyword txn: Transaction
 		:return: New DBO
 		:exception ExistingKeyError:
-
 		"""
 		txn = kwargs.pop('txn', None) # Don't pass the txn..
 		item = self.dataclass(*args, **kwargs)
@@ -1090,6 +1085,7 @@ class DBODB(EMEN2DB):
 
 		# Updated items
 		crecs = []
+
 
 		for updrec in items:
 			name = updrec.get('name')
