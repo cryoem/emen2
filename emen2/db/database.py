@@ -1367,7 +1367,7 @@ class DB(object):
 
 	@publicmethod("names")
 	def names(self, keytype='record', ctx=None, txn=None):
-		pass
+		return self.bdbs.keytypes[keytype].names(ctx=ctx, txn=txn)
 		
 	
 	@publicmethod("find")

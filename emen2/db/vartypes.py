@@ -390,16 +390,16 @@ class vt_boolean(Vartype):
 
 
 # ian: deprecated
-@vtm.register_vartype('recid')
-class vt_recid(Vartype):
-	"""Record name"""
-
-	def validate(self, value):
-		value = map(int, ci(value))
-		for i in value:
-			if i < 0:
-				raise ValidationError, "Invalid Record name: %s"%value
-		return self._rci(value)
+# @vtm.register_vartype('recid')
+# class vt_recid(Vartype):
+# 	"""Record name"""
+# 
+# 	def validate(self, value):
+# 		value = map(int, ci(value))
+# 		for i in value:
+# 			if i < 0:
+# 				raise ValidationError, "Invalid Record name: %s"%value
+# 		return self._rci(value)
 
 
 @vtm.register_vartype('name')
@@ -460,6 +460,17 @@ class vt_rectype(vt_string):
 		value = [unicode(x).strip() for x in ci(value)]
 		check_rectypes(self.engine, value)
 		return self._rci(value)
+
+
+@vtm.register_vartype('recorddef')
+class vt_recorddef(vt_string):
+	"""RecordDef name"""
+
+	def validate(self, value):
+		value = [unicode(x).strip() for x in ci(value)]
+		check_rectypes(self.engine, value)
+		return self._rci(value)
+
 
 
 @vtm.register_vartype('text')
@@ -706,8 +717,8 @@ class vt_md5(Vartype):
 #	Not indexed.
 ###################################
 
-@vtm.register_vartype('links')
-class vt_links(Vartype):
+@vtm.register_vartype('record')
+class vt_record(Vartype):
 	"""References to other Records."""
 	#:
 	keytype = None
@@ -822,9 +833,9 @@ class vt_acl(Vartype):
 
 
 
-@vtm.register_vartype('groups')
-class vt_groups(Vartype):
-	"""Groups"""
+@vtm.register_vartype('group')
+class vt_group(Vartype):
+	"""Group"""
 	#:
 	keytype = 's'
 

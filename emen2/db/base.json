@@ -1,25 +1,24 @@
 /////////////////
 // Core ParamDefs
 {"name": "root", "keytype": "paramdef", "parents": [], "vartype": "none", "children": ["core"], "desc_short": "Root Parameter", "uri":"http://ncmidb.bcm.edu"}
-{"name": "core", "keytype": "paramdef", "parents": ["root"], "vartype": "string", "children": ["username", "name_first", "observed_by", "keytype", "address_street2", "creationtime", "name_contact", "phone_fax", "academic_degrees", "owner", "address_street", "children", "name_last", "support", "creator", "comments", "filename", "name_middle", "affiliations", "parents", "department", "phone_voice", "phone_fax_international", "name_folder", "address_state", "email", "person_photo", "website", "history", "address_email", "groups", "modifytime", "institution", "permissions_reference", "permissions", "modifyuser", "address_city", "folder_description", "name", "name_group", "performed_by", "address_international", "uri", "file_binary_image", "contact", "recid", "phone_voice_international", "file_binary", "country", "address_zipcode", "rectype", "date_occurred"], "desc_short": "Core Parameters", "uri":"http://ncmidb.bcm.edu"}
+{"name": "core", "keytype": "paramdef", "parents": ["root"], "vartype": "string", "children": ["username", "name_first", "observed_by", "keytype", "address_street2", "creationtime", "name_contact", "phone_fax", "academic_degrees", "owner", "address_street", "children", "name_last", "support", "creator", "comments", "filename", "name_middle", "affiliations", "parents", "department", "phone_voice", "phone_fax_international", "name_folder", "address_state", "email", "person_photo", "website", "history", "address_email", "groups", "modifytime", "institution", "permissions", "modifyuser", "address_city", "folder_description", "name", "name_group", "performed_by", "address_international", "uri", "file_binary_image", "contact", "recid", "phone_voice_international", "file_binary", "country", "address_zipcode", "rectype", "date_occurred"], "desc_short": "Core Parameters", "uri":"http://ncmidb.bcm.edu"}
 
 // Parameters for DatabaseObject attributes
 {"name": "iter", "keytype": "paramdef", "uri":"http://ncmidb.bcm.edu", "parents": ["core"], "indexed": false, "vartype": "boolean", "desc_short": "Iterable", "uri":"http://ncmidb.bcm.edu"}
 {"immutable": true, "name": "keytype", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Type", "uri":"http://ncmidb.bcm.edu"}
-{"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "links", "desc_short": "Children", "uri":"http://ncmidb.bcm.edu"}
+{"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "record", "iter":true, "desc_short": "Children", "uri":"http://ncmidb.bcm.edu"}
 {"immutable": true, "name": "creator", "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "Created by", "desc_long": "The user that initially created the record", "uri":"http://ncmidb.bcm.edu"}
 {"name": "comments", "keytype": "paramdef","parents": ["core"], "vartype": "comments", "desc_short": "Comments", "iter":true, "uri":"http://ncmidb.bcm.edu"}
-{"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "links", "desc_short": "Parents", "uri":"http://ncmidb.bcm.edu"}
+{"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "record", "iter": true, "desc_short": "Parents", "uri":"http://ncmidb.bcm.edu"}
 {"name": "email", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Email", "uri":"http://ncmidb.bcm.edu"}
 {"immutable": true, "name": "name", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "name", "desc_short": "Object Name", "uri":"http://ncmidb.bcm.edu"}
-{"name": "groups", "keytype": "paramdef","parents": ["core"], "vartype": "groups", "iter":true, "desc_short": "Groups", "desc_long": "Group permissions to apply to this item", "uri":"http://ncmidb.bcm.edu"}
+{"name": "groups", "keytype": "paramdef","parents": ["core"], "vartype": "group", "iter":true, "desc_short": "Groups", "desc_long": "Group permissions to apply to this item", "uri":"http://ncmidb.bcm.edu"}
 {"modifyuser": "root", "immutable": true, "name": "modifytime", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Modification time", "desc_long": "The date/time the record was last modified", "uri":"http://ncmidb.bcm.edu"}
 {"name": "permissions", "keytype": "paramdef","parents": ["core"], "vartype": "acl", "desc_short": "Permissions", "desc_long": "Users who have permission to view, edit, or own this item", "uri":"http://ncmidb.bcm.edu"}
-{"name": "permissions_reference", "keytype": "paramdef","parents": ["core"], "vartype": "link", "desc_short": "Referenced permissions (not used yet)", "desc_long": "Permissions referenced in other records (not used yet)", "uri":"http://ncmidb.bcm.edu"}
 {"immutable": true, "name": "modifyuser", "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record", "uri":"http://ncmidb.bcm.edu"}
 {"immutable": true, "name": "uri", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Resource location", "desc_long": "URI for imported objects. The object will be immutable if this is set.", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "recid", "keytype": "paramdef","parents": ["core"], "vartype": "recid", "desc_short": "Record Name", "desc_long": "Record ID integer. This has been deprecated in favor of \"name.\"", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "rectype", "keytype": "paramdef","parents": ["core"], "vartype": "rectype", "desc_short": "Protocol", "desc_long": "The Record's Protocol; this is may also be referred to as the \"rectype\" or \"recorddef.\"", "uri":"http://ncmidb.bcm.edu"}
+{"immutable": true, "name": "recid", "keytype": "paramdef","parents": ["core"], "vartype": "record", "desc_short": "Record Name", "desc_long": "Record ID integer. This has been deprecated in favor of \"name.\"", "uri":"http://ncmidb.bcm.edu"}
+{"immutable": true, "name": "rectype", "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol", "desc_long": "The Record's Protocol; this is may also be referred to as the \"rectype\" or \"recorddef.\"", "uri":"http://ncmidb.bcm.edu"}
 {"immutable": true, "name": "history", "keytype": "paramdef","parents": ["core"], "vartype": "history", "desc_short": "History", "desc_long": "A log of all changes made to a Record.", "uri":"http://ncmidb.bcm.edu"}
 {"immutable": true, "name": "controlhint", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Control hint", "desc_long": "A hint to the user interface", "uri":"http://ncmidb.bcm.edu"}
 
@@ -69,7 +68,7 @@
 {"name": "filesize_compress", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "property":"bytes", "defaultunits":"B", "desc_short": "Filesize (compressed)", "uri":"http://ncmidb.bcm.edu"}
 {"name": "md5", "keytype": "paramdef", "parents": ["core"], "vartype": "md5", "desc_short": "MD5 Checksum", "uri":"http://ncmidb.bcm.edu"}
 {"name": "md5_compress", "keytype": "paramdef", "parents": ["core"], "vartype": "md5", "desc_short": "MD5 Checksum (compressed)", "uri":"http://ncmidb.bcm.edu"}
-{"name": "record", "keytype": "paramdef", "parents": ["core"], "vartype": "links", "desc_short": "Associated record", "uri":"http://ncmidb.bcm.edu"}
+{"name": "record", "keytype": "paramdef", "parents": ["core"], "vartype": "record", "desc_short": "Associated record", "uri":"http://ncmidb.bcm.edu"}
 {"name": "file_binary_image", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "desc_short": "Image file", "desc_long": "A single image file attachment, e.g. a ccd frame.", "uri":"http://ncmidb.bcm.edu"}
 {"name": "file_binary", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "iter":true, "desc_short": "Attachments", "uri":"http://ncmidb.bcm.edu"}
 {"name": "compress", "keytype":"paramdef", "parents":["core"], "vartype":"string", "desc_short": "Compressed format", "uri":"http://ncmidb.bcm.edu"}
