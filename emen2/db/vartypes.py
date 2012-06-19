@@ -281,8 +281,6 @@ class Vartype(object):
 
 
 	def reindex(self, items):
-		# print "reindex:", items
-		# items format: [name, newval, oldval]
 		addrefs = collections.defaultdict(set)
 		delrefs = collections.defaultdict(set)
 		for name, new, old in items:
@@ -388,18 +386,6 @@ class vt_boolean(Vartype):
 			ret.append(i)
 		return self._rci(ret)
 
-
-# ian: deprecated
-# @vtm.register_vartype('recid')
-# class vt_recid(Vartype):
-# 	"""Record name"""
-# 
-# 	def validate(self, value):
-# 		value = map(int, ci(value))
-# 		for i in value:
-# 			if i < 0:
-# 				raise ValidationError, "Invalid Record name: %s"%value
-# 		return self._rci(value)
 
 
 @vtm.register_vartype('name')
@@ -591,22 +577,11 @@ class vt_time(vt_datetime):
 
 
 
-### iCalendar-like date types
-# 
-# @vtm.register_vartype('duration')
-# class vt_duration(Vartype):
-# 	"""ISO 8601 Duration"""
-# 	pass
-# 
-# 
-# @vtm.register_vartype('recurrence')
-# class vt_recurrence(Vartype):
-# 	"""Date, yyyy/mm/dd"""
-# 	pass
+
 
 
 ###################################
-# Reference vartypes (uri, binary, hdf, etc.).
+# Reference vartypes.
 #	Indexed as keytype 's'
 ###################################
 
@@ -643,8 +618,8 @@ class vt_uri(Vartype):
 
 @vtm.register_vartype('dict')
 class vt_dict(Vartype):
-	"""Dictionary with valid param keys"""
-	# ian: todo: parse with urlparse
+	"""Dictionary with string keys and values"""
+
 	def validate(self, value):
 		if not value:
 			return None
@@ -656,6 +631,33 @@ class vt_dict(Vartype):
 			return 'Empty'
 		r = [cgi.escape('%s: %s'%(k, v)) for k,v in value.items()]
 		return '<br />'.join(r)
+
+
+
+@vtm.register_vartype('dictlist')
+class vt_dict(Vartype):
+	"""Dictionary with string keys and list values"""
+
+	def validate(self, value):
+		if not value:
+			return None
+		
+		ret = {}
+		for k,v in value.items():
+			k = unicode(k)
+			v = [unicode(i) for i in v]
+			ret[k] = v
+
+		# r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
+		return ret
+
+
+	def process(self, value):
+		if not value:
+			return 'Empty'
+		r = [cgi.escape('%s: %s'%(k, v)) for k,v in value.items()]
+		return '<br />'.join(r)
+
 
 
 ###################################
@@ -700,6 +702,8 @@ class vt_binary(Vartype):
 		return value
 
 
+
+
 ###################################
 # md5 checksum
 #	Indexed as keytype 's'
@@ -710,6 +714,8 @@ class vt_md5(Vartype):
 	"""String"""
 	#:
 	keytype = 's'
+
+
 
 
 ###################################
@@ -902,11 +908,6 @@ class vt_history(Vartype):
 		value = ci(value)
 		return [unicode(i) for i in value]
 
-
-
-if __name__ == "__main__":
-	v = vt_datetime()
-	v.validate(['2011-01-01'])
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
