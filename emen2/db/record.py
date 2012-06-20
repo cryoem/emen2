@@ -118,13 +118,12 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		super(Record, self).init(d)
 
 		# rectype is required
-		self.__dict__['rectype'] = d.pop('rectype')
+		self.__dict__['rectype'] = d.pop('rectype', None)
 
 		# comments, history, and other param values
 		self.__dict__['comments'] = []
 		self.__dict__['history'] = []
 		self.__dict__['params'] = {}
-
 		# Access to RecordDef is checked during validate
 
 	def __repr__(self):

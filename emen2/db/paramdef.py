@@ -124,7 +124,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	def init(self, d):
 
 		# Variable data type. List of valid types in the module global 'vartypes'
-		self.__dict__['vartype'] = d.pop('vartype')
+		self.__dict__['vartype'] = d.pop('vartype', None)
 
 		# This is a very short description for use in forms
 		self.__dict__['desc_short'] = self.name
@@ -250,6 +250,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		try: vtm.getvartype(self.vartype)
 		except KeyError:
 			self.error("Vartype %r is not a valid vartype" % self.vartype)
+
 	# 	try:
 	# 		prop = vtm.getproperty(self.property)
 	# 	except KeyError:

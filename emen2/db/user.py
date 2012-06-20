@@ -34,8 +34,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		super(BaseUser, self).init(d)
 
 		# Required initialization params
-		self.__dict__['email'] = self.validate_email(d.pop('email'))
-		self.__dict__['password'] = self._hashpassword(self.validate_password(d.pop('password')))
+		self.__dict__['email'] = self.validate_email(d.pop('email', ''))
+		self.__dict__['password'] = self._hashpassword(self.validate_password(d.pop('password', '')))
 
 		# Secret takes the format:
 		# action type, args, ctime for when the token is set, and secret

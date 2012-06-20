@@ -112,6 +112,8 @@ set_lg_bsize 2097152
 """
 
 
+
+
 ##### Utility methods #####
 
 def clock(times, key=0, t=0, limit=180):
@@ -552,7 +554,7 @@ class EMEN2DBEnv(object):
 		if write:
 			flags = 0
 
-		txn = self.dbenv.txn_begin(parent=parent, flags=flags) #
+		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
 		# emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
 		type(self).txncounter += 1
@@ -710,13 +712,13 @@ class DB(object):
 		ctx = emen2.db.context.SpecialRootContext(db=self)
 		loader = emen2.db.load.BaseLoader(infile=infile)
 
-		for item in loader.loadfile(keytype='paramdef'):
-			pd = self.bdbs.paramdef.dataclass(ctx=ctx, **item)
-			self.bdbs.paramdef.addcache(pd)
-
-		for item in loader.loadfile(keytype='recorddef'):
-			rd = self.bdbs.recorddef.dataclass(ctx=ctx, **item)
-			self.bdbs.recorddef.addcache(rd)
+		for keytype in ['paramdef', 'recorddef', 'user', 'group', 'binary', 'record']:
+			print "Loading cache:", keytype
+			for item in loader.loadfile(keytype=keytype):
+				item = self.bdbs.keytypes[keytype].dataclass(name=item.get('name'), ctx=ctx)
+				print "\t", item.name
+				print item
+				self.bdbs.keytypes[keytype].addcache(item)
 
 
 	def __str__(self):

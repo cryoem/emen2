@@ -346,36 +346,38 @@ class EMEN2DB(object):
 			# raise emen2.db.exceptions.ExistingKeyError, "Item %s already in exists in database, skipping"%item.name
 			pass
 
-
 		# Update parent/child relationships
 		# print "Checking parents/children for %s"%item.name
-		item.parents |= self.getindex('parents', txn=txn).get(item.name)
-		item.children |= self.getindex('children', txn=txn).get(item.name)
+		p = self.getindex('parents', txn=txn)
+		c = self.getindex('children', txn=txn)
+		if p and c:
+			item.parents |= p.get(item.name)
+			item.children |= c.get(item.name)
 
-		for child in item.children:
-			if self.cache.get(child):
-				i = pickle.loads(self.cache[unicode(child)])
-				i.parents.add(item.name)
-				self.cache[unicode(i.name)] = pickle.dumps(i)
+			for child in item.children:
+				if self.cache.get(child):
+					i = pickle.loads(self.cache[unicode(child)])
+					i.parents.add(item.name)
+					self.cache[unicode(i.name)] = pickle.dumps(i)
 
-		for parent in item.parents:
-			if self.cache.get(parent):
-				i = pickle.loads(self.cache[unicode(parent)])
-				i.children.add(item.name)
-				self.cache[unicode(i.name)] = pickle.dumps(i)
+			for parent in item.parents:
+				if self.cache.get(parent):
+					i = pickle.loads(self.cache[unicode(parent)])
+					i.children.add(item.name)
+					self.cache[unicode(i.name)] = pickle.dumps(i)
 
-		# Also update the other side of the relationship, using cache_parents
-		# and cache_children
-		self.cache_parents[item.name] |= item.parents
-		self.cache_children[item.name] |= item.children
-		for parent in item.parents:
-			self.cache_children[parent].add(item.name)
-		for child in item.children:
-			self.cache_parents[child].add(item.name)
+			# Also update the other side of the relationship, using cache_parents
+			# and cache_children
+			self.cache_parents[item.name] |= item.parents
+			self.cache_children[item.name] |= item.children
+			for parent in item.parents:
+				self.cache_children[parent].add(item.name)
+			for child in item.children:
+				self.cache_parents[child].add(item.name)
 
-		# Final check
-		item.parents |= self.cache_parents[item.name]
-		item.children |= self.cache_children[item.name]
+			# Final check
+			item.parents |= self.cache_parents[item.name]
+			item.children |= self.cache_children[item.name]
 
 		# Store the item pickled, so it works with get, and
 		# returns new instances instead of globally shared ones...
@@ -1102,8 +1104,8 @@ class DBODB(EMEN2DB):
 				orec.setContext(ctx)
 			else:
 				# Create a new item.
-				p = dict((k,updrec.get(k)) for k in self.dataclass.attr_required)
-				orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
+				# p = dict((k,updrec.get(k)) for k in self.dataclass.attr_required)
+				orec = self.new(name=name, t=t, ctx=ctx, txn=txn) #, **p
 				cp.add('name')
 
 			# Update the item.

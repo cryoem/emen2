@@ -14,24 +14,24 @@ class Dumper(object):
 		self._ref_pds = {}
 		self._ref_vts = collections.defaultdict(set)
 		
-	def dump(self, names=None, q=None, keytype='record', **kwargs):
+	def dump(self, names=None, keytype='record', **kwargs):
 		# Query
-		names = names or self.db.query(q=q, keytype=keytype)['names']		
+		kwargs['keytype'] = keytype
+		names = names or self.db.query(**kwargs)['names']
+		print "Starting with:"
+		print len(names)
 		keys = collections.defaultdict(set)
 		keys[keytype] |= set(names)
 
 		# Find referenced items.
-		for chunk in emen2.util.listops.chunk(keys[keytype], count=100):
+		for chunk in emen2.util.listops.chunk(keys[keytype], count=1000):
 			items = self.db.get(chunk, keytype=keytype)
+			print "Processing: %s ... %s"%(items[0].name, items[-1].name)
 			# Find paramdefs that reference other items..
 			self._findrefs(items)
 			# Find other items..
 			for kt in self.keytypes:
 				keys[kt] |= getattr(self, '_find_%s'%kt)(items)
-
-		# Override the found items.
-		for k,v in kwargs.items():
-			keys[k] = set(v or [])
 
 		return keys
 		
@@ -43,6 +43,7 @@ class Dumper(object):
 				for item in items:
 					if uri:
 						item.__dict__['uri'] = '%s/%s/%s'%(uri, keytype, item.name)
+					print "%s: %s"%(item.keytype, item.name)
 					f.write(jsonrpc.jsonutil.encode(item))
 					f.write('\n')
 		f.close()
@@ -100,10 +101,7 @@ if __name__ == "__main__":
 	import emen2.db
 	db = emen2.db.opendb(admin=True)
 	dumper = Dumper(db=db)
-	# keys = dumper.dump(group=None, user=None)
-	keys = {}
-	keys['paramdef'] = db.names(keytype='paramdef')
-	print keys
+	keys = dumper.dump(c=[['groups','==','publish']])
 	dumper.write(keys, uri="http://ncmidb.bcm.edu")
 	
 	
