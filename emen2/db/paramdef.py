@@ -124,13 +124,13 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 	def init(self, d):
 
 		# Variable data type. List of valid types in the module global 'vartypes'
-		self.__dict__['vartype'] = d.pop('vartype', None)
+		self.__dict__['vartype'] = None
 
 		# This is a very short description for use in forms
-		self.__dict__['desc_short'] = self.name
+		self.__dict__['desc_short'] = None
 
 		# A complete description of the meaning of this variable
-		self.__dict__['desc_long'] = ''
+		self.__dict__['desc_long'] = None
 
 		# Physical property represented by this field, List in 'properties'
 		self.__dict__['property'] = None
@@ -168,19 +168,12 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		return self._set(key, value, self.isowner())
 
 
-	# These 3 methods are borrowed from RecordDef
 	def _set_desc_short(self, key, value, vtm=None, t=None):
 		return self._set(key, unicode(value or self.name), self.isowner())
 
 
 	def _set_desc_long(self, key, value, vtm=None, t=None):
 		return self._set(key, unicode(value or ''), self.isowner())
-
-
-	def _set_typicalchld(self, key, value, vtm=None, t=None):
-		value = emen2.util.listops.check_iterable(value)
-		value = filter(None, [unicode(i) for i in value]) or None
-		return self._set(key, value, self.isowner())
 
 
 	# Only admin can change defaultunits/immutable/indexed/vartype.

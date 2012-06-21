@@ -68,6 +68,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		validate		Validate the item before committing
 		setContext		Check read permission and bind to a Context
 		isowner			Check ownership permission
+		isnew			Check if the item has been committed
 		writable		Check write permission
 		delete			Prepare item for deletion
 		rename			Prepare item for renaming
@@ -117,6 +118,10 @@ class BaseDBObject(object, UserDict.DictMixin):
 		over items from _d.
 		"""
 
+		# Set the uncommitted flag. This will be stripped out when committed.
+		# Check with self.isnew()
+		self.__dict__['_new'] = True
+
 		# Copy input and kwargs into one dict
 		_d = dict(_d or {})
 		_d.update(_k)
@@ -131,7 +136,8 @@ class BaseDBObject(object, UserDict.DictMixin):
 		# Assign a name; 
 		# Names are now assigned and validated by the BTree.
 		p = {}
-		p['name'] = _d.pop('name', None)
+		p['name'] = None
+		# _d.get('name', None)
 
 		# Base owner/time parameters
 		p['creator'] = self._ctx.username
@@ -140,7 +146,8 @@ class BaseDBObject(object, UserDict.DictMixin):
 		p['modifytime'] = t
 
 		# Other attributes.
-		p['uri'] = unicode(_d.pop('uri', '')) or None
+		p['uri'] = None
+		# unicode(_d.get('uri', '')) or None
 		p['children'] = set()
 		p['parents'] = set()
 
@@ -195,6 +202,8 @@ class BaseDBObject(object, UserDict.DictMixin):
 		"""Check write permissions."""
 		return self.isowner()
 
+	def isnew(self):
+		return getattr(self, '_new', False) == True
 
 	##### Delete and rename. #####
 
@@ -560,7 +569,7 @@ class PermissionsDBObject(BaseDBObject):
 		self.__dict__['_ctx'] = ctx
 
 		# test for owner access in this context.
-		if self._ctx.checkadmin() or self.creator == self._ctx.username:
+		if self.isnew() or self._ctx.checkadmin() or self.creator == self._ctx.username:
 			self.__dict__['_ptest'] = [True, True, True, True]
 			return True
 
