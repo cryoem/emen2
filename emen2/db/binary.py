@@ -77,9 +77,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 	:attr record: Associated Record
 	:property filepath: Path to the file on disk
 	"""
-	# In the
-	# future, the name will be a URN scheme, where 'bdo' is an access protocol
-	# and the name is dependent on the scheme.
 
 	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["filepath", "filename", "record", "compress", "filesize", "md5", "filesize_compress", "md5_compress"])
 	filepath = property(lambda x:x._filepath)

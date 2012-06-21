@@ -572,7 +572,7 @@ class PermissionsDBObject(BaseDBObject):
 		for group in self.groups & self._ctx.groups:
 			self._ptest[self._ctx.grouplevels[group]] = True
 
-		# Allow us to override readable; normally just checks "any(self._ptest)"
+		# Allow us to override readable; previously just checks "any(self._ptest)"
 		if not self.readable():
 			raise emen2.db.exceptions.SecurityError, "Permission denied: %s %s"%(self.keytype, self.name)
 
