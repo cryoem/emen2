@@ -68,7 +68,7 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 	def init(self, d):
 		super(Group, self).init(d)
 		self.__dict__['disabled'] = False
-		self.__dict__['displayname'] = self.name
+		self.__dict__['displayname'] = None
 		self.__dict__['privacy'] = True
 
 

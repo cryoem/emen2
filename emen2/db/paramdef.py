@@ -199,19 +199,22 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		
 	# These can't be changed, it would disrupt the meaning of existing Records.
 	def _set_vartype(self, key, value, vtm=None, t=None):
+		if not self.isnew():
+			self.error("Cannot change vartype from %s to %s."%(self.vartype, value))
+
 		vtm, t = self._vtmtime(vtm, t)
 		value = unicode(value or '') or None
 
 		if value not in vtm.getvartypes():
 			self.error("Invalid vartype: %s"%value)
 
-		if self.vartype and self.vartype != value:
-			self.error("Cannot change vartype from %s to %s."%(self.vartype, value))
-
 		return self._set(key, value)
 
 
 	def _set_property(self, key, value, vtm=None, t=None):
+		if not self.isnew():
+			self.error("Cannot change property from %s to %s."%(self.property, value))
+
 		vtm, t = self._vtmtime(vtm, t)
 		value = unicode(value or '')
 		if value in ['None', None, '']:
@@ -221,26 +224,26 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 		if value != None and value not in vtm.getproperties():
 			self.error("Invalid property: %s"%value)
 
-		if self.property and self.property != value:
-			self.error("Cannot change property from %s to %s."%(self.property, value))
-
 		return self._set('property', value)
 
 
 	def _set_defaultunits(self, key, value, vtm=None, t=None):
+		if not self.isnew():
+			self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
+
 		vtm, t = self._vtmtime(vtm, t)
 		value = unicode(value or '') or None
 		value = emen2.db.properties.equivs.get(value, value)
-
-		if self.defaultunits and self.defaultunits != value:
-			self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
-
 		return self._set('defaultunits', value)
 
 
 	def validate(self, vtm=None, t=None):
+		if not self.vartype:
+			self.error("Vartype required")
+			
 		vtm, _ = self._vtmtime(vtm, t)
-		try: vtm.getvartype(self.vartype)
+		try:
+			vtm.getvartype(self.vartype)
 		except KeyError:
 			self.error("Vartype %r is not a valid vartype" % self.vartype)
 

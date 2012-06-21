@@ -79,6 +79,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 	"""
 
 	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["filepath", "filename", "record", "compress", "filesize", "md5", "filesize_compress", "md5_compress"])
+	attr_protected = emen2.db.dataobject.BaseDBObject.attr_protected | set(["compress", "filesize", "md5", "filesize_compress", "md5_compress"])
 	filepath = property(lambda x:x._filepath)
 
 	def init(self, d):
@@ -102,6 +103,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 			return True
 		if self.record is not None:
 			rec = self._ctx.db.getrecord(self.record, filt=False)
+
 
 	# filepath is set during setContext, and discarded during commit (todo)
 	def _set_filepath(self, key, value, vtm=None, t=None):

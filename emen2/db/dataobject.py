@@ -105,6 +105,8 @@ class BaseDBObject(object, UserDict.DictMixin):
 	"""
 	attr_public = set(['children', 'parents', 'keytype', 'creator',
 		'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
+	attr_protected = set(['creator', 'creationtime', 'modifytime', 'modifyuser', 'uri'])
+
 	attr_required = set()
 	keytype = property(lambda s:s.getkeytype())
 
@@ -137,7 +139,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 		# Names are now assigned and validated by the BTree.
 		p = {}
 		p['name'] = None
-		# _d.get('name', None)
 
 		# Base owner/time parameters
 		p['creator'] = self._ctx.username
@@ -147,7 +148,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 
 		# Other attributes.
 		p['uri'] = None
-		# unicode(_d.get('uri', '')) or None
 		p['children'] = set()
 		p['parents'] = set()
 
@@ -252,6 +252,28 @@ class BaseDBObject(object, UserDict.DictMixin):
 
 		return cp
 
+	def _load(self, update, vtm=None, t=None):
+		print "_load..."
+		if not self.isnew():
+			self.error('Cannot update previously committed items this way.')
+
+		# Validate
+		vtm, t = self._vtmtime(vtm, t)
+		
+		keys = self.attr_protected & set(update.keys())
+		keys.add('name')
+		for key in keys:
+			value = update.pop(key, None)
+			# value = self.validate_param(key, value, vtm=vtm)
+			print "\t%s: %s"%(key, value)
+			self.__dict__[unicode(key)] = value
+		
+		for key in ['parents', 'children']:
+			self.__dict__[unicode(key)] = set(update.pop(key, None) or [])
+		
+		self.update(update, vtm=vtm, t=t)
+
+
 	# Low level mapping methods
 	# Behave like dict.get(key) instead of dict[key]
 	def __getitem__(self, key, default=None):
@@ -304,7 +326,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		cp |= setter(key, value, vtm=vtm, t=t)
 
 		# Only permissions, groups, and links do not trigger a modifytime update
-		if cp - set(['permissions', 'groups', 'parents', 'children']):
+		if cp - set(['permissions', 'groups', 'parents', 'children']) and not self.isnew():
 			self.__dict__['modifytime'] = t
 			self.__dict__['modifyuser'] = self._ctx.username
 			cp.add('modifytime')
@@ -401,6 +423,8 @@ class BaseDBObject(object, UserDict.DictMixin):
 	# This is the main mechanism for validation.
 	def validate_param(self, key, value, vtm=None):
 		"""Validate a single parameter value."""
+		print "\t>", key
+		# print value
 
 		# Check the cache for the param
 		vtm, t = self._vtmtime(vtm=vtm)

@@ -107,6 +107,9 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	#: Attributes readable by the user
 	attr_public = emen2.db.dataobject.PermissionsDBObject.attr_public | set(['comments', 'history', 'rectype'])
 
+	#: Attributes that cannot be edited directly by the user
+	attr_protected = emen2.db.dataobject.PermissionsDBObject.attr_protected | set(['comments', 'history'])
+
 	#: Attributes required for validation
 	attr_required = set(['rectype'])
 
@@ -118,13 +121,13 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		super(Record, self).init(d)
 
 		# rectype is required
-		self.__dict__['rectype'] = d.pop('rectype', None)
+		# Access to RecordDef is checked during validation
+		self.__dict__['rectype'] = None
 
 		# comments, history, and other param values
 		self.__dict__['comments'] = []
 		self.__dict__['history'] = []
 		self.__dict__['params'] = {}
-		# Access to RecordDef is checked during validate
 
 	def __repr__(self):
 		return "<%s %s, %s at %x>" % (self.__class__.__name__, self.name, self.rectype, id(self))
@@ -139,14 +142,14 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	# in Record, params not in self.attr_public are put in self.params{}.
 	def _setoob(self, key, value, vtm=None, t=None):
 		"""Set a parameter value."""
-		# No change
-		if self.params.get(key) == value:
-			return set()
-
 		# Check write permission
 		if not self.writable():
 			msg = "Insufficient permissions to change param %s"%key
 			self.error(msg, e=emen2.db.exceptions.SecurityError)
+
+		# No change
+		if self.params.get(key) == value:
+			return set()
 
 		self._addhistory(key, t=t)
 		# Really set the value
@@ -175,7 +178,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 	def _addhistory(self, param, t=None):
 		"""Add an entry to the history log."""
 		# Changes aren't logged on uncommitted records
-		if self.name < 0:
+		if self.isnew():
 			return
 
 		if not param:
@@ -189,7 +192,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 		:param value: The comment to be added
 		"""
-
 		if not self.commentable():
 			self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.SecurityError)
 

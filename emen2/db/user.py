@@ -27,6 +27,7 @@ import emen2.db.dataobject
 class BaseUser(emen2.db.dataobject.BaseDBObject):
 
 	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(['email', 'password'])
+	attr_protected = emen2.db.dataobject.BaseDBObject.attr_protected | set(['email', 'password'])
 	attr_required = set(['email', 'password'])
 	username = property(lambda s:s.name)
 
@@ -34,15 +35,16 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		super(BaseUser, self).init(d)
 
 		# Required initialization params
-		self.__dict__['email'] = self.validate_email(d.pop('email', ''))
-		self.__dict__['password'] = self._hashpassword(self.validate_password(d.pop('password', '')))
+		self.__dict__['email'] = None
+		self.__dict__['password'] = None
 
 		# Secret takes the format:
 		# action type, args, ctime for when the token is set, and secret
 		self.__dict__['secret'] = None
 
 
-	# Setters
+
+
 	def _set_password(self, key, value, vtm=None, t=None):
 		# This will always fail unless you're an admin
 		#	setpassword requires either a password or auth token as arguments.

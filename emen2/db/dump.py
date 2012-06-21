@@ -102,6 +102,8 @@ if __name__ == "__main__":
 	db = emen2.db.opendb(admin=True)
 	dumper = Dumper(db=db)
 	keys = dumper.dump(c=[['groups','==','publish']])
+	keys['paramdef'] = db.getparamdefnames()
+	keys['user'] = db.getusernames()
 	dumper.write(keys, uri="http://ncmidb.bcm.edu")
 	
 	

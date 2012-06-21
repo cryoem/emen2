@@ -63,7 +63,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	@attr owner Current owner of RecordDef. May be different than creator. Gives permission to edit views.
 	"""
 
-	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short", "owner"])
+	attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short"])
 	attr_required = set(['mainview'])
 
 	# Add custom validators
@@ -75,7 +75,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		# A string defining the experiment with embedded params
 		# this is the primary definition of the contents of the record
 		# Required parameter..
-		self.__dict__['mainview'] = textwrap.dedent(d.pop('mainview', ''))
+		self.__dict__['mainview'] = ''
 
 		# Dictionary of additional (named) views for the record
 		self.__dict__['views'] = {}
@@ -88,13 +88,10 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 		self.__dict__['typicalchld'] = []
 
 		# Short description
-		self.__dict__['desc_short'] = self.name
+		self.__dict__['desc_short'] = None
 
 		# Long description
-		self.__dict__['desc_long'] = ''
-
-		# Owner
-		self.__dict__['owner'] = self.creator
+		self.__dict__['desc_long'] = None
 
 		# The following are automatically generated
 		# A dictionary keyed by the names of all params used in any of the views
@@ -115,10 +112,10 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 	def _set_mainview(self, key, value, vtm=None, t=None):
 		"""Only an admin may change the mainview"""
-		value = unicode(value)
-		if self.mainview and not self._ctx.checkadmin():
+		if not self.isnew() and not self._ctx.checkadmin():
 			self.error("Cannot change mainview")
 
+		value = unicode(textwrap.dedent(value))
 		ret = self._set('mainview', value, self.isowner())
 		self.findparams()
 		return ret
@@ -127,7 +124,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	def _set_views(self, key, value, vtm=None, t=None):
 		views = {}
 		for k,v in value.items():
-			views[k] = unicode(v)
+			views[k] = unicode(textwrap.dedent(v))
 
 		ret = self._set('views', views, self.isowner())
 		self.findparams()
@@ -147,9 +144,6 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 	def _set_desc_long(self, key, value, vtm=None, t=None):
 		return self._set('desc_long', unicode(value or ''), self.isowner())
-
-	def _set_owner(self, key, value, vtm=None, t=None):
-		return self._set('owner', unicode(value), self.isowner())
 
 
 	##### RecordDef Methods #####
@@ -187,6 +181,8 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
 	def validate(self, vtm=None, t=None):
 		# Run findparams one last time before we commit...
+		if not self.mainview:
+			self.error("Main protocol (mainview) required")
 		self.findparams()
 
 	# This handler implementation is not finalized.

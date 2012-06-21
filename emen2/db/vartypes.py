@@ -362,7 +362,10 @@ class vt_coordinate(Vartype):
 	"""Coordinates; tuples of floats."""
 
 	def validate(self, value):
-		return [[(float(x), float(y)) for x,y in coord] for coord in ci(value)]
+		print "COORD:"
+		print value
+		print ci(value)
+		return [(float(x), float(y)) for x,y in ci(value)]
 
 
 @vtm.register_vartype('boolean')
