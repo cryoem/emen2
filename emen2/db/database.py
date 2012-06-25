@@ -712,7 +712,7 @@ class DB(object):
 		ctx = emen2.db.context.SpecialRootContext(db=self)
 		loader = emen2.db.load.BaseLoader(infile=infile)
 		for keytype in ['paramdef', 'recorddef', 'user', 'group', 'binary', 'record']:
-			print "Loading cache:", keytype
+			# print "Loading cache:", keytype
 			for item in loader.loadfile(keytype=keytype):
 				i = self.bdbs.keytypes[keytype].dataclass(ctx=ctx)
 				i._load(item)

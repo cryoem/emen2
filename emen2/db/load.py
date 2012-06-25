@@ -32,46 +32,6 @@ def random_password(N):
 	return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
 
 
-def write_json(outfile, paramdefs=None, recorddefs=None, baseuri=None):
-	"""A utility method to write database objects to a JSON extension file.
-	
-	For example, in extensions it is often easier to write the extensions
-	as Python dictionaries than editing the JSON directly. See "schema.py"
-	in some of the extensions.
-	"""
-
-	paramdefs = paramdefs or []
-	recorddefs = recorddefs or []
-	baseuri = baseuri or 'http://ncmidb.bcm.edu'
-
-	if os.path.exists(outfile):
-		print "Warning: File %s exists"%outfile
-		
-	print "Saving output to %s"%outfile
-
-	# print "ParamDefs:"
-	# print set([i.get('name') for i in paramdefs])
-	# print "RecordDefs:"
-	# print set([i.get('name') for i in recorddefs])
-
-	with open(outfile, 'w') as f:
-		for pd in paramdefs:
-			pd['keytype'] = 'paramdef'
-			if baseuri:
-				pd['uri'] = '%s/paramdef/%s'%(baseuri, pd['name'])
-			print pd['name']
-			f.write(json.dumps(pd)+"\n")
-
-		for rd in recorddefs:
-			rd['keytype'] = 'recorddef'
-			if baseuri:
-				rd['uri'] = '%s/recorddef/%s'%(baseuri, rd['name'])
-			print rd['name']
-			f.write(json.dumps(rd)+"\n")
-
-
-
-
 
 class BaseLoader(object):
 	"""Load database objects from a JSON file."""

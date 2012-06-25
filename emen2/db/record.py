@@ -135,6 +135,13 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 	##### Setters #####
 
+	def _set_rectype(self, key, value, vtm=None, t=None):
+		if not self.isnew():
+			self.error("Cannot change rectype")
+		self.__dict__['rectype'] = unicode(value)
+		return set(['rectype'])
+		
+
 	def _set_comments(self, key, value, vtm=None, t=None):
 		"""Bind record['comments'] setter"""
 		return self.addcomment(value, t=t)

@@ -253,7 +253,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		return cp
 
 	def _load(self, update, vtm=None, t=None):
-		print "_load..."
+		# print "_load..."
 		if not self.isnew():
 			self.error('Cannot update previously committed items this way.')
 
@@ -265,7 +265,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		for key in keys:
 			value = update.pop(key, None)
 			# value = self.validate_param(key, value, vtm=vtm)
-			print "\t%s: %s"%(key, value)
+			# print "\t%s: %s"%(key, value)
 			self.__dict__[unicode(key)] = value
 		
 		for key in ['parents', 'children']:
@@ -423,7 +423,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 	# This is the main mechanism for validation.
 	def validate_param(self, key, value, vtm=None):
 		"""Validate a single parameter value."""
-		print "\t>", key
+		# print "\t>", key
 		# print value
 
 		# Check the cache for the param

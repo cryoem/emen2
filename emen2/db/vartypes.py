@@ -362,9 +362,6 @@ class vt_coordinate(Vartype):
 	"""Coordinates; tuples of floats."""
 
 	def validate(self, value):
-		print "COORD:"
-		print value
-		print ci(value)
 		return [(float(x), float(y)) for x,y in ci(value)]
 
 
