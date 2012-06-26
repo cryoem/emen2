@@ -139,7 +139,6 @@ import uuid
 def getrandomid():
 	"""Generate a random ID"""
 	return uuid.uuid4().hex
-	# return '%032x'%random.getrandbits(128)
 
 
 # ian: todo: make these express GMT, then localize using a user preference
@@ -421,19 +420,18 @@ class EMEN2DBEnv(object):
 
 	def init(self):
 		"""Open the databases."""
+
+		self.paramdef = emen2.db.paramdef.ParamDefDB(path="paramdef", dbenv=self)
+
 		# Authentication.
 		self.context = emen2.db.context.ContextDB(path="context", dbenv=self)
-
-		# Security items.
-		self.newuser = emen2.db.user.NewUserDB(path="newuser", dbenv=self)
 		self.user = emen2.db.user.UserDB(path="user", dbenv=self)
 		self.group = emen2.db.group.GroupDB(path="group", dbenv=self)
+		self.newuser = emen2.db.user.NewUserDB(path="newuser", dbenv=self)
 
 		# Main database items.
-		# self.workflow = emen2.db.workflow.WorkFlowDB(path="workflow", dbenv=self)
 		self.binary = emen2.db.binary.BinaryDB(path="binary", dbenv=self)
 		self.record = emen2.db.record.RecordDB(path="record", dbenv=self)
-		self.paramdef = emen2.db.paramdef.ParamDefDB(path="paramdef", dbenv=self)
 		self.recorddef = emen2.db.recorddef.RecordDefDB(path="recorddef", dbenv=self)
 
 		# Uploaded files.
@@ -517,27 +515,6 @@ class EMEN2DBEnv(object):
 			f = open(configpath, "w")
 			f.write(DB_CONFIG)
 			f.close()
-
-
-	def stat():
-		"""Print some statistics about the environment."""
-		sys.stdout.flush()
-
-		tx_max = self.dbenv.get_tx_max()
-		emen2.db.log.info("Open transactions: %s"%tx_max)
-
-		txn_stat = self.dbenv.txn_stat()
-		emen2.db.log.info("Transaction stats: ")
-		for k,v in txn_stat.items():
-			emen2.db.log.info("\t%s: %s"%(k,v))
-
-		log_archive = self.dbenv.log_archive()
-		emen2.db.log.info("Archive: %s"%log_archive)
-
-		lock_stat = self.dbenv.lock_stat()
-		emen2.db.log.info("Lock stats: ")
-		for k,v in lock_stat.items():
-			emen2.db.log.info("\t%s: %s"%(k,v))
 
 
 	##### Transaction management #####

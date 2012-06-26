@@ -542,6 +542,7 @@ class UserDB(emen2.db.btrees.DBODB):
 
 
 
+
 class NewUserDB(emen2.db.btrees.DBODB):
 	dataclass = NewUser
 
