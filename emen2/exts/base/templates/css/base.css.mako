@@ -142,6 +142,7 @@ a.e2l-capsule {
 	float: right;
 	margin: 0px;
 	margin-top: 10px;
+	margin-bottom:50px;
 	padding: 0px;
 }
 /*.e2l-advanced, 
@@ -810,7 +811,11 @@ line {
 	padding: 0px;
 	vertical-align: middle;
 }
-
+.e2l-shadow {
+	-moz-box-shadow: 2px 2px 4px #ccc;
+	-webkit-box-shadow: 2px 2px 4px #ccc;
+	box-shadow: 2px 2px 4px #ccc;
+}
 
 /***** jQuery UI Overrides *****/
 
@@ -829,6 +834,7 @@ line {
 .ui-timepicker-div dl dd { margin: 0 10px 10px 65px; }
 .ui-timepicker-div td { font-size: 90%; }
 .ui-tpicker-grid-label { background: none; border: none; margin: 0; padding: 0; }
+
 
 /* Dialogs that aren't allowed to close */
 .e2-dialog-no-close .ui-dialog-titlebar-close {display: none }

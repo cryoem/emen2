@@ -174,6 +174,7 @@
 			this.options.rectype = emen2.util.checkopt(this, 'rectype');
 			this.options.parent = emen2.util.checkopt(this, 'parent');
 			this.options.name = emen2.util.checkopt(this, 'name');
+			this.options.redirect = emen2.util.checkopt(this, 'redirect');
 			if (this.options.name != null) {
 				this.options.mode = 'edit';
 			}
@@ -1078,7 +1079,8 @@
 			var editw = $('<input type="checkbox" name="'+n+'" value="True" />');
 			if (this.options.required && !index) {editw.attr('required',true)}
 			if (val) {
-				$('input:checkbox', edit).attr('checked',true);
+				//$('input:checkbox', editw).attr('checked',true);
+				editw.attr('checked', true);
 			}
 			return $('<span class="e2-edit-container" />').append(editw)
 		}

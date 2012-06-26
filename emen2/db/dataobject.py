@@ -138,7 +138,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		# Assign a name; 
 		# Names are now assigned and validated by the BTree.
 		p = {}
-		p['name'] = None
+		p['name'] = _d.pop('name', None)
 
 		# Base owner/time parameters
 		p['creator'] = self._ctx.username
@@ -253,7 +253,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 		return cp
 
 	def _load(self, update, vtm=None, t=None):
-		# print "_load..."
 		if not self.isnew():
 			self.error('Cannot update previously committed items this way.')
 

@@ -1088,7 +1088,6 @@ class DBODB(EMEN2DB):
 		# Updated items
 		crecs = []
 
-
 		for updrec in items:
 			name = updrec.get('name')
 			cp = set()
@@ -1104,8 +1103,8 @@ class DBODB(EMEN2DB):
 				orec.setContext(ctx)
 			else:
 				# Create a new item.
-				# p = dict((k,updrec.get(k)) for k in self.dataclass.attr_required)
-				orec = self.new(name=name, t=t, ctx=ctx, txn=txn) #, **p
+				p = dict((k,updrec.get(k)) for k in self.dataclass.attr_required)
+				orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
 				cp.add('name')
 
 			# Update the item.
