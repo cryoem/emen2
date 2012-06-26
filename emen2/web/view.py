@@ -84,9 +84,9 @@ class TemplateContext(collections.MutableMapping):
 		"""Create a URL given a view Name and arguments"""
 
 		full = kwargs.pop('_full', False)
-		webroot = emen2.db.config.get('network.EMEN2WEBROOT', '')
+		# webroot = emen2.db.config.get('network.EMEN2WEBROOT', '')
 
-		result = '%s/%s'%(webroot, emen2.web.routing.reverse(_name, *args, **kwargs))
+		result = emen2.web.routing.reverse(_name, *args, **kwargs)
 		result = result.replace('//','/')
 		if full:
 			result = 'http://%s:%s%s' % (self.host, self.port, result)
