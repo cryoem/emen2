@@ -31,18 +31,29 @@ class NotificationHandler(object):
 			del self.db
 
 	def start(self):
+		'''start the notification systems:
+
+		- register events
+		- set self.db
+		'''
 		self.db = emen2.db.proxy.DBProxy()
 		self.register_eventhandlers()
+		return self
 
 	def notify(self, ctxid, msg):
+		'''send a message to a ctxid (ctxid so that error messages can be sent to a particular user)'''
 		self.__getqueue(ctxid).appendleft(msg)
 		return self
 
 	def __getqueue(self, ctxid):
-		with self._nlock:
-			return self._notifications_by_ctxid.setdefault(ctxid, collections.deque())
+		'''get the message queue associated with a given ctxid'''
+		if ctxid not in self._notifications_by_ctxid:
+			with self.nlock:
+				self._notifications_by_ctxid[ctxid] = collections.deque()
+		return self._notifications_by_ctxid[ctxid]
 
 	def get_notification(self, ctxid):
+		'''Get a notifications, returns None if none found'''
 		result = None
 		try:
 			result = self.__getqueue(ctxid).pop(False)
@@ -51,6 +62,7 @@ class NotificationHandler(object):
 		return result
 
 	def get_notifications(self, ctxid):
+		'''Get all notifications pending for a given ctxid'''
 		q = self.__getqueue(ctxid)
 
 		result = []
@@ -66,8 +78,9 @@ class NotificationHandler(object):
 	# event handlers #
 	##################
 	def register_eventhandlers(self):
+		'''register event handlers'''
 		with self.events.event('notify') as e:
-			e.add_cb(lambda ctxid, msg: self.notify(ctxid, msg))
+			e.add_cb(self.notify)
 		with self.events.event('pub.poll') as e:
 			e.add_cb(self.poll)
 		with self.events.event('pub.notify') as e:
@@ -76,6 +89,7 @@ class NotificationHandler(object):
 			e.add_cb(self.pub_get_notifications)
 
 	def get_db_instance(self, db):
+		'''If db is None, return a new db instance, otherwise return the value of db'''
 		if db is None:
 			print 'creating new db'
 			db = emen2.db.proxy.DBProxy()

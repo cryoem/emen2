@@ -87,7 +87,7 @@ import emen2.web.routing
 
 class WebServerOptions(emen2.db.config.DBOptions):
 	optParameters = [
-		['port', 'HTTP port', None, None, int],
+		['port',      'HTTP port',  None, None, int],
 		['httpsport', 'HTTPS port', None, None, int],
 	]
 
