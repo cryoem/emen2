@@ -35,6 +35,7 @@ import shutil
 import glob
 import random
 import smtplib
+import uuid
 import email
 import email.mime.text
 
@@ -113,7 +114,6 @@ set_lg_bsize 2097152
 
 
 
-
 ##### Utility methods #####
 
 def clock(times, key=0, t=0, limit=180):
@@ -135,13 +135,11 @@ def clock(times, key=0, t=0, limit=180):
 	return t2
 
 
-import uuid
 def getrandomid():
 	"""Generate a random ID"""
 	return uuid.uuid4().hex
 
 
-# ian: todo: make these express GMT, then localize using a user preference
 def getctime():
 	""":return: Current database time, as float in seconds since the epoch."""
 	return time.time()
@@ -290,7 +288,7 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 	
 	
 	
-def txn_action(txnid, q):
+def _txn_action(txnid, q):
 	actions = q.get(txnid, [])
 	for action, args in actions:
 		# print "action, args:", action, args
@@ -319,7 +317,7 @@ class EMEN2DBEnv(object):
 
 	Each DBO table will be available in self.keytypes[keytype].
 	"""
-
+	
 	# Manage open btrees
 	opendbs = weakref.WeakKeyDictionary()
 
@@ -346,6 +344,7 @@ class EMEN2DBEnv(object):
 		:keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
 		:keyword create: Create the environment if it does not already exist.
 		"""
+
 		self.keytypes =  {}
 
 		if path is not None:
@@ -364,13 +363,12 @@ class EMEN2DBEnv(object):
 		self.txnlog = {}
 
 		# Pre- and post-commit actions.
-		# TODO: The details of this might change,
+		# TODO: The details of this are highly likely to change,
 		# 	or be moved to a different place.
 		self._txn_precommit = collections.defaultdict(list)
 		self._txn_postcommit = collections.defaultdict(list)
 		self._txn_preabort = collections.defaultdict(list)
 		self._txn_postabort = collections.defaultdict(list)
-
 
 		# Cache the vartypes that are indexable
 		vtm = emen2.db.datatypes.VartypeManager()
@@ -390,28 +388,25 @@ class EMEN2DBEnv(object):
 			bsddb3.db.DB_THREAD
 
 		# Open the Database Environment
-		dbenv = None
-		if dbenv == None:
-			emen2.db.log.info("Opening Database Environment: %s"%self.path)
-			dbenv = bsddb3.db.DBEnv()
+		emen2.db.log.info("Opening Database Environment: %s"%self.path)
+		dbenv = bsddb3.db.DBEnv()
 
-			if snapshot or self.snapshot:
-				dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
+		if snapshot or self.snapshot:
+			dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
 
-			cachesize = self.cachesize * 1024 * 1024l
-			txncount = (cachesize / 4096) * 2
-			if txncount > 1024*128:
-				txncount = 1024*128
+		cachesize = self.cachesize * 1024 * 1024l
+		txncount = (cachesize / 4096) * 2
+		if txncount > 1024*128:
+			txncount = 1024*128
 
-			dbenv.set_cachesize(0, cachesize)
-			dbenv.set_tx_max(txncount)
-			dbenv.set_lk_max_locks(300000)
-			dbenv.set_lk_max_lockers(300000)
-			dbenv.set_lk_max_objects(300000)
+		dbenv.set_cachesize(0, cachesize)
+		dbenv.set_tx_max(txncount)
+		dbenv.set_lk_max_locks(300000)
+		dbenv.set_lk_max_lockers(300000)
+		dbenv.set_lk_max_objects(300000)
 
-			dbenv.open(self.path, ENVOPENFLAGS)
-			self.opendbs[self] = 1
-
+		dbenv.open(self.path, ENVOPENFLAGS)
+		self.opendbs[self] = 1
 		self.dbenv = dbenv
 
 		# Open Databases
@@ -420,7 +415,6 @@ class EMEN2DBEnv(object):
 
 	def init(self):
 		"""Open the databases."""
-
 		self.paramdef = emen2.db.paramdef.ParamDefDB(path="paramdef", dbenv=self)
 
 		# Authentication.
@@ -452,7 +446,6 @@ class EMEN2DBEnv(object):
 	# ian: todo: make this nicer.
 	def close(self):
 		"""Close the Database Environment"""
-
 		for k,v in self.keytypes.items():
 			# print "Closing", v
 			v.close()
@@ -484,6 +477,7 @@ class EMEN2DBEnv(object):
 				raise ValueError, "EMEN2DBHOME directory does not exist: %s"%self.path
 			if not checkconfig:
 				raise ValueError, "No database environment in EMEN2DBHOME directory: %s"%self.path
+			return
 
 		paths = [
 			"data",
@@ -559,14 +553,14 @@ class EMEN2DBEnv(object):
 		"""
 		# emen2.db.log.msg('TXN', "TXN ABORT --> %s"%txn)
 		txnid = txn.id()
-		txn_action(txnid, self._txn_preabort)
+		_txn_action(txnid, self._txn_preabort)
 
 		txn.abort()
 		if txnid in self.txnlog:
 			del self.txnlog[txnid]
 		type(self).txncounter -= 1
 
-		txn_action(txnid, self._txn_postabort)
+		_txn_action(txnid, self._txn_postabort)
 
 
 	def txncommit(self, txn):
@@ -577,14 +571,14 @@ class EMEN2DBEnv(object):
 		"""
 		# emen2.db.log.msg('TXN', "TXN COMMIT --> %s"%txn)
 		txnid = txn.id()
-		txn_action(txnid, self._txn_precommit)
+		_txn_action(txnid, self._txn_precommit)
 
 		txn.commit()
 		if txnid in self.txnlog:
 			del self.txnlog[txnid]
 		type(self).txncounter -= 1
 
-		txn_action(txnid, self._txn_postcommit)
+		_txn_action(txnid, self._txn_postcommit)
 
 		if DB.sync_contexts.is_set():
 			self.context.bdb.sync()

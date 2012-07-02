@@ -252,7 +252,7 @@ class View(TemplateView):
 		except:
 			pass
 
-		# I am experimenting with allowing DB in templates.. This may not last.
+
 		self.ctxt.update(dict(
 			HOST = getattr(ctx, 'host', None),
 			USER = user,
