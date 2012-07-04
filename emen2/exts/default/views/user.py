@@ -21,7 +21,7 @@ class User(View):
 	@View.add_matcher("^/user/(?P<name>[\w\- ]+)/$")
 	def main(self, name=None):
 		self.template = "/pages/user.view"
-		user = self.db.getuser(name, filt=False)
+		user = self.db.user.get(name, filt=False)
 		self.ctxt["user"] = user
 		self.title = "User: %s"%(user.displayname)
 
@@ -33,13 +33,13 @@ class User(View):
 	@View.add_matcher("^/user/(?P<name>[\w\- ]+)/edit/$")
 	def edit(self, name=None, **kwargs):
 		self.template = "/pages/user.edit"
-		user = self.db.getuser(name, filt=False)
+		user = self.db.user.get(name, filt=False)
 		self.ctxt["user"] = user
 		self.title = "Edit user: %s"%(user.displayname)
 
 		# Security is of course is checked by the database, 
 		# this just hides the form itself.
-		if self.db.checkcontext()[0] != user.name and not self.ctxt['ADMIN']:
+		if self.db.auth.check.context()[0] != user.name and not self.ctxt['ADMIN']:
 			raise emen2.db.exceptions.SecurityError, "You may only edit your own user page"
 
 		if self.request_method != 'post':
@@ -48,16 +48,16 @@ class User(View):
 		# userrec = kwargs.get('userrec', {})
 		# if userrec:
 		#	user.userrec.update(userrec)
-		#	self.db.putrecord(user.userrec)
+		#	self.db.record.put(user.userrec)
 		#	self.ctxt['NOTIFY'].append('Saved profile.')
 
 		u = kwargs.get('user', {})
 		if u:
 			user.update(u)
-			self.db.putuser(user)
+			self.db.user.put(user)
 			self.ctxt['NOTIFY'].append('Saved account settings.')
 		
-		user = self.db.getuser(name)
+		user = self.db.user.get(name)
 		self.ctxt['user'] = user
 		
 
@@ -73,12 +73,12 @@ class Users(View):
 	def main(self, q=None):
 		self.template = "/pages/users"
 		self.title = "User directory"
-		usernames = self.db.getusernames()
+		usernames = self.db.user.names()
 
 		if q:
-			users = self.db.finduser(q)
+			users = self.db.user.find(q)
 		else:
-			users = self.db.getuser(usernames)
+			users = self.db.user.get(usernames)
 		
 		if not users:
 			self.template = '/simple'
@@ -96,9 +96,9 @@ class Users(View):
 		self.title = 'User administration'
 		
 		if q:
-			users = self.db.finduser(q)
+			users = self.db.user.find(q)
 		else:
-			users = self.db.getuser(self.db.getusernames())
+			users = self.db.user.get(self.db.user.names())
 
 		self.ctxt['args'] = kwargs
 		self.ctxt['q'] = q
@@ -162,9 +162,9 @@ class NewUser(View):
 				name = "".join(r.findall(name)).lower()
 		
 		try:
-			user = self.db.newuser(name=name, password=password, email=email)
+			user = self.db.newuser.new(name=name, password=password, email=email)
 			user.setsignupinfo(userrec)
-			self.db.adduser(user)
+			self.db.newuser.put(user)
 
 		except Exception, e:
 			self.ctxt['ERRORS'].append('There was a problem creating your account: %s'%e)
@@ -199,27 +199,28 @@ class NewUser(View):
 			rejected = []
 			approved = []
 			if reject:
-				rejected = self.db.rejectuser(reject)
+				rejected = self.db.newuser.reject(reject)
 			if approve:
-				approved = self.db.approveuser(approve)
+				approved = self.db.newuser.approve(approve)
 
 			# Add the users to all the requested groups.
 			# ... do this better in the future.
 			for user in approved:
 				g = filter(None, groups.get(user.name, []))
-				for group in self.db.getgroup(g):
+				for group in self.db.group.get(g):
 					group.adduser(user.name)
-					self.db.putgroup(group)
+					self.db.group.put(group)
 
 			if kwargs.get('location'):
 				self.headers['Location'] = kwargs.get('location')
 
-		queue = self.db.getqueueduser(self.db.getuserqueue())
+		
+		queue = self.db.newuser.names()
 		self.ctxt['queue'] = queue
 
-		groupnames = self.db.getgroupnames()
+		groupnames = self.db.group.names()
 		groupnames -= set(['anon', 'authenticated'])
-		self.ctxt['groups'] = self.db.getgroup(groupnames)
+		self.ctxt['groups'] = self.db.group.get(groupnames)
 		self.ctxt['groups_default'] = set(['create'])
 
 

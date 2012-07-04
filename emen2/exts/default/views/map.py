@@ -56,14 +56,14 @@ class Tree(View):
 
 		# add 2 to recurse to get enough info to draw the next level
 		if mode == "children":
-			tree = self.db.getchildtree(root, recurse=recurse+2, keytype=keytype, rectype=rectype)
+			tree = self.db.rel.tree(root, rel="children", recurse=recurse+2, keytype=keytype, rectype=rectype)
 			# get one level of parents as well..
-			parents = self.db.getparents(root, keytype=keytype)
+			parents = self.db.rel.parents(root, keytype=keytype)
 		else:
-			tree = self.db.getparenttree(root, recurse=recurse+2, keytype=keytype)
+			tree = self.db.rel.tree(root, rel="parents", recurse=recurse+2, keytype=keytype)
 		
 		if collapse_rectype:
-			collapsed |= self.db.getchildren(root, recurse=-1, rectype=collapse_rectype)
+			collapsed |= self.db.rel.children(root, recurse=-1, rectype=collapse_rectype)
 
 		# connect the root to "None" to simplify drawing..
 		tree[None] = [root]
@@ -75,13 +75,13 @@ class Tree(View):
 
 		recnames = {}
 		if keytype == "record":
-			recnames.update(self.db.renderview(stack))
+			recnames.update(self.db.record.render(stack))
 		elif keytype == "paramdef":
-			pds = self.db.getparamdef(stack)
+			pds = self.db.paramdef.get(stack)
 			for pd in pds:
 				recnames[pd.name] = pd.desc_short
 		elif keytype == "recorddef":
-			rds = self.db.getrecorddef(stack)
+			rds = self.db.recorddef.get(stack)
 			for rd in rds:
 				recnames[rd.name] = rd.desc_short
 

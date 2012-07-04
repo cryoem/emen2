@@ -15,7 +15,7 @@ ctx = db._getctx()
 txn = db._gettxn()
 b = []
 for i in range(count, count+block):
-	rec = db._db.bdbs.record.get(i, txn=txn)
+	rec = db._db.dbenv["record"].get(i, txn=txn)
 	if not rec:
 		break
 
@@ -64,6 +64,6 @@ for i in range(count, count+block):
 	rec.__dict__['history'] = sorted(history, key=lambda x:x[1])		
 	# print rec.__dict__['comments']
 
-	db._db.bdbs.record.put(rec.name, rec, txn=txn)
+	db._db.dbenv["record"].put(rec.name, rec, txn=txn)
 
 db._committxn()

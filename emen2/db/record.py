@@ -308,7 +308,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 		if not hit:
 			try:
-				rd = self._ctx.db.getrecorddef(self.rectype, filt=False)
+				rd = self._ctx.db.recorddef.get(self.rectype, filt=False)
 			except KeyError:
 				self.error('No such protocol: %s' % self.rectype)
 			vtm.store(cachekey, rd)
@@ -339,14 +339,14 @@ class RecordDB(emen2.db.btrees.RelateDB):
 			return ind
 
 		# Check the paramdef to see if it's indexed
-		pd = self.dbenv.paramdef.get(param, filt=False, txn=txn)
+		pd = self.dbenv["paramdef"].get(param, filt=False, txn=txn)
 		if not pd or pd.vartype not in self.dbenv.indexablevartypes or not pd.indexed:
 			return None
 
 		# Open the index
 		vtm = emen2.db.datatypes.VartypeManager()
-		tp = vtm.getvartype(pd.vartype).keytype
-		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keytype=tp, datatype='d', dbenv=self.dbenv)
+		tp = vtm.getvartype(pd.vartype).keyformat
+		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat=tp, dataformat='d', dbenv=self.dbenv)
 		return ind
 
 
@@ -354,7 +354,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		return self._incr_sequence(delta=1, txn=txn)
 
 
-	def delete(self, names, ctx=None, txn=None):
+	def hide(self, names, ctx=None, txn=None):
 		recs = self.cgets(names, ctx=ctx, txn=txn)
 		crecs = []
 		for rec in recs:
@@ -445,7 +445,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 			ind = self.getindex('rectype', txn=txn)
 			# ian: use the context.
 			rd = set()
-			for i in ctx.db.getrecorddef(listops.check_iterable(rectype)):
+			for i in ctx.db.recorddef.get(listops.check_iterable(rectype)):
 				rd |= ind.get(i.name, txn=txn)
 			names &= rd
 

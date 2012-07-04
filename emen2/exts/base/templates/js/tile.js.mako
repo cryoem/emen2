@@ -38,9 +38,9 @@
 	// 		// if there are records, do some callbacks..
 	// 		if (this.options.name != null) {				
 	// 
-	// 			emen2.db("getchildren", [this.options.name, 1, "box"], function(children) {
+	// 			emen2.db("rel.children", [this.options.name, 1, "box"], function(children) {
 	// 
-	// 				emen2.db("getrecord", [children], function(recs) {			
+	// 				emen2.db("record.get", [children], function(recs) {			
 	// 					$.each(recs, function(i) {
 	// 						self.load_record(this);
 	// 					});					
@@ -222,7 +222,7 @@
 	// 		}
 	// 		
 	// 		if (confirm == true) {
-	// 			emen2.db("pcunlink", [this.options.name, label], function() {
+	// 			emen2.db("rel.pcunlink", [this.options.name, label], function() {
 	// 				self.remove_label(label);
 	// 			});
 	// 		}		
@@ -264,7 +264,7 @@
 	// 		recs = recs.reverse();
 	// 		this.clear();	
 	// 		
-	// 		emen2.db("putrecord", [recs], function(recs) {
+	// 		emen2.db("record.put", [recs], function(recs) {
 	// 			$.each(recs, function() {
 	// 				$('.e2l-spinner', self.element).hide();
 	// 				self.load_record(this);
@@ -274,7 +274,7 @@
 	// 
 	// 	save: function(label) {
 	// 		var rec = this._save(label);
-	// 		emen2.db("putrecord", [rec], function(newrec) {
+	// 		emen2.db("record.put", [rec], function(newrec) {
 	// 			emen2.caches['record'][newrec.name] = newrec;
 	// 			self.remove_label(label, true);
 	// 			self.load_record(newrec);
@@ -285,7 +285,7 @@
 	// 		var self = this;
 	// 		
 	// 		if (rec==null) {
-	// 			emen2.db("newrecord", ["box", self.options.name], function(rec) {
+	// 			emen2.db("record.new", ["box", self.options.name], function(rec) {
 	// 				rec.name = self.currentlabel;
 	// 				self.currentlabel -= 1;
 	// 				//rec["parents"] = [self.options.name];

@@ -54,7 +54,7 @@
 				
 				// 2a. Records need a second callback for pretty rendered text
 				if (self.options.keytype == 'record') {
-					emen2.db('renderview', [found], function(recnames) {
+					emen2.db('record.render', [found], function(recnames) {
 						$.each(recnames, function(k,v) {emen2.caches['recnames'][k] = v})
 						self._build();
 					});
@@ -561,9 +561,9 @@
 
 			// We use rel.children.tree because we want to grab 2 levels of children/parents
 			// 	to determine if each child is itself expandable...
-			var method = "rel.children.tree";
-			if (this.options.mode == "parents") {method = "rel.parents.tree"}
-			emen2.db(method, {names:name, recurse:2, keytype:this.options.keytype}, function(tree){
+			var method = "rel.tree";
+
+			emen2.db(method, {names:name, rel:this.options.mode, recurse:2, keytype:this.options.keytype}, function(tree){
 				// Cache the result. This should be filtered for permissions
 				$.each(tree, function(k,v) {emen2.caches[self.options.mode][k] = v});				
 				// Get the items and/or rendered names, then build the tree
@@ -739,7 +739,7 @@
 			var self = this;
 			if (e.shiftKey) {
 				// This element and all children, recursively
-				emen2.db('getchildren', {names: name, recurse:-1}, function(children) {
+				emen2.db('rel.children', {names: name, recurse:-1}, function(children) {
 					children.push(name);
 					if (state) {
 						self.remove(children);

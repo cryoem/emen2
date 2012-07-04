@@ -9,7 +9,7 @@ class ParamDef(View):
 
 	@View.add_matcher(r'^/paramdef/(?P<name>\w+)/$')
 	def main(self, name=None):
-		self.paramdef = self.db.getparamdef(name, filt=False)
+		self.paramdef = self.db.get(name, filt=False, keytype='paramdef')
 		self.template = '/pages/paramdef.main'
 		self.title = "Parameter: %s"%self.paramdef.desc_short
 
@@ -17,14 +17,14 @@ class ParamDef(View):
 
 		units = set()
 		if self.paramdef and self.paramdef.property:
-			units = self.db.getpropertyunits(self.paramdef.property)
+			units = self.db.paramdef.units(self.paramdef.property)
 
-		vartypes = self.db.getvartypenames()
-		properties = self.db.getpropertynames()
+		vartypes = self.db.paramdef.vartypes()
+		properties = self.db.paramdef.properties()
 
 		self.ctxt.update(dict(
 			paramdef = self.paramdef,
-			create = self.db.checkcreate(),
+			create = self.db.auth.check.create(),
 			editable = self.paramdef.writable(),
 			vartypes = vartypes,
 			properties = properties,
@@ -37,9 +37,9 @@ class ParamDef(View):
 	@View.add_matcher(r'^/paramdef/(?P<name>\w+)/edit/$')
 	def edit(self, name, **kwargs):
 		if self.request_method == 'post':			
-			paramdef = self.db.getparamdef(name, filt=False)
+			paramdef = self.db.get(name, filt=False, keytype='paramdef')
 			paramdef.update(kwargs)
-			pd = self.db.putparamdef(paramdef)
+			pd = self.db.paramdef.put(paramdef)
 			if pd:
 				self.redirect(self.routing.reverse('ParamDef/main', name=pd.name))
 				return
@@ -54,9 +54,9 @@ class ParamDef(View):
 	def new(self, name, **kwargs):
 		if self.request_method == 'post':
 			vartype = kwargs.pop('vartype', None)			
-			paramdef = self.db.newparamdef(name, vartype=vartype)
+			paramdef = self.db.paramdef.new(name, vartype=vartype)
 			paramdef.update(kwargs)
-			pd = self.db.putparamdef(paramdef)
+			pd = self.db.paramdef.put(paramdef)
 			if pd:
 				self.redirect(self.routing.reverse('ParamDef/main', name=pd.name))
 				return
@@ -77,16 +77,16 @@ class ParamDefs(View):
 	def main(self, action=None, q=None):
 		
 
-		paramdefnames = self.db.getparamdefnames()
+		paramdefnames = self.db.paramdef.names()
 
 		if action == None or action not in ["vartype", "name", "tree", "property"]:
 			action = "tree"
 
 		if q:
 			action = "name"
-			paramdefs = self.db.findparamdef(q)
+			paramdefs = self.db.paramdef.find(q)
 		else:
-			paramdefs = self.db.getparamdef(paramdefnames)
+			paramdefs = self.db.get(paramdefnames, keytype='paramdef')
 
 
 
@@ -113,7 +113,7 @@ class ParamDefs(View):
 		self.ctxt['paramdefs'] = paramdefs
 		self.ctxt['q'] = q
 		self.ctxt['childmap'] = childmap
-		self.ctxt['create'] = self.db.checkcreate()
+		self.ctxt['create'] = self.db.auth.check.create()
 
 
 	@View.add_matcher(r'^/paramdefs/vartype/$')

@@ -247,7 +247,7 @@ class View(TemplateView):
 		admin = False
 		ctx = getattr(self.db, '_getctx', lambda:None)()
 		try:
-			user = ctx.db.getuser(ctx.username)
+			user = ctx.db.user.get(ctx.username)
 			admin = ctx.checkadmin()
 		except:
 			pass

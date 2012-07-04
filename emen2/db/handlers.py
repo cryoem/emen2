@@ -159,7 +159,7 @@ class BinaryHandler(object):
 	This is used in a few different ways. It is used for files uploaded
 	to the web server. It can also be used with the File Handlers defined
 	below (e.g. to extract header metadata.) Handlers can also be passed
-	as items to db.putbinary.
+	as items to db.binary.put.
 	
 	The original name of the file is self.filename. Sources can be a added in
 	the constructor, and may be a string of data (filedata), or a file-like

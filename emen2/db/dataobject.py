@@ -438,7 +438,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		# ... otherwise, raise an Exception if the param isn't found.
 		if not hit:
 			try:
-				pd = self._ctx.db.getparamdef(key, filt=False)
+				pd = self._ctx.db.paramdef.get(key, filt=False)
 			except KeyError:
 				self.error('paramdef %s does not exist' % key)
 			vtm.store(cachekey, pd)

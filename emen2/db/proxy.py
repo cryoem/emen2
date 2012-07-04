@@ -204,7 +204,7 @@ class DBProxy(object):
 			# print "DBProxy: Warning: Existing open transaction: ", self._txn
 			pass
 		else:
-			self._txn = self._db.bdbs.txncheck(txn=self._txn)
+			self._txn = self._db.dbenv.txncheck(txn=self._txn)
 		return self
 
 	def __exit__(self, exc_type, exc_value, traceback):
@@ -212,14 +212,14 @@ class DBProxy(object):
 		if not self._txn:
 			raise Exception, "DBProxy: No transaction to close."
 		if exc_type is None:
-			self._txn = self._db.bdbs.txncommit(txn=self._txn)
+			self._txn = self._db.dbenv.txncommit(txn=self._txn)
 		else:
-			self._txn = self._db.bdbs.txnabort(txn=self._txn)
+			self._txn = self._db.dbenv.txnabort(txn=self._txn)
 		self._txn = None
 	
 	# Allow to start with write=true/false
 	def _newtxn(self, write=False):
-		self._txn = self._db.bdbs.txncheck(txn=self._txn, write=write)
+		self._txn = self._db.dbenv.txncheck(txn=self._txn, write=write)
 		return self
 		
 	def _gettxn(self):
@@ -243,17 +243,23 @@ class DBProxy(object):
 		return False
 
 	@classmethod
-	def _register_publicmethod(cls, func, apiname, write=False, admin=False, ext=False):
+	def _register_publicmethod(cls, func, apiname=None, write=False, admin=False, ext=False, compat=None):
 		# print "Registering func: %s"%apiname
 		# if set([func.apiname, func.func_name]) & cls._allmethods():
 		# 	raise ValueError("""method %s already registered""" % name)
+
+		apiname = apiname or func.func_name.replace('_','.')
+
 		setattr(func, 'apiname', apiname)
 		setattr(func, 'write', write)
 		setattr(func, 'admin', admin)
 		setattr(func, 'ext', ext)
+		setattr(func, 'compat', compat)
 
 		cls._publicmethods[func.apiname] = func
 		cls._publicmethods[func.func_name] = func
+		if compat:
+			cls._publicmethods[compat] = func
 
 		cls.mt.add_method(apiname, func)
 		cls.mt.add_method(func.func_name, func)
@@ -282,7 +288,7 @@ class DBProxy(object):
 		return _Method(self, name)
 
 	def _login(self, username, passwd, host=None):
-		ctxid = self.login(username, passwd)
+		ctxid = self.auth.login(username, passwd)
 		self._setContext(ctxid, host)
 
 	def _wrap(self, func):

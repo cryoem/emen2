@@ -55,7 +55,7 @@ def check_rectype(engine, value):
 	key = engine.get_cache_key('paramdef', value)
 	hit, paramdef = engine.check_cache(key)
 	if not hit:
-		paramdef = engine.db.getparamdef(value, filt=False)
+		paramdef = engine.db.paramdef.get(value, filt=False)
 		engine.store(key, paramdef)
 
 	return paramdef
@@ -65,7 +65,7 @@ def check_rectypes(engine, values):
 	key = engine.get_cache_key('recorddefnames')
 	hit, rectypes = engine.check_cache(key)
 	if not hit:
-		rectypes = engine.db.getrecorddefnames()
+		rectypes = engine.db.recorddef.names()
 		engine.store(key, rectypes)
 
 	if set(values) - rectypes:
@@ -76,7 +76,7 @@ def check_usernames(engine, values):
 	key = engine.get_cache_key('usernames')
 	hit, usernames = engine.check_cache(key)
 	if not hit:
-		usernames = engine.db.getusernames()
+		usernames = engine.db.user.names()
 		engine.store(key, usernames)
 
 	if set(values) - usernames:
@@ -87,7 +87,7 @@ def check_groupnames(engine, values):
 	key = engine.get_cache_key('groupnames')
 	hit, groupnames = engine.check_cache(key)
 	if not hit:
-		groupnames = engine.db.getgroupnames()
+		groupnames = engine.db.group.names()
 		engine.store(key, groupnames)
 
 	if set(values) - groupnames:
@@ -104,7 +104,7 @@ def update_username_cache(engine, values, lnf=False):
 			to_cache.append(v)
 
 	if to_cache:
-		users = engine.db.getuser(to_cache)
+		users = engine.db.user.get(to_cache)
 		for user in users:
 			user.getdisplayname(lnf=lnf)
 			key = engine.get_cache_key('displayname', user.name)
@@ -166,7 +166,7 @@ class Vartype(object):
 	'''Base class for vartypes'''
 
 	#: the index key type for this class
-	keytype = None
+	keyformat = None
 	#: is this vartype iterable?
 	iterable = True
 	#: the CSS class to use when rendering as HTML
@@ -276,8 +276,8 @@ class Vartype(object):
 		return self.vartype
 
 
-	def getkeytype(self):
-		return self.keytype
+	def getkeyformat(self):
+		return self.keyformat
 
 
 	def reindex(self, items):
@@ -315,7 +315,7 @@ class Vartype(object):
 class vt_float(Vartype):
 	"""Floating-point number"""
 	#:
-	keytype = 'f'
+	keyformat = 'f'
 
 	def validate(self, value):
 		return self._rci(map(float, ci(value)))
@@ -328,7 +328,7 @@ class vt_float(Vartype):
 class vt_percent(Vartype):
 	"""Percentage. 0 <= x <= 1"""
 	#:
-	keytype = 'f'
+	keyformat = 'f'
 
 	def validate(self, value):
 		value = map(float, ci(value))
@@ -351,7 +351,7 @@ class vt_percent(Vartype):
 class vt_int(Vartype):
 	"""Integer"""
 	#:
-	keytype = 'd'
+	keyformat = 'd'
 
 	def validate(self, value):
 		return self._rci(map(int, ci(value)))
@@ -369,7 +369,7 @@ class vt_coordinate(Vartype):
 class vt_boolean(Vartype):
 	"""Boolean value. Accepts 0/1, True/False, T/F, Yes/No, Y/N, None."""
 	#:
-	keytype = 'd'
+	keyformat = 'd'
 
 	def validate(self, value):
 		t = ['t', 'y', 'yes', 'true', '1']
@@ -406,14 +406,14 @@ class vt_name(Vartype):
 
 ###################################
 # String vartypes
-#	Indexed as keytype 's'
+#	Indexed as keyformat 's'
 ###################################
 
 @vtm.register_vartype('string')
 class vt_string(Vartype):
 	"""String"""
 	#:
-	keytype = 's'
+	keyformat = 's'
 
 	def validate(self, value):
 		return self._rci([unicode(x).strip() for x in ci(value)])
@@ -517,15 +517,15 @@ class vt_text(vt_string):
 
 
 ###################################
-# Time vartypes (keytype is string)
-#	Indexed as keytype 's'
+# Time vartypes (keyformat is string)
+#	Indexed as keyformat 's'
 ###################################
 
 @vtm.register_vartype('datetime')
 class vt_datetime(vt_string):
 	"""ISO 8601 Date time"""
 	#:
-	keytype = 's'
+	keyformat = 's'
 
 	def validate(self, value):
 		ret = []
@@ -582,14 +582,14 @@ class vt_time(vt_datetime):
 
 ###################################
 # Reference vartypes.
-#	Indexed as keytype 's'
+#	Indexed as keyformat 's'
 ###################################
 
 @vtm.register_vartype('uri')
 class vt_uri(Vartype):
 	"""URI"""
 	#:
-	keytype = 's'
+	keyformat = 's'
 
 	# ian: todo: parse with urlparse
 	def validate(self, value):
@@ -669,12 +669,12 @@ class vt_dict(Vartype):
 class vt_binary(Vartype):
 	"""File Attachment"""
 	#:
-	keytype = None
+	keyformat = None
 	#:
 	elem_class = "e2-edit"
 
 	def validate(self, value):
-		return self._rci([i.name for i in self.engine.db.getbinary(ci(value), filt=False)])
+		return self._rci([i.name for i in self.engine.db.binary.get(ci(value), filt=False)])
 
 
 	def process(self, value):
@@ -686,7 +686,7 @@ class vt_binary(Vartype):
 			# return value
 
 		try:
-			v = self.engine.db.getbinary(value)
+			v = self.engine.db.binary.get(value)
 			if t:
 				value = ['%s'%(cgi.escape(i.filename)) for i in v]
 			else:
@@ -706,14 +706,14 @@ class vt_binary(Vartype):
 
 ###################################
 # md5 checksum
-#	Indexed as keytype 's'
+#	Indexed as keyformat 's'
 ###################################
 
 @vtm.register_vartype('md5')
 class vt_md5(Vartype):
 	"""String"""
 	#:
-	keytype = 's'
+	keyformat = 's'
 
 
 
@@ -727,7 +727,7 @@ class vt_md5(Vartype):
 class vt_record(Vartype):
 	"""References to other Records."""
 	#:
-	keytype = None
+	keyformat = None
 
 	def validate(self, value):
 		return self._rci([int(x) for x in ci(value)])
@@ -736,14 +736,14 @@ class vt_record(Vartype):
 
 ###################################
 # User, ACL, and Group vartypes
-#	Indexed as keytype 's'
+#	Indexed as keyformat 's'
 ###################################
 
 @vtm.register_vartype('user')
 class vt_user(Vartype):
 	"""Users"""
 	#:
-	keytype = 's'
+	keyformat = 's'
 
 	def validate(self, value):
 		value = [unicode(x).strip() for x in ci(value)]
@@ -778,7 +778,7 @@ class vt_user(Vartype):
 class vt_acl(Vartype):
 	"""Permissions access control list; nested lists of users"""
 	#:
-	keytype = 's'
+	keyformat = 's'
 
 	def validate(self, value):
 		if not hasattr(value, '__iter__'):
@@ -803,7 +803,7 @@ class vt_acl(Vartype):
 
 		allusers = reduce(lambda x,y:x+y, value)
 		unames = {}
-		for user in self.engine.db.getuser(allusers):
+		for user in self.engine.db.user.get(allusers):
 			unames[user.name] = user.displayname
 
 		levels = ["Read","Comment","Write","Owner"]
@@ -843,7 +843,7 @@ class vt_acl(Vartype):
 class vt_group(Vartype):
 	"""Group"""
 	#:
-	keytype = 's'
+	keyformat = 's'
 
 	def validate(self, value):
 		value = set([unicode(i).strip() for i in ci(value)])
@@ -864,7 +864,7 @@ class vt_group(Vartype):
 class vt_comments(Vartype):
 	"""Comments"""
 	#:
-	keytype = None
+	keyformat = None
 
 	# ian: todo... sort this out.
 	def validate(self, value):
@@ -895,7 +895,7 @@ class vt_comments(Vartype):
 class vt_history(Vartype):
 	"""History"""
 	#:
-	keytype = None
+	keyformat = None
 
 	def validate(self, value):
 		users = [i[0] for i in value]

@@ -102,7 +102,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		if self.isowner():
 			return True
 		if self.record is not None:
-			rec = self._ctx.db.getrecord(self.record, filt=False)
+			rec = self._ctx.db.record.get(self.record, filt=False)
 
 
 	# filepath is set during setContext, and discarded during commit (todo)
@@ -285,17 +285,7 @@ class BinaryTmpDB(emen2.db.btrees.DBODB):
 
 	def _name_generator(self, item, txn=None):
 		return emen2.db.database.getrandomid()
-		
-	
-	# def openindex(self, param, txn=None):
-	# 	"""Index on filename (and possibly MD5 in the future.)"""
-	# 	if param == 'filename':
-	# 		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
-	# 	elif param == 'md5':
-	# 		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
-	# 	else:
-	# 		ind = super(BinaryDB, self).openindex(param, txn=txn)
-	# 	return ind
+
 		
 		
 

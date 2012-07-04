@@ -10,7 +10,7 @@ class Workflow(View):
 		self.title = "User Queries &amp; Workflows"
 		self.set_context_item("content","Workflow:<br /><br />")
 
-		wf = self.db.getworkflow()
+		wf = self.db.workflow.get()
 		self.set_context_item("content", self.ctxt["content"] + str(wf))
 
 

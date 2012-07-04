@@ -108,7 +108,7 @@ class Context(object):
 		self.grouplevels = grouplevels or {}
 		self.setdb(db=db)
 
-		self.user = {} # self.db.getuser(self.username)
+		self.user = {} # self.db.user.get(self.username)
 		self.grouplevels["anon"] = 0
 		self.grouplevels["authenticated"] = self.grouplevels.get('authenticated', 0)
 		self.groups = set(self.grouplevels.keys())

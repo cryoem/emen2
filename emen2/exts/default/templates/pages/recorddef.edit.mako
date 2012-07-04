@@ -111,7 +111,7 @@
 			var self=this;
 
 			$('.e2l-spinner').show();
-			emen2.db("putrecorddef", [this.rd], function(data){
+			emen2.db("recorddef.put", [this.rd], function(data){
 				$('.e2l-spinner').hide();
 				window.location = EMEN2WEBROOT+'/recorddef/'+self.rd.name+'/';
 			});

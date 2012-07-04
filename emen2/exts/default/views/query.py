@@ -142,7 +142,7 @@ class Query(View):
 		self.set_context_item('q', self.q)
 
 		# Look up all the binaries
-		bdos = self.db.findbinary(record=self.q['names'], count=0)
+		bdos = self.db.binary.find(record=self.q['names'], count=0)
 
 		for bdo in bdos:
 			if bdo.get('filesize') == None:
@@ -156,9 +156,9 @@ class Query(View):
 
 		records = set([i.record for i in bdos])
 		users = set([bdo.get('creator') for bdo in bdos])
-		users = self.db.getuser(users)
+		users = self.db.user.get(users)
 		self.ctxt['users'] = emen2.util.listops.dictbykey(users, 'name')
-		self.ctxt['rendered'] = self.db.renderview(records)
+		self.ctxt['rendered'] = self.db.record.render(records)
 		self.ctxt['filesize'] = filesize
 		self.ctxt['bdos'] = bdos
 

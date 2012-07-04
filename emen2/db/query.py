@@ -53,13 +53,13 @@ def getop(op, ignorecase=True):
 	return ops[operator]
 
 
-def keytypeconvert(keytype, term):
+def keyformatconvert(keyformat, term):
 	try:
-		if keytype == 'd':
+		if keyformat == 'd':
 			term = int(term)
-		elif keytype == 'f':
+		elif keyformat == 'f':
 			term = float(term)
-		elif keytype == 's':
+		elif keyformat == 's':
 			term = unicode(term)
 	except:
 		pass
@@ -128,7 +128,7 @@ class IndexedConstraint(Constraint):
 		self.priority = 1.0
 		# If this is a ParamDef index, get all the details and index
 		try:
-			self.paramdef = self.p.btree.dbenv.paramdef.cget(self.param, filt=False, ctx=self.p.ctx, txn=self.p.txn)			
+			self.paramdef = self.p.btree.dbenv['paramdef'].cget(self.param, filt=False, ctx=self.p.ctx, txn=self.p.txn)			
 			self.ind = self.p.btree.getindex(self.param, txn=self.p.txn)
 			nkeys = self.ind.bdb.stat(txn=self.p.txn)['ndata'] or 1 # avoid div by zero
 			self.priority = 1.0 - (1.0/nkeys)
@@ -166,7 +166,7 @@ class ParamConstraint(IndexedConstraint):
 		f = []
 
 		# Convert the term to the right type
-		term = keytypeconvert(self.ind.keytype, self.term)
+		term = keyformatconvert(self.ind.keyformat, self.term)
 		
 		# If we're just looking for a single value
 		if self.op == '==':
@@ -208,7 +208,7 @@ class RectypeConstraint(ParamConstraint):
 		# This is essentially a sub-Query, but without creating a new cache/items/etc.
 		f = None
 		if self.term.endswith('*'):
-			terms = self.p.btree.dbenv.recorddef.expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
+			terms = self.p.btree.dbenv['recorddef'].expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
 		else:
 			terms = [self.term]
 
@@ -239,7 +239,7 @@ class RelConstraint(IndexedConstraint):
 			term = term.replace('*', '')
 			recurse = -1			
 
-		term = keytypeconvert(self.p.btree.keytype, term)
+		term = keyformatconvert(self.p.btree.keyformat, term)
 		rel = self.p.btree.rel([term], recurse=recurse, ctx=self.p.ctx, txn=self.p.txn)
 		return rel.get(term, set())
 
@@ -260,8 +260,8 @@ class MacroConstraint(Constraint):
 		# Run the macro
 		self.p.vtm.macro_preprocess(k.group('name'), k.group('args'), self.p.items)
 		# Convert the term to the right type
-		keytype = self.p.vtm.getmacro(k.group('name')).getkeytype()
-		term = keytypeconvert(keytype, self.term)
+		keyformat = self.p.vtm.getmacro(k.group('name')).getkeyformat()
+		term = keyformatconvert(keyformat, self.term)
 		# Run the comparison
 		cfunc = getop(self.op)
 		for item in self.p.items:
@@ -361,7 +361,7 @@ class Query(object):
 			self._checktime()
 			
 		# If the param is iterable, we need to get the actual values.
-		paramdef = self.btree.dbenv.paramdef.cget(sortkey, ctx=self.ctx, txn=self.txn)
+		paramdef = self.btree.dbenv['paramdef'].cget(sortkey, ctx=self.ctx, txn=self.txn)
 		if paramdef and paramdef.iter:
 			self._checkitems(sortkey)
 
@@ -390,7 +390,7 @@ class Query(object):
 
 			# Case-insensitive sort
 			vt = self.vtm.getvartype(paramdef.vartype)
-			if vt.keytype == 's':
+			if vt.keyformat == 's':
 				sortfunc = lambda x:sortvalues[x].lower()
 		
 
@@ -484,7 +484,7 @@ class Query(object):
 		vartypes = ['string', 'choice', 'rectype', 'text']
 		c = []
 		pds = set()
-		for n,pd in self.btree.dbenv.paramdef.items(ctx=self.ctx, txn=self.txn):
+		for n,pd in self.btree.dbenv['paramdef'].items(ctx=self.ctx, txn=self.txn):
 			if pd.indexed and pd.vartype in vartypes:
 				pds.add(pd.name)
 
@@ -508,7 +508,7 @@ class Query(object):
 			constraint.cache = self.cache			
 		elif param.endswith('*'):
 			# Turn expanded params into a new constraint group
-			params = self.btree.dbenv.paramdef.expand([param], ctx=self.ctx, txn=self.txn)
+			params = self.btree.dbenv['paramdef'].expand([param], ctx=self.ctx, txn=self.txn)
 			constraint = Query(
 				[[i, op, term] for i in params],
 				mode='OR', 

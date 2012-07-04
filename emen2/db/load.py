@@ -75,10 +75,10 @@ class Loader(BaseLoader):
 		rdc = collections.defaultdict(set)
 
 		# Current items...
-		existing_usernames = self.db.getusernames()
-		existing_groupnames = self.db.getgroupnames()
-		existing_paramdefs = self.db.getparamdefnames()
-		existing_recorddefs = self.db.getrecorddefnames()
+		existing_usernames = self.db.user.names()
+		existing_groupnames = self.db.group.names()
+		existing_paramdefs = self.db.paramdef.names()
+		existing_recorddefs = self.db.recorddef.names()
 
 
 		##### PARAMDEFS #####
@@ -95,7 +95,7 @@ class Loader(BaseLoader):
 
 		# Put the saved relationships back in..
 		for k, v in pdc.items():
-			for v2 in v: self.db.pclink(v2, k, keytype='paramdef')
+			for v2 in v: self.db.rel.pclink(v2, k, keytype='paramdef')
 
 
 		##### USERS #####
@@ -148,7 +148,7 @@ class Loader(BaseLoader):
 		self.db.put(rds, keytype='recorddef')
 
 		for k, v in rdc.items():
-			for v2 in v: self.db.pclink(v2, k, keytype='recorddef')
+			for v2 in v: self.db.rel.pclink(v2, k, keytype='recorddef')
 
 
 		##### RECORDS #####
@@ -166,7 +166,7 @@ class Loader(BaseLoader):
 
 		for k, v in childmap.items():
 			for v2 in v:
-				self.db.pclink(namemap[k], namemap[v2])
+				self.db.rel.pclink(namemap[k], namemap[v2])
 
 
 		##### BDOS #####

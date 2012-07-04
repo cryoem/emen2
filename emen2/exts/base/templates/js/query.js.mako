@@ -48,7 +48,7 @@
 			});
 			// Fetch any RecordDefs we need
 			if (rds) {
-				emen2.db('getrecorddef',[rds], function(items) {
+				emen2.db('recorddef.get',[rds], function(items) {
 					$.each(items, function(k,v){
 						emen2.caches['recorddef'][v.name] = v;
 					});

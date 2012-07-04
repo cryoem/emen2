@@ -412,7 +412,7 @@ emen2.util.set_remove = function(i, l) {
 			var name = parseInt(elem.attr('data-name'));
 			var viewname = elem.attr('data-viewname');
 			var edit = elem.attr('data-edit');
-			emen2.db("renderview", {'names':name, 'viewname': viewname, 'edit': edit}, function(view) {
+			emen2.db("record.render", {'names':name, 'viewname': viewname, 'edit': edit}, function(view) {
 				elem.html(view);
 				$('time', elem).localize();
 				//$('.e2-edit', elem).EditControl({});
@@ -761,8 +761,8 @@ emen2.util.set_remove = function(i, l) {
 
 			this.element.empty();
 			this.element.append(sibs);
-			emen2.db("getsiblings", [rec.name, rec.rectype], function(siblings) {
-				emen2.db("renderview", [siblings], function(recnames) {
+			emen2.db("rel.siblings", [rec.name, rec.rectype], function(siblings) {
+				emen2.db("record.render", [siblings], function(recnames) {
 					siblings = siblings.sort(function(a,b){return a-b});
 					$.each(recnames, function(k,v) {
 						emen2.caches['recnames'][k] = v;

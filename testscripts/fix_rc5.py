@@ -139,7 +139,7 @@ def convert_rels(db):
 	print "Converting relationships"
 	txn = db._gettxn()
 	for keytype in ['paramdef', 'recorddef', 'record']:
-		bdb = db._db.bdbs.keytypes[keytype]
+		bdb = db._db.dbenv[keytype]
 		parents = bdb.getindex('parents', txn=txn)
 		children = bdb.getindex('children', txn=txn)
 		#for name, rec in bdb.iteritems(txn=txn):
@@ -162,7 +162,7 @@ def convert_pickle_other(db):
 	txn = db._gettxn()
 	for keytype in ['group', 'user']:
 		print "Updating keytype", keytype
-		bdb = db._db.bdbs.keytypes[keytype]
+		bdb = db._db.dbenv[keytype]
 		for name in bdb.keys(txn=txn):
 			rec = bdb.get(name, txn=txn)
 			bdb.put(rec.name, rec, txn=txn)
@@ -173,8 +173,8 @@ def convert_bdocounter(db):
 	"""Convert old style bdocounter to new sequenced bdo db"""
 	ctx = db._getctx()
 	txn = db._gettxn()
-	bdb = db._db.bdbs.binary
-	seqdb = db._db.bdbs.binary.sequencedb
+	bdb = db._db.dbenv.binary
+	seqdb = db._db.dbenv["binary"].sequencedb
 
 	for i in bdb.keys(txn=txn):
 		d = bdb.get(i, txn=txn)
@@ -220,7 +220,7 @@ def defs_rename(db):
 	root_parameter.children = set()
 	db.putparamdef(root)
 	db.putparamdef(root_parameter)
-	db._db.bdbs.paramdef.delete('root_parameter', txn=txn)
+	db._db.dbenv["paramdef"].delete('root_parameter', txn=txn)
 
 	
 	root_protocol = db.getrecorddef('root_protocol')
@@ -230,7 +230,7 @@ def defs_rename(db):
 	root_protocol.children = set()
 	db.putrecorddef(root)
 	db.putrecorddef(root_protocol)
-	db._db.bdbs.recorddef.delete('root_protocol', txn=txn)
+	db._db.dbenv["recorddef"].delete('root_protocol', txn=txn)
 
 
 
@@ -271,7 +271,7 @@ def paramdefs_props(db):
 			pd.__dict__['defaultunits'] = fixmap.get(pd.defaultunits, pd.defaultunits)	
 			# if pd.defaultunits and pd.defaultunits not in prop.units:
 			# 	print pd.name, pd.property, pd.defaultunits, prop.units		
-			db._db.bdbs.paramdef.put(pd.name, pd, txn=txn)
+			db._db.dbenv["paramdef"].put(pd.name, pd, txn=txn)
 	
 
 
@@ -342,7 +342,7 @@ def rename():
 			# print "couldn't make %s"%newdir
 		
 		print "Renaming:", k, v
-		dbenv.dbenv.dbrename(file=k, database=None, newname=v, txn=txn)
+		dbenv["dbenv"].dbrename(file=k, database=None, newname=v, txn=txn)
 		# print k,v
 
 	txn.commit()

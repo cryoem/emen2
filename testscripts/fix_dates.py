@@ -60,9 +60,9 @@ with db:
 	txn = db._txn
 	
 	for i in ['user', 'group', 'paramdef', 'recorddef']:
-		updatebt(db._db.bdbs.keytypes[i], txn=txn)
+		updatebt(db._db.dbenv[i], txn=txn)
 	
-	#for name in db._db.bdbs.record.keys(txn=txn): 
+	#for name in db._db.dbenv["record"].keys(txn=txn): 
 	for name in range(550000):
 		if name % 1000 == 0:
 			print name
@@ -89,7 +89,7 @@ with db:
 			if rec.params.get(p):
 				rec.params[p] = parselocal(rec.params[p])
 
-		db._db.bdbs.record.put(rec.name, rec, txn=txn)
+		db._db.dbenv["record"].put(rec.name, rec, txn=txn)
 		
 		
 		

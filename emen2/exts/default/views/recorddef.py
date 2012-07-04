@@ -15,9 +15,9 @@ class RecordDef(View):
 	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/edit/$')	
 	def edit(self, *args, **kwargs):
 		if self.request_method == 'post':			
-			recorddef = self.db.recorddef(name, filt=False)
+			recorddef = self.db.recorddef.get(name, filt=False)
 			recorddef.update(kwargs)
-			rd = self.db.recorddef(recorddef)
+			rd = self.db.recorddef.put(recorddef)
 			if rd:
 				self.redirect(self.routing.reverse('RecordDef/main', name=rd.name))
 				return
@@ -29,7 +29,7 @@ class RecordDef(View):
 
 	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/$')	
 	def main(self, name=None):
-		self.recorddef = self.db.getrecorddef(name, filt=False)
+		self.recorddef = self.db.recorddef.get(name, filt=False)
 		self.template = '/pages/recorddef'
 		self.title = "Protocol: %s"%self.recorddef.desc_short
 
@@ -38,7 +38,7 @@ class RecordDef(View):
 		self.ctxt.update(dict(
 			parentmap = parentmap,
 			editable = self.recorddef.writable(),
-			create = self.db.checkcreate(),
+			create = self.db.auth.check.create(),
 			recorddef = self.recorddef,
 			edit = False,
 			new = False,
@@ -66,16 +66,16 @@ class RecordDefs(View):
 
 	@View.add_matcher(r'^/recorddefs/$')
 	def main(self, action=None, q=None):
-		recorddefnames = self.db.getrecorddefnames()
+		recorddefnames = self.db.recorddef.names()
 		
 		if action == None or action not in ["tree", "name", "count"]:
 			action = "tree"
 
 		if q:
-			recorddefs = self.db.findrecorddef(q)
+			recorddefs = self.db.recorddef.find(q)
 			action = "name"
 		else:
-			recorddefs = self.db.getrecorddef(recorddefnames)
+			recorddefs = self.db.recorddef.get(recorddefnames)
 
 		# Tab Switcher
 		pages = collections.OrderedDict()
@@ -99,14 +99,14 @@ class RecordDefs(View):
 		count = {}
 		if action != 'tree':
 			for pd in recorddefs:
-				count[pd.name] = len(self.db.getindexbyrectype(pd.name))
+				count[pd.name] = len(self.db.record.findbyrectype(pd.name))
 
 		self.ctxt['recorddefnames'] = recorddefnames
 		self.set_context_item('q',q)
 		self.set_context_item('count', count)
 		self.set_context_item("recorddefs", recorddefs)
 		self.set_context_item("childmap", childmap)
-		self.set_context_item('create', self.db.checkcreate())
+		self.set_context_item('create', self.db.auth.check.create())
 
 
 

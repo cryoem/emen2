@@ -2,7 +2,7 @@
 	// These paths either absolute, or relative to EMEN2DBHOME, depending on the presence of leading slash
 	"paths":{
 		// Log directory: access.log, error.log, debug.log (see logging section) 
-		"LOGPATH": "applog",
+		"LOGPATH": "twistd",
 
 		// Berkeley DB Log Archive directory. You will want to carefully back these up.
 		"LOG_ARCHIVE": "log_archive",

@@ -45,12 +45,12 @@ with db:
 		pd.__dict__['vartype'] = 'binary'
 
 	print "Truncating"
-	db._db.bdbs.paramdef.truncate(txn=txn)
+	db._db.dbenv["paramdef"].truncate(txn=txn)
 			
 	print "Committing"
 	for pd in pds:
 		try:
-			db._db.bdbs.paramdef.put(pd.name, pd, txn=txn)
+			db._db.dbenv["paramdef"].put(pd.name, pd, txn=txn)
 		except Exception, e:
 			print e
 			pass

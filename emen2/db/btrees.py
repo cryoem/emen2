@@ -43,7 +43,7 @@ class EMEN2DB(object):
 	but unicode/int/float key and data types are also supported with some
 	acceleration.
 
-	*ALMOST ALL READ/WRITE METHODS REQUIRE A TRANSACTION*, specified in
+	*ALL READ/WRITE METHODS REQUIRE A TRANSACTION*, specified in
 	the txn keyword. Generally, the flags keyword is only used internally; it
 	is passed to the Berkeley DB API method.
 
@@ -56,16 +56,14 @@ class EMEN2DB(object):
 	:attr bdb: Berkeley DB instance
 	:attr DBOPENFLAGS: Berkeley DB flags for opening database
 	:attr DBSETFLAGS: Additional flags
-
-
 	"""
-	#: Data type of DB keys: s(tring), f(loat), d(ecimal)
-	keytype = 's'
+	
+	#: Data format of DB keys: s(tring), f(loat), d(ecimal)
+	keyformat = 's'
+	keyclass = None
 
-	#: Data type of DB values: s(tring), f(loat), d(ecimal)
-	datatype = 's'
-
-	#: The subclass of :py:class:`~.dataobjects.BaseDBObject` that this BTree stores
+	#: Data format of DB values: s(tring), f(loat), d(ecimal), p(ickle)
+	dataformat = 's'
 	dataclass = None
 
 	#: classattr Comparison function. Do not use touch this.
@@ -74,12 +72,12 @@ class EMEN2DB(object):
 	#: The filename extension to use: bdb or index
 	extension = 'bdb'
 
-	def __init__(self, filename, keytype=None, datatype=None, dataclass=None, dbenv=None, autoopen=True):
+	def __init__(self, filename, keyformat=None, dataformat=None, dataclass=None, dbenv=None, autoopen=True):
 		"""Main BDB DB wrapper
 
 		:param filename: Base filename to use
-		:keyword keytype: Overrides cls.keytype
-		:keyword datatype: Overrides cls.datatype
+		:keyword keyformat: Overrides cls.keyformat
+		:keyword dataformat: Overrides cls.dataformat
 		:keyword dataclass: Overrides cls.dataclass
 		:keyword dbenv: Database environment
 		:keyword autoopen: Automatically open DB
@@ -106,8 +104,8 @@ class EMEN2DB(object):
 		self.DBSETFLAGS = []
 
 		# What are we storing?
-		self._setkeytype(keytype or self.keytype)
-		self._setdatatype(datatype or self.datatype, dataclass=dataclass or self.dataclass)
+		self._setkeyformat(keyformat or self.keyformat)
+		self._setdataformat(dataformat or self.dataformat)
 
 		self.init()
 		if autoopen:
@@ -132,12 +130,12 @@ class EMEN2DB(object):
 		if not k1:
 			k1 = 0
 		else:
-			k1 = self.loadkey(k1)
+			k1 = self.keyload(k1)
 
 		if not k2:
 			k2 = 0
 		else:
-			k2 = self.loadkey(k2)
+			k2 = self.keyload(k2)
 
 		return cmp(k1, k2)
 
@@ -157,58 +155,56 @@ class EMEN2DB(object):
 		pass
 
 
-	def _setkeytype(self, keytype):
+	def _setkeyformat(self, keyformat):
 		# Set the DB key type. This will bind the correct
-		# typekey, dumpkey, loadkey methods.
-		if keytype == 's':
-			self.typekey = unicode
-			self.dumpkey = lambda x:x.encode('utf-8')
-			self.loadkey = lambda x:x.decode('utf-8')
-		elif keytype == 'd':
-			self.typekey = int
-			self.dumpkey = str
-			self.loadkey = int
-		elif keytype == 'f':
-			self.typekey = float
-			self.dumpkey = self._pickledump
-			self.loadkey = self._pickleload
+		# keyclass, keydump, keyload methods.
+		if keyformat == 's':
+			self.keyclass = unicode
+			self.keydump = lambda x:x.encode('utf-8')
+			self.keyload = lambda x:x.decode('utf-8')
+		elif keyformat == 'd':
+			self.keyclass = int
+			self.keydump = str
+			self.keyload = int
+		elif keyformat == 'f':
+			self.keyclass = float
+			self.keydump = self._pickledump
+			self.keyload = self._pickleload
 		else:
-			raise ValueError, "Invalid keytype: %s. Supported: s(tring), d(ecimal), f(loat)"%keytype
+			raise ValueError, "Invalid keyformat: %s. Supported: s(tring), d(ecimal), f(loat)"%keyformat
 
-		self.keytype = keytype
+		self.keyformat = keyformat
 
 
-	def _setdatatype(self, datatype, dataclass=None):
+	def _setdataformat(self, dataformat):
 		# Set the DB data type. This will bind the correct
-		# dataclass attribute, and dumpdata and loaddata methods.
-		if datatype == 's':
-			# String datatype; use UTF-8 encoded strings.
+		# dataclass attribute, and datadump and dataload methods.
+		if dataformat == 's':
+			# String dataformat; use UTF-8 encoded strings.
 			self.dataclass = unicode
-			self.dumpdata = lambda x:x.encode('utf-8')
-			self.loaddata = lambda x:x.decode('utf-8')
-		elif datatype == 'd':
-			# Decimal datatype, use str encoded ints.
+			self.datadump = lambda x:x.encode('utf-8')
+			self.dataload = lambda x:x.decode('utf-8')
+		elif dataformat == 'd':
+			# Decimal dataformat, use str encoded ints.
 			self.dataclass = int
-			self.dumpdata = str
-			self.loaddata = int
-		elif datatype == 'f':
-			# Float datatype; these do not sort natively, so pickle them.
+			self.datadump = str
+			self.dataload = int
+		elif dataformat == 'f':
+			# Float dataformat; these do not sort natively, so pickle them.
 			self.dataclass = float
-			self.dumpdata = self._pickledump
-			self.loaddata = self._pickleload
-		elif datatype == 'p':
+			self.datadump = self._pickledump
+			self.dataload = self._pickleload
+		elif dataformat == 'p':
 			# This DB stores a DBO as a pickle.
-			if dataclass:
-				self.dataclass = dataclass
-			else:
-				self.dataclass = lambda x:x
-			self.dumpdata = self._pickledump
-			self.loaddata = self._pickleload
+			if not self.dataclass:
+				raise ValueError, "Data class required for pickled data."
+			self.datadump = self._pickledump
+			self.dataload = self._pickleload
 		else:
-			# Unknown datatype.
-			raise ValueError, "Invalid datatype: %s. Supported: s(tring), d(ecimal), f(loat), p(ickle)"%datatype
+			# Unknown dataformat.
+			raise ValueError, "Invalid dataformat: %s. Supported: s(tring), d(ecimal), f(loat), p(ickle)"%dataformat
 
-		self.datatype = datatype
+		self.dataformat = dataformat
 
 
 	##### DB methods #####
@@ -231,7 +227,7 @@ class EMEN2DB(object):
 			self.bdb.set_flags(flag)
 
 		# Set a sort method
-		if self.cfunc and self.keytype in ['d', 'f']:
+		if self.cfunc and self.keyformat in ['d', 'f']:
 			self.bdb.set_bt_compare(self._cfunc_numeric)
 
 		# Open the Berkeley DB with the correct flags.
@@ -255,7 +251,7 @@ class EMEN2DB(object):
 
 		"""
 		# Returns all keys in the database, plus keys in the cache
-		return map(self.loadkey, self.bdb.keys(txn)) + self.cache.keys()
+		return map(self.keyload, self.bdb.keys(txn)) + self.cache.keys()
 
 
 	def values(self, txn=None):
@@ -266,7 +262,7 @@ class EMEN2DB(object):
 
 		"""
 		# Returns all values in the database, plus all cached items
-		return [self.loaddata(x) for x in self.bdb.values(txn)] + map(pickle.loads, self.cache.values())
+		return [self.dataload(x) for x in self.bdb.values(txn)] + map(pickle.loads, self.cache.values())
 
 
 	def items(self, txn=None):
@@ -277,7 +273,7 @@ class EMEN2DB(object):
 
 		"""
 		# Returns all the data in the database, plus all cached items
-		return map(lambda x:(self.loadkey(x[0]),self.loaddata(x[1])), self.bdb.items(txn)) + [(k, pickle.loads(v)) for k,v in self.cache.items()]
+		return map(lambda x:(self.keyload(x[0]),self.dataload(x[1])), self.bdb.items(txn)) + [(k, pickle.loads(v)) for k,v in self.cache.items()]
 
 
 	def iteritems(self, txn=None, flags=0):
@@ -295,7 +291,7 @@ class EMEN2DB(object):
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
 		while pair != None:
-			yield (self.loadkey(pair[0]), self.loaddata(pair[1]))
+			yield (self.keyload(pair[0]), self.dataload(pair[1]))
 			pair = cursor.next_nodup()
 		cursor.close()
 
@@ -314,7 +310,7 @@ class EMEN2DB(object):
 		:return: True if key exists
 
 		"""
-		return self.bdb.exists(self.dumpkey(key), txn=txn, flags=flags) or self.cache.has_key(key)
+		return self.bdb.exists(self.keydump(key), txn=txn, flags=flags) or self.cache.has_key(key)
 
 
 	# Compatibility.
@@ -401,7 +397,7 @@ class EMEN2DB(object):
 			return pickle.loads(self.cache[key])
 
 		# Check BDB
-		d = self.loaddata(self.bdb.get(self.dumpkey(key), txn=txn, flags=flags))
+		d = self.dataload(self.bdb.get(self.keydump(key), txn=txn, flags=flags))
 		if d:
 			return d
 		if not filt:
@@ -428,7 +424,7 @@ class EMEN2DB(object):
 		emen2.db.log.msg('COMMIT', "%s.put: %s"%(self.filename, key))
 		
 		# print data.__dict__
-		self.bdb.put(self.dumpkey(key), self.dumpdata(data), txn=txn, flags=flags)
+		self.bdb.put(self.keydump(key), self.datadump(data), txn=txn, flags=flags)
 
 
 	# Dangerous!
@@ -459,7 +455,7 @@ class EMEN2DB(object):
 			raise KeyError, "Cannot delete read-only item %s"%key
 		# If the item exists, remove it.
 		if self.exists(key, txn=txn):
-			ret = self.bdb.delete(self.dumpkey(key), txn=txn, flags=flags)
+			ret = self.bdb.delete(self.keydump(key), txn=txn, flags=flags)
 			emen2.db.log.msg('COMMIT', "%s.delete: %s"%(self.filename, key))
 
 
@@ -530,7 +526,7 @@ class IndexDB(EMEN2DB):
 		while n:
 			r.add(n[1])
 			n = m()
-		return set(self.loaddata(x) for x in r)
+		return set(self.dataload(x) for x in r)
 
 	# Default get method used by get()
 	_get_method = _get_method_nonbulk
@@ -551,14 +547,14 @@ class IndexDB(EMEN2DB):
 
 		"""
 		if cursor:
-			r = self._get_method(cursor, self.dumpkey(key), self.datatype)
+			r = self._get_method(cursor, self.keydump(key), self.dataformat)
 		else:
 			cursor = self.bdb.cursor(txn=txn)
-			r = self._get_method(cursor, self.dumpkey(key), self.datatype)
+			r = self._get_method(cursor, self.keydump(key), self.dataformat)
 			cursor.close()
 
-		if bulk and self.datatype == 'p':
-			r = set(self.loaddata(x) for x in r)
+		if bulk and self.dataformat == 'p':
+			r = set(self.dataload(x) for x in r)
 
 		return r
 
@@ -575,7 +571,7 @@ class IndexDB(EMEN2DB):
 		:keyword txn: Transaction
 
 		"""
-		keys = set(map(self.loadkey, self.bdb.keys(txn)))
+		keys = set(map(self.keyload, self.bdb.keys(txn)))
 		return list(keys)
 
 
@@ -590,10 +586,10 @@ class IndexDB(EMEN2DB):
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
 		while pair != None:
-			data = self._get_method(cursor, pair[0], self.datatype)
-			if bulk and self.datatype == "p":
-				data = set(map(self.loaddata, data))
-			ret.append((self.loadkey(pair[0]), data))
+			data = self._get_method(cursor, pair[0], self.dataformat)
+			if bulk and self.dataformat == "p":
+				data = set(map(self.dataload, data))
+			ret.append((self.keyload(pair[0]), data))
 			pair = cursor.next_nodup()
 		cursor.close()
 
@@ -616,13 +612,13 @@ class IndexDB(EMEN2DB):
 		# Start a minimum key.
 		# This only works well if the keys are sorted properly.
 		if minkey is not None:
-			pair = cursor.set_range(self.dumpkey(minkey))
+			pair = cursor.set_range(self.keydump(minkey))
 
 		while pair != None:
-			data = self._get_method(cursor, pair[0], self.datatype)
-			k = self.loadkey(pair[0])
-			if bulk and self.datatype == "p":
-				data = set(map(self.loaddata, data))
+			data = self._get_method(cursor, pair[0], self.dataformat)
+			k = self.keyload(pair[0])
+			if bulk and self.dataformat == "p":
+				data = set(map(self.dataload, data))
 			yield (k, data)
 			pair = cursor.next_nodup()
 			if maxkey is not None and k > maxkey:
@@ -654,9 +650,9 @@ class IndexDB(EMEN2DB):
 		pair = cursor.first()
 		while pair != None:
 			processed += 1
-			data = self._get_method(cursor, pair[0], self.datatype)
-			if bulk and self.datatype == "p":
-				data = set(map(self.loaddata, data))
+			data = self._get_method(cursor, pair[0], self.dataformat)
+			if bulk and self.dataformat == "p":
+				data = set(map(self.dataload, data))
 
 			c = data & itemscopy
 			if c:
@@ -664,8 +660,8 @@ class IndexDB(EMEN2DB):
 				found += len(c)
 				# print "processed %s keys, %s items left to go"%
 				#	(processed, lenitems-found)
-				# ret[self.loadkey(pair[0])] = c
-				yield (self.loadkey(pair[0]), c)
+				# ret[self.keyload(pair[0])] = c
+				yield (self.keyload(pair[0]), c)
 
 			if found >= lenitems:
 				break
@@ -696,11 +692,11 @@ class IndexDB(EMEN2DB):
 
 		cursor = self.bdb.cursor(txn=txn)
 
-		key = self.typekey(key)
+		key = self.keyclass(key)
 		items = map(self.dataclass, items)
 
-		dkey = self.dumpkey(key)
-		ditems = map(self.dumpdata, items)
+		dkey = self.keydump(key)
+		ditems = map(self.datadump, items)
 
 		for ditem in ditems:
 			if cursor.set_both(dkey, ditem):
@@ -731,11 +727,11 @@ class IndexDB(EMEN2DB):
 
 		addindexitems = []
 
-		key = self.typekey(key)
+		key = self.keyclass(key)
 		items = map(self.dataclass, items)
 
-		dkey = self.dumpkey(key)
-		ditems = map(self.dumpdata, items)
+		dkey = self.keydump(key)
+		ditems = map(self.datadump, items)
 
 		#print "new cursor"
 		cursor = self.bdb.cursor(txn=txn)
@@ -768,7 +764,7 @@ class DBODB(EMEN2DB):
 	interface, setContext, writable, etc. See BaseDBObject.)
 
 	These DBs will generally used pickle as the data type; most will use
-	string as the keytype, except RecordDB, which uses ints.
+	string as the keyformat, except RecordDB, which uses ints.
 
 	The sequence class attribute, if True, will allow sequence support for
 	this DB. This is currently implemented using a separate BDB (to minimize
@@ -777,6 +773,8 @@ class DBODB(EMEN2DB):
 
 	Like EMEN2DB, most methods require a transaction. Additionally, because
 	this class manages DBOs, most methods also require a Context.
+
+	Adds a "keytype" attribute that is used as the DB name.
 
 	Extends the following methods:
 		__init__ 		Changes the filename slightly
@@ -804,14 +802,30 @@ class DBODB(EMEN2DB):
 
 	'''
 
-	datatype = 'p'
+	dataformat = 'p'
 	dataclass = None
+	keytype = None
 
-	def __init__(self, path='', *args, **kwargs):
+
+	def __init__(self, keytype=None, path=None, dataclass=None, *args, **kwargs):
 		# Change the filename slightly
-		self.path = path
-		name = self.dataclass.__name__
-		filename = os.path.join(self.path, name).lower()
+		dataclass = dataclass or self.dataclass
+		keytype = keytype or self.dataclass.__name__
+		path = path or keytype
+
+		dbenv = kwargs.get('dbenv')
+		self.path = str(path).lower()
+		self.keytype = str(keytype).lower()
+		self.dataclass = dataclass
+
+		filename = os.path.join(self.path, self.keytype)
+
+		d1 = os.path.join(dbenv.path, 'data', self.path)
+		d2 = os.path.join(dbenv.path, 'data', self.path, 'index')
+		for i in [d1, d2]:
+			try: os.makedirs(i)
+			except: pass
+
 		return super(DBODB, self).__init__(filename, *args, **kwargs)
 
 
@@ -865,7 +879,7 @@ class DBODB(EMEN2DB):
 				newname = self._name_generator(item, txn=txn)
 
 				try:
-					newname = self.typekey(newname)
+					newname = self.keyclass(newname)
 				except:
 					raise Exception, "Invalid name: %s"%newname
 
@@ -1010,7 +1024,7 @@ class DBODB(EMEN2DB):
 			return set([i.name for i in items])
 
 		return set(self.keys(txn=txn))
-		# return set(map(self.loadkey, self.bdb.keys(txn)))
+		# return set(map(self.keyload, self.bdb.keys(txn)))
 
 
 	def items(self, items=None, rt=None, ctx=None, txn=None, **kwargs):
@@ -1050,7 +1064,7 @@ class DBODB(EMEN2DB):
 			return rt( (k,v) for k,v in items if (self.cget(k, ctx=ctx, txn=txn) is not None) ) + cacheditems
 
 		# Return all items
-		return rt( (self.loadkey(k), self.loaddata(v)) for k,v in self.bdb.items(txn) ) + cacheditems
+		return rt( (self.keyload(k), self.dataload(v)) for k,v in self.bdb.items(txn) ) + cacheditems
 
 
 	def validate(self, items, ctx=None, txn=None):
@@ -1198,8 +1212,7 @@ class DBODB(EMEN2DB):
 			return
 
 		# Check that this key is currently marked as indexed
-		# ian: use the context.
-		pd = ctx.db.getparamdef(param, filt=False)
+		pd = self.dbenv['paramdef'].cget(param, filt=False, ctx=ctx, txn=txn)
 		vtm = emen2.db.datatypes.VartypeManager()
 		vt = vtm.getvartype(pd.vartype)
 		vt.pd = pd
@@ -1294,7 +1307,7 @@ class DBODB(EMEN2DB):
 
 		# Do this in chunks of 10,000 items
 		# Get all the keys -- do not include cached items
-		keys = sorted(map(self.loadkey, self.bdb.keys(txn)), reverse=True)
+		keys = sorted(map(self.keyload, self.bdb.keys(txn)), reverse=True)
 		for chunk in emen2.util.listops.chunk(keys, 10000):
 			if chunk:
 				print chunk[0], "...", chunk[-1]
@@ -1355,7 +1368,7 @@ class RelateDB(DBODB):
 		"""Extends openindex to add support for parents and children."""
 		if param in ['children', 'parents']:
 			filename = os.path.join(self.path, 'index', param)
-			ind = IndexDB(filename=filename, keytype=self.keytype, datatype=self.keytype, dbenv=self.dbenv, autoopen=False)
+			ind = IndexDB(filename=filename, keyformat=self.keyformat, dataformat=self.keyformat, dbenv=self.dbenv, autoopen=False)
 			ind.cfunc = False # Historical
 			ind._setbulkmode(False)
 			ind.open()
@@ -1387,7 +1400,7 @@ class RelateDB(DBODB):
 		add = set()
 		for key in (i for i in names if isinstance(i, basestring)):
 			try:
-				newkey = self.typekey(key.replace('*', ''))
+				newkey = self.keyclass(key.replace('*', ''))
 			except:
 				raise KeyError, "Invalid key: %s"%key
 
@@ -1731,7 +1744,7 @@ class RelateDB(DBODB):
 		# Starting items
 
 		# NOTE: I am using this ugly direct call 'rel._get_method' to the C module because it saves 10-20% time.
-		new = rel._get_method(cursor, rel.dumpkey(key), rel.datatype) # rel.get(key, cursor=cursor)
+		new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) # rel.get(key, cursor=cursor)
 		if key in self.cache:
 			new |= cache.get(key, set())
 
@@ -1746,7 +1759,7 @@ class RelateDB(DBODB):
 
 			stack.append(set())
 			for key in stack[x] - visited:
-				new = rel._get_method(cursor, rel.dumpkey(key), rel.datatype) # rel.get(key, cursor=cursor)
+				new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) # rel.get(key, cursor=cursor)
 				if key in self.cache:
 					new |= cache.get(key, set())
 

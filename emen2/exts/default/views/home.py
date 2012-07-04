@@ -22,7 +22,7 @@ class Home(View):
 		banner = emen2.db.config.get('customization.EMEN2LOGO')
 
 		try:
-			user, groups = self.db.checkcontext()
+			user, groups = self.db.auth.check.context()
 		except (emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.SessionError), inst:
 			user = "anonymous"
 			groups = set(["anon"])
@@ -32,8 +32,8 @@ class Home(View):
 			banner = bookmarks.get('BANNER_NOAUTH', banner)
 
 		try:
-			banner = self.db.getrecord(banner)
-			render_banner = self.db.renderview(banner, viewname="banner")
+			banner = self.db.record.get(banner)
+			render_banner = self.db.record.render(banner, viewname="banner")
 		except Exception, inst:
 			banner = None
 			render_banner = ""

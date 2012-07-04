@@ -260,7 +260,7 @@ class NewUser(BaseUser):
 
 
 class User(BaseUser):
-	"""User record. This contains the basic metadata information for a single user account, including username, password, primary email address, active/disabled, timestamps, and link to more complete user profile. Group membership is stored in Group instances, and set here by db.getuser by checking an index. If available during db.getuser, a copy of the profile record and the user's "displayname" will also be set.
+	"""User record. This contains the basic metadata information for a single user account, including username, password, primary email address, active/disabled, timestamps, and link to more complete user profile. Group membership is stored in Group instances, and set here by db.user.get by checking an index. If available during db.user.get, a copy of the profile record and the user's "displayname" will also be set.
 
 	@attr name Username for logging in, first character must be a letter, no spaces
 	@attr password SHA1 hashed password
@@ -388,7 +388,7 @@ class User(BaseUser):
 
 		if not self._userrec:
 			if not record:
-				record = self._ctx.db.getrecord(self.record) or {}
+				record = self._ctx.db.record.get(self.record) or {}
 			self._set('_userrec', record, True)
 
 		d = self._formatusername(lnf=lnf)
@@ -525,9 +525,9 @@ class UserDB(emen2.db.btrees.DBODB):
 
 	def openindex(self, param, txn=None):
 		if param == 'email':
-			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keytype='s', datatype='s', dbenv=self.dbenv)
+			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat='s', dataformat='s', dbenv=self.dbenv)
 		elif param == 'record':
-			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keytype='d', datatype='s', dbenv=self.dbenv)			
+			ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat='d', dataformat='s', dbenv=self.dbenv)			
 		else:
 			ind = super(UserDB, self).openindex(param, txn=txn)
 		return ind
@@ -556,8 +556,8 @@ class NewUserDB(emen2.db.btrees.DBODB):
 				raise emen2.db.exceptions.ExistingKeyError, emen2.db.exceptions.ExistingKeyError.__doc__
 
 		# Check if this email already exists
-		indemail = self.dbenv.user.getindex('email', txn=txn)
-		if self.dbenv.user.exists(newuser.name, txn=txn) or indemail.get(newuser.email, txn=txn):
+		indemail = self.dbenv["user"].getindex('email', txn=txn)
+		if self.dbenv["user"].exists(newuser.name, txn=txn) or indemail.get(newuser.email, txn=txn):
 			raise emen2.db.exceptions.ExistingKeyError, emen2.db.exceptions.ExistingKeyError.__doc__
 
 		return newuser

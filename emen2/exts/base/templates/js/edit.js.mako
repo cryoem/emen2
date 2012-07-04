@@ -51,20 +51,20 @@
 			// If we need users or params, fetch them.
 			// Todo: find a nicer way to chain these together
 			if (users && params) {
-				emen2.db('getuser', [users], function(users) {
+				emen2.db('user.get', [users], function(users) {
 					emen2.cache.update(users)
-					emen2.db('getparamdef', [params], function(params) {
+					emen2.db('paramdef.get', [params], function(params) {
 						emen2.cache.update(params)
 						self._build();
 					});
 				});
 			} else if (params) {
-				emen2.db("getparamdef", [params], function(params) {
+				emen2.db("paramdef.get", [params], function(params) {
 					emen2.cache.update(params)
 					self._build();
 				});
 			} else if (users) {
-				emen2.db("getuser", [users], function(users) {
+				emen2.db("user.get", [users], function(users) {
 					emen2.cache.update(users)
 					self._build();
 				});
@@ -145,7 +145,7 @@
 		
 		save: function(e) {	
 			var self = this;
-			emen2.db('addcomment', [this.options.name, $('textarea[name=comment]', this.options.controls).val()], function(rec) {
+			emen2.db('record.addcomment', [this.options.name, $('textarea[name=comment]', this.options.controls).val()], function(rec) {
 				$.record_update(rec)
 				$.notify('Comment Added');
 			});
@@ -229,12 +229,12 @@
 		
 		_record_new: function() {
 			var self = this;
-			emen2.db('getrecorddef', [[self.options.rectype]], function(rds) {
+			emen2.db('recorddef.get', [[self.options.rectype]], function(rds) {
 				emen2.cache.update(rds);
-				emen2.db('newrecord', {'rectype':self.options.rectype, 'inherit':self.options.parent}, function(rec) {
+				emen2.db('record.new', {'rectype':self.options.rectype, 'inherit':self.options.parent}, function(rec) {
 					// console.log("New record:", rec);
 					emen2.caches['record']['None'] = rec;
-					emen2.db('renderview', {'names':rec, 'viewname':'mainview', 'edit':true}, function(rendered) {
+					emen2.db('record.render', {'names':rec, 'viewname':'mainview', 'edit':true}, function(rendered) {
 						self._build(rendered);
 					});				
 				});
@@ -243,13 +243,13 @@
 		
 		_record_edit: function() {
 			var self = this;
-			emen2.db('getrecord', [self.options.name], function(rec) {
+			emen2.db('record.get', [self.options.name], function(rec) {
 				emen2.cache.update([rec]);
 				
 				self.options.rectype = rec['rectype']
-				emen2.db('getrecorddef', [rec['rectype']], function(rds) {
+				emen2.db('recorddef.get', [rec['rectype']], function(rds) {
 					emen2.cache.update([rds]);
-					emen2.db('renderview', {'names':self.options.name, 'viewname':'mainview', 'edit':true}, function(rendered) {
+					emen2.db('record.render', {'names':self.options.name, 'viewname':'mainview', 'edit':true}, function(rendered) {
 						self._build(rendered);
 					});				
 				});			
@@ -342,14 +342,14 @@
 			this.element.append(emen2.template.spinner(true));
 			
 			// Get the RecordDef for typicalchildren and prettier display
-			emen2.db("findrecorddef", {'record':[this.options.parent]}, function(rd) {
+			emen2.db("recorddef.find", {'record':[this.options.parent]}, function(rd) {
 				var typicalchld = [];
 				$.each(rd, function() {
 					self.options.rectype = this.name;
 					emen2.caches['recorddef'][this.name] = this;
 					typicalchld = this.typicalchld;					
 				});
-				emen2.db("getrecorddef", [typicalchld], function(rd2) {
+				emen2.db("recorddef.get", [typicalchld], function(rd2) {
 					$.each(rd2, function() {
 						emen2.caches['recorddef'][this.name] = this;
 					})
@@ -513,9 +513,9 @@
 
 			// Request records and params; update caches; show widget on callback
 			if (names.length || params.length) {
-				emen2.db("getrecord", [names], function(recs) {
+				emen2.db("record.get", [names], function(recs) {
 					emen2.cache.update(recs);
-					emen2.db("getparamdef", [params], function(paramdefs) {
+					emen2.db("paramdef.get", [params], function(paramdefs) {
 						emen2.cache.update(paramdefs);
 						self._build();
 					});
@@ -632,7 +632,7 @@
 					
 			// Get the Record if it isn't cached
 			if (emen2.caches['record'][this.options.name] == null) {
-				emen2.db("getrecord", [this.options.name], function(rec) {
+				emen2.db("record.get", [this.options.name], function(rec) {
 					emen2.cache.update([rec]);
 					self.show();
 				});
@@ -641,7 +641,7 @@
 
 			// Get the ParamDef if it isn't cached
 			if (!emen2.caches['paramdef'][this.options.param]) {
-				emen2.db("getparamdef", [this.options.param], function(paramdef){
+				emen2.db("paramdef.get", [this.options.param], function(paramdef){
 					emen2.cache.update([paramdef]);
 					self.show();
 				});
@@ -858,7 +858,7 @@
 			editw.autocomplete({
 				minLength: 0,
 				source: function(request, response) {
-					emen2.db("findvalue", [param, request.term], function(ret) {
+					emen2.db("record.findbyvalue", [param, request.term], function(ret) {
 						var r = $.map(ret, function(item) {
 							return {
 								label: item[0] + " (" + item[1] + " records)",

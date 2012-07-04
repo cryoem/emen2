@@ -38,9 +38,9 @@ class Download(View):
 
 		# Query for BDOs
 		if q:
-			bdos = self.db.getbinary(q=q)
+			bdos = self.db.binary.get(q=q)
 		else:
-			bdos = self.db.getbinary(bids)
+			bdos = self.db.binary.get(bids)
 
 		# Found what we needed; close the transaction
 		return bdos

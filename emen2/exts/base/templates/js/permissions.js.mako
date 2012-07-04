@@ -45,13 +45,13 @@
 					var users = [];
 					$.each(item['permissions'] || [], function(k, v) {users = users.concat(v)});
 					users = emen2.cache.check('user', users);
-					emen2.db('getuser', [users], function(users) {
+					emen2.db('user.get', [users], function(users) {
 						emen2.cache.update(users);
 
 						// 3. ... also get groups ...
 						var groups = item['groups'] || [];
 						groups = emen2.cache.check('group', groups);
-						emen2.db('getgroup', [groups], function(groups) {					
+						emen2.db('group.get', [groups], function(groups) {					
 							emen2.cache.update(groups)
 
 							// 4. Finally call real build method
@@ -66,13 +66,13 @@
 				var users = [];
 				$.each(item['permissions'] || [], function(k, v) {users = users.concat(v)});
 				users = emen2.cache.check('user', users);
-				emen2.db('getuser', [users], function(users) {
+				emen2.db('user.get', [users], function(users) {
 					emen2.cache.update(users);
 
 					// 3. ... also get groups ...
 					var groups = item['groups'] || [];
 					groups = emen2.cache.check('group', groups);
-					emen2.db('getgroup', [groups], function(groups) {					
+					emen2.db('group.get', [groups], function(groups) {					
 						emen2.cache.update(groups)
 
 						// 4. Finally call real build method

@@ -18,7 +18,7 @@ class Auth(View):
 
 		ctxid = None
 		if name != None:
-			ctxid = self.db.login(name, pw, host=self.ctxt['HOST'])
+			ctxid = self.db.auth.login(name, pw, host=self.ctxt['HOST'])
 			msg = 'Successfully logged in'
 
 			self.set_header('X-Ctxid', ctxid)
@@ -47,7 +47,7 @@ class Auth(View):
 
 		self.set_context_item('location', location)
 		try:
-			self.db.logout()
+			self.db.auth.logout()
 			msg = 'Successfully logged out'
 		except Exception, errmsg:
 			pass
@@ -68,7 +68,7 @@ class Auth(View):
 		self.title = "Password Change"
 		self.ctxt['location'] = location
 
-		name = kwargs.pop("name",None) or self.db.checkcontext()[0]
+		name = kwargs.pop("name",None) or self.db.auth.check.context()[0]
 		opw = kwargs.pop("opw",None)
 		on1 = kwargs.pop("on1",None)
 		on2 = kwargs.pop("on2",None)
@@ -86,7 +86,7 @@ class Auth(View):
 
 		else:
 			try:
-				self.db.setpassword(opw, on1, name=name)
+				self.db.user.setpassword(opw, on1, name=name)
 				msg = "Password changed successfully"
 			except Exception, errmsg:
 				pass
@@ -113,7 +113,7 @@ class Auth(View):
 		if email:
 			if secret and newpassword:
 				try:
-					name = self.db.setpassword(oldpassword=None, newpassword=newpassword, secret=secret, name=email)
+					name = self.db.user.setpassword(oldpassword=None, newpassword=newpassword, secret=secret, name=email)
 					msg = 'The password for your account, %s, has been changed'%name
 				except Exception, errmsg:
 					pass
@@ -124,7 +124,7 @@ class Auth(View):
 
 			else:
 				try:
-					self.db.resetpassword(email)
+					self.db.user.resetpassword(email)
 					msg = 'Instructions for resetting your password have been sent to %s'%email
 				except Exception, errmsg:
 					pass
@@ -142,7 +142,7 @@ class Auth(View):
 		self.title = "Change Email"
 		self.ctxt['location'] = location
 
-		name = kwargs.get("name") or self.db.checkcontext()[0]
+		name = kwargs.get("name") or self.db.auth.check.context()[0]
 		opw = kwargs.get('opw', None)
 		email = kwargs.get('email', None)
 
@@ -152,7 +152,7 @@ class Auth(View):
 
 		if email:
 			try:
-				ret = self.db.setemail(email, password=opw, name=name)
+				ret = self.db.user.setemail(email, password=opw, name=name)
 				if email == ret:
 					msg = 'Email address successfully updated to %s'%ret
 				else:
@@ -178,7 +178,7 @@ class Auth(View):
 
 		if email and secret:
 			try:
-				ret = self.db.setemail(email, secret=secret)
+				ret = self.db.user.setemail(email, secret=secret)
 				msg = "The email address for your account has been changed to %s"%ret
 			except Exception, errmsg:
 				pass

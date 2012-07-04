@@ -150,6 +150,23 @@ def gettime():
 	return datetime.datetime.utcnow().replace(microsecond=0).isoformat()+'+00:00'
 
 
+def getpw(pw=None):
+	# import platform
+	# import pwd
+	# host = platform.node() or 'localhost'
+	# defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
+	pw = pw or getpass.getpass("Password: ")
+	while len(pw) < 6:
+		if len(pw) == 0:
+			print "Warning! No password!"
+			pw = ''
+			break
+		elif len(pw) < 6:
+			print "Warning! If you set a password, it needs to be more than 6 characters."
+			pw = getpass.getpass("Password: ")
+	return pw
+
+
 def ol(name, output=True):
 	"""Use method argument introspection to convert an argument value to a list.
 	If the value was originally a list, return a list. If it was not, return
@@ -375,7 +392,7 @@ class EMEN2DBEnv(object):
 		self.indexablevartypes = set()
 		for y in vtm.getvartypes():
 			y = vtm.getvartype(y)
-			if y.keytype:
+			if y.keyformat:
 				self.indexablevartypes.add(y.getvartype())
 
 		# Open DB environment; check if global DBEnv has been opened yet
@@ -414,33 +431,27 @@ class EMEN2DBEnv(object):
 
 
 	def init(self):
-		"""Open the databases."""
-		self.paramdef = emen2.db.paramdef.ParamDefDB(path="paramdef", dbenv=self)
+		"""Open the databases."""		
 
-		# Authentication.
-		self.context = emen2.db.context.ContextDB(path="context", dbenv=self)
-		self.user = emen2.db.user.UserDB(path="user", dbenv=self)
-		self.group = emen2.db.group.GroupDB(path="group", dbenv=self)
-		self.newuser = emen2.db.user.NewUserDB(path="newuser", dbenv=self)
+		# Authentication. This is not part of the public API.
+		self._context = emen2.db.context.ContextDB(keytype='context', dbenv=self)
 
-		# Main database items.
-		self.binary = emen2.db.binary.BinaryDB(path="binary", dbenv=self)
-		self.record = emen2.db.record.RecordDB(path="record", dbenv=self)
-		self.recorddef = emen2.db.recorddef.RecordDefDB(path="recorddef", dbenv=self)
+		# Main database items. These are available in the public API.
+		self.add_db(emen2.db.paramdef.ParamDefDB, keytype='paramdef')
+		self.add_db(emen2.db.user.UserDB, keytype='user')
+		self.add_db(emen2.db.group.GroupDB, keytype='group')
+		self.add_db(emen2.db.user.NewUserDB, keytype='newuser')
+		self.add_db(emen2.db.binary.BinaryDB, keytype="binary")
+		self.add_db(emen2.db.recorddef.RecordDefDB, keytype="recorddef")
+		self.add_db(emen2.db.binary.BinaryTmpDB, keytype="upload")
 
-		# Uploaded files.
-		self.upload = emen2.db.binary.BinaryTmpDB(path="upload", dbenv=self)
+		# Records are keyed with integers. (for now.)
+		self.add_db(emen2.db.record.RecordDB, keytype="record", keyformat='d')
 
-		# Access by keytype..
-		self.keytypes = {
-			'record': self.record,
-			'paramdef': self.paramdef,
-			'recorddef': self.recorddef,
-			'user': self.user,
-			'group': self.group,
-			'binary': self.binary,
-			'upload': self.upload
-		}
+
+	def add_db(self, cls, **kwargs):
+		db = cls(dbenv=self, **kwargs)
+		self.keytypes[db.keytype] = db
 
 
 	# ian: todo: make this nicer.
@@ -479,28 +490,16 @@ class EMEN2DBEnv(object):
 				raise ValueError, "No database environment in EMEN2DBHOME directory: %s"%self.path
 			return
 
-		paths = [
-			"data",
-			"log",
-			"exts"
-			]
-		
-		# todo: have the BTrees create their own directories.
-		for i in ['context','newuser','user','group','binary','record','paramdef','recorddef','upload']:
-			for j in ['', '/index']:
-				paths.append('data/%s%s'%(i,j))
-
-		paths = (os.path.join(self.path, path) for path in paths)
-		for path in paths:
-			if not os.path.exists(path):
-				os.makedirs(path)
-
 		paths = []
+		for path in ['data', 'log']:
+			paths.append(os.path.join(self.path, path))
+		
 		for path in [self.LOGPATH, self.LOG_ARCHIVE, self.TILEPATH, self.TMPPATH, self.SSLPATH]:
 			try:
 				paths.append(path)
 			except AttributeError:
 				pass
+
 		paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
 
 		configpath = os.path.join(self.path,"DB_CONFIG")
@@ -581,12 +580,11 @@ class EMEN2DBEnv(object):
 		_txn_action(txnid, self._txn_postcommit)
 
 		if DB.sync_contexts.is_set():
-			self.context.bdb.sync()
+			self._context.bdb.sync()
 			DB.sync_contexts.clear()
 
 
 		
-
 	def checkpoint(self, txn=None):
 		"""Checkpoint the database environment."""
 		return self.dbenv.txn_checkpoint()
@@ -663,7 +661,7 @@ class DB(object):
 		:keyword create: Create the environment if it does not already exist.
 		"""
 		# Open the database
-		self.bdbs = EMEN2DBEnv(path=path, create=create)
+		self.dbenv = EMEN2DBEnv(path=path, create=create)
 
 		# Load ParamDefs/RecordDefs from extensions.
 		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
@@ -673,7 +671,7 @@ class DB(object):
 		self.contexts_cache = {}
 
 		# Create root account, groups, and root record if necessary
-		if self.bdbs.create:
+		if self.dbenv.create:
 			self.setup()
 
 
@@ -682,12 +680,11 @@ class DB(object):
 		# Create a special root context to load the items
 		ctx = emen2.db.context.SpecialRootContext(db=self)
 		loader = emen2.db.load.BaseLoader(infile=infile)
-		for keytype in ['paramdef', 'recorddef', 'user', 'group', 'binary', 'record']:
-			# print "Loading cache:", keytype
+		for keytype in self.dbenv.keytypes:
 			for item in loader.loadfile(keytype=keytype):
-				i = self.bdbs.keytypes[keytype].dataclass(ctx=ctx)
+				i = self.dbenv[keytype].dataclass(ctx=ctx)
 				i._load(item)
-				self.bdbs.keytypes[keytype].addcache(i)
+				self.dbenv[keytype].addcache(i)
 
 
 	def __str__(self):
@@ -730,31 +727,20 @@ class DB(object):
 		@keyparam rootpw Root Account Password
 		@keyparam rootemail Root Account email
 		"""
-		import platform
-		def getpw(rootpw=None, rootemail=None):
-			host = platform.node() or 'localhost'
-			# defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
-			defaultemail = 'root@localhost'
-			print "\n=== Setup Admin (root) account ==="
-			rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
-			rootpw = rootpw or getpass.getpass("Admin (root) password (default: none): ")
-			while len(rootpw) < 6:
-				if len(rootpw) == 0:
-					print "Warning! No root password!"
-					rootpw = ''
-					break
-				elif len(rootpw) < 6:
-					print "Warning! If you set a password, it needs to be more than 6 characters."
-					rootpw = getpass.getpass("Admin (root) password (default: none): ")
-			return rootpw, rootemail
+		
+		# import platform
+		# import pwd
+		# host = platform.node() or 'localhost'
+		# defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
+		defaultemail = 'root@localhost'
+		print "\n=== Setup Admin (root) account ==="
+		rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
+		rootpw = getpw(pw=rootpw)
 
 		db = self.opendb(db=self, admin=True)
 		with db:
-			root = db.getuser('root')
-			rootpw, rootemail = getpw(rootpw=rootpw, rootemail=rootemail)
 			root = {'name':'root','email':rootemail, 'password':rootpw}
 			db.put([root], keytype='user')
-
 			loader = emen2.db.load.Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
 			loader.load()
 
@@ -772,10 +758,11 @@ class DB(object):
 		:return: Context
 		:exception: SessionError
 		"""
+		
 		# Find the context; check the cache first, then the bdb.
 		# If no ctxid was provided, make an Anonymous Context.
 		if ctxid:
-			context = self.contexts_cache.get(ctxid) or self.bdbs.context.get(ctxid, txn=txn)
+			context = self.contexts_cache.get(ctxid) or self.dbenv._context.get(ctxid, txn=txn)
 		else:
 			context = emen2.db.context.AnonymousContext(host=host)
 
@@ -790,11 +777,11 @@ class DB(object):
 
 		# Fetch the user record and group memberships
 		if context.username != 'anonymous':
-			indg = self.bdbs.group.getindex('permissions', txn=txn)
+			indg = self.dbenv["group"].getindex('permissions', txn=txn)
 			groups = indg.get(context.username, set(), txn=txn)
 			grouplevels = {}
 			for group in groups:
-				group = self.bdbs.group.get(group, txn=txn)
+				group = self.dbenv["group"].get(group, txn=txn)
 				grouplevels[group.name] = group.getlevel(context.username)
 
 		# Sets the database reference, user record, display name, groups, and updates
@@ -828,10 +815,10 @@ class DB(object):
 		:param *kwargs: method kwargs
 		:return: Results of commit/puts
 		"""
-		items = self.bdbs.keytypes[keytype].cgets(names, ctx=ctx, txn=txn)
+		items = self.dbenv[keytype].cgets(names, ctx=ctx, txn=txn)
 		for item in items:
 			getattr(item, method)(*args, **kwargs)
-		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
+		return self.dbenv[keytype].cputs(items, ctx=ctx, txn=txn)
 
 
 	def _mapput_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
@@ -852,18 +839,18 @@ class DB(object):
 		:return: Macro keytype ('d'/'s'/'f'/None), and dict of processed Records
 		"""
 		recs = {}
-		mrecs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
+		mrecs = self.dbenv["record"].cgets(names, ctx=ctx, txn=txn)
 		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
 		regex = VIEW_REGEX
 		
 		k = regex.match(macro)
-		keytype = vtm.getmacro(k.group('name')).getkeytype()
+		keyformat = vtm.getmacro(k.group('name')).getkeyformat()
 		vtm.macro_preprocess(k.group('name'), k.group('args'), mrecs)
 
 		for rec in mrecs:
 			recs[rec.name] = vtm.macro_process(k.group('name'), k.group('args'), rec)
 
-		return keytype, recs
+		return keyformat, recs
 
 
 	def _boolmode_collapse(self, rets, boolmode):
@@ -883,7 +870,7 @@ class DB(object):
 		rds = set(rds)
 		rds |= set([i.rectype for i in recs])
 		if recnames:
-			grouped = self.groupbyrectype(names, ctx=ctx, txn=txn)
+			grouped = self.record_groupbyrectype(names, ctx=ctx, txn=txn)
 			rds |= set(grouped.keys())
 		return rds
 
@@ -893,11 +880,11 @@ class DB(object):
 		recnames, recs, params = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
 		params = set(params)
 		if recnames:
-			recs.extend(self.bdbs.record.cgets(recnames, ctx=ctx, txn=txn))
+			recs.extend(self.dbenv["record"].cgets(recnames, ctx=ctx, txn=txn))
 		for i in recs:
 			params |= set(i.keys())
 			#rds = set([i.rectype for i in recs])
-			#for rd in self.bdbs.recorddef.cgets(rds, ctx=ctx, txn=txn):
+			#for rd in self.dbenv["recorddef"].cgets(rds, ctx=ctx, txn=txn):
 			#	params |= set(rd.paramsK)
 		return params
 
@@ -908,7 +895,7 @@ class DB(object):
 		values = set(values)
 		# print "getting recs"
 		if recnames:
-			recs.extend(self.bdbs.record.cgets(recnames, filt=False, ctx=ctx, txn=txn))
+			recs.extend(self.dbenv["record"].cgets(recnames, filt=False, ctx=ctx, txn=txn))
 		if not recs:
 			return values
 
@@ -922,7 +909,7 @@ class DB(object):
 		pds = set()
 		for rec in recs:
 			pds |= set(rec.keys())
-		for pd in self.bdbs.paramdef.cgets(pds, ctx=ctx, txn=txn):
+		for pd in self.dbenv["paramdef"].cgets(pds, ctx=ctx, txn=txn):
 			if pd.vartype not in vartypes:
 				continue
 			vartype = vtm.getvartype(pd.vartype)
@@ -969,7 +956,7 @@ class DB(object):
 		"""(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
 		rets = []
 		# This can still be done much better
-		names, items = zip(*self.bdbs.keytypes[keytype].items(ctx=ctx, txn=txn))
+		names, items = zip(*self.dbenv[keytype].items(ctx=ctx, txn=txn))
 		ditems = listops.dictbykey(items, 'name')
 
 		query = unicode(query or '').split()
@@ -1001,7 +988,7 @@ class DB(object):
 		# Default params
 		public = set() | emen2.db.record.Record.attr_public
 		show = set(rec.keys()) | recdefs.get(rec.rectype).paramsK | public
-		descs = dict((i.name,i.desc_short) for i in self.getparamdef(show, ctx=ctx, txn=txn))
+		descs = dict((i.name,i.desc_short) for i in self.dbenv['paramdef'].cgets(show, ctx=ctx, txn=txn))
 		show -= public
 		par = []
 		par.extend(sorted(show, key=lambda x:descs.get(x, x)))
@@ -1046,8 +1033,8 @@ class DB(object):
 
 	##### Time #####
 
-	@publicmethod('time.difference')
-	def timedifference(self, t1, t2=None, ctx=None, txn=None):
+	@publicmethod()
+	def time_difference(self, t1, t2=None, ctx=None, txn=None):
 		"""Returns the difference between two times in seconds.
 		
 		:param t1: The first time.
@@ -1062,8 +1049,8 @@ class DB(object):
 		return t2 - t1
 		
 		
-	@publicmethod("time.now")
-	def gettime(self, ctx=None, txn=None):
+	@publicmethod()
+	def time_now(self, ctx=None, txn=None):
 		"""Get current time.
 
 		Examples:
@@ -1079,8 +1066,8 @@ class DB(object):
 
 	###### Version ######
 
-	@publicmethod("version")
-	def checkversion(self, program="API", ctx=None, txn=None):
+	@publicmethod()
+	def version(self, program="API", ctx=None, txn=None):
 		"""Returns current version of API or specified program.
 
 		Examples:
@@ -1100,7 +1087,7 @@ class DB(object):
 
 	##### Utilities #####
 
-	@publicmethod("ping")
+	@publicmethod()
 	def ping(self, *a, **kw):
 		"""Utitlity method to ensure the server is up
 
@@ -1116,18 +1103,18 @@ class DB(object):
 
 	##### Login and Context Management #####
 
-	@publicmethod("auth.login", write=True)
-	def login(self, name="anonymous", password="", host=None, ctx=None, txn=None):
+	@publicmethod(write=True, compat="login")
+	def auth_login(self, name="anonymous", password="", host=None, ctx=None, txn=None):
 		"""Login.
 
 		Returns auth token (ctxid), or fails with AuthenticationError.
 
 		Examples:
 
-		>>> db.login(name='example@example.com', password='foobar')
+		>>> db.auth.login(name='example@example.com', password='foobar')
 		654067667525479cba8eb2940a3cf745de3ce608
 
-		>>> db.login(name='ian@example.com', password='foobar')
+		>>> db.auth.login(name='ian@example.com', password='foobar')
 		AuthenticationError, "Invalid user name, email, or password"
 
 		:keyword name: Account name or email address
@@ -1144,7 +1131,7 @@ class DB(object):
 		else:
 			# Check the password; user.checkpassword will raise Exception if wrong
 			try:
-				user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
+				user = self.dbenv["user"].getbyemail(name, filt=False, txn=txn)
 				user.checkpassword(password)
 			except SecurityError, e:
 				raise AuthenticationError, str(e)
@@ -1155,35 +1142,35 @@ class DB(object):
 			newcontext = emen2.db.context.Context(username=user.name, host=host)
 
 		# This puts directly, instead of using cput.
-		self.bdbs.context.put(newcontext.name, newcontext, txn=txn)
+		self.dbenv._context.put(newcontext.name, newcontext, txn=txn)
 		emen2.db.log.msg('SECURITY', "Login succeeded: %s -> %s" % (name, newcontext.name))
 
 		return newcontext.name
 
 
 	# This doesn't work until DB restart (the context isn't immediately cleared)?
-	@publicmethod("auth.logout", write=True)
-	def logout(self, ctx=None, txn=None):
+	@publicmethod(write=True, compat="logout")
+	def auth_logout(self, ctx=None, txn=None):
 		"""Delete context and logout.
 
 		Examples:
 
-		>>> db.logout()
+		>>> db.auth.logout()
 		None
 		"""
 		# Remove the cached context, and delete the stored one.
 		self.contexts_cache.pop(ctx.name, None)
-		self.bdbs.context.delete(ctx.name, txn=txn)
+		self.dbenv._context.delete(ctx.name, txn=txn)
 		self.sync_contexts.set()
 
 
-	@publicmethod("auth.check.context")
-	def checkcontext(self, ctx=None, txn=None):
+	@publicmethod(compat="checkcontext")
+	def auth_check_context(self, ctx=None, txn=None):
 		"""Return basic information about the current Context.
 
 		Examples:
 
-		>>> db.checkcontext()
+		>>> db.auth.check.context()
 		(ian, set(['admin', 'authenticated']))
 
 		:return: (Context User name, set of Context groups)
@@ -1191,13 +1178,13 @@ class DB(object):
 		return ctx.username, ctx.groups
 
 
-	@publicmethod("auth.check.admin")
-	def checkadmin(self, ctx=None, txn=None):
+	@publicmethod(compat="checkadmin")
+	def auth_check_admin(self, ctx=None, txn=None):
 		"""Checks if the user has global write access.
 
 		Examples:
 
-		>>> db.checkadmin()
+		>>> db.auth.check.admin()
 		True
 
 		:return: True if user is an admin
@@ -1205,13 +1192,13 @@ class DB(object):
 		return ctx.checkadmin()
 
 
-	@publicmethod("auth.check.readadmin")
-	def checkreadadmin(self, ctx=None, txn=None):
+	@publicmethod(compat="checkreadadmin")
+	def auth_check_readadmin(self, ctx=None, txn=None):
 		"""Checks if the user has global read access.
 
 		Examples:
 
-		>>> db.checkreadadmin()
+		>>> db.auth.check.readadmin()
 		True
 
 		:return: True if user is a read admin
@@ -1219,13 +1206,13 @@ class DB(object):
 		return ctx.checkreadadmin()
 
 
-	@publicmethod("auth.check.create")
-	def checkcreate(self, ctx=None, txn=None):
+	@publicmethod(compat="checkcreate")
+	def auth_check_create(self, ctx=None, txn=None):
 		"""Check for permission to create records.
 
 		Examples:
 
-		>>> db.checkcreate()
+		>>> db.auth.check.create()
 		True
 
 		:return: True if the user can create records
@@ -1236,7 +1223,7 @@ class DB(object):
 
 	##### Generic methods #####
 
-	@publicmethod("get")
+	@publicmethod()
 	@ol('names')
 	def get(self, names, keytype='record', filt=True, ctx=None, txn=None):
 		"""Get item(s).
@@ -1263,10 +1250,10 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.bdbs.keytypes[keytype].cgets(names, filt=filt, ctx=ctx, txn=txn)
+		return getattr(self, '%s_get'%(keytype))(names, filt=filt, ctx=ctx, txn=txn)
 
 
-	@publicmethod("new")
+	@publicmethod()
 	def new(self, *args, **kwargs):
 		"""Create a new item.
 
@@ -1297,17 +1284,10 @@ class DB(object):
 		:exception ValidationError:
 		"""
 		keytype = kwargs.pop('keytype', 'record')
-		return dict(
-			user = self.newuser,
-			group = self.newgroup,
-			paramdef = self.newparamdef,
-			record = self.newrecord,
-			recorddef = self.newrecorddef,
-			binary = self.newbinary,
-		)[keytype](*args, **kwargs)
+		return getattr(self, '%s_new'%(keytype))(*args, **kwargs)
 		
 		
-	@publicmethod("put", write=True)
+	@publicmethod(write=True)
 	@ol('items')
 	def put(self, items, keytype='record', ctx=None, txn=None):
 		"""Put item(s).
@@ -1333,20 +1313,21 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
+		return getattr(self, '%s_put'%(keytype))(items, ctx=ctx, txn=txn)
 
 
-	@publicmethod("names")
+	@publicmethod()
 	def names(self, keytype='record', ctx=None, txn=None):
-		return self.bdbs.keytypes[keytype].names(ctx=ctx, txn=txn)
+		keytype = kwargs.pop('keytype', 'record')
+		return getattr(self, '%s_names'%(keytype))(ctx=ctx, txn=txn)
 		
 	
-	@publicmethod("find")
+	@publicmethod()
 	def find(self, keytype='record', ctx=None, txn=None):
 		pass
 
 
-	@publicmethod("query")
+	@publicmethod()
 	def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""General query.
 
@@ -1422,7 +1403,7 @@ class DB(object):
 		)
 
 		# Run the query
-		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
+		q = self.dbenv[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
 		ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
 		ret['stats']['length'] = len(q.result)
@@ -1430,7 +1411,7 @@ class DB(object):
 		return ret
 
 
-	@publicmethod("table")
+	@publicmethod()
 	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, viewdef=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""Query results suitable for making a table.
 
@@ -1463,7 +1444,7 @@ class DB(object):
 		)
 
 		# Run the query
-		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
+		q = self.dbenv[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
 		names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse, rendered=True)
 
@@ -1487,7 +1468,7 @@ class DB(object):
 					toget.append(i)
 
 			if toget:
-				rt = self.groupbyrectype(toget, ctx=ctx, txn=txn)
+				rt = self.record_groupbyrectype(toget, ctx=ctx, txn=txn)
 				for k,v in rt.items():
 					for name in v:
 						q.cache[name]['rectype'] = k
@@ -1498,11 +1479,11 @@ class DB(object):
 
 			# Get the viewdef
 			if len(rectypes) == 1:
-				rd = self.bdbs.recorddef.cget(rectypes.pop(), ctx=ctx, txn=txn)
+				rd = self.dbenv["recorddef"].cget(rectypes.pop(), ctx=ctx, txn=txn)
 				viewdef = rd.views.get('tabularview', defaultviewdef)
 			else:
 				try:
-					rd = self.bdbs.recorddef.cget("root", filt=False, ctx=ctx, txn=txn)
+					rd = self.dbenv["recorddef"].cget("root", filt=False, ctx=ctx, txn=txn)
 				except (KeyError, SecurityError):
 					viewdef = defaultviewdef
 				else:
@@ -1514,7 +1495,7 @@ class DB(object):
 			viewdef = '%s $$%s'%(viewdef.replace('$$%s'%i, ''), i)
 
 		# Render the table
-		table = self.renderview(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
+		table = self.record_render(names, viewdef=viewdef, table=True, edit='auto', ctx=ctx, txn=txn)
 
 		ret['table'] = table
 		ret['names'] = names
@@ -1523,7 +1504,7 @@ class DB(object):
 		return ret
 
 
-	@publicmethod("plot")
+	@publicmethod()
 	def plot(self, c=None, mode='AND', x=None, y=None, z=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""Query results suitable for plotting.
 
@@ -1567,7 +1548,7 @@ class DB(object):
 				c.append([axis, 'any', None])
 				
 		# Run the query
-		q = self.bdbs.keytypes[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
+		q = self.dbenv[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
 		q.run()
 		ret['names'] = q.result
 		ret['recs'] = q.cache.values()
@@ -1576,7 +1557,7 @@ class DB(object):
 		return ret
 
 
-	@publicmethod("delete", write=True)
+	@publicmethod(write=True)
 	def delete(self, names, keytype='record', ctx=None, txn=None):
 		pass
 
@@ -1584,16 +1565,16 @@ class DB(object):
 
 	##### Relationships #####
 
-	@publicmethod('rel.pclink', write=True)
-	def pclink(self, parent, child, keytype='record', ctx=None, txn=None):
+	@publicmethod(write=True, compat="pclink")
+	def rel_pclink(self, parent, child, keytype='record', ctx=None, txn=None):
 		"""Link a parent object with a child
 
 		Examples:
 
-		>>> db.pclink(0, 46604)
+		>>> db.rel.pclink(0, 46604)
 		None
 
-		>>> db.pclink('physical_property', 'temperature', keytype='paramdef')
+		>>> db.rel.pclink('physical_property', 'temperature', keytype='paramdef')
 		None
 
 		:param parent: Parent name
@@ -1604,19 +1585,19 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.bdbs.keytypes[keytype].pclink(parent, child, ctx=ctx, txn=txn)
+		return self.dbenv[keytype].pclink(parent, child, ctx=ctx, txn=txn)
 
 
-	@publicmethod('rel.pcunlink', write=True)
-	def pcunlink(self, parent, child, keytype='record', ctx=None, txn=None):
+	@publicmethod(write=True, compat="pcunlink")
+	def rel_pcunlink(self, parent, child, keytype='record', ctx=None, txn=None):
 		"""Remove a parent-child link
 
 		Examples:
 
-		>>> db.pcunlink(0, 46604)
+		>>> db.rel.pcunlink(0, 46604)
 		None
 
-		>>> db.pcunlink('physical_property', 'temperature', keytype='paramdef')
+		>>> db.rel.pcunlink('physical_property', 'temperature', keytype='paramdef')
 		None
 
 		:param parent: Parent name
@@ -1627,16 +1608,16 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.bdbs.keytypes[keytype].pcunlink(parent, child, ctx=ctx, txn=txn)
+		return self.dbenv[keytype].pcunlink(parent, child, ctx=ctx, txn=txn)
 
 
-	@publicmethod('rel.relink', write=True)
-	def relink(self, removerels=None, addrels=None, keytype='record', ctx=None, txn=None):
+	@publicmethod(write=True, compat="relink")
+	def rel_relink(self, removerels=None, addrels=None, keytype='record', ctx=None, txn=None):
 		"""Add and remove a number of parent-child relationships at once.
 
 		Examples:
 
-		>>> db.relink([0,136], [100, 136])
+		>>> db.rel.relink([0,136], [100, 136])
 		None
 
 		:keyword removerels: Relationships to remove. Can be a single or list of tuples.
@@ -1672,24 +1653,24 @@ class DB(object):
 			item.children -= remove[item.name]
 			item.children |= add[item.name]
 
-		return self.bdbs.keytypes[keytype].cputs(items, ctx=ctx, txn=txn)
+		return self.dbenv[keytype].cputs(items, ctx=ctx, txn=txn)
 
 
-	@publicmethod("rel.siblings")
-	def getsiblings(self, name, rectype=None, keytype="record", ctx=None, txn=None, **kwargs):
+	@publicmethod(compat="getsiblings")
+	def rel_siblings(self, name, rectype=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""Get the siblings of the object as a tree.
 
 		Siblings are any items that share a common parent.
 
 		Examples:
 
-		>>> db.getsiblings(136, rectype='group')
+		>>> db.rel.siblings(136, rectype='group')
 		set([136, 358307])
 
-		>>> db.getsiblings('creationtime', keytype='paramdef')
+		>>> db.rel.siblings('creationtime', keytype='paramdef')
 		set([u'website', u'date_start', u'name_first', u'observed_by', ...])
 
-		>>> db.getsiblings('ccd', keytype='recorddef')
+		>>> db.rel.siblings('ccd', keytype='recorddef')
 		set([u'ccd', u'micrograph', u'ddd', u'stack', u'scan'])
 
 		:param names: Item name(s)
@@ -1701,25 +1682,25 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.bdbs.keytypes[keytype].siblings(name, rectype=rectype, ctx=ctx, txn=txn, **kwargs)
+		return self.dbenv[keytype].siblings(name, rectype=rectype, ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.parents")
+	@publicmethod(compat="getparents")
 	@ol('names')
-	def getparents(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+	def rel_parents(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
 		"""Get the parents of an object
 
 		This method is the same as as db.rel(rel='parents', tree=False, *args, **kwargs)
 
 		Examples:
 
-		>>> db.getparents(0)
+		>>> db.rel.parents(0)
 		set([])
 
-		>>> db.getparents(46604, recurse=-1)
+		>>> db.rel.parents(46604, recurse=-1)
 		set([136, 0])
 
-		>>> db.getparents('ccd', recurse=-1, keytype='recorddef')
+		>>> db.rel.parents('ccd', recurse=-1, keytype='recorddef')
 		set([u'image_capture', u'experiments', u'root', u'tem'])
 
 		:param names: Item name(s)
@@ -1731,28 +1712,28 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', ctx=ctx, txn=txn, **kwargs)
+		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.parents.tree")
+	@publicmethod(compat="getparenttree")
 	@ol('names', output=False)
-	def getparenttree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+	def rel_parents_tree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
 		"""Get the parents of the object as a tree
 
 		This method is the same as as db.rel(rel='parents', tree=True, *args, **kwargs)
 
 		Examples:
 
-		>>> db.getparenttree(46604, recurse=-1)
+		>>> db.rel.parents.tree(46604, recurse=-1)
 		{136: set([0]), 46604: set([136])}
 
-		>>> db.getparenttree([46604, 74547], recurse=-1)
+		>>> db.rel.parents.tree([46604, 74547], recurse=-1)
 		{136: set([0]), 74547: set([136]), 46604: set([136])}
 
-		>>> db.getparenttree([46604, 74547], recurse=-1, rectype='group')
+		>>> db.rel.parents.tree([46604, 74547], recurse=-1, rectype='group')
 		{74547: set([136]), 46604: set([136])}
 
-		>>> db.getparenttree('ccd', recurse=2, keytype='recorddef')
+		>>> db.rel.parents.tree('ccd', recurse=2, keytype='recorddef')
 		{'ccd': set([u'image_capture']), u'image_capture': set([u'tem'])}
 
 		:param names: Item name(s)
@@ -1765,12 +1746,12 @@ class DB(object):
 		:exception SecurityError:
 		"""
 		#:exception MaxRecurseError:
-		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', tree=True, ctx=ctx, txn=txn, **kwargs)
+		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', tree=True, ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.children")
+	@publicmethod(compat="getchildren")
 	@ol('names')
-	def getchildren(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+	def rel_children(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
 		"""Get the children of an object.
 
 		This method is the same as db.rel(rel='children', tree=False, *args, **kwargs)
@@ -1796,25 +1777,25 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', ctx=ctx, txn=txn, **kwargs)
+		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', ctx=ctx, txn=txn, **kwargs)
 
 
-	@publicmethod("rel.children.tree")
+	@publicmethod(compat="getchildtree")
 	@ol('names', output=False)
-	def getchildtree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+	def rel_children_tree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
 		"""Get the children of the object as a tree
 
 		This method is the same as as db.rel(rel='children', tree=True, *args, **kwargs)
 
 		Examples:
 
-		>>> db.getchildtree(0, rectype='group')
+		>>> db.rel.children.tree(0, rectype='group')
 		{0: set([136, 358307])}
 
-		>>> db.getchildtree([46604, 74547], rectype='subproject')
+		>>> db.rel.children.tree([46604, 74547], rectype='subproject')
 		{74547: set([75585, 270211, ...]), 46604: set([380432, 57474, ...])}
 
-		>>> db.getchildtree(136, recurse=2, rectype=['project*'])
+		>>> db.rel.children.tree(136, recurse=2, rectype=['project*'])
 		{432645: set([449391]), 268295: set([268296]), 299528: set([460329, 299529]), ...}
 
 		:param names: Item name(s)
@@ -1826,45 +1807,51 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.bdbs.keytypes[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', tree=True, ctx=ctx, txn=txn, **kwargs)
+		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', tree=True, ctx=ctx, txn=txn, **kwargs)
+
+
+	@publicmethod()
+	@ol('names', output=False)
+	def rel_tree(self, names, recurse=1, rectype=None, keytype="record", rel="children", ctx=None, txn=None, **kwargs):		
+		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel=rel, tree=True, ctx=ctx, txn=txn, **kwargs)
 
 
 	##### ParamDef #####
 
-	@publicmethod("paramdef.get")
+	@publicmethod(compat="getparamdef")
 	@ol('names')
-	def getparamdef(self, names, filt=True, ctx=None, txn=None):
-		return self.bdbs.paramdef.cgets(names, filt=filt, ctx=ctx, txn=txn)
+	def paramdef_get(self, names, filt=True, ctx=None, txn=None):
+		return self.dbenv["paramdef"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 		
 		
-	@publicmethod("paramdef.new")
-	def newparamdef(self, name, vartype, ctx=None, txn=None):
-		return self.bdbs.paramdef.new(name=name, vartype=vartype, ctx=ctx, txn=txn)
+	@publicmethod(compat="newparamdef")
+	def paramdef_new(self, name, vartype, ctx=None, txn=None):
+		return self.dbenv["paramdef"].new(name=name, vartype=vartype, ctx=ctx, txn=txn)
 				
 
-	@publicmethod("paramdef.put", write=True)
+	@publicmethod(write=True, compat="putparamdef")
 	@ol('items')
-	def putparamdef(self, items, ctx=None, txn=None):
-		return self.bdbs.paramdef.cputs(items, ctx=ctx, txn=txn)
+	def paramdef_put(self, items, ctx=None, txn=None):
+		return self.dbenv["paramdef"].cputs(items, ctx=ctx, txn=txn)
 
 
-	@publicmethod("paramdef.names")
-	def getparamdefnames(self, names=None, ctx=None, txn=None):
-		return self.bdbs.paramdef.names(names=names, ctx=ctx, txn=txn)
+	@publicmethod(compat="getparamdefnames")
+	def paramdef_names(self, names=None, ctx=None, txn=None):
+		return self.dbenv["paramdef"].names(names=names, ctx=ctx, txn=txn)
 		
 		
-	@publicmethod("paramdef.find")
-	def findparamdef(self, *args, **kwargs):
+	@publicmethod(compat="findparamdef")
+	def paramdef_find(self, *args, **kwargs):
 		"""Find a ParamDef, by general search string, or by searching attributes.
 
 		Keywords can be combined.
 
 		Examples:
 
-		>>> db.findparamdef(query='temperature')
+		>>> db.paramdef.find(query='temperature')
 		[<ParamDef temperature>, <ParamDef temperature_ambient>, <ParamDef temperature_cryoholder>, ...]
 
-		>>> db.findparamdef(vartype=binary, record='136*')
+		>>> db.paramdef.find(vartype=binary, record='136*')
 		[<ParamDef file_binary>, <ParamDef file_binary_image>, <ParamDef person_photo>, ...]
 
 		:param query: Contained in any item below
@@ -1880,15 +1867,15 @@ class DB(object):
 		return self._find_pdrd(self._findparamdefnames, keytype='paramdef', *args, **kwargs)
 		
 	
-	@publicmethod("paramdef.properties")
-	def getpropertynames(self, ctx=None, txn=None):
+	@publicmethod(compat="getpropertynames")
+	def paramdef_properties(self, ctx=None, txn=None):
 		"""Get all supported physical properties.
 
 		A number of physical properties are included by default.
 		Extensions may extend this by subclassing emen2.db.properties.Property()
 		and using the registration decorator. See that module for details.
 
-		>>> db.getpropertynames()
+		>>> db.paramdef.properties()
 		set(['transmittance', 'force', 'bytes', 'energy', 'resistance', ...])
 
 		:return: Set of all available properties.
@@ -1897,18 +1884,18 @@ class DB(object):
 		return set(vtm.getproperties())
 
 
-	@publicmethod("paramdef.units")
-	def getpropertyunits(self, name, ctx=None, txn=None):
+	@publicmethod(compat="getpropertyunits")
+	def paramdef_untis(self, name, ctx=None, txn=None):
 		"""Returns a list of recommended units for a particular property.
 		Other units may be used if they can be converted to the property's
 		default units.
 
 		Examples:
 
-		>>> db.getpropertyunits('volume')
+		>>> db.paramdef.units('volume')
 		set(['nL', 'mL', 'L', 'uL', 'gallon', 'm^3'])
 
-		>>> db.getpropertyunits('length')
+		>>> db.paramdef.units('length')
 		set([u'\xc5', 'nm', 'mm', 'm', 'km', 'um'])
 
 		:param name: Property name
@@ -1922,8 +1909,8 @@ class DB(object):
 		return set(prop.units)
 
 
-	@publicmethod("paramdef.vartypes")
-	def getvartypenames(self, ctx=None, txn=None):
+	@publicmethod(compat="getvartypenames")
+	def paramdef_vartypes(self, ctx=None, txn=None):
 		"""Get all supported datatypes.
 
 		A number of parameter data types (vartypes) are included by default.
@@ -1932,7 +1919,7 @@ class DB(object):
 
 		Examples:
 
-		>>> db.getvartypenames()
+		>>> db.paramdef.vartypes()
 		set(['text', 'string', 'binary', 'user', ...])
 
 		:return: Set of all available datatypes.
@@ -1944,38 +1931,38 @@ class DB(object):
 
 	##### User #####
 
-	@publicmethod("user.get")
+	@publicmethod(compat="getuser")
 	@ol('names')
-	def getuser(self, names, filt=True, ctx=None, txn=None):
-		return self.bdbs.user.cgets(names, filt=filt, ctx=ctx, txn=txn)
+	def user_get(self, names, filt=True, ctx=None, txn=None):
+		return self.dbenv["user"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
-	@publicmethod("user.put", write=True)
+	@publicmethod(write=True, compat="putuser")
 	@ol('items')
-	def putuser(self, items, filt=True, ctx=None, txn=None):
-		return self.bdbs.user.cputs(items, ctx=ctx, txn=txn)
+	def user_put(self, items, filt=True, ctx=None, txn=None):
+		return self.dbenv["user"].cputs(items, ctx=ctx, txn=txn)
 
 
-	@publicmethod("user.names")
-	def getusernames(self, names=None, ctx=None, txn=None):
-		return self.bdbs.user.names(names=names, ctx=ctx, txn=txn)
+	@publicmethod(compat="getusernames")
+	def user_names(self, names=None, ctx=None, txn=None):
+		return self.dbenv["user"].names(names=names, ctx=ctx, txn=txn)
 
 
-	@publicmethod("user.find")
-	def finduser(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
+	@publicmethod(compat="finduser")
+	def user_find(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
 		"""Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
 
 		Keywords can be combined.
 
 		Examples:
 
-		>>> db.finduser(name_last='rees')
+		>>> db.user.find(name_last='rees')
 		[<User ian>, <User kay>, ...]
 
-		>>> db.finduser(record=136)
+		>>> db.user.find(record=136)
 		[<User ian>, <User steve>, ...]
 
-		>>> db.finduser(email='bcm.edu', record='137*')
+		>>> db.user.find(email='bcm.edu', record='137*')
 		[<User ian>, <User wah>, <User mike>, ...]
 
 		:keyword query: Contained in name_first or name_last
@@ -1995,7 +1982,7 @@ class DB(object):
 
 		# If no options specified, find all users
 		if not any([query, record, kwargs]):
-			foundusers = self.bdbs.user.names(ctx=ctx, txn=txn)
+			foundusers = self.dbenv["user"].names(ctx=ctx, txn=txn)
 
 		cs = []
 		for term in query:
@@ -2006,7 +1993,7 @@ class DB(object):
 		for c in cs:
 			# btree.query supports nested constraints,
 			# but I don't have the interface finalized.
-			q = self.bdbs.record.query(c=c, mode='OR', ctx=ctx, txn=txn)
+			q = self.dbenv["record"].query(c=c, mode='OR', ctx=ctx, txn=txn)
 			q.run()
 			if q.result is None:
 				pass
@@ -2017,7 +2004,7 @@ class DB(object):
 
 		# Get 'username' from the found records.
 		if foundrecs:
-			recs = self.bdbs.record.cgets(foundrecs, ctx=ctx, txn=txn)
+			recs = self.dbenv["record"].cgets(foundrecs, ctx=ctx, txn=txn)
 			f = set([rec.get('username') for rec in recs])
 			if foundusers is None:
 				foundusers = f
@@ -2031,7 +2018,7 @@ class DB(object):
 		if kwargs.get('name'):
 			cs.append([['name', 'contains', kwargs.get('name')]])
 		for c in cs:
-			q = self.bdbs.user.query(c=c, ctx=ctx, txn=txn)
+			q = self.dbenv["user"].query(c=c, ctx=ctx, txn=txn)
 			q.run()
 			if q.result is None:
 				pass
@@ -2052,19 +2039,19 @@ class DB(object):
 		if count:
 			foundusers = foundusers[:count]
 
-		return self.bdbs.user.cgets(foundusers or [], ctx=ctx, txn=txn)
+		return self.dbenv["user"].cgets(foundusers or [], ctx=ctx, txn=txn)
 		
 		
-	@publicmethod("user.disable", write=True, admin=True)
-	def disableuser(self, names, filt=True, ctx=None, txn=None):
+	@publicmethod(write=True, admin=True, compat="disableuser")
+	def user_disable(self, names, filt=True, ctx=None, txn=None):
 		"""(Admin Only) Disable a User.
 
 		Examples:
 
-		>>> db.disableuser('steve')
+		>>> db.user.disable('steve')
 		<User steve>
 
-		>>> db.disableuser(['wah', 'steve'])
+		>>> db.user.disable(['wah', 'steve'])
 		[<User wah>, <User steve>]
 
 		:param names: User name(s)
@@ -2076,16 +2063,16 @@ class DB(object):
 		return self._mapput('user', names, 'disable', ctx=ctx, txn=txn)
 
 
-	@publicmethod("user.enable", write=True, admin=True)
-	def enableuser(self, names, filt=True, ctx=None, txn=None):
+	@publicmethod(write=True, admin=True, compat="enableuser")
+	def user_enable(self, names, filt=True, ctx=None, txn=None):
 		"""(Admin Only) Re-enable a User.
 
 		Examples:
 
-		>>> db.enableuser('steve')
+		>>> db.user.enable('steve')
 		<User steve>
 
-		>>> db.enableuser(['wah', 'steve'])
+		>>> db.user.enable(['wah', 'steve'])
 		[<User wah>, <User steve>]
 
 		:param names: User name(s)
@@ -2097,16 +2084,16 @@ class DB(object):
 		return self._mapput('user', names, 'enable', ctx=ctx, txn=txn)
 
 
-	@publicmethod("user.setprivacy", write=True)
-	def setprivacy(self, state, names=None, ctx=None, txn=None):
+	@publicmethod(write=True, compat="setprivacy")
+	def user_setprivacy(self, state, names=None, ctx=None, txn=None):
 		"""Set privacy level.
 
 		Examples:
 
-		>>> db.setprivacy(2)
+		>>> db.user.setprivacy(2)
 		<User ian>
 
-		>>> db.setprivacy(2, names=['ian', 'wah'])
+		>>> db.user.setprivacy(2, names=['ian', 'wah'])
 		[<User ian>, <User wah>]
 
 		:param state: 0, 1, or 2, in increasing level of privacy.
@@ -2123,8 +2110,8 @@ class DB(object):
 
 	# These methods sometimes use put instead of cput because they need to modify
 	# the user's secret auth token.
-	@publicmethod("user.setemail", write=True)
-	def setemail(self, email, secret=None, password=None, name=None, ctx=None, txn=None):
+	@publicmethod(write=True, compat="setemail")
+	def user_setemail(self, email, secret=None, password=None, name=None, ctx=None, txn=None):
 		"""Change a User's email address.
 
 		This will require you to verify that you own the account by
@@ -2138,10 +2125,10 @@ class DB(object):
 
 		Examples:
 
-		>>> db.setemail('ian@example.com', password='foobar')
+		>>> db.user.setemail('ian@example.com', password='foobar')
 		<User ian>
 
-		>>> db.setemail('ian@example.com', secret='654067667525479cba8eb2940a3cf745de3ce608')
+		>>> db.user.setemail('ian@example.com', secret='654067667525479cba8eb2940a3cf745de3ce608')
 		<User ian>
 
 		:param str email: New email address
@@ -2168,7 +2155,7 @@ class DB(object):
 		# 4. Email address is updated and reindexed
 
 		# Do not use cget; it will strip out the secret.
-		user = self.bdbs.user.get(name, filt=False, txn=txn)
+		user = self.dbenv["user"].get(name, filt=False, txn=txn)
 
 		# If we're an admin, the secret and password aren't required,
 		# but user._ctx is.
@@ -2180,7 +2167,7 @@ class DB(object):
 		email = user.setemail(email, password=password, secret=secret)
 
 		# Check that no other user is currently using this email.
-		ind = self.bdbs.user.getindex('email', txn=txn)
+		ind = self.dbenv["user"].getindex('email', txn=txn)
 		if ind.get(email, txn=txn) - set([user.name]):
 			time.sleep(2)
 			raise SecurityError, "The email address %s is already in use"%(email)
@@ -2189,7 +2176,7 @@ class DB(object):
 			emen2.db.log.msg("SECURITY","Sending email verification for user %s to %s"%(user.name, user.email))
 			# The email didn't change, but the secret did
 			# Note: cputs will always ignore the secret; write directly
-			self.bdbs.user.put(user.name, user, txn=txn)
+			self.dbenv["user"].put(user.name, user, txn=txn)
 
 			# Send the verify email containing the auth token
 			ctxt['secret'] = user.secret[2]
@@ -2200,17 +2187,17 @@ class DB(object):
 			emen2.db.log.msg("SECURITY","Changing email for user %s to %s"%(user.name, user.email))
 			# Note: Since we're putting directly,
 			# 	have to force the index to update
-			self.bdbs.user.reindex([user], ctx=ctx, txn=txn)
-			self.bdbs.user.put(user.name, user, txn=txn)
+			self.dbenv["user"].reindex([user], ctx=ctx, txn=txn)
+			self.dbenv["user"].put(user.name, user, txn=txn)
 
 			# Send the user an email to acknowledge the change
 			sendmail(user.email, template='/email/email.verified', ctxt=ctxt)
 
-		return self.bdbs.user.cget(user.name, ctx=ctx, txn=txn)
+		return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
 
-	@publicmethod("user.setpassword", write=True)
-	def setpassword(self, oldpassword, newpassword, secret=None, name=None, ctx=None, txn=None):
+	@publicmethod(write=True, compat="setpassword")
+	def user_setpassword(self, oldpassword, newpassword, secret=None, name=None, ctx=None, txn=None):
 		"""Change password.
 
 		Note: This method only takes a single User name.
@@ -2238,23 +2225,23 @@ class DB(object):
 
 		# Try to authenticate using either the password OR the secret!
 		# Note: The password will be hidden if ctx.username != user.name
-		# user = self.bdbs.user.cget(name or ctx.username, filt=False, ctx=ctx, txn=txn)
+		# user = self.dbenv["user"].cget(name or ctx.username, filt=False, ctx=ctx, txn=txn)
 		#ed: odded 'or ctx.username' to match docs
-		user = self.bdbs.user.getbyemail(name or ctx.username, filt=False, txn=txn)
+		user = self.dbenv["user"].getbyemail(name or ctx.username, filt=False, txn=txn)
 		if not secret:
 			user.setContext(ctx)
 		user.setpassword(oldpassword, newpassword, secret=secret)
 
 		# ian: todo: evaluate to use put/cput..
 		emen2.db.log.msg("SECURITY", "Changing password for %s"%user.name)
-		self.bdbs.user.put(user.name, user, txn=txn)
+		self.dbenv["user"].put(user.name, user, txn=txn)
 
 		sendmail(user.email, template='/email/password.changed')
-		return self.bdbs.user.cget(user.name, ctx=ctx, txn=txn)
+		return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
 
-	@publicmethod("user.resetpassword", write=True)
-	def resetpassword(self, name=None, ctx=None, txn=None):
+	@publicmethod(write=True, compat="resetpassword")
+	def user_resetpassword(self, name=None, ctx=None, txn=None):
 		"""Reset User password.
 
 		This is accomplished by sending a password reset auth token to the
@@ -2265,7 +2252,7 @@ class DB(object):
 
 		Examples:
 
-		>>> db.resetpassword()
+		>>> db.user.resetpassword()
 		<User ian>
 
 		:keyword name: User name. Default is the current context user.
@@ -2275,11 +2262,11 @@ class DB(object):
 		"""
 
 		name = name or ctx.username
-		user = self.bdbs.user.getbyemail(name, filt=False, txn=txn)
+		user = self.dbenv["user"].getbyemail(name, filt=False, txn=txn)
 		user.resetpassword()
 
 		# Use direct put to preserve the secret
-		self.bdbs.user.put(user.name, user, txn=txn)
+		self.dbenv["user"].put(user.name, user, txn=txn)
 
 		# Absolutely never reveal the secret via any mechanism
 		# but email to registered address
@@ -2288,26 +2275,26 @@ class DB(object):
 
 		emen2.db.log.msg('SECURITY', "Setting resetpassword secret for %s"%user.name)
 
-		return self.bdbs.user.cget(user.name, ctx=ctx, txn=txn)
+		return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
 
 
 	##### New Users #####
 
-	@publicmethod("user.queue.get", admin=True)
+	@publicmethod(admin=True, compat="getqueueduser")
 	@ol('names')
-	def getqueueduser(self, names, ctx=None, txn=None):
-		return self.bdbs.newuser.cgets(names, ctx=ctx, txn=txn)
+	def newuser_get(self, names, ctx=None, txn=None):
+		return self.dbenv["newuser"].cgets(names, ctx=ctx, txn=txn)
 
 
-	@publicmethod("user.queue.new")
-	def newuser(self, name, password, email, ctx=None, txn=None):
-		return self.bdbs.newuser.new(name=name, password=password, email=email, ctx=ctx, txn=txn)
+	@publicmethod(compat="newuser")
+	def newuser_new(self, name, password, email, ctx=None, txn=None):
+		return self.dbenv["newuser"].new(name=name, password=password, email=email, ctx=ctx, txn=txn)
 
 
-	@publicmethod("user.queue.put", write=True)
+	@publicmethod(write=True, compat="adduser")
 	@ol('users')
-	def adduser(self, users, ctx=None, txn=None):
+	def newuser_put(self, users, ctx=None, txn=None):
 		"""Add a new user.
 
 		Note: This only adds the user to the new user queue. The
@@ -2316,10 +2303,10 @@ class DB(object):
 
 		Examples:
 
-		>>> db.adduser(<NewUser kay>)
+		>>> db.newuser.put(<NewUser kay>)
 		<NewUser kay>
 
-		>>> db.adduser({'name':'kay', 'password':'foobar', 'email':'kay@example.com'})
+		>>> db.newuser.put({'name':'kay', 'password':'foobar', 'email':'kay@example.com'})
 		<NewUser kay>
 
 		:param users: New user(s).
@@ -2329,17 +2316,17 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		users = self.bdbs.newuser.cputs(users, ctx=ctx, txn=txn)
+		users = self.dbenv["newuser"].cputs(users, ctx=ctx, txn=txn)
 		user_autoapprove = emen2.db.config.get('users.USER_AUTOAPPROVE', False)
 
 		if user_autoapprove:
 			# print "Autoapproving........"
 			rootctx = self._sudo()
 			rootctx.db._txn = txn
-			self.approveuser([user.name for user in users], ctx=rootctx, txn=txn)
+			self.newuser_approve([user.name for user in users], ctx=rootctx, txn=txn)
 
 		elif ctx.checkadmin():
-			self.approveuser([user.name for user in users], ctx=ctx, txn=txn)
+			self.newuser_approve([user.name for user in users], ctx=ctx, txn=txn)
 
 		else:
 			# Send account request email
@@ -2349,30 +2336,30 @@ class DB(object):
 		return users
 		
 
-	@publicmethod("user.queue.names", admin=True)
-	def getuserqueue(self, names=None, ctx=None, txn=None):
-		return self.bdbs.newuser.names(names=names, ctx=ctx, txn=txn)
+	@publicmethod(admin=True, compat="getuserqueue")
+	def newuser_names(self, names=None, ctx=None, txn=None):
+		return self.dbenv["newuser"].names(names=names, ctx=ctx, txn=txn)
 		
 
-	@publicmethod("user.queue.approve", write=True, admin=True)
+	@publicmethod(write=True, admin=True, compat="approveuser")
 	@ol('names')
-	def approveuser(self, names, secret=None, reject=None, filt=True, ctx=None, txn=None):
+	def newuser_approve(self, names, secret=None, reject=None, filt=True, ctx=None, txn=None):
 		"""(Admin Only) Approve account in user queue.
 
 		Examples:
 
-		>>> db.approveuser('kay')
+		>>> db.newuser.approve('kay')
 		<User kay>
 
-		>>> db.approveuser(['kay', 'matt'])
+		>>> db.newuser.approve(['kay', 'matt'])
 		[<User kay>, <User matt>]
 
-		>>> db.approveuser('kay', secret='654067667525479cba8eb2940a3cf745de3ce608')
+		>>> db.newuser.approve('kay', secret='654067667525479cba8eb2940a3cf745de3ce608')
 		<User kay>
 
 		:param names: New user queue name(s)
 		:keyword secret: User secret for self-approval
-		:keyword reject: Also reject new users: see db.rejectuser(). For convenience.
+		:keyword reject: Also reject new users: see db.newuser.reject(). For convenience.
 		:keyword filt: Ignore failures
 		:return: Approved User(s)
 		:exception ExistingKeyError:
@@ -2384,7 +2371,7 @@ class DB(object):
 		user_autoapprove = emen2.db.config.get('users.USER_AUTOAPPROVE', False)
 
 		# Get users from the new user approval queue
-		newusers = self.bdbs.newuser.cgets(names, filt=filt, ctx=ctx, txn=txn)
+		newusers = self.dbenv["newuser"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 		cusers = []
 
 		# This will also check if the current username or email is in use
@@ -2392,20 +2379,20 @@ class DB(object):
 			name = newuser.name
 
 			# Delete the pending user
-			self.bdbs.newuser.delete(name, txn=txn)
+			self.dbenv["newuser"].delete(name, txn=txn)
 
-			user = self.bdbs.user.new(name=name, email=newuser.email, password=newuser.password, ctx=ctx, txn=txn)
+			user = self.dbenv["user"].new(name=name, email=newuser.email, password=newuser.password, ctx=ctx, txn=txn)
 			# Put the new user
-			user = self.bdbs.user.cput(user, ctx=ctx, txn=txn)
+			user = self.dbenv["user"].cput(user, ctx=ctx, txn=txn)
 
 			# Update default Groups
 			# for group in group_defaults:
-			#	gr = self.bdbs.group.cget(group, ctx=ctx, txn=txn)
+			#	gr = self.dbenv["group"].cget(group, ctx=ctx, txn=txn)
 			#	gr.adduser(user.name)
-			#	self.bdbs.group.cput(gr, ctx=ctx, txn=txn)
+			#	self.dbenv["group"].cput(gr, ctx=ctx, txn=txn)
 
 			# Create the "Record" for this user
-			rec = self.bdbs.record.new(rectype='person', ctx=ctx, txn=txn)
+			rec = self.dbenv["record"].new(rectype='person', ctx=ctx, txn=txn)
 
 			# Are there any child records specified...
 			childrec = newuser.signupinfo.pop('child', None)
@@ -2415,19 +2402,19 @@ class DB(object):
 			rec.update(newuser.signupinfo)
 			rec.adduser(name, level=2)
 			rec.addgroup("authenticated")
-			rec = self.bdbs.record.cput(rec, ctx=ctx, txn=txn)
+			rec = self.dbenv["record"].cput(rec, ctx=ctx, txn=txn)
 
 			# Update the User with the Record name and put again
 			user.record = rec.name
-			user = self.bdbs.user.cput(user, ctx=ctx, txn=txn)
+			user = self.dbenv["user"].cput(user, ctx=ctx, txn=txn)
 			cusers.append(user)
 
 			if childrec:
-				crec = self.newrecord(rectype=childrec.get('rectype'), ctx=ctx, txn=txn)
+				crec = self.record_new(rectype=childrec.get('rectype'), ctx=ctx, txn=txn)
 				crec.adduser(name, level=3)
 				crec.parents.add(rec.name)
 				crec.update(childrec)
-				crec = self.bdbs.record.cput(crec, ctx=ctx, txn=txn)
+				crec = self.dbenv["record"].cput(crec, ctx=ctx, txn=txn)
 
 		# Send the 'account approved' emails
 		for user in cusers:
@@ -2438,20 +2425,20 @@ class DB(object):
 				template = '/email/adduser.autoapproved'
 			sendmail(user.email, template=template, ctxt=ctxt)
 
-		return self.bdbs.user.cgets(set([user.name for user in cusers]), ctx=ctx, txn=txn)
+		return self.dbenv["user"].cgets(set([user.name for user in cusers]), ctx=ctx, txn=txn)
 
 
-	@publicmethod("user.queue.reject", write=True, admin=True)
+	@publicmethod(write=True, admin=True, compat="rejectuser")
 	@ol('names')
-	def rejectuser(self, names, filt=True, ctx=None, txn=None):
+	def newuser_reject(self, names, filt=True, ctx=None, txn=None):
 		"""(Admin Only) Remove a user from the new user queue.
 
 		Examples:
 
-		>>> db.rejectuser('spambot')
+		>>> db.newuser.reject('spambot')
 		set(['spambot'])
 
-		>>> db.rejectuser(['kay', 'spambot'])
+		>>> db.newuser.reject(['kay', 'spambot'])
 		set(['kay', 'spambot'])
 
 		:param names: New queue name(s) to reject
@@ -2461,12 +2448,12 @@ class DB(object):
 		:exception SecurityError:
 		"""
 		emails = {}
-		users = self.bdbs.newuser.cgets(names, filt=filt, ctx=ctx, txn=txn)
+		users = self.dbenv["newuser"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 		for user in users:
 			emails[user.name] = user.email
 
 		for	user in users:
-			self.bdbs.newuser.delete(user.name, txn=txn)
+			self.dbenv["newuser"].delete(user.name, txn=txn)
 
 		# Send the emails
 		for name, email in emails.items():
@@ -2479,40 +2466,40 @@ class DB(object):
 
 	##### Group #####
 
-	@publicmethod("group.get")
+	@publicmethod(compat="getgroup")
 	@ol('names')
-	def getgroup(self, names, filt=True, ctx=None, txn=None):
-		return self.bdbs.group.cgets(names, filt=filt, ctx=ctx, txn=txn)
+	def group_get(self, names, filt=True, ctx=None, txn=None):
+		return self.dbenv["group"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
-	@publicmethod("group.new")
-	def newgroup(self, name, ctx=None, txn=None):
-		return self.bdbs.group.new(name=name, ctx=ctx, txn=txn)
+	@publicmethod(compat="newgroup")
+	def group_new(self, name, ctx=None, txn=None):
+		return self.dbenv["group"].new(name=name, ctx=ctx, txn=txn)
 
 
-	@publicmethod("group.put", write=True, admin=True)
+	@publicmethod(write=True, admin=True, compat="putgroup")
 	@ol('items')
-	def putgroup(self, items, ctx=None, txn=None):
-		return self.bdbs.group.cputs(items, ctx=ctx, txn=txn)
+	def group_put(self, items, ctx=None, txn=None):
+		return self.dbenv["group"].cputs(items, ctx=ctx, txn=txn)
 
 
-	@publicmethod("group.names")
-	def getgroupnames(self, names=None, ctx=None, txn=None):
-		return self.bdbs.group.names(names=names, ctx=ctx, txn=txn)
+	@publicmethod(compat="getgroupnames")
+	def group_names(self, names=None, ctx=None, txn=None):
+		return self.dbenv["group"].names(names=names, ctx=ctx, txn=txn)
 
 
-	@publicmethod("group.find")
-	def findgroup(self, query=None, record=None, count=100, ctx=None, txn=None):
+	@publicmethod(compat="findgroup")
+	def group_find(self, query=None, record=None, count=100, ctx=None, txn=None):
 		"""Find a group.
 
 		Keywords can be combined.
 
 		Examples:
 
-		>>> db.findgroup('admin')
+		>>> db.group.find('admin')
 		[<Group admin>, <Group readonlyadmin>]
 
-		>>> db.findgroup(record=136)
+		>>> db.group.find(record=136)
 		[<Group authenticated>, <Group ncmiusers>]
 
 		:keyword query: Find in Group's name or displayname
@@ -2522,13 +2509,13 @@ class DB(object):
 		:return: Groups
 		"""
 		# No real indexes yet (small). Just get everything and sort directly.
-		items = self.bdbs.group.cgets(self.bdbs.group.names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
+		items = self.dbenv["group"].cgets(self.dbenv["group"].names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
 		ditems = listops.dictbykey(items, 'name')
 
 		rets = []
 		query = unicode(query or '').split()
 
-		# If query is empty, match everything. Do this only for findgroups, for now.
+		# If query is empty, match everything. Do this only for group.find, for now.
 		if not query:
 			query = ['']
 
@@ -2556,49 +2543,49 @@ class DB(object):
 
 	##### RecordDef #####
 
-	@publicmethod("recorddef.get")
+	@publicmethod(compat="getrecorddef")
 	@ol('names')
-	def getrecorddef(self, names, filt=True, ctx=None, txn=None):
-		return self.bdbs.recorddef.cgets(names, filt=filt, ctx=ctx, txn=txn)
+	def recorddef_get(self, names, filt=True, ctx=None, txn=None):
+		return self.dbenv["recorddef"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 		
 
-	@publicmethod("recorddef.new")
-	def newrecorddef(self, name, mainview, ctx=None, txn=None):
-		return self.bdbs.recorddef.new(name=name, mainview=mainview, ctx=ctx, txn=txn)
+	@publicmethod(compat="newrecorddef")
+	def recorddef_new(self, name, mainview, ctx=None, txn=None):
+		return self.dbenv["recorddef"].new(name=name, mainview=mainview, ctx=ctx, txn=txn)
 
 
-	@publicmethod("recorddef.put", write=True)
+	@publicmethod(write=True, compat="putrecorddef")
 	@ol('items')
-	def putrecorddef(self, items, ctx=None, txn=None):
-		return self.bdbs.recorddef.cputs(items, ctx=ctx, txn=txn)
+	def recorddef_put(self, items, ctx=None, txn=None):
+		return self.dbenv["recorddef"].cputs(items, ctx=ctx, txn=txn)
 
 
-	@publicmethod("recorddef.names")
-	def getrecorddefnames(self, names=None, ctx=None, txn=None):
-		return self.bdbs.recorddef.names(names=names, ctx=ctx, txn=txn)
+	@publicmethod(compat="getrecorddefnames")
+	def recorddef_names(self, names=None, ctx=None, txn=None):
+		return self.dbenv["recorddef"].names(names=names, ctx=ctx, txn=txn)
 
 
-	@publicmethod("recorddef.find")
-	def findrecorddef(self, *args, **kwargs):
+	@publicmethod(compat="findrecorddef")
+	def recorddef_find(self, *args, **kwargs):
 		"""Find a RecordDef, by general search string, or by searching attributes.
 
 		Keywords can be combined.
 
 		Examples:
 
-		>>> db.findrecorddef(query='CCD')
+		>>> db.recorddef.find(query='CCD')
 		[<RecordDef ccd>, <RecordDef image_capture>]
 
-		>>> db.findrecorddef(name='image_capture*')
+		>>> db.recorddef.find(name='image_capture*')
 		[<RecordDef ccd>, <RecordDef scan>, <RecordDef micrograph>, ...]
 
-		>>> db.findrecorddef(mainview='freezing apparatus')
+		>>> db.recorddef.find(mainview='freezing apparatus')
 		[<RecordDef freezing], <RecordDef vitrobot>, <RecordDef gatan_cp3>, ...]
 
-		>>> db.findrecorddef(record=[1,2,3])
+		>>> db.recorddef.find(record=[1,2,3])
 		[<RecordDef folder>, <RecordDef project>]
 
-		>>> db.findrecorddef(name='project*', record='136*')
+		>>> db.recorddef.find(name='project*', record='136*')
 		[<RecordDef folder>, <RecordDef project>, <RecordDef subproject>, ...]
 
 		:keyword query: Matches any of the following:
@@ -2617,21 +2604,21 @@ class DB(object):
 
 	##### Records #####
 
-	@publicmethod("record.get")
+	@publicmethod(compat="getrecord")
 	@ol('names')
-	def getrecord(self, names, filt=True, ctx=None, txn=None):
-		return self.bdbs.record.cgets(names, filt=filt, ctx=ctx, txn=txn)
+	def record_get(self, names, filt=True, ctx=None, txn=None):
+		return self.dbenv["record"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
-	@publicmethod("record.new")
-	def newrecord(self, rectype, inherit=None, ctx=None, txn=None):
-		rec = self.bdbs.record.new(rectype=rectype, ctx=ctx, txn=txn)
+	@publicmethod(compat="newrecord")
+	def record_new(self, rectype, inherit=None, ctx=None, txn=None):
+		rec = self.dbenv["record"].new(rectype=rectype, ctx=ctx, txn=txn)
 
 		# Apply any inherited permissions
 		if inherit != None:
 			inherit = set(listops.tolist(inherit))
 			try:
-				precs = self.bdbs.record.cgets(inherit, filt=False, ctx=ctx, txn=txn)
+				precs = self.dbenv["record"].cgets(inherit, filt=False, ctx=ctx, txn=txn)
 				for prec in precs:
 					rec.addumask(prec["permissions"])
 					rec.addgroup(prec["groups"])
@@ -2647,30 +2634,30 @@ class DB(object):
 		return rec
 
 
-	@publicmethod("record.put", write=True)
+	@publicmethod(write=True, compat="putrecord")
 	@ol('items')
-	def putrecord(self, items, filt=True, ctx=None, txn=None):
-		return self.bdbs.record.cputs(items, ctx=ctx, txn=txn)
+	def record_put(self, items, filt=True, ctx=None, txn=None):
+		return self.dbenv["record"].cputs(items, ctx=ctx, txn=txn)
 
 
-	@publicmethod("record.hide", write=True)
+	@publicmethod(write=True, compat="hiderecord")
 	@ol('names')
-	def hiderecord(self, names, childaction=None, filt=True, ctx=None, txn=None):
+	def record_hide(self, names, childaction=None, filt=True, ctx=None, txn=None):
 		"""Unlink and hide a record; it is still accessible to owner.
 		Records are never truly deleted, just hidden.
 
 		Examples:
 
-		>>> db.hiderecord(136)
+		>>> db.record.hide(136)
 		<Record 136 group>
 
-		>>> db.hiderecord([136, 137])
+		>>> db.record.hide([136, 137])
 		[<Record 136 group>]
 
-		>>> db.hiderecord([136, 137], filt=False)
+		>>> db.record.hide([136, 137], filt=False)
 		SecurityError
 
-		>>> db.hiderecord(12345, filt=False)
+		>>> db.record.hide(12345, filt=False)
 		KeyError
 
 		:param name: Record name(s) to delete
@@ -2682,27 +2669,27 @@ class DB(object):
 		names = set(names)
 
 		if childaction == 'orphaned':
-			names |= self.findorphans(names, ctx=ctx, txn=txn)
+			names |= self.record_findorphans(names, ctx=ctx, txn=txn)
 		elif childaction == 'all':
-			c = self.getchildren(names, ctx=ctx, txn=txn)
+			c = self.rel_children(names, ctx=ctx, txn=txn)
 			for k,v in c.items():
 				names |= v
 				names.add(k)
 
-		self.bdbs.record.delete(names, ctx=ctx, txn=txn)
+		self.dbenv["record"].hide(names, ctx=ctx, txn=txn)
 
 
-	@publicmethod("record.update", write=True)
+	@publicmethod(write=True, compat="putrecordvalues")
 	@ol('names')
-	def putrecordvalues(self, names, update, ctx=None, txn=None):
+	def record_update(self, names, update, ctx=None, txn=None):
 		"""Convenience method to update Records.
 
 		Examples:
 
-		>>> db.putrecordvalues([0,136], {'performed_by':'ian'})
+		>>> db.record.update([0,136], {'performed_by':'ian'})
 		[<Record 0, folder>, <Record 136, group>]
 
-		>>> db.putrecordvalues([0,136, 137], {'performed_by':'ian'}, filt=False)
+		>>> db.record.update([0,136, 137], {'performed_by':'ian'}, filt=False)
 		SecurityError
 
 		:param names: Record name(s)
@@ -2715,26 +2702,26 @@ class DB(object):
 		return self._mapput('record', names, 'update', ctx, txn, update)
 
 
-	@publicmethod("record.validate")
+	@publicmethod(compat="validaterecord")
 	@ol('items')
-	def validaterecord(self, items, ctx=None, txn=None):
+	def record_validate(self, items, ctx=None, txn=None):
 		"""Check that a record will validate before committing.
 
 		Examples:
 
-		>>> db.validaterecord([{'rectype':'folder', 'name_folder':'Test folder'}, {'rectype':'folder', 'name_folder':'Another folder'}])
+		>>> db.record.validate([{'rectype':'folder', 'name_folder':'Test folder'}, {'rectype':'folder', 'name_folder':'Another folder'}])
 		[<Record None, folder>, <Record None, folder>]
 
-		>>> db.validaterecord([<Record 499177, folder>, <Record 499178, folder>])
+		>>> db.record.validate([<Record 499177, folder>, <Record 499178, folder>])
 		[<Record 499177, folder>, <Record 499178, folder>]
 
-		>>> db.validaterecord({'rectype':'folder', 'performed_by':'unknown_user'})
+		>>> db.record.validate({'rectype':'folder', 'performed_by':'unknown_user'})
 		ValidationError
 
-		>>> db.validaterecord({'name':136, 'name_folder':'No permission to edit..'})
+		>>> db.record.validate({'name':136, 'name_folder':'No permission to edit..'})
 		SecurityError
 
-		>>> db.validaterecord({'name':12345, 'name_folder':'Unknown record'})
+		>>> db.record.validate({'name':12345, 'name_folder':'Unknown record'})
 		KeyError
 
 		:param items: Record(s)
@@ -2743,22 +2730,22 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		return self.bdbs.record.validate(items, ctx=ctx, txn=txn)
+		return self.dbenv["record"].validate(items, ctx=ctx, txn=txn)
 
 
 	# These map to the normal Record methods
-	@publicmethod("record.adduser", write=True)
+	@publicmethod(write=True, compat="addpermission")
 	@ol('names')
-	def addpermission(self, names, users, level=0, ctx=None, txn=None):
+	def record_adduser(self, names, users, level=0, ctx=None, txn=None):
 		"""Add users to a Record's permissions.
 
-		>>> db.addpermission(0, 'ian')
+		>>> db.record.adduser(0, 'ian')
 		<Record 0, folder>
 
-		>>> db.addpermission([0, 136], ['ian', 'steve'])
+		>>> db.record.adduser([0, 136], ['ian', 'steve'])
 		[<Record 0, folder>, <Record 136, group>]
 
-		>>> db.addpermission([0, 136], ['ian', 'steve'], filt=False)
+		>>> db.record.adduser([0, 136], ['ian', 'steve'], filt=False)
 		SecurityError
 
 		:param names: Record name(s)
@@ -2773,20 +2760,20 @@ class DB(object):
 		return self._mapput('record', names, 'adduser', ctx, txn, users)
 
 
-	@publicmethod("record.removeuser", write=True)
+	@publicmethod(write=True, compat="removepermission")
 	@ol('names')
-	def removepermission(self, names, users, ctx=None, txn=None):
+	def record_removeuser(self, names, users, ctx=None, txn=None):
 		"""Remove users from a Record's permissions.
 
 		Examples:
 
-		>>> db.removepermission(0, 'ian')
+		>>> db.record.removeuser(0, 'ian')
 		<Record 0, folder>
 
-		>>> db.removepermission([0, 136], ['ian', 'steve'])
+		>>> db.record.removeuser([0, 136], ['ian', 'steve'])
 		[<Record 0, folder>, <Record 136, group>]
 
-		>>> db.removepermission([0, 136], ['ian', 'steve'], filt=False)
+		>>> db.record.removeuser([0, 136], ['ian', 'steve'], filt=False)
 		SecurityError
 
 		:param names: Record name(s)
@@ -2800,23 +2787,23 @@ class DB(object):
 		return self._mapput('record', names, 'removeuser', ctx, txn, users)
 
 
-	@publicmethod("record.addgroup", write=True)
+	@publicmethod(write=True, compat="addgroup")
 	@ol('names')
-	def addgroup(self, names, groups, ctx=None, txn=None):
+	def record_addgroup(self, names, groups, ctx=None, txn=None):
 		"""Add groups to a Record's permissions.
 
 		Examples:
 
-		>>> db.addgroup(0, 'authenticated')
+		>>> db.record.addgroup(0, 'authenticated')
 		<Record 0, folder>
 
-		>>> db.addgroup([0, 136], 'authenticated')
+		>>> db.record.addgroup([0, 136], 'authenticated')
 		[<Record 0, folder>, <Record 136, group>]
 
-		>>> db.addgroup([0, 136], ['anon', 'authenticated'])
+		>>> db.record.addgroup([0, 136], ['anon', 'authenticated'])
 		[<Record 0, folder>, <Record 136, group>]
 
-		>>> db.addgroup([0, 136], 'authenticated', filt=False)
+		>>> db.record.addgroup([0, 136], 'authenticated', filt=False)
 		SecurityError
 
 		:param names: Record name(s)
@@ -2830,23 +2817,23 @@ class DB(object):
 		return self._mapput('record', names, 'addgroup', ctx, txn, groups)
 
 
-	@publicmethod("record.removegroup", write=True)
+	@publicmethod(write=True, compat="removegroup")
 	@ol('names')
-	def removegroup(self, names, groups, ctx=None, txn=None):
+	def record_removegroup(self, names, groups, ctx=None, txn=None):
 		"""Remove groups from a Record's permissions.
 
 		Examples:
 
-		>>> db.removegroup(0, 'authenticated')
+		>>> db.user.removegroup(0, 'authenticated')
 		<Record 0, folder>
 
-		>>> db.removegroup([0, 136], 'authenticated')
+		>>> db.user.removegroup([0, 136], 'authenticated')
 		[<Record 0, folder>, <Record 136, group>]
 
-		>>> db.removegroup([0, 136], ['anon', 'authenticated'])
+		>>> db.user.removegroup([0, 136], ['anon', 'authenticated'])
 		[<Record 0, folder>, <Record 136, group>]
 
-		>>> db.removegroup([0, 136], 'authenticated', filt=False)
+		>>> db.user.removegroup([0, 136], 'authenticated', filt=False)
 		SecurityError
 
 		:param names: Record name(s)
@@ -2861,24 +2848,24 @@ class DB(object):
 
 
 	# This method is for compatibility with the web interface widget..
-	@publicmethod("record.setpermissions_compat", write=True)
+	@publicmethod(write=True, compat="setpermissions")
 	@ol('names')
-	def setpermissions(self, names, addumask=None, addgroups=None, removeusers=None, removegroups=None, recurse=None, overwrite_users=False, overwrite_groups=False, filt=True, ctx=None, txn=None):
+	def record_setpermissionscompat(self, names, addumask=None, addgroups=None, removeusers=None, removegroups=None, recurse=None, overwrite_users=False, overwrite_groups=False, filt=True, ctx=None, txn=None):
 		"""Update a Record's permissions.
 
 		This method is mostly for convenience and backwards compatibility.
 
 		Examples:
 
-		>>> db.setpermissions(names=[137, 138], addumask=[['ian'], [], [], []])
+		>>> db.record.setpermissionscompat(names=[137, 138], addumask=[['ian'], [], [], []])
 
-		>>> db.setpermissions(names=[137], recurse=-1, addumask=[['ian', 'steve'], [], [], ['wah']])
+		>>> db.record.setpermissionscompat(names=[137], recurse=-1, addumask=[['ian', 'steve'], [], [], ['wah']])
 
-		>>> db.setpermissions(names=[137], recurse=-1, removegroups=['anon'], addgroups=['authenticated])
+		>>> db.record.setpermissionscompat(names=[137], recurse=-1, removegroups=['anon'], addgroups=['authenticated])
 
-		>>> db.setpermissions(names=[137], recurse=-1, addgroups=['authenticated'], overwrite_groups=True)
+		>>> db.record.setpermissionscompat(names=[137], recurse=-1, addgroups=['authenticated'], overwrite_groups=True)
 
-		>>> db.setpermissions(names=[137], recurse=-1, addgroups=['authenticated'], overwrite_groups=True, filt=False)
+		>>> db.record.setpermissionscompat(names=[137], recurse=-1, addgroups=['authenticated'], overwrite_groups=True, filt=False)
 		SecurityError
 
 		:param names: Record name(s)
@@ -2895,15 +2882,15 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		recs = self.bdbs.record.cgets(names, ctx=ctx, txn=txn)
+		recs = self.dbenv["record"].cgets(names, ctx=ctx, txn=txn)
 		crecs = []
 
 		for rec in recs:
 			# Get the record and children
 			children = [rec]
 			if recurse:
-				c = self.bdbs.record.rel([rec.name], recurse=recurse, ctx=ctx, txn=txn).get(rec.name, set())
-				c = self.bdbs.record.cgets(c, ctx=ctx, txn=txn)
+				c = self.dbenv["record"].rel([rec.name], recurse=recurse, ctx=ctx, txn=txn).get(rec.name, set())
+				c = self.dbenv["record"].cgets(c, ctx=ctx, txn=txn)
 				children.extend(c)
 
 			# Apply the operations
@@ -2930,25 +2917,25 @@ class DB(object):
 
 				crecs.append(crec)
 
-		return self.bdbs.record.cputs(crecs, ctx=ctx, txn=txn)
+		return self.dbenv["record"].cputs(crecs, ctx=ctx, txn=txn)
 
 
-	@publicmethod("record.addcomment", write=True)
+	@publicmethod(write=True, compat="addcomment")
 	@ol('names')
-	def addcomment(self, names, comment, filt=True, ctx=None, txn=None):
+	def record_addcomment(self, names, comment, filt=True, ctx=None, txn=None):
 		"""Add comment to a record.
 
 		Requires comment permissions on that Record.
 
 		Examples:
 
-		>>> db.addcomment(136, 'Test comment')
+		>>> db.record.addcomment(136, 'Test comment')
 		<Record 136, group>
 
-		>>> db.addcomment(137, 'No comment permissions!?')
+		>>> db.record.addcomment(137, 'No comment permissions!?')
 		SecurityError
 
-		>>> db.addcomment(12345, 'Record does not exist')
+		>>> db.record.addcomment(12345, 'Record does not exist')
 		KeyError
 
 		:param name: Record name(s)
@@ -2962,8 +2949,8 @@ class DB(object):
 		return self._mapput('record', names, 'addcomment', ctx, txn, comment)
 
 
-	@publicmethod("record.find.orphans")
-	def findorphans(self, names, root=0, keytype='record', ctx=None, txn=None):
+	@publicmethod(compat="findorphans")
+	def record_findorphans(self, names, root=0, keytype='record', ctx=None, txn=None):
 		"""Find orphaned items that would occur if names were hidden.
 		@param name Return orphans that would result from deletion of these items
 		@return Orphaned items
@@ -2971,14 +2958,14 @@ class DB(object):
 
 		names = set(names)
 
-		children = self.getchildtree(names, recurse=-1, ctx=ctx, txn=txn)
+		children = self.rel_children_tree(names, recurse=-1, ctx=ctx, txn=txn)
 		allchildren = set()
 		allchildren |= names
 		for k,v in children.items():
 			allchildren.add(k)
 			allchildren |= v
 
-		parents = self.getparenttree(allchildren, ctx=ctx, txn=txn)
+		parents = self.rel_tree(allchildren, rel="parents", ctx=ctx, txn=txn)
 
 		# Find a path back to root for each child
 		orphaned = set()
@@ -2995,9 +2982,9 @@ class DB(object):
 		return orphaned - names
 		
 		
-	@publicmethod("record.find.comments")
+	@publicmethod(compat="getcomments")
 	@ol('names', output=False)
-	def getcomments(self, names, filt=True, ctx=None, txn=None):
+	def record_findcomments(self, names, filt=True, ctx=None, txn=None):
 		"""Get comments from Records.
 
 		Note: This method always returns a list of items, even if only one record
@@ -3005,10 +2992,10 @@ class DB(object):
 
 		Examples:
 
-		>>> db.getcomments(1)
+		>>> db.record.findcomments(1)
 		[[1, u'root', u'2010/07/19 14:43:03', u'Record marked for deletion and unlinked from parents: 270940']]
 
-		>>> db.getcomments([1, 138])
+		>>> db.record.findcomments([1, 138])
 		[[1, u'root', u'2010/07/19 14:43:03', u'Record marked...'], [138, u'ianrees', u'2011/10/01 02:28:51', u'New comment']]
 
 		:param names: Record name(s)
@@ -3017,7 +3004,7 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		recs = self.bdbs.record.cgets(names, filt=filt, ctx=ctx, txn=txn)
+		recs = self.dbenv["record"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 		ret = []
 		# This filters out a couple "history" types of comments
@@ -3033,9 +3020,9 @@ class DB(object):
 		return sorted(ret, key=lambda x:x[2])
 		
 		
-	@publicmethod("record.find.byrectype")
+	@publicmethod(compat="getindexbyrectype")
 	@ol('names', output=False)
-	def getindexbyrectype(self, names, ctx=None, txn=None):
+	def record_findbyrectype(self, names, ctx=None, txn=None):
 		"""Get Record names by RecordDef.
 
 		Note: Not currently filtered for permissions. This is not
@@ -3043,13 +3030,13 @@ class DB(object):
 
 		Examples:
 
-		>>> db.getindexbyrectype('ccd')
+		>>> db.record.findbyrectype('ccd')
 		set([4180, 4513, 4514, ...])
 
-		>>> db.getindexbyrectype('image_capture*')
+		>>> db.record.findbyrectype('image_capture*')
 		set([141, 142, 4180, ...])
 
-		>>> db.getindexbyrectype(['scan','micrograph'])
+		>>> db.record.findbyrectype(['scan','micrograph'])
 		set([141, 142, 262153, ...])
 
 		:param names: RecordDef name(s)
@@ -3058,16 +3045,16 @@ class DB(object):
 		:exception KeyError: No such RecordDef
 		:exception SecurityError: Unable to access RecordDef
 		"""
-		rds = self.bdbs.recorddef.cgets(names, ctx=ctx, txn=txn)
-		ind = self.bdbs.record.getindex("rectype", txn=txn)
+		rds = self.dbenv["recorddef"].cgets(names, ctx=ctx, txn=txn)
+		ind = self.dbenv["record"].getindex("rectype", txn=txn)
 		ret = set()
 		for i in rds:
 			ret |= ind.get(i.name, txn=txn)
 		return ret
 
 
-	@publicmethod("record.find.byvalue")
-	def findvalue(self, param, query='', choices=True, count=100, ctx=None, txn=None):
+	@publicmethod(compat="findvalue")
+	def record_findbyvalue(self, param, query='', choices=True, count=100, ctx=None, txn=None):
 		"""Find values for a parameter.
 
 		This is mostly used for interactive UI elements: e.g. combobox.
@@ -3075,13 +3062,13 @@ class DB(object):
 
 		Examples:
 
-		>>> db.findvalue('name_pi')
+		>>> db.record.findbyvalue('name_pi')
 		[['wah', 124], ['steve', 89], ['ian', 43]], ...]
 
-		>>> db.findvalue('ccd_id', limit=2)
+		>>> db.record.findbyvalue('ccd_id', limit=2)
 		[['Gatan 4k', 182845], ['Gatan 10k', 48181]]
 
-		>>> db.findvalue('tem_magnification', choices=True, limit=10)
+		>>> db.record.findbyvalue('tem_magnification', choices=True, limit=10)
 		[[10, ...], [20, ...], [60, ...], [100, ...], ...]
 
 		:param param: Parameter to search
@@ -3102,7 +3089,7 @@ class DB(object):
 			inverted[rec.get(param)].add(rec.get('name'))
 
 		# Include the ParamDef choices if choices=True.
-		pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
+		pd = self.dbenv["paramdef"].cget(param, ctx=ctx, txn=txn)
 		if pd and choices:
 			choices = pd.get('choices') or []
 		else:
@@ -3122,17 +3109,17 @@ class DB(object):
 		return ret
 
 
-	@publicmethod("record.group.byrectype")
+	@publicmethod(compat="groupbyrectype")
 	@ol('names')
-	def groupbyrectype(self, names, filt=True, ctx=None, txn=None):
+	def record_groupbyrectype(self, names, filt=True, ctx=None, txn=None):
 		"""Group Record(s) by RecordDef.
 
 		Examples:
 
-		>>> db.groupbyrectype([136,137,138])
+		>>> db.record.groupbyrectype([136,137,138])
 		{u'project': set([137]), u'subproject': set([138]), u'group': set([136])}
 
-		>>> db.groupbyrectype([<Record instance 1>, <Record instance 2>])
+		>>> db.record.groupbyrectype([<Record instance 1>, <Record instance 2>])
 		{u'all_microscopes': set([1]), u'folder': set([2])}
 
 		:param names: Record name(s) or Record(s)
@@ -3141,12 +3128,12 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.bdbs.record.groupbyrectype(names, ctx=ctx, txn=txn)
+		return self.dbenv["record"].groupbyrectype(names, ctx=ctx, txn=txn)
 				
 
-	@publicmethod("record.render")
+	@publicmethod(compat="renderview")
 	@ol('names')
-	def renderview(self, names, viewname='recname', viewdef=None, edit=False, markup=True, table=False, mode=None, vtm=None, ctx=None, txn=None):
+	def record_render(self, names, viewname='recname', viewdef=None, edit=False, markup=True, table=False, mode=None, vtm=None, ctx=None, txn=None):
 		"""Render record(s).
 
 		For each record, render the view given either by the viewdef keyword,
@@ -3165,19 +3152,19 @@ class DB(object):
 
 		Examples:
 
-		>>> db.renderview([0, 136, 137])
+		>>> db.record.render([0, 136, 137])
 		{0: u'EMEN2', 136: u'NCMI', 137: u'A Project'}
 
-		>>> db.renderview([0, 136], viewname="mainview")
+		>>> db.record.render([0, 136], viewname="mainview")
 		{0: u'<p>Folder: EMEN2</p>...', 136: u'<h1><span class="e2-paramdef">Group</span>: NCMI</h1>...'}
 
-		>>> db.renderview([0, 136], viewdef="$$creator $$creationtime")
+		>>> db.record.render([0, 136], viewdef="$$creator $$creationtime")
 		{0: u'<p><a href="/user/root">Admin</a> 2007/07/23 10:30:22</p>', 136: u'<p><a href="/user/ian">Rees, Ian</a> 2008/07/05</p>'}
 
-		>>> db.renderview(0, viewname="defaultview", edit=True, markup=True)
+		>>> db.record.render(0, viewname="defaultview", edit=True, markup=True)
 		u'<p>Folder: <span class="e2-edit" data-name="0" data-param="name_folder">EMEN2</span>...'
 
-		>>> db.renderview([0], viewname="tabularview", table=True, markup=True)
+		>>> db.record.render([0], viewname="tabularview", table=True, markup=True)
 		{0: [u'<a href="/record/0">EMEN2</a>'], 'headers': {u'folder': [[u'Folder name', u'$', u'name_folder', None]]})}
 
 		:param names: Record name(s)
@@ -3216,17 +3203,17 @@ class DB(object):
 		names, recs, newrecs, other = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject, dict)
 		other = map(int, other)
 		names.extend(other)
-		recs.extend(self.bdbs.record.cgets(names, ctx=ctx, txn=txn))
+		recs.extend(self.dbenv["record"].cgets(names, ctx=ctx, txn=txn))
 
 		for newrec in newrecs:
-			rec = self.bdbs.record.new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
+			rec = self.dbenv["record"].new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
 			#.update(newrec)
 			rec.update(newrec)
 			recs.append(rec)
 
 		# Get and pre-process views
 		groupviews = {}
-		recdefs = listops.dictbykey(self.bdbs.recorddef.cgets(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
+		recdefs = listops.dictbykey(self.dbenv["recorddef"].cgets(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
 
 		if viewdef:
 			if markup and markdown:
@@ -3260,7 +3247,7 @@ class DB(object):
 					# t = time.time()
 					vtm.macro_preprocess(match.group('name'), match.group('args'), recs)
 
-		pds = listops.dictbykey(self.bdbs.paramdef.cgets(pds, ctx=ctx, txn=txn), 'name')
+		pds = listops.dictbykey(self.dbenv["paramdef"].cgets(pds, ctx=ctx, txn=txn), 'name')
 
 		# Parse views and build header row..
 		matches = collections.defaultdict(list)
@@ -3332,14 +3319,14 @@ class DB(object):
 		return ret				
 
 
-	@publicmethod("record.render.children")
-	def renderchildtree(self, name, recurse=3, rectype=None, ctx=None, txn=None):
+	@publicmethod(compat="renderchildtree")
+	def record_renderchildren(self, name, recurse=3, rectype=None, ctx=None, txn=None):
 		"""(Deprecated) Convenience method used by some clients to render a bunch of
 		records and simple relationships.
 
 		Examples:
 
-		>>> db.renderchildtree(0, recurse=1, rectype=["group"])
+		>>> db.record.renderchildren(0, recurse=1, rectype=["group"])
 		(
 			{0: u'EMEN2', 136: u'NCMI', 358307: u'Visitors'},
 			{0: set([136, 358307])}
@@ -3356,8 +3343,8 @@ class DB(object):
 		def find_endpoints(tree):
 			return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
 
-		c_all = self.bdbs.record.rel([name], recurse=recurse, tree=True, ctx=ctx, txn=txn)
-		c_rectype = self.bdbs.record.rel([name], recurse=recurse, rectype=rectype, ctx=ctx, txn=txn).get(name, set())
+		c_all = self.dbenv["record"].rel([name], recurse=recurse, tree=True, ctx=ctx, txn=txn)
+		c_rectype = self.dbenv["record"].rel([name], recurse=recurse, rectype=rectype, ctx=ctx, txn=txn).get(name, set())
 
 		endpoints = find_endpoints(c_all) - c_rectype
 		while endpoints:
@@ -3365,7 +3352,7 @@ class DB(object):
 				c_all[k] -= endpoints
 			endpoints = find_endpoints(c_all) - c_rectype
 
-		rendered = self.renderview(listops.flatten(c_all), ctx=ctx, txn=txn)
+		rendered = self.record_render(listops.flatten(c_all), ctx=ctx, txn=txn)
 
 		c_all = listops.filter_dict_zero(c_all)
 
@@ -3375,25 +3362,25 @@ class DB(object):
 
 	##### Binaries #####
 
-	@publicmethod("binary.get")
+	@publicmethod(compat="getbinary")
 	@ol('names')
-	def getbinary(self, names=None, filt=True, ctx=None, txn=None):
+	def binary_get(self, names=None, filt=True, ctx=None, txn=None):
 		# This call to findbinary is a deprecated feature
 		# that remains for backwards compat
 		bdos, recnames, other = listops.typepartition(names, str, int)
 		if len(recnames) > 0:
-			return self.findbinary(record=recnames, count=0, ctx=ctx, txn=txn)
-		return self.bdbs.binary.cgets(names, filt=filt, ctx=ctx, txn=txn)
+			return self.binary_find(record=recnames, count=0, ctx=ctx, txn=txn)
+		return self.dbenv["binary"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
-	@publicmethod("binary.new")
-	def newbinary(self, ctx=None, txn=None):
-		return self.bdbs.binary.new(name=None, ctx=ctx, txn=txn)
+	@publicmethod(compat="newbinary")
+	def binary_new(self, ctx=None, txn=None):
+		return self.dbenv["binary"].new(name=None, ctx=ctx, txn=txn)
 
 
-	@publicmethod("binary.put", write=True)
+	@publicmethod(write=True, compat="putbinary")
 	@ol('items')
-	def putbinary(self, items, extract=False, ctx=None, txn=None):
+	def binary_put(self, items, extract=False, ctx=None, txn=None):
 		"""Add or update a Binary (file attachment).
 
 		For new items, data must be supplied using with either
@@ -3406,13 +3393,13 @@ class DB(object):
 
 		Examples:
 
-		>>> db.putbinary({filename='hello.txt', filedata='Hello, world', record=0})
+		>>> db.binary.put({filename='hello.txt', filedata='Hello, world', record=0})
 		<Binary bdo:2011101000000>
 
-		>>> db.putbinary({'name':'bdo:2011101000000', 'filename':'newfilename.txt'})
+		>>> db.binary.put({'name':'bdo:2011101000000', 'filename':'newfilename.txt'})
 		<Binary bdo:2011101000000>
 
-		>>> db.putbinary({'name':'bdo:2011101000000', 'filedata':'Goodbye'})
+		>>> db.binary.put({'name':'bdo:2011101000000', 'filedata':'Goodbye'})
 		SecurityError
 
 		:param item: Binary
@@ -3425,10 +3412,10 @@ class DB(object):
 			newfile = False
 			if not bdo.get('name'):
 				handler = bdo
-				bdo = self.bdbs.binary.new(filename=handler.get('filename'), ctx=ctx, txn=txn)
+				bdo = self.dbenv["binary"].new(filename=handler.get('filename'), ctx=ctx, txn=txn)
 				newfile = bdo.writetmp(filedata=handler.get('filedata', None), fileobj=handler.get('fileobj', None))
 
-			bdo = self.bdbs.binary.cput(bdo, ctx=ctx, txn=txn)
+			bdo = self.dbenv["binary"].cput(bdo, ctx=ctx, txn=txn)
 			bdos.append(bdo)
 
 			if newfile:
@@ -3436,24 +3423,24 @@ class DB(object):
 			
 		# Rename the file at the end of the txn.
 		for newfile, filepath in rename:
-			self.bdbs._txn_precommit[txn.id()].append(['rename', [newfile, filepath]])
+			self.dbenv._txn_precommit[txn.id()].append(['rename', [newfile, filepath]])
 
 		return bdos
 
 
 	# Warning: This can be SLOW!
-	@publicmethod("binary.find")
-	def findbinary(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
+	@publicmethod(compat="findbinary")
+	def binary_find(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
 		"""Find a binary by filename.
 
 		Keywords can be combined.
 
 		Examples:
 
-		>>> db.findbinary(filename='dm3')
+		>>> db.binary.find(filename='dm3')
 		[<Binary 2011... test.dm3.gz>, <Binary 2011... test2.dm3.gz>]
 
-		>>> db.findbinary(record=136)
+		>>> db.binary.find(record=136)
 		[<Binary 2011... presentation.ppt>, <Binary 2011... retreat_photo.jpg>, ...]
 
 		:keyword query: Contained in any item below
@@ -3467,7 +3454,7 @@ class DB(object):
 		# @keyword min_filesize
 		# @keyword max_filesize
 		def searchfilenames(filename, txn):
-			ind = self.bdbs.binary.getindex('filename', txn=txn)
+			ind = self.dbenv["binary"].getindex('filename', txn=txn)
 			ret = set()
 			keys = (f for f in ind.keys(txn=txn) if filename in f)
 			for key in keys:
@@ -3477,7 +3464,7 @@ class DB(object):
 		rets = []
 		# This would probably work better if we used the sequencedb keys as a first step
 		if query or kwargs.get('name'):
-			names = self.bdbs.binary.names(ctx=ctx, txn=txn)
+			names = self.dbenv["binary"].names(ctx=ctx, txn=txn)
 
 		query = unicode(query or '').split()
 		for q in query:
@@ -3492,17 +3479,17 @@ class DB(object):
 			ret = self._findbyvartype(listops.check_iterable(record), ['binary'], ctx=ctx, txn=txn)
 			rets.append(ret)
 		allret = self._boolmode_collapse(rets, boolmode='AND')
-		ret = self.bdbs.binary.cgets(allret, ctx=ctx, txn=txn)
+		ret = self.dbenv["binary"].cgets(allret, ctx=ctx, txn=txn)
 		if count:
 			return ret[:count]
 		return ret
 		
 		
-	@publicmethod("binary.addreference", write=True)
-	def binaryaddreference(self, record, param, name, extract=False, ctx=None, txn=None):
-		bdo = self.bdbs.binary.cget(name, ctx=ctx, txn=txn)		
-		rec = self.bdbs.record.cget(record, ctx=ctx, txn=txn)
-		pd = self.bdbs.paramdef.cget(param, ctx=ctx, txn=txn)
+	@publicmethod(write=True, compat="binaryaddreference")
+	def binary_addreference(self, record, param, name, extract=False, ctx=None, txn=None):
+		bdo = self.dbenv["binary"].cget(name, ctx=ctx, txn=txn)		
+		rec = self.dbenv["record"].cget(record, ctx=ctx, txn=txn)
+		pd = self.dbenv["paramdef"].cget(param, ctx=ctx, txn=txn)
 
 		if pd.vartype != 'binary':
 			raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
@@ -3521,27 +3508,27 @@ class DB(object):
 		bdo.record = rec.name
 
 		# Commit the record
-		self.bdbs.record.cput(rec, ctx=ctx, txn=txn)
-		self.bdbs.binary.cput(bdo, ctx=ctx, txn=txn)
+		self.dbenv["record"].cput(rec, ctx=ctx, txn=txn)
+		self.dbenv["binary"].cput(bdo, ctx=ctx, txn=txn)
 		
 		
 		
 	##### Temporary binaries #####
 
-	@publicmethod("upload.get")
+	@publicmethod()
 	@ol('names')
-	def getupload(self, names=None, filt=True, ctx=None, txn=None):
-		return self.bdbs.upload.cgets(names, filt=filt, ctx=ctx, txn=txn)
+	def upload_get(self, names=None, filt=True, ctx=None, txn=None):
+		return self.dbenv["upload"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
-	@publicmethod("upload.new")
-	def newupload(self, ctx=None, txn=None):
-		return self.bdbs.upload.new(name=None, ctx=ctx, txn=txn)
+	@publicmethod()
+	def upload_new(self, ctx=None, txn=None):
+		return self.dbenv["upload"].new(name=None, ctx=ctx, txn=txn)
 	
 	
-	@publicmethod("upload.put", write=True)
+	@publicmethod(write=True)
 	@ol('items')
-	def putupload(self, items, extract=False, ctx=None, txn=None):
+	def upload_put(self, items, extract=False, ctx=None, txn=None):
 		tmpdir = emen2.db.config.get('paths.TMPPATH')		
 		bdos = []
 		rename = []
@@ -3549,10 +3536,10 @@ class DB(object):
 			newfile = False
 			if not bdo.get('name'):
 				handler = bdo
-				bdo = self.bdbs.upload.new(filename=handler.get('filename'), ctx=ctx, txn=txn)
+				bdo = self.dbenv["upload"].new(filename=handler.get('filename'), ctx=ctx, txn=txn)
 				newfile = bdo.writetmp(filedata=handler.get('filedata', None), fileobj=handler.get('fileobj', None), basepath=tmpdir)
 
-			bdo = self.bdbs.upload.cput(bdo, ctx=ctx, txn=txn)
+			bdo = self.dbenv["upload"].cput(bdo, ctx=ctx, txn=txn)
 			bdos.append(bdo)
 
 			if newfile:
@@ -3561,7 +3548,7 @@ class DB(object):
 			
 		# Rename the file at the end of the txn.
 		for newfile, filepath in rename:
-			self.bdbs._txn_precommit[txn.id()].append(['rename', [newfile, filepath]])
+			self.dbenv._txn_precommit[txn.id()].append(['rename', [newfile, filepath]])
 
 		return bdos
 		

@@ -53,7 +53,7 @@ class Dumper(object):
 		# Get the referencing vartypes from the items.
 		pds = self._find_paramdef(items)
 		for param in pds - set(self._ref_pds.keys()):
-			pd = self.db.getparamdef(param)
+			pd = self.db.get(param, key='paramdef')
 			if pd.vartype in self.keytypes:
 				self._ref_pds[pd.name] = pd.vartype
 				self._ref_vts[pd.vartype].add(pd.name)
@@ -65,7 +65,7 @@ class Dumper(object):
 		for vartype in vartypes:
 			pds |= self._ref_vts[vartype]
 		for pd in pds:
-			pd = self.db.getparamdef(pd)
+			pd = self.db.paramdef.get(pd)
 			if pd.iter:
 				for item in items:
 					ret |= set(item.get(pd.name, []))
@@ -102,8 +102,8 @@ if __name__ == "__main__":
 	db = emen2.db.opendb(admin=True)
 	dumper = Dumper(db=db)
 	keys = dumper.dump(c=[['groups','==','publish']])
-	keys['paramdef'] = db.getparamdefnames()
-	keys['user'] = db.getusernames()
+	keys['paramdef'] = db.paramdef.names()
+	keys['user'] = db.user.names()
 	dumper.write(keys, uri="http://ncmidb.bcm.edu")
 	
 	

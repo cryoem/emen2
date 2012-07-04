@@ -4,9 +4,9 @@
 <%include file="/record/rectypes/_default" />
 
 <%
-children = DB.getchildren(rec.name, recurse=-1, rectype=['image_capture*'])
-bdos = DB.findbinary(record=children, count=0)
-children_recnames = DB.renderview(children)
+children = DB.rel.children(rec.name, recurse=-1, rectype=['image_capture*'])
+bdos = DB.binary.find(record=children, count=0)
+children_recnames = DB.record.render(children)
 %>
 
 ## <br /><br /> <%buttons:singlepage label='In this session...'>

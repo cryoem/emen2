@@ -333,7 +333,7 @@
 			}
 			
 			// New request
-			this.request = emen2.db('find'+this.options.keytype, query, function(items) {
+			this.request = emen2.db(this.options.keytype+'.find', query, function(items) {
 				$('.e2l-spinner', self.dialog.dialog('widget')).hide();				
 				self.resultsarea.empty();
 				var l = items.length;

@@ -12,9 +12,9 @@ class Groups(View):
 		self.template="/pages/groups"
 		self.title = "Group directory"
 		self.set_context_item("q","")
-		groupnames = self.db.getgroupnames()
-		groups = self.db.getgroup(groupnames)
-		admin = self.db.checkadmin()
+		groupnames = self.db.group.names()
+		groups = self.db.group.get(groupnames)
+		admin = self.db.auth.check.admin()
 		self.set_context_item("admin",admin)
 
 		if groups == None:
@@ -32,7 +32,7 @@ class Group(View):
 	
 	@View.add_matcher(r'^/group/(?P<name>[\w\- ]+)/$')
 	def main(self, name=None):
-		group = self.db.getgroup(name)
+		group = self.db.group.get(name)
 		self.title = "Group: %s"%(group.displayname)
 		self.template = "/pages/group"
 		self.ctxt['group'] = group
@@ -42,7 +42,7 @@ class Group(View):
 
 	@View.add_matcher(r'^/group/(?P<name>[\w\- ]+)/edit/$')
 	def edit(self, name=None, **kwargs):
-		group = self.db.getgroup(name)
+		group = self.db.group.get(name)
 		self.title = "Group: %s"%(group.displayname)
 		self.template = "/pages/group"
 		self.ctxt['group'] = group
@@ -53,7 +53,7 @@ class Group(View):
 			return
 
 		group.update(kwargs)
-		group = self.db.putgroup(group)
+		group = self.db.group.put(group)
 		self.ctxt['group'] = group
 		self.redirect('/group/%s/'%group.name)
 		
@@ -62,8 +62,7 @@ class Group(View):
 	@View.add_matcher(r'^/groups/new/$')
 	def new(self, name=None, **kwargs):
 		# We have to supply a group name.. just use a random string.
-		name = name or 'newgroup%s'%int(time.time())		
-		group = self.db.newgroup(name)		
+		group = self.db.group.new(name)		
 		self.ctxt['group'] = group
 		self.ctxt['new'] = True
 		self.ctxt['edit'] = True
@@ -74,7 +73,7 @@ class Group(View):
 			return
 			
 		group.update(kwargs)
-		group = self.db.putgroup(group)
+		group = self.db.group.put(group)
 		self.ctxt['group'] = group
 		self.redirect('/group/%s/'%group.name)
 		

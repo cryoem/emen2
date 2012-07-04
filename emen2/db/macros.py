@@ -59,14 +59,14 @@ def parse_args(args):
 
 class Macro(object):
 
-	keytype = 's'
+	keyformat = 's'
 
 	def __init__(self, engine=None):
 		self.engine = engine
 
 
-	def getkeytype(self):
-		return self.keytype
+	def getkeyformat(self):
+		return self.keyformat
 
 
 	# Pre-cache if we're going to be doing alot of records.. This can be a substantial improvement.
@@ -110,7 +110,7 @@ class Macro(object):
 @vtm.register_macro('name')
 class macro_name(Macro):
 	"""name macro"""
-	keytype = 'd'
+	keyforamt = 'd'
 
 	def process(self, macro, params, rec):
 		return rec.name
@@ -124,7 +124,7 @@ class macro_name(Macro):
 @vtm.register_macro('recid')
 class macro_recid(Macro):
 	"""name macro"""
-	keytype = 'd'
+	keyformat = 'd'
 
 	def process(self, macro, params, rec):
 		return rec.name
@@ -141,7 +141,7 @@ class macro_parents(Macro):
 	def process(self, macro, params, rec):
 		rectype, _, recurse = params.partition(",")
 		recurse = int(recurse or 1)
-		return self.engine.db.getparents(rec.name, rectype=rectype, recurse=recurse)
+		return self.engine.db.rel.parents(rec.name, rectype=rectype, recurse=recurse)
 
 
 	def macro_name(self, macro, params):
@@ -154,7 +154,7 @@ class macro_recname(Macro):
 	"""recname macro"""
 
 	def process(self, macro, params, rec):
-		return self.engine.db.renderview(rec) #vtm=self.engine
+		return self.engine.db.record.render(rec) #vtm=self.engine
 
 
 	def macro_name(self, macro, params):
@@ -164,24 +164,24 @@ class macro_recname(Macro):
 @vtm.register_macro('childcount')
 class macro_childcount(Macro):
 	"""childcount macro"""
-	keytype = 'd'
+	keyformat = 'd'
 
 	def preprocess(self, macro, params, recs):
 		rectypes = params.split(",")
 		# ian: todo: recurse = -1..
-		children = self.engine.db.getchildren([rec.name for rec in recs], rectype=rectypes, recurse=3)
+		children = self.engine.db.rel.children([rec.name for rec in recs], rectype=rectypes, recurse=3)
 		for rec in recs:
-			key = self.engine.get_cache_key('getchildren', rec.name, *rectypes)
+			key = self.engine.get_cache_key('rel.children', rec.name, *rectypes)
 			self.engine.store(key, len(children.get(rec.name,[])))
 
 
 	def process(self, macro, params, rec):
 		"""Now even more optimized!"""
 		rectypes = params.split(",")
-		key = self.engine.get_cache_key('getchildren', rec.name, *rectypes)
+		key = self.engine.get_cache_key('rel.children', rec.name, *rectypes)
 		hit, children = self.engine.check_cache(key)
 		if not hit:
-			children = len(self.engine.db.getchildren(rec.name, rectype=rectypes, recurse=3))
+			children = len(self.engine.db.rel.children(rec.name, rectype=rectypes, recurse=3))
 			self.engine.store(key, children)
 
 		return children
@@ -204,7 +204,7 @@ class macro_img(Macro):
 
 		param, width, height = default
 
-		pd = self.engine.db.getparamdef(param)
+		pd = self.engine.db.paramdef.get(param)
 
 		if pd.vartype=="binary":
 			if pd.iter:
@@ -222,7 +222,7 @@ class macro_img(Macro):
 		ret = []
 		for i in bdos:
 			try:
-				bdoo = self.engine.db.getbinary(i, filt=False)
+				bdoo = self.engine.db.binary.get(i, filt=False)
 				fname = bdoo.get("filename")
 				bname = bdoo.get("filepath")
 				webroot = emen2.db.config.get('network.EMEN2WEBROOT')
@@ -244,7 +244,7 @@ class macro_childvalue(Macro):
 
 	def process(self, macro, params, rec):
 		name = rec.name
-		children = self.engine.db.getrecord(self.engine.db.getchildren(name))
+		children = self.engine.db.record.get(self.engine.db.rel.children(name))
 		return [i.get(params) for i in children]
 
 
@@ -268,7 +268,7 @@ class macro_parentvalue(Macro):
 
 		recurse = int(recurse or 1)
 		name = rec.name
-		parents = self.engine.db.getrecord(self.engine.db.getparents(name, recurse=recurse, rectype=rectype))
+		parents = self.engine.db.record.get(self.engine.db.rel.parents(name, recurse=recurse, rectype=rectype))
 		return filter(None, [i.get(param) for i in parents])
 
 
@@ -326,7 +326,7 @@ class macro_renderchildren(Macro):
 
 	def process(self, macro, params, rec):
 		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
-		r = self.engine.db.renderview(self.engine.db.getchildren(rec.name), viewname=params or "recname") #ian:mustfix
+		r = self.engine.db.record.render(self.engine.db.rel.children(rec.name), viewname=params or "recname") #ian:mustfix
 
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
@@ -349,7 +349,7 @@ class macro_renderchild(Macro):
 		#rinfo = dict(,host=host)
 		#view, key, value = args.split(' ')
 		#def get_records(name):
-		#	return db.getindexbyvalue(key.encode('utf-8'), value, **rinfo).intersection(db.getchildren(name, **rinfo))
+		#	return db.getindexbyvalue(key.encode('utf-8'), value, **rinfo).intersection(db.rel.children(name, **rinfo))
 		#return render_records(db, rec, view, get_records,rinfo, html_join_func)
 		return ""
 
@@ -367,7 +367,7 @@ class macro_renderchildrenoftype(Macro):
 	def process(self, macro, params, rec):
 		# print macro, params
 		webroot = emen2.db.config.get('network.EMEN2WEBROOT')
-		r = self.engine.db.renderview(self.engine.db.getchildren(rec.name, rectype=params))
+		r = self.engine.db.record.render(self.engine.db.rel.children(rec.name, rectype=params))
 
 		hrefs = []
 		for k,v in sorted(r.items(), key=operator.itemgetter(1)):
@@ -398,7 +398,7 @@ class macro_getfilenames(Macro):
 		# 	for bid in bids:
 		# 		bid = bid[4:]
 		# 		try:
-		# 			bname,ipath,bdocounter=db.getbinary(bid,,host=host)
+		# 			bname,ipath,bdocounter=db.binary.get(bid,,host=host)
 		# 		except Exception, inst:
 		# 			bname="Attachment error: %s"%bid
 		# 		files[bid]=bname
@@ -420,13 +420,13 @@ class macro_getrectypesiblings(Macro):
 		pass
 		# """returns siblings and cousins of same rectype"""
 		# ret = {}
-		# parents = db.getparents(rec.name,,host=host)
+		# parents = db.rel.parents(rec.name,,host=host)
 		# siblings = set()
 		#
 		# for i in parents:
-		# 	siblings = siblings.union(db.getchildren(i))
+		# 	siblings = siblings.union(db.rel.children(i))
 		#
-		# groups = db.groupbyrectype(siblings)
+		# groups = db.record.groupbyrectype(siblings)
 		#
 		# if groups.has_key(rec.rectype):
 		# 	q = db.getindexdictbyvaluefast(groups[rec.rectype],"modifytime")

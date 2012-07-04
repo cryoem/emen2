@@ -35,12 +35,12 @@
  % endif
 </div>
 </%def>
-<%def name="breadcrumb(ctxt, path)" filter="trim" cached="True" cache_key="${ context['ctxt'].db.checkcontext()[0] }" cache_timeout="30" cache_url="breadcrumb">
+<%def name="breadcrumb(ctxt, path)" filter="trim" cached="True" cache_key="${ context['ctxt'].db.auth.check.context()[0] }" cache_timeout="30" cache_url="breadcrumb">
 	<%
 		root = ctxt.root
 		ctxt.chroot(0)
 		menu = ctxt.get_menu()
-		children = sorted( ((ctxt.db.getrecord(x), y, menu.children[x,y]) for x,y in menu.keys()),
+		children = sorted( ((ctxt.db.record.get(x), y, menu.children[x,y]) for x,y in menu.keys()),
 						lambda x,y: cmp(x[0]['weight'], y[0]['weight']))
 		ctxt.chroot(root)
 	%>
@@ -78,7 +78,7 @@
 					</a>
 				</div>
 	 			<%
-					subchildren = sorted( ((ctxt.db.getrecord(x)['weight'], y) for x,y in tree.keys()),
+					subchildren = sorted( ((ctxt.db.record.get(x)['weight'], y) for x,y in tree.keys()),
 						lambda x,y: cmp(x[0], y[0]))
 				%>
 
@@ -103,7 +103,7 @@
 
 
 <%def name="person(name, ctxt)">
-	<% child = ctxt.db.getrecord(name) %>
+	<% child = ctxt.db.record.get(name) %>
 	<% if child['username'] == 'root': return %>
 	<div class="person_box">
 		% if child['person_photo']:

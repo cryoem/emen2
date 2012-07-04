@@ -23,7 +23,7 @@ class Preview(View):
 			return "No Binary ID supplied."
 
 		# Make sure we can access bdo
-		bdo = self.db.getbinary(self.bid, filt=False)
+		bdo = self.db.binary.get(self.bid, filt=False)
 		self.bdo = bdo
 		self.filename = bdo.get('filename')
 		self.mode = mode
