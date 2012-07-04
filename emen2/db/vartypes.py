@@ -396,7 +396,8 @@ class vt_choice(vt_string):
 		value = [unicode(i).strip() for i in ci(value)]
 		for v in value:
 			if v not in self.pd.choices:
-				raise ValidationError, "Invalid choice: %s"%v
+				print "Invalid Choice: %s"%v
+				# raise ValidationError, "Invalid choice: %s"%v
 		return self._rci(value)
 
 
