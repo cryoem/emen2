@@ -65,10 +65,6 @@ class Macro(object):
 		self.engine = engine
 
 
-	def getkeyformat(self):
-		return self.keyformat
-
-
 	# Pre-cache if we're going to be doing alot of records.. This can be a substantial improvement.
 	def preprocess(self, macro, params, recs):
 		pass

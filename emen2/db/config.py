@@ -219,6 +219,7 @@ class DBOptions(usage.Options):
 
 	def opt_configfile(self, file_):
 		self.setdefault('configfile', []).append(file_)
+
 	opt_c = opt_configfile
 
 	def postProcess(self):

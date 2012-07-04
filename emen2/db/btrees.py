@@ -49,11 +49,11 @@ class EMEN2DB(object):
 
 	:attr filename: Filename of BDB on disk
 	:attr dbenv: EMEN2 Database Environment
-	:attr cache: Cached items loaded from JSON. These do not exist in the BDB.
-	:attr cache_parents: Relationships of cached items
-	:attr cache_children: Relationships of cached items
 	:attr index: Open indexes
 	:attr bdb: Berkeley DB instance
+	:attr cache: In memory DB
+	:attr cache_parents: Relationships of cached items
+	:attr cache_children: Relationships of cached items
 	:attr DBOPENFLAGS: Berkeley DB flags for opening database
 	:attr DBSETFLAGS: Additional flags
 	"""
@@ -89,11 +89,6 @@ class EMEN2DB(object):
 		# EMEN2DBEnv
 		self.dbenv = dbenv
 
-		# Cached items
-		self.cache = {}
-		self.cache_parents = collections.defaultdict(set) # temporary patch
-		self.cache_children = collections.defaultdict(set) # temporary patch
-
 		# Indexes
 		self.index = {}
 		self._truncate_index = False
@@ -102,6 +97,11 @@ class EMEN2DB(object):
 		self.bdb = None
 		self.DBOPENFLAGS = bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE
 		self.DBSETFLAGS = []
+
+		# Cached items
+		self.cache = None
+		self.cache_parents = collections.defaultdict(set) # temporary patch
+		self.cache_children = collections.defaultdict(set) # temporary patch
 
 		# What are we storing?
 		self._setkeyformat(keyformat or self.keyformat)
@@ -210,34 +210,39 @@ class EMEN2DB(object):
 	##### DB methods #####
 
 	def open(self):
-		"""Open the DB.
+		"""Open the DB.	This is uses an implicit open transaction."""
 
-		Store the BerkeleyDB handle in self.bdb.
-		This is uses an implicit open transaction.
-
-		"""
-		if self.bdb:
+		if self.bdb or self.cache:
 			raise Exception, "DB already open"
 
 		# Create the DB handle and set flags
 		self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
 
+		# Create a memory only DB
+		self.cache = bsddb3.db.DB(self.dbenv.dbenv)
+
 		# Set DB flags, e.g. duplicate keys allowed
 		for flag in self.DBSETFLAGS:
 			self.bdb.set_flags(flag)
+			self.cache.set_flags(flag)
 
 		# Set a sort method
 		if self.cfunc and self.keyformat in ['d', 'f']:
 			self.bdb.set_bt_compare(self._cfunc_numeric)
+			self.cache.set_bt_compare(self._cfunc_numeric)
 
-		# Open the Berkeley DB with the correct flags.
-		self.bdb.open('%s.%s'%(self.filename, self.extension), dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
+		# Open the DB with the correct flags.
+		fn = '%s.%s'%(self.filename, self.extension)
+		self.bdb.open(filename=fn, dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
+		self.cache.open(filename=None, dbtype=bsddb3.db.DB_BTREE, flags=bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE)
 
 
 	def close(self):
 		"""Close the DB, and remove the BerkeleyDB handle."""
 		self.bdb.close()
 		self.bdb = None
+		self.cache.close()
+		self.cache = None
 
 
 
@@ -251,7 +256,7 @@ class EMEN2DB(object):
 
 		"""
 		# Returns all keys in the database, plus keys in the cache
-		return map(self.keyload, self.bdb.keys(txn)) + self.cache.keys()
+		return map(self.keyload, self.bdb.keys(txn)+self.cache.keys())
 
 
 	def values(self, txn=None):
@@ -262,7 +267,7 @@ class EMEN2DB(object):
 
 		"""
 		# Returns all values in the database, plus all cached items
-		return [self.dataload(x) for x in self.bdb.values(txn)] + map(pickle.loads, self.cache.values())
+		return [self.dataload(x) for x in self.bdb.values(txn)+self.cache.values()]
 
 
 	def items(self, txn=None):
@@ -273,19 +278,16 @@ class EMEN2DB(object):
 
 		"""
 		# Returns all the data in the database, plus all cached items
-		return map(lambda x:(self.keyload(x[0]),self.dataload(x[1])), self.bdb.items(txn)) + [(k, pickle.loads(v)) for k,v in self.cache.items()]
+		return map(lambda x:(self.keyload(x[0]),self.dataload(x[1])), self.bdb.items(txn)+self.cache.items())
 
 
 	def iteritems(self, txn=None, flags=0):
 		"""Mapping interface: iteritems. Requires txn.
 
-		This does not currently support cached items, but probably will soon.
-
 		:keyword txn: Transaction
 		:yield: (key, value) for all items in database.
 
 		"""
-		# todo: support cached items
 		# Scan accross the database, yielding key/value pairs.
 		ret = []
 		cursor = self.bdb.cursor(txn=txn)
@@ -295,8 +297,8 @@ class EMEN2DB(object):
 			pair = cursor.next_nodup()
 		cursor.close()
 
-		for k,v in self.cache.items():
-			yield (k, pickle.loads(v))
+		for pair in self.cache.items():
+			yield (self.keyload(pair[0]), self.dataload(pair[1]))
 
 
 	def exists(self, key, txn=None, flags=0):
@@ -308,9 +310,8 @@ class EMEN2DB(object):
 		:param key: Key
 		:keyword txn: Transaction
 		:return: True if key exists
-
 		"""
-		return self.bdb.exists(self.keydump(key), txn=txn, flags=flags) or self.cache.has_key(key)
+		return self.bdb.exists(self.keydump(key), txn=txn, flags=flags) or self.cache.exists(self.keydump(key), flags=flags)
 
 
 	# Compatibility.
@@ -331,16 +332,13 @@ class EMEN2DB(object):
 		:param item: Item to cache. Should be an instantiated DBObject.
 
 		"""
-		#if not self.bdb:
-		#	raise Exception, "DB not open."
-		# print "Adding %s to cache"%item.name
 
-		if item.name in self.cache:
-			# raise KeyError, "Warning: Item %s already in cache, skipping"%item.name
-			pass
-		if self.get(item.name, txn=txn):
-			# raise emen2.db.exceptions.ExistingKeyError, "Item %s already in exists in database, skipping"%item.name
-			pass
+		# if item.name in self.cache:
+		# 	# raise KeyError, "Warning: Item %s already in cache, skipping"%item.name
+		# 	pass
+		# if self.get(item.name, txn=txn):
+		# 	# raise emen2.db.exceptions.ExistingKeyError, "Item %s already in exists in database, skipping"%item.name
+		# 	pass
 
 		# Update parent/child relationships
 		# print "Checking parents/children for %s"%item.name
@@ -349,19 +347,19 @@ class EMEN2DB(object):
 		if p and c:
 			item.parents |= p.get(item.name)
 			item.children |= c.get(item.name)
-
+		
 			for child in item.children:
-				if self.cache.get(child):
-					i = pickle.loads(self.cache[unicode(child)])
+				if self.cache.get(self.keydump(child)):
+					i = self.dataload(self.cache.get(self.keydump(child)))
 					i.parents.add(item.name)
-					self.cache[unicode(i.name)] = pickle.dumps(i)
-
+					self.cache.put(self.keydump(i.name), self.datadump(i)) #, txn=txn
+		
 			for parent in item.parents:
-				if self.cache.get(parent):
-					i = pickle.loads(self.cache[unicode(parent)])
+				if self.cache.get(self.keydump(parent)):
+					i = self.dataload(self.cache.get(self.keydump(parent)))
 					i.children.add(item.name)
-					self.cache[unicode(i.name)] = pickle.dumps(i)
-
+					self.cache.put(self.keydump(i.name), self.datadump(i)) #, txn=txn
+		
 			# Also update the other side of the relationship, using cache_parents
 			# and cache_children
 			self.cache_parents[item.name] |= item.parents
@@ -370,14 +368,14 @@ class EMEN2DB(object):
 				self.cache_children[parent].add(item.name)
 			for child in item.children:
 				self.cache_parents[child].add(item.name)
-
+		
 			# Final check
 			item.parents |= self.cache_parents[item.name]
 			item.children |= self.cache_children[item.name]
 
 		# Store the item pickled, so it works with get, and
 		# returns new instances instead of globally shared ones...
-		self.cache[unicode(item.name)] = pickle.dumps(item)
+		self.cache.put(self.keydump(item.name), self.datadump(item)) #, txn=txn
 
 
 
@@ -393,11 +391,13 @@ class EMEN2DB(object):
 		:return: Found value or default
 
 		"""
-		if key in self.cache:
-			return pickle.loads(self.cache[key])
-
+		
 		# Check BDB
-		d = self.dataload(self.bdb.get(self.keydump(key), txn=txn, flags=flags))
+		d = self.dataload(
+			self.bdb.get(self.keydump(key), txn=txn, flags=flags) 
+			or 
+			self.cache.get(self.keydump(key), flags=flags)
+			)
 		if d:
 			return d
 		if not filt:
@@ -417,14 +417,10 @@ class EMEN2DB(object):
 
 		"""
 		# Check cache; these are read-only
-		if key in self.cache:
-			raise emen2.db.exceptions.SecurityError, "Cannot modify read-only item %s"%key
-			
-		# Write item to database
-		emen2.db.log.msg('COMMIT', "%s.put: %s"%(self.filename, key))
-		
-		# print data.__dict__
+		# if key in self.cache:
+		#	raise emen2.db.exceptions.SecurityError, "Cannot modify read-only item %s"%key
 		self.bdb.put(self.keydump(key), self.datadump(data), txn=txn, flags=flags)
+		emen2.db.log.commit("%s.put: %s"%(self.filename, key))
 
 
 	# Dangerous!
@@ -435,11 +431,11 @@ class EMEN2DB(object):
 
 		"""
 		# todo: Do more checking before performing a dangerous operation.
-		self.cache = {}
+		self.bdb.truncate(txn=txn)
+		self.cache.truncate()
 		self.cache_children = {}
 		self.cache_parents = {}
-		self.bdb.truncate(txn=txn)
-		emen2.db.log.msg('COMMIT', "%s.truncate"%self.filename)
+		emen2.dbtype.msg('COMMIT', "%s.truncate"%self.filename)
 
 
 	# Also dangerous!
@@ -451,12 +447,12 @@ class EMEN2DB(object):
 
 		"""
 		# Read-only items can't be removed.
-		if key in self.cache:
-			raise KeyError, "Cannot delete read-only item %s"%key
+		# if key in self.cache:
+		#	raise KeyError, "Cannot delete read-only item %s"%key
 		# If the item exists, remove it.
 		if self.exists(key, txn=txn):
 			ret = self.bdb.delete(self.keydump(key), txn=txn, flags=flags)
-			emen2.db.log.msg('COMMIT', "%s.delete: %s"%(self.filename, key))
+			emen2.db.log.commit("%s.delete: %s"%(self.filename, key))
 
 
 
@@ -649,7 +645,7 @@ class IndexDB(EMEN2DB):
 		cursor = self.bdb.cursor(txn=txn)
 		pair = cursor.first()
 		while pair != None:
-			processed += 1
+			# processed += 1
 			data = self._get_method(cursor, pair[0], self.dataformat)
 			if bulk and self.dataformat == "p":
 				data = set(map(self.dataload, data))
@@ -677,9 +673,6 @@ class IndexDB(EMEN2DB):
 	def removerefs(self, key, items, txn=None):
 		'''Remove references.
 
-		A list of keys that are no longer present in the index with any values
-		is returned; this can be used to maintain other indexes.
-
 		:param key: Key
 		:param items: References to remove
 		:keyword txn: Transaction
@@ -706,8 +699,7 @@ class IndexDB(EMEN2DB):
 			delindexitems.append(key)
 
 		cursor.close()
-
-		emen2.db.log.index("%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
+		emen2.db.log.commit("%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
 		return delindexitems
 
 
@@ -749,7 +741,7 @@ class IndexDB(EMEN2DB):
 
 		cursor.close()
 
-		emen2.db.log.index("%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
+		emen2.db.log.commit("%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
 		return addindexitems
 
 
@@ -863,12 +855,11 @@ class DBODB(EMEN2DB):
 
 	##### Sequences #####
 
-
 	def update_names(self, items, txn=None):
 		"""Update items with new names. Requires txn.
 
 		:param items: Items to update.
-		:keyword txn: Transaction
+		:keyword txn: Transaction.
 
 		"""
 		namemap = {}
@@ -910,7 +901,8 @@ class DBODB(EMEN2DB):
 			val = 0
 		val = int(val)
 		self.sequencedb.put(key, str(val+delta), txn=txn)
-		emen2.db.log.msg('COMMIT', "%s.sequence: %s"%(self.filename, val+delta))
+
+		emen2.db.log.commit("%s.sequence: %s"%(self.filename, val+delta))
 		return val
 
 
@@ -1024,48 +1016,25 @@ class DBODB(EMEN2DB):
 			return set([i.name for i in items])
 
 		return set(self.keys(txn=txn))
-		# return set(map(self.keyload, self.bdb.keys(txn)))
 
 
-	def items(self, items=None, rt=None, ctx=None, txn=None, **kwargs):
+	def items(self, ctx=None, txn=None):
 		"""Context-aware items. Requires ctx and txn.
 
-		:keyword items: Subset of items
-		:keyword rt: Return type. Deprecated.
 		:keyword ctx: Context
 		:keyword txn: Transaction
 		:return: (key, value) items that are accessible by the Context
-
 		"""
-		oitems = items
-
-		# Return type
-		if hasattr(items, 'next'):
-			rt = list
-		else:
-			if rt is None:
-				if items is None:
-					rt = list
-				else:
-					rt = type(items)
-
-		# Use iter if available
-		if hasattr(items, 'iteritems'):
-			items = items.iteritems()
-		elif hasattr(items, 'items'):
-			items = items.items()
-
-		# Get the cached items
-		cacheditems = [(k, pickle.loads(v)) for k,v in self.cache.items()]
-
-		# Restrict to a subset
-		if items is not None:
-			if ctx.checkadmin(): return oitems
-			return rt( (k,v) for k,v in items if (self.cget(k, ctx=ctx, txn=txn) is not None) ) + cacheditems
-
-		# Return all items
-		return rt( (self.keyload(k), self.dataload(v)) for k,v in self.bdb.items(txn) ) + cacheditems
-
+		ret = []
+		for k,v in self.bdb.items(txn)+self.cache.items():
+			i = self.dataload(v)
+			i.setContext(ctx)
+			ret.append((self.keyload(k), i))
+		return ret
+		
+	
+	# def iteritems(self, ctx=None, txn=None):
+		
 
 	def validate(self, items, ctx=None, txn=None):
 		return self.cputs(items, commit=False, ctx=ctx, txn=txn)
@@ -1125,7 +1094,7 @@ class DBODB(EMEN2DB):
 			cp |= orec.update(updrec, vtm=vtm, t=t)
 			orec.validate()
 
-			# If values changed, cache those, and add to the commit list
+			# If values changed, add to the commit list
 			if cp:
 				crecs.append(orec)
 
@@ -1137,33 +1106,30 @@ class DBODB(EMEN2DB):
 		# This will also update any relationships to uncommitted records.
 		self.update_names(crecs, txn=txn)
 
-		# Calculate all changed indexes
-		self.reindex(crecs, ctx=ctx, txn=txn)
-
 		# Commit "for real"
 		for crec in crecs:
 			self.put(crec.name, crec, txn=txn)
 
-		emen2.db.log.info("Committed %s items"%(len(crecs)))
+		# Update indexes
+		self.reindex(crecs, ctx=ctx, txn=txn)
 
-		# Return the updated items.
+		emen2.db.log.info("Committed %s items"%(len(crecs)))
 		return crecs
 
 
 	# Calculate and write index changes
 	# if indexonly, assume items are new, to rebuild all params.
-	def reindex(self, items, indexonly=False, ctx=None, txn=None):
+	def reindex(self, items, reindex=False, ctx=None, txn=None):
 		"""Update indexes. This is really a private method.
 
 		The original items will be retrieved and compared to the updated
 		items. A set of index changes will be calculated, and then handed off
 		to the _reindex_* methods. In some cases, these will be overridden
 		or extended to handle special indexes -- such as parent/child
-		relationships in RelateDB. There is not a complete interface for
-		doing this, although it may be so in the future.
-
+		relationships in RelateDB.
+		
 		:param items: Updated DBOs
-		:keyword indexonly:
+		:keyword reindex:
 		:keyword ctx: Context
 		:keyword txn: Transaction
 
@@ -1176,24 +1142,25 @@ class DBODB(EMEN2DB):
 			# Use an empty dict for new records so all keys
 			# will seen as new (or if reindexing)
 			# ian: todo: get or cget?
-			orec = self.cget(crec.name, ctx=ctx, txn=txn) or {}
-			if indexonly:
+			if crec.isnew() or reindex:
 				orec = {}
+			else:
+				orec = self.cget(crec.name, ctx=ctx, txn=txn) or {}
+
 			for param in crec.changedparams(orec):
 				ind[param].append((crec.name, crec.get(param), orec.get(param)))
-
 
 		# The other side of the relationship will also need to be updated.
 		parents = ind.pop('parents', None)
 		children = ind.pop('children', None)
-		self._reindex_relink(parents, children, indexonly=indexonly, ctx=ctx, txn=txn)
+		self._reindex_relink(parents, children, reindex=reindex, ctx=ctx, txn=txn)
 
 		# Update indexes.
 		for k,v in ind.items():
 			self._reindex_param(k, v, ctx=ctx, txn=txn)
 
 
-	def _reindex_relink(self, parents, children, indexonly=False, ctx=None, txn=None):
+	def _reindex_relink(self, parents, children, reindex=False, ctx=None, txn=None):
 		# (Internal) see RelateDB
 		return
 
@@ -1249,7 +1216,7 @@ class DBODB(EMEN2DB):
 		The base DBODB class provides no indexes. The subclass must implement
 		this method if it wants to provide any indexes. This can be either
 		one or two attributes that are indexed, such as filename/md5 in
-		BinaryDB, or a complete and general index system in RecordDB.
+		BinaryDB, or a complete and general index system as in RecordDB.
 
 		If an index for a parameter isn't returned by this method, the reindex
 		method will just skip it.
@@ -1315,7 +1282,7 @@ class DBODB(EMEN2DB):
 			# Use self.reindex() instead of self.cputs() -- the data should
 			# already be validated, so we can skip that step.
 			# self.cputs(items, ctx=ctx, txn=txn)
-			self.reindex(items, indexonly=True, ctx=ctx, txn=txn)
+			self.reindex(items, reindex=True, ctx=ctx, txn=txn)
 
 		self._truncate_index = False
 
@@ -1343,8 +1310,7 @@ class RelateDB(DBODB):
 		expand			Adds support for "*" in names()
 
 	Adds the following methods:
-		parenttree		Returns parents dict, one recurse level per key
-		childtree		Returns children dict, one recurse level per key
+		tree			Returns relationship dict, one recurse level per key
 		parents			Returns parents, multiple recurse levels per key
 		children		Returns children, multiple recurse lvls per key
 		siblings		Item siblings
@@ -1415,30 +1381,17 @@ class RelateDB(DBODB):
 
 
 	# Commonly used rel() variants
-	def parenttree(self, names, recurse=1, ctx=None, txn=None, **kwargs):
-		"""See rel(), with rel='parents", tree=True. Requires ctx and txn.
+	def tree(self, names, recurse=1, rel='children', ctx=None, txn=None, **kwargs):
+		"""See rel(), tree=True. Requires ctx and txn.
 
-		Returns a tree structure of parents. This will be a dict, with DBO
-		names as keys, and one level of parents for the value. It will
+		Returns a tree structure of relationships. This will be a dict, with DBO
+		names as keys, and one level of relationship for the value. It will
 		recurse to the level specified by the recurse keyword.
 
-		:return: Tree structure of parents
+		:return: Tree structure of relationships
 
 		"""
-		return self.rel(names, recurse=recurse, rel='parents', tree=True, ctx=ctx, txn=txn, **kwargs)
-
-
-	def childtree(self, names, recurse=1, ctx=None, txn=None, **kwargs):
-		"""See rel(), with rel='children", tree=True. Requires ctx and txn.
-
-		Returns a tree structure of children. This will be a dict, with DBO
-		names as keys, and one level of children for the value. It will
-		recurse to the level specified by the recurse keyword.
-
-		:return: Tree structure of children
-
-		"""
-		return self.rel(names, recurse=recurse, rel='children', tree=True, ctx=ctx, txn=txn, **kwargs)
+		return self.rel(names, recurse=recurse, rel=rel, tree=True, ctx=ctx, txn=txn, **kwargs)
 
 
 	def parents(self, names, recurse=1, ctx=None, txn=None, **kwargs):
@@ -1499,7 +1452,7 @@ class RelateDB(DBODB):
 		or duplication of code. However, it switches return types based on
 		the tree keyword. Because of this complexity, it is usually called
 		through the following convenience methods:
-			parents, children, parenttree, childtree
+			parents, children, tree
 
 		If tree keyword is True, the returned value will be a tree structure.
 		This will have each specified DBO name as a key, and one level of
@@ -1634,7 +1587,7 @@ class RelateDB(DBODB):
 
 
 	# Handle the reindexing...
-	def _reindex_relink(self, parents, children, indexonly=False, ctx=None, txn=None):
+	def _reindex_relink(self, parents, children, reindex=False, ctx=None, txn=None):
 		# (Internal) Relink relationships
 		# This method will grab both items, and add or remove the rels from
 		# each item, and then update the parents/children IndexDBs.
@@ -1668,7 +1621,6 @@ class RelateDB(DBODB):
 				remove.append((name, i))
 			names.append(name)
 
-
 		# print "Add links:", add
 		# print "Remove links:", remove
 		p_add = collections.defaultdict(set)
@@ -1683,7 +1635,8 @@ class RelateDB(DBODB):
 			p_remove[c].add(p)
 			c_remove[p].add(c)
 
-		if not indexonly:
+		#if not indexonly:
+		if True:
 			# Go and fetch other items that we need to update
 			names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
 			# print "All affected items:", names
@@ -1745,7 +1698,7 @@ class RelateDB(DBODB):
 
 		# NOTE: I am using this ugly direct call 'rel._get_method' to the C module because it saves 10-20% time.
 		new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) # rel.get(key, cursor=cursor)
-		if key in self.cache:
+		if key in cache:
 			new |= cache.get(key, set())
 
 		stack = [new]
@@ -1760,7 +1713,7 @@ class RelateDB(DBODB):
 			stack.append(set())
 			for key in stack[x] - visited:
 				new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) # rel.get(key, cursor=cursor)
-				if key in self.cache:
+				if key in cache:
 					new |= cache.get(key, set())
 
 				if new:

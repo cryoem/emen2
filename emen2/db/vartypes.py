@@ -18,6 +18,7 @@ import re
 import time
 import calendar
 import datetime
+
 # ... dateutil helps.
 import dateutil
 import dateutil.parser
@@ -43,56 +44,16 @@ import emen2.db.exceptions
 # Convenience
 tzutc = dateutil.tz.tzutc()
 ci = emen2.util.listops.check_iterable
+
 ValidationError = emen2.db.exceptions.ValidationError
 vtm = emen2.db.datatypes.VartypeManager
 
+# Allow references to missing items.
+ALLOW_MISSING = True
 
 
 ###########################
 # Helper methods
-
-def check_rectype(engine, value):
-	key = engine.get_cache_key('paramdef', value)
-	hit, paramdef = engine.check_cache(key)
-	if not hit:
-		paramdef = engine.db.paramdef.get(value, filt=False)
-		engine.store(key, paramdef)
-
-	return paramdef
-
-
-def check_rectypes(engine, values):
-	key = engine.get_cache_key('recorddefnames')
-	hit, rectypes = engine.check_cache(key)
-	if not hit:
-		rectypes = engine.db.recorddef.names()
-		engine.store(key, rectypes)
-
-	if set(values) - rectypes:
-		raise ValidationError, "Unknown protocols: %s"%(", ".join(set(values)-rectypes))
-
-
-def check_usernames(engine, values):
-	key = engine.get_cache_key('usernames')
-	hit, usernames = engine.check_cache(key)
-	if not hit:
-		usernames = engine.db.user.names()
-		engine.store(key, usernames)
-
-	if set(values) - usernames:
-		raise ValidationError, "Unknown users: %s"%(", ".join(set(values)-usernames))
-
-
-def check_groupnames(engine, values):
-	key = engine.get_cache_key('groupnames')
-	hit, groupnames = engine.check_cache(key)
-	if not hit:
-		groupnames = engine.db.group.names()
-		engine.store(key, groupnames)
-
-	if set(values) - groupnames:
-		raise ValidationError, "Unknown groups: %s"%(", ".join(set(values)-groupnames))
-
 
 def update_username_cache(engine, values, lnf=False):
 	# Check cache
@@ -167,10 +128,13 @@ class Vartype(object):
 
 	#: the index key type for this class
 	keyformat = None
+
 	#: is this vartype iterable?
 	iterable = True
+
 	#: the CSS class to use when rendering as HTML
 	elem_class = 'e2-edit'
+
 	#: the element to use when rendering as HTML
 	elem = 'span'
 
@@ -224,7 +188,6 @@ class Vartype(object):
 				return '<%s class="%s" %s>%s</%s>'%(self.elem, self.elem_class, editmarkup, label, self.elem)
 			return '<%s></%s>'%(self.elem, self.elem)
 
-
 		# Tables have links to the record
 		if self.table:
 			value = ['<a href="%s/record/%s">%s</a>'%(webroot, self.name, i) for i in value]
@@ -235,18 +198,12 @@ class Vartype(object):
 			if not self.edit:
 				return '<ul>%s</ul>'%("\n".join(lis))
 			# Editable..
-			# Are we showing the edit label?
-			# if self.showlabel:
-			#	lis.append('<li><span class="e2-edit e2l-label"><img src="%s/static/images/edit.png" alt="Edit" /></span></li>'%webroot)
-			# Put the editing widget together
 			return '<ul class="%s" %s>%s</ul>'%(self.elem_class, editmarkup, "\n".join(lis))
 
-		value = value.pop()
-
 		# Non-iterable parameters
+		value = value.pop()
 		if not self.edit:
 			return value
-
 		return '<%s class="%s" %s>%s%s</%s>'%(self.elem, self.elem_class, editmarkup, value, label, self.elem)
 
 
@@ -262,22 +219,41 @@ class Vartype(object):
 		"""Validate a value"""
 		raise ValidationError, "This is an organizational parameter, and is not intended to be used."
 
+	
+	def _validate_reference(self, value, keytype=None):
+		ret = []
+		changed = False
+		keytype = keytype or self.vartype
+		key = self.engine.get_cache_key('%s.names'%keytype)
+		hit, found = self.engine.check_cache(key)
+		if not hit:
+			found = set()
+			changed = True
+
+		for i in value:
+			i = unicode(i).strip()
+			if i in found:
+				ret.append(i)
+			elif self.engine.db.exists(i, keytype=keytype):
+				ret.append(i)
+				found.add(i)
+				changed = True
+				# print "found:", self.vartype, i
+			else:
+				print "Could not find:", self.pd.name, self.vartype, i
+		
+		if changed:
+			self.engine.store(key, found)
+		
+		return ret
+		
 
 	def _rci(self, value):
-		"""Validation methods generally work on iterables; if the parameter is non-iterable,
-		return a single value."""
+		"""Validation methods generally work on iterables. 
+		If the parameter is non-iterable, return a single value."""
 		if value and not self.pd.iter:
 			return value.pop()
 		return value or None
-
-
-	# Replace these two methods.
-	def getvartype(self):
-		return self.vartype
-
-
-	def getkeyformat(self):
-		return self.keyformat
 
 
 	def reindex(self, items):
@@ -298,8 +274,10 @@ class Vartype(object):
 			for o in old-new:
 				delrefs[o].add(name)
 
-		if None in addrefs: del addrefs[None]
-		if None in delrefs: del delrefs[None]
+		if None in addrefs:
+			del addrefs[None]
+		if None in delrefs:
+			del delrefs[None]
 
 		return addrefs, delrefs
 
@@ -313,8 +291,8 @@ class Vartype(object):
 
 @vtm.register_vartype('float')
 class vt_float(Vartype):
-	"""Floating-point number"""
-	#:
+	"""Floating-point number."""
+
 	keyformat = 'f'
 
 	def validate(self, value):
@@ -326,8 +304,8 @@ class vt_float(Vartype):
 
 @vtm.register_vartype('percent')
 class vt_percent(Vartype):
-	"""Percentage. 0 <= x <= 1"""
-	#:
+	"""Percentage. 0 <= x <= 1."""
+
 	keyformat = 'f'
 
 	def validate(self, value):
@@ -349,8 +327,8 @@ class vt_percent(Vartype):
 
 @vtm.register_vartype('int')
 class vt_int(Vartype):
-	"""Integer"""
-	#:
+	"""Integer."""
+
 	keyformat = 'd'
 
 	def validate(self, value):
@@ -368,7 +346,7 @@ class vt_coordinate(Vartype):
 @vtm.register_vartype('boolean')
 class vt_boolean(Vartype):
 	"""Boolean value. Accepts 0/1, True/False, T/F, Yes/No, Y/N, None."""
-	#:
+
 	keyformat = 'd'
 
 	def validate(self, value):
@@ -388,21 +366,6 @@ class vt_boolean(Vartype):
 
 
 
-@vtm.register_vartype('name')
-class vt_name(Vartype):
-	"""DBO name"""
-
-	def validate(self, value):
-		ret = []
-		for i in ci(value):
-			try:
-				i = int(value)
-			except ValueError:
-				i = unicode(value or '')
-			ret.append(i)
-		return self._rci(ret)
-
-
 
 ###################################
 # String vartypes
@@ -411,8 +374,8 @@ class vt_name(Vartype):
 
 @vtm.register_vartype('string')
 class vt_string(Vartype):
-	"""String"""
-	#:
+	"""String."""
+
 	keyformat = 's'
 
 	def validate(self, value):
@@ -421,13 +384,13 @@ class vt_string(Vartype):
 	def process(self, value):
 		value = ci(value)
 		if self.markup:
-			return [cgi.escape(i) for i in value]
+			return [cgi.escape(unicode(i)) for i in value]
 		return value
 
 
 @vtm.register_vartype('choice')
 class vt_choice(vt_string):
-	"""One value from a defined list of choices"""
+	"""One value from a defined list of choices."""
 
 	def validate(self, value):
 		value = [unicode(i).strip() for i in ci(value)]
@@ -438,23 +401,12 @@ class vt_choice(vt_string):
 
 
 
-@vtm.register_vartype('rectype')
-class vt_rectype(vt_string):
-	"""RecordDef name"""
-
-	def validate(self, value):
-		value = [unicode(x).strip() for x in ci(value)]
-		check_rectypes(self.engine, value)
-		return self._rci(value)
-
-
 @vtm.register_vartype('recorddef')
 class vt_recorddef(vt_string):
-	"""RecordDef name"""
+	"""RecordDef name."""
 
 	def validate(self, value):
-		value = [unicode(x).strip() for x in ci(value)]
-		check_rectypes(self.engine, value)
+		value = self._validate_reference(ci(value), keytype=self.vartype)
 		return self._rci(value)
 
 
@@ -462,10 +414,8 @@ class vt_recorddef(vt_string):
 @vtm.register_vartype('text')
 class vt_text(vt_string):
 	"""Freeform text, with word indexing."""
-	#:
-	elem = 'div'
 
-	#:
+	elem = 'div'
 	unindexed_words = set(["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"])
 
 	def reindex(self, items):
@@ -523,8 +473,8 @@ class vt_text(vt_string):
 
 @vtm.register_vartype('datetime')
 class vt_datetime(vt_string):
-	"""ISO 8601 Date time"""
-	#:
+	"""ISO 8601 Date time."""
+
 	keyformat = 's'
 
 	def validate(self, value):
@@ -534,13 +484,6 @@ class vt_datetime(vt_string):
 				t = dateutil.parser.parse(i)
 				if not t.tzinfo:
 					raise ValidationError, "No UTC offset: %s"%i
-				# if any([t.hour, t.minute, t.second, t.microsecond, t.tzinfo]):
-				# 	print "Datetime.."
-				# else:
-				# 	print "Date.."
-				# print "dt:", t.isoformat()
-				# print "d:", t.date().isoformat()
-				# print "t:", t.time().isoformat()
 				ret.append(t.isoformat())
 		return self._rci(ret)
 
@@ -552,7 +495,7 @@ class vt_datetime(vt_string):
 
 @vtm.register_vartype('date')
 class vt_date(vt_datetime):
-	"""Date, yyyy/mm/dd"""
+	"""Date, yyyy-mm-dd."""
 
 	def validate(self, value):
 		ret = []
@@ -565,7 +508,7 @@ class vt_date(vt_datetime):
 
 @vtm.register_vartype('time')
 class vt_time(vt_datetime):
-	"""Time, HH:MM:SS"""
+	"""Time, HH:MM:SS."""
 
 	def validate(self, value):
 		ret = []
@@ -588,7 +531,7 @@ class vt_time(vt_datetime):
 @vtm.register_vartype('uri')
 class vt_uri(Vartype):
 	"""URI"""
-	#:
+
 	keyformat = 's'
 
 	# ian: todo: parse with urlparse
@@ -618,13 +561,14 @@ class vt_uri(Vartype):
 
 @vtm.register_vartype('dict')
 class vt_dict(Vartype):
-	"""Dictionary with string keys and values"""
+	"""Dictionary with string keys and values."""
 
 	def validate(self, value):
 		if not value:
 			return None
 		r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
 		return dict(r)
+		
 
 	def process(self, value):
 		if not value:
@@ -636,7 +580,7 @@ class vt_dict(Vartype):
 
 @vtm.register_vartype('dictlist')
 class vt_dict(Vartype):
-	"""Dictionary with string keys and list values"""
+	"""Dictionary with string keys and list values."""
 
 	def validate(self, value):
 		if not value:
@@ -648,7 +592,6 @@ class vt_dict(Vartype):
 			v = [unicode(i) for i in v]
 			ret[k] = v
 
-		# r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
 		return ret
 
 
@@ -668,13 +611,13 @@ class vt_dict(Vartype):
 @vtm.register_vartype('binary')
 class vt_binary(Vartype):
 	"""File Attachment"""
-	#:
+
 	keyformat = None
-	#:
 	elem_class = "e2-edit"
 
 	def validate(self, value):
-		return self._rci([i.name for i in self.engine.db.binary.get(ci(value), filt=False)])
+		value = self._validate_reference(ci(value), keytype=self.vartype)
+		return self._rci(value)
 
 
 	def process(self, value):
@@ -712,7 +655,6 @@ class vt_binary(Vartype):
 @vtm.register_vartype('md5')
 class vt_md5(Vartype):
 	"""String"""
-	#:
 	keyformat = 's'
 
 
@@ -726,7 +668,7 @@ class vt_md5(Vartype):
 @vtm.register_vartype('record')
 class vt_record(Vartype):
 	"""References to other Records."""
-	#:
+
 	keyformat = None
 
 	def validate(self, value):
@@ -741,13 +683,12 @@ class vt_record(Vartype):
 
 @vtm.register_vartype('user')
 class vt_user(Vartype):
-	"""Users"""
-	#:
+	"""Users."""
+	
 	keyformat = 's'
 
 	def validate(self, value):
-		value = [unicode(x).strip() for x in ci(value)]
-		check_usernames(self.engine, value)
+		value = self._validate_reference(ci(value), keytype=self.vartype)
 		return self._rci(value)
 
 
@@ -776,8 +717,8 @@ class vt_user(Vartype):
 
 @vtm.register_vartype('acl')
 class vt_acl(Vartype):
-	"""Permissions access control list; nested lists of users"""
-	#:
+	"""Permissions access control list; nested lists of users."""
+	
 	keyformat = 's'
 
 	def validate(self, value):
@@ -793,7 +734,7 @@ class vt_acl(Vartype):
 			raise ValidationError, "Invalid permissions format: ", value
 
 		users = reduce(lambda x,y:x+y, value)
-		check_usernames(self.engine, users)
+		self._validate_reference(users, keytype='user')
 		return value
 
 
@@ -841,13 +782,12 @@ class vt_acl(Vartype):
 
 @vtm.register_vartype('group')
 class vt_group(Vartype):
-	"""Group"""
-	#:
+	"""Group."""
+	
 	keyformat = 's'
 
 	def validate(self, value):
-		value = set([unicode(i).strip() for i in ci(value)])
-		check_groupnames(self.engine, value)
+		value = self._validate_reference(ci(value), keytype=self.vartype)
 		return self._rci(value)
 
 	def process(self, value):
@@ -862,8 +802,8 @@ class vt_group(Vartype):
 
 @vtm.register_vartype('comments')
 class vt_comments(Vartype):
-	"""Comments"""
-	#:
+	"""Comments."""
+	
 	keyformat = None
 
 	# ian: todo... sort this out.
@@ -893,16 +833,12 @@ class vt_comments(Vartype):
 
 @vtm.register_vartype('history')
 class vt_history(Vartype):
-	"""History"""
-	#:
+	"""History."""
+	
 	keyformat = None
 
 	def validate(self, value):
-		users = [i[0] for i in value]
-		times = [i[1] for i in value]
-		check_usernames(self.engine, users)
-		return [(unicode(i[0]), unicode(i[1]), unicode(i[2]), i[3]) for i in value]
-
+		return value		
 
 	def process(self, value):
 		value = ci(value)

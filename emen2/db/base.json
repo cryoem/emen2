@@ -11,7 +11,7 @@
 {"name": "comments", "keytype": "paramdef","parents": ["core"], "vartype": "comments", "desc_short": "Comments", "iter":true, "uri":"http://ncmidb.bcm.edu"}
 {"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "record", "iter": true, "desc_short": "Parents", "uri":"http://ncmidb.bcm.edu"}
 {"name": "email", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Email", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "name", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "name", "desc_short": "Object Name", "uri":"http://ncmidb.bcm.edu"}
+{"immutable": true, "name": "name", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Object Name", "uri":"http://ncmidb.bcm.edu"}
 {"name": "groups", "keytype": "paramdef","parents": ["core"], "vartype": "group", "iter":true, "desc_short": "Groups", "desc_long": "Group permissions to apply to this item", "uri":"http://ncmidb.bcm.edu"}
 {"modifyuser": "root", "immutable": true, "name": "modifytime", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Modification time", "desc_long": "The date/time the record was last modified", "uri":"http://ncmidb.bcm.edu"}
 {"name": "permissions", "keytype": "paramdef","parents": ["core"], "vartype": "acl", "desc_short": "Permissions", "desc_long": "Users who have permission to view, edit, or own this item", "uri":"http://ncmidb.bcm.edu"}

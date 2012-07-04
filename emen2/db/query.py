@@ -260,7 +260,7 @@ class MacroConstraint(Constraint):
 		# Run the macro
 		self.p.vtm.macro_preprocess(k.group('name'), k.group('args'), self.p.items)
 		# Convert the term to the right type
-		keyformat = self.p.vtm.getmacro(k.group('name')).getkeyformat()
+		keyformat = self.p.vtm.getmacro(k.group('name')).keyformat
 		term = keyformatconvert(keyformat, self.term)
 		# Run the comparison
 		cfunc = getop(self.op)

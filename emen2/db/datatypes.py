@@ -147,7 +147,7 @@ class VartypeManager(object):
 	# 
 	# 	vt = self._vartypes[pd.vartype](engine=self, pd=pd)
 	# 
-	# 	if vt.getkeyformat() in ["d","f"]:
+	# 	if vt.keyformat in ["d","f"]:
 	# 		return rec.get(pd.name)
 	# 
 	# 	value = vt.render(value=value)
@@ -183,10 +183,6 @@ class VartypeManager(object):
 	###################################
 	# Misc
 	###################################
-
-	def getkeyformat(self, name):
-		pass
-
 
 	def getvartype(self, name):
 		return self._vartypes[name]()

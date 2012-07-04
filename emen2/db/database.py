@@ -393,7 +393,7 @@ class EMEN2DBEnv(object):
 		for y in vtm.getvartypes():
 			y = vtm.getvartype(y)
 			if y.keyformat:
-				self.indexablevartypes.add(y.getvartype())
+				self.indexablevartypes.add(y.vartype)
 
 		# Open DB environment; check if global DBEnv has been opened yet
 		ENVOPENFLAGS = \
@@ -680,10 +680,12 @@ class DB(object):
 		# Create a special root context to load the items
 		ctx = emen2.db.context.SpecialRootContext(db=self)
 		loader = emen2.db.load.BaseLoader(infile=infile)
-		for keytype in self.dbenv.keytypes:
+		for keytype in ['paramdef', 'user', 'group', 'recorddef', 'binary', 'record']:
+			# print "=== LOADING: %s ==="%keytype
 			for item in loader.loadfile(keytype=keytype):
 				i = self.dbenv[keytype].dataclass(ctx=ctx)
 				i._load(item)
+				print "json ->", i.keytype, i.name
 				self.dbenv[keytype].addcache(i)
 
 
@@ -844,7 +846,7 @@ class DB(object):
 		regex = VIEW_REGEX
 		
 		k = regex.match(macro)
-		keyformat = vtm.getmacro(k.group('name')).getkeyformat()
+		keyformat = vtm.getmacro(k.group('name')).keyformat
 		vtm.macro_preprocess(k.group('name'), k.group('args'), mrecs)
 
 		for rec in mrecs:
@@ -1251,6 +1253,11 @@ class DB(object):
 		:exception SecurityError:
 		"""
 		return getattr(self, '%s_get'%(keytype))(names, filt=filt, ctx=ctx, txn=txn)
+
+	
+	@publicmethod()
+	def exists(self, name, keytype='record', ctx=None, txn=None):
+		return self.dbenv[keytype].exists(name, txn=txn)
 
 
 	@publicmethod()
