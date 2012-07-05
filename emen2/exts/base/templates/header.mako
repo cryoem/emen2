@@ -55,12 +55,12 @@
 			</li>
 		% endif
 
-		<li class="e2l-float-right nohover" role="search">
-			<form method="get" action="${EMEN2WEBROOT}/query/">
-				## type="search"
-				<input type="text" name="keywords" size="8" placeholder="Search" id="e2-header-search" />
-			</form>
-		</li>
+		## <li class="e2l-float-right nohover" role="search">
+		##	<form method="get" action="${EMEN2WEBROOT}/query/">
+		##		## type="search"
+		##		<input type="text" name="keywords" size="8" placeholder="Search" id="e2-header-search" />
+		##	</form>
+		## </li>
 
 		% if USER:
 		<li class="e2l-float-right">
