@@ -329,7 +329,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 class RecordDB(emen2.db.btrees.RelateDB):
 	cfunc = False 	# Do not sort the BTree keys as integers
-	keytype = 'd' 	# Integer keys
 	dataclass = Record
 
 	def openindex(self, param, txn=None):
@@ -346,12 +345,8 @@ class RecordDB(emen2.db.btrees.RelateDB):
 		# Open the index
 		vtm = emen2.db.datatypes.VartypeManager()
 		tp = vtm.getvartype(pd.vartype).keyformat
-		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat=tp, dataformat='d', dbenv=self.dbenv)
+		ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat=tp, dataformat=self.keyformat, dbenv=self.dbenv)
 		return ind
-
-
-	def _name_generator(self, item, txn=None):
-		return self._incr_sequence(delta=1, txn=txn)
 
 
 	def hide(self, names, ctx=None, txn=None):
@@ -420,7 +415,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 			return self.filter(names, rectype=kwargs.get('rectype'), ctx=ctx, txn=txn)
 
 		if ctx.checkreadadmin():
-			return set(xrange(self.get_max(txn=txn)))
+			return set(self.keys(txn=txn))
 
 		ind = self.getindex("permissions", txn=txn)
 		indc = self.getindex('creator', txn=txn)

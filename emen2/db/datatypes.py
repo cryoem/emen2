@@ -64,9 +64,10 @@ class VartypeManager(object):
 		return f
 
 
-	def __init__(self, db=None):
+	def __init__(self, db=None, keytype=None):
 		object.__init__(self)
 		self.db = db
+		self.keytype = keytype
 		self.caching = False
 		self.reset_cache()
 

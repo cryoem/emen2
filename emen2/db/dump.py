@@ -2,6 +2,7 @@ import collections
 
 import jsonrpc.jsonutil
 import emen2.db
+import emen2.db.config
 import emen2.util.listops
 
 
@@ -38,11 +39,14 @@ class Dumper(object):
 	def write(self, keys, outfile='dump.json', uri=None):
 		f = open(outfile, 'w')
 		for keytype in self.keytypes:
-			for chunk in emen2.util.listops.chunk(keys.get(keytype, []), count=100):
+			modify = getattr(self, '_modify_%s'%keytype, lambda x:x)
+			
+			for chunk in emen2.util.listops.chunk(keys.get(keytype, []), count=1000):
 				items = self.db.get(chunk, keytype=keytype)
 				for item in items:
 					if uri:
 						item.__dict__['uri'] = '%s/%s/%s'%(uri, keytype, item.name)
+					item = modify(item)
 					print "%s: %s"%(item.keytype, item.name)
 					f.write(jsonrpc.jsonutil.encode(item))
 					f.write('\n')
@@ -53,7 +57,7 @@ class Dumper(object):
 		# Get the referencing vartypes from the items.
 		pds = self._find_paramdef(items)
 		for param in pds - set(self._ref_pds.keys()):
-			pd = self.db.get(param, key='paramdef')
+			pd = self.db.get(param, keytype='paramdef')
 			if pd.vartype in self.keytypes:
 				self._ref_pds[pd.name] = pd.vartype
 				self._ref_vts[pd.vartype].add(pd.name)
@@ -96,7 +100,28 @@ class Dumper(object):
 	def _find_binary(self, items):
 		return self._findvalues(['binary'], items)
 
+	def _modify_record(self, item):
+		return item
+		
+	def _modify_user(self, item):
+		return item
 
+
+
+class PublicDumper(Dumper):
+	def _modify_record(self, item):
+		# Remove permissions, mark published data as anon
+		if set(['authenticated', 'publish']) & item.__dict__['groups']:
+			item.__dict__['groups'] = set(['anon'])
+		else:
+			item.__dict__['groups'] = set()
+		item.__dict__['permissions'] = [[],[],[],[]]
+		return item
+		
+	def _modify_user(self, item):
+		# Remove user passwords
+		item.__dict__['password'] = ''
+		return item
 
 
 
@@ -105,10 +130,11 @@ class DumpOptions(emen2.db.config.DBOptions):
 		self['infile'] = infile
 
 
+
 if __name__ == "__main__":
 	import emen2.db
 	db = emen2.db.opendb(admin=True)
-	dumper = Dumper(db=db)
+	dumper = PublicDumper(db=db)
 	keys = dumper.dump(c=[['groups','==','publish']])
 	keys['paramdef'] = db.paramdef.names()
 	keys['user'] = db.user.names()

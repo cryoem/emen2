@@ -34,11 +34,6 @@
 			</tr>
 
 			<tr>
-				<td>Owner:</td>
-				<td>${recorddef.owner}</td>
-			</tr>
-
-			<tr>
 				<td>Private:</td>
 				<td>
 					${["No","Yes"][recorddef.private]}		

@@ -4,23 +4,39 @@
 {"name": "core", "keytype": "paramdef", "parents": ["root"], "vartype": "string", "children": ["username", "name_first", "observed_by", "keytype", "address_street2", "creationtime", "name_contact", "phone_fax", "academic_degrees", "owner", "address_street", "children", "name_last", "support", "creator", "comments", "filename", "name_middle", "affiliations", "parents", "department", "phone_voice", "phone_fax_international", "name_folder", "address_state", "email", "person_photo", "website", "history", "address_email", "groups", "modifytime", "institution", "permissions", "modifyuser", "address_city", "folder_description", "name", "name_group", "performed_by", "address_international", "uri", "file_binary_image", "contact", "recid", "phone_voice_international", "file_binary", "country", "address_zipcode", "rectype", "date_occurred"], "desc_short": "Core Parameters", "uri":"http://ncmidb.bcm.edu"}
 
 // Parameters for DatabaseObject attributes
-{"name": "iter", "keytype": "paramdef", "uri":"http://ncmidb.bcm.edu", "parents": ["core"], "indexed": false, "vartype": "boolean", "desc_short": "Iterable", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "keytype", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Type", "uri":"http://ncmidb.bcm.edu"}
-{"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "record", "iter":true, "desc_short": "Children", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "creator", "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "Created by", "desc_long": "The user that initially created the record", "uri":"http://ncmidb.bcm.edu"}
-{"name": "comments", "keytype": "paramdef","parents": ["core"], "vartype": "comments", "desc_short": "Comments", "iter":true, "uri":"http://ncmidb.bcm.edu"}
-{"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "record", "iter": true, "desc_short": "Parents", "uri":"http://ncmidb.bcm.edu"}
+{"name": "keytype", "immutable": true, "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Type", "uri":"http://ncmidb.bcm.edu"}
+{"name": "name", "immutable": true, "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Object Name", "uri":"http://ncmidb.bcm.edu"}
+{"name": "creator", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "Created by", "desc_long": "The user that initially created the record", "uri":"http://ncmidb.bcm.edu"}
+{"name": "modifytime", "immutable": true, "modifyuser": "root", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Modification time", "desc_long": "The date/time the record was last modified", "uri":"http://ncmidb.bcm.edu"}
+{"name": "modifyuser", "immutable": true, "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record", "uri":"http://ncmidb.bcm.edu"}
+{"name": "uri", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Resource location", "desc_long": "URI for imported objects. The object will be immutable if this is set.", "uri":"http://ncmidb.bcm.edu"}
+{"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "link", "iter":true, "desc_short": "Children", "uri":"http://ncmidb.bcm.edu"}
+{"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "link", "iter": true, "desc_short": "Parents", "uri":"http://ncmidb.bcm.edu"}
+
+// ParamDef
+{"name": "vartype", "immutable": true, "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Variable type", "uri":"http://ncmidb.bcm.edu"}
+{"name": "immutable", "immutable":true, "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Default units", "uri":"http://ncmidb.bcm.edu"}
+{"name": "iter", "immutable": true, "keytype": "paramdef", "uri":"http://ncmidb.bcm.edu", "parents": ["core"], "indexed": false, "vartype": "boolean", "desc_short": "Iterable", "uri":"http://ncmidb.bcm.edu"}
+{"name": "controlhint", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Control hint", "desc_long": "A hint to the user interface", "uri":"http://ncmidb.bcm.edu"}
+{"name": "desc_short", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Short description", "uri":"http://ncmidb.bcm.edu"}
+{"name": "desc_long", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Long description", "uri":"http://ncmidb.bcm.edu"}
+{"name": "property", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Physical property", "uri":"http://ncmidb.bcm.edu"}
+{"name": "defaultunits", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Default units", "uri":"http://ncmidb.bcm.edu"}
+
+// RecordDef
+{"name": "views", "keytype": "paramdef", "parents": ["core"], "vartype": "dict", "desc_short": "RecordDef views", "desc_long": "RecordDef Views", "uri":"http://ncmidb.bcm.edu"}
+{"name": "mainview", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "RecordDef mainview", "desc_long": "RecordDef mainview", "uri":"http://ncmidb.bcm.edu"}
+
+// User
 {"name": "email", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Email", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "name", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Object Name", "uri":"http://ncmidb.bcm.edu"}
+
+// Record
+{"name": "recid", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "record", "desc_short": "Record Name", "desc_long": "Record ID integer. This has been deprecated in favor of \"name.\"", "uri":"http://ncmidb.bcm.edu"}
+{"name": "rectype", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol", "desc_long": "The Record's Protocol; this is may also be referred to as the \"rectype\" or \"recorddef.\"", "uri":"http://ncmidb.bcm.edu"}
+{"name": "history", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "history", "desc_short": "History", "desc_long": "A log of all changes made to a Record.", "uri":"http://ncmidb.bcm.edu"}
 {"name": "groups", "keytype": "paramdef","parents": ["core"], "vartype": "group", "iter":true, "desc_short": "Groups", "desc_long": "Group permissions to apply to this item", "uri":"http://ncmidb.bcm.edu"}
-{"modifyuser": "root", "immutable": true, "name": "modifytime", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Modification time", "desc_long": "The date/time the record was last modified", "uri":"http://ncmidb.bcm.edu"}
 {"name": "permissions", "keytype": "paramdef","parents": ["core"], "vartype": "acl", "desc_short": "Permissions", "desc_long": "Users who have permission to view, edit, or own this item", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "modifyuser", "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "uri", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Resource location", "desc_long": "URI for imported objects. The object will be immutable if this is set.", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "recid", "keytype": "paramdef","parents": ["core"], "vartype": "record", "desc_short": "Record Name", "desc_long": "Record ID integer. This has been deprecated in favor of \"name.\"", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "rectype", "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol", "desc_long": "The Record's Protocol; this is may also be referred to as the \"rectype\" or \"recorddef.\"", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "history", "keytype": "paramdef","parents": ["core"], "vartype": "history", "desc_short": "History", "desc_long": "A log of all changes made to a Record.", "uri":"http://ncmidb.bcm.edu"}
-{"immutable": true, "name": "controlhint", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Control hint", "desc_long": "A hint to the user interface", "uri":"http://ncmidb.bcm.edu"}
+{"name": "comments", "keytype": "paramdef","parents": ["core"], "vartype": "comments", "desc_short": "Comments", "iter":true, "uri":"http://ncmidb.bcm.edu"}
 
 // Additional basic parameters
 {"immutable": false, "name": "observed_by", "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Observed by", "uri":"http://ncmidb.bcm.edu"}

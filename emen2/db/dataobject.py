@@ -36,9 +36,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 	source; presence of the uri attribute will generally mark an item as
 	read-only, even to admin users.
 
-	The keytype attribute is a property that maps to the lowercase class name.
-	You can set this behavior by setting keytype directly or overriding
-	getkeytype().
+	The keytype attribute is set by the BTree storage container.
 
 	The parents and children attributes are valid for classes that allow
 	relationships (RelateDB). These are treated specially when an item is
@@ -108,7 +106,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 	attr_protected = set(['creator', 'creationtime', 'modifytime', 'modifyuser', 'uri'])
 
 	attr_required = set()
-	keytype = property(lambda s:s.getkeytype())
 
 	def __init__(self, _d=None, **_k):
 		"""Initialize a new DBO.
@@ -171,10 +168,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 	def validate(self, vtm=None, t=None):
 		"""Validate."""
 		pass
-
-	def getkeytype(self):
-		"""Return the keytype (record, user, group, paramdef, etc.)."""
-		return self.__class__.__name__.lower()
 
 	def setContext(self, ctx):
 		"""Set permissions and bind the context."""
@@ -253,12 +246,14 @@ class BaseDBObject(object, UserDict.DictMixin):
 		return cp
 
 	def _load(self, update, vtm=None, t=None):
+		"""Load from a JSON file; this skips validation on a few keys."""
 		if not self.isnew():
 			self.error('Cannot update previously committed items this way.')
 
 		# Validate
 		vtm, t = self._vtmtime(vtm, t)
 		
+		# Skip validation for protected keys.
 		keys = self.attr_protected & set(update.keys())
 		keys.add('name')
 		for key in keys:
@@ -267,11 +262,12 @@ class BaseDBObject(object, UserDict.DictMixin):
 			# print "\t%s: %s"%(key, value)
 			self.__dict__[unicode(key)] = value
 		
+		# Skip validation for relationships.
+		# This will assume they are the correct data format.
 		for key in ['parents', 'children']:
 			self.__dict__[unicode(key)] = set(update.pop(key, None) or [])
 		
 		self.update(update, vtm=vtm, t=t)
-
 
 	# Low level mapping methods
 	# Behave like dict.get(key) instead of dict[key]
@@ -286,8 +282,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 
 	def __getattr__(self, name):
 		return object.__getattribute__(self, name)
-
-
+		
 	# Put everything through setitem for validation/logging/etc..
 	def __setattr__(self, key, value):
 		return self.__setitem__(key, value)
@@ -296,6 +291,12 @@ class BaseDBObject(object, UserDict.DictMixin):
 	# validate the value, set the value, and update the time stamp.
 	def __setitem__(self, key, value, vtm=None, t=None):
 		"""Validate and set an attribute or key."""
+
+		# This will validate the parameter, look for a setter, and then call the setter.
+		# If a "_set_<key>" method exists, that will always be used for setting.
+		# To allow editing of a public attr, there MUST be a _set_<key> method.
+		# Then if no setter, and the method is part of the public attrs, then silently return.
+		# Finally, use _setoob as the setter. This can allow OOB attrs, or raise error (default).
 
 		cp = set()
 		if self.get(key) == value:
@@ -316,7 +317,8 @@ class BaseDBObject(object, UserDict.DictMixin):
 			# Record class will use this to set non-attribute parameters
 			setter = self._setoob
 
-		# Validate
+		# Validate.
+		# *ALL VALUES* must pass through a validator.
 		vtm, t = self._vtmtime(vtm, t)
 		value = self.validate_param(key, value, vtm=vtm)
 
@@ -367,9 +369,9 @@ class BaseDBObject(object, UserDict.DictMixin):
 		orig = self.get(key)
 
 		# ian: todo: temporary fix.. force record keys to be ints.
-		if self.keytype == 'record':
-			value = set(map(int, value))
-			orig = set(map(int, orig))
+		# if self.keytype == 'record':
+		#	value = set(map(int, value))
+		#	orig = set(map(int, orig))
 
 		changed = orig ^ value
 		# Get all of the changed items that we can access
@@ -396,8 +398,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 	def _set_parents(self, key, value, vtm=None, t=None):
 		return self._setrel(key, value)
 
-	def _set_uri(self, key, value, vtm=None, t=None):
-		return self._set(key, value)
 
 
 	##### Pickle methods #####
@@ -422,40 +422,35 @@ class BaseDBObject(object, UserDict.DictMixin):
 	# This is the main mechanism for validation.
 	def validate_param(self, key, value, vtm=None):
 		"""Validate a single parameter value."""
-		# print "\t>", key
-		# print value
-
 		# Check the cache for the param
 		vtm, t = self._vtmtime(vtm=vtm)
 		cachekey = vtm.get_cache_key('paramdef', key)
 		hit, pd = vtm.check_cache(cachekey)
 
-		# ian: todo: critical: no validation for params that do not have
-		#	a ParamDef if they are listed in self.attr_public
-		if not hit and key in self.attr_public:
-			return value
-
 		# ... otherwise, raise an Exception if the param isn't found.
 		if not hit:
 			try:
 				pd = self._ctx.db.paramdef.get(key, filt=False)
+				vtm.store(cachekey, pd)
 			except KeyError:
-				self.error('paramdef %s does not exist' % key)
-			vtm.store(cachekey, pd)
+				# This helps to bootstrap when ParamDefs are first being imported.
+				if key in self.attr_public:
+					return value
+				else:
+					self.error('paramdef %s does not exist' % key)
 
 		# Is it an immutable param?
-		if pd.get('immutable') and (self.creationtime != self.modifytime):
+		if pd.get('immutable') and not self.isnew():
 			self.error('Cannot change immutable param %s'%pd.name)
 
 		# Validate
 		v = vtm.validate(pd, value)
 
 		# Issue a warning if param changed during validation
-		if v != value:
-			self.error(
-				"Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%
-				(pd.name, pd.vartype, type(value), value, type(v), v), warning=True)
-
+		# if v != value:
+		#	self.error(
+		#		"Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%
+		#		(pd.name, pd.vartype, type(value), value, type(v), v), warning=True)
 		return v
 
 
@@ -464,7 +459,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 	def _vtmtime(self, vtm=None, t=None):
 		"""Utility method to check/get a vartype manager and the current time."""
 		# Time stamps are now in ISO 8601 format.
-		vtm = vtm or emen2.db.datatypes.VartypeManager(db=self._ctx.db)
+		vtm = vtm or emen2.db.datatypes.VartypeManager(db=self._ctx.db, keytype=self.keytype)
 		t = t or emen2.db.database.gettime()
 		return vtm, t
 

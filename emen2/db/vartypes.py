@@ -238,9 +238,13 @@ class Vartype(object):
 				ret.append(i)
 				found.add(i)
 				changed = True
-				# print "found:", self.vartype, i
+			elif ALLOW_MISSING:
+				# Convert.. Warning: using private method.
+				# i = self.engine.db._db.dbenv[keytype].keyformat(i)
+				ret.append(i)
+				print "Could not find, but allowing: %s %s (param %s)"%(self.vartype, i, self.pd.name)
 			else:
-				print "Could not find:", self.pd.name, self.vartype, i
+				raise ValidationError, "Could not find: %s %s (param %s)"%(self.vartype, i, self.pd.name)
 		
 		if changed:
 			self.engine.store(key, found)
@@ -396,8 +400,7 @@ class vt_choice(vt_string):
 		value = [unicode(i).strip() for i in ci(value)]
 		for v in value:
 			if v not in self.pd.choices:
-				print "Invalid Choice: %s"%v
-				# raise ValidationError, "Invalid choice: %s"%v
+				raise ValidationError, "Invalid choice: %s"%v
 		return self._rci(value)
 
 
@@ -670,11 +673,19 @@ class vt_md5(Vartype):
 class vt_record(Vartype):
 	"""References to other Records."""
 
-	keyformat = None
-
 	def validate(self, value):
-		return self._rci([int(x) for x in ci(value)])
+		value = self._validate_reference(ci(value), keytype=self.vartype)
+		return self._rci(value)
 
+
+
+@vtm.register_vartype('link')
+class vt_link(Vartype):
+	"""Reference to the same type of DBO."""
+	def validate(self, value):
+		# Hack
+		value = self._validate_reference(ci(value), keytype=self.engine.keytype)
+		return self._rci(value)
 
 
 ###################################

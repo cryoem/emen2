@@ -342,7 +342,7 @@ class EMEN2DBEnv(object):
 	txncounter = 0
 
 	# From global configuration
-	cachesize = emen2.db.config.get('BDB.CACHESIZE', 1024)
+	cachesize = emen2.db.config.get('BDB.CACHESIZE')
 	path = emen2.db.config.get('EMEN2DBHOME')
 	create = emen2.db.config.get('params.CREATE')
 	snapshot = emen2.db.config.get('params.SNAPSHOT')
@@ -446,7 +446,7 @@ class EMEN2DBEnv(object):
 		self.add_db(emen2.db.binary.BinaryTmpDB, keytype="upload")
 
 		# Records are keyed with integers. (for now.)
-		self.add_db(emen2.db.record.RecordDB, keytype="record", keyformat='d')
+		self.add_db(emen2.db.record.RecordDB, keytype="record", keyformat="d")
 
 
 	def add_db(self, cls, **kwargs):
@@ -1891,7 +1891,7 @@ class DB(object):
 
 
 	@publicmethod(compat="getpropertyunits")
-	def paramdef_untis(self, name, ctx=None, txn=None):
+	def paramdef_units(self, name, ctx=None, txn=None):
 		"""Returns a list of recommended units for a particular property.
 		Other units may be used if they can be converted to the property's
 		default units.

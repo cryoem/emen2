@@ -104,7 +104,6 @@ class Record(View):
 		# Find siblings
 		if sibling == None:
 			sibling = self.rec.name
-		sibling = int(sibling)
 		siblings = self.db.rel.siblings(sibling, rectype=self.rec.rectype)
 
 		# Render main view
@@ -206,7 +205,7 @@ class Record(View):
 	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$', write=True)
 	def new(self, name=None, rectype=None, _location=None, **kwargs): 
 		viewname = 'mainview'
-		inherit = [int(name)]
+		inherit = [name]
 
 		newrec = self.db.record.new(rectype, inherit=inherit)
 		

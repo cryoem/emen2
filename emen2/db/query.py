@@ -295,7 +295,7 @@ class Query(object):
 		self.txn = txn
 		self.btree = btree
 		# vartype manager; handles validation, macros
-		self.vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
+		self.vtm = emen2.db.datatypes.VartypeManager(db=ctx.db, keytype=self.btree.keytype)
 
 		# Constraint Groups can contain sub-groups: see also init(), run()
 		self.ind = True		

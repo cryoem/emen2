@@ -810,6 +810,10 @@ class DBODB(EMEN2DB):
 		self.keytype = str(keytype).lower()
 		self.dataclass = dataclass
 
+		# Tell the data class what the keytype is.
+		if self.keytype and self.dataclass:
+			self.dataclass.keytype = keytype
+
 		filename = os.path.join(self.path, self.keytype)
 
 		d1 = os.path.join(dbenv.path, 'data', self.path)
@@ -887,19 +891,35 @@ class DBODB(EMEN2DB):
 
 	def _name_generator(self, item, txn=None):
 		# Set name policy in this method.
-		# name = self._incr_sequence(delta=1, txn=txn)
-		return item.name or emen2.db.database.getrandomid()
+		if self.keyformat == 'd':
+			return self._incr_sequence(txn=txn)
+		return unicode(item.name) or emen2.db.database.getrandomid()
 
 
-	def _incr_sequence(self, delta=1, key='sequence', txn=None):
+	def _incr_sequence(self, key='sequence', txn=None):
 		# Update a sequence key. Requires txn.
 		# The Sequence DB can handle multiple keys -- e.g., for
 		# binaries, each day has its own sequence key.
 		# print "Setting sequence key: %s += %s, txn: %s, flags: %s"%(key, delta, txn, bsddb3.db.DB_RMW)
+		delta = 1
+		
 		val = self.sequencedb.get(key, txn=txn, flags=bsddb3.db.DB_RMW)
 		if val == None:
 			val = 0
 		val = int(val)
+
+		# Protect against overwriting items that might have been manually inserted.
+		counter = 0
+		while True:
+			if counter > 100000:
+				raise Exception, "Problem with counter. Please contact the administrator."
+			if self.bdb.exists(self.keydump(val), txn=txn):
+				print "Found item %s! Increasing counter."%val
+				val += 1
+				counter += 1
+			else:
+				break
+
 		self.sequencedb.put(key, str(val+delta), txn=txn)
 
 		emen2.db.log.commit("%s.sequence: %s"%(self.filename, val+delta))
@@ -1066,7 +1086,7 @@ class DBODB(EMEN2DB):
 		"""
 		# Time and validation helper.
 		t = emen2.db.database.gettime()
-		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
+		vtm = emen2.db.datatypes.VartypeManager(db=ctx.db, keytype=self.keytype)
 
 		# Updated items
 		crecs = []

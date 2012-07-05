@@ -329,8 +329,6 @@ class User(BaseUser):
 
 
 	def _set_record(self, key, value, vtm=None, t=None):
-		if value != None:
-			value = int(value)
 		return self._set(key, value, self._ctx.checkadmin())
 
 

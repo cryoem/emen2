@@ -151,7 +151,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 		return self._set(key, value, self.isowner())
 
 	def _set_record(self, key, value, vtm=None, t=None):
-		return self._set(key, int(value), self.isowner())
+		return self._set(key, value, self.isowner())
 
 	def validate(self, vtm=None, t=None):
 		# Validate
@@ -305,7 +305,7 @@ class BinaryDB(emen2.db.btrees.DBODB):
 		# Get the current date and counter.
 		dkey = emen2.db.binary.Binary.parse('')
 		# Increment the day's counter.
-		counter = self._incr_sequence(delta=1, key=dkey['datekey'], txn=txn)
+		counter = self._incr_sequence(key=dkey['datekey'], txn=txn)
 		# Make the new name.
 		newdkey = emen2.db.binary.Binary.parse(dkey['name'], counter=counter)
 		# Update the item's filepath..
