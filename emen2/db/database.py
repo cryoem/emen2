@@ -685,7 +685,6 @@ class DB(object):
 			for item in loader.loadfile(keytype=keytype):
 				i = self.dbenv[keytype].dataclass(ctx=ctx)
 				i._load(item)
-				print "json ->", i.keytype, i.name
 				self.dbenv[keytype].addcache(i)
 
 

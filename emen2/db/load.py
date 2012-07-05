@@ -24,6 +24,8 @@ import jsonrpc.jsonutil
 
 # EMEN2 imports
 import emen2.util.listops
+import emen2.db.config
+
 
 
 
@@ -51,7 +53,6 @@ class BaseLoader(object):
 					item = jsonrpc.jsonutil.decode(item)
 					if keytype:
 						if keytype == item.get('keytype'):
-							# print item
 							yield item
 					else:
 						yield item
@@ -71,15 +72,13 @@ class Loader(BaseLoader):
 				dbenv[keytype].put(i.name, i, txn=txn)
 				names.append(i.name)
 			
-			print "REINDEXING:"
 			for chunk in emen2.util.listops.chunk(names):
 				items = dbenv[keytype].cgets(chunk, ctx=ctx, txn=txn)
 				dbenv[keytype].reindex(items, ctx=ctx, txn=txn, reindex=True)
 
 
 
-import sys
-import emen2.db.config
+
 class LoadOptions(emen2.db.config.DBOptions):
 	def parseArgs(self, infile):
 		self['infile'] = infile

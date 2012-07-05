@@ -97,6 +97,14 @@ class Dumper(object):
 		return self._findvalues(['binary'], items)
 
 
+
+
+
+class DumpOptions(emen2.db.config.DBOptions):
+	def parseArgs(self, infile):
+		self['infile'] = infile
+
+
 if __name__ == "__main__":
 	import emen2.db
 	db = emen2.db.opendb(admin=True)
