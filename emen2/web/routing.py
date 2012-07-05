@@ -255,6 +255,7 @@ class _Router(emen2.util.registry.Registry):
 	@classmethod
 	def reverse(cls, *args, **kwargs):
 		'''Take a route name and arguments, and return a Route'''
+                root = emen2.db.config.get('network.EMEN2WEBROOT') or ""
 		result = '/error'
 		anchor = kwargs.pop('anchor', '')
 		if anchor:
@@ -268,6 +269,11 @@ class _Router(emen2.util.registry.Registry):
 		if route:
 			result = cls._reverse_helper(route.matcher, *args, **kwargs)
 			result = str.join('', (cls._prepend, result))
+
+                # temp hack
+                if root not in result+anchor:
+                        return root+result+anchor
+
 		return result+anchor
 
 
