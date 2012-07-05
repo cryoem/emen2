@@ -314,8 +314,8 @@ class UsageParser(object):
 		# EXTPATHS points to directories containing emen2 ext modules.
 		# This will be used with imp.find_module(ext, self.config.globalns.paths.EXTPATHS)
 		self.config.globalns.paths.EXTPATHS.append(get_filename('emen2', 'exts'))
-		if os.getenv('EMEN2EXTPATHS'):
-			for path in filter(None, os.getenv('EMEN2EXTPATHS','').split(":")):
+		if os.getenv('EMEN2EXTPATH'):
+			for path in filter(None, os.getenv('EMEN2EXTPATH','').split(":")):
 				self.config.globalns.paths.EXTPATHS.append(path)
 
 		self.config.globalns.paths.EXTPATHS.append(os.path.join(h, 'exts'))
