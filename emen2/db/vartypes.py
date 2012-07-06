@@ -217,7 +217,7 @@ class Vartype(object):
 
 	def validate(self, value):
 		"""Validate a value"""
-		raise ValidationError, "This is an organizational parameter, and is not intended to be used."
+		raise ValidationError, "%s is an organizational parameter, and is not intended to be used."%self.pd.name
 
 	
 	def _validate_reference(self, value, keytype=None):
@@ -230,8 +230,7 @@ class Vartype(object):
 			found = set()
 			changed = True
 
-		for i in value:
-			i = unicode(i).strip()
+		for i in value:		
 			if i in found:
 				ret.append(i)
 			elif self.engine.db.exists(i, keytype=keytype):
@@ -240,7 +239,7 @@ class Vartype(object):
 				changed = True
 			elif ALLOW_MISSING:
 				# Convert.. Warning: using private method.
-				# i = self.engine.db._db.dbenv[keytype].keyformat(i)
+				i = self.engine.db._db.dbenv[keytype].keyclass(i)
 				ret.append(i)
 				print "Could not find, but allowing: %s %s (param %s)"%(self.vartype, i, self.pd.name)
 			else:
@@ -659,8 +658,11 @@ class vt_binary(Vartype):
 @vtm.register_vartype('md5')
 class vt_md5(Vartype):
 	"""String"""
+
 	keyformat = 's'
 
+	def validate(self, value):
+		return self._rci([unicode(x).strip() for x in ci(value)])
 
 
 
@@ -685,6 +687,7 @@ class vt_link(Vartype):
 	def validate(self, value):
 		# Hack
 		value = self._validate_reference(ci(value), keytype=self.engine.keytype)
+		print "validated link:", self.pd.name, value, self.engine.keytype
 		return self._rci(value)
 
 

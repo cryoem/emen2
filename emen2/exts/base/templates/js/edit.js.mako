@@ -231,7 +231,7 @@
 			var self = this;
 			emen2.db('recorddef.get', [[self.options.rectype]], function(rds) {
 				emen2.cache.update(rds);
-				emen2.db('record.new', {'rectype':self.options.rectype, 'inherit':self.options.parent}, function(rec) {
+				emen2.db('record.new', {'rectype':self.options.rectype, 'inherit':[self.options.parent]}, function(rec) {
 					// console.log("New record:", rec);
 					emen2.caches['record']['None'] = rec;
 					emen2.db('record.render', {'names':rec, 'viewname':'mainview', 'edit':true}, function(rendered) {

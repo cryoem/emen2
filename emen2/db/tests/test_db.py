@@ -107,7 +107,7 @@ class TestDB(unittest.TestCase):
 			self.assertEqual(urec.get(key), signup_info.get(key))
 
 	def test_paramdef_put_dict_input(self):
-		paramdef = self.db.paramdef.new('testparamdef', 'string')
+		paramdef = self.db.paramdef.new(name='testparamdef', vartype='string')
 		self.put_helper(self.db.paramdef.put, self.db.paramdef.names, paramdef, ['name', 'vartype'])
 
 	def test_paramdef_put_nonexistentvartype_basic_invocation(self):
@@ -117,7 +117,7 @@ class TestDB(unittest.TestCase):
 		self.assertRaises(ValueError, self.db.paramdef.put, dict(name='testparamdef', vartype='no_such_vartype'))
 
 	def test_paramdef_put_vartypes_validvalue(self):
-		paramdef = self.db.paramdef.new('testparamdef', 'int')
+		paramdef = self.db.paramdef.new(name='testparamdef', vartype='int')
 		self.db.paramdef.put(paramdef)
 
 		rec = self.db.record.new('folder')
@@ -131,7 +131,7 @@ class TestDB(unittest.TestCase):
 		self.assertEqual(rec['testparamdef'], valid_value)
 
 	def test_paramdef_put_vartypes_invalidvalue(self):
-		paramdef = self.db.paramdef.new('testparamdef', 'int')
+		paramdef = self.db.paramdef.new(name='testparamdef', vartype='int')
 		self.db.paramdef.put(paramdef)
 
 		rec = self.db.record.new('folder')
@@ -145,13 +145,13 @@ class TestDB(unittest.TestCase):
 		self.assertEqual(rec['testparamdef'], None)
 
 	def test_recorddef_put_basic_invocation(self):
-		recorddef = self.db.recorddef.new('testrecorddef', '$$name_folder $$address_city')
+		recorddef = self.db.recorddef.new(name='testrecorddef', mainview='$$name_folder $$address_city')
 		self.db.recorddef.put(recorddef)
 		rd = self.db.recorddef.get(recorddef.name)
 		self.assertEqual(rd.paramsK, set(['name_folder','address_city']))
 
 	def test_record_render(self):
-		recorddef = self.db.recorddef.new('testrecorddef', '$$name_folder $$address_city')
+		recorddef = self.db.recorddef.new(name='testrecorddef', mainview='$$name_folder $$address_city')
 		self.db.recorddef.put(recorddef)
 		rec = self.db.record.new(recorddef.name)
 		rec['name_folder'] = 'Test Folder'
@@ -167,7 +167,7 @@ class TestDB(unittest.TestCase):
 		self.assertRaises(ValueError, db.recorddef.new, 'testrecorddef', '')
 
 	def test_recorddef_put_change_name(self):
-		recorddef = db.recorddef.new('testrecorddef', 'a mainview')
+		recorddef = db.recorddef.new(name='testrecorddef', mainview='a mainview')
 		self.assertRaises(ValueError, recorddef.__setitem__, 'name', 'new_name')
 		self.assertRaises(ValueError, recorddef.__setattr__, 'name', 'new_name')
 

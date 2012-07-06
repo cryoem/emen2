@@ -42,15 +42,11 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		# action type, args, ctime for when the token is set, and secret
 		self.__dict__['secret'] = None
 
-
-
-
 	def _set_password(self, key, value, vtm=None, t=None):
 		# This will always fail unless you're an admin
 		#	setpassword requires either a password or auth token as arguments.
 		self.setpassword(None, value)
 		return set(['password'])
-	
 	
 	def _set_email(self, key, value, vtm=None, t=None):
 		# This will always fail unless you're an admin --
@@ -58,14 +54,12 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		self.setemail(value)
 		return set(['email'])
 
-
 	def isowner(self):
 		return super(BaseUser, self).isowner() or self._ctx.username == self.name
 
 
-	#################################
-	# Password methods
-	#################################
+
+	##### Password methods #####
 
 	def _hashpassword(self, password):
 		password = unicode(password or '')
@@ -90,10 +84,10 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 			pass
 
 		# This needs to work even if there is no Context set.
-		if self.disabled:
+		if self.get('disabled'):
 			self.error(e=emen2.db.exceptions.DisabledUserError)
 
-		# No password will always fail!
+		# Check the hashed password against the stored hashed password.
 		if self.password and self._hashpassword(password) == self.password:
 			return True
 			
@@ -105,7 +99,12 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 	def setpassword(self, oldpassword, newpassword, secret=None):
 		# Check that we know the existing password, or an authentication secret
 		# checkpassword will sleep 2 seconds for each failed attempt
-		if not (self._checksecret('resetpassword', None, secret) or self.checkpassword(oldpassword)):
+		# checkpassword will raise exception for failed attempt
+		if not (
+			self.isnew()
+			or self._checksecret('resetpassword', None, secret) 
+			or self.checkpassword(oldpassword)
+			):
 			self.error(e=emen2.db.exceptions.AuthenticationError)
 
 		# You must be logged in as this user (or admin) AND know the old password.
@@ -133,13 +132,15 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		# Note that admin users always return True for _checksecret
 		# Note: the auth token is bound both to the method (setemail) and the
 		# 	specific requested email address.
-		if self._checksecret('setemail', email, secret):
+		# Note: email can be changed before first commit.
+		
+		if self.isnew():
+			self._set('email', email, self.isowner())
+		elif self._checksecret('setemail', email, secret):
 			self._set('email', email, self.isowner())
 			self._delsecret()
-
 		elif self.checkpassword(password):
 			self._setsecret('setemail', email)
-
 		else:
 			self.error(e=emen2.db.exceptions.AuthenticationError)
 

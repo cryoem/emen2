@@ -62,7 +62,7 @@ class Group(View):
 	@View.add_matcher(r'^/groups/new/$')
 	def new(self, name=None, **kwargs):
 		# We have to supply a group name.. just use a random string.
-		group = self.db.group.new(name)		
+		group = self.db.group.new(name=name)		
 		self.ctxt['group'] = group
 		self.ctxt['new'] = True
 		self.ctxt['edit'] = True

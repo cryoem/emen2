@@ -54,7 +54,7 @@ class ParamDef(View):
 	def new(self, name, **kwargs):
 		if self.request_method == 'post':
 			vartype = kwargs.pop('vartype', None)			
-			paramdef = self.db.paramdef.new(name, vartype=vartype)
+			paramdef = self.db.paramdef.new(name=name, vartype=vartype)
 			paramdef.update(kwargs)
 			pd = self.db.paramdef.put(paramdef)
 			if pd:

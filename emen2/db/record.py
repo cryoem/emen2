@@ -128,6 +128,12 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 		self.__dict__['comments'] = []
 		self.__dict__['history'] = []
 		self.__dict__['params'] = {}
+		
+		# Records are initialized with these two parameters....
+		# There is no reason they couldn't be regular attributes -- just historical.
+		self.__dict__['params']['date_occurred'] = self.__dict__['creationtime']
+		self.__dict__['params']['performed_by'] = self.__dict__['creator']
+
 
 	def __repr__(self):
 		return "<%s %s, %s at %x>" % (self.__class__.__name__, self.name, self.rectype, id(self))

@@ -75,9 +75,15 @@ class Loader(BaseLoader):
 				names.append(i.name)
 			
 			for chunk in emen2.util.listops.chunk(names):
+				# Get the written items for this chunk.
 				items = dbenv[keytype].cgets(chunk, ctx=ctx, txn=txn)
-				dbenv[keytype].reindex(items, ctx=ctx, txn=txn, reindex=True)
 
+				# Rebuild the indexes for these items.
+				# 1. Calculate
+				ind = dbenv[keytype].reindex(items, ctx=ctx, txn=txn, reindex=True)
+				# 2. Write the index changes
+				dbenv[keytype]._reindex_write(ind, ctx=ctx, txn=txn)
+				
 
 
 

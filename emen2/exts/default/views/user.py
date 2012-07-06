@@ -143,29 +143,13 @@ class NewUser(View):
 		# Snap off the base user parameters
 		email = user.get('email', '').strip()
  		password = user.get('password', None)
-		name = user.get('username', '')
-		if name and not HASH_USERNAME_FORCE:
-			pass
-			
-		elif HASH_USERNAME:
-			# Generate a random username.
-			# name = '%s%s%s'%(kwargs.get('name_last',''), time.time(), random.random())
-			# name = hashlib.md5(name).hexdigest()
-			name = emen2.db.database.getrandomid()
-
-		else:
-			# Make a copy of REQUIRED and add name_first and name_last
-			name = kwargs.pop('username',None)
-			if not name:
-				name = '%s%s%s'%(userrec.get('name_first',''), userrec.get('name_middle',''), userrec.get('name_last',''))
-				r = re.compile('[\w-]', re.UNICODE)
-				name = "".join(r.findall(name)).lower()
 		
-		try:
-			user = self.db.newuser.new(name=name, password=password, email=email)
+		#try:
+		if 1:
+			user = self.db.newuser.new(password=password, email=email)
 			user.setsignupinfo(userrec)
 			self.db.newuser.put(user)
-
+		try: pass
 		except Exception, e:
 			self.ctxt['ERRORS'].append('There was a problem creating your account: %s'%e)
 
@@ -183,7 +167,7 @@ class NewUser(View):
 
 	@View.add_matcher(r'^/users/queue/$', view='Users', name='queue')	
 	def queue(self, action=None, name=None, **kwargs):
-		self.template='/pages/users.queue'	
+		self.template = '/pages/users.queue'	
 		self.title = 'Account requests'
 
 		actions = kwargs.pop('actions', {})
@@ -214,8 +198,8 @@ class NewUser(View):
 			if kwargs.get('location'):
 				self.headers['Location'] = kwargs.get('location')
 
-		
-		queue = self.db.newuser.names()
+
+		queue = self.db.newuser.get(self.db.newuser.names())
 		self.ctxt['queue'] = queue
 
 		groupnames = self.db.group.names()

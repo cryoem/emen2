@@ -309,14 +309,14 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 def _txn_action(txnid, q):
 	actions = q.get(txnid, [])
 	for action, args in actions:
-		# print "action, args:", action, args
 		if action == 'rename':
 			source, dest = args
-			print "-> rename:", source, dest
+			emen2.db.log.info("Renaming file: %s -> %s"%(source, dest))
 			try:
 				shutil.move(source, dest)
 			except Exception, e:
-				print "COULDN'T MOVE FILE!:", e
+				emen2.db.log.error("Couldn't rename file %s -> %s: %s"%(source, dest, e))
+
 		elif action == 'email':
 			# send an email..
 			pass
@@ -717,7 +717,6 @@ class DB(object):
 
 		# Create root account, groups, and root record if necessary
 		if self.dbenv.create:
-			print 'create'
 			setup(db=self)
 
 
@@ -904,13 +903,11 @@ class DB(object):
 		"""(Internal) Find referenced users/binaries."""
 		recnames, recs, values = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
 		values = set(values)
-		# print "getting recs"
 		if recnames:
 			recs.extend(self.dbenv["record"].cgets(recnames, filt=False, ctx=ctx, txn=txn))
 		if not recs:
 			return values
 
-		# print "getting params"
 		# get the params we're looking for
 		vtm = emen2.db.datatypes.VartypeManager()
 		vt = set()
@@ -934,7 +931,6 @@ class DB(object):
 				vt.add(pd.name)
 
 		for rec in recs:
-			# print "filtering"
 			for param in vt_reduce:
 				for j in rec.get(param, []):
 					values |= set(j)
@@ -1856,8 +1852,8 @@ class DB(object):
 		
 		
 	@publicmethod(compat="newparamdef")
-	def paramdef_new(self, name, vartype, ctx=None, txn=None):
-		return self.dbenv["paramdef"].new(name=name, vartype=vartype, ctx=ctx, txn=txn)
+	def paramdef_new(self, vartype, name=None, ctx=None, txn=None):
+		return self.dbenv["paramdef"].new(vartype=vartype, name=name, ctx=ctx, txn=txn)
 				
 
 	@publicmethod(write=True, compat="putparamdef")
@@ -1968,8 +1964,8 @@ class DB(object):
 		return self.dbenv["user"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
-	@publicmethod(compat="newuser")
-	def user_new(self, name, password, email, ctx=None, txn=None):
+	@publicmethod()
+	def user_new(self, password, email, name=None, ctx=None, txn=None):
 		raise NotImplementedError, "Use newuser.new() to create new users."
 	
 
@@ -2322,9 +2318,9 @@ class DB(object):
 		return self.dbenv["newuser"].cgets(names, ctx=ctx, txn=txn)
 
 
-	@publicmethod(compat="newuser")
-	def newuser_new(self, name, password, email, ctx=None, txn=None):
-		return self.dbenv["newuser"].new(name=name, password=password, email=email, ctx=ctx, txn=txn)
+	@publicmethod()
+	def newuser_new(self, password, email, name=None, ctx=None, txn=None):
+		return self.dbenv["newuser"].new(password=password, email=email, name=name, ctx=ctx, txn=txn)
 
 
 	@publicmethod(write=True, compat="adduser")
@@ -2508,7 +2504,7 @@ class DB(object):
 
 
 	@publicmethod(compat="newgroup")
-	def group_new(self, name, ctx=None, txn=None):
+	def group_new(self, name=None, ctx=None, txn=None):
 		return self.dbenv["group"].new(name=name, ctx=ctx, txn=txn)
 
 
@@ -2585,8 +2581,8 @@ class DB(object):
 		
 
 	@publicmethod(compat="newrecorddef")
-	def recorddef_new(self, name, mainview, ctx=None, txn=None):
-		return self.dbenv["recorddef"].new(name=name, mainview=mainview, ctx=ctx, txn=txn)
+	def recorddef_new(self, mainview, name=None, ctx=None, txn=None):
+		return self.dbenv["recorddef"].new(mainview=mainview, name=name, ctx=ctx, txn=txn)
 
 
 	@publicmethod(write=True, compat="putrecorddef")
@@ -2648,30 +2644,6 @@ class DB(object):
 	@publicmethod(compat="newrecord")
 	def record_new(self, rectype, **kwargs):
 		return self.dbenv["record"].new(rectype=rectype, **kwargs)
-
-
-	# @publicmethod(compat="newrecord")
-	# def record_new(self, rectype, inherit=None, ctx=None, txn=None):
-	# 	rec = self.dbenv["record"].new(rectype=rectype, ctx=ctx, txn=txn)
-	# 
-	# 	# Apply any inherited permissions
-	# 	if inherit != None:
-	# 		inherit = set(listops.tolist(inherit))
-	# 		try:
-	# 			precs = self.dbenv["record"].cgets(inherit, filt=False, ctx=ctx, txn=txn)
-	# 			for prec in precs:
-	# 				rec.addumask(prec["permissions"])
-	# 				rec.addgroup(prec["groups"])
-	# 		except (KeyError, SecurityError), inst:
-	# 			emen2.db.log.warn("Couldn't get inherited permissions from record %s: %s"%(inherit, inst))
-	# 
-	# 		rec["parents"] |= inherit
-	# 
-	# 	# Let's try this and see how it works out...
-	# 	rec['date_occurred'] = gettime()
-	# 	rec['performed_by'] = ctx.username
-	# 
-	# 	return rec
 
 
 	@publicmethod(write=True, compat="putrecord")
