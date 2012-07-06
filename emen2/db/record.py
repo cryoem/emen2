@@ -410,7 +410,6 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 	# This builds UP the accessible items, instead of pruning a big list DOWN; filter does the opposite..
 	def names(self, names=None, ctx=None, txn=None, **kwargs):
-
 		if names is not None:
 			return self.filter(names, rectype=kwargs.get('rectype'), ctx=ctx, txn=txn)
 

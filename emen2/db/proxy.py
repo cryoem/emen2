@@ -189,8 +189,7 @@ class DBProxy(object):
 	def __init__(self, db=None, ctx=None, txn=None):
 		# it can cause circular imports if this is at the top level of the module
 		import database
-		if not db:
-			db = database.DB()
+		db = db or database.DB()
 
 		self._db = db
 		self._ctx = ctx

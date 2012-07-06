@@ -305,6 +305,7 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 	
 	
 	
+# This is still being developed. Do not touch.
 def _txn_action(txnid, q):
 	actions = q.get(txnid, [])
 	for action, args in actions:
@@ -327,13 +328,63 @@ def _txn_action(txnid, q):
 	
 
 
+
+##### Open or create new database #####
+
+def opendb(name=None, password=None, admin=False, db=None):
+	"""Open a database proxy.
+
+	Returns a DBProxy, with either a
+	user context (name and password specified), an administrative context
+	(admin is True), or no context.
+
+	:keyparam name: Username
+	:keyparam password: Password
+	:keyparam admin: Open DBProxy with administrative context
+	:keyparam db: Use an existing DB instance.
+
+	"""
+	# Import here to avoid issues with publicmethod.
+	import emen2.db.proxy
+	db = db or DB()
+	
+	# Create the proxy and login, as a user or admin.
+	proxy = emen2.db.proxy.DBProxy(db=db)
+	if name:
+		proxy._login(name, password)
+	elif admin:
+		ctx = emen2.db.context.SpecialRootContext()
+		ctx.refresh(db=proxy)
+		proxy._ctx = ctx
+
+	return proxy
+
+
+def setup(rootpw=None, rootemail=None):
+	"""Initialize a new DB.
+
+	@keyparam rootpw Root Account Password
+	@keyparam rootemail Root Account email
+
+	"""
+	defaultemail = 'root@localhost'
+	print "\n=== Setup Admin (root) account ==="
+	rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
+	rootpw = getpw(pw=rootpw)
+
+	db = opendb(admin=True)
+	with db:
+		root = {'name':'root','email':rootemail, 'password':rootpw}
+		db.put([root], keytype='user')
+		loader = emen2.db.load.Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
+		loader.load()
+
+
+
 ##### EMEN2 Database Environment #####
 
 class EMEN2DBEnv(object):
-	"""EMEN2 Database Environment.
-
-	Each DBO table will be available in self.keytypes[keytype].
-	"""
+	"""EMEN2 Database Environment."""
 	
 	# Manage open btrees
 	opendbs = weakref.WeakKeyDictionary()
@@ -346,6 +397,15 @@ class EMEN2DBEnv(object):
 	path = emen2.db.config.get('EMEN2DBHOME')
 	create = emen2.db.config.get('params.CREATE')
 	snapshot = emen2.db.config.get('params.SNAPSHOT')
+
+	# Open DB environment; check if global DBEnv has been opened yet
+	ENVOPENFLAGS = \
+		bsddb3.db.DB_CREATE | \
+		bsddb3.db.DB_INIT_MPOOL | \
+		bsddb3.db.DB_INIT_TXN | \
+		bsddb3.db.DB_INIT_LOCK | \
+		bsddb3.db.DB_INIT_LOG | \
+		bsddb3.db.DB_THREAD
 
 	# paths from global configuration
 	LOGPATH = emen2.db.config.get('paths.LOGPATH')
@@ -362,24 +422,24 @@ class EMEN2DBEnv(object):
 		:keyword create: Create the environment if it does not already exist.
 		"""
 
+		# DBO BTrees
 		self.keytypes =  {}
 
-		if path is not None:
-			self.path = path
-
+		# Database environment directory
+		self.path = path or self.path
 		if not self.path:
 			raise ValueError, "No EMEN2 Database Environment specified."
 
-		if create is not None:
-			self.create = create
 
 		# Check that all the needed directories exist
+		self.create = create or self.create
 		self.checkdirs()
 
 		# Txn info
 		self.txnlog = {}
 
 		# Pre- and post-commit actions.
+		# These are used for things like renaming files during the commit phase.
 		# TODO: The details of this are highly likely to change,
 		# 	or be moved to a different place.
 		self._txn_precommit = collections.defaultdict(list)
@@ -394,15 +454,6 @@ class EMEN2DBEnv(object):
 			y = vtm.getvartype(y)
 			if y.keyformat:
 				self.indexablevartypes.add(y.vartype)
-
-		# Open DB environment; check if global DBEnv has been opened yet
-		ENVOPENFLAGS = \
-			bsddb3.db.DB_CREATE | \
-			bsddb3.db.DB_INIT_MPOOL | \
-			bsddb3.db.DB_INIT_TXN | \
-			bsddb3.db.DB_INIT_LOCK | \
-			bsddb3.db.DB_INIT_LOG | \
-			bsddb3.db.DB_THREAD
 
 		# Open the Database Environment
 		emen2.db.log.info("Opening Database Environment: %s"%self.path)
@@ -421,46 +472,36 @@ class EMEN2DBEnv(object):
 		dbenv.set_lk_max_locks(300000)
 		dbenv.set_lk_max_lockers(300000)
 		dbenv.set_lk_max_objects(300000)
-
-		dbenv.open(self.path, ENVOPENFLAGS)
-		self.opendbs[self] = 1
 		self.dbenv = dbenv
-
-		# Open Databases
-		self.init()
-
-
-	def init(self):
-		"""Open the databases."""		
-
-		# Authentication. This is not part of the public API.
-		self._context = emen2.db.context.ContextDB(keytype='context', dbenv=self)
-
-		# Main database items. These are available in the public API.
-		self.add_db(emen2.db.paramdef.ParamDefDB, keytype='paramdef')
-		self.add_db(emen2.db.user.UserDB, keytype='user')
-		self.add_db(emen2.db.group.GroupDB, keytype='group')
-		self.add_db(emen2.db.user.NewUserDB, keytype='newuser')
-		self.add_db(emen2.db.binary.BinaryDB, keytype="binary")
-		self.add_db(emen2.db.recorddef.RecordDefDB, keytype="recorddef")
-		self.add_db(emen2.db.binary.BinaryTmpDB, keytype="upload")
-
-		# Records are keyed with integers. (for now.)
-		self.add_db(emen2.db.record.RecordDB, keytype="record", keyformat="d")
+		
+		# Open the DBEnv
+		self.open()
 
 
 	def add_db(self, cls, **kwargs):
+		"""Add a BTree."""
 		db = cls(dbenv=self, **kwargs)
 		self.keytypes[db.keytype] = db
+
+
+	def open(self):
+		"""Open the Database Environment."""
+		self.dbenv.open(self.path, self.ENVOPENFLAGS)
+		self.opendbs[self] = True
 
 
 	# ian: todo: make this nicer.
 	def close(self):
 		"""Close the Database Environment"""
 		for k,v in self.keytypes.items():
-			# print "Closing", v
 			v.close()
 		self.dbenv.close()
+		self.dbenvs[self] = False
+		
+		
+	#@classmethod()
+	#def closeall(cls):
+	#	pass	
 
 
 	def __getitem__(self, key, default=None):
@@ -510,6 +551,58 @@ class EMEN2DBEnv(object):
 			f.close()
 
 
+	##### Backup / restore #####
+
+	def log_archive(self, remove=True, checkpoint=False, txn=None):
+		"""Archive completed log files.
+
+		:keyword remove: Remove the log files after moving them to the backup location
+		:keyword checkpoint: Run a checkpoint first; this will allow more files to be archived
+		"""
+		outpath = self.LOG_ARCHIVE
+
+		if checkpoint:
+			emen2.db.log.info("Log Archive: Checkpoint")
+			self.dbenv.txn_checkpoint()
+
+		archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_ABS)
+
+		emen2.db.log.info("Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
+
+		if not os.access(outpath, os.F_OK):
+			os.makedirs(outpath)
+
+		self._log_archive(archivefiles, outpath, remove=remove)
+
+
+	def _log_archive(self, archivefiles, outpath, remove=False):
+		"""(Internal) Backup database log files"""
+		outpaths = []
+		for archivefile in archivefiles:
+			dest = os.path.join(outpath, os.path.basename(archivefile))
+			emen2.db.log.info('Log Archive: %s -> %s'%(archivefile, dest))
+			shutil.copy(archivefile, dest)
+			outpaths.append(dest)
+
+		if not remove:
+			return outpaths
+
+		removefiles = []
+
+		# ian: check if all files are in the archive before we remove any
+		for archivefile in archivefiles:
+			if not os.path.exists(outpath):
+				raise ValueError, "Log Archive: %s not found in backup archive!"%(archivefile)
+			removefiles.append(archivefile)
+
+		for removefile in removefiles:
+			emen2.db.log.info('Log Archive: Removing %s'%(removefile))
+			os.unlink(removefile)
+
+		return removefiles
+		
+		
+		
 	##### Transaction management #####
 
 	def newtxn(self, parent=None, write=False):
@@ -591,58 +684,6 @@ class EMEN2DBEnv(object):
 
 
 
-	##### Backup / restore #####
-
-	def log_archive(self, remove=True, checkpoint=False, txn=None):
-		"""Archive completed log files.
-
-		:keyword remove: Remove the log files after moving them to the backup location
-		:keyword checkpoint: Run a checkpoint first; this will allow more files to be archived
-		"""
-		outpath = self.LOG_ARCHIVE
-
-		if checkpoint:
-			emen2.db.log.info("Log Archive: Checkpoint")
-			self.dbenv.txn_checkpoint()
-
-		archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_ABS)
-
-		emen2.db.log.info("Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
-
-		if not os.access(outpath, os.F_OK):
-			os.makedirs(outpath)
-
-		self._log_archive(archivefiles, outpath, remove=remove)
-
-
-	def _log_archive(self, archivefiles, outpath, remove=False):
-		"""(Internal) Backup database log files"""
-		outpaths = []
-		for archivefile in archivefiles:
-			dest = os.path.join(outpath, os.path.basename(archivefile))
-			emen2.db.log.info('Log Archive: %s -> %s'%(archivefile, dest))
-			shutil.copy(archivefile, dest)
-			outpaths.append(dest)
-
-		if not remove:
-			return outpaths
-
-		removefiles = []
-
-		# ian: check if all files are in the archive before we remove any
-		for archivefile in archivefiles:
-			if not os.path.exists(outpath):
-				raise ValueError, "Log Archive: %s not found in backup archive!"%(archivefile)
-			removefiles.append(archivefile)
-
-		for removefile in removefiles:
-			emen2.db.log.info('Log Archive: Removing %s'%(removefile))
-			os.unlink(removefile)
-
-		return removefiles
-		
-
-
 ##### Main Database Class #####
 
 class DB(object):
@@ -659,95 +700,59 @@ class DB(object):
 
 		:keyword path: Directory containing an EMEN2 Database Environment.
 		:keyword create: Create the environment if it does not already exist.
+
 		"""
 		# Open the database
 		self.dbenv = EMEN2DBEnv(path=path, create=create)
 
-		# Load ParamDefs/RecordDefs from extensions.
-		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
-		emen2.db.config.load_jsons(cb=self.load_json)
-
-		# Cache contexts
+		# Cache for contexts
 		self.contexts_cache = {}
 
-		# Create root account, groups, and root record if necessary
-		if self.dbenv.create:
-			self.setup()
+		# Open Databases
+		self._init()
+	
+		# Load DBOs from extensions.
+		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
+		emen2.db.config.load_jsons(cb=self._load_json)
 
 
-	def load_json(self, infile):
-		"""Load and cache a JSON file containing DBOs."""
-		# Create a special root context to load the items
-		ctx = emen2.db.context.SpecialRootContext(db=self)
-		loader = emen2.db.load.BaseLoader(infile=infile)
-		for keytype in ['paramdef', 'user', 'group', 'recorddef', 'binary', 'record']:
-			# print "=== LOADING: %s ==="%keytype
-			for item in loader.loadfile(keytype=keytype):
-				i = self.dbenv[keytype].dataclass(ctx=ctx)
-				i._load(item)
-				self.dbenv[keytype].addcache(i)
+	def _init(self):
+		"""Open the databases."""
+	
+		# Authentication. These are not public.
+		self.dbenv._context = emen2.db.context.ContextDB(keytype='context', dbenv=self.dbenv)
+	
+		# Main database items. These are available in the public API.
+		self.dbenv.add_db(emen2.db.paramdef.ParamDefDB, keytype='paramdef')
+		self.dbenv.add_db(emen2.db.user.UserDB, keytype='user')
+		self.dbenv.add_db(emen2.db.group.GroupDB, keytype='group')
+		self.dbenv.add_db(emen2.db.user.NewUserDB, keytype='newuser')
+		self.dbenv.add_db(emen2.db.binary.BinaryDB, keytype="binary")
+		self.dbenv.add_db(emen2.db.recorddef.RecordDefDB, keytype="recorddef")
+		self.dbenv.add_db(emen2.db.binary.BinaryTmpDB, keytype="upload")
+		
+		# Records are keyed with integers. (for now.)
+		self.dbenv.add_db(emen2.db.record.RecordDB, keytype="record", keyformat="d")
 
 
 	def __str__(self):
 		return "<DB: %s>"%(hex(id(self)))
 
 
-	##### Open or create new database #####
-
-	@classmethod
-	def opendb(cls, name=None, password=None, admin=False, db=None):
-		"""Class method to open a database proxy.
-
-		Returns a DBProxy, with either a
-		user context (name and password specified), an administrative context
-		(admin is True), or no context.
-
-		:keyparam name: Username
-		:keyparam password: Password
-		:keyparam admin: Open DBProxy with administrative context
-		:keyparam db: Use an existing DB instance.
-		"""
-		# Import here to avoid issues with publicmethod.
-		import emen2.db.proxy
-		
-		# Use self or create new instance..
-		db = db or cls()
-		proxy = emen2.db.proxy.DBProxy(db=db)
-		if name:
-			proxy._login(name, password)
-		elif admin:
-			ctx = emen2.db.context.SpecialRootContext()
-			ctx.refresh(db=proxy)
-			proxy._ctx = ctx
-		return proxy
-
-
-	def setup(self, rootpw=None, rootemail=None):
-		"""Initialize a new DB.
-
-		@keyparam rootpw Root Account Password
-		@keyparam rootemail Root Account email
-		"""
-		
-		# import platform
-		# import pwd
-		# host = platform.node() or 'localhost'
-		# defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
-		defaultemail = 'root@localhost'
-		print "\n=== Setup Admin (root) account ==="
-		rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
-		rootpw = getpw(pw=rootpw)
-
-		db = self.opendb(db=self, admin=True)
-		with db:
-			root = {'name':'root','email':rootemail, 'password':rootpw}
-			db.put([root], keytype='user')
-			loader = emen2.db.load.Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
-			loader.load()
-
-
 
 	##### Utility methods #####
+
+	def _load_json(self, infile):
+		"""Load and cache a JSON file containing DBOs."""
+		# Create a special root context to load the items
+		ctx = emen2.db.context.SpecialRootContext(db=self)
+		loader = emen2.db.load.BaseLoader(infile=infile)
+		for keytype in ['paramdef', 'user', 'group', 'recorddef', 'binary', 'record']:
+			for item in loader.loadfile(keytype=keytype):
+				i = self.dbenv[keytype].dataclass(ctx=ctx)
+				i._load(item)
+				self.dbenv[keytype].addcache(i)
+
 
 	def _getcontext(self, ctxid, host, ctx=None, txn=None):
 		"""(Internal) Takes a ctxid key and returns a Context.
@@ -1043,10 +1048,10 @@ class DB(object):
 		:return: Time difference, in seconds.
 		"""
 		t1 = emen2.db.vartypes.parse_iso8601(t1)[0]
-		if t2:
-			t2 = emen2.db.vartypes.parse_iso8601(t2)[0]
-		else:
-			t2 = datetime.datetime.now()
+
+		t2 = t2 or gettime()
+		t2 = emen2.db.vartypes.parse_iso8601(t2)[0]
+
 		return t2 - t1
 		
 		
@@ -1089,8 +1094,8 @@ class DB(object):
 	##### Utilities #####
 
 	@publicmethod()
-	def ping(self, *a, **kw):
-		"""Utitlity method to ensure the server is up
+	def ping(self, ctx=None, txn=None):
+		"""Utility method to ensure the server is up
 
 		Examples:
 
@@ -1100,6 +1105,7 @@ class DB(object):
 		:return: Ping? 'pong'
 		"""
 		return 'pong'
+
 
 
 	##### Login and Context Management #####
@@ -1253,11 +1259,6 @@ class DB(object):
 		"""
 		return getattr(self, '%s_get'%(keytype))(names, filt=filt, ctx=ctx, txn=txn)
 
-	
-	@publicmethod()
-	def exists(self, name, keytype='record', ctx=None, txn=None):
-		return self.dbenv[keytype].exists(name, txn=txn)
-
 
 	@publicmethod()
 	def new(self, *args, **kwargs):
@@ -1283,7 +1284,7 @@ class DB(object):
 		>>> db.new(rectype='folder', keytype='record')
 		ExistingKeyError, "RecordDef folder already exists."
 
-		:keyword keytype:
+		:keyword keytype: Item keytype
 		:return: New, uncommitted item
 		:exception ExistingKeyError:
 		:exception SecurityError:
@@ -1292,7 +1293,23 @@ class DB(object):
 		keytype = kwargs.pop('keytype', 'record')
 		return getattr(self, '%s_new'%(keytype))(*args, **kwargs)
 		
+	
+	@publicmethod()
+	def exists(self, name, keytype='record', ctx=None, txn=None):
+		"""Check for the existence of an item.
 		
+		Examples:
+		
+		>>> db.exists("root", keytype="user")
+		True
+		
+		:param name: Item name
+		:keyword keytype: Item keytype
+		:return: True if the item exists
+		"""
+		return self.dbenv[keytype].exists(name, txn=txn)
+
+
 	@publicmethod(write=True)
 	@ol('items')
 	def put(self, items, keytype='record', ctx=None, txn=None):
@@ -1322,6 +1339,12 @@ class DB(object):
 		return getattr(self, '%s_put'%(keytype))(items, ctx=ctx, txn=txn)
 
 
+	@publicmethod(write=True)
+	def delete(self, names, keytype='record', ctx=None, txn=None):
+		keytype = kwargs.pop('keytype', 'record')
+		return getattr(self, '%s_delete'%(keytype))(ctx=ctx, txn=txn)
+
+
 	@publicmethod()
 	def names(self, keytype='record', ctx=None, txn=None):
 		keytype = kwargs.pop('keytype', 'record')
@@ -1330,7 +1353,8 @@ class DB(object):
 	
 	@publicmethod()
 	def find(self, keytype='record', ctx=None, txn=None):
-		pass
+		keytype = kwargs.pop('keytype', 'record')
+		return getattr(self, '%s_find'%(keytype))(ctx=ctx, txn=txn)
 
 
 	@publicmethod()
@@ -1385,15 +1409,17 @@ class DB(object):
 		{'names':[3,2,1], 'stats': {'time': 0.002, 'length':3}, 'c': [['creator', 'is', 'ian]], 'sortkey': 'creationtime' ...}
 
 		:keyparam c: Constraints
+		:keyparam mode: Boolean mode for constraints
+		:keyparam sortkey: Sort returned records by this param. Default is creationtime.
 		:keyparam pos: Return results starting from (sorted record name) position
 		:keyparam count: Return a limited number of results
-		:keyparam sortkey: Sort returned records by this param. Default is creationtime.
 		:keyparam reverse: Reverse results
-		:keyparam ignorecase: Ignore case when comparing strings
+		:keyparam keytype: Key type
 		:return: A dictionary containing the original query arguments, and the result in the 'names' key
-		:exception KeyError: Broken constraint
-		:exception ValidationError: Broken constraint
-		:exception SecurityError: Unable to access specified RecordDefs or other constraint parameters.
+		:exception KeyError:
+		:exception ValidationError:
+		:exception SecurityError:
+
 		"""
 		c = c or []
 		ret = dict(
@@ -1418,7 +1444,7 @@ class DB(object):
 
 
 	@publicmethod()
-	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, viewdef=None, keytype="record", ctx=None, txn=None, **kwargs):
+	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, keytype="record", viewdef=None, ctx=None, txn=None, **kwargs):
 		"""Query results suitable for making a table.
 
 		This method extends query() to include rendered views in the results.
@@ -1427,13 +1453,23 @@ class DB(object):
 		headers for each column are in the 'headers' key.
 
 		The maximum number of items returned in the table is 1000.
+		
+		:keyparam c: Constraints
+		:keyparam mode: Boolean mode for constraints
+		:keyparam sortkey: Sort returned records by this param. Default is creationtime.
+		:keyparam pos: Return results starting from (sorted record name) position
+		:keyparam count: Return a limited number of results
+		:keyparam reverse: Reverse results
+		:keyparam keytype: Key type
+		:keyparam viewdef: View definition.
+			
 		"""
 		# Limit tables to 1000 items per page.
 		if count < 1 or count > 1000:
 			count = 1000
 
 		# Records are shown newest-first by default...
-		if keytype == "record" and sortkey in ['name', 'recid', 'creationtime'] and reverse is None:
+		if keytype == "record" and sortkey in ['name', 'creationtime'] and reverse is None:
 			reverse = True
 
 		c = c or []
@@ -1531,6 +1567,13 @@ class DB(object):
 		The matching values for each constraint are available in the "items"
 		key in the return value. This is a list of stub items.
 
+		:keyparam c: Constraints
+		:keyparam mode: Boolean mode for constraints
+		:keyparam x: X arguments
+		:keyparam y: Y arguments
+		:keyparam z: Z arguments
+		:keyparam keytype: Key type
+
 		"""
 		x = x or {}
 		y = y or {}
@@ -1563,11 +1606,6 @@ class DB(object):
 		return ret
 
 
-	@publicmethod(write=True)
-	def delete(self, names, keytype='record', ctx=None, txn=None):
-		pass
-
-
 
 	##### Relationships #####
 
@@ -1590,6 +1628,7 @@ class DB(object):
 		:return:
 		:exception KeyError:
 		:exception SecurityError:
+		
 		"""
 		return self.dbenv[keytype].pclink(parent, child, ctx=ctx, txn=txn)
 
@@ -1634,36 +1673,11 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-
-		# Uses the new .parents/.children attributes to do this simply
-		removerels = removerels or []
-		addrels = addrels or []
-		remove = collections.defaultdict(set)
-		add = collections.defaultdict(set)
-
-		# grumble.. Temporary hack. If keytype == record, convert everything to ints.
-		if keytype == 'record':
-			removerels = [(int(x), int(y)) for x,y in removerels]
-			addrels = [(int(x), int(y)) for x,y in addrels]
-
-		for parent, child in removerels:
-			remove[parent].add(child)
-		for parent, child in addrels:
-			add[parent].add(child)
-
-		# print "Adding:", add
-		# print "Removing:", remove
-		items = set(remove.keys()) | set(add.keys())
-		items = self.get(items, keytype=keytype, filt=False, ctx=ctx, txn=txn)
-		for item in items:
-			item.children -= remove[item.name]
-			item.children |= add[item.name]
-
-		return self.dbenv[keytype].cputs(items, ctx=ctx, txn=txn)
+		return self.dbenv[keytype].relink(removerels, addrels, ctx=ctx, txn=txn)
 
 
 	@publicmethod(compat="getsiblings")
-	def rel_siblings(self, name, rectype=None, keytype="record", ctx=None, txn=None, **kwargs):
+	def rel_siblings(self, name, rectype=None, keytype="record", ctx=None, txn=None):
 		"""Get the siblings of the object as a tree.
 
 		Siblings are any items that share a common parent.
@@ -1680,7 +1694,6 @@ class DB(object):
 		set([u'ccd', u'micrograph', u'ddd', u'stack', u'scan'])
 
 		:param names: Item name(s)
-		:keyword recurse: Recursion depth
 		:keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
 		:keyword keytype: Item keytype
 		:keyword filt: Ignore failures
@@ -1688,15 +1701,15 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.dbenv[keytype].siblings(name, rectype=rectype, ctx=ctx, txn=txn, **kwargs)
+		return self.dbenv[keytype].siblings(name, rectype=rectype, ctx=ctx, txn=txn)
 
 
 	@publicmethod(compat="getparents")
 	@ol('names')
-	def rel_parents(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+	def rel_parents(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None):
 		"""Get the parents of an object
 
-		This method is the same as as db.rel(rel='parents', tree=False, *args, **kwargs)
+		This method is the same as as db.rel(..., rel='parents', tree=False)
 
 		Examples:
 
@@ -1718,28 +1731,28 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', ctx=ctx, txn=txn, **kwargs)
+		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', ctx=ctx, txn=txn)
 
 
 	@publicmethod(compat="getparenttree")
 	@ol('names', output=False)
-	def rel_parents_tree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+	def rel_parentstree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None):
 		"""Get the parents of the object as a tree
 
-		This method is the same as as db.rel(rel='parents', tree=True, *args, **kwargs)
+		This method is the same as as db.rel(..., rel='parents', tree=True)
 
 		Examples:
 
-		>>> db.rel.parents.tree(46604, recurse=-1)
+		>>> db.rel.parentstree(46604, recurse=-1)
 		{136: set([0]), 46604: set([136])}
 
-		>>> db.rel.parents.tree([46604, 74547], recurse=-1)
+		>>> db.rel.parentstree([46604, 74547], recurse=-1)
 		{136: set([0]), 74547: set([136]), 46604: set([136])}
 
-		>>> db.rel.parents.tree([46604, 74547], recurse=-1, rectype='group')
+		>>> db.rel.parentstree([46604, 74547], recurse=-1, rectype='group')
 		{74547: set([136]), 46604: set([136])}
 
-		>>> db.rel.parents.tree('ccd', recurse=2, keytype='recorddef')
+		>>> db.rel.parentstree('ccd', recurse=2, keytype='recorddef')
 		{'ccd': set([u'image_capture']), u'image_capture': set([u'tem'])}
 
 		:param names: Item name(s)
@@ -1752,15 +1765,15 @@ class DB(object):
 		:exception SecurityError:
 		"""
 		#:exception MaxRecurseError:
-		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', tree=True, ctx=ctx, txn=txn, **kwargs)
+		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', tree=True, ctx=ctx, txn=txn)
 
 
 	@publicmethod(compat="getchildren")
 	@ol('names')
-	def rel_children(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+	def rel_children(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None):
 		"""Get the children of an object.
 
-		This method is the same as db.rel(rel='children', tree=False, *args, **kwargs)
+		This method is the same as db.rel(..., rel='children', tree=False)
 
 		>>> db.rel.children(0)
 		set([136, 358307, 270940])
@@ -1783,25 +1796,25 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', ctx=ctx, txn=txn, **kwargs)
+		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', ctx=ctx, txn=txn)
 
 
 	@publicmethod(compat="getchildtree")
 	@ol('names', output=False)
-	def rel_children_tree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None, **kwargs):
+	def rel_childrentree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None):
 		"""Get the children of the object as a tree
 
-		This method is the same as as db.rel(rel='children', tree=True, *args, **kwargs)
+		This method is the same as as db.rel(..., rel='children', tree=True)
 
 		Examples:
 
-		>>> db.rel.children.tree(0, rectype='group')
+		>>> db.rel.childrentree(0, rectype='group')
 		{0: set([136, 358307])}
 
-		>>> db.rel.children.tree([46604, 74547], rectype='subproject')
+		>>> db.rel.childrentree([46604, 74547], rectype='subproject')
 		{74547: set([75585, 270211, ...]), 46604: set([380432, 57474, ...])}
 
-		>>> db.rel.children.tree(136, recurse=2, rectype=['project*'])
+		>>> db.rel.childrentree(136, recurse=2, rectype=['project*'])
 		{432645: set([449391]), 268295: set([268296]), 299528: set([460329, 299529]), ...}
 
 		:param names: Item name(s)
@@ -1813,13 +1826,20 @@ class DB(object):
 		:exception KeyError:
 		:exception SecurityError:
 		"""
-		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', tree=True, ctx=ctx, txn=txn, **kwargs)
+		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', tree=True, ctx=ctx, txn=txn)
 
 
 	@publicmethod()
 	@ol('names', output=False)
-	def rel_tree(self, names, recurse=1, rectype=None, keytype="record", rel="children", ctx=None, txn=None, **kwargs):		
-		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel=rel, tree=True, ctx=ctx, txn=txn, **kwargs)
+	def rel_tree(self, names, recurse=1, rectype=None, keytype="record", rel="children", ctx=None, txn=None):		
+		return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel=rel, tree=True, ctx=ctx, txn=txn)
+
+
+	@publicmethod()
+	@ol('names')
+	def rel_rel(self, names, keytype="record", ctx=None, txn=None):
+		return self.dbenv[keytype].rel(names, ctx=ctx, txn=txn)
+
 
 
 	##### ParamDef #####
@@ -1942,6 +1962,11 @@ class DB(object):
 	def user_get(self, names, filt=True, ctx=None, txn=None):
 		return self.dbenv["user"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
+
+	@publicmethod(compat="newuser")
+	def user_new(self, name, password, email, ctx=None, txn=None):
+		raise NotImplementedError, "Use newuser.new() to create new users."
+	
 
 	@publicmethod(write=True, compat="putuser")
 	@ol('items')
@@ -2227,7 +2252,6 @@ class DB(object):
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		# :exception InvalidPassword:
 
 		# Try to authenticate using either the password OR the secret!
 		# Note: The password will be hidden if ctx.username != user.name
@@ -2323,17 +2347,12 @@ class DB(object):
 		:exception ValidationError:
 		"""
 		users = self.dbenv["newuser"].cputs(users, ctx=ctx, txn=txn)
-		user_autoapprove = emen2.db.config.get('users.USER_AUTOAPPROVE', False)
 
+		user_autoapprove = emen2.db.config.get('users.USER_AUTOAPPROVE', False)
 		if user_autoapprove:
-			# print "Autoapproving........"
 			rootctx = self._sudo()
 			rootctx.db._txn = txn
 			self.newuser_approve([user.name for user in users], ctx=rootctx, txn=txn)
-
-		elif ctx.checkadmin():
-			self.newuser_approve([user.name for user in users], ctx=ctx, txn=txn)
-
 		else:
 			# Send account request email
 			for user in users:
@@ -2344,6 +2363,11 @@ class DB(object):
 
 	@publicmethod(admin=True, compat="getuserqueue")
 	def newuser_names(self, names=None, ctx=None, txn=None):
+		return self.dbenv["newuser"].names(names=names, ctx=ctx, txn=txn)
+		
+
+	@publicmethod(admin=True)
+	def newuser_find(self, names=None, ctx=None, txn=None):
 		return self.dbenv["newuser"].names(names=names, ctx=ctx, txn=txn)
 		
 
@@ -2617,33 +2641,48 @@ class DB(object):
 
 
 	@publicmethod(compat="newrecord")
-	def record_new(self, rectype, inherit=None, ctx=None, txn=None):
-		rec = self.dbenv["record"].new(rectype=rectype, ctx=ctx, txn=txn)
+	def record_new(self, ctx=None, txn=None, *args, **kwargs):
+		return self.dbenv["record"].new(ctx=ctx, txn=txn, *args, **kwargs)
 
-		# Apply any inherited permissions
-		if inherit != None:
-			inherit = set(listops.tolist(inherit))
-			try:
-				precs = self.dbenv["record"].cgets(inherit, filt=False, ctx=ctx, txn=txn)
-				for prec in precs:
-					rec.addumask(prec["permissions"])
-					rec.addgroup(prec["groups"])
-			except (KeyError, SecurityError), inst:
-				emen2.db.log.warn("Couldn't get inherited permissions from record %s: %s"%(inherit, inst))
 
-			rec["parents"] |= inherit
-
-		# Let's try this and see how it works out...
-		rec['date_occurred'] = gettime()
-		rec['performed_by'] = ctx.username
-
-		return rec
+	# @publicmethod(compat="newrecord")
+	# def record_new(self, rectype, inherit=None, ctx=None, txn=None):
+	# 	rec = self.dbenv["record"].new(rectype=rectype, ctx=ctx, txn=txn)
+	# 
+	# 	# Apply any inherited permissions
+	# 	if inherit != None:
+	# 		inherit = set(listops.tolist(inherit))
+	# 		try:
+	# 			precs = self.dbenv["record"].cgets(inherit, filt=False, ctx=ctx, txn=txn)
+	# 			for prec in precs:
+	# 				rec.addumask(prec["permissions"])
+	# 				rec.addgroup(prec["groups"])
+	# 		except (KeyError, SecurityError), inst:
+	# 			emen2.db.log.warn("Couldn't get inherited permissions from record %s: %s"%(inherit, inst))
+	# 
+	# 		rec["parents"] |= inherit
+	# 
+	# 	# Let's try this and see how it works out...
+	# 	rec['date_occurred'] = gettime()
+	# 	rec['performed_by'] = ctx.username
+	# 
+	# 	return rec
 
 
 	@publicmethod(write=True, compat="putrecord")
 	@ol('items')
 	def record_put(self, items, filt=True, ctx=None, txn=None):
 		return self.dbenv["record"].cputs(items, ctx=ctx, txn=txn)
+
+
+	@publicmethod()
+	def record_names(self, names=None, ctx=None, txn=None):
+		return self.dbenv["record"].names(names=names, ctx=ctx, txn=txn)
+
+
+	@publicmethod()
+	def record_find(self, **kwargs):
+		raise NotImplementedError
 
 
 	@publicmethod(write=True, compat="hiderecord")
@@ -2964,7 +3003,7 @@ class DB(object):
 
 		names = set(names)
 
-		children = self.rel_children_tree(names, recurse=-1, ctx=ctx, txn=txn)
+		children = self.rel_childrentree(names, recurse=-1, ctx=ctx, txn=txn)
 		allchildren = set()
 		allchildren |= names
 		for k,v in children.items():
@@ -3434,6 +3473,11 @@ class DB(object):
 		return bdos
 
 
+	@publicmethod()
+	def binary_names(self, names=None, ctx=None, txn=None):
+		return self.dbenv["binary"].names(names=names, ctx=ctx, txn=txn)
+
+
 	# Warning: This can be SLOW!
 	@publicmethod(compat="findbinary")
 	def binary_find(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
@@ -3453,7 +3497,7 @@ class DB(object):
 		:keyword name: ... Binary name
 		:keyword filename: ... filename
 		:keyword record: Referenced in Record name(s)
-		:keyword limit: Limit number of results
+		:keyword count: Limit number of results
 		:keyword boolmode: AND / OR for each search constraint (default: AND)
 		:return: Binaries
 		"""
@@ -3559,6 +3603,20 @@ class DB(object):
 		return bdos
 		
 		
+	@publicmethod(write=True)
+	def upload_putfile(self, item, extract=False, filedata=None, fileobj=None, ctx=None, txn=None):
+		pass
+
+
+
+	@publicmethod()
+	def upload_names(self, names=None, ctx=None, txn=None):
+		return self.dbenv["upload"].names(names=names, ctx=ctx, txn=txn)
+
+
+	@publicmethod()
+	def upload_find(self, **kwargs):
+		raise NotImplementedError
 
 	##### Workflow #####
 

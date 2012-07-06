@@ -559,7 +559,7 @@
 			// Remove any current children
 			elem.find('ul').remove();
 
-			// We use rel.children.tree because we want to grab 2 levels of children/parents
+			// We use rel.childrentree because we want to grab 2 levels of children/parents
 			// 	to determine if each child is itself expandable...
 			var method = "rel.tree";
 

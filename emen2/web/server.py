@@ -54,7 +54,7 @@ class DBPool(object):
 		# print '# threads: %s -- this thread is %s'%(len(self.dbs), tid)
 		db = self.dbs.get(tid)
 		if not db:
-			db = emen2.db.database.DB.opendb()
+			db = emen2.db.database.opendb()
 			self.dbs[tid] = db
 		return db
 

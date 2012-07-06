@@ -941,7 +941,7 @@ class DBODB(EMEN2DB):
 
 	##### New items.. #####
 
-	def new(self, *args, **kwargs):
+	def new(self, inherit=None, *args, **kwargs):
 		"""Returns new DBO. Requires ctx and txn.
 
 		All the method args and keywords will be passed to the constructor.
@@ -952,9 +952,23 @@ class DBODB(EMEN2DB):
 		"""
 		txn = kwargs.pop('txn', None) # Don't pass the txn..
 		item = self.dataclass(*args, **kwargs)
+
+		for i in inherit or []:
+			try:
+				i = self.cget(i, filt=False, ctx=ctx, txn=txn)
+			except (KeyError, SecurityError), inst:
+				emen2.db.log.warn("Couldn't get inherited permissions from %s: %s"%(inherit, inst))
+				continue				
+			if i.get('permissions'):
+				item.addumask(i.get('permissions'))
+			if i.get('groups'):
+				item.addgroup(i.get('groups'))
+			rec['parents'].add(i.name)
+
 		# Acquire a write lock on this name.
 		if self.exists(item.name, txn=txn, flags=bsddb3.db.DB_RMW):
 			raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%item.name
+
 		return item
 
 
@@ -1566,6 +1580,32 @@ class RelateDB(DBODB):
 
 		"""
 		self._putrel(parent, child, mode='removerefs', ctx=ctx, txn=txn)
+
+
+	def relink(self, removerels=None, addrels=None, ctx=None, txn=None):
+		"""Add and remove a number of parent-child relationships at once."""
+		# Uses the new .parents/.children attributes to do this simply
+		removerels = removerels or []
+		addrels = addrels or []
+		remove = collections.defaultdict(set)
+		add = collections.defaultdict(set)
+
+		# grumble.. Convert everything to the correct keytype.
+		removerels = [(self.keytype(x), self.keytype(y) for x,y in removerels)]
+		add = [(self.keytype(x), self.keytype(y) for x,y in add)]
+
+		for parent, child in removerels:
+			remove[parent].add(child)
+		for parent, child in addrels:
+			add[parent].add(child)
+
+		items = set(remove.keys()) | set(add.keys())
+		items = self.get(items, keytype=keytype, filt=False, ctx=ctx, txn=txn)
+		for item in items:
+			item.children -= remove[item.name]
+			item.children |= add[item.name]
+
+		return self.cputs(items, ctx=ctx, txn=txn)
 
 
 	def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
