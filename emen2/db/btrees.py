@@ -25,6 +25,7 @@ import emen2.db.config
 import emen2.db.log
 import emen2.util.listops
 import emen2.db.query
+from emen2.db.exceptions import *
 
 try:
 	import emen2.db.bulk
@@ -941,7 +942,7 @@ class DBODB(EMEN2DB):
 
 	##### New items.. #####
 
-	def new(self, inherit=None, *args, **kwargs):
+	def new(self, *args, **kwargs):
 		"""Returns new DBO. Requires ctx and txn.
 
 		All the method args and keywords will be passed to the constructor.
@@ -951,9 +952,12 @@ class DBODB(EMEN2DB):
 		:exception ExistingKeyError:
 		"""
 		txn = kwargs.pop('txn', None) # Don't pass the txn..
+		ctx = kwargs.get('ctx', None)
+		inherit = kwargs.pop('inherit', [])
+
 		item = self.dataclass(*args, **kwargs)
 
-		for i in inherit or []:
+		for i in inherit:
 			try:
 				i = self.cget(i, filt=False, ctx=ctx, txn=txn)
 			except (KeyError, SecurityError), inst:
@@ -963,7 +967,7 @@ class DBODB(EMEN2DB):
 				item.addumask(i.get('permissions'))
 			if i.get('groups'):
 				item.addgroup(i.get('groups'))
-			rec['parents'].add(i.name)
+			item['parents'].add(i.name)
 
 		# Acquire a write lock on this name.
 		if self.exists(item.name, txn=txn, flags=bsddb3.db.DB_RMW):
@@ -1152,7 +1156,7 @@ class DBODB(EMEN2DB):
 
 
 	# Calculate and write index changes
-	# if indexonly, assume items are new, to rebuild all params.
+	# if reindex, assume items are new, to rebuild all params.
 	def reindex(self, items, reindex=False, ctx=None, txn=None):
 		"""Update indexes. This is really a private method.
 
@@ -1591,8 +1595,8 @@ class RelateDB(DBODB):
 		add = collections.defaultdict(set)
 
 		# grumble.. Convert everything to the correct keytype.
-		removerels = [(self.keytype(x), self.keytype(y) for x,y in removerels)]
-		add = [(self.keytype(x), self.keytype(y) for x,y in add)]
+		removerels = [(self.keytype(x), self.keytype(y)) for x,y in removerels]
+		addrels = [(self.keytype(x), self.keytype(y)) for x,y in addrels]
 
 		for parent, child in removerels:
 			remove[parent].add(child)

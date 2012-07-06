@@ -360,7 +360,7 @@ def opendb(name=None, password=None, admin=False, db=None):
 	return proxy
 
 
-def setup(rootpw=None, rootemail=None):
+def setup(db=None, rootpw=None, rootemail=None):
 	"""Initialize a new DB.
 
 	@keyparam rootpw Root Account Password
@@ -372,7 +372,7 @@ def setup(rootpw=None, rootemail=None):
 	rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
 	rootpw = getpw(pw=rootpw)
 
-	db = opendb(admin=True)
+	db = opendb(db=db, admin=True)
 	with db:
 		root = {'name':'root','email':rootemail, 'password':rootpw}
 		db.put([root], keytype='user')
@@ -710,10 +710,15 @@ class DB(object):
 
 		# Open Databases
 		self._init()
-	
+
 		# Load DBOs from extensions.
-		self.load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
+		self._load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
 		emen2.db.config.load_jsons(cb=self._load_json)
+
+		# Create root account, groups, and root record if necessary
+		if self.dbenv.create:
+			print 'create'
+			setup(db=self)
 
 
 	def _init(self):
@@ -2641,8 +2646,8 @@ class DB(object):
 
 
 	@publicmethod(compat="newrecord")
-	def record_new(self, ctx=None, txn=None, *args, **kwargs):
-		return self.dbenv["record"].new(ctx=ctx, txn=txn, *args, **kwargs)
+	def record_new(self, rectype, **kwargs):
+		return self.dbenv["record"].new(rectype=rectype, **kwargs)
 
 
 	# @publicmethod(compat="newrecord")
@@ -3425,7 +3430,7 @@ class DB(object):
 
 	@publicmethod(write=True, compat="putbinary")
 	@ol('items')
-	def binary_put(self, items, extract=False, ctx=None, txn=None):
+	def binary_put(self, items, ctx=None, txn=None):
 		"""Add or update a Binary (file attachment).
 
 		For new items, data must be supplied using with either

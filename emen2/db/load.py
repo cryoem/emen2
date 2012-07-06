@@ -69,6 +69,8 @@ class Loader(BaseLoader):
 			for item in self.loadfile(keytype=keytype):
 				i = dbenv[keytype].dataclass(ctx=ctx)
 				i._load(item)
+				if dbenv[keytype].exists(i.name, txn=txn):
+					continue
 				dbenv[keytype].put(i.name, i, txn=txn)
 				names.append(i.name)
 			
