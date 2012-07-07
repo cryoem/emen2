@@ -15,8 +15,10 @@
 
 <head>
 
-	<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
-	<meta http-equiv="Content-Language" content="en-us" />
+	<%block name="meta">
+		<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+		<meta http-equiv="Content-Language" content="en-us" />
+	</%block>
 
 	<title>
 		<%block name="title">

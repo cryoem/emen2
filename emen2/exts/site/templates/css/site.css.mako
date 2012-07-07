@@ -211,6 +211,7 @@ textarea {
 	color:#ccc;
 }
 input.e2l-save {
+	color: red;
 }
 input.e2l-cancel {
 	color: red;

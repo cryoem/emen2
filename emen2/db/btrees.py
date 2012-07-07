@@ -878,15 +878,15 @@ class DBODB(EMEN2DB):
 
 		# Protect against overwriting items that might have been manually inserted.
 		counter = 0
-		while True:
-			if counter > 100000:
-				raise Exception, "Problem with counter. Please contact the administrator."
-			if self.bdb.exists(self.keydump(val), txn=txn):
-				print "Found item %s! Increasing counter."%val
-				val += 1
-				counter += 1
-			else:
-				break
+		# while True:
+		# 	if counter > 100000:
+		# 		raise Exception, "Problem with counter. Please contact the administrator."
+		# 	if self.bdb.exists(self.keydump(val), txn=txn):
+		# 		print "Found item %s! Increasing counter."%val
+		# 		val += 1
+		# 		counter += 1
+		# 	else:
+		# 		break
 
 		self.sequencedb.put(key, str(val+delta), txn=txn)
 

@@ -63,7 +63,7 @@ a:hover,
 	font-size: 10pt;
 }
 .e2l-big {
-	font-size:16pt;
+	font-size:20pt;
 }
 
 /* Basic show/hide behavior */
