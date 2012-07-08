@@ -107,6 +107,8 @@ class Download(View):
 		request.setHeader('Content-Length', str(fsize))
 		request.setHeader('Content-Type', mimetype)
 		request.setHeader('Content-Encoding', encoding)
+		request.setHeader('Cache-Control', 'max-age=86400')
+		# 'Cache-Control': 'max-age=86400'
 
 		a = twisted.web.static.NoRangeStaticProducer(request, f)
 		a.start()
