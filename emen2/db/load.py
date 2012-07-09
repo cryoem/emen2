@@ -3,7 +3,6 @@
 
 Functions:
 	random_password
-	write_json
 
 Classes:
 	BaseLoader

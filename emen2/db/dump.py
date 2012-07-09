@@ -1,9 +1,20 @@
 import collections
+import os
+import json
 
 import jsonrpc.jsonutil
 import emen2.db
 import emen2.db.config
 import emen2.util.listops
+
+
+def dump_json(outfile, items):
+	if os.path.exists(outfile):
+		print "Warning: File %s exists"%outfile
+	print "Saving output to %s"%outfile
+	with open(outfile,'w') as f:
+		for item in items:
+			f.write(json.dumps(item)+"\n")
 
 
 class Dumper(object):
