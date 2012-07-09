@@ -42,7 +42,7 @@ class Preview(View):
 		if not os.path.exists(previewpath):
 			status = emen2.db.handlers.thumbnail_from_binary(self.bdo, wait=False)
 			raise Exception, "Building tile..."
-
+			
 
 		f = file(previewpath, "r")
 		header = pickle.load(f)

@@ -13,9 +13,9 @@ try:
 	import multiprocessing
 	CPU_COUNT = multiprocessing.cpu_count()
 except:
-	CPU_COUNT = 2
+	CPU_COUNT = 1
 
-# CPU_COUNT = 1
+
 
 ##### Subprocess queues #####
 
@@ -52,6 +52,7 @@ class ProcessQueue(Queue.LifoQueue):
 		if name in [i[1] for i in self.queue]:
 			raise ValueError, "Task name already in queue: %s"%name
 
+		print "ProcessQueue: Adding task %s with priority %s to queue: %s"%(name, priority, task)
 		return self.put((priority, name, task))
 
 	def end(self):

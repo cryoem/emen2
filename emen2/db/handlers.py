@@ -20,7 +20,7 @@ import cStringIO
 import tempfile
 
 #################################################
-# ** Do NOT import ANY emen2 packages here!! ** #
+# ** Do NOT import ANY EMEN2 or EMAN2 packages here!! ** #
 #################################################
 
 
@@ -32,8 +32,8 @@ def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
 		"completed"
 		"building"
 		"error"
+
 	"""
-	
 	# Import the EMEN2 modules here to prevent circular imports.
 	import emen2.db.config
 	import emen2.db.binary
@@ -88,10 +88,6 @@ def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
 	if compress:
 		args.append('--compress')
 		args.append(compress)
-
-	# if ext:
-	#	args.append('--ext')
-	#	args.append(ext)
 
 	args.append(handler.__class__.__name__)
 	args.append(filepath)
