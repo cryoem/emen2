@@ -231,6 +231,7 @@ class Vartype(object):
 			changed = True
 
 		for i in value:		
+			i = self.engine.db._db.dbenv[keytype].keyclass(i)
 			if i in found:
 				ret.append(i)
 			elif self.engine.db.exists(i, keytype=keytype):
@@ -239,8 +240,6 @@ class Vartype(object):
 				changed = True
 			elif ALLOW_MISSING:
 				# Convert.. Warning: using private method.
-				i = self.engine.db._db.dbenv[keytype].keyclass(i)
-				ret.append(i)
 				print "Could not find, but allowing: %s %s (param %s)"%(self.vartype, i, self.pd.name)
 			else:
 				raise ValidationError, "Could not find: %s %s (param %s)"%(self.vartype, i, self.pd.name)
@@ -688,6 +687,7 @@ class vt_link(Vartype):
 		# Hack
 		value = self._validate_reference(ci(value), keytype=self.engine.keytype)
 		print "validated link:", self.pd.name, value, self.engine.keytype
+		print self._rci(value)
 		return self._rci(value)
 
 

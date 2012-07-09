@@ -76,7 +76,7 @@
 	
 	// Berkeley DB cachesize (in megabytes), max transactions, and locks
 	"BDB": {
-		"CACHESIZE": 64
+		"CACHESIZE": 256
 	},
 
 	"users":{

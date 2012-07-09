@@ -8,6 +8,68 @@ import collections
 <%namespace name="buttons" file="/buttons"  /> 
 <%namespace name="user_util" file="/pages/user"  /> 
 
+
+<%block name="css_inline">
+	${parent.css_inline()}
+
+	.home-profile {
+		float: left;
+		width: 350px;
+		border-right:solid 1px #ccc;
+		padding-bottom:50px;
+	}
+	.home-profile h2 {
+		position:relative;
+		font-size:12pt;
+		margin:0px;
+		padding:5px;
+		border-bottom:solid 1px #ccc;
+	}
+	.home-profile h2 a {
+		display:block;
+	}
+	.home-profile h2 a.e2-record-new {
+		position:absolute;
+		right:8px;
+		top:6px;
+		font-size:10pt;
+		font-weight:normal;
+	}
+	
+	.home-profile ul {
+		padding-left:0px;
+		margin-bottom:40px;
+	}
+	.home-profile li {
+		list-style:none;
+		position:relative;
+	}
+	.home-profile .home-projectlist li a {
+		font-size:10pt;
+		display:block;
+		padding:5px;
+		padding-right:50px;
+	}
+	.home-profile .home-projectlist li:nth-child(2n) {
+		background:#eee;
+	}
+	.home-count {
+		position:absolute;
+		right:8px;
+		top:6px;
+		background:#f0f0f0;
+		padding:2px;
+		font-size:8pt;
+		border-radius: 4px;
+	}
+	.home-main {
+		margin-left:380px;
+	}
+
+	
+</%block>
+
+
 <%block name="js_ready">
 	${parent.js_ready()}
 
@@ -31,28 +93,19 @@ import collections
 	
 </%block>
 
-<%
-# bymonth = collections.defaultdict(set)
-# for rec in recent_activity['recs']:
-#	t = rec.get('creationtime')
-#	n = rec.get('name')
-#	year, month = t[0:4], t[5:7]
-#	bymonth[(year,month)].add(n)	
-# months = sorted(bymonth.keys())[-6:]
 
+<%
 def sort_by_creationtime(x):
 	c = projects_children.get(x) or [None]
 	lastitem = sorted(c)[-1]
 	return most_recent_recs.get(lastitem, dict()).get('creationtime')
-
 
 if sortkey == 'children':
 	lsortkey = lambda x:len(projects_children.get(x, []))
 elif sortkey == 'activity':
 	lsortkey = sort_by_creationtime
 else:
-	lsortkey = lambda x:recnames.get(x, '').lower()
-	
+	lsortkey = lambda x:recnames.get(x, '').lower()	
 %>
 
 <%def name="sortlink(key, label)">
@@ -66,30 +119,53 @@ else:
 
 
 
+<div class="home-profile">
+
+	<h1 style="text-align:center;border-bottom:none">
+		% if USER.userrec.get('person_photo'):
+			<img src="${EMEN2WEBROOT}/download/${USER.userrec.get('person_photo')}/profile.jpg?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" />
+			<br />
+		% endif	
+		${USER.displayname}
+		<br />
+		<a href="${EMEN2WEBROOT}/user/${USER.name}/edit/" class="e2-button">${buttons.image('edit.png','')} Edit profile</a> <a href="${EMEN2WEBROOT}/auth/logout/" class="e2-button">Logout</a>				
+	</h1>
+	
+	<br />
+	
+	
+	
+	% for group, projects in groups_children.items():
+
+		<h2 class="e2l-cf">
+			<a href="${EMEN2WEBROOT}/record/${group}/children/project/">${recnames.get(group, group)}</a>
+			<a href="${EMEN2WEBROOT}/record/${group}/new/project/" class="e2-record-new" data-parent="${group}" data-rectype="project">New project</a>
+		</h2>
 
 
-<h1>
-	${USER.displayname}
-	<ul class="e2l-actions">
-		<li><a class="e2-button" href="${EMEN2WEBROOT}/user/${USER.name}/edit/">${buttons.image('edit.png')}  Edit Profile</a></li>
-	</ul>
-</h1>
-
-<div class="e2l-cf">
-	${user_util.profile(user=USER, userrec=USER.userrec, edit=False)}
+		<ul class="home-projectlist">
+			% for project in sorted(projects, key=lambda x:recnames.get(x, '').lower()):
+				<li>
+					<a href="${EMEN2WEBROOT}/record/${project}/">
+						${recnames.get(project, project)}
+					</a>
+					<span class="e2l-shadow home-count">
+						${len(projects_children.get(project, []))}						
+					</span>
+					</li>
+			% endfor
+		</ul>
+	% endfor
+	
+	
+	<span class="e2-button e2-button e2-record-new" data-parent="0" data-rectype="group">${buttons.image('edit.png','')} New group</span>
+	
 </div>
 
 
 
 
-
-
-
-
-
-
-
-<br /><br />
+<div class="home-main">
 
 % if banner:
 	<h1>
@@ -104,11 +180,6 @@ else:
 	${render_banner}
 	</div>
 % endif
-
-
-
-
-
 
 
 
@@ -133,136 +204,7 @@ ${recent_activity_table}
 
 
 
-
-
-
-
-<br /><br />
-
-
-<h1>
-	Groups and projects	
-	<ul class="e2l-actions">
-		<a class="e2-button" href="${EMEN2WEBROOT}/sitemap/">Sitemap</a></li>
-
-		% if hideinactive:
-			<a class="e2-button" href="${EMEN2WEBROOT}/?hideinactive=0">Show inactive</a></li>
-		% else:
-			<a class="e2-button" href="${EMEN2WEBROOT}/?hideinactive=1">Hide inactive</a></li>		
-		% endif
-		
-		% if ADMIN:
-			<span class="e2-button e2-button e2-record-new" data-parent="0" data-rectype="group"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New group</span>
-		% endif
-	</ul>
-</h1>
-
-<table id="activity" class="e2l-shaded" cellpadding="0" cellspacing="0">
-	<thead>
-		<tr>
-			<th>
-				${sortlink('name', 'Name')}
-			</th>
-
-			<th>
-				${sortlink('children', 'Records')}
-			</th>
-
-			## <th style="width:80px">
-			##	Activity
-			## </th>
-			
-			<th colspan="2" style="width:150px">
-				${sortlink('activity', 'Last activity')}
-			</th>
-
-		</tr>
-	</thead>
-	
-	% for group, projects in groups_children.items():
-	<tbody>
-
-		<tr>
-			<td style="background:#BBDAEE;" colspan="5">
-				<a href="${EMEN2WEBROOT}/record/${group}/">
-					<strong>Group: ${recnames.get(group,group)}</strong>
-				</a>
-				<ul class="e2l-actions">
-				% if ADMIN:
-					<li><span class="e2-button e2-record-new" data-parent="${group}" data-rectype="project">${buttons.image('edit.png','')} New project</span></li>
-				% endif
-				</ul>
-			</td>
-		</tr>
-		
-		<%
-			skipped = 0
-		%>
-		
-		% for project in sorted(projects, key=lsortkey, reverse=reverse):
-
-			<%
-				c = projects_children.get(project)
-				lastitem = None
-				if c:
-					lastitem = most_recent_recs.get(sorted(c)[-1], dict())
-
-				# Make a simple little inline chart showing distribution of record creation
-				# chart = {}
-				# for month in months:
-				#	y = bymonth.get(month, set()) & projects_children.get(project, set())
-				#	chart[month] = (float(len(y)) / float(len(c) or 1)) * 20
-			%>
-
-			% if hideinactive and lastitem is None:
-
-			% else:
-				<tr class="e2l-shaded-indent">
-					<td><a href="${EMEN2WEBROOT}/record/${project}/">${recnames.get(project,project)}</a></td>
-
-					<td>${len(projects_children.get(project, []))}</td>
-
-					## <td>
-					##	% for month in months:
-					##		<div class="e2-plot-sparkbox" style="height:${chart[month]}px;margin-top:${20-chart[month]}px">&nbsp;</div>
-					##	% endfor
-					## </td>
-
-					% if lastitem and most_recent_recs.get(lastitem.name):
-						<td>
-							<a href="${EMEN2WEBROOT}/record/${lastitem.name}">
-								<time class="e2-timeago" datetime="${lastitem.get('creationtime')}">${lastitem.get('creationtime')}</time>
-								by ${users.get(lastitem.get('creator'), dict()).get('displayname', lastitem.get('creator'))}
-							</a>
-						</td>
-						
-						<td></td>
-					% else:
-						<td colspan="2"></td>
-					% endif
-
-				</tr>
-			% endif
-		% endfor
-
-
-		% if skipped:
-			<tr class="e2l-shaded-indent">
-				<td colspan="5">${skipped} inactive projects not shown.</td>
-			</tr>
-		% endif
-		
-		% if not projects:
-			<tr class="e2l-shaded-indent">
-				<td colspan="5">No children</td>
-			</tr>
-		% endif
-		
-	</tbody>
-	% endfor
-
-</table>
-
+</div>
 
 
 

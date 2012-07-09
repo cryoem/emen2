@@ -416,7 +416,9 @@ class EMDataBuilder(object):
 			img2 = img.copy()
 		else:
 			# Shrink the image
-			img2 = img.process("xform.scale", {"scale":sc, "clip":tilesize})
+			# print "shrink to thumbnail with scale factor:", sc, 1/sc, math.ceil(1/sc)
+			# img2 = img.process("xform.scale", {"scale":sc, "clip":tilesize})
+			img2 = img.process("math.meanshrink", {'n':math.ceil(1/sc)})
 
 		# Adjust the brightness for rendering
 		rmin = img2.get_attr("mean") - img2.get_attr("sigma") * 3.0

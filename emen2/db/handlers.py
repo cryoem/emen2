@@ -303,7 +303,7 @@ class BinaryHandler(object):
 			try:
 				self._thumbnail_build(workfile)
 			except Exception, e:
-				# print "Could not build tiles:", e
+				print "Could not build tiles:", e
 				pass
 			os.remove(workfile)
 		else:

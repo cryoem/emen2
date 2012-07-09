@@ -1653,26 +1653,29 @@ class RelateDB(DBODB):
 			p_remove[c].add(p)
 			c_remove[p].add(c)
 
+
+		print "p_add", p_add
+		print "p_remove", p_remove
+		print "c_add", c_add
+		print "c_remove", c_remove
+		
 		#if not indexonly:
 		if True:
 			# Go and fetch other items that we need to update
 			names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
 			# print "All affected items:", names
+			# Get and modify the item directly w/o Context:
+			# Linking only requires write permissions
+			# on ONE of the items.
 			for name in names:
-				# Get and modify the item directly w/o Context:
-				# Linking only requires write permissions
-				# on ONE of the items.
-				try:
-					rec = self.get(name, filt=False, txn=txn)
-					rec.__dict__['parents'] -= p_remove[rec.name]
-					rec.__dict__['parents'] |= p_add[rec.name]
-					rec.__dict__['children'] -= c_remove[rec.name]
-					rec.__dict__['children'] |= c_add[rec.name]
-					self.put(rec.name, rec, txn=txn)
-				except KeyError:
-					# If we're trying to update an item that isn't a new item in the current commit, raise.
-					if name not in names:
-						raise
+				rec = self.get(name, filt=False, txn=txn)
+				print "...adding rels to ", rec.name
+				rec.__dict__['parents'] -= p_remove[rec.name]
+				rec.__dict__['parents'] |= p_add[rec.name]
+				rec.__dict__['children'] -= c_remove[rec.name]
+				rec.__dict__['children'] |= c_add[rec.name]
+				self.put(rec.name, rec, txn=txn)
+
 
 		for k,v in p_remove.items():
 			if v:

@@ -7,6 +7,7 @@ import hashlib
 
 import emen2.db.exceptions
 import emen2.db.database
+import emen2.util.listops
 from emen2.web.view import View
 
 
@@ -191,6 +192,8 @@ class NewUser(View):
 			# ... do this better in the future.
 			for user in approved:
 				g = filter(None, groups.get(user.name, []))
+				g = emen2.util.listops.check_iterable(g)
+
 				for group in self.db.group.get(g):
 					group.adduser(user.name)
 					self.db.group.put(group)

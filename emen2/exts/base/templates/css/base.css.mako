@@ -51,8 +51,8 @@ a:hover,
 /* Commit button */
 .e2l-thumbnail {
 	vertical-align: top;
-	height:64px;
-	width:64px;
+	max-height:64px;
+	max-width:64px;
 }
 .e2l-thumbnail-mainprofile {
 	max-height: 256px;
@@ -796,6 +796,7 @@ line {
 {
 	-moz-border-radius: 4px;
 	-webkit-border-radius: 4px;
+	border-radius: 4px;
 	font-size:12pt;
 	font-weight:normal;
 	display:inline-block;

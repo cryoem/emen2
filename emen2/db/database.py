@@ -378,6 +378,13 @@ def setup(db=None, rootpw=None, rootemail=None):
 		db.put([root], keytype='user')
 		loader = emen2.db.load.Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
 		loader.load()
+		# Root record
+		# {"name":0, "keytype":"record", "rectype": "folder", "name_folder": "Root", "groups":["authenticated"]}
+		rec = db.record.new(rectype='folder')
+		rec.addgroup('authenticated')
+		rec['name_folder'] = 'Root'
+		db.record.put(rec)
+
 
 
 

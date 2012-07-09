@@ -81,6 +81,8 @@ ul {
 	font-size: 10pt;
 	-moz-border-radius: 8px;
 	-webkit-border-radius: 8px;
+	border-radius: 8px;
+
 }
 .e2l-narrow {
 
@@ -88,11 +90,13 @@ ul {
 .e2-alert > li {
 	-moz-border-radius: 8px;
 	-webkit-border-radius: 8px;	
+	border-radius: 8px;
 }
 
 .e2l-capsule {
 	-moz-border-radius: 8px;
 	-webkit-border-radius: 8px;	
+	border-radius: 8px;
 }
 
 /* Basic layout */
@@ -149,6 +153,7 @@ ul {
 	-moz-border-radius-topleft: 8px; 
 	-webkit-border-top-right-radius: 8px;
 	-webkit-border-top-left-radius: 8px;
+	border-radius: 8px 8px 0px 0px;
 }
 
 .e2-tab-editbar div.e2-tab-active {
@@ -167,6 +172,8 @@ textarea,
 {
 	-moz-border-radius: 4px;
 	-webkit-border-radius: 4px;
+	border-radius: 4px;
+
 	font-size:12pt;
 	font-weight:normal;
 	display:inline-block;
@@ -211,7 +218,7 @@ textarea {
 	color:#ccc;
 }
 input.e2l-save {
-	color: red;
+	
 }
 input.e2l-cancel {
 	color: red;

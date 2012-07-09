@@ -32,7 +32,7 @@ class ProcessWorker(object):
 				return
 			print "ProcessWorker:", task
 			a = subprocess.Popen(task)
-			a.wait()
+			returncode = a.wait()
 			self.queue.task_done()
 			
 			

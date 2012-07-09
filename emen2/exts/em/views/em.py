@@ -150,7 +150,8 @@ class EMHome(View):
 		torender = set()
 
 		# Groups
-		groups = self.db.rel.children(0, rectype=['group'])		
+		# groups = self.db.record.findbyrectype(group)
+		groups = self.db.rel.children(0, rectype=['group'])
 		torender |= groups
 		
 		# Top-level children of groups (any rectype)
@@ -167,34 +168,25 @@ class EMHome(View):
 
 		# Get projects, most recent children, and progress reports
 		projects_children = self.db.rel.children(projs, recurse=-1)
-		most_recent = set()
-		for k,v in projects_children.items():
-			if v:
-				most_recent.add(sorted(v)[-1])
 
 		# Get all the recent records we want to display
-		most_recent_recs = self.db.record.get(most_recent)
 		rendered_recs = self.db.record.get(torender)
 		
 		# Display the usernames for all these records. This should probably be in record.render.
-		users = self.db.user.get([i.get('creator') for i in most_recent_recs])
-		users = dict([(i.name,i) for i in users])
+		# users = self.db.user.get([i.get('creator') for i in most_recent_recs])
+		# users = dict([(i.name,i) for i in users])
 		
 		# Convert to dict (do this in tmpl..)
-		most_recent_recs = dict([(i.name,i) for i in most_recent_recs])
-		rendered_recs = dict([(i.name,i) for i in rendered_recs])
+		# most_recent_recs = dict([(i.name,i) for i in most_recent_recs])
+		# rendered_recs = dict([(i.name,i) for i in rendered_recs])
 
 		# Rendered recnames
 		recnames = self.db.record.render(torender)
 		
 		self.ctxt['groups_children'] = groups_children
 		self.ctxt['recnames'] = recnames
-		self.ctxt['rendered_recs'] = rendered_recs
-		self.ctxt['users'] = users
 		self.ctxt['projects_children'] = projects_children
 		self.ctxt['progress_reports'] = progress_reports
-		self.ctxt['most_recent_recs'] = most_recent_recs
-		
 		self.ctxt['sortkey'] = sortkey
 		self.ctxt['hideinactive'] = int(hideinactive)
 		self.ctxt['reverse'] = int(reverse)

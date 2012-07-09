@@ -9280,7 +9280,7 @@ Description: $$folder_description
   'private': False,
   'typicalchld': [],
   'uri': 'http://ncmidb.bcm.edu',
-  'views': { 'banner': '$$folder_description $@renderchildren()',
+  'views': { 'banner': '$$folder_description',
              'recname': """$$name_folder""",
              'tabularview': """$$name_folder"""}},
 
