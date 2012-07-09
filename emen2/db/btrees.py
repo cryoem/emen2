@@ -706,7 +706,6 @@ class IndexDB(EMEN2DB):
 			addindexitems.append(key)
 
 		for ditem in ditems:
-			#print "cursor put %s %s"%(dkey, ditem)
 			try:
 				cursor.put(dkey, ditem, flags=bsddb3.db.DB_KEYFIRST)
 			except bsddb3.db.DBKeyExistError, e:
@@ -877,7 +876,7 @@ class DBODB(EMEN2DB):
 		val = int(val)
 
 		# Protect against overwriting items that might have been manually inserted.
-		counter = 0
+		# counter = 0
 		# while True:
 		# 	if counter > 100000:
 		# 		raise Exception, "Problem with counter. Please contact the administrator."
@@ -1653,11 +1652,10 @@ class RelateDB(DBODB):
 			p_remove[c].add(p)
 			c_remove[p].add(c)
 
-
-		print "p_add", p_add
-		print "p_remove", p_remove
-		print "c_add", c_add
-		print "c_remove", c_remove
+		# print "p_add", p_add
+		# print "p_remove", p_remove
+		# print "c_add", c_add
+		# print "c_remove", c_remove
 		
 		#if not indexonly:
 		if True:
@@ -1668,8 +1666,12 @@ class RelateDB(DBODB):
 			# Linking only requires write permissions
 			# on ONE of the items.
 			for name in names:
-				rec = self.get(name, filt=False, txn=txn)
-				print "...adding rels to ", rec.name
+				try:
+					rec = self.get(name, filt=False, txn=txn)
+				except:
+					print "Couldn't link to missing item:", name
+					continue
+
 				rec.__dict__['parents'] -= p_remove[rec.name]
 				rec.__dict__['parents'] |= p_add[rec.name]
 				rec.__dict__['children'] -= c_remove[rec.name]

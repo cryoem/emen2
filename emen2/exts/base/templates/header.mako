@@ -63,20 +63,20 @@
 		## </li>
 
 		% if USER:
-		<li class="e2l-float-right">
-				<a href="${EMEN2WEBROOT}/user/${USER.name}/">${USER.displayname} ${buttons.caret()}</a>
-				<ul>				
-					<li><a href="${EMEN2WEBROOT}/user/${USER.name}/edit/">Edit profile</a></li>
-					<li><a href="${EMEN2WEBROOT}/auth/logout/">Logout</a></li>
-				</ul>
-		</li>
+			<li class="e2l-float-right">
+					<a href="${EMEN2WEBROOT}/user/${USER.name}/">${USER.displayname} ${buttons.caret()}</a>
+					<ul>				
+						<li><a href="${EMEN2WEBROOT}/user/${USER.name}/edit/">Edit profile</a></li>
+						<li><a href="${EMEN2WEBROOT}/auth/logout/">Logout</a></li>
+					</ul>
+			</li>
 		% else:
-		<li class="e2l-float-right">
-			<a href="${EMEN2WEBROOT}/auth/login/">Login</a>
-		</li>
-		<li class="e2l-float-right">
-			<a href="${EMEN2WEBROOT}/users/new/">Register</a>
-		</li>
+			<li class="e2l-float-right">
+				<a href="${EMEN2WEBROOT}/auth/login/">Login</a>
+			</li>
+			<li class="e2l-float-right">
+				<a href="${EMEN2WEBROOT}/users/new/">Register</a>
+			</li>
 		% endif
 
 	</ul>

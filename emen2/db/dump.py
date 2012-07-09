@@ -148,7 +148,9 @@ if __name__ == "__main__":
 	dumper = PublicDumper(db=db)
 	keys = dumper.dump(c=[['groups','==','publish']])
 	keys['paramdef'] = db.paramdef.names()
+	keys['recorddef'] = db.recorddef.names()
 	keys['user'] = db.user.names()
+	keys['user'].remove('root')
 	dumper.write(keys, uri="http://ncmidb.bcm.edu")
 	
 	
