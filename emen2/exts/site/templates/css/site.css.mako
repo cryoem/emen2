@@ -179,7 +179,7 @@ textarea,
 	display:inline-block;
 	margin: 4px;
 	padding: 4px;
-	background: #eee;
+	/* background: #eee; */
 	color: #000;
 	border:solid 1px #aaa;
 	box-sizing:  content-box;

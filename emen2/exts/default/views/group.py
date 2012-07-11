@@ -10,7 +10,7 @@ class Groups(View):
 	@View.add_matcher(r'^/groups/$')
 	def main(self,q=None):
 		self.template="/pages/groups"
-		self.title = "Group directory"
+		self.title = "User group directory"
 		self.set_context_item("q","")
 		groupnames = self.db.group.names()
 		groups = self.db.group.get(groupnames)
@@ -19,7 +19,7 @@ class Groups(View):
 
 		if groups == None:
 			self.template="/simple"
-			self.set_context_item("content","""No groups found, or insufficient permissions to view group list.""")
+			self.set_context_item("content","""No user groups found, or insufficient permissions to view user group list.""")
 			return
 		
 		self.ctxt['groupnames'] = groupnames
@@ -33,7 +33,7 @@ class Group(View):
 	@View.add_matcher(r'^/group/(?P<name>[\w\- ]+)/$')
 	def main(self, name=None):
 		group = self.db.group.get(name)
-		self.title = "Group: %s"%(group.displayname)
+		self.title = "User group: %s"%(group.displayname)
 		self.template = "/pages/group"
 		self.ctxt['group'] = group
 		self.ctxt['new'] = False
@@ -43,7 +43,7 @@ class Group(View):
 	@View.add_matcher(r'^/group/(?P<name>[\w\- ]+)/edit/$')
 	def edit(self, name=None, **kwargs):
 		group = self.db.group.get(name)
-		self.title = "Group: %s"%(group.displayname)
+		self.title = "User group: %s"%(group.displayname)
 		self.template = "/pages/group"
 		self.ctxt['group'] = group
 		self.ctxt['new'] = False

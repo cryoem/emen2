@@ -100,109 +100,107 @@
 				% endif
 			</td>
 		</tr>
-	
-		% if edit:
+		
+
 		<tr>
-			<td colspan="2">
-				The following attributes cannot be easily changed after the parameter is created because
-				they change the parameter's meaning, validation method, or index format. If you must change these
-				attributes, the database must be taken offline and modified using the migration scripts.
+			<td>Created:</td>
+			<td><a href="${EMEN2WEBROOT}/user/${paramdef.creator}">${paramdef.creator}</a> @ <time class="e2-localize" datetime="${paramdef.creationtime}">${paramdef.creationtime}</time></td>
+		</tr>
+
+		<tr>
+			<td>Modified:</td>
+			<td><a href="${EMEN2WEBROOT}/user/${paramdef.modifyuser}">${paramdef.modifyuser}</a> @ <time class="e2-localize" datetime="${paramdef.modifytime}">${paramdef.modifytime}</time></td>
+		</tr>
+
+	</table>
+		
+</%def>
+
+
+<%def name="paramdef_edit_fixed(paramdef, edit=False, new=False)">
+	<table class="e2l-kv">
+		<tr>
+			<td>Data type:</td>
+			<td>
+				% if new:
+					<select name="vartype" required>
+						<option></option>
+						% for vt in vartypes:
+							<option>${vt}</option>
+						% endfor
+					</select>
+				% else:
+					${paramdef.vartype or ''}
+				% endif
 			</td>
 		</tr>
-		% endif
-		
-		<table class="e2l-kv">
-			<tr>
-				<td>Data type:</td>
-				<td>
-					% if new:
-						<select name="vartype" required>
-							<option></option>
-							% for vt in vartypes:
-								<option>${vt}</option>
-							% endfor
-						</select>
-					% else:
-						${paramdef.vartype or ''}
-					% endif
-				</td>
-			</tr>
 
-			<tr>
-				<td>Iterable:</td>
-				<td>
-					% if new:
-						<input type="checkbox" value="True" name="iter" ${forms.ifchecked(paramdef.iter)} />
-					% else:
-						${paramdef.iter}
-					% endif
-				</td>
-			</tr>
+		<tr>
+			<td>Iterable:</td>
+			<td>
+				% if new:
+					<input type="checkbox" value="True" name="iter" ${forms.ifchecked(paramdef.iter)} />
+				% else:
+					${paramdef.iter}
+				% endif
+			</td>
+		</tr>
 
-			<tr>
-				<td>Physical property:</td>
-				<td>
-					% if new:
-						<select name="property" disabled>
-							<option value="">Select a data type that permits physical properties</option>
-							% for property in properties:
-								<option>${property}</option>
-							% endfor
-						</select>
-					% else:
-						${paramdef.property or ''}
-					% endif
-				</td>
-			</tr>
+		<tr>
+			<td>Physical property:</td>
+			<td>
+				% if new:
+					<select name="property" disabled>
+						<option value="">Select a data type that permits physical properties</option>
+						% for property in properties:
+							<option>${property}</option>
+						% endfor
+					</select>
+				% else:
+					${paramdef.property or ''}
+				% endif
+			</td>
+		</tr>
 
-			<tr>
-				<td>Default units:</td>
-				<td>
-					% if new:
-						<select name="defaultunits" disabled>
-							<option value="">Select a property</option>
-						</select>
-					% else:
-						${paramdef.defaultunits or ''}
-					% endif
-				</td>
-			</tr>
+		<tr>
+			<td>Default units:</td>
+			<td>
+				% if new:
+					<select name="defaultunits" disabled>
+						<option value="">Select a property</option>
+					</select>
+				% else:
+					${paramdef.defaultunits or ''}
+				% endif
+			</td>
+		</tr>
 
-			<tr>
-				<td>Indexed:</td>
-				<td>
-					% if new:
-						<input type="checkbox" name="indexed" value="True" ${forms.ifchecked(paramdef.indexed)} />
-					% else:
-						${paramdef.indexed}
-					% endif
-				</td>
-			</tr>
-		
-			<tr>
-				<td>Immutable:</td>
-				<td>
-					% if new:
-						<input type="checkbox" name="immutable" value="True" ${forms.ifchecked(paramdef.get('immutable'))} />
-					% else:
-						${bool(paramdef.get('immutable'))}
-					% endif
-				</td>
-			</tr>		
+		<tr>
+			<td>Indexed:</td>
+			<td>
+				% if new:
+					<input type="checkbox" name="indexed" value="True" ${forms.ifchecked(paramdef.indexed)} />
+				% else:
+					${paramdef.indexed}
+				% endif
+			</td>
+		</tr>
 
-			% if not new:
-				<tr>
-					<td>Created:</td>
-					<td><a href="${EMEN2WEBROOT}/user/${paramdef.creator}">${paramdef.creator}</a> @ <time class="e2-localize" datetime="${paramdef.creationtime}">${paramdef.creationtime}</time></td>
-				</tr>
-
-				<tr>
-					<td>Modified:</td>
-					<td><a href="${EMEN2WEBROOT}/user/${paramdef.modifyuser}">${paramdef.modifyuser}</a> @ <time class="e2-localize" datetime="${paramdef.modifytime}">${paramdef.modifytime}</time></td>
-				</tr>
-			% endif
-		</table>
+		<tr>
+			<td>Immutable:</td>
+			<td>
+				% if new:
+					<input type="checkbox" name="immutable" value="True" ${forms.ifchecked(paramdef.get('immutable'))} />
+				% else:
+					${bool(paramdef.get('immutable'))}
+				% endif
+			</td>
+		</tr>
+	</table>
 </%def>
+
+
+
 
 
 ${next.body()}

@@ -13,28 +13,27 @@ Exceptions:
 
 # Security Errors
 class SecurityError(Exception):
-	"Security error"
+	"Security error."
 	code = 401
 
 class SessionError(SecurityError):
-	"Session expired"
+	"Session expired."
 
 class AuthenticationError(SecurityError):
-	"Invalid account name or password"
+	"Invalid account name or password."
 
 class DisabledUserError(SecurityError):
-	"Disabled user"
+	"Disabled user."
 
 # Validation Errors
 class ValidationError(ValueError):
-	"""Validation error"""
+	"""Validation error."""
 
 class ExistingKeyError(ValueError):
-	"This account name or email is already in use"
+	"This account name or email is already in use."
 
 # Time out
 class TimeError(Exception):
-	"""Operation timed out"""
-
+	"""Operation timed out."""
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

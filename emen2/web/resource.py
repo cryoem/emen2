@@ -140,6 +140,8 @@ class EMEN2Resource(object):
 			self.init()
 			result = method(self, **args)
 			# Ugly hack
+			# If the method returns a value, it uses that as the value
+			# otherwise, calls str() on the View.
 			if result is None:
 				result = str(self)
 
@@ -194,8 +196,8 @@ class EMEN2Resource(object):
 
 
 	def render_eb(self, failure, request, t=0, **_):
-		print "Error:"
-		print failure
+		# print "Error:"
+		# print failure
 		# Error callback
 		e, data = '', ''
 		headers = {}
@@ -245,18 +247,18 @@ class EMEN2Resource(object):
 	# ian: todo: Use a config value to choose which error pages (mako, or emen2) to use.
 	# ed: Couldn't that be based on the DEBUG flag?
 	def render_error(self, location, e):
-		return mako.exceptions.html_error_template().render()
-		# return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
+		return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
+		# return mako.exceptions.html_error_template().render()
 
 
 	def render_error_security(self, location, e):
-		# return mako.exceptions.html_error_template().render()
 		return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
+		# return mako.exceptions.html_error_template().render()
 
 
 	def render_error_response(self, location, e):
-		# return mako.exceptions.html_error_template().render()
 		return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
+		# return mako.exceptions.html_error_template().render()
 
 
 	def _request_broken(self, failure, request, deferred):

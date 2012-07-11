@@ -15,7 +15,7 @@
 					<li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/paramdefs/">Params</a></li>
 					<li><a href="${EMEN2WEBROOT}/recorddefs/">Protocols</a></li>
 					<li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/users/">Users</a></li>
-					<li><a href="${EMEN2WEBROOT}/groups/">Groups</a></li>
+					<li><a href="${EMEN2WEBROOT}/groups/">User groups</a></li>
 					<li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/help/">Help</a></li>				
 				</ul>
 			</li>
@@ -24,6 +24,8 @@
 				<a href="${EMEN2WEBROOT}/query/">Query ${buttons.caret()}</a>
 				<ul>
 					<li><a href="${EMEN2WEBROOT}/query">All records</a></li>
+					<li class="e2l-menu-divider"</li>
+					<li><a href="${EMEN2WEBROOT}/query/rectype.is.project/">Projects</a></li>
 					<li><a href="${EMEN2WEBROOT}/query/rectype.is.grid_imaging/">Imaging sessions</a></li>
 					<li><a href="${EMEN2WEBROOT}/query/rectype.is.image_capture*/">Images</a></li>
 					<li><a href="${EMEN2WEBROOT}/query/rectype.is.labnotebook/">Lab notebooks</a></li>

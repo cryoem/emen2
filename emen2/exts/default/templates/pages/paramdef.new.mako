@@ -12,8 +12,18 @@
 	</ul>
 </h1>
 
+<%buttons:singlepage label='Details'>
+	${self.paramdef_edit(paramdef, edit=edit, new=new)}
+</%buttons:singlepage>
 
-${self.paramdef_edit(paramdef, edit=edit, new=new)}
+<%buttons:singlepage label='Data type and validation'>
+	<p>
+		<strong>Note:</strong> These attributes cannot be changed after the parameter is created because
+		they alter the parameter's meaning, validation method, or index format. If you must change these
+		attributes, the database must be taken offline and modified using the migration scripts.
+	</p>
+	${self.paramdef_edit_fixed(paramdef, edit=edit, new=new)}
+</%buttons:singlepage>
 
 <%buttons:singlepage label='Relationships'>
 	<div id="e2-relationships" data-name="${paramdef.name}" data-keytype="${paramdef.keytype}"></div>

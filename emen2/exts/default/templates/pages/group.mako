@@ -20,7 +20,7 @@
 
 <h1>
 	% if new:
-		New Group
+		New User Group
 	% else:
 		${group.get('displayname')}
 	% endif
@@ -42,7 +42,7 @@
 <%buttons:singlepage label='Details'>
 	<table>
 		<tr>
-			<td>Group Name:</td>
+			<td>User Group Name:</td>
 
 			% if new:
 				<td><input type="text" name="name" value="" /></td>

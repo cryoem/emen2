@@ -13,6 +13,8 @@ import emen2.web.events
 import emen2.util.registry
 import emen2.util.datastructures
 import emen2.web.events
+
+from emen2.db.exceptions import *
 from emen2.web import responsecodes
 from emen2.util import listops
 
@@ -76,10 +78,15 @@ class Router(twisted.web.resource.Resource):
 		# emen2.db.log.msg('WEB', str(logline))
 
 
-
 	# Resource was not found
 	def render(self, request):
-		return 'Not found'
+		try:
+			return unicode(
+				emen2.web.routing.execute('Error/resp', db=None, error=responsecodes.NotFoundError(request.uri), location=request.uri)
+				).encode('utf-8')
+		except:
+			return 'Not found'
+			# raise responsecodes.NotFoundError(request.uri)
 
 
 

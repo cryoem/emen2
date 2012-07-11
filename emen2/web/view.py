@@ -252,7 +252,6 @@ class View(TemplateView):
 		except:
 			pass
 
-
 		self.ctxt.update(dict(
 			HOST = getattr(ctx, 'host', None),
 			USER = user,
@@ -264,7 +263,6 @@ class View(TemplateView):
 			EMEN2LOGO = emen2.db.config.get('customization.EMEN2LOGO'),
 			BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', []),
 		))
-
 
 	# def notify(self, msg):
 	# 	if self.ctxid is not None:

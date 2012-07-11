@@ -138,8 +138,13 @@ else:
 	% for group, projects in groups_children.items():
 
 		<h2 class="e2l-cf">
-			<a href="${EMEN2WEBROOT}/record/${group}/children/project/">${recnames.get(group, group)}</a>
+			<a href="${EMEN2WEBROOT}/record/${group}/">${recnames.get(group, group)}</a>
+			
+			
+			## % if ADMIN:
 			<a href="${EMEN2WEBROOT}/record/${group}/new/project/" class="e2-record-new" data-parent="${group}" data-rectype="project">New project</a>
+			## % endif
+			
 		</h2>
 
 
@@ -157,8 +162,9 @@ else:
 		</ul>
 	% endfor
 	
-	
-	<span class="e2-button e2-button e2-record-new" data-parent="0" data-rectype="group">${buttons.image('edit.png','')} New group</span>
+	% if ADMIN:
+		<span class="e2-button e2-button e2-record-new" data-parent="0" data-rectype="group">${buttons.image('edit.png','')} New group</span>
+	% endif
 	
 </div>
 
