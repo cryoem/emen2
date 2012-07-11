@@ -22,6 +22,7 @@
 {"name": "desc_long", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Long description", "uri":"http://ncmidb.bcm.edu"}
 {"name": "property", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Physical property", "uri":"http://ncmidb.bcm.edu"}
 {"name": "defaultunits", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Default units", "uri":"http://ncmidb.bcm.edu"}
+{"name": "private", "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "boolean", "desc_short": "Private RecordDef", "uri":"http://ncmidb.bcm.edu"}
 
 // RecordDef
 {"name": "views", "keytype": "paramdef", "parents": ["core"], "vartype": "dict", "desc_short": "RecordDef views", "desc_long": "RecordDef Views", "uri":"http://ncmidb.bcm.edu"}
@@ -95,7 +96,7 @@
 {"name": "core", "mainview": "Do not use", "keytype": "recorddef", "parents": ["root"], "desc_short": "Core", "desc_long": "Core Protocols", "uri":"http://ncmidb.bcm.edu"}
 
 // Folder
-{"name": "folder", "views": {"recname": "$$name_folder", "tabularview": "$$name_folder\n$$name_contact\n$$creator\n$$creationtime", "banner": "$$folder_description\n\n$@renderchildren()"}, "mainview": "Folder: $$name_folder\n\n$#folder_description:\n\n$$folder_description", "keytype": "recorddef","parents": ["core"], "desc_short": "Folder", "desc_long": "A folder. This is a general purpose organizational device. You will want to use more specific protocols such as project/subproject where appropriate.", "uri":"http://ncmidb.bcm.edu"}
+{"name": "folder", "views": {"recname": "$$name_folder", "tabularview": "$$name_folder\n$$name_contact\n$$creator\n$$creationtime", "banner": "$$folder_description"}, "mainview": "Folder: $$name_folder\n\n$#folder_description:\n\n$$folder_description", "keytype": "recorddef","parents": ["core"], "desc_short": "Folder", "desc_long": "A folder. This is a general purpose organizational device. You will want to use more specific protocols such as project/subproject where appropriate.", "uri":"http://ncmidb.bcm.edu"}
 
 // // Person
 {"name": "person", "mainview": "Person", "keytype": "recorddef", "parents": ["core"], "desc_long": "Contact details for a person. These are usually associated with User accounts, but can also be used to store contact details in other places, e.g. a project or report.", "uri":"http://ncmidb.bcm.edu"}

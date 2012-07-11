@@ -43,7 +43,7 @@ class ParamDef(View):
 			if pd:
 				self.redirect(self.routing.reverse('ParamDef/main', name=pd.name))
 				return
-				
+	
 		self.main(name=name)
 		self.template = '/pages/paramdef.edit'
 		self.ctxt['edit'] = True
@@ -52,6 +52,8 @@ class ParamDef(View):
 		
 	@View.add_matcher(r'^/paramdef/(?P<name>\w+)/new/$')
 	def new(self, name, **kwargs):
+		print "WTF KWARGS:"
+		print kwargs
 		if self.request_method == 'post':
 			vartype = kwargs.pop('vartype', None)			
 			paramdef = self.db.paramdef.new(name=name, vartype=vartype)

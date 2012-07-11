@@ -36,7 +36,7 @@
 			<td>Name:</td>
 			<td>
 				% if new:
-					<input name="name" value="" />
+					<input name="name" value="" required="required" />
 				% else:
 					${paramdef.name or ''}
 				% endif
@@ -132,7 +132,7 @@
 				<td>Iterable:</td>
 				<td>
 					% if new:
-						<input type="checkbox" name="iter" ${forms.ifchecked(paramdef.iter)} />
+						<input type="checkbox" value="True" name="iter" ${forms.ifchecked(paramdef.iter)} />
 					% else:
 						${paramdef.iter}
 					% endif
@@ -172,7 +172,7 @@
 				<td>Indexed:</td>
 				<td>
 					% if new:
-						<input type="checkbox" name="indexed" ${forms.ifchecked(paramdef.indexed)} />
+						<input type="checkbox" name="indexed" value="True" ${forms.ifchecked(paramdef.indexed)} />
 					% else:
 						${paramdef.indexed}
 					% endif
@@ -183,7 +183,7 @@
 				<td>Immutable:</td>
 				<td>
 					% if new:
-						<input type="checkbox" name="immutable" ${forms.ifchecked(paramdef.get('immutable'))} />
+						<input type="checkbox" name="immutable" value="True" ${forms.ifchecked(paramdef.get('immutable'))} />
 					% else:
 						${bool(paramdef.get('immutable'))}
 					% endif

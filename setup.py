@@ -37,5 +37,6 @@ if __name__ == "__main__":
 		url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',
 		packages=packages,
 		package_data=package_data,
-		scripts=scripts
+		scripts=scripts,
+		zip_safe=False
 	)
