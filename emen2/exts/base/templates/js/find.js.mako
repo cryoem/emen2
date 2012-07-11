@@ -135,10 +135,10 @@
 			var img = $(emen2.template.image(src, '', 'e2l-thumbnail'));
 			
 			if (this.options.keytype == 'user' && item.userrec['person_photo']) {
-				src = EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/thumb.png?size=thumb';
+				src = EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/user.jpg?size=thumb';
 				img.attr('src', src);
 			} else if (this.options.keytype == 'binary') {
-				src = EMEN2WEBROOT+'/download/'+item.name+'/thumb.png?size=thumb';
+				src = EMEN2WEBROOT+'/download/'+item.name+'/user.jpg?size=thumb';
 				img.attr('src', src);
 			} 
 			
@@ -270,7 +270,9 @@
 				modal: this.options.modal,
 				autoOpen: false,
 				width: 750,
-				height: 600
+				height: 600,
+				draggable: false,
+				resizable: false,				
 			});
 			
 			$('.ui-dialog-titlebar', this.dialog.dialog('widget')).append(emen2.template.spinner());		

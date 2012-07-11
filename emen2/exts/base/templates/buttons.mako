@@ -96,7 +96,7 @@
 		body = body or item.get('email')
 		photo = item.get('userrec', dict()).get('person_photo')
 		if photo:
-			src = "%s/download/%s/?size=thumb"%(EMEN2WEBROOT, photo)
+			src = "%s/download/%s/user.jpg?size=thumb"%(EMEN2WEBROOT, photo)
 	elif item.get('keytype') == 'group':
 		src = "%s/static/images/group.png"%EMEN2WEBROOT
 		title = item.get('displayname')

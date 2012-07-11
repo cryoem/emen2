@@ -131,7 +131,7 @@
 	% else:
 	
 		% if user.userrec.get('person_photo'):
-			<% pf_url = EMEN2WEBROOT + "/download/" + user.userrec.get('person_photo') + "/" + user.name %>
+			<% pf_url = EMEN2WEBROOT + "/download/" + user.userrec.get('person_photo') + "/user.jpg" %>
 			<a class="e2l-float-right" href="${pf_url}"><img src="${pf_url}?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" /></a>
 		% endif
 	

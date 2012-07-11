@@ -123,6 +123,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 	# These require normal record ownership
 	def _set_views(self, key, value, vtm=None, t=None):
 		views = {}
+		value = value or {}
 		for k,v in value.items():
 			views[k] = unicode(textwrap.dedent(v))
 

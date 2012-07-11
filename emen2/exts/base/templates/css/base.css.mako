@@ -145,12 +145,7 @@ a.e2l-capsule {
 	margin-bottom:50px;
 	padding: 0px;
 }
-/*.e2l-advanced, 
-.e2l-options
-{
-	font-size:10pt;
-}
-*/
+
 
 /* e2l-spinner: Activity indicator */
 
@@ -404,6 +399,8 @@ h4
 }
 
 /***** e2-upload: Upload Control *****/
+.e2-upload-table {
+}
 .e2-upload-table td {
 	height: 32px;
 }
@@ -819,6 +816,11 @@ line {
 }
 
 /***** jQuery UI Overrides *****/
+
+/* Modal dialogs are fixed */
+.ui-dialog {
+	position:fixed;
+}
 
 
 .ui-autocomplete {

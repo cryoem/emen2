@@ -348,7 +348,9 @@
 				this.dialog.dialog({
 					modal: true,
 					width: 1000,
-					height: 600
+					height: 600,
+					draggable: false,
+					resizable: false,					
 				});			
 			}
 		},

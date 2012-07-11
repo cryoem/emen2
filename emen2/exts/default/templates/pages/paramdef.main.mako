@@ -27,6 +27,10 @@
 	${self.paramdef_edit_fixed(paramdef, edit=edit, new=new)}
 </%buttons:singlepage>
 
+<%buttons:singlepage label='History'>
+	${self.paramdef_edit_history(paramdef, edit=edit, new=new)}
+</%buttons:singlepage>
+
 <%buttons:singlepage label='Relationships'>
 	<div id="e2-relationships" data-name="${paramdef.name}" data-keytype="${paramdef.keytype}"></div>
 </%buttons:singlepage>

@@ -638,7 +638,7 @@ class vt_binary(Vartype):
 			else:
 				value = ['''
 					<a target="_blank" href="%s/download/%s/%s">
-					<img class="e2l-thumbnail" src="%s/download/%s/%s?size=thumb" />
+					<img class="e2l-thumbnail" src="%s/download/%s/thumb.jpg?size=thumb" />
 					%s
 					</a>'''%(webroot, i.name, cgi.escape(i.filename), webroot, i.name, cgi.escape(i.filename), cgi.escape(i.filename)) for i in v]
 
@@ -687,8 +687,6 @@ class vt_link(Vartype):
 	def validate(self, value):
 		# Hack
 		value = self._validate_reference(ci(value), keytype=self.engine.keytype)
-		print "validated link:", self.pd.name, value, self.engine.keytype
-		print self._rci(value)
 		return self._rci(value)
 
 
@@ -741,9 +739,18 @@ class vt_acl(Vartype):
 		if not hasattr(value, '__iter__'):
 			value = [[value],[],[],[]]
 
+		if hasattr(value, 'items'):
+			v = [[],[],[],[]]
+			ci = emen2.util.listops.check_iterable
+			v[0] = ci(value.get('read'))
+			v[1] = ci(value.get('comment'))
+			v[2] = ci(value.get('write'))
+			v[3] = ci(value.get('admin'))
+			value = v
+
 		for i in value:
 			if not hasattr(i, '__iter__'):
-				raise ValidationError, "Invalid permissions format: ", value
+				raise ValidationError, "Invalid permissions format: %s"%(value)
 
 		value = [[unicode(y) for y in x] for x in value]
 		if len(value) != 4:

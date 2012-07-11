@@ -18,17 +18,21 @@
 				<tbody>
 					<tr>
 						<td>Select a new photo:</td>
-						<td><input type="file" name="person_photo"/></td>
-					</tr>
-					<tr>
-						<td />
 						<td>
-						% if user.userrec.get('person_photo'):
-							<% pf_url = EMEN2WEBROOT + "/download/" + user.userrec.get('person_photo') + "/" + user.name %>
-							<a href="${pf_url}"><img src="${pf_url}?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" /></a>
-						% else:
-							<div>There is currently no photo.</div>
-						% endif
+
+							% if user.userrec.get('person_photo'):
+								<% pf_url = EMEN2WEBROOT + "/download/" + user.userrec.get('person_photo') + "/user.jpg" %>
+								<a href="${pf_url}"><img src="${pf_url}?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" /></a>
+								<input type="hidden" name="person_photo" value="${user.userrec.get('person_photo')}" />
+							% else:
+								<div>There is currently no photo.</div>
+							% endif
+
+							<p>
+								<input type="file" name="person_photo"/>
+							</p>
+
+
 						</td>
 					</tr>
 				</tbody>

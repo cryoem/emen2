@@ -252,6 +252,8 @@ emen2.template.error = function(title, text, method, data) {
 		width: 400,
 		height: 300,
 		modal: true,
+		draggable: false,
+		resizable: false,		
 		buttons: {
 			'OK':function() {
 				$(this).dialog('close')

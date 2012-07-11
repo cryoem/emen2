@@ -9,13 +9,18 @@ from emen2.web.view import View
 class RecordDef(View):
 
 	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/new/$')	
-	def new(self, *args, **kwargs):
-		pass
-
-	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/edit/$')	
-	def edit(self, *args, **kwargs):
-		if self.request_method == 'post':			
-			recorddef = self.db.recorddef.get(name, filt=False)
+	def new(self, name=None, **kwargs):
+		if self.request_method == 'post':
+			mainview = kwargs.pop('mainview', '')
+			views = {}
+			view_name = kwargs.pop('view_name', [])
+			view_view = kwargs.pop('view_view', [])
+			for k,v in zip(view_name, view_view):
+				if k and v:
+					views[k] = v
+			kwargs['views'] = views
+			if kwargs.get('private') == None: kwargs['private'] = False
+			recorddef = self.db.recorddef.new(mainview, name=name)
 			recorddef.update(kwargs)
 			rd = self.db.recorddef.put(recorddef)
 			if rd:
@@ -23,9 +28,39 @@ class RecordDef(View):
 				return
 				
 		self.main(name=name)
-		self.template = '/pages/recorddef.edit'
+		self.template = '/pages/recorddef'
+		self.recorddef.parents = set([self.recorddef.name])
+		self.recorddef.children = set()
 		self.ctxt['edit'] = True
-		self.title = 'Edit Protocol: %s'%self.paramdef.desc_short
+		self.ctxt['new'] = True
+		self.title = 'New Protocol based on: %s'%self.recorddef.desc_short
+
+
+
+
+	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/edit/$')	
+	def edit(self, name=None, **kwargs):
+		if self.request_method == 'post':
+			views = {}	
+			view_name = kwargs.pop('view_name', [])
+			view_view = kwargs.pop('view_view', [])
+			for k,v in zip(view_name, view_view):
+				if k and v:
+					views[k] = v
+			kwargs['views'] = views
+			if kwargs.get('private') == None: kwargs['private'] = False
+			recorddef = self.db.recorddef.get(name)
+			recorddef.update(kwargs)
+			rd = self.db.recorddef.put(recorddef)
+			if rd:
+				self.redirect(self.routing.reverse('RecordDef/main', name=rd.name))
+				return
+				
+		self.main(name=name)
+		self.template = '/pages/recorddef'
+		self.ctxt['edit'] = True
+		self.title = 'Edit Protocol: %s'%self.recorddef.desc_short
+
 
 	@View.add_matcher(r'^/recorddef/(?P<name>\w+)/$')	
 	def main(self, name=None):

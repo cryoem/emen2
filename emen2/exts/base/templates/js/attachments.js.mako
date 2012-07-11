@@ -23,7 +23,6 @@
 				// alert('The File APIs are not fully supported in this browser.');
 				return
 			}
-
 			this.build();
 		},
 		
@@ -37,47 +36,58 @@
 					<thead> \
 						<tr> \
 							<th>Filename</th> \
-							<th>Filesize</th> \
-							<th>Progress</th> \
-							<th></th> \
+							<th style="width:80px">Filesize</th> \
+							<th style="width:80px">Progress</th> \
+							<th style="width:30px;"></th> \
 						</tr> \
 					</thead> \
 					<tbody> \
 					</tbody> \
 				</table>');
-			
+
 			this.dialog.append(table);
 			
-			// <li><input type="button" value="Cancel" /></li>
-			var ok = $('<form method="post" action="'+this.options.location+'#attachments"><ul class="e2l-controls"><li><input type="submit" value="Uploading..." disabled /></li></ul></form>');
+			var ok = $('<form method="post" action="'+this.options.action+'"></form>');
 			this.dialog.append(ok);
 			
 			if (this.options.modal) {
-				$('body').append(this.dialog);
 				this.dialog.dialog({
 					width: 600,
 					height: 600,
+					draggable: false,
+					resizable: false,					
 					autoOpen: false,
 					modal: true,
 					closeOnEscape: false,
-					dialogClass: 'e2-dialog-no-close'
+					dialogClass: 'e2-dialog-no-close',
+					buttons: {
+						"Preparing for upload": function() {
+							$('form', this).submit();
+						}
+					}
 				});
 			} else {
+				ok.append('<ul class="e2l-controls"><li><input type="submit" value="Uploading" disabled="disabled" /></li></ul>');
 				this.element.append(this.dialog);
 			}
+
+			this.dialog.append(ok);
+
 		},		
 		
 		submit: function(e) {
 			var self = this;
-
-			// Ignore the rest of the form
-			// e.preventDefault();
 
 			// Clear the table body
 			$('.e2-upload-table tbody', this.dialog).empty();
 			
 			// Show the dialog
 			this.dialog.dialog('open');
+			
+			// Show completion button
+			$('.e2-dialog-no-close button').attr('disabled','disabled');
+			$('.e2-dialog-no-close button .ui-button-text').html("Uploading...");
+			
 
 			// Get the files and parameter name
 			var fileinput = $('input:file', this.element);
@@ -103,8 +113,8 @@
 				<tr data-index="'+index+'"> \
 					<td>'+file.name+'</td> \
 					<td>'+emen2.template.prettybytes(file.size)+'</td> \
-					<td><div class="e2-upload-progress"></div></td> \
-					<td style="width:32px" class="e2-upload-action"></td> \
+					<td><div style="height:16px" class="e2-upload-progress"></div></td> \
+					<td class="e2-upload-action"></td> \
 				</tr>');
 			var tbody = $('.e2-upload-table tbody', this.dialog);
 			tbody.append(row);
@@ -116,9 +126,8 @@
 
 			// Upload is done.
 			if (!this.files.length) {
-				var ok = $('input:submit[disabled]', this.dialog);
-				ok.val('Ok');
-				ok.attr('disabled',false);
+				$('.e2-dialog-no-close button').attr('disabled',null);
+				$('.e2-dialog-no-close button .ui-button-text').html("Upload complete!");
 				return
 			}
 

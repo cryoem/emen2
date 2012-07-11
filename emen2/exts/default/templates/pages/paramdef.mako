@@ -100,8 +100,14 @@
 				% endif
 			</td>
 		</tr>
-		
 
+	</table>		
+</%def>
+
+
+
+<%def name="paramdef_edit_history(paramdef, edit=False, new=False)">
+	<table class="e2l-kv">
 		<tr>
 			<td>Created:</td>
 			<td><a href="${EMEN2WEBROOT}/user/${paramdef.creator}">${paramdef.creator}</a> @ <time class="e2-localize" datetime="${paramdef.creationtime}">${paramdef.creationtime}</time></td>
@@ -111,9 +117,7 @@
 			<td>Modified:</td>
 			<td><a href="${EMEN2WEBROOT}/user/${paramdef.modifyuser}">${paramdef.modifyuser}</a> @ <time class="e2-localize" datetime="${paramdef.modifytime}">${paramdef.modifytime}</time></td>
 		</tr>
-
 	</table>
-		
 </%def>
 
 

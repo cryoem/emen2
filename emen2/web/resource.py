@@ -174,7 +174,7 @@ class EMEN2Resource(object):
 
 		# Redirect if necessary
 		if headers.get('Location'):
-			request.setResponseCode(302)
+			request.setResponseCode(303)
 
 		[request.setHeader(key, str(headers[key])) for key in headers]
 
@@ -247,8 +247,8 @@ class EMEN2Resource(object):
 	# ian: todo: Use a config value to choose which error pages (mako, or emen2) to use.
 	# ed: Couldn't that be based on the DEBUG flag?
 	def render_error(self, location, e):
-		return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
-		# return mako.exceptions.html_error_template().render()
+		# return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
+		return mako.exceptions.html_error_template().render()
 
 
 	def render_error_security(self, location, e):
@@ -320,6 +320,7 @@ class EMEN2Resource(object):
 			img = cgi.FieldStorage(
 				fp = request.content,
 				headers = headers,
+				keep_blank_values = True,
 				environ = {
 					'REQUEST_METHOD':'POST',
 					'CONTENT_TYPE': headers.get('content-type'),
@@ -336,7 +337,6 @@ class EMEN2Resource(object):
 				if not isinstance(values, list):
 					values = [values]
 				for value in values:
-					# print k, type(i), getattr(i, 'filename', None), getattr(i, 'file', None)
 					if getattr(value, 'filename', None):
 						f = emen2.db.handlers.BinaryHandler.get_handler(
 							param=param,

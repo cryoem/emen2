@@ -178,7 +178,6 @@
 			if (this.options.name != null) {
 				this.options.mode = 'edit';
 			}
-			
 			if (this.options.show) {
 				this.show();
 			} else {
@@ -208,13 +207,23 @@
 				// is added by the callbacks
 				var w = $(window).width() * 0.8;
 				var h = $(window).height() * 0.8;
-
 				this.dialog.dialog({
 					modal: this.options.modal,
 					autoOpen: false,
 					width: w,
-					height: h
+					height: h,
+					draggable: false,
+					resizable: false,
+					buttons: {
+						"Cancel": function() {
+							$(this).dialog('close');
+						},
+						"Save": function() {
+							$('form', this).submit();
+						}
+					}
 				});
+				
 			} else {
 				this.element.append(this.dialog);
 			}			
@@ -245,7 +254,6 @@
 			var self = this;
 			emen2.db('record.get', [self.options.name], function(rec) {
 				emen2.cache.update([rec]);
-				
 				self.options.rectype = rec['rectype']
 				emen2.db('recorddef.get', [rec['rectype']], function(rds) {
 					emen2.cache.update([rds]);
@@ -259,17 +267,24 @@
 		_build: function(rendered) {
 			this.dialog.empty();
 
-			// Show the recorddef long description
-			var rd = emen2.caches['recorddef'][this.options.rectype];
-
-			// Set the dialog title to show the record type and parent recname
-			if (this.options.modal) {
-				this.dialog.dialog('option', 'title', this.options.mode+' '+rd.desc_short);
-			}
-
 			// Create the form
 			var form = $('<form enctype="multipart/form-data"  action="" method="post" data-name="'+this.options.name+'" />');
 
+			// Set the form action
+			var action_alt = EMEN2WEBROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/';
+			if (this.options.mode == 'edit') {
+				var action_alt = EMEN2WEBROOT+'/record/'+this.options.name+'/edit/';
+			}
+			var action = this.options.action || this.element.attr('data-action') || action_alt;
+			form.attr('action',action);
+
+			// ...redirect after submission
+			if (this.options.redirect) {
+				form.append('<input type="hidden" name="_location" value="'+this.options.redirect+'"/>');
+			}
+
+			// Show the recorddef long description
+			var rd = emen2.caches['recorddef'][this.options.rectype];
 			if (this.options.mode == 'new') {
 				var desc = $.trim(rd.desc_long).replace('\n','<br /><br />'); // hacked in line breaks
 				var desc = $('<p class="e2l-shaded-drop">'+desc+'</p>');
@@ -280,23 +295,19 @@
 				form.append('<input type="hidden" name="parents" value="'+this.options.parent+'" /><input type="hidden" name="rectype" value="'+this.options.rectype+'" />')				
 			}
 			
-			// ...redirect after submission
-			if (this.options.redirect) {
-				form.append('<input type="hidden" name="_location" value="'+this.options.redirect+'"/>');
-			}
 			// ...content
 			form.append(rendered);
-			// ...controls
-			form.append('<ul class="e2l-controls"><li><input type="submit" value="Save" /></li></ul>');
 
-			// Set the form action
-			var action_alt = EMEN2WEBROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/';
-			if (this.options.mode == 'edit') {
-				var action_alt = EMEN2WEBROOT+'/record/'+this.options.name+'/edit/';
+			// Set the dialog title to show the record type and parent recname
+			if (this.options.modal) {
+				this.dialog.dialog('option', 'title', this.options.mode+' '+rd.desc_short);
 			}
-			var action = this.options.action || this.element.attr('data-action') || action_alt;
-			form.attr('action',action);
-		
+
+			// Show a submit button. In dialogs, this is drawn by the dialog itself.
+			if (!this.options.modal) {
+				form.append('<ul class="e2l-controls"><li><input type="submit" value="Save" /></li></ul>');
+			}
+
 			// Add the editing control after it's in the DOM
 			this.dialog.append(form);
 			form.MultiEditControl({

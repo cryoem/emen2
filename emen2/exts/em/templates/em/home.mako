@@ -123,7 +123,7 @@ else:
 
 	<h1 style="text-align:center;border-bottom:none">
 		% if USER.userrec.get('person_photo'):
-			<img src="${EMEN2WEBROOT}/download/${USER.userrec.get('person_photo')}/profile.jpg?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" />
+			<img src="${EMEN2WEBROOT}/download/${USER.userrec.get('person_photo')}/user.jpg?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" />
 			<br />
 		% endif	
 		${USER.displayname}

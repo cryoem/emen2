@@ -52,8 +52,6 @@ class ParamDef(View):
 		
 	@View.add_matcher(r'^/paramdef/(?P<name>\w+)/new/$')
 	def new(self, name, **kwargs):
-		print "WTF KWARGS:"
-		print kwargs
 		if self.request_method == 'post':
 			vartype = kwargs.pop('vartype', None)			
 			paramdef = self.db.paramdef.new(name=name, vartype=vartype)

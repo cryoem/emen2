@@ -54,6 +54,8 @@
 			
 			this.element.append(this.dialog)
 			this.dialog.dialog({
+				draggable: false,
+				resizable: false,				
 				width: 600,
 				height: 600, 
 				autoOpen: true,
