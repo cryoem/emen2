@@ -26,7 +26,7 @@ class Tree(View):
 
 	@View.add_matcher(r'^/sitemap/$', name='root')
 	@View.add_matcher(r'^/sitemap/(?P<root>\w+)/$')
-	def main(self, root=0, *args, **kwargs):
+	def main(self, root="0", *args, **kwargs):
 		kwargs['recurse'] = kwargs.get('recurse', 3)
 		self.embed(root=root, *args, **kwargs)
 		self.template = '/pages/tree.sitemap'

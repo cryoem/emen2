@@ -684,8 +684,8 @@
 				<input type="button" name="zoomout" value="-" /> \
 				<input type="button" name="zoomin" value="+" /><br /> \
 				<input type="button" name="autocenter" value="Center" /><br /> \
-				<a class="e2-button" href="'+EMEN2WEBROOT+'/download/'+self.options.bdo+'/'+self.options.filename+'"> \
-				Download</a> \
+				<a class="e2-button" href="'+EMEN2WEBROOT+'/download/'+self.options.bdo+'/'+self.options.filename+'">Download</a><br /> \
+				<button name="convert">Convert</button> \
 				<h4 class="e2l-label">Mode</h4> \
 				<div style="text-align:left"> \
 				<input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /><label for="displaymode_image"> Image</label><br /> \
@@ -715,6 +715,43 @@
 					self.setdisplaymode('1d')
 				}
 			});
+			controls.find('button[name=convert]').click(function() {
+				self.convertdialog();
+			})
+		},
+		
+		convertdialog: function() {
+			var self = this;
+			var dialog = $(' \
+				<div> \
+				<form method="post" action="'+EMEN2WEBROOT+'/eman2/'+self.options.bdo+'/convert/"> \
+					<h4>Format</h4> \
+					<ul class="e2l-nonlist"> \
+						<li><input type="radio" name="format" value="jpg" checked="checked" id="format-jpg" /><label for="format-jpg"> JPEG</label></li> \
+						<li><input type="radio" name="format" value="tif" id="format-tif"  /><label for="format-tif"> TIFF</label></li> \
+						<li><input type="radio" name="format" value="png" id="format-png"  /><label for="format-png"> PNG</label></li> \
+					</ul> \
+					<h4>Options</h4> \
+					<ul class="e2l-nonlist"> \
+						<li><input type="checkbox" name="normalize" id="options-normalize"><label for="options-normalize"> Normalize</label></li> \
+					</ul> \
+				</form> \
+			</div>');
+			dialog.dialog({
+				autoOpen: true,
+				modal: true,
+				resizable: false,
+				draggable: false,
+				width: 400,
+				height: 400,
+				title: 'Convert '+this.options.filename,
+				buttons: {
+					'Download': function() {
+						$('form', this).submit();
+						//$(this).dialog('close');
+					}
+				}
+			});	
 		},
 		
 		setdisplaymode: function(mode) {

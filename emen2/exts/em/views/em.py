@@ -1,7 +1,7 @@
 # $Id$
 import datetime
-from operator import itemgetter
 import time
+import tempfile
 
 import emen2.db.exceptions
 import emen2.db.config
@@ -11,7 +11,7 @@ from emen2.web.view import View
 @View.register
 class EMEquipment(View):
 	
-	@View.add_matcher(r'^/em/equipment/(?P<name>\d+)/$')
+	@View.add_matcher(r'^/em/equipment/(?P<name>\w+)/$')
 	def main(self, name, **kwargs):
 		self.title = 'Equipment'
 		self.template = '/em/project.main'
@@ -120,6 +120,64 @@ class EMHome(View):
 		
 		
 		
+import os
+import twisted.web.static
+
+
+@View.register
+class EMAN2Convert(View):
+	
+	contentTypes = twisted.web.static.loadMimeTypes()
+
+	contentEncodings = {
+			".gz" : "gzip",
+			".bz2": "bzip2"
+			}
+
+	defaultType = 'application/octet-stream'	
+
+	return_file = None
+	
+	@View.add_matcher(r'^/eman2/(?P<name>.+)/convert/(?P<format>\w+)/$', r'^/eman2/(?P<name>.+)/convert/$')
+	def convert(self, name, format, normalize=False):
+		import EMAN2
+
+		if format not in ['tif', 'tiff', 'mrc', 'hdf', 'jpg', 'jpeg', 'png']:
+			raise ValueError, "Invalid format: %s"%format
+
+		bdo = self.db.binary.get(name)
+		img = EMAN2.EMData()
+		img.read_image(str(bdo.filepath))
 		
+		if normalize:
+			img.process_inplace("normalize")			
 		
-		
+		outfile = tempfile.NamedTemporaryFile(delete=False, suffix='.%s'%format)
+		img.write_image(str(outfile.name))
+
+		filename = os.path.splitext(bdo.filename)[0]
+		filename = '%s.%s'%(filename, format)
+		return filename, outfile.name
+
+
+	def render_cb(self, result, request, t=0, **_):
+		filename, filepath = result
+		mimetype, encoding = twisted.web.static.getTypeAndEncoding(filename, self.contentTypes, self.contentEncodings, self.defaultType)
+
+		fsize = os.stat(filepath).st_size
+		f = open(filepath)
+
+		request.setHeader('Content-Disposition', 'attachment; filename=%s'%filename.encode('utf-8'))
+		request.setHeader('Content-Length', str(fsize))
+		request.setHeader('Content-Type', mimetype)
+		request.setHeader('Content-Encoding', encoding)
+		request.setHeader('Cache-Control', 'max-age=86400')
+
+		a = twisted.web.static.NoRangeStaticProducer(request, f)
+		a.start()
+
+		try:
+			print "Removing temporary file:", filepath
+			os.remove(filepath)
+		except:
+			print "Couldn't remove temporary file:", filepath

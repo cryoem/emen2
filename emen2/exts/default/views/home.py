@@ -1,5 +1,4 @@
 # $Id$
-from operator import itemgetter
 import time
 
 import emen2.db.exceptions

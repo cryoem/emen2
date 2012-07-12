@@ -342,8 +342,15 @@ class Query(object):
 	def sort(self, sortkey='name', reverse=False, pos=0, count=0, rendered=False):
 		reverse = bool(reverse)
 		if sortkey == 'name':
-			# Shortcut
-			result = sorted(self.result, reverse=reverse)
+			# Shortcut.
+			if self.btree.keytype == 'record':
+				# Records are created as increasing integers. However,
+				# they are now stored as strings -- so cast to int,
+				# then sort.
+				result = sorted(self.result, reverse=reverse, key=lambda x:int(x))
+			else:
+				result = sorted(self.result, reverse=reverse)				
+				
 			if count > 0:
 				result = result[pos:pos+count]
 			return result

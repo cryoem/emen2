@@ -117,7 +117,7 @@ class Record(View):
 		)
 
 
-	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/$', write=True)
+	@View.add_matcher(r'^/record/(?P<name>\w+)/edit/$', write=True)
 	def edit(self, name=None, _location=None, **kwargs):
 		# Edit page and requests
 		if self.request_method not in ['post', 'put']:
@@ -148,13 +148,13 @@ class Record(View):
 			self.redirect(self.routing.reverse('Record/main', name=name))
 
 
-	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/attachments/$', name='edit/attachments', write=True)
+	@View.add_matcher(r'^/record/(?P<name>\w+)/edit/attachments/$', name='edit/attachments', write=True)
 	def edit_attachments(self, name=None, **kwargs):
 		self.edit(name=name, **kwargs)
 		self.redirect(self.routing.reverse('Record/main', name=name, anchor='attachments'))
 
 
-	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/relationships/$', name='edit/relationships', write=True)
+	@View.add_matcher(r'^/record/(?P<name>\w+)/edit/relationships/$', name='edit/relationships', write=True)
 	def edit_relationships(self, name=None, parents=None, children=None):
 		# ian: todo: Check orphans, show orphan confirmation page
 		parents = set(map(unicode,listops.check_iterable(parents)))
@@ -169,7 +169,7 @@ class Record(View):
 		self.headers['Location'] = '%s/record/%s/#relationships'%(self.ctxt['EMEN2WEBROOT'], name)
 
 
-	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/permissions/$', name='edit/permissions', write=True)
+	@View.add_matcher(r'^/record/(?P<name>\w+)/edit/permissions/$', name='edit/permissions', write=True)
 	def edit_permissions(self, name=None, permissions=None, groups=None, action=None, filt=True):
 		permissions = permissions or {}
 		groups = groups or []
@@ -202,7 +202,7 @@ class Record(View):
 
 
 
-	@View.add_matcher(r'^/record/(?P<name>\d+)/new/(?P<rectype>\w+)/$', write=True)
+	@View.add_matcher(r'^/record/(?P<name>\w+)/new/(?P<rectype>\w+)/$', write=True)
 	def new(self, name=None, rectype=None, _location=None, **kwargs): 
 		viewname = 'mainview'
 		inherit = [name]
@@ -248,7 +248,7 @@ class Record(View):
 
 
 
-	@View.add_matcher('^/record/(?P<name>\d+)/children/(?P<childtype>\w+)/$')
+	@View.add_matcher('^/record/(?P<name>\w+)/children/(?P<childtype>\w+)/$')
 	def children(self, name=None, childtype=None):
 		"""Main record rendering."""
 		self.initr(name=name)
@@ -266,7 +266,7 @@ class Record(View):
 		self.ctxt["pages"].active = childtype
 
 
-	@View.add_matcher("^/record/(?P<name>\d+)/hide/$", write=True)
+	@View.add_matcher("^/record/(?P<name>\w+)/hide/$", write=True)
 	def hide(self, commit=False, name=None, childaction=None):
 		"""Main record rendering."""
 
@@ -288,8 +288,8 @@ class Record(View):
 		self.ctxt['recnames'] = recnames
 
 
-	@View.add_matcher(r'^/record/(?P<name>\d+)/history/$')
-	@View.add_matcher(r'^/record/(?P<name>\d+)/history/(?P<revision>.*)/', name='history/revision')
+	@View.add_matcher(r'^/record/(?P<name>\w+)/history/$')
+	@View.add_matcher(r'^/record/(?P<name>\w+)/history/(?P<revision>.*)/', name='history/revision')
 	def history(self, name=None, simple=False, revision=None):
 		"""Revision/history/comment viewer"""
 
@@ -322,7 +322,7 @@ class Record(View):
 		self.set_context_item("rendered", rendered)
 
 
-	@View.add_matcher("^/record/(?P<name>\d+)/email/$")
+	@View.add_matcher("^/record/(?P<name>\w+)/email/$")
 	def email(self, name=None):
 		"""Main record rendering."""
 
@@ -354,7 +354,7 @@ class Record(View):
 		self.ctxt['users'] = users
 
 
-	@View.add_matcher(r'^/record/(?P<name>\d+)/publish/$', write=True)
+	@View.add_matcher(r'^/record/(?P<name>\w+)/publish/$', write=True)
 	def publish(self, name=None, state=None):
 		self.initr(name=name)
 		self.template = '/record/record.publish'
@@ -379,10 +379,7 @@ class Record(View):
 		if self.request_method == 'post':
 			add = state - published
 			remove = published - state
-			commit = []
-			print "Adding:", len(add)
-			print "Removing:", len(remove)
-			
+			commit = []			
 			for i in remove:
 				recs_d[i].removegroup('publish')
 				commit.append(recs_d[i])
@@ -409,7 +406,7 @@ class Record(View):
 
 
 
-	# @View.add_matcher(r'^/record/(?P<name>\d+)/boxer/$')
+	# @View.add_matcher(r'^/record/(?P<name>\w+)/boxer/$')
 	# def boxer(self, name=None):
 	# 	self.initr(name=name)
 	# 	self.template = '/pages/boxer'
