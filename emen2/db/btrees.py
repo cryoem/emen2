@@ -859,8 +859,6 @@ class DBODB(EMEN2DB):
 
 	def _name_generator(self, item, txn=None):
 		# Set name policy in this method.
-		if self.keyformat == 'd':
-			return self._incr_sequence(txn=txn)
 		return unicode(item.name or emen2.db.database.getrandomid())
 
 	def _incr_sequence(self, key='sequence', txn=None):
@@ -888,7 +886,6 @@ class DBODB(EMEN2DB):
 		# 		break
 
 		self.sequencedb.put(key, str(val+delta), txn=txn)
-
 		emen2.db.log.commit("%s.sequence: %s"%(self.filename, val+delta))
 		return val
 
@@ -1145,6 +1142,7 @@ class DBODB(EMEN2DB):
 				orec = self.cget(crec.name, ctx=ctx, txn=txn) or {}
 
 			for param in crec.changedparams(orec):
+				# print "REINDEX:", param, crec.name, crec.get(param), orec.get(param)
 				ind[param].append((crec.name, crec.get(param), orec.get(param)))
 
 		# Return the index changes.

@@ -247,17 +247,16 @@ def error(e=None, msg='', warning=False):
 ##### Email #####
 
 # ian: TODO: put this in a separate module
-def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, txn=None):
+def sendmail(email, subject='', msg='', template=None, ctxt=None):
 	"""(Semi-internal) Send an email. You can provide either a template or a message subject and body.
 
-	:param recipient: Email recipient
+	:param email: Email recipient
 	:keyword msg: Message text, or
 	:keyword template: ... Template name
 	:keyword ctxt: ... Dictionary to pass to template
 	:return: Email recipient, or None if no message was sent
-	"""
-	# ctx and txn arguments don't do anything. I accept them because it's a force of habit to include them.
 
+	"""	
 	mailadmin = emen2.db.config.get('mailsettings.MAILADMIN')
 	mailhost = emen2.db.config.get('mailsettings.MAILHOST')
 
@@ -269,19 +268,19 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 		return
 
 	ctxt = ctxt or {}
-	ctxt["recipient"] = recipient
+	ctxt["recipient"] = email
 	ctxt["MAILADMIN"] = mailadmin
 	ctxt["EMEN2DBNAME"] = emen2.db.config.get('customization.EMEN2DBNAME', 'EMEN2')
 	ctxt["EMEN2EXTURI"] = emen2.db.config.get('network.EMEN2EXTURI', '')
 
-	if not recipient:
+	if not email:
 		return
 
 	if msg:
 		msg = email.mime.text.MIMEText(msg)
 		msg['Subject'] = subject
 		msg['From'] = mailadmin
-		msg['To'] = recipient
+		msg['To'] = email
 		msg = msg.as_string()
 
 	elif template:
@@ -296,38 +295,13 @@ def sendmail(recipient, msg='', subject='', template=None, ctxt=None, ctx=None, 
 	# Actually send the message
 	s = smtplib.SMTP(mailhost)
 	s.set_debuglevel(1)
-	s.sendmail(mailadmin, [mailadmin, recipient], msg)
-	emen2.db.log.info('Mail sent: %s -> %s'%(mailadmin, recipient))
-	# emen2.db.log.error('Could not send email: %s'%e, e=e)
-	# raise e
+	s.sendmail(mailadmin, [mailadmin, email], msg)
+	emen2.db.log.info('Mail sent: %s -> %s'%(mailadmin, email))
 
-	return recipient
+	return email
 	
 	
 	
-# This is still being developed. Do not touch.
-def _txn_action(txnid, q):
-	actions = q.get(txnid, [])
-	for action, args in actions:
-		if action == 'rename':
-			source, dest = args
-			emen2.db.log.info("Renaming file: %s -> %s"%(source, dest))
-			try:
-				shutil.move(source, dest)
-			except Exception, e:
-				emen2.db.log.error("Couldn't rename file %s -> %s: %s"%(source, dest, e))
-
-		elif action == 'email':
-			# send an email..
-			pass
-			
-	try:
-		del q[txnid]
-	except:
-		pass
-	
-
-
 
 ##### Open or create new database #####
 
@@ -449,16 +423,15 @@ class EMEN2DBEnv(object):
 		# These are used for things like renaming files during the commit phase.
 		# TODO: The details of this are highly likely to change,
 		# 	or be moved to a different place.
-		self._txn_precommit = collections.defaultdict(list)
-		self._txn_postcommit = collections.defaultdict(list)
-		self._txn_preabort = collections.defaultdict(list)
-		self._txn_postabort = collections.defaultdict(list)
+		self._txncbs = collections.defaultdict(list)
 
 		# Cache the vartypes that are indexable
 		vtm = emen2.db.datatypes.VartypeManager()
 		self.indexablevartypes = set()
+		allvartypes = set()
 		for y in vtm.getvartypes():
 			y = vtm.getvartype(y)
+			allvartypes.add(y.vartype)
 			if y.keyformat:
 				self.indexablevartypes.add(y.vartype)
 
@@ -490,8 +463,6 @@ class EMEN2DBEnv(object):
 		db = cls(dbenv=self, **kwargs)
 		self.keytypes[db.keytype] = db
 
-
-	# def add_txncb(self, txn, ):
 
 	def open(self):
 		"""Open the Database Environment."""
@@ -654,14 +625,15 @@ class EMEN2DBEnv(object):
 		"""
 		# emen2.db.log.msg('TXN', "TXN ABORT --> %s"%txn)
 		txnid = txn.id()
-		_txn_action(txnid, self._txn_preabort)
+		self._txncb(txnid, 'before', 'abort')
 
 		txn.abort()
 		if txnid in self.txnlog:
 			del self.txnlog[txnid]
 		type(self).txncounter -= 1
 
-		_txn_action(txnid, self._txn_postabort)
+		self._txncb(txnid, 'after', 'abort')
+		self._txncbs.pop(txnid, None)
 
 
 	def txncommit(self, txn):
@@ -672,25 +644,63 @@ class EMEN2DBEnv(object):
 		"""
 		# emen2.db.log.msg('TXN', "TXN COMMIT --> %s"%txn)
 		txnid = txn.id()
-		_txn_action(txnid, self._txn_precommit)
+		self._txncb(txnid, 'before', 'commit')
 
 		txn.commit()
 		if txnid in self.txnlog:
 			del self.txnlog[txnid]
 		type(self).txncounter -= 1
 
-		_txn_action(txnid, self._txn_postcommit)
+		self._txncb(txnid, 'after', 'commit')
+		self._txncbs.pop(txnid, None)
 
 		if DB.sync_contexts.is_set():
 			self._context.bdb.sync()
 			DB.sync_contexts.clear()
 
 
-		
 	def checkpoint(self, txn=None):
 		"""Checkpoint the database environment."""
 		return self.dbenv.txn_checkpoint()
 
+
+	def txncb(self, txn, action, args=None, kwargs=None, when='before', condition='commit'):
+		if when not in ['before', 'after']:
+			raise ValueError, "Transaction callback 'when' must be before or after"
+		if condition not in ['commit', 'abort']:
+			raise ValueError, "Transaction callback 'condition' must be commit or abort"
+		item = [when, condition, action, args or [], kwargs or {}]
+		self._txncbs[txn.id()].append(item)
+
+
+	# This is still being developed. Do not touch.
+	def _txncb(self, txnid, when, condition):
+		# Note: this takes txnid, not a txn. This
+		# is because txn.id() is null after commit.
+		actions = self._txncbs.get(txnid, [])
+		for w, c, action, args, kwargs in actions:
+			# print w, c, action, args, kwargs
+			if w == when and c == condition:
+				if action == 'rename':
+					self._txncb_rename(*args, **kwargs)
+				elif action == 'email':
+					self._txncb_email(*args, **kwargs)
+	
+	
+	def _txncb_rename(self, source, dest):
+		emen2.db.log.info("Renaming file: %s -> %s"%(source, dest))
+		try:
+			shutil.move(source, dest)
+		except Exception, e:
+			emen2.db.log.error("Couldn't rename file %s -> %s: %s"%(source, dest, e))
+
+		
+	def _txncb_email(self, *args, **kwargs):
+		try:
+			sendmail(*args, **kwargs)
+		except Exception, e:
+			emen2.db.log.error("Couldn't send email: %s"%e)
+			
 
 
 ##### Main Database Class #####
@@ -744,8 +754,8 @@ class DB(object):
 		self.dbenv.add_db(emen2.db.recorddef.RecordDefDB, keytype="recorddef")
 		self.dbenv.add_db(emen2.db.binary.BinaryTmpDB, keytype="upload")
 		
-		# Records are keyed with integers. (for now.)
-		self.dbenv.add_db(emen2.db.record.RecordDB, keytype="record", keyformat="d")
+		# Records have moved to keyformat "s"
+		self.dbenv.add_db(emen2.db.record.RecordDB, keytype="record") 
 
 
 	def __str__(self):
@@ -885,7 +895,7 @@ class DB(object):
 
 	def _findrecorddefnames(self, names, ctx=None, txn=None):
 		"""(Internal) Find referenced recorddefs."""
-		recnames, recs, rds = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
+		recnames, recs, rds = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
 		rds = set(rds)
 		rds |= set([i.rectype for i in recs])
 		if recnames:
@@ -896,7 +906,7 @@ class DB(object):
 
 	def _findparamdefnames(self, names, ctx=None, txn=None):
 		"""(Internal) Find referenced paramdefs."""
-		recnames, recs, params = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
+		recnames, recs, params = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
 		params = set(params)
 		if recnames:
 			recs.extend(self.dbenv["record"].cgets(recnames, ctx=ctx, txn=txn))
@@ -910,7 +920,7 @@ class DB(object):
 
 	def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
 		"""(Internal) Find referenced users/binaries."""
-		recnames, recs, values = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject)
+		recnames, recs, values = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
 		values = set(values)
 		if recnames:
 			recs.extend(self.dbenv["record"].cgets(recnames, filt=False, ctx=ctx, txn=txn))
@@ -1861,7 +1871,7 @@ class DB(object):
 		
 		
 	@publicmethod(compat="newparamdef")
-	def paramdef_new(self, vartype, name=None, ctx=None, txn=None):
+	def paramdef_new(self, vartype=None, name=None, ctx=None, txn=None):
 		return self.dbenv["paramdef"].new(vartype=vartype, name=name, ctx=ctx, txn=txn)
 				
 
@@ -1974,13 +1984,13 @@ class DB(object):
 
 
 	@publicmethod()
-	def user_new(self, password, email, name=None, ctx=None, txn=None):
+	def user_new(self, password=None, email=None, name=None, ctx=None, txn=None):
 		raise NotImplementedError, "Use newuser.new() to create new users."
 	
 
 	@publicmethod(write=True, compat="putuser")
 	@ol('items')
-	def user_put(self, items, filt=True, ctx=None, txn=None):
+	def user_put(self, items, ctx=None, txn=None):
 		return self.dbenv["user"].cputs(items, ctx=ctx, txn=txn)
 
 
@@ -2185,7 +2195,6 @@ class DB(object):
 		# Get the record.
 		# Keep the existing email address to see if it changes.
 		name = name or ctx.username
-		ctxt = {}
 
 		# Verify the email address is owned by the user requesting change.
 		# 1. User authenticates they *really* own the account
@@ -2213,6 +2222,7 @@ class DB(object):
 			time.sleep(2)
 			raise SecurityError, "The email address %s is already in use"%(email)
 
+		ctxt = {}
 		if user.email == oldemail:
 			emen2.db.log.msg("SECURITY","Sending email verification for user %s to %s"%(user.name, user.email))
 			# The email didn't change, but the secret did
@@ -2221,7 +2231,7 @@ class DB(object):
 
 			# Send the verify email containing the auth token
 			ctxt['secret'] = user.secret[2]
-			sendmail(email, template='/email/email.verify', ctxt=ctxt, ctx=ctx, txn=txn)
+			self.dbenv.txncb(txn, 'email', kwargs={'email':email, 'template':'/email/email.verify', 'ctxt':ctxt})
 
 		else:
 			# Email changed.
@@ -2232,7 +2242,7 @@ class DB(object):
 			self.dbenv["user"].put(user.name, user, txn=txn)
 
 			# Send the user an email to acknowledge the change
-			sendmail(user.email, template='/email/email.verified', ctxt=ctxt)
+			self.dbenv.txncb(txn, 'email', kwargs={'email':email, 'template':'/email/email.verified', 'ctxt':ctxt})
 
 		return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
@@ -2275,8 +2285,7 @@ class DB(object):
 		# ian: todo: evaluate to use put/cput..
 		emen2.db.log.msg("SECURITY", "Changing password for %s"%user.name)
 		self.dbenv["user"].put(user.name, user, txn=txn)
-
-		sendmail(user.email, template='/email/password.changed')
+		self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'template':'/email/password.changed'})
 		return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
 
@@ -2311,10 +2320,9 @@ class DB(object):
 		# Absolutely never reveal the secret via any mechanism
 		# but email to registered address
 		ctxt = {'secret': user.secret[2]}
-		sendmail(user.email, template='/email/password.reset', ctxt=ctxt)
+		self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'template':'/email/password.reset', 'ctxt':ctxt})
 
-		emen2.db.log.msg('SECURITY', "Setting resetpassword secret for %s"%user.name)
-
+		emen2.db.log.msg('SECURITY', "Setting resetpassword secret for %s"%user.name)		
 		return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
 
@@ -2323,18 +2331,18 @@ class DB(object):
 
 	@publicmethod(admin=True, compat="getqueueduser")
 	@ol('names')
-	def newuser_get(self, names, ctx=None, txn=None):
-		return self.dbenv["newuser"].cgets(names, ctx=ctx, txn=txn)
+	def newuser_get(self, names, filt=True, ctx=None, txn=None):
+		return self.dbenv["newuser"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
 	@publicmethod()
-	def newuser_new(self, password, email, name=None, ctx=None, txn=None):
+	def newuser_new(self, password=None, email=None, name=None, ctx=None, txn=None):
 		return self.dbenv["newuser"].new(password=password, email=email, name=name, ctx=ctx, txn=txn)
 
 
 	@publicmethod(write=True, compat="adduser")
-	@ol('users')
-	def newuser_put(self, users, ctx=None, txn=None):
+	@ol('items')
+	def newuser_put(self, items, ctx=None, txn=None):
 		"""Add a new user.
 
 		Note: This only adds the user to the new user queue. The
@@ -2349,26 +2357,27 @@ class DB(object):
 		>>> db.newuser.put({'name':'kay', 'password':'foobar', 'email':'kay@example.com'})
 		<NewUser kay>
 
-		:param users: New user(s).
+		:param items: New user(s).
 		:return: New user(s)
 		:exception KeyError:
 		:exception ExistingKeyError:
 		:exception SecurityError:
 		:exception ValidationError:
 		"""
-		users = self.dbenv["newuser"].cputs(users, ctx=ctx, txn=txn)
+		items = self.dbenv["newuser"].cputs(items, ctx=ctx, txn=txn)
 
 		user_autoapprove = emen2.db.config.get('users.USER_AUTOAPPROVE', False)
 		if user_autoapprove:
 			rootctx = self._sudo()
 			rootctx.db._txn = txn
-			self.newuser_approve([user.name for user in users], ctx=rootctx, txn=txn)
+			self.newuser_approve([user.name for user in items], ctx=rootctx, txn=txn)
 		else:
 			# Send account request email
-			for user in users:
-				sendmail(user.email, template='/email/adduser.signup')
+			for user in items:
+				self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'template':'/email/adduser.signup'})
+				# sendmail(user.email, template='/email/adduser.signup')
 
-		return users
+		return items
 		
 
 	@publicmethod(admin=True, compat="getuserqueue")
@@ -2463,7 +2472,7 @@ class DB(object):
 			template = '/email/adduser.approved'
 			if user_autoapprove:
 				template = '/email/adduser.autoapproved'
-			sendmail(user.email, template=template, ctxt=ctxt)
+			self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'template':template, 'ctxt':ctxt})
 
 		return self.dbenv["user"].cgets(set([user.name for user in cusers]), ctx=ctx, txn=txn)
 
@@ -2498,7 +2507,7 @@ class DB(object):
 		# Send the emails
 		for name, email in emails.items():
 			ctxt = {'name':name}
-			sendmail(email, template='/email/adduser.rejected', ctxt=ctxt)
+			self.dbenv.txncb(txn, 'email', kwargs={'email':email, 'template':'/email/adduser.rejected', 'ctxt':ctxt})
 
 		return set(emails.keys())
 
@@ -2590,7 +2599,7 @@ class DB(object):
 		
 
 	@publicmethod(compat="newrecorddef")
-	def recorddef_new(self, mainview, name=None, ctx=None, txn=None):
+	def recorddef_new(self, mainview=None, name=None, ctx=None, txn=None):
 		return self.dbenv["recorddef"].new(mainview=mainview, name=name, ctx=ctx, txn=txn)
 
 
@@ -2651,13 +2660,13 @@ class DB(object):
 
 
 	@publicmethod(compat="newrecord")
-	def record_new(self, rectype, **kwargs):
+	def record_new(self, rectype=None, **kwargs):
 		return self.dbenv["record"].new(rectype=rectype, **kwargs)
 
 
 	@publicmethod(write=True, compat="putrecord")
 	@ol('items')
-	def record_put(self, items, filt=True, ctx=None, txn=None):
+	def record_put(self, items, ctx=None, txn=None):
 		return self.dbenv["record"].cputs(items, ctx=ctx, txn=txn)
 
 
@@ -3230,15 +3239,12 @@ class DB(object):
 		vtm = vtm or emen2.db.datatypes.VartypeManager(db=ctx.db)
 
 		# We'll be working with a list of names
-		# ed: added the *() for better visual grouping :)
-		names, recs, newrecs, other = listops.typepartition(names, int, emen2.db.dataobject.BaseDBObject, dict)
-		other = map(int, other)
+		names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
 		names.extend(other)
 		recs.extend(self.dbenv["record"].cgets(names, ctx=ctx, txn=txn))
 
 		for newrec in newrecs:
 			rec = self.dbenv["record"].new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
-			#.update(newrec)
 			rec.update(newrec)
 			recs.append(rec)
 
@@ -3395,12 +3401,7 @@ class DB(object):
 
 	@publicmethod(compat="getbinary")
 	@ol('names')
-	def binary_get(self, names=None, filt=True, ctx=None, txn=None):
-		# This call to findbinary is a deprecated feature
-		# that remains for backwards compat
-		bdos, recnames, other = listops.typepartition(names, str, int)
-		if len(recnames) > 0:
-			return self.binary_find(record=recnames, count=0, ctx=ctx, txn=txn)
+	def binary_get(self, names, filt=True, ctx=None, txn=None):
 		return self.dbenv["binary"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
@@ -3454,7 +3455,7 @@ class DB(object):
 			
 		# Rename the file at the end of the txn.
 		for newfile, filepath in rename:
-			self.dbenv._txn_precommit[txn.id()].append(['rename', [newfile, filepath]])
+			self.dbenv.txncb(txn, 'rename', [newfile, filepath])
 
 		return bdos
 
@@ -3556,7 +3557,7 @@ class DB(object):
 
 	@publicmethod()
 	@ol('names')
-	def upload_get(self, names=None, filt=True, ctx=None, txn=None):
+	def upload_get(self, names, filt=True, ctx=None, txn=None):
 		return self.dbenv["upload"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
@@ -3587,7 +3588,7 @@ class DB(object):
 			
 		# Rename the file at the end of the txn.
 		for newfile, filepath in rename:
-			self.dbenv._txn_precommit[txn.id()].append(['rename', [newfile, filepath]])
+			self.dbenv.txncb(txn, 'rename', [newfile, filepath])
 
 		return bdos
 		

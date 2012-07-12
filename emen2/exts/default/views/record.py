@@ -157,8 +157,8 @@ class Record(View):
 	@View.add_matcher(r'^/record/(?P<name>\d+)/edit/relationships/$', name='edit/relationships', write=True)
 	def edit_relationships(self, name=None, parents=None, children=None):
 		# ian: todo: Check orphans, show orphan confirmation page
-		parents = set(map(int,listops.check_iterable(parents)))
-		children = set(map(int,listops.check_iterable(children)))
+		parents = set(map(unicode,listops.check_iterable(parents)))
+		children = set(map(unicode,listops.check_iterable(children)))
 		if self.request_method == 'post':
 			rec = self.db.record.get(name, filt=False)
 			rec.parents = parents
@@ -365,7 +365,7 @@ class Record(View):
 		names.add(self.name)
 
 		published = set()
-		state = set(map(int, state or [])) & names
+		state = set(map(unicode, state or [])) & names
 
 		recs = self.db.record.get(names)
 		

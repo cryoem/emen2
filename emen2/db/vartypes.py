@@ -127,7 +127,7 @@ class Vartype(object):
 	'''Base class for vartypes'''
 
 	#: the index key type for this class
-	keyformat = None
+	keyformat = 's'
 
 	#: is this vartype iterable?
 	iterable = True
@@ -342,6 +342,8 @@ class vt_int(Vartype):
 class vt_coordinate(Vartype):
 	"""Coordinates; tuples of floats."""
 
+	keyformat = None
+
 	def validate(self, value):
 		return [(float(x), float(y)) for x,y in ci(value)]
 
@@ -378,8 +380,6 @@ class vt_boolean(Vartype):
 @vtm.register_vartype('string')
 class vt_string(Vartype):
 	"""String."""
-
-	keyformat = 's'
 
 	def validate(self, value):
 		return self._rci([unicode(x).strip() for x in ci(value)])
@@ -478,8 +478,6 @@ class vt_text(vt_string):
 class vt_datetime(vt_string):
 	"""ISO 8601 Date time."""
 
-	keyformat = 's'
-
 	def validate(self, value):
 		ret = []
 		for i in ci(value):
@@ -535,8 +533,6 @@ class vt_time(vt_datetime):
 class vt_uri(Vartype):
 	"""URI"""
 
-	keyformat = 's'
-
 	# ian: todo: parse with urlparse
 	def validate(self, value):
 		value = [unicode(i).strip() for i in ci(value)]
@@ -566,6 +562,8 @@ class vt_uri(Vartype):
 class vt_dict(Vartype):
 	"""Dictionary with string keys and values."""
 
+	keyformat = None
+
 	def validate(self, value):
 		if not value:
 			return None
@@ -584,6 +582,8 @@ class vt_dict(Vartype):
 @vtm.register_vartype('dictlist')
 class vt_dict(Vartype):
 	"""Dictionary with string keys and list values."""
+
+	keyformat = None
 
 	def validate(self, value):
 		if not value:
@@ -615,7 +615,6 @@ class vt_dict(Vartype):
 class vt_binary(Vartype):
 	"""File Attachment"""
 
-	keyformat = None
 	elem_class = "e2-edit"
 
 	def validate(self, value):
@@ -659,8 +658,6 @@ class vt_binary(Vartype):
 class vt_md5(Vartype):
 	"""String"""
 
-	keyformat = 's'
-
 	def validate(self, value):
 		return self._rci([unicode(x).strip() for x in ci(value)])
 
@@ -675,6 +672,9 @@ class vt_md5(Vartype):
 class vt_record(Vartype):
 	"""References to other Records."""
 
+	# This ma change in the future
+	keyformat = 'd'
+
 	def validate(self, value):
 		value = self._validate_reference(ci(value), keytype=self.vartype)
 		return self._rci(value)
@@ -684,6 +684,7 @@ class vt_record(Vartype):
 @vtm.register_vartype('link')
 class vt_link(Vartype):
 	"""Reference to the same type of DBO."""
+
 	def validate(self, value):
 		# Hack
 		value = self._validate_reference(ci(value), keytype=self.engine.keytype)
@@ -699,8 +700,6 @@ class vt_link(Vartype):
 class vt_user(Vartype):
 	"""Users."""
 	
-	keyformat = 's'
-
 	def validate(self, value):
 		value = self._validate_reference(ci(value), keytype=self.vartype)
 		return self._rci(value)
@@ -733,8 +732,6 @@ class vt_user(Vartype):
 class vt_acl(Vartype):
 	"""Permissions access control list; nested lists of users."""
 	
-	keyformat = 's'
-
 	def validate(self, value):
 		if not hasattr(value, '__iter__'):
 			value = [[value],[],[],[]]
@@ -807,8 +804,6 @@ class vt_acl(Vartype):
 class vt_group(Vartype):
 	"""Group."""
 	
-	keyformat = 's'
-
 	def validate(self, value):
 		value = self._validate_reference(ci(value), keytype=self.vartype)
 		return self._rci(value)

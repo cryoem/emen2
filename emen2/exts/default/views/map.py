@@ -48,10 +48,6 @@ class Tree(View):
 		if action=="expand" or recurse == -1:
 			recurse = -3
 
-		# Bug workaround (fix properly)
-		if keytype == 'record':
-			root = int(root)
-
 		parents = set()
 
 		# add 2 to recurse to get enough info to draw the next level

@@ -411,7 +411,7 @@ emen2.util.set_remove = function(i, l) {
 		var self = this;
 		$(selector).each(function() {
 			var elem = $(this);
-			var name = parseInt(elem.attr('data-name'));
+			var name = elem.attr('data-name');
 			var viewname = elem.attr('data-viewname');
 			var edit = elem.attr('data-edit');
 			emen2.db("record.render", {'names':name, 'viewname': viewname, 'edit': edit}, function(view) {
@@ -704,7 +704,6 @@ emen2.util.set_remove = function(i, l) {
 						var rec = recs[0];
 					}
 					var bookmarks = rec['bookmarks'] || [];
-					name = parseInt(name);
 					var pos = $.inArray(name, bookmarks);
 
 					if (action == 'remove') {

@@ -336,6 +336,12 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 class RecordDB(emen2.db.btrees.RelateDB):
 	cfunc = False 	# Do not sort the BTree keys as integers
 	dataclass = Record
+	
+
+	def _name_generator(self, item, txn=None):
+		# Set name policy in this method.
+		return unicode(self._incr_sequence(txn=txn))
+
 
 	def openindex(self, param, txn=None):
 		# Parents / children
@@ -388,7 +394,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
 		# Allow either Record(s) or Record name(s) as input
 		ret = collections.defaultdict(set)
-		recnames, recs, other = listops.typepartition(names, (int, str), emen2.db.dataobject.BaseDBObject)
+		recnames, recs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
 
 		if len(recnames) < 1000:
 			# Just get the rest of the records directly
