@@ -3402,7 +3402,7 @@ class DB(object):
 		return self.dbenv["binary"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
 
-	@publicmethod(compat="newbinary")
+	@publicmethod()
 	def binary_new(self, ctx=None, txn=None):
 		return self.dbenv["binary"].new(name=None, ctx=ctx, txn=txn)
 
@@ -3520,13 +3520,13 @@ class DB(object):
 		
 		
 	@publicmethod(write=True, compat="binaryaddreference")
-	def binary_addreference(self, record, param, name, extract=False, ctx=None, txn=None):
+	def binary_addreference(self, record, param, name, ctx=None, txn=None):
 		bdo = self.dbenv["binary"].cget(name, ctx=ctx, txn=txn)		
 		rec = self.dbenv["record"].cget(record, ctx=ctx, txn=txn)
 		pd = self.dbenv["paramdef"].cget(param, ctx=ctx, txn=txn)
 
 		if pd.vartype != 'binary':
-			raise KeyError, "ParamDef %s does not accept file attachments"%pd.name
+			raise KeyError, "ParamDef %s does not accept binary references"%pd.name
 
 		if pd.iter:
 			v = rec.get(pd.name) or []
@@ -3534,18 +3534,21 @@ class DB(object):
 		else:
 			v = bdo.name
 
-		# todo: header extraction.
-		# if extract:
-		# 	pass
-
 		rec[pd.name] = v
 		bdo.record = rec.name
 
 		# Commit the record
 		self.dbenv["record"].cput(rec, ctx=ctx, txn=txn)
 		self.dbenv["binary"].cput(bdo, ctx=ctx, txn=txn)
-		
-		
+	
+
+	@publicmethod()
+	@ol('names')	
+	def binary_extract(self, names, ctx=None, txn=None):
+		# todo: header extraction.
+		pass
+
+
 		
 	##### Temporary binaries #####
 
@@ -3562,7 +3565,7 @@ class DB(object):
 	
 	@publicmethod(write=True)
 	@ol('items')
-	def upload_put(self, items, extract=False, ctx=None, txn=None):
+	def upload_put(self, items, ctx=None, txn=None):
 		tmpdir = emen2.db.config.get('paths.TMPPATH')		
 		bdos = []
 		rename = []
@@ -3587,12 +3590,6 @@ class DB(object):
 		return bdos
 		
 		
-	@publicmethod(write=True)
-	def upload_putfile(self, item, extract=False, filedata=None, fileobj=None, ctx=None, txn=None):
-		pass
-
-
-
 	@publicmethod()
 	def upload_names(self, names=None, ctx=None, txn=None):
 		return self.dbenv["upload"].names(names=names, ctx=ctx, txn=txn)
