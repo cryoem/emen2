@@ -491,6 +491,8 @@ class EMEN2DBEnv(object):
 		self.keytypes[db.keytype] = db
 
 
+	# def add_txncb(self, txn, ):
+
 	def open(self):
 		"""Open the Database Environment."""
 		self.dbenv.open(self.path, self.ENVOPENFLAGS)
