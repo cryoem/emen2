@@ -727,9 +727,9 @@
 				<form method="post" action="'+EMEN2WEBROOT+'/eman2/'+self.options.bdo+'/convert/"> \
 					<h4>Format</h4> \
 					<ul class="e2l-nonlist"> \
-						<li><input type="radio" name="format" value="jpg" checked="checked" id="format-jpg" /><label for="format-jpg"> JPEG</label></li> \
-						<li><input type="radio" name="format" value="tif" id="format-tif"  /><label for="format-tif"> TIFF</label></li> \
+						<li><input type="radio" name="format" value="tif" id="format-tif" checked="checked"  /><label for="format-tif"> TIFF</label></li> \
 						<li><input type="radio" name="format" value="png" id="format-png"  /><label for="format-png"> PNG</label></li> \
+						<li><input type="radio" name="format" value="jpg" id="format-jpg" /><label for="format-jpg"> JPEG</label></li> \
 					</ul> \
 					<h4>Options</h4> \
 					<ul class="e2l-nonlist"> \
