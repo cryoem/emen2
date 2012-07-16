@@ -18,6 +18,7 @@
 	<%block name="meta">
 		<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
 		<meta http-equiv="Content-Language" content="en-us" />
+		<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 	</%block>
 
 	<title>
@@ -38,6 +39,12 @@
 	</style>
 
 	<%block name="js_include">
+		<!--[if lt IE 9]>
+		<script type="text/javascript" src="https://getfirebug.com/firebug-lite.js"></script>		
+		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/iefix.js"></script>		
+		<script src="http://ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js"></script>
+		<![endif]-->		
+
 		## EMEN2 Settings
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/settings.js"></script>
 
@@ -49,6 +56,8 @@
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.ui.timepicker-addon.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.timeago.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/jquery/jquery.localize.js"></script>
+
+		## D3 visualization library
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/d3/d3.js" type="text/javascript"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/static-${VERSION}/js/d3/d3.time.js" type="text/javascript"></script>
 
@@ -62,9 +71,11 @@
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/query.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/tile.js"></script>
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/plot.js"></script>
+		
 	</%block>
 
 	<script type="text/javascript">
+	
 		<%block name="js_inline" />
 		
 		$(document).ready(function() {

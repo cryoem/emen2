@@ -604,11 +604,7 @@ emen2.util.set_remove = function(i, l) {
 
 			t.addClass(this.options.active);
 			p.addClass(this.options.active);
-		},
-		
-		switch: function(tab) {
-		}
-		
+		}		
 	});
 
 	// View and edit bookmarks

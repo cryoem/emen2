@@ -1,5 +1,8 @@
 <%inherit file="/css/colors.css" />
 
+/* Reset */
+body,div,ul,ol,li,h1,h2,h3,h4,h5,h6,form,fieldset,input,textarea,p,th,td {margin:0;padding:0;}
+
 /* Set some default font and margins. */
 body {
 	font-family: sans-serif;
