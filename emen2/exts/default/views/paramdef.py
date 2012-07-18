@@ -75,8 +75,6 @@ class ParamDefs(View):
 
 	@View.add_matcher(r'^/paramdefs/$')
 	def main(self, action=None, q=None):
-		
-
 		paramdefnames = self.db.paramdef.names()
 
 		if action == None or action not in ["vartype", "name", "tree", "property"]:
@@ -87,8 +85,6 @@ class ParamDefs(View):
 			paramdefs = self.db.paramdef.find(q)
 		else:
 			paramdefs = self.db.get(paramdefnames, keytype='paramdef')
-
-
 
 		# Tab Switcher
 		pages = collections.OrderedDict()

@@ -127,7 +127,7 @@
 				this.build_summary_label(parents, 'parents')+
 				' and '+
 				this.build_summary_label(children, 'children')+
-				'. Click to <a href="'+EMEN2WEBROOT+'/sitemap/'+this.options.name+'/">view the sitemap starting at this record</a>.</p>');
+				'. Click to <a href="'+EMEN2WEBROOT+'/records/?root='+this.options.name+'">view the record tree starting at this record</a>.</p>');
 			// '. Select <span class="e2l-a e2-permissions-all">all</span>
 			//	or <span class="e2l-a e2-permissions-none">none</span>.
 
@@ -429,7 +429,9 @@
 			show: false,
 			attach: false,
 			skiproot: false,
-			selected: null
+			selected: null,
+			active: [],
+			shiftselect: true,
 		},
 
 		_create: function() {
@@ -672,7 +674,7 @@
 			if (this.options.active.length) {
 				this.add(this.options.active);
 			}
-			//$(this.options.submit).click(function(e){self.submit(e)});
+			// Bind to the form submit
 			this.element.parent('form').submit(function(e){self.submit(e)});
 		},
 		
@@ -739,7 +741,7 @@
 		toggle_select: function(e, elem, name) {
 			var state = this.state[name];
 			var self = this;
-			if (e.shiftKey) {
+			if (e.shiftKey && this.options.shiftselect) {
 				// This element and all children, recursively
 				emen2.db('rel.children', {names: name, recurse:-1}, function(children) {
 					children.push(name);
@@ -758,6 +760,94 @@
 				}
 			}
 		},
+	});
+	
+	
+	$.widget('emen2.TreeMoveControl', $.emen2.TreeSelectControl, {
+		bind_select: function(root) {
+			var self = this;
+
+			$('a', root).click(function(e) {
+				e.preventDefault();
+				$(this).toggleClass('e2-browse-selected');
+				// var name = $(this).parent().attr('data-name');
+				// self.toggle_select(e, this, name);
+			});
+
+			$('a', root).draggable({
+				helper: function() {
+					var count = $('.e2-browse-selected', self.element).length;
+					return '<div class="ui-widget-header" style="z-index:500">Moving '+count+' items</div>';
+				}
+			});
+
+			$('a', root).droppable({
+				activeClass: 'e2-browse-active',
+				hoverClass: 'e2-browse-hover',
+				drop: function(e, ui) {
+					var newparent = $(e.target).parent().attr('data-name');
+					var addrels = [];
+					var removerels = [];
+					$('.e2-browse-selected', self.element).each(function() {
+						var name = $(this).parent().attr('data-name');
+						var parent = $(this).parent().parent().attr('data-name');
+						removerels.push([parent, name]);
+						addrels.push([newparent, name]);
+					});
+
+					// console.log(removerels, addrels);
+					self.confirm_relink(removerels, addrels);
+				}
+			});
+		},
+
+		confirm_relink: function(removerels, addrels) {
+			var self = this;
+
+			var dialog = $('<div title="Confirm move">This action will add and remove the following relationships:</div>');
+			dialog.append('<h4>Remove</h4>');
+			var ulr = $('<ul class="e2l-nonlist" />');
+			$.each(removerels, function() {
+				ulr.append('<li>'+(emen2.caches['recnames'][this[0]]||this[0]) + ', ' + (emen2.caches['recnames'][this[1]]||this[1])+'</li>');
+			});
+			dialog.append(ulr);
+			dialog.append('<h4>Add</h4>');
+			var ula = $('<ul class="e2l-nonlist" />');
+			$.each(addrels, function() {
+				ula.append('<li>'+(emen2.caches['recnames'][this[0]]||this[0]) + ', ' + (emen2.caches['recnames'][this[1]]||this[1])+'</li>');
+			});
+			dialog.append(ula);
+
+
+			dialog.dialog({
+				resizable: false,
+				draggable: false,
+				modal: true,
+				buttons: {
+					"Confirm": function(e) {
+						$('.ui-button-text', e.target).html("Saving...");
+						self.relink(removerels, addrels);
+					},
+					Cancel: function() {
+						$(this).dialog("close");
+					}
+				}
+			});			
+		},
+		
+		relink: function(removerels, addrels) {
+			var form = $('<div class="e2-browse-relinkform"></div>');
+			removerels.map(function(i) {
+				form.append('<input type="hidden" name="removerels.'+i[0]+'" value="'+i[1]+'" />');
+			});
+			addrels.map(function(i) {
+				form.append('<input type="hidden" name="addrels.'+i[0]+'" value="'+i[1]+'" />');
+			});
+			$('.e2-browse-relinkform', this.element).remove();
+			this.element.append(form);
+			this.element.submit();
+		}
+		
 	});
 	
 	

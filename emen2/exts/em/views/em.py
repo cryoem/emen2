@@ -8,6 +8,11 @@ import emen2.db.config
 from emen2.web.view import View
 
 
+def nodeleted(items):
+	return filter(lambda x:not x.get('deleted'), items)
+
+
+
 @View.register
 class EMEquipment(View):
 	
@@ -29,6 +34,7 @@ class EMHome(View):
 	@View.add_matcher(r'^/$', view='Root', name='main')
 	@View.add_matcher(r'^/em/home/$')
 	def main(self, hideinactive=False, sortkey='name', reverse=False):
+		t = time.time()
 		self.title = 'Home'
 		self.template = '/em/home'
 
@@ -46,7 +52,6 @@ class EMHome(View):
 			self.ctxt['render_banner'] = render_banner
 			return
 
-
 		try:
 			banner = self.db.record.get(emen2.db.config.get('bookmarks.BANNER'))
 			render_banner = self.db.record.render(banner, viewname="banner")
@@ -55,19 +60,20 @@ class EMHome(View):
 		self.ctxt['banner'] = banner
 		self.ctxt['render_banner'] = render_banner
 
-		
+
 		# Recent records
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
-		t = (datetime.datetime.utcnow() - datetime.timedelta(days=180)).isoformat()+'+00:00'
+		since = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).isoformat()+'+00:00'
 		q = self.db.plot(
-			[['creationtime', '>=', t]], 
-			x={'key':'creationtime', 'bin':'day', 'min':t, 'max':now}, 
-			y={'stacked':True}
+			[['creationtime', '>=', since]], 
+			x={'key':'creationtime', 'bin':'day', 'min':since, 'max':now}, 
+			y={'stacked':True},
+			sortkey='creationtime'
 			)
+			
 		self.ctxt['recent_activity'] = q
 
-
-		q_table = self.routing.execute('Query/embed', db=self.db, q={'count':10}, controls=False)
+		q_table = self.routing.execute('Query/embed', db=self.db, q={'count':20, 'subset':q['names']}, controls=False)
 		self.ctxt['recent_activity_table'] = q_table
 
 		# Items to render
@@ -75,10 +81,12 @@ class EMHome(View):
 		torender = set()
 
 		# Groups
-		# groups = self.db.record.findbyrectype(group)
-		groups = self.db.rel.children("0", rectype=['group'])
+		# groups = self.db.rel.children("0", rectype=['group'])
+		# groups = self.db.query([['rectype', '==', 'group'], ['deleted', 'none']])
+		groups = nodeleted(self.db.record.get(self.db.record.findbyrectype('group')))
+		groups = set([i.name for i in groups])
 		torender |= groups
-		
+
 		# Top-level children of groups (any rectype)
 		groups_children = self.db.rel.children(groups)
 		projs = set()

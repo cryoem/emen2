@@ -321,7 +321,7 @@
 				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/attachments/">Download all attachments in children</a></li>
 				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage published data</a></li>
 				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
-				<li><a href="${EMEN2WEBROOT}/sitemap/${rec.name}/">Sitemap</a></li>
+				<li><a href="${EMEN2WEBROOT}/records/?root=${rec.name}">Record tree starting at this record</a></li>
 			</ul>
 
 			<h4>Common Queries:</h4>

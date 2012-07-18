@@ -441,7 +441,7 @@ class EMEN2DBEnv(object):
 
 		if snapshot or self.snapshot:
 			dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
-
+			
 		cachesize = self.cachesize * 1024 * 1024l
 		txncount = (cachesize / 4096) * 2
 		if txncount > 1024*128:
@@ -598,7 +598,7 @@ class EMEN2DBEnv(object):
 			flags = 0
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
-		# emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
+		emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
 		type(self).txncounter += 1
 		self.txnlog[txn.id()] = txn
@@ -1378,7 +1378,7 @@ class DB(object):
 
 
 	@publicmethod()
-	def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, keytype="record", ctx=None, txn=None, **kwargs):
+	def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", ctx=None, txn=None, **kwargs):
 		"""General query.
 
 		Constraints are provided in the following format:
@@ -1434,6 +1434,7 @@ class DB(object):
 		:keyparam pos: Return results starting from (sorted record name) position
 		:keyparam count: Return a limited number of results
 		:keyparam reverse: Reverse results
+		:keyparam subset: Restrict to names
 		:keyparam keytype: Key type
 		:return: A dictionary containing the original query arguments, and the result in the 'names' key
 		:exception KeyError:
@@ -1451,11 +1452,12 @@ class DB(object):
 			reverse=reverse,
 			ignorecase=True,
 			stats={},
-			keytype=keytype
+			keytype=keytype,
+			subset=subset
 		)
 
 		# Run the query
-		q = self.dbenv[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
+		q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
 		q.run()
 		ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
 		ret['stats']['length'] = len(q.result)
@@ -1464,7 +1466,7 @@ class DB(object):
 
 
 	@publicmethod()
-	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, keytype="record", viewdef=None, ctx=None, txn=None, **kwargs):
+	def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, keytype="record", viewdef=None, ctx=None, txn=None, **kwargs):
 		"""Query results suitable for making a table.
 
 		This method extends query() to include rendered views in the results.
@@ -1480,6 +1482,7 @@ class DB(object):
 		:keyparam pos: Return results starting from (sorted record name) position
 		:keyparam count: Return a limited number of results
 		:keyparam reverse: Reverse results
+		:keyparam subset: Restrict to names
 		:keyparam keytype: Key type
 		:keyparam viewdef: View definition.
 			
@@ -1502,11 +1505,12 @@ class DB(object):
 			reverse=reverse,
 			ignorecase=True,
 			stats={},
-			keytype=keytype
+			keytype=keytype,
+			subset=subset
 		)
 
 		# Run the query
-		q = self.dbenv[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
+		q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
 		q.run()
 		names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse, rendered=True)
 
@@ -1567,7 +1571,7 @@ class DB(object):
 
 
 	@publicmethod()
-	def plot(self, c=None, mode='AND', x=None, y=None, z=None, keytype="record", ctx=None, txn=None, **kwargs):
+	def plot(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", x=None, y=None, z=None, ctx=None, txn=None, **kwargs):
 		"""Query results suitable for plotting.
 
 		This method extends query() to help generate a plot. The results are
@@ -1592,6 +1596,7 @@ class DB(object):
 		:keyparam x: X arguments
 		:keyparam y: Y arguments
 		:keyparam z: Z arguments
+		:keyparam subset: Restrict to names		
 		:keyparam keytype: Key type
 
 		"""
@@ -1608,6 +1613,7 @@ class DB(object):
 			stats={},
 			ignorecase=True,
 			keytype=keytype,
+			subset=subset
 		)
 
 		qparams = [i[0] for i in c]
@@ -1617,12 +1623,13 @@ class DB(object):
 				c.append([axis, 'any', None])
 				
 		# Run the query
-		q = self.dbenv[keytype].query(c=c, mode=mode, ctx=ctx, txn=txn)
+		q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
 		q.run()
-		ret['names'] = q.result
-		ret['recs'] = q.cache.values()
+
+		ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
 		ret['stats']['length'] = len(q.result)
 		ret['stats']['time'] = q.time
+		ret['recs'] = q.cache.values()
 		return ret
 
 
@@ -1676,17 +1683,17 @@ class DB(object):
 		return self.dbenv[keytype].pcunlink(parent, child, ctx=ctx, txn=txn)
 
 
-	@publicmethod(write=True, compat="relink")
+	@publicmethod(write=True)
 	def rel_relink(self, removerels=None, addrels=None, keytype='record', ctx=None, txn=None):
 		"""Add and remove a number of parent-child relationships at once.
 
 		Examples:
 
-		>>> db.rel.relink([0,136], [100, 136])
+		>>> db.rel.relink({"0":"136"}, {"100":"136"})
 		None
 
-		:keyword removerels: Relationships to remove. Can be a single or list of tuples.
-		:keyword addrels: Relationships to add. Can be a single or list of tuples.
+		:keyword removerels: Dictionary of relationships to remove.
+		:keyword addrels: Dictionary of relationships to add.
 		:keyword keytype: Item keytype
 		:keyword filt: Ignore failures
 		:return:

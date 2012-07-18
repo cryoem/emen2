@@ -1,13 +1,20 @@
-<html>
-<head>
-	<title>Redirect</title>
-	<meta http-equiv="refresh" content="0; url=${HEADERS.get('Location')}">
-</head>
+<%! import jsonrpc.jsonutil %>
+<%inherit file="/page" />
+<%namespace name="buttons" file="/buttons"  /> 
 
-<body>
+<%block name="meta">
+	${parent.meta()}
+	% if auto:
+		<meta http-equiv="refresh" content="0; url=${HEADERS.get('Location')}">
+	% endif
+</%block>
 
-<h1>Redirect</h1>
+<h1>${title}</h1>
 
-<p>Please <a href="${HEADERS.get('Location')}">click here</a> if the page does not automatically redirect.</p>
+<p>
+${content}
+</p>
 
-</body></html>
+% if showlink:
+	<p>Please <a href="${HEADERS.get('Location')}">click here</a> to continue.</p>
+% endif

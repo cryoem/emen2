@@ -1,11 +1,35 @@
 <%inherit file="/css/colors.css" />
 
 /* Reset */
-body,div,ul,ol,li,h1,h2,h3,h4,h5,h6,form,fieldset,input,textarea,p,th,td {margin:0;padding:0;}
+body,
+div,
+ul,
+ol,
+li,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+form,
+fieldset,
+input,
+textarea,
+p,
+th,
+td {
+	margin:0;
+	padding:0;
+}
 
 /* Set some default font and margins. */
 body {
 	font-family: sans-serif;
+}
+
+p {
+	margin-bottom: 10px;
 }
 
 table {
@@ -202,6 +226,8 @@ h1,
 h4
 {
 	border-bottom: solid 1px #ccc;
+	margin-top:10px;
+	margin-bottom:10px;
 }
 
 /* e2l-menu: Navigation */
@@ -299,6 +325,7 @@ h4
 /* e2-switcher: Simple tab widget */
 .e2-tab-switcher {
 	margin-bottom:20px;
+	margin-top:20px;
 }
 .e2-tab-switcher > ul > li {
 	border: solid 1px #ccc;

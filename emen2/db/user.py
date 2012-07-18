@@ -182,7 +182,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 		# if not re.match('(\S+@\S+)', email):
 		# After a long discussion in #python, it is impossible to validate
 		# 	emails other than checking for '@'
-		email = unicode(email or '')
+		# Note: Forcing emails to be stored as lower case.
+		email = unicode(email or '').lower()
 		if not email or '@' not in email:
 			self.error("Invalid email format '%s'"%email)
 		return email

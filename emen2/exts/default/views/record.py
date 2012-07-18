@@ -427,6 +427,35 @@ class Record(View):
 
 @View.register
 class Records(View):
+	
+	@View.add_matcher(r"^/records/$")
+	def main(self, root="0", removerels=None, addrels=None, **kwargs):
+		kwargs['recurse'] = kwargs.get('recurse', 2)
+		childmap = self.routing.execute('Tree/embed', db=self.db, mode="children", keytype="record", root=root, recurse=kwargs.get('recurse'), id='sitemap')
+		self.template = '/pages/records.tree'
+		self.title = 'Record Relationships'
+		self.ctxt['root'] = root
+		self.ctxt['childmap'] = childmap
+		self.ctxt['create'] = self.db.auth.check.create()
+
+
+	@View.add_matcher(r"^/records/edit/relationships/$", write=True)
+	def edit_relationships(self, root="0", removerels=None, addrels=None, **kwargs):
+		self.title = 'Edit Record Relationships'
+
+		if self.request_method == 'post' and removerels and addrels:
+			self.db.rel.relink(removerels=removerels, addrels=addrels)
+			self.redirect('%s/records/edit/relationships/?root=%s'%(self.ctxt['EMEN2WEBROOT'], root), title=self.title, content="Your changes were saved.", auto=True)
+			return
+
+		kwargs['recurse'] = kwargs.get('recurse', 2)
+		childmap = self.routing.execute('Tree/embed', db=self.db, mode="children", keytype="record", root=root, recurse=kwargs.get('recurse'), id='sitemap')
+		self.template = '/pages/records.tree.edit'
+		self.ctxt['root'] = root
+		self.ctxt['childmap'] = childmap
+		self.ctxt['create'] = self.db.auth.check.create()
+
+
 
 	@View.add_matcher("^/records/edit/$", write=True)
 	def edit(self, *args, **kwargs):
@@ -435,7 +464,6 @@ class Records(View):
 
 		if self.request_method == 'post':
 			for k,v in kwargs.items():
-				# print "Record/Values:", k, v
 				v['name'] = k
 
 			recs = self.db.record.put(kwargs.values())

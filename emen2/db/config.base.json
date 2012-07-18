@@ -50,7 +50,7 @@
 		// "EMEN2EXTURI": "",
 
 		// Number of web server threads to run
-		"NUMTHREADS": 1,
+		"NUMTHREADS": 4,
 
 		// Regular HTTP port
 		"EMEN2PORT": 8080,
@@ -109,8 +109,8 @@
 
 	// Bookmarks to some key records.
 	"bookmarks":{
-		"BANNER": 0,
-        "BANNER_NOAUTH": 0,
+		"BANNER": "0",
+        "BANNER_NOAUTH": "0",
 		"BOOKMARKS": []
 	},
 

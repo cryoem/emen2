@@ -129,6 +129,8 @@ else:
 		${USER.displayname}
 		<br />
 		<a href="${EMEN2WEBROOT}/user/${USER.name}/edit/" class="e2-button">${buttons.image('edit.png','')} Edit profile</a> <a href="${EMEN2WEBROOT}/auth/logout/" class="e2-button">Logout</a>				
+		<br />
+		<a href="${EMEN2WEBROOT}/query/rectype.is.group/" class="e2-button">All groups</a> <a href="${EMEN2WEBROOT}/query/rectype.is.project/" class="e2-button">All projects</a>				
 	</h1>
 	
 	<br />

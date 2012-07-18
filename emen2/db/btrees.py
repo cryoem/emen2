@@ -1287,13 +1287,13 @@ class DBODB(EMEN2DB):
 
 	##### Query #####
 
-	def query(self, c=None, mode='AND', ctx=None, txn=None):
+	def query(self, c=None, mode='AND', subset=None, ctx=None, txn=None):
 		"""Return a Query Constraint Group.
 
 		You will need to call constraint.run() to execute the query,
 		and constraint.sort() to sort the values.
 		"""
-		return emen2.db.query.Query(constraints=c, mode=mode, ctx=ctx, txn=txn, btree=self)
+		return emen2.db.query.Query(constraints=c, mode=mode, subset=subset, ctx=ctx, txn=txn, btree=self)
 
 
 
@@ -1541,23 +1541,21 @@ class RelateDB(DBODB):
 
 	def relink(self, removerels=None, addrels=None, ctx=None, txn=None):
 		"""Add and remove a number of parent-child relationships at once."""
-		# Uses the new .parents/.children attributes to do this simply
 		removerels = removerels or []
 		addrels = addrels or []
 		remove = collections.defaultdict(set)
 		add = collections.defaultdict(set)
+		ci = emen2.util.listops.check_iterable
 
-		# grumble.. Convert everything to the correct keytype.
-		removerels = [(self.keytype(x), self.keytype(y)) for x,y in removerels]
-		addrels = [(self.keytype(x), self.keytype(y)) for x,y in addrels]
-
-		for parent, child in removerels:
-			remove[parent].add(child)
-		for parent, child in addrels:
-			add[parent].add(child)
+		for k,v in removerels.items():
+			for v2 in ci(v):
+				remove[self.keyclass(k)].add(self.keyclass(v2))
+		for k,v in addrels.items():
+			for v2 in ci(v):
+				add[self.keyclass(k)].add(self.keyclass(v2))
 
 		items = set(remove.keys()) | set(add.keys())
-		items = self.get(items, keytype=keytype, filt=False, ctx=ctx, txn=txn)
+		items = self.cgets(items, ctx=ctx, txn=txn)
 		for item in items:
 			item.children -= remove[item.name]
 			item.children |= add[item.name]

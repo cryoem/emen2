@@ -275,10 +275,13 @@ class MacroConstraint(Constraint):
 
 
 class Query(object):
-	def __init__(self, constraints, mode='AND', ctx=None, txn=None, btree=None):
+	def __init__(self, constraints, mode='AND', subset=None, ctx=None, txn=None, btree=None):
 		self.time = 0.0
 		self.maxtime = 60.0
 		self.starttime = time.time()
+		
+		# Subset
+		self.subset = subset
 		
 		# None or set() of query result
 		self.result = None 		
@@ -294,7 +297,7 @@ class Query(object):
 		self.ctx = ctx
 		self.txn = txn
 		self.btree = btree
-		# vartype manager; handles validation, macros
+		# vartype manager; handles validation, macros, some caching
 		self.vtm = emen2.db.datatypes.VartypeManager(db=ctx.db, keytype=self.btree.keytype)
 
 		# Constraint Groups can contain sub-groups: see also init(), run()
@@ -313,6 +316,10 @@ class Query(object):
 	def run(self):
 		# Start the clock
 		t = time.time()
+
+		if self.subset is not None:
+			# print "Restricting to subset:", self.subset
+			self.result = self.btree.names(names=self.subset, ctx=self.ctx, txn=self.txn)
 		
 		# Run the constraints
 		for c in sorted(self.constraints, key=lambda x:x.priority):
@@ -321,11 +328,10 @@ class Query(object):
 			self._checktime()
 
 		# Filter by permissions
-		if not self.constraints:
+		if self.subset is None and not self.constraints:
 			self.result = self.btree.names(ctx=self.ctx, txn=self.txn)
 		else:
 			self.result = self.btree.names(names=self.result or set(), ctx=self.ctx, txn=self.txn)
-		
 
 		self._checktime()
 
@@ -336,7 +342,7 @@ class Query(object):
 		# Update the approx. running time.
 		self.time += time.time() - t
 		self._checktime()
-
+		
 		return self.result
 
 	def sort(self, sortkey='name', reverse=False, pos=0, count=0, rendered=False):

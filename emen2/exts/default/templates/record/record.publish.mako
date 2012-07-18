@@ -28,7 +28,6 @@
 		Click on a record to select or deselect it. 
 		You can also hold down "shift" while clicking to select or deselect all the children of that record.
 	</p>
-
 </div>
 
 <br /><br />

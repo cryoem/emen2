@@ -184,15 +184,17 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 		self.title = 'Error'
 		self.ctxt['errmsg'] = msg
 
-	def redirect(self, location, content=''):
+	def redirect(self, location, title='Redirect', content='', auto=True, showlink=True):
 		'''Redirect by setting Location header and
 		using the redirect template'''
-		self.headers['Location'] = location.replace('//','/')
+		content = content or """<p>Please <a href="%s">click here</a> if the page does not automatically redirect.</p>"""%(location)
+
 		self.template = '/redirect'
-		# Ughrhgh..
-		if content:
-			self.template = '/raw'
-			self.ctxt['content'] = content
+		self.ctxt['title'] = title
+		self.ctxt['content'] = content		
+		self.ctxt['showlink'] = showlink
+		if auto:
+			self.headers['Location'] = location.replace('//','/')
 
 	def get_data(self):
 		'''Render the template'''
@@ -263,6 +265,14 @@ class View(TemplateView):
 			EMEN2LOGO = emen2.db.config.get('customization.EMEN2LOGO'),
 			BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', []),
 		))
+
+	def _time(self, label=None):
+		"""Debugging."""
+		try:
+			print label or '', '%0.2f'%(time.time()-self._time_current)
+		except:
+			pass
+		self._time_current = time.time()
 
 	# def notify(self, msg):
 	# 	if self.ctxid is not None:

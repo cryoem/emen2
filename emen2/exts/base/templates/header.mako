@@ -11,7 +11,7 @@
 
 			<li><a href="${EMEN2WEBROOT}/">Home ${buttons.caret()}</a>
 				<ul>
-					<li><a href="${EMEN2WEBROOT}/sitemap/">Sitemap</a></li>
+					<li><a href="${EMEN2WEBROOT}/records/">Records</a></li>
 					<li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/paramdefs/">Params</a></li>
 					<li><a href="${EMEN2WEBROOT}/recorddefs/">Protocols</a></li>
 					<li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/users/">Users</a></li>
