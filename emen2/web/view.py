@@ -188,7 +188,6 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 		'''Redirect by setting Location header and
 		using the redirect template'''
 		content = content or """<p>Please <a href="%s">click here</a> if the page does not automatically redirect.</p>"""%(location)
-
 		self.template = '/redirect'
 		self.ctxt['title'] = title
 		self.ctxt['content'] = content		

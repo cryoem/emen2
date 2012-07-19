@@ -1,12 +1,19 @@
-<%! import jsonrpc.jsonutil %>
+<%! 
+import jsonrpc.jsonutil
+import uuid
+%>
 
 <%def name="table(q, parent=None, rectype=None, qc=True, header=True, controls=True)">
+	<%
+		tname = uuid.uuid4().hex
+	%>
+
 	<script type="text/javascript">
 	//<![CDATA[
-		var q = ${jsonrpc.jsonutil.encode(q)};
+		var q${tname} = ${jsonrpc.jsonutil.encode(q)};
 		$(document).ready(function() {
-			$(".e2-query").TableControl({
-				q: q, 
+			$("#${tname}").TableControl({
+				q: q${tname}, 
 				rectype: ${jsonrpc.jsonutil.encode(rectype)},
 				parent: ${jsonrpc.jsonutil.encode(parent)},
 				header: ${jsonrpc.jsonutil.encode(header)},
@@ -17,7 +24,7 @@
 	//]]>
 	</script>
 
-	<div class="e2-query">
+	<div class="e2-query" id="${tname}">
 		
 		% if controls:
 			<div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tab">

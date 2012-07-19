@@ -11,7 +11,8 @@ import collections
 	${parent.css_inline()}
 
 	.home-profile {
-		float: left;
+		position: absolute;
+		left: 20px;
 		width: 350px;
 		border-right:solid 1px #ccc;
 		padding-bottom:50px;
@@ -72,9 +73,13 @@ import collections
 	${parent.js_ready()}
 
 	$('.e2-record-new').RecordControl({
-		redirect:'/'
+		redirect:window.location.pathname
 	});
-	
+
+	$('.e2-record-edit').RecordControl({
+		redirect:window.location.pathname
+	});
+		
 	$('#activity time').timeago();	
 </%block>
 
@@ -99,7 +104,7 @@ import collections
 	% for group, projects in groups_children.items():
 
 		<h2 class="e2l-cf">
-			<a href="${EMEN2WEBROOT}/em/home/group/${group}/">${recnames.get(group, group)}</a>
+			<a href="${EMEN2WEBROOT}/record/${group}/">${recnames.get(group, group)}</a>
 			
 			
 			## % if ADMIN:
@@ -112,7 +117,7 @@ import collections
 		<ul class="home-projectlist">
 			% for project in sorted(projects, key=lambda x:recnames.get(x, '').lower()):
 				<li>
-					<a href="${EMEN2WEBROOT}/em/home/project/${project}/">
+					<a href="${EMEN2WEBROOT}/record/${project}/">
 						${recnames.get(project, project)}
 					</a>
 					<span class="e2l-shadow home-count">

@@ -513,8 +513,8 @@
 
 
 			// Download all attachments
-			ul.append('<li class="e2l-float-right"><span><input type="button"  class="e2-query-download" value="Download attachments" /></span></li>')
-			$('.e2-query-download', ul).click(function() {self.query_download()});
+			// ul.append('<li class="e2l-float-right"><span><input type="button"  class="e2-query-download" value="Download attachments" /></span></li>')
+			// $('.e2-query-download', ul).click(function() {self.query_download()});
 
 			// Activity spinner
 			ul.append('<li class="e2l-float-right e2-query-activity" style="display:none"><span>'+emen2.template.spinner(true)+'</span></li>');

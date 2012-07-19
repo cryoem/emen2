@@ -38,8 +38,7 @@ table {
 
 /* Paragraphs and uls have an irritating default margin */
 ul {
-	margin-top: 0px;
-	margin-bottom: 0px;
+	padding-left:20px;
 }
 
 /******************************************
@@ -803,6 +802,8 @@ line {
 	width:60px;
 }
 .e2-plot-color {
+	display:inline-block;
+	margin:2px;
 	width:20px;
 }
 .e2-plot-totals td {

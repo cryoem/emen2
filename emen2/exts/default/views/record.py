@@ -165,8 +165,9 @@ class Record(View):
 			rec.children = children
 			rec = self.db.record.put(rec)
 
-		self.template = '/redirect'
-		self.headers['Location'] = '%s/record/%s/#relationships'%(self.ctxt['EMEN2WEBROOT'], name)
+		self.redirect('%s/record/%s/#relationships'%(self.ctxt['EMEN2WEBROOT'], name))
+		# self.template = '/redirect'
+		# self.headers['Location'] = '%s/record/%s/#relationships'%(self.ctxt['EMEN2WEBROOT'], name)
 
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/edit/permissions/$', name='edit/permissions', write=True)
@@ -197,8 +198,9 @@ class Record(View):
 				rec['permissions'] = permissions
 				rec = self.db.record.put(rec)
 
-		self.template = '/redirect'
-		self.headers['Location'] = '%s/record/%s/#permissions'%(self.ctxt['EMEN2WEBROOT'], name)
+		self.redirect('%s/record/%s/#permissions'%(self.ctxt['EMEN2WEBROOT'], name))
+		# self.template = '/redirect'
+		# self.headers['Location'] = '%s/record/%s/#permissions'%(self.ctxt['EMEN2WEBROOT'], name)
 
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/new/(?P<rectype>\w+)/$', write=True)

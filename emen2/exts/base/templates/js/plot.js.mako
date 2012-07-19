@@ -163,16 +163,31 @@
 			return this.options.min + binwidth
 		},
 		
+		getvartype: function() {
+			// hack
+			var vt = null;
+			var pd = emen2.caches['paramdef'][this.options.key];
+			if (pd) {vt=pd.vartype}
+			// if (this.options.key == 'creationtime') {vt='datetime'}
+			if ($.inArray(this.options.key, ['creationtime','modifytime']) > -1) {
+				vt = 'datetime';
+			} else if ($.inArray(this.options.key, ['creator','modifyuser']) > -1) {
+				vt = 'user';
+			}
+			return vt
+		},
+		
 		setup: function() {
 			// Additional (subclass) setup
 			var self = this;
 			
-			// Todo: separate subclass
-			if (this.options.key == 'creationtime') {
+			// Todo: check paramdef...
+			var vt = this.getvartype();
+			if (vt == 'datetime') {
 				this.f = function(d) {return new Date(d[self.options.key])};
 				this.scale = d3.time.scale();
 			}	
-				
+			
 			// Axis drawing...
 			if (this.options.invert) {
 				this.scale.range([this.options.size[0], 0]);
@@ -185,6 +200,10 @@
 			} else {
 				this.ax = d3.svg.axis().scale(this.scale).tickSize(-this.options.size[1],3,0);				
 			}
+		},
+		
+		build_legend: function(elem) {
+			return
 		},
 		
 		build_controls: function() {
@@ -336,8 +355,41 @@
 			return series
 		},
 		
+		format_key: function(vt, key) {
+			if (vt=='user') {
+				var user = emen2.caches['user'][key];
+				if (user) {return user.displayname}
+				return key
+			}
+			return key
+		},
+		
+		build_legend: function(elem, retry) {
+			if (retry==null) {retry=true}
+			var self = this;
+			var vt = this.getvartype();
+			if (vt=='user') {
+				var getusers = emen2.cache.check('user', this.keys);
+				if (getusers && retry) {
+					emen2.db('user.get', [getusers], function(users) {
+						emen2.cache.update(users);
+						self.build_legend(elem, false);
+					});
+					return
+				}
+			}
+
+			var ul = $('<ul></ul>');
+			this.keys.map(function(key, i) {
+				var item = $('<li><span class="e2-plot-color" style="background:'+self.scale(i)+'">&nbsp;</span>'+self.format_key(vt, key)+' ('+self.counted[key]+')</li>');
+				ul.append(item);
+			});
+			elem.append(ul);
+		},
+		
 		build_controls: function() {
 			if (!this.controls) {return}
+			var vt = this.getvartype();
 			var self = this;
 			var controls = $('<li></li>');
 			controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
@@ -352,11 +404,11 @@
 				if ($.inArray(key, self.options.hide)==-1) {cbox.attr('checked', true)}
 				row.append($('<td></td>').append(cbox));
 				// Name
-				row.append('<td>'+key+'</td>')
+				row.append('<td>'+self.format_key(vt, key)+'</td>')
 				row.append('<td>'+self.counted[key]+'</td>');
 				total += self.counted[key];
 				// Colors
-				row.append('<td><div class="e2-plot-color" style="background:'+self.scale(i)+'">&nbsp;</div></td>');
+				row.append('<td><span class="e2-plot-color" style="background:'+self.scale(i)+'">&nbsp;</span></td>');
 				tb.append(row);
 			});
 			tb.append('<tr class="e2-plot-totals"><td /><td>Total: </td><td>'+total+'</td><td /></tr>');
