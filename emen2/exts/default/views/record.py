@@ -201,7 +201,6 @@ class Record(View):
 		self.headers['Location'] = '%s/record/%s/#permissions'%(self.ctxt['EMEN2WEBROOT'], name)
 
 
-
 	@View.add_matcher(r'^/record/(?P<name>\w+)/new/(?P<rectype>\w+)/$', write=True)
 	def new(self, name=None, rectype=None, _location=None, **kwargs): 
 		viewname = 'mainview'
@@ -238,14 +237,11 @@ class Record(View):
 			bdo = self.db.binary.put(f)
 			self.db.binary.addreference(newrec.name, param, bdo.name)
 
-
-
 		# Redirect
 		if _location:
 			self.redirect(_location)
 		else:
 			self.redirect(self.routing.reverse('Record/main', name=newrec.name), content=newrec.name)
-
 
 
 	@View.add_matcher('^/record/(?P<name>\w+)/children/(?P<childtype>\w+)/$')
@@ -395,32 +391,11 @@ class Record(View):
 			for rec in recs:
 				if 'publish' in rec.groups:
 					published.add(rec.name)
-			
-			
 		
 		childmap = self.routing.execute('Tree/embed', db=self.db, root=self.name, mode='children', recurse=-1, collapse_rectype='grid_imaging')
 	
 		self.set_context_item("childmap", childmap)
 		self.set_context_item("published", published)
-
-
-
-
-	# @View.add_matcher(r'^/record/(?P<name>\w+)/boxer/$')
-	# def boxer(self, name=None):
-	# 	self.initr(name=name)
-	# 	self.template = '/pages/boxer'
-	# 	self.title = "web.boxer (EXPERIMENTAL!)"
-	#
-	# 	boxrecords = self.db.rel.children(self.rec.name, rectype="box")
-	# 	bdo = self.rec.get('file_binary_image')
-	# 	bdo = self.db.binary.get(bdo)
-	# 	if not bdo:
-	# 		self.error("No ccd frames found! Cannot start web.boxer.")
-	# 		return
-	#
-	# 	self.set_context_item("bdo",bdo)
-
 
 
 
@@ -454,7 +429,6 @@ class Records(View):
 		self.ctxt['root'] = root
 		self.ctxt['childmap'] = childmap
 		self.ctxt['create'] = self.db.auth.check.create()
-
 
 
 	@View.add_matcher("^/records/edit/$", write=True)

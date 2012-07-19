@@ -31,12 +31,37 @@ class EMEquipment(View):
 @View.register
 class EMHome(View):
 
+	def common(self, hideinactive=False, sortkey='name', reverse=False):
+		torender = set()
+		
+		# Groups
+		groups = nodeleted(self.db.record.get(self.db.record.findbyrectype('group')))
+		groups = set([i.name for i in groups])
+		torender |= groups
+
+		# Top-level children of groups (any rectype)
+		groups_children = self.db.rel.children(groups)
+		projs = set()
+		for v in groups_children.values():
+			projs |= v
+		torender |= projs
+
+		# Get projects, most recent children, and progress reports
+		projects_children = self.db.rel.children(projs, recurse=-1)
+
+		# Get all the recent records we want to display
+		recnames = self.db.record.render(torender)
+
+		self.ctxt['groups_children'] = groups_children
+		self.ctxt['recnames'] = recnames
+		self.ctxt['projects_children'] = projects_children
+
+
 	@View.add_matcher(r'^/$', view='Root', name='main')
 	@View.add_matcher(r'^/em/home/$')
 	def main(self, hideinactive=False, sortkey='name', reverse=False):
-		t = time.time()
 		self.title = 'Home'
-		self.template = '/em/home'
+		self.template = '/em/home.main'
 
 		banner = None
 		render_banner = ''
@@ -57,9 +82,12 @@ class EMHome(View):
 			render_banner = self.db.record.render(banner, viewname="banner")
 		except:
 			pass
+			
 		self.ctxt['banner'] = banner
 		self.ctxt['render_banner'] = render_banner
 
+		# Groups and projects
+		self.common()
 
 		# Recent records
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
@@ -69,61 +97,21 @@ class EMHome(View):
 			x={'key':'creationtime', 'bin':'day', 'min':since, 'max':now}, 
 			y={'stacked':True},
 			sortkey='creationtime'
-			)
-			
+			)			
 		self.ctxt['recent_activity'] = q
 
+		# Table
 		q_table = self.routing.execute('Query/embed', db=self.db, q={'count':20, 'subset':q['names']}, controls=False)
 		self.ctxt['recent_activity_table'] = q_table
 
-		# Items to render
-		recent = set(q['names'])
-		torender = set()
-
-		# Groups
-		# groups = self.db.rel.children("0", rectype=['group'])
-		# groups = self.db.query([['rectype', '==', 'group'], ['deleted', 'none']])
-		groups = nodeleted(self.db.record.get(self.db.record.findbyrectype('group')))
-		groups = set([i.name for i in groups])
-		torender |= groups
-
-		# Top-level children of groups (any rectype)
-		groups_children = self.db.rel.children(groups)
-		projs = set()
-		for v in groups_children.values():
-			projs |= v
-		torender |= projs
-
-		# Progress reports
-		# self.db.record.findbyrectype('progress_report')
-		progress_reports = set()
-		torender |= progress_reports
-
-		# Get projects, most recent children, and progress reports
-		projects_children = self.db.rel.children(projs, recurse=-1)
-
-		# Get all the recent records we want to display
-		rendered_recs = self.db.record.get(torender)
 		
-		# Display the usernames for all these records. This should probably be in record.render.
-		# users = self.db.user.get([i.get('creator') for i in most_recent_recs])
-		# users = dict([(i.name,i) for i in users])
 		
-		# Convert to dict (do this in tmpl..)
-		# most_recent_recs = dict([(i.name,i) for i in most_recent_recs])
-		# rendered_recs = dict([(i.name,i) for i in rendered_recs])
+	@View.add_matcher(r'^/em/home/project/(?P<name>\w+)/$')
+	def project(self, name):
+		self.title = 'Project'
+		self.template = '/em/home.project'
 
-		# Rendered recnames
-		recnames = self.db.record.render(torender)
-		
-		self.ctxt['groups_children'] = groups_children
-		self.ctxt['recnames'] = recnames
-		self.ctxt['projects_children'] = projects_children
-		self.ctxt['progress_reports'] = progress_reports
-		self.ctxt['sortkey'] = sortkey
-		self.ctxt['hideinactive'] = int(hideinactive)
-		self.ctxt['reverse'] = int(reverse)
-		
+		self.common()
 		
 		
 		

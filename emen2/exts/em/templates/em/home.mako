@@ -6,8 +6,6 @@ import collections
 
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
-<%namespace name="user_util" file="/pages/user"  /> 
-
 
 <%block name="css_inline">
 	${parent.css_inline()}
@@ -73,50 +71,12 @@ import collections
 <%block name="js_ready">
 	${parent.js_ready()}
 
-	## Start map browser
-	$('#content .e2-tree').TreeControl({'attach':true});
-
-	## Recent activity viewer
-	var q = ${jsonrpc.jsonutil.encode(recent_activity)}; 
-	$('#recent_activity').PlotHistogram({
-		q:q,
-		pan: false,
-		height:200,
-	});
-	
-	## New record controls
 	$('.e2-record-new').RecordControl({
 		redirect:'/'
 	});
 	
-	$('#activity time').timeago();
-	
+	$('#activity time').timeago();	
 </%block>
-
-
-<%
-def sort_by_creationtime(x):
-	c = projects_children.get(x) or [None]
-	lastitem = sorted(c)[-1]
-	return most_recent_recs.get(lastitem, dict()).get('creationtime')
-
-if sortkey == 'children':
-	lsortkey = lambda x:len(projects_children.get(x, []))
-elif sortkey == 'activity':
-	lsortkey = sort_by_creationtime
-else:
-	lsortkey = lambda x:recnames.get(x, '').lower()	
-%>
-
-<%def name="sortlink(key, label)">
-	% if key == sortkey:
-		${buttons.image('sort.%s.png'%(int(not reverse)))}
-		<a href="?sortkey=${key}&amp;reverse=${int(not reverse)}">${label}</a>
-	% else:
-		<a href="?sortkey=${key}">${label}</a>	
-	% endif
-</%def>
-
 
 
 <div class="home-profile">
@@ -136,11 +96,10 @@ else:
 	<br />
 	
 	
-	
 	% for group, projects in groups_children.items():
 
 		<h2 class="e2l-cf">
-			<a href="${EMEN2WEBROOT}/record/${group}/">${recnames.get(group, group)}</a>
+			<a href="${EMEN2WEBROOT}/em/home/group/${group}/">${recnames.get(group, group)}</a>
 			
 			
 			## % if ADMIN:
@@ -153,7 +112,7 @@ else:
 		<ul class="home-projectlist">
 			% for project in sorted(projects, key=lambda x:recnames.get(x, '').lower()):
 				<li>
-					<a href="${EMEN2WEBROOT}/record/${project}/">
+					<a href="${EMEN2WEBROOT}/em/home/project/${project}/">
 						${recnames.get(project, project)}
 					</a>
 					<span class="e2l-shadow home-count">
@@ -173,47 +132,4 @@ else:
 
 
 
-<div class="home-main">
-
-% if banner:
-	<h1>
-		Welcome to ${EMEN2DBNAME}
-		% if banner.writable():
-			<ul class="e2l-actions">
-				<li><a class="e2-button" href="${EMEN2WEBROOT}/record/${banner.name}#edit">${buttons.image('edit.png')} Edit banner</a>
-			</span>
-		% endif
-	</h1>
-	<div>
-	${render_banner}
-	</div>
-% endif
-
-
-
-
-<br /><br />
-
-<h1>
-	Activity and recent records
-	<ul class="e2l-actions">
-		<li><a class="e2-button" href="${EMEN2WEBROOT}/query/">View all records</a></li>
-	</ul>
-</h1>
-
-<div id="recent_activity">
-	<div class="e2-plot"></div>
-</div>
-
-${recent_activity_table}
-
-
-
-
-
-
-</div>
-
-
-
-
+${next.body()}
