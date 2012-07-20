@@ -533,8 +533,22 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 		if rpcrequest.method.startswith('_'):
 			raise emen2.web.responsecodes.ForbiddenError, 'Method not accessible'
 
-		elif rpcrequest.method not in db._publicmethods:
+		elif rpcrequest.method in db._publicmethods:
+			# Start the DB with a write transaction
+			# db._starttxn(write=db._checkwrite(rpcrequest.method))
+			with db:
+				db._setContext(self.ctxid, self.host)
 
+				_method = rpcrequest.method.rpartition('.')[2]
+				if _method == 'login':
+					rpcrequest.kwargs['host'] = self.host
+
+				methodresult = db._callmethod(rpcrequest.method, rpcrequest.args, rpcrequest.kwargs)
+				
+				if _method in set(['login', 'logout']):
+					request.addCookie('ctxid', methodresult or '')
+
+		else:
 			if rpcrequest.method == 'queue_put':
 				methodresult = self.q.put((rpcrequest.args, rpcrequest.kwargs))
 			elif rpcrequest.method == 'queue_get':
@@ -546,19 +560,6 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 				e = emen2.web.events.EventRegistry().event('pub.%s'%rpcrequest.method)
 				methodresult = e(self.ctxid, request.getClientIP(), db=db, *rpcrequest.args, **rpcrequest.kwargs)
 
-		else:
-			# Start the DB with a write transaction
-			# db._starttxn(write=db._checkwrite(rpcrequest.method))
-			with db:
-				db._setContext(self.ctxid, self.host)
-
-				_method = rpcrequest.method.rpartition('.')[2]
-				if _method == 'login':
-					rpcrequest.kwargs['host'] = self.host
-
-				methodresult = db._callmethod(rpcrequest.method, rpcrequest.args, rpcrequest.kwargs)
-				if _method in set(['login', 'logout']):
-					request.addCookie('ctxid', methodresult or '')
 
 		return methodresult
 

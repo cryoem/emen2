@@ -263,6 +263,10 @@ class DBProxy(object):
 		cls.mt.add_method(apiname, func)
 		cls.mt.add_method(func.func_name, func)
 
+		if compat:
+			cls.mt.add_method(compat, func)
+
+
 	def _checkwrite(self, method):
 		return getattr(self.mt.get_method(method).func, "write", False)
 
