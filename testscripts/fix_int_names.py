@@ -28,7 +28,6 @@ with db._newtxn(write=True):
 		item.__dict__['name'] = unicode(item.__dict__['name'])
 		for k in ['parents', 'children']:
 			item.__dict__[k] = set(map(unicode, item.__dict__.get(k, [])))		
-		# print item.name, type(item.name), item.parents, item.children
 		db._db.dbenv['record'].put(item.name, item, txn=txn)
 		
 		
