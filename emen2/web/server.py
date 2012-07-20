@@ -12,7 +12,6 @@ import sys
 
 # Twisted imports
 from twisted.application import internet
-import twisted.python.log
 import twisted.internet
 import twisted.internet.reactor
 import twisted.web.static
@@ -25,7 +24,7 @@ except ImportError:
 	ssl = None
 
 import emen2.db.config
-
+import emen2.db.log
 
 class DBPool(object):
 	"""Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool."""
@@ -96,6 +95,23 @@ class WebServerOptions(emen2.db.config.DBOptions):
 	]
 
 
+class EMEN2Site(twisted.web.server.Site):
+	def log(self, request):
+		line = '%s - - %s "%s" %d %s "%s" "%s"\n' % (
+			request.getClientIP(),
+			self._logDateTime,
+			'%s %s %s' % (self._escape(request.method),
+						  self._escape(request.uri),
+						  self._escape(request.clientproto)),
+			request.code,
+			request.sentLength or "-",
+			self._escape(request.getHeader("referer") or "-"),
+			self._escape(request.getHeader("user-agent") or "-"))
+
+		emen2.db.log.msg('WEB', line)
+
+
+
 class EMEN2Server(object):
 
 	usage = WebServerOptions
@@ -119,7 +135,8 @@ class EMEN2Server(object):
 
 		# The Twisted Web server protocol factory,
 		#  with our Routing resource as root
-		self.site = twisted.web.server.Site(root)
+		# self.site = twisted.web.server.Site(root)
+		self.site = EMEN2Site(root)
 
 		reactor = twisted.internet.reactor
 		reactor.suggestThreadPoolSize(emen2.db.config.get('network.NUMTHREADS', 1))
@@ -136,8 +153,8 @@ class EMEN2Server(object):
 		emen2.db.config.load_views()
 
 		# Init log system
-		import emen2.db.log
-		emen2.db.log.init('log initialized')
+		# import emen2.db.log
+		# emen2.db.log.init('log initialized')
 
 		# Child resources that do not go through the Router.
 		import jsonrpc.server
@@ -146,7 +163,6 @@ class EMEN2Server(object):
 		# if all the JSON_RPC class does is change the eventhandler, it can (and should) be instantiated this way:
 		from emen2.web.resource import JSONRPCServerEvents
 		root.putChild('jsonrpc', jsonrpc.server.JSON_RPC().customize(JSONRPCServerEvents))
-
 		root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('static-%s'%emen2.VERSION, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
 		root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))

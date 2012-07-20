@@ -531,9 +531,9 @@ class EMEN2DBEnv(object):
 			f.close()
 
 
-	##### Backup / restore #####
+	##### Log archive #####
 
-	def log_archive(self, remove=True, checkpoint=False, txn=None):
+	def log_archive(self, remove=True, checkpoint=True, txn=None):
 		"""Archive completed log files.
 
 		:keyword remove: Remove the log files after moving them to the backup location
@@ -552,34 +552,14 @@ class EMEN2DBEnv(object):
 		if not os.access(outpath, os.F_OK):
 			os.makedirs(outpath)
 
-		self._log_archive(archivefiles, outpath, remove=remove)
-
-
-	def _log_archive(self, archivefiles, outpath, remove=False):
-		"""(Internal) Backup database log files"""
 		outpaths = []
 		for archivefile in archivefiles:
 			dest = os.path.join(outpath, os.path.basename(archivefile))
 			emen2.db.log.info('Log Archive: %s -> %s'%(archivefile, dest))
-			shutil.copy(archivefile, dest)
+			shutil.move(archivefile, dest)
 			outpaths.append(dest)
 
-		if not remove:
-			return outpaths
-
-		removefiles = []
-
-		# ian: check if all files are in the archive before we remove any
-		for archivefile in archivefiles:
-			if not os.path.exists(outpath):
-				raise ValueError, "Log Archive: %s not found in backup archive!"%(archivefile)
-			removefiles.append(archivefile)
-
-		for removefile in removefiles:
-			emen2.db.log.info('Log Archive: Removing %s'%(removefile))
-			os.unlink(removefile)
-
-		return removefiles
+		return outpaths
 		
 		
 		
@@ -1161,8 +1141,10 @@ class DB(object):
 				user = self.dbenv["user"].getbyemail(name, filt=False, txn=txn)
 				user.checkpassword(password)
 			except SecurityError, e:
+				emen2.db.log.security("Login failed, bad password: %s"%(name))				
 				raise AuthenticationError, str(e)
 			except KeyError, e:
+				emen2.db.log.security("Login failed, no such user: %s"%(name))				
 				raise AuthenticationError, AuthenticationError.__doc__
 
 			# Create the Context for this user/host
@@ -1170,7 +1152,7 @@ class DB(object):
 
 		# This puts directly, instead of using cput.
 		self.dbenv._context.put(newcontext.name, newcontext, txn=txn)
-		emen2.db.log.msg('SECURITY', "Login succeeded: %s -> %s" % (name, newcontext.name))
+		emen2.db.log.security("Login succeeded: %s -> %s" % (name, newcontext.name))
 
 		return newcontext.name
 
@@ -2231,7 +2213,7 @@ class DB(object):
 
 		ctxt = {}
 		if user.email == oldemail:
-			emen2.db.log.msg("SECURITY","Sending email verification for user %s to %s"%(user.name, user.email))
+			emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, user.email))
 			# The email didn't change, but the secret did
 			# Note: cputs will always ignore the secret; write directly
 			self.dbenv["user"].put(user.name, user, txn=txn)
@@ -2242,7 +2224,7 @@ class DB(object):
 
 		else:
 			# Email changed.
-			emen2.db.log.msg("SECURITY","Changing email for user %s to %s"%(user.name, user.email))
+			emen2.db.log.security("Changing email for user %s to %s"%(user.name, user.email))
 			# Note: Since we're putting directly,
 			# 	have to force the index to update
 			self.dbenv["user"].reindex([user], ctx=ctx, txn=txn)
@@ -2290,7 +2272,7 @@ class DB(object):
 		user.setpassword(oldpassword, newpassword, secret=secret)
 
 		# ian: todo: evaluate to use put/cput..
-		emen2.db.log.msg("SECURITY", "Changing password for %s"%user.name)
+		emen2.db.log.security("Changing password for %s"%user.name)
 		self.dbenv["user"].put(user.name, user, txn=txn)
 		self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'template':'/email/password.changed'})
 		return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
@@ -2329,7 +2311,7 @@ class DB(object):
 		ctxt = {'secret': user.secret[2]}
 		self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'template':'/email/password.reset', 'ctxt':ctxt})
 
-		emen2.db.log.msg('SECURITY', "Setting resetpassword secret for %s"%user.name)		
+		emen2.db.log.security("Setting resetpassword secret for %s"%user.name)		
 		return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
 

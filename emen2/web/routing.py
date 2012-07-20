@@ -64,18 +64,18 @@ class Router(twisted.web.resource.Resource):
 			if k not in tmp and k in set(['x-username', 'content-length', 'x-resource']):
 				tmp[k] = v
 
-		logline = emen2.util.loganalyzer.AccessLogLine(
-			host = request.getClientIP(),
-			ctxid = request.getCookie('ctxid'),
-			username = tmp.get('x-username',[''])[0],
-			rtime = time.strftime(emen2.util.loganalyzer.CTIME),
-			request = '"%s %s"' % (request.method, request.uri),
-			response_code = request.code,
-			size = tmp.get('content-length',[0])[0],
-			resource = tmp.get('x-resource', '-'),
-			cputime = (time.time()-t)*1000,
-		)
-		# emen2.db.log.msg('WEB', str(logline))
+		# logline = emen2.util.loganalyzer.AccessLogLine(
+		# 	host = request.getClientIP(),
+		# 	ctxid = request.getCookie('ctxid'),
+		# 	username = tmp.get('x-username',[''])[0],
+		# 	rtime = time.strftime(emen2.util.loganalyzer.CTIME),
+		# 	request = '"%s %s"' % (request.method, request.uri),
+		# 	response_code = request.code,
+		# 	size = tmp.get('content-length',[0])[0],
+		# 	resource = tmp.get('x-resource', '-'),
+		# 	cputime = (time.time()-t)*1000,
+		# )
+		# emen2.db.log.web(str(logline))
 
 
 	# Resource was not found

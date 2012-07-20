@@ -17,11 +17,14 @@ Functions:
 import traceback
 import functools
 
+import twisted.python.log
+
 import emen2.db.config
 import emen2.db.debug
 import os.path
 logger = None
 IGNORE = ['DEBUG', 'INDEX']
+
 
 inst = lambda x:x()
 
@@ -33,8 +36,8 @@ class EMEN2Logger(object):
 			DEBUG=-1,
 			TXN=1,
 			INIT=2,
-			INFO=3,
-			INDEX=4,
+			INDEX=3,
+			INFO=4,
 			COMMIT=5,
 			WEB=6,
 			WARN=8,
@@ -53,8 +56,9 @@ class EMEN2Logger(object):
 	def log(self, level, *args, **kwargs):
 		level = self.log_levels[level]
 		if level >= self.log_levels[self.LOG_LEVEL]:
-			message = '%s :: %s' % (self.log_levels.get_name(level), ' '.join(args))
-			print message
+			message = '%s: %s' % (self.log_levels.get_name(level), ' '.join(args))
+			twisted.python.log.msg(message, system=self.log_levels.get_name(level))
+			# print message
 		else:
 			pass
 
@@ -79,6 +83,7 @@ def flip(func):
 	def _inner(self, *args, **kwargs):
 		return func( *args[::-1], **kwargs)
 	return _inner
+
 # Argghgh..
 msg_forwards = msg
 def msg_backwards(msg='', level='INFO'):

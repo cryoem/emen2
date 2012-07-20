@@ -264,14 +264,7 @@ class GlobalNamespace(Hier):
 		cls.__locked = False
 
 
-	hier = dict(
-		#log = log,
-		#info = lambda *a, **k: log.msg('INFO', *a, **k),
-		#init = lambda *a, **k: log.msg('INIT', *a, **k),
-		#error = lambda *a, **k: log.msg('ERROR', *a, **k),
-		#warn = lambda *a, **k: log.msg('WARNING', *a, **k),
-		#debug = lambda *a, **k: log.msg('DEBUG', *a, **k)
-	)
+	hier = dict()
 
 	@classmethod
 	def load_data(cls, fn, data):

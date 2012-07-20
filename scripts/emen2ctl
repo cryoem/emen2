@@ -40,9 +40,10 @@ case $COMMAND in
 		echo "Starting emen2"
 		$TWISTD \
 			--pidfile=$pidfile \
-			--logfile=$logfile \
+			--logger=emen2.tap.logger \
 			--rundir=$EMEN2DBHOME \
 			emen2 $@
+		# --logfile=$logfile \
 		# echo "[process `cat ${pidfile}`]"
 		;;
 
@@ -59,13 +60,19 @@ case $COMMAND in
 		"${0}" stop $@
 		"${0}" start $@
 		;;
-
+		
 	recover)
 		echo "Running emen2 database recovery"
 		db_recover -v -h ${EMEN2DBHOME}
 		;;
+
+	archive)
+		echo "Running emen2 database log archive"
+		python -m emen2.db.log_archive -h ${EMEN2DBHOME}
+		;;
+
     *)
-		echo "Usage: ${0} {start|stop|restart|recover} [options]" >&2
+		echo "Usage: ${0} {start|stop|restart|recover|archive} [options]" >&2
 		exit 1
 		;;
 esac

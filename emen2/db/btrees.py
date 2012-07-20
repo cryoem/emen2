@@ -419,7 +419,7 @@ class EMEN2DB(object):
 		self.cache.truncate()
 		self.cache_children = {}
 		self.cache_parents = {}
-		emen2.dbtype.msg('COMMIT', "%s.truncate"%self.filename)
+		emen2.db.log.commit("%s.truncate"%self.filename)
 
 	# Also dangerous!
 	def delete(self, key, txn=None, flags=0):
@@ -673,7 +673,7 @@ class IndexDB(EMEN2DB):
 			delindexitems.append(key)
 
 		cursor.close()
-		emen2.db.log.commit("%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
+		emen2.db.log.index("%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
 		return delindexitems
 
 	def addrefs(self, key, items, txn=None):
@@ -713,7 +713,7 @@ class IndexDB(EMEN2DB):
 
 		cursor.close()
 
-		emen2.db.log.commit("%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
+		emen2.db.log.index("%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
 		return addindexitems
 
 
