@@ -50,7 +50,7 @@
 		// "EMEN2EXTURI": "",
 
 		// Number of web server threads to run
-		"NUMTHREADS": 4,
+		"NUMTHREADS": 1,
 
 		// Regular HTTP port
 		"EMEN2PORT": 8080,

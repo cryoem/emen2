@@ -8,14 +8,11 @@ import emen2.db.config
 from emen2.web.view import View
 
 
-def nodeleted(items):
-	return filter(lambda x:not x.get('deleted'), items)
-
 
 
 @View.register
 class EMEquipment(View):
-	
+
 	@View.add_matcher(r'^/em/equipment/(?P<name>\w+)/$')
 	def main(self, name, **kwargs):
 		self.title = 'Equipment'
@@ -30,32 +27,6 @@ class EMEquipment(View):
 
 @View.register
 class EMHome(View):
-
-	def common(self, hideinactive=False, sortkey='name', reverse=False):
-		torender = set()
-		
-		# Groups
-		groups = nodeleted(self.db.record.get(self.db.record.findbyrectype('group')))
-		groups = set([i.name for i in groups])
-		torender |= groups
-
-		# Top-level children of groups (any rectype)
-		groups_children = self.db.rel.children(groups)
-		projs = set()
-		for v in groups_children.values():
-			projs |= v
-		torender |= projs
-
-		# Get projects, most recent children, and progress reports
-		projects_children = self.db.rel.children(projs, recurse=-1)
-
-		# Get all the recent records we want to display
-		recnames = self.db.record.render(torender)
-
-		self.ctxt['groups_children'] = groups_children
-		self.ctxt['recnames'] = recnames
-		self.ctxt['projects_children'] = projects_children
-
 
 	@View.add_matcher(r'^/$', view='Root', name='main')
 	@View.add_matcher(r'^/em/home/$')
@@ -86,9 +57,6 @@ class EMHome(View):
 		self.ctxt['banner'] = banner
 		self.ctxt['render_banner'] = render_banner
 
-		# Groups and projects
-		self.common()
-
 		# Recent records
 		now = datetime.datetime.utcnow().isoformat()+'+00:00'
 		since = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).isoformat()+'+00:00'
@@ -103,71 +71,68 @@ class EMHome(View):
 		# Table
 		q_table = self.routing.execute('Query/embed', db=self.db, q={'count':20, 'subset':q['names']}, controls=False)
 		self.ctxt['recent_activity_table'] = q_table
-
 		
 		
-	@View.add_matcher(r'^/em/home/project/(?P<name>\w+)/$')
-	def project(self, name):
-		self.title = 'Project'
-		self.template = '/em/home.project'
-
-		self.common()
-		
-		# Recent records
-		now = datetime.datetime.utcnow().isoformat()+'+00:00'
-		since = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).isoformat()+'+00:00'
-		q = self.db.plot(
-			[
-				['children', '==', '%s*'%name],
-				['creationtime', '>=', since]
-			], 
-			x={'key':'creationtime', 'bin':'day', 'min':since, 'max':now}, 
-			y={'stacked':True},
-			z={'key':'creator'},
-			sortkey='creationtime'
-			)
-		self.ctxt['recent_activity'] = q
-		
-		project = self.db.record.get(name)
-		project_render = self.db.record.render(name, viewname="defaultview")
-
-		users = set()
-		for k in project['permissions']: users |= set(k)
-		users |= set(project.get('name_pi', []))
-		users |= set(project.get('project_investigators', []))
-		groups = set()
-		groups |= project['groups']
-
-		children = self.db.record.get(project.children)
-		children_render = self.db.record.render(children)
-		recorddefs = self.db.recorddef.get(set([i.rectype for i in children]))
-
-		self.ctxt['project'] = project
-		self.ctxt['project_render'] = project_render
-		self.ctxt['users'] = self.db.user.get(users)
-		self.ctxt['groups'] = self.db.group.get(groups)
-		self.ctxt['children'] = children
-		self.ctxt['children_render'] = children_render
-		self.ctxt['recorddefs'] = recorddefs
-		
-		# Testing....
-		childtables = {}
-		for k in recorddefs:
-			c = [['children', '==', project.name], ['rectype', '==', k.name]]
-			query = self.routing.execute('Query/embed', c=c, db=self.db, parent=project.name, rectype=k.name)
-			childtables[k] = query
-		self.ctxt['childtables'] = childtables
-		
-		
-		
-		
-	@View.add_matcher(r'^/em/home/project/(?P<name>\w+)/resetpermissions/$', write=True)
-	def project_resetpermissions(self, name):
-		project = self.db.record.get(name)
-		perms = [[], [], project.get('project_investigators', []), project.get('name_pi', [])]
-		groups = project.get('groups', [])
-		self.db.record.setpermissionscompat([project.name], addumask=perms, overwrite_users=True, recurse=-1)
-		self.redirect('%s/em/home/project/%s/'%(self.ctxt['EMEN2WEBROOT'], project.name))
+	# @View.add_matcher(r'^/em/home/project/(?P<name>\w+)/$')
+	# def project(self, name):
+	# 	self.title = 'Project'
+	# 	self.template = '/em/home.project'
+	# 
+	# 	# Recent records
+	# 	now = datetime.datetime.utcnow().isoformat()+'+00:00'
+	# 	since = (datetime.datetime.utcnow() - datetime.timedelta(days=90)).isoformat()+'+00:00'
+	# 	q = self.db.plot(
+	# 		[
+	# 			['children', '==', '%s*'%name],
+	# 			['creationtime', '>=', since]
+	# 		], 
+	# 		x={'key':'creationtime', 'bin':'day', 'min':since, 'max':now}, 
+	# 		y={'stacked':True},
+	# 		z={'key':'creator'},
+	# 		sortkey='creationtime'
+	# 		)
+	# 	self.ctxt['recent_activity'] = q
+	# 	
+	# 	project = self.db.record.get(name)
+	# 	project_render = self.db.record.render(name, viewname="defaultview")
+	# 
+	# 	users = set()
+	# 	for k in project['permissions']: users |= set(k)
+	# 	users |= set(project.get('name_pi', []))
+	# 	users |= set(project.get('project_investigators', []))
+	# 	groups = set()
+	# 	groups |= project['groups']
+	# 
+	# 	children = self.db.record.get(project.children)
+	# 	children_render = self.db.record.render(children)
+	# 	recorddefs = self.db.recorddef.get(set([i.rectype for i in children]))
+	# 
+	# 	self.ctxt['project'] = project
+	# 	self.ctxt['project_render'] = project_render
+	# 	self.ctxt['users'] = self.db.user.get(users)
+	# 	self.ctxt['groups'] = self.db.group.get(groups)
+	# 	self.ctxt['children'] = children
+	# 	self.ctxt['children_render'] = children_render
+	# 	self.ctxt['recorddefs'] = recorddefs
+	# 	
+	# 	# Testing....
+	# 	childtables = {}
+	# 	for k in recorddefs:
+	# 		c = [['children', '==', project.name], ['rectype', '==', k.name]]
+	# 		query = self.routing.execute('Query/embed', c=c, db=self.db, parent=project.name, rectype=k.name)
+	# 		childtables[k] = query
+	# 	self.ctxt['childtables'] = childtables
+	# 	
+	# 	
+	# 	
+	# 	
+	# @View.add_matcher(r'^/em/home/project/(?P<name>\w+)/resetpermissions/$', write=True)
+	# def project_resetpermissions(self, name):
+	# 	project = self.db.record.get(name)
+	# 	perms = [[], [], project.get('project_investigators', []), project.get('name_pi', [])]
+	# 	groups = project.get('groups', [])
+	# 	self.db.record.setpermissionscompat([project.name], addumask=perms, overwrite_users=True, recurse=-1)
+	# 	self.redirect('%s/em/home/project/%s/'%(self.ctxt['EMEN2WEBROOT'], project.name))
 
 
 		

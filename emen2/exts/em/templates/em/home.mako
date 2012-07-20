@@ -7,51 +7,101 @@ import collections
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 
+
+<%
+
+# Database queries.
+torender = set()
+def nodeleted(items):
+	return filter(lambda x:not x.get('deleted'), items)
+
+# Groups
+groups = nodeleted(DB.record.get(DB.record.findbyrectype('group')))
+groups = set([i.name for i in groups])
+torender |= groups
+
+# Top-level children of groups (any rectype)
+groups_children = DB.rel.children(groups)
+projs = set()
+for v in groups_children.values():
+	projs |= v
+torender |= projs
+
+# Get projects, most recent children, and progress reports
+# projects_children = DB.rel.children(projs, recurse=-1)
+projects_children = {}
+
+# Get all the recent records we want to display
+recnames = DB.record.render(torender)
+
+%>
+
+
+
 <%block name="css_inline">
 	${parent.css_inline()}
 
-	.home-profile {
+	.home-sidebar {
 		position: absolute;
 		left: 20px;
-		width: 350px;
-		border-right:solid 1px #ccc;
+		width: 300px;
+		height: 100%;
 		padding-bottom:50px;
 	}
-	.home-profile h2 {
+
+	.home-main {
+		border-left:solid 1px #ccc;
+		margin-left:290px;
+		padding-left:20px;
+	}
+
+	.home-tools li {
+	}
+
+	.home-sidebar h2 {
 		position:relative;
 		font-size:12pt;
 		margin:0px;
 		padding:5px;
+		padding-left: 0px;
+		padding-right: 5px;
 		border-bottom:solid 1px #ccc;
 	}
-	.home-profile h2 a {
+	.home-sidebar h2 a {
 		display:block;
 	}
-	.home-profile h2 a.e2-record-new {
+	.home-label, 
+	.home-sidebar h2 a.e2-record-new {
 		position:absolute;
-		right:8px;
+		right:5px;
 		top:6px;
 		font-size:10pt;
 		font-weight:normal;
 	}
 	
-	.home-profile ul {
+	.home-sidebar ul {
 		padding-left:0px;
 		margin-bottom:40px;
 	}
-	.home-profile li {
+	.home-sidebar li {
 		list-style:none;
 		position:relative;
 	}
-	.home-profile .home-projectlist li a {
+	.home-sidebar .home-projectlist li a {
 		font-size:10pt;
 		display:block;
 		padding:5px;
 		padding-right:50px;
 	}
-	.home-profile .home-projectlist li:nth-child(2n) {
+	.home-sidebar .home-projectlist li:nth-child(2n) {
 		background:#eee;
 	}
+	
+	.home-profile img {
+		max-height: 64px;
+		max-width: 64px;
+	}
+	
 	.home-count {
 		position:absolute;
 		right:8px;
@@ -61,12 +111,12 @@ import collections
 		font-size:8pt;
 		border-radius: 4px;
 	}
-	.home-main {
-		margin-left:380px;
-	}
+
+	
 
 	
 </%block>
+
 
 
 <%block name="js_ready">
@@ -84,36 +134,38 @@ import collections
 </%block>
 
 
-<div class="home-profile">
 
-	<h1 style="text-align:center;border-bottom:none">
+<div class="home-sidebar">
+
+	<div class="e2-infobox" style="width:100%">
 		% if USER.userrec.get('person_photo'):
-			<img src="${EMEN2WEBROOT}/download/${USER.userrec.get('person_photo')}/user.jpg?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" />
-			<br />
+			<img class="e2l-thumbnail" src="${EMEN2WEBROOT}/download/${USER.userrec.get('person_photo')}/user.jpg?size=small" />
 		% endif	
-		${USER.displayname}
-		<br />
-		<a href="${EMEN2WEBROOT}/user/${USER.name}/edit/" class="e2-button">${buttons.image('edit.png','')} Edit profile</a> <a href="${EMEN2WEBROOT}/auth/logout/" class="e2-button">Logout</a>				
-		<br />
-		<a href="${EMEN2WEBROOT}/query/rectype.is.group/" class="e2-button">All groups</a> <a href="${EMEN2WEBROOT}/query/rectype.is.project/" class="e2-button">All projects</a>				
-	</h1>
+		<div>
+			<h4>${USER.displayname}</h4>
+			<div class="e2l-small">
+				${USER.email}
+				<span style="float:right;padding-right:5px;">
+					<a href="">Profile</a>
+				</span>
+			</div>
+		</div>
+	</div>
 	
-	<br />
-	
-	
-	% for group, projects in groups_children.items():
+	## <h2 class="e2l-cf">
+	##	<a href="">Groups</a>
+	##	<a href="${EMEN2WEBROOT}/record/0/new/project/" class="e2-record-new" data-parent="0" data-rectype="group">New group</a>
+	## </h2>
+	## <ul class="home-projectlist">
+	## 	<li><a href="${EMEN2WEBROOT}/record/${group}/">${recnames.get(group)}</a></li>
+	##			 ${len(projects)} projects
+	## </ul>
 
+	% for group, projects in groups_children.items():
 		<h2 class="e2l-cf">
 			<a href="${EMEN2WEBROOT}/record/${group}/">${recnames.get(group, group)}</a>
-			
-			
-			## % if ADMIN:
 			<a href="${EMEN2WEBROOT}/record/${group}/new/project/" class="e2-record-new" data-parent="${group}" data-rectype="project">New project</a>
-			## % endif
-			
-		</h2>
-
-
+		 </h2>
 		<ul class="home-projectlist">
 			% for project in sorted(projects, key=lambda x:recnames.get(x, '').lower()):
 				<li>
@@ -121,20 +173,18 @@ import collections
 						${recnames.get(project, project)}
 					</a>
 					<span class="e2l-shadow home-count">
-						${len(projects_children.get(project, []))}						
+						${len(projects_children.get(project, [])) or ''}						
 					</span>
 					</li>
 			% endfor
 		</ul>
 	% endfor
+
 	
-	% if ADMIN:
-		<span class="e2-button e2-button e2-record-new" data-parent="0" data-rectype="group">${buttons.image('edit.png','')} New group</span>
-	% endif
+
 	
 </div>
 
-
-
-
-${next.body()}
+<div class="home-main">
+	${next.body()}
+</div>

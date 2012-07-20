@@ -19,8 +19,6 @@ import jsonrpc.jsonutil
 </%block>
 
 
-<div class="home-main">
-
 % if banner:
 	<h1>
 		Welcome to ${EMEN2DBNAME}
@@ -40,7 +38,8 @@ import jsonrpc.jsonutil
 <h1>
 	Activity and recent records
 	<ul class="e2l-actions">
-		<li><a class="e2-button" href="${EMEN2WEBROOT}/query/">View all records</a></li>
+		<li><a class="e2-button" href="${EMEN2WEBROOT}/records/">Record relationships</a></li>
+		<li><a class="e2-button" href="${EMEN2WEBROOT}/query/">All records</a></li>
 	</ul>
 </h1>
 
@@ -49,5 +48,3 @@ import jsonrpc.jsonutil
 </div>
 
 ${recent_activity_table}
-
-</div>
