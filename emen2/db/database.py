@@ -578,7 +578,7 @@ class EMEN2DBEnv(object):
 			flags = 0
 
 		txn = self.dbenv.txn_begin(parent=parent, flags=flags)
-		emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
+		# emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
 		type(self).txncounter += 1
 		self.txnlog[txn.id()] = txn
@@ -659,7 +659,6 @@ class EMEN2DBEnv(object):
 		# is because txn.id() is null after commit.
 		actions = self._txncbs.get(txnid, [])
 		for w, c, action, args, kwargs in actions:
-			# print w, c, action, args, kwargs
 			if w == when and c == condition:
 				if action == 'rename':
 					self._txncb_rename(*args, **kwargs)
@@ -805,7 +804,7 @@ class DB(object):
 
 	def _sudo(self, username=None, ctx=None, txn=None):
 		"""(Internal) Create an admin context for performing actions that require admin privileges."""
-		# print "Temporarily granting user %s administrative privileges"
+		emen2.db.log.security("Temporarily granting user %s administrative privileges"%username)
 		ctx = emen2.db.context.SpecialRootContext()
 		ctx.refresh(db=self, username=username)
 		return ctx

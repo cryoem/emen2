@@ -236,7 +236,7 @@ class NewUser(BaseUser):
 			try:
 				value = self.validate_param(param, value, vtm=vtm)
 			except ValueError:
-				print "Couldn't validate new user signup field %s: %s"%(param, value)
+				emen2.db.log.info("NewUser Validation: Couldn't validate new user signup field %s: %s"%(param, value))
 				continue
 
 			newsignup[param] = value

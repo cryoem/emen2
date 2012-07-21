@@ -698,10 +698,8 @@ class IndexDB(EMEN2DB):
 		dkey = self.keydump(key)
 		ditems = map(self.datadump, items)
 
-		#print "new cursor"
 		cursor = self.bdb.cursor(txn=txn)
 
-		#print "cursor checking"
 		if not cursor.set(dkey):
 			addindexitems.append(key)
 
@@ -865,7 +863,6 @@ class DBODB(EMEN2DB):
 		# Update a sequence key. Requires txn.
 		# The Sequence DB can handle multiple keys -- e.g., for
 		# binaries, each day has its own sequence key.
-		# print "Setting sequence key: %s += %s, txn: %s, flags: %s"%(key, delta, txn, bsddb3.db.DB_RMW)
 		delta = 1
 		
 		val = self.sequencedb.get(key, txn=txn, flags=bsddb3.db.DB_RMW)
@@ -1179,7 +1176,6 @@ class DBODB(EMEN2DB):
 		# If we can't access the index, skip. (Raise Exception?)
 		ind = self.getindex(param, txn=txn)
 		if ind == None:
-			# print "No index for %s, skipping"%param
 			return
 
 		# Check that this key is currently marked as indexed
@@ -1192,8 +1188,8 @@ class DBODB(EMEN2DB):
 		try:
 			addrefs, removerefs = vt.reindex(changes)
 		except Exception, e:
-			print "Could not reindex param %s: %s"%(pd.name, e)
-			print changes
+			# print "Could not reindex param %s: %s"%(pd.name, e)
+			# print changes
 			return
 
 		# Write!
@@ -1263,6 +1259,7 @@ class DBODB(EMEN2DB):
 			self.index[param] = None
 
 	def rebuild_indexes(self, ctx=None, txn=None):
+		emen2.db.log.info("Rebuilding indexes: Start")
 		# ugly hack..
 		self._truncate_index = True
 		for k in self.index:
@@ -1273,7 +1270,7 @@ class DBODB(EMEN2DB):
 		keys = sorted(map(self.keyload, self.bdb.keys(txn)), reverse=True)
 		for chunk in emen2.util.listops.chunk(keys, 10000):
 			if chunk:
-				print chunk[0], "...", chunk[-1]
+				emen2.db.log.info("Rebuilding indexes: %s ... %s"%(chunk[0], chunk[-1]))
 			items = self.cgets(chunk, ctx=ctx, txn=txn)
 			# Use self.reindex() instead of self.cputs() -- the data should
 			# already be validated, so we can skip that step.
@@ -1282,7 +1279,8 @@ class DBODB(EMEN2DB):
 			self._reindex_write(ind, ctx=ctx, txn=txn)
 
 		self._truncate_index = False
-
+		emen2.db.log.info("Rebuilding indexes: Done")
+	
 
 
 	##### Query #####
@@ -1634,8 +1632,6 @@ class RelateDB(DBODB):
 				remove.append((name, i))
 			names.append(name)
 
-		# print "Add links:", add
-		# print "Remove links:", remove
 		p_add = collections.defaultdict(set)
 		p_remove = collections.defaultdict(set)
 		c_add = collections.defaultdict(set)
@@ -1665,7 +1661,7 @@ class RelateDB(DBODB):
 				try:
 					rec = self.get(name, filt=False, txn=txn)
 				except:
-					print "Couldn't link to missing item:", name
+					# print "Couldn't link to missing item:", name
 					continue
 
 				rec.__dict__['parents'] -= p_remove[rec.name]

@@ -50,7 +50,7 @@ class DBPool(object):
 		"""Create a new database connection."""
 		import emen2.db.database
 		tid = self.threadID()
-		# print '# threads: %s -- this thread is %s'%(len(self.dbs), tid)
+		# emen2.db.log.info('DBPool info: # threads: %s -- this thread is %s'%(len(self.dbs), tid))
 		db = self.dbs.get(tid)
 		if not db:
 			db = emen2.db.database.opendb()
@@ -97,8 +97,17 @@ class WebServerOptions(emen2.db.config.DBOptions):
 
 class EMEN2Site(twisted.web.server.Site):
 	def log(self, request):
-		line = '%s - - %s "%s" %d %s "%s" "%s"\n' % (
+		# rfc identd used for client supplied session ID
+		# userid field is authenticated user name
+
+		# This is a hack to get the session/username
+		ctxid = getattr(request, "_log_ctxid", None) or "-"
+		username = getattr(request, "_log_username", None) or "-"
+
+		line = '%s %s %s %s "%s" %d %s "%s" "%s"' % (
 			request.getClientIP(),
+			ctxid,
+			username,
 			self._logDateTime,
 			'%s %s %s' % (self._escape(request.method),
 						  self._escape(request.uri),
@@ -108,7 +117,7 @@ class EMEN2Site(twisted.web.server.Site):
 			self._escape(request.getHeader("referer") or "-"),
 			self._escape(request.getHeader("user-agent") or "-"))
 
-		emen2.db.log.msg('WEB', line)
+		emen2.db.log.web(line)
 
 
 
@@ -151,10 +160,6 @@ class EMEN2Server(object):
 		# Load all View extensions
 		import emen2.db.config
 		emen2.db.config.load_views()
-
-		# Init log system
-		# import emen2.db.log
-		# emen2.db.log.init('log initialized')
 
 		# Child resources that do not go through the Router.
 		import jsonrpc.server

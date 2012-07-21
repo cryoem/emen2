@@ -31,7 +31,6 @@ class RSS(View):
 	def main(self, begin='', end='', amount='', unit='', *a, **kw):
 		self.template = '/pages/rss'
 		self.mimetype = 'text/xml; charset=UTF-8'
-		print self.mimetype
 		if begin != '':
 			self.get_data = self.render
 			self._begin = time.strftime("%Y/%m/%d %H:%M:%S", time.strptime(begin, '%Y%m%d%H%M%S'))

@@ -240,7 +240,7 @@ class Vartype(object):
 				changed = True
 			elif ALLOW_MISSING:
 				# Convert.. Warning: using a private method.
-				print "Could not find, but allowing: %s %s (param %s)"%(self.vartype, i, self.pd.name)
+				emen2.db.log.warn("Validation: Could not find, but allowing: %s %s (param %s)"%(self.vartype, i, self.pd.name))
 				ret.append(i)
 			else:
 				raise ValidationError, "Could not find: %s %s (param %s)"%(self.vartype, i, self.pd.name)

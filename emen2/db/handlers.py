@@ -303,7 +303,7 @@ class BinaryHandler(object):
 			try:
 				self._thumbnail_build(workfile)
 			except Exception, e:
-				print "Could not build tiles:", e
+				emen2.db.log.error("Could not build tiles: %s"%e)
 				pass
 			os.remove(workfile)
 		else:

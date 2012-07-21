@@ -262,12 +262,13 @@ class UsageParser(object):
 		# Eventually 'with' will unlock/lock the globalns
 		# with globalns:
 		self._load_config(**kw)
-
 		self.config.globalns.CONFIG_LOADED = True
+
 
 	def _load_config(self, **kw):
 		# Set EMEN2DBHOME from the options or environment variable.
 		h = self.options.get('home', os.getenv("EMEN2DBHOME"))
+
 		# print "EMEN2 config loader: %s"%h
 		self.config.load_data(EMEN2DBHOME=h)
 
@@ -342,6 +343,8 @@ class UsageParser(object):
 		# Do anything defined by the usage.Options class
 		self.options.load_config()
 
+		# Tell the logger that we're initialized!
+		# emen2.db.log.logger.start()
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

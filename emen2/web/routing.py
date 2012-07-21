@@ -149,7 +149,6 @@ class Route(object):
 	"""Private"""
 
 	def __init__(self, name, matcher, cls=None, method=None, write=False):
-		# print "Route:", name, matcher, cb
 		self.name = name
 		if not hasattr(matcher, 'match'):
 			matcher = re.compile(matcher)
@@ -158,7 +157,6 @@ class Route(object):
 		self.method = method
 
 		# Hint that this route will cause writes
-		# if write: print "Set self.write on", self, self.matcher, self.method
 		self.write = write
 
 
@@ -211,14 +209,12 @@ class _Router(emen2.util.registry.Registry):
 		if (not path and not name) or (path and name):
 			raise ValueError, "You must specify either a path or a name"
 
-		# print "Resolving...", path
 		# Return a callback and found arguments
 		result = None, None
 
 		# Look at all the routes in the registry
 		for route in cls.registry.values():
 			# Return a result if found
-			# print "Checking:", route.name
 			if path:
 				tmp = route.match(path)
 				if tmp != None:

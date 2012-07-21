@@ -17,22 +17,13 @@ Functions:
 import traceback
 import functools
 
-import twisted.python.log
-
 import emen2.db.config
 import emen2.db.debug
 import os.path
-logger = None
-IGNORE = ['DEBUG', 'INDEX']
-
-
-inst = lambda x:x()
 
 class EMEN2Logger(object):
-	LOG_LEVEL = emen2.db.config.get('LOG_LEVEL', None, False)
-	LOGPATH = emen2.db.config.get('paths.LOGPATH', None, False)
 
-	log_levels = emen2.util.datastructures.Enum(dict(
+	log_levels = dict(
 			DEBUG=-1,
 			TXN=1,
 			INIT=2,
@@ -45,66 +36,62 @@ class EMEN2Logger(object):
 			ERROR=10,
 			CRITICAL=11,
 			ALL=0
-	))
+	)
+	
+	def __init__(self):
+		# print "EMEN2Logger: __init__"
+		self.started = False
+		self.logpath = None
+		self.log_level = 0
+		self.outfile = None
+		
+	def start(self):
+		# print "EMEN2Logger: start"
+		self.started = True
+		self.logpath = emen2.db.config.get("paths.LOGPATH")
+		self.log_level = self.log_levels.get(emen2.db.config.get('LOG_LEVEL', 0))
+		self.outfile = open(os.path.join(self.logpath, "test.log"), "w")
+		
+	def stop(self):
+		# print "EMEN2Logger: stop"
+		self.outfile.close()
+		self.outfile = None
+		self.started = False
+
+	def log(self, msg, level='INFO'):
+		l = self.log_levels.get(level, 0)
+		line = '%s: %s'%(level, msg)
+		if l < self.log_level:
+			return
+		
+		if not self.outfile:
+			print line
+			return
+			
+		self.outfile.write(line+"\n")
+		self.outfile.flush()			
+
+	def emit(self, e):
+		return self.log(e)
 
 
-	@classmethod
-	def emen2_logs(cls, event): # *args, **kwargs):
-		self = cls()
-		self.process(event)
-
-	def log(self, level, *args, **kwargs):
-		level = self.log_levels[level]
-		if level >= self.log_levels[self.LOG_LEVEL]:
-			message = '%s: %s' % (self.log_levels.get_name(level), ' '.join(args))
-			twisted.python.log.msg(message, system=self.log_levels.get_name(level))
-			# print message
-		else:
-			pass
-
-
-@inst
-class Variables:
-	'''Namespace for module-level variables'''
-
-	logger = EMEN2Logger()
-	debug_state = emen2.db.debug.DebugState()
-
-
-
-import twisted.python.log
-
-def msg(level='INFO', msg=''):
-	#print msg
-	Variables.logger.log(level, msg)
-
-def flip(func):
-	@functools.wraps(func)
-	def _inner(self, *args, **kwargs):
-		return func( *args[::-1], **kwargs)
-	return _inner
-
-# Argghgh..
-msg_forwards = msg
-def msg_backwards(msg='', level='INFO'):
-	return msg_forwards(msg=msg, level=level)
-
-def nothing(*args, **kwargs):
-	pass
-
-# Aliases
-info = functools.partial(msg_backwards, level='INFO')
-init = functools.partial(msg_backwards, level='INIT')
-error = functools.partial(msg_backwards, level='ERROR')
-warn = functools.partial(msg_backwards, level='WARN')
-debug = functools.partial(msg_backwards, level='DEBUG')
-security = functools.partial(msg_backwards, level='SECURITY')
-index = nothing # functools.partial(msg_backwards, level='INDEX')
-commit = functools.partial(msg_backwards, level='COMMIT')
-
-#def detach():
-#	Variables.logger.capturestdout()
-#	Variables.logger.closestdout()
+# Create the logger
+logger = EMEN2Logger()
 
 def print_exception():
 	traceback.print_exc()
+
+def msg(msg='', level='INFO'):
+	logger.log(msg, level)
+
+
+# Aliases
+info = functools.partial(msg, level='INFO')
+init = functools.partial(msg, level='INIT')
+error = functools.partial(msg, level='ERROR')
+warn = functools.partial(msg, level='WARN')
+debug = functools.partial(msg, level='DEBUG')
+security = functools.partial(msg, level='SECURITY')
+index = functools.partial(msg, level='INDEX')
+commit = functools.partial(msg, level='COMMIT')
+web = functools.partial(msg, level='WEB')

@@ -35,21 +35,6 @@ class TemplateRender(View):
 
 
 
-# import twisted.web.static
-# 
-# @View.register
-# class Static(View):
-# 	'''Static files'''
-# 	
-# 	@View.add_matcher(r'^/static/(?P<filename>.+)', name='main')
-# 	@View.add_matcher(r'^/static-%s/(?P<filename>.+)'%emen2.db.config.get('params.VERSION'), name='main/version')		
-# 	def main(self, filename):
-# 		self.filename = emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')		 
-# 		
-# 	def render_cb(self, result, request, t=0):
-# 		a = twisted.web.static.NoRangeStaticProducer(request, open(self.filename))
-# 		a.start()
-# 		
 		
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

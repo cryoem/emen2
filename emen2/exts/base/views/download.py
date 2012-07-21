@@ -47,11 +47,12 @@ class Download(View):
 		
 
 
-	def render_cb(self, bdos, request, t=0, **_):
+	def render_result(self, bdos, request, t=0, **_):
 		# Process the returned BDOs into files to send
 		size = request.args.get('size')
 		format = request.args.get('format', 'jpg')
 		files = {}
+		cache = True
 		
 		for bdo in bdos:
 			filename = bdo.get("filename")
@@ -67,6 +68,7 @@ class Download(View):
 					files[thumbpath] = '%s.%s.%s'%(filename, size, format)
 				else:
 					# Build the thumbnail; return a spinner image
+					cache = False
 					status = emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
 					files[emen2.db.config.get_filename('emen2', 'web/static/images/handler.%s.png'%status)] = 'handler.%s.png'%status
 
@@ -83,12 +85,12 @@ class Download(View):
 		if len(files) > 1:
 			return self._transfer_tar(files, request)
 		
-		return self._transfer_single(files, request)
+		return self._transfer_single(files, request, cache=cache)
 
 
 	##### Process the result #####
 
-	def _transfer_single(self, files, request):
+	def _transfer_single(self, files, request, cache=True):
 		# Download a single file
 		filepath, filename = files.items()[0]
 		mimetype, encoding = twisted.web.static.getTypeAndEncoding(filename, self.contentTypes, self.contentEncodings, self.defaultType)
@@ -107,14 +109,14 @@ class Download(View):
 		request.setHeader('Content-Length', str(fsize))
 		request.setHeader('Content-Type', mimetype)
 		request.setHeader('Content-Encoding', encoding)
-		request.setHeader('Cache-Control', 'max-age=86400')
-		# 'Cache-Control': 'max-age=86400'
+		if cache:
+			request.setHeader('Cache-Control', 'max-age=86400')
 
 		a = twisted.web.static.NoRangeStaticProducer(request, f)
 		a.start()
 
 
-	def _transfer_tar(self, files, request):
+	def _transfer_tar(self, files, request, cache=False):
 		# Download multiple files using TarPipe
 		request.setHeader('Content-Disposition', 'attachment; filename=archive.tar')
 		request.setHeader('Content-Type', 'application/x-tar')

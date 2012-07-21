@@ -16,6 +16,7 @@ except:
 	CPU_COUNT = 1
 
 
+import emen2.db.log
 
 ##### Subprocess queues #####
 
@@ -30,7 +31,7 @@ class ProcessWorker(object):
 			if task is None:
 				self.queue.add_task(None)
 				return
-			print "ProcessWorker:", task
+			emen2.db.log.info("ProcessWorker run:", task)
 			a = subprocess.Popen(task)
 			returncode = a.wait()
 			self.queue.task_done()
@@ -52,7 +53,7 @@ class ProcessQueue(Queue.LifoQueue):
 		if name in [i[1] for i in self.queue]:
 			raise ValueError, "Task name already in queue: %s"%name
 
-		print "ProcessQueue: Adding task %s with priority %s to queue: %s"%(name, priority, task)
+		emen2.db.log.info("ProcessQueue: Adding task %s with priority %s to queue: %s"%(name, priority, task))
 		return self.put((priority, name, task))
 
 	def end(self):

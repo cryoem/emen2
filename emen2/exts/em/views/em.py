@@ -5,6 +5,7 @@ import tempfile
 
 import emen2.db.exceptions
 import emen2.db.config
+import emen2.db.log
 from emen2.web.view import View
 
 
@@ -177,7 +178,7 @@ class EMAN2Convert(View):
 		return filename, outfile.name
 
 
-	def render_cb(self, result, request, t=0, **_):
+	def render_result(self, result, request, t=0, **_):
 		filename, filepath = result
 		mimetype, encoding = twisted.web.static.getTypeAndEncoding(filename, self.contentTypes, self.contentEncodings, self.defaultType)
 
@@ -188,13 +189,13 @@ class EMAN2Convert(View):
 		request.setHeader('Content-Length', str(fsize))
 		request.setHeader('Content-Type', mimetype)
 		request.setHeader('Content-Encoding', encoding)
-		request.setHeader('Cache-Control', 'max-age=86400')
 
 		a = twisted.web.static.NoRangeStaticProducer(request, f)
 		a.start()
 
 		try:
-			print "Removing temporary file:", filepath
+			emen2.db.log.info("Removing temporary file: %s"%filepath)
 			os.remove(filepath)
 		except:
-			print "Couldn't remove temporary file:", filepath
+			emen2.db.log.error("Couldn't remove temporary file: %s"%filepath)
+			

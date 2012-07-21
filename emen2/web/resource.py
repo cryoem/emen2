@@ -129,13 +129,22 @@ class EMEN2Resource(object):
 		# Render method
 		self.db = db
 
+		# Result
+		result = None
+		
+		# Hack to log username and ctxid
+		self._log_username = None
+		self._log_ctxid = ctxid
+
 		# The DBProxy context manager will open a transaction, and abort
 		# on an uncaught exception.
 		write = getattr(method, "write", False)
 		# self.db._newtxn(write=write)
 		with self.db._newtxn(write=write):
 			# Bind the ctxid/host to the DBProxy
-			self.db._setContext(ctxid,host)
+			self.db._setContext(ctxid, host)
+			self._log_username = self.db._ctx.username
+			
 			# Any View init method is run inside the transaction
 			self.init()
 			result = method(self, **args)
@@ -144,6 +153,8 @@ class EMEN2Resource(object):
 			# otherwise, calls str() on the View.
 			if result is None:
 				result = str(self)
+
+		self.db = None
 
 		return result
 
@@ -156,6 +167,12 @@ class EMEN2Resource(object):
 	##### Callbacks #####
 
 	def render_cb(self, result, request, t=0, **_):
+		# Render callback -- setup basic headers
+
+		# This is a hack to log the ctxid and username
+		request._log_username = self._log_username
+		request._log_ctxid = self._log_ctxid
+		
 		# If a result was passed, use that. Otherwise use str(self).
 		# Note: the template rendering will occur here,
 		# 	outside of the DB transaction.
@@ -167,38 +184,40 @@ class EMEN2Resource(object):
 		headers.update(self.headers)
 		headers = dict( (k,v) for k,v in headers.iteritems() if v != None )
 
-		length = 0
-		if result is not None:
-			length = len(result)
-			headers['Content-Length'] = length
-
 		# Redirect if necessary
 		if headers.get('Location'):
 			request.setResponseCode(303)
-
-		[request.setHeader(key, str(headers[key])) for key in headers]
 
 		# If X-Ctxid (auth token) was supplied as a header,
 		# set the client's cookie. This is is used by login, logout
 		# and opening a web browser from desktop clients with ?ctxid as
 		# a querystring argument.
-		setctxid = headers.get('X-Ctxid')
+		setctxid = headers.pop('X-Ctxid', None)
 		if setctxid != None:
 			request.addCookie("ctxid", setctxid, path='/')
 
+		# Set the remaining headers
+		[request.setHeader(key, str(headers[key])) for key in headers]
+
 		# Send result to client
+		self.render_result(result, request)
+
+
+	def render_result(self, result, request):
+		"""Write the result to the client and close the request."""
+		length = 0
+		if result is not None:
+			length = len(result)
+			request.setHeader("Content-Length", length)
+
 		if result is not None:
 			request.write(result)
-
+		
 		# Close the request and write to log
 		request.finish()
-		self.events.event('web.request.succeed')(request, setctxid, headers, result)
 
 
 	def render_eb(self, failure, request, t=0, **_):
-		# print "Error:"
-		# print failure
-		# Error callback
 		e, data = '', ''
 		headers = {}
 
@@ -239,7 +258,6 @@ class EMEN2Resource(object):
 		request.write(data)
 
 		request.finish()
-		self.events.event('web.request.fail')(request, headers.get('X-Ctxid'), headers, data)
 
 
 	##### Error handlers #####
@@ -525,7 +543,6 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 
 	def callmethod(self, request, rpcrequest, db=None, ctxid=None, **kw):
 		# Lookup the method and call
-		# print 'callmethod: %s, %s, %s, %s, %s, %s' % (self, request, rpcrequest, db, ctxid, kw)
 		if not db:
 			raise Exception, "No DBProxy"
 
@@ -573,7 +590,6 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 			traceback.print_exc()
 		else:
 			pass
-			# print response.json_equivalent(), txrequest
 
 
 

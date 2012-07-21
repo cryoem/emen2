@@ -258,8 +258,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 		keys.add('name')
 		for key in keys:
 			value = update.pop(key, None)
-			# value = self.validate_param(key, value, vtm=vtm)
-			# print "\t%s: %s"%(key, value)
+			# value = self.validate_param(key, value, vtm=vtm) # skip
 			self.__dict__[unicode(key)] = value
 		
 		# Skip validation for relationships.
@@ -388,8 +387,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 		# 	they might be new items, or items we won't
 		#	have permission to read/edit.
 		value |= changed - set(i.name for i in access)
-
-		# print "Kept..", key, " :", changed-access
 		return self._set(key, value, True)
 
 	def _set_children(self, key, value, vtm=None, t=None):
@@ -410,11 +407,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 			if key.startswith('_'):
 				odict.pop(key, None)
 		return odict
-
-	# Debugging
-	# def __setstate__(self, data):
-	# 	print data
-	# 	self.__dict__.update(data)
 
 
 	##### Validation and error control #####
@@ -473,8 +465,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 			msg = e.__doc__
 			
 		if warning:
-			# emen2.db.log.warn
-			# print "Warning:", e(msg)
+			# emen2.db.log.warn("Warning: %s"%e(msg))
 			pass
 		else:
 			raise e(msg)

@@ -16,7 +16,7 @@
 <head>
 
 	<%block name="meta">
-		<meta http-equiv="Content-type" content="text/html; charset=utf-8" />
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<meta http-equiv="Content-Language" content="en-us" />
 		<meta http-equiv="X-UA-Compatible" content="IE=Edge">
 	</%block>
@@ -29,7 +29,6 @@
 
 	<%block name="css_include">
 		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/custom-theme/jquery-ui-1.8.16.custom.css" />
-		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${VERSION}/css/fullcalendar.css" />
 		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/tmpl-${VERSION}/css/base.css" />
 		<link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/tmpl-${VERSION}/css/site.css" />
 	</%block>
@@ -39,11 +38,12 @@
 	</style>
 
 	<%block name="js_include">
-		<!--[if lt IE 9]>
-		<script type="text/javascript" src="https://getfirebug.com/firebug-lite.js"></script>		
-		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/iefix.js"></script>		
-		<script src="http://ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js"></script>
-		<![endif]-->		
+
+		## <!--[if lt IE 9]>
+		## <script type="text/javascript" src="https://getfirebug.com/firebug-lite.js"></script>		
+		## <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/iefix.js"></script>		
+		## <script src="http://ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js"></script>
+		## <![endif]-->		
 
 		## EMEN2 Settings
 		<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/settings.js"></script>

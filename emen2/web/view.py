@@ -265,14 +265,6 @@ class View(TemplateView):
 			BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', []),
 		))
 
-	def _time(self, label=None):
-		"""Debugging."""
-		try:
-			print label or '', '%0.2f'%(time.time()-self._time_current)
-		except:
-			pass
-		self._time_current = time.time()
-
 	# def notify(self, msg):
 	# 	if self.ctxid is not None:
 	# 		self.events.event('notify')(self.ctxid, msg)

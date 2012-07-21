@@ -20,7 +20,6 @@ class Auth(View):
 		if name != None:
 			ctxid = self.db.auth.login(name, pw, host=self.ctxt['HOST'])
 			msg = 'Successfully logged in'
-
 			self.set_header('X-Ctxid', ctxid)
 			self.redirect(location or '/')
 			# self.set_header('Location', location or '/')

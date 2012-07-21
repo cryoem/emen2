@@ -144,7 +144,7 @@ class AccessLogLine(object, UserDict.DictMixin):
 		kwargs = {}
 		yield _Munger(kwargs)
 		self = cls(**kwargs)
-		# emen2.db.log.msg(level, self)
+		# emen2.db.log.msg(self, level=level)
 
 	def __init__(self, *args, **kwargs):
 		self._d = {}
