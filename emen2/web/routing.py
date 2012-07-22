@@ -75,8 +75,6 @@ class Router(twisted.web.resource.Resource):
 		# 	resource = tmp.get('x-resource', '-'),
 		# 	cputime = (time.time()-t)*1000,
 		# )
-		# emen2.db.log.web(str(logline))
-
 
 	# Resource was not found
 	def render(self, request):

@@ -99,7 +99,6 @@ class EMEN2Site(twisted.web.server.Site):
 	def log(self, request):
 		# rfc identd used for client supplied session ID
 		# userid field is authenticated user name
-
 		# This is a hack to get the session/username
 		ctxid = getattr(request, "_log_ctxid", None) or "-"
 		username = getattr(request, "_log_username", None) or "-"
@@ -187,7 +186,6 @@ class EMEN2Server(object):
 
 
 def start_standalone():
-	# twisted.python.log.startLogging(sys.stdout)
 	opt = emen2.db.config.UsageParser(WebServerOptions)
 	server = EMEN2Server(opt.options)
 	server.start()

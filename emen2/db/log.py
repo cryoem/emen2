@@ -16,10 +16,33 @@ Functions:
 
 import traceback
 import functools
+import os.path
+import sys
+
+import twisted.python.log
+
+from twisted.python import util
+from twisted.python.log import _safeFormat, textFromEventDict
 
 import emen2.db.config
 import emen2.db.debug
-import os.path
+
+
+class SubLogger(twisted.python.log.FileLogObserver):
+	pass
+
+
+class WebLogger(twisted.python.log.FileLogObserver):
+	def emit(self, eventDict):
+		messages = eventDict.get("message")
+		for message in messages:
+			util.untilConcludes(self.write, message+"\n")
+			util.untilConcludes(self.flush)
+
+
+class ErrorLogger(twisted.python.log.FileLogObserver):
+	pass
+	
 
 class EMEN2Logger(object):
 
@@ -39,40 +62,53 @@ class EMEN2Logger(object):
 	)
 	
 	def __init__(self):
-		# print "EMEN2Logger: __init__"
+		# rint "EMEN2Logger.__init__"
 		self.started = False
-		self.logpath = None
 		self.log_level = 0
-		self.outfile = None
-		
-	def start(self):
-		# print "EMEN2Logger: start"
-		self.started = True
+		self.loggers = {}
+		# Turn on logging to stdout by default
+		twisted.python.log.startLogging(sys.stdout, setStdout=False)
+
+	def init(self):
+		# print "EMEN2Logger.init"
+		# The configuration has been loaded
 		self.logpath = emen2.db.config.get("paths.LOGPATH")
 		self.log_level = self.log_levels.get(emen2.db.config.get('LOG_LEVEL', 0))
-		self.outfile = open(os.path.join(self.logpath, "test.log"), "w")
-		
-	def stop(self):
-		# print "EMEN2Logger: stop"
-		self.outfile.close()
-		self.outfile = None
-		self.started = False
 
-	def log(self, msg, level='INFO'):
-		l = self.log_levels.get(level, 0)
-		line = '%s: %s'%(level, msg)
-		if l < self.log_level:
-			return
-		
-		if not self.outfile:
-			print line
-			return
+	def start(self):
+		# print "EMEN2Logger.start"
+		self.started = True
+
+		# Open the various log files.		
+		if not self.logpath:
+			raise Exception, "No LOGPATH set"
 			
-		self.outfile.write(line+"\n")
-		self.outfile.flush()			
+		self.loggers["INFO"] = SubLogger(open(os.path.join(self.logpath, "emen2.log"), "w"))
+		self.loggers["SECURITY"] = SubLogger(open(os.path.join(self.logpath, "security.log"), "w"))
+		self.loggers["ERROR"] = ErrorLogger(open(os.path.join(self.logpath, "error.log"), "w"))
+		self.loggers["WEB"] = WebLogger(open(os.path.join(self.logpath, "access.log"), "w"))
+
+	def stop(self):
+		self.started = False
+		for k,v in self.loggers.items():
+			v.close()
+
+	def log(self, message, level='INFO'):
+		priority = self.log_levels.get(level, 0)		
+		if priority < self.log_level:
+			return
+		# Everything flows through twisted.python.log	
+		twisted.python.log.msg(message, system=level)
 
 	def emit(self, e):
-		return self.log(e)
+		level = e.get("system", "INFO")
+		messages = e.get("message")
+		t = e.get("time")
+		output = self.loggers.get(level, self.loggers["INFO"])
+		output.emit(e)
+		# for message in messages:
+		# 	output.write(prefix+str(message)+"\n")
+		# output.flush()
 
 
 # Create the logger

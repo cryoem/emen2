@@ -344,7 +344,7 @@ class UsageParser(object):
 		self.options.load_config()
 
 		# Tell the logger that we're initialized!
-		# emen2.db.log.logger.start()
+		emen2.db.log.logger.init()
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

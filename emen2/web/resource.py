@@ -238,18 +238,22 @@ class EMEN2Resource(object):
 			data = self.render_error_security(request.uri, e)
 			headers['Location'] = '/'
 			request.addCookie('ctxid', '', path='/')
+			emen2.db.log.security(e)
 
 		# Authentication exceptions
 		except emen2.db.exceptions.SecurityError, e:
 			data = self.render_error_security(request.uri, e)
+			emen2.db.log.security(e)
 
 		# HTTP errors
 		except emen2.web.responsecodes.HTTPResponseCode, e:
 			data = self.render_error_response(request.uri, e)
+			emen2.db.log.error(e)
 
 		# General error
 		except BaseException, e:
 			data = self.render_error(request.uri, e)
+			emen2.db.log.error(e)
 
 		# Write the response
 		headers.update(getattr(e, 'headers', {}))
@@ -546,6 +550,10 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 		if not db:
 			raise Exception, "No DBProxy"
 
+		# Hack to log username and ctxid
+		request._log_username = None
+		request._log_ctxid = self.ctxid
+
 		methodresult = None
 		if rpcrequest.method.startswith('_'):
 			raise emen2.web.responsecodes.ForbiddenError, 'Method not accessible'
@@ -555,7 +563,8 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 			# db._starttxn(write=db._checkwrite(rpcrequest.method))
 			with db:
 				db._setContext(self.ctxid, self.host)
-
+				request._log_username = db._ctx.username
+				
 				_method = rpcrequest.method.rpartition('.')[2]
 				if _method == 'login':
 					rpcrequest.kwargs['host'] = self.host
