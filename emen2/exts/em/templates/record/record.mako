@@ -7,12 +7,22 @@ import collections
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 
+<%def name="istab(tab1, tab2)">
+	% if tab1 == tab2:
+		class="e2-tab-active"
+	% endif
+</%def>
+
 
 <%
 children_groups = collections.defaultdict(set)
 for i in children:
 	children_groups[i.rectype].add(i)
+	
+	
+users_d = dict((i.name, i) for i in users)	
 %>
+
 
 ## Relationship tree
 <%block name="precontent">
@@ -23,80 +33,8 @@ for i in children:
 
 <%block name="css_inline">
 	${parent.css_inline()}
-
-	.home-sidebar {
-		position: absolute;
-		left: 20px;
-		width: 250px;
-		height: 100%;
-		padding-bottom:50px;
-	}
-
-	.home-main {
-		border-left:solid 1px #ccc;
-		margin-left:240px;
-		padding-left:0px;
-	}
-
-	.home-tools li {
-	}
-
-	.home-sidebar h2 {
-		position:relative;
-		font-size:12pt;
-		margin:0px;
-		padding:5px;
-		padding-left: 0px;
-		padding-right: 5px;
-		border-bottom:solid 1px #ccc;
-	}
-	.home-sidebar h2 a {
-		display:block;
-	}
-	.home-label, 
-	.home-sidebar h2 a.e2-record-new {
-		position:absolute;
-		right:5px;
-		top:6px;
-		font-size:10pt;
-		font-weight:normal;
-	}
-	
-	.home-sidebar ul {
-		padding-left:0px;
-		margin-bottom:40px;
-	}
-	.home-sidebar li {
-		list-style:none;
-		position:relative;
-	}
-	.home-sidebar .home-projectlist li a {
-		font-size:10pt;
-		display:block;
-		padding:5px;
-		padding-right:50px;
-	}
-	.home-sidebar .home-projectlist li:nth-child(2n) {
-		background:#eee;
-	}
-	
-	.home-profile img {
-		max-height: 64px;
-		max-width: 64px;
-	}
-	
-	.home-count {
-		position:absolute;
-		right:8px;
-		top:6px;
-		background:#f0f0f0;
-		padding:2px;
-		font-size:8pt;
-		border-radius: 4px;
-	}
-
-	
 </%block>
+
 
 <%block name="js_ready">
 	${parent.js_ready()}
@@ -120,14 +58,10 @@ for i in children:
 
 	// Editor
 	tab.TabControl('setcb', 'edit', function(page) {
-		$('#e2-edit').MultiEditControl({
-			name: rec.name,
-			controls: page
+		$('#e2-edit', page).MultiEditControl({
+			show: true,
+			controls: page,
 		});
-		$('#e2-edit').MultiEditControl('show');
-	});	
-	tab.TabControl('sethidecb', 'edit', function(page) {
-		$('#e2-edit').MultiEditControl('hide');	
 	});
 
 	// Permissions editor
@@ -207,162 +141,146 @@ for i in children:
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 <div class="home-sidebar">
 
-	<%
-	c = DB.record.get(rec.get('children', []))
-	byrd = collections.defaultdict(set)
-	for i in c:
-		byrd[i.rectype].add(i)
-	rds = DB.recorddef.get(byrd.keys())
-	rds_d = dict(((i.name, i) for i in rds))
+	<ul id="e2-tab-editbar2" class="e2l-cf home-projectlist" role="tablist" data-tabgroup="record">
 
-	parentnames = DB.record.render(rec.get('parents', []))
-	recnames.update(parentnames)
-
-	%>
-	
-	
-	
-	
-	<h2>${recnames.get(rec.name, rec.name)}</h2>
-
-	<div id="e2-tab-editbar2" data-tabgroup="record" role="tab">
-
-		<ul class="e2l-cf home-projectlist" role="menubar tablist" data-tabgroup="record">
-
-			<li data-tab="main"><a href="#main">Main</a></li>
-
-			## Edit Record
-			% if rec.writable():
-				<li data-tab="edit"><a href="#edit">${buttons.image('edit.png')} Edit</a></li>
-			% endif
+		## Title
+		<li data-tab="main"><h2><a href="#main">Record ${rec.name}</a></h2></li>
 
 
-			## New Record
-			% if create:
-				<li data-tab="new"><a href="#new">${buttons.image('new.png')}New</a></li>
-			% endif
+		## Main tab
+		## <li data-tab="main" ${istab(tab, "main")}><a href="#main">Main</a></li>
 
 
-			## Permissions Editor
-			<li data-tab="permissions"><a href="#permissions">${buttons.image('permissions.png')} Permissions</a></li>
+		## Edit Record
+		% if rec.writable():
+			<li data-tab="edit" ${istab(tab, "edit")}><a href="#edit">${buttons.image('edit.png')} Edit</a></li>
+		% endif
 
 
-			## Attachments Editor
-			<%
-			attachments = []
-			# cheap filtering....
-			for k in rec.paramkeys():
-				v = rec[k]
-				if hasattr(v, "__iter__"):
-					attachments.extend(x for x in v if 'bdo:' in str(x))
-				elif "bdo:" in unicode(v):
-					attachments.extend([v])
-			%>		
-			<li data-tab="attachments">
-				<a href="#attachments">
-					${buttons.image('attachments.png')}
-					<span id="attachment_count">
-					% if attachments:
-						${len(attachments)}
-					% endif
-					</span> Attachments
-				</a>
-			</li>
+		## New Record
+		% if create:
+			<li data-tab="new" ${istab(tab, "new")}><a href="#new">${buttons.image('new.png')}New</a></li>
+		% endif
 
 
-			## View Selector
-			<li data-tab="views"><a href="#views">${buttons.image('table.png')} Views</a></li>
+		## Permissions Editor
+		<li data-tab="permissions"><a href="#permissions">${buttons.image('permissions.png')} Permissions</a></li>
 
 
-			## Relationship Editor
-			<li data-tab="relationships"><a href="#relationships">${buttons.image('relationships.png')} Relationships</a></li>
+		## Attachments Editor
+		<%
+		attachments = []
+		# cheap filtering....
+		for k in rec.paramkeys():
+			v = rec[k]
+			if hasattr(v, "__iter__"):
+				attachments.extend(x for x in v if 'bdo:' in str(x))
+			elif "bdo:" in unicode(v):
+				attachments.extend([v])
+		%>		
+		<li data-tab="attachments">
+			<a href="#attachments">
+				${buttons.image('attachments.png')}
+				<span id="attachment_count">
+				% if attachments:
+					${len(attachments)}
+				% endif
+				</span> Attachments
+			</a>
+		</li>
 
 
-			## Tools
-			<li data-tab="tools"><a href="#tools">${buttons.image('tools.png')} Tools</a></li>
+		## View Selector
+		<li data-tab="views"><a href="#views">${buttons.image('table.png')} Views</a></li>
 
 
-			## Comments!
-			<%
-			displaynames = dict([i.name, i.displayname] for i in users)
-			comments = filter(lambda x:not x[2].startswith('LOG'), rec.get('comments', []))
-			historycount = len(rec.get('history',[]))
-			historycount += len(filter(lambda x:x[2].startswith("LOG:"), rec.get('comments',[])))
-			%>
-			<li data-tab="comments">
-				<a href="#comments">
-					## ${displaynames.get(rec.get('creator'), rec.get('creator'))}
-					Last change
-					@
-					<time class="e2-localize" datetime="${rec.get('creationtime')[:10]}">${rec.get('creationtime', '')[:10]}</time>
+		## Relationship Editor
+		<li data-tab="relationships"><a href="#relationships">${buttons.image('relationships.png')} Relationships</a></li>
+
+
+		## Tools
+		<li data-tab="tools"><a href="#tools">${buttons.image('tools.png')} Tools</a></li>
+
+
+		## Comments!
+		<%
+		displaynames = dict([i.name, i.displayname] for i in users)
+		comments = filter(lambda x:not x[2].startswith('LOG'), rec.get('comments', []))
+		historycount = len(rec.get('history',[]))
+		historycount += len(filter(lambda x:x[2].startswith("LOG:"), rec.get('comments',[])))
+		cu = rec.get('creator')
+		mu = rec.get('modifyuser')
+		%>
+		<li data-tab="comments">
+			<a href="#comments">
+				<span id="e2l-editbar2-commentcount">
+					<img id="e2l-editbar2-comments-img" src="${EMEN2WEBROOT}/static/images/comment.closed.png" alt="Comments" />
+					${len(comments)} Comments
+				</span>
+			</a>
+		</li>
 		
-					<span id="e2l-editbar2-historycount">
-					% if historycount:
-						<img id="e2l-editbar2-comments-img" src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edits" />
-						${historycount}
-					% endif
-					</span>
-		
-					<span id="e2l-editbar2-commentcount">
-					% if comments:
-						<img id="e2l-editbar2-comments-img" src="${EMEN2WEBROOT}/static/images/comment.closed.png" alt="Comments" />
-						${len(comments)}
-					% endif
-					</span>
-				</a>
-			</li>
-		</ul>
-	</div>
+		<li data-tab="comments">
+			<a href="#comments">
+				<span id="e2l-editbar2-historycount">
+					<img id="e2l-editbar2-comments-img" src="${EMEN2WEBROOT}/static/images/history.png" alt="Edits" />
+					${historycount} Edits
+				</span>			
 
-	<h2 class="e2l-cf">
-		Parents
-		<span class="home-label">
-			Map | Table
-		</span>
-	</h2>
-	<ul class="home-projectlist">
-		% for i in rec.get('parents', []):
-			<li><a href="${EMEN2WEBROOT}/record/${i}/">${recnames.get(i,i)}</a></li>
-		% endfor
-	</ul>
-	
-	
-	<h2 class="e2l-cf">
-		Children
-		<span class="home-label" style="float:right">
-			Map | Table
-		</span>
-	</h2>
-	<ul class="home-projectlist">
-		% for k,v in byrd.items():
-			<li>
-				<a href="${EMEN2WEBROOT}/record/${rec.name}/children/${k}/">${rds_d.get(k).desc_short}</a>
+				<br /><br />
+				<p style="text-align:center">
+				Created: ${users_d.get(cu, dict()).get('displayname', cu)} on ${rec.get("creationtime")[:10]}
+				<br />
+				% if rec.history:
+					Modified: ${users_d.get(mu, dict()).get('displayname', mu)} on ${rec.get("modifytime")[:10]}
+				% endif
+				</p>
+
+			</a>
+			
+			
+			
+			
+		</li>
+		
+		
+		## Children tabs
+		<li><br /><h2 class="e2l-cf">Children</h2></li>
+
+		% if not children_groups:
+			## <li data-tab="new"><a href="#new">No children</a></li>
+			<li><a href="">No children</a></li>
+		% endif
+
+		% for k,v in children_groups.items():
+			<li ${istab(tab, "children-%s"%k)}>
+				<a href="${EMEN2WEBROOT}/record/${rec.name}/children/${k}/">${k}</a>
 				<span class="e2l-shadow home-count">${len(v)}</span>
 			</li>
 		% endfor
+		
+		
 	</ul>
+
 </div>
+
+
 
 
 
 <div class="e2-tab e2-tab-editbar2 home-main" data-tabgroup="record" role="tabpanel">
 
-	<div data-tab="main" class="e2-tab-active">
+	% for k,v in children_groups.items():
+		% if k == childtype:
+			<div data-tab="children-${k}" class="e2-tab-active">${table}</div>
+		% else:
+			<div data-tab="children-${k}"></div>		
+		% endif
+	% endfor
+
+	<div data-tab="main" ${istab(tab, "main")}>
 		${next.body()}
 	</div>
 
@@ -399,10 +317,10 @@ for i in children:
 
 		<p>This record uses the <a href="${EMEN2WEBROOT}/recorddef/${recdef.name}">${recdef.desc_short} protocol</a>, which provides ${len(recdef.views)+2} views:
 			<ul>
-				<li><a href="?viewname=mainview#views">Protocol</a></li>
-				<li><a href="?viewname=dicttable#views">Parameter-Value table</a></li>				
+				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=mainview">Protocol</a></li>
+				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=dicttable">Parameter-Value table</a></li>				
 				% for v in recdef.views:
-					<li><a href="?viewname=${v}#views">${prettynames.get(v, v).capitalize()}</a></li>
+					<li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=${v}">${prettynames.get(v, v).capitalize()}</a></li>
 				% endfor
 			</ul>
 		</p>		
@@ -431,7 +349,7 @@ for i in children:
 
 		</%block>
 	</div>
-
+	
 </div>
 
 

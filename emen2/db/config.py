@@ -215,6 +215,8 @@ class DBOptions(usage.Options):
 		['home', 'h', None, 'EMEN2 database environment directory'],
 		['ext', 'e', None, 'Add extension; can be comma-separated.'],
 		['loglevel', 'l', None, ''],
+		['repmgr_host', None, None, 'Replication manager host'],
+		['repmgr_port', None, None, 'Replication manager port']		
 	]
 
 	def opt_configfile(self, file_):
@@ -225,7 +227,6 @@ class DBOptions(usage.Options):
 	def postProcess(self):
 		## note that for optFlags self[option_name] is 1 if the option is given and 0 otherwise
 		## 	this converts those values into the appropriate bools
-
 		# these default to True:
 		for option_name in ['create', 'quiet', 'debug', 'version']:
 			self[option_name] = bool(self[option_name])
@@ -336,6 +337,10 @@ class UsageParser(object):
 
 		# Create new database?
 		self.config.globalns.params.CREATE = self.options['create']
+
+		# Replication manager
+		self.config.globalns.params.REPMGR_HOST = self.options['repmgr_host']
+		self.config.globalns.params.REPMGR_PORT = self.options['repmgr_port']
 
 		# Enable root user?
 		# self.config.globalns.ENABLEROOT = self.values.enableroot or False

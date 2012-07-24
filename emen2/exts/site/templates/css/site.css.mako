@@ -54,11 +54,9 @@ ul {
 #precontent > .e2-alert-main,
 #precontent > .e2-tab-main,
 #content,
-#content_inner,
 .e2-tab-editbar > ul,
 .e2-tab-editbar > div
 {
-/*	width: 1000px; */
 	padding-left: 30px;
 	padding-right: 30px;
 	margin-left: auto;

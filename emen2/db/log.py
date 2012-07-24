@@ -27,6 +27,11 @@ from twisted.python.log import _safeFormat, textFromEventDict
 import emen2.db.config
 
 
+class PrintLogger(object):
+	def emit(self, eventDict):
+		print eventDict
+
+
 class SubLogger(twisted.python.log.FileLogObserver):
 	pass
 
@@ -61,21 +66,22 @@ class EMEN2Logger(object):
 	)
 	
 	def __init__(self):
-		# rint "EMEN2Logger.__init__"
+		"""Initialize logging system."""
+		# print "EMEN2Logger.__init__"
 		self.started = False
 		self.log_level = 0
 		self.loggers = {}
 		# Turn on logging to stdout by default
-		# twisted.python.log.startLogging(sys.stdout, setStdout=False)
+		twisted.python.log.startLogging(sys.stdout, setStdout=False)
 
 	def init(self):
-		# print "EMEN2Logger.init"
+		"""Start logging system."""
 		# The configuration has been loaded
 		self.logpath = emen2.db.config.get("paths.LOGPATH")
 		self.log_level = self.log_levels.get(emen2.db.config.get('LOG_LEVEL', 0))
 
 	def start(self):
-		# print "EMEN2Logger.start"
+		"""Start file-backed logging."""
 		self.started = True
 
 		# Open the various log files.		
@@ -88,11 +94,13 @@ class EMEN2Logger(object):
 		self.loggers["WEB"] = WebLogger(open(os.path.join(self.logpath, "access.log"), "w"))
 
 	def stop(self):
+		"""Stop file-backed logging."""
 		self.started = False
 		for k,v in self.loggers.items():
 			v.close()
 
 	def log(self, message, level='INFO'):
+		"""Print or write the log message."""
 		priority = self.log_levels.get(level, 0)		
 		if priority < self.log_level:
 			return
@@ -100,14 +108,12 @@ class EMEN2Logger(object):
 		twisted.python.log.msg(message, system=level)
 
 	def emit(self, e):
+		"""Twisted log file observer function."""
 		level = e.get("system", "INFO")
 		messages = e.get("message")
 		t = e.get("time")
 		output = self.loggers.get(level, self.loggers["INFO"])
 		output.emit(e)
-		# for message in messages:
-		# 	output.write(prefix+str(message)+"\n")
-		# output.flush()
 
 
 # Create the logger

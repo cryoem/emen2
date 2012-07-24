@@ -639,10 +639,10 @@ class vt_binary(Vartype):
 					<a target="_blank" href="%s/download/%s/%s">
 					<img class="e2l-thumbnail" src="%s/download/%s/thumb.jpg?size=thumb" />
 					%s
-					</a>'''%(webroot, i.name, cgi.escape(i.filename), webroot, i.name, cgi.escape(i.filename), cgi.escape(i.filename)) for i in v]
+					</a>'''%(webroot, i.name, cgi.escape(i.filename), webroot, i.name, cgi.escape(i.filename)) for i in v]
 
-		except (ValueError, TypeError):
-			value = ['Error getting binary %s'%i for i in value]
+		except (ValueError, TypeError), e:
+			value = ['Error getting binary %s'%(i) for i in value]
 
 		return value
 

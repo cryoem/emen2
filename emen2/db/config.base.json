@@ -2,10 +2,10 @@
 	// These paths either absolute, or relative to EMEN2DBHOME, depending on the presence of leading slash
 	"paths":{
 		// Log directory: access.log, error.log, debug.log (see logging section) 
-		"LOGPATH": "twistd",
+		"LOGPATH": "log",
 
 		// Berkeley DB Log Archive directory. You will want to carefully back these up.
-		"LOG_ARCHIVE": "log_archive",
+		"LOG_ARCHIVE": "journal_archive",
 
 		// Temporary directory to use for uploaded files, graphs and other temporary files
 		"TMPPATH": "tmp",
@@ -17,16 +17,13 @@
 			'20100101': '/raid3/'
 		Files from beginning -> May 2008 will be on /raid1, May 2008 to Jan 2010 on /raid2, and files after Jan 2010 on /raid3 */		
 		"BINARYPATH":{
-			"0": "emen2data"
+			"0": "binary"
 		},
 
 		"PREVIEWPATH":{
-			"0": "tiles"
+			"0": "preview"
 		},
 
-		// Thumbnails and other files derived from primary data
-		"TILEPATH": "tiles",
-		
 		// Path to SSL certificates
 		"SSLPATH": "ssl",
 

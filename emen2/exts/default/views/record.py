@@ -18,11 +18,22 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 @View.register
 class Record(View):
 	
-	def common(self, name=None, children=True, parents=True, **kwargs):
+	def common(self, name=None, children=True, parents=True, viewname="defaultview", **kwargs):
 		"""Main record rendering."""
 		# Get record..
 		self.rec = self.db.record.get(name, filt=False)
 		recnames = self.db.record.render([self.rec])
+
+		# Look for any recorddef-specific template.
+		template = '/record/rectypes/%s'%self.rec.rectype
+		try:
+			emen2.db.config.templates.get_template(template)
+		except:
+			template = '/record/rectypes/root'
+		self.template = template
+
+		# Render main view
+		rendered = self.db.record.render(self.rec, viewname=viewname, edit=self.rec.writable())
 
 		# Some warnings/alerts
 		if self.rec.get('deleted'):
@@ -57,58 +68,39 @@ class Record(View):
 		parentmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='parents', recurse=-1, expandable=False)
 
 		# Children
-		# pages = collections.OrderedDict()
-		# pages.uris = {}
-		# pages['main'] = recnames.get(self.rec.name, self.rec.name)
-		# pages.uris['main'] = self.routing.reverse('Record/main', name=self.rec.name)
-		# for k,v in self.db.record.groupbyrectype(self.rec.children).items():
-		# 	pages[k] = "%s (%s)"%(k,len(v))
-		# 	pages.uris[k] = self.routing.reverse('Record/children', name=self.rec.name, childtype=k)
 		children = self.db.record.get(self.rec.children)
 
 		pages = {}
 
 		# Update context
 		self.ctxt.update(
+			tab = "main",
 			rec = self.rec,
 			children = children,
 			recdef = self.recdef,
-			title = "Record: %s (%s)"%(recnames.get(self.rec.name), self.rec.name),
+			title = recnames.get(self.rec.name, self.rec.name),
 			users = users,
 			recnames = recnames,
 			parentmap = parentmap,
 			edit = False,
-			create = self.db.auth.check.create()
+			create = self.db.auth.check.create(),
+			rendered = rendered,
+			viewname = viewname,
+			table = ""
 		)	
-		# recs = {str(self.rec.name):self.rec},
-		# pages = pages,
-		# key = self.rec.name,
-		# keytype = "record",
 		
 	
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
 	def main(self, name=None, sibling=None, viewname='defaultview', **kwargs):
-		self.common(name=name)
-		
-		# Look for any recorddef-specific template.
-		template = '/record/rectypes/%s'%self.rec.rectype
-		try:
-			emen2.db.config.templates.get_template(template)
-		except:
-			template = '/record/rectypes/root'
-		self.template = template
+		self.common(name=name, viewname=viewname)
 		
 		# Find siblings
 		if sibling == None:
 			sibling = self.rec.name
 		siblings = self.db.rel.siblings(sibling, rectype=self.rec.rectype)
 
-		# Render main view
-		rendered = self.db.record.render(self.rec, viewname=viewname, edit=self.rec.writable())
-			
 		self.ctxt.update(
 			viewname = viewname,
-			rendered = rendered,
 			sibling = sibling,
 			siblings = sorted(siblings)
 		)
@@ -124,7 +116,6 @@ class Record(View):
 			return
 
 		# Get the record
-		self.rec = self.db.record.get(name)
 		if not self.rec.writable():
 			raise emen2.db.exceptions.SecurityError, "No write permission for record %s"%self.rec.name
 
@@ -218,7 +209,7 @@ class Record(View):
 		self.template = '/record/record.new'
 		recdef = self.db.recorddef.get(newrec.rectype)
 		rendered = self.db.record.render(newrec, edit=True, viewname=viewname)
-		self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
+		self.title = 'New %s'%(recdef.desc_short)
 		self.ctxt.update(
 			newrec = newrec,
 			viewname = viewname,
@@ -228,15 +219,21 @@ class Record(View):
 
 
 
+
+	# @View.add_matcher('^/record/(?P<name>\w+)/query/$')
+	# def query(self, name=None, childtype=None):
+	
+
+
+
 	@View.add_matcher('^/record/(?P<name>\w+)/children/(?P<childtype>\w+)/$')
 	def children(self, name=None, childtype=None):
 		"""Main record rendering."""
 		self.common(name=name)
-		self.template = "/record/record.table"
 
 		# Child table
-		c = [['children', '==', name], ['rectype', '==', childtype]]
-		query = self.routing.execute('Query/embed', db=self.db, c=c, parent=name, rectype=childtype)
+		c = [['children', '==', self.rec.name], ['rectype', '==', childtype]]
+		query = self.routing.execute('Query/embed', db=self.db, c=c, parent=self.rec.name, rectype=childtype)
 
 		# ian: awful hack
 		query.request_location = self.request_location
@@ -244,9 +241,9 @@ class Record(View):
 
 		# Update context
 		self.ctxt['table'] = query
-		self.ctxt['q'] = {}
-		self.ctxt["pages"].active = childtype
-
+		self.ctxt['tab'] = 'children-%s'%childtype
+		self.ctxt['childtype'] = childtype
+		
 
 	@View.add_matcher("^/record/(?P<name>\w+)/hide/$", write=True)
 	def hide(self, name=None, commit=False, childaction=None):
@@ -279,8 +276,8 @@ class Record(View):
 
 		users = set()
 		paramdefs = set()
-		users.add(rec.get('creator'))
-		users.add(rec.get('modifyuser'))
+		users.add(self.rec.get('creator'))
+		users.add(self.rec.get('modifyuser'))
 		for i in self.rec.get('history',[]) + self.rec.get('comments',[]):
 			users.add(i[0])
 		for i in self.rec.get('history', []):
@@ -385,7 +382,7 @@ class Records(View):
 		kwargs['recurse'] = kwargs.get('recurse', 2)
 		childmap = self.routing.execute('Tree/embed', db=self.db, mode="children", keytype="record", root=root, recurse=kwargs.get('recurse'), id='sitemap')
 		self.template = '/pages/records.tree'
-		self.title = 'Record Relationships'
+		self.title = 'Record relationships'
 		self.ctxt['root'] = root
 		self.ctxt['childmap'] = childmap
 		self.ctxt['create'] = self.db.auth.check.create()
@@ -393,7 +390,7 @@ class Records(View):
 
 	@View.add_matcher(r"^/records/edit/relationships/$", write=True)
 	def edit_relationships(self, root="0", removerels=None, addrels=None, **kwargs):
-		self.title = 'Edit Record Relationships'
+		self.title = 'Edit record relationships'
 
 		if self.request_method == 'post' and removerels and addrels:
 			self.db.rel.relink(removerels=removerels, addrels=addrels)

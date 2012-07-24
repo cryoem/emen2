@@ -105,8 +105,8 @@ basestring = (str, unicode)
 # ian: todo: move this to EMEN2DBEnv
 DB_CONFIG = """\
 # Don't touch these
-set_lg_dir log
 set_data_dir data
+set_lg_dir journal
 set_lg_regionmax 1048576
 set_lg_max 8388608
 set_lg_bsize 2097152
@@ -386,12 +386,12 @@ class EMEN2DBEnv(object):
 		bsddb3.db.DB_INIT_TXN | \
 		bsddb3.db.DB_INIT_LOCK | \
 		bsddb3.db.DB_INIT_LOG | \
-		bsddb3.db.DB_THREAD
+		bsddb3.db.DB_THREAD | \
+		bsddb3.db.DB_INIT_REP
 
 	# paths from global configuration
 	LOGPATH = emen2.db.config.get('paths.LOGPATH')
 	LOG_ARCHIVE = emen2.db.config.get('paths.LOG_ARCHIVE')
-	TILEPATH = emen2.db.config.get('paths.TILEPATH')
 	TMPPATH = emen2.db.config.get('paths.TMPPATH')
 	SSLPATH = emen2.db.config.get('paths.SSLPATH')
 
@@ -453,9 +453,32 @@ class EMEN2DBEnv(object):
 		dbenv.set_lk_max_lockers(300000)
 		dbenv.set_lk_max_objects(300000)
 		self.dbenv = dbenv
+
+		# repmgr_host = emen2.db.config.get('params.REPMGR_HOST')
+		# repmgr_port = int(emen2.db.config.get('params.REPMGR_PORT', 0))
+		# self.start_replication(repmgr_host, repmgr_port)
 		
 		# Open the DBEnv
 		self.open()
+
+
+	def start_replication(self, repmgr_host, repmgr_port):
+		return
+		# self.dbsite = None
+		# if not (repmgr_host and repmgr_port):
+		# 	return
+		# 	
+		# priority = repmgr_port - 10000
+		# 	
+		# self.dbsite = self.dbenv.repmgr_site(repmgr_host, repmgr_port)
+		# self.dbsite.set_config(bsddb3.db.DB_LOCAL_SITE, 1)
+		# if priority == 0:
+		# 	self.dbsite.set_config(bsddb3.db.DB_GROUP_CREATOR, 1)
+		# 	
+		# self.dbenv.rep_set_priority(100 - priority)
+		# self.dbenv.repmgr_set_ack_policy(bsddb3.db.DB_REPMGR_ACKS_ONE)
+		# self.dbenv.rep_set_timeout(bsddb3.db.DB_REP_ACK_TIMEOUT, 500)
+		# self.dbenv.repmgr_start(3, bsddb3.db.DB_REP_ELECTION)
 
 
 	def add_db(self, cls, **kwargs):
@@ -512,10 +535,10 @@ class EMEN2DBEnv(object):
 			return
 
 		paths = []
-		for path in ['data', 'log']:
+		for path in ['data', 'journal']:
 			paths.append(os.path.join(self.path, path))
 		
-		for path in [self.LOGPATH, self.LOG_ARCHIVE, self.TILEPATH, self.TMPPATH, self.SSLPATH]:
+		for path in [self.LOGPATH, self.LOG_ARCHIVE,  self.TMPPATH, self.SSLPATH]:
 			try:
 				paths.append(path)
 			except AttributeError:

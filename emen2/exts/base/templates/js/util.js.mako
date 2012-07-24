@@ -518,6 +518,7 @@ emen2.util.set_remove = function(i, l) {
 		checkhash: function() {
 			var active = window.location.hash.replace("#","")
 			if (active) {
+				this.hide();
 				this.show(active);
 			}			
 		},
@@ -525,7 +526,7 @@ emen2.util.set_remove = function(i, l) {
 		build: function() {
 			if (this.built){return}
 			var self = this;
-			$('li[data-tab]', this.tablist).click(function(e){
+			$('[data-tab]', this.tablist).click(function(e){
 				var tab = $(this).attr('data-tab');
 				var hc = $(this).hasClass(self.options.active);
 				if (hc) {
@@ -549,27 +550,29 @@ emen2.util.set_remove = function(i, l) {
 		
 		hide: function(tab) {
 			var self = this;
-			$('li.'+this.options.active, this.tablist).each(function() {
-				var t = $(this);
-				var tab = t.attr('data-tab');
-				var p = $('[data-tab='+tab+']', self.tabpanel);
-				t.removeClass(self.options.active);
-				p.removeClass(self.options.active);
-				var cb = self.options.hidecbs[tab];
-				if (cb) {cb(p)}
-			});
-			var active = window.location.hash.replace("#","")
-			if (tab==active) {
-				window.location.hash = '';
-			}
+			this.tablist.children('[data-tab!='+tab+']').removeClass(this.options.active);
+			this.tabpanel.children('[data-tab!='+tab+']').removeClass(this.options.active);
+			// $('[data-tab]', this.tablist).removeClass(this.options.active);
+			// $('[data-tab]', this.tabpanel).removeClass(this.options.active);
+			var cb = this.options.hidecbs[tab];
+			var t = $('[data-tab="'+tab+'"]', this.tabpanel);
+			if (cb) {cb(t)}
+			// var active = window.location.hash.replace("#","")
+			// if (tab==active) {
+			// 	window.location.hash = '';
+			// }
 		},
 
+		_hide: function(elem, tab) {
+			
+		},
+		
 		show: function(tab) {
-			var t = $('li[data-tab='+tab+']', this.tablist);
+			var t = $('[data-tab='+tab+']', this.tablist);
 			if (!t.length) {
 				return
 			}
-			var p = $('div[data-tab='+tab+']', this.tabpanel);
+			var p = $('[data-tab='+tab+']', this.tabpanel);
 			if (!p.length) {
 				var p = $('<div data-tab="'+tab+'"></div>');
 				this.tabpanel.append(p);

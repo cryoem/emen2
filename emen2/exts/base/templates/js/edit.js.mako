@@ -75,13 +75,14 @@
 	
 		_build: function() {
 			// Build after all data is cached
-			var self = this;
-			
+			var self = this;			
 			this.element.empty();			
 			var total = this.comments.length + this.history.length
 			var all = [];
 			$.each(this.comments, function(){all.push(this)})
 			$.each(this.history, function(){all.push(this)})
+
+			this.element.append("<h4>Comments and history</h4>");
 
 			// Break each log event out by date
 			var bydate = {};
@@ -507,7 +508,7 @@
 		},
 	
 		hide: function() {
-			$(this.options.selector).EditControl('hide');
+			$(this.options.selector, this.element).EditControl('hide');
 			if (this.options.controls) {
 				$('input', this.options.controls).hide();
 				$('.e2-edit-show', this.options.controls).show();
@@ -538,14 +539,14 @@
 		
 		_build: function() {
 			if (this.built) {
-				$(this.options.selector).EditControl('show');				
+				$(this.options.selector, this.element).EditControl('show');				
 				return
 			}
 			this.built = 1;
 			var self = this;			
 												
 			// Build the individual editing controls
-			$(this.options.selector).EditControl({
+			$(this.options.selector, this.element).EditControl({
 				prefix: this.options.prefix
 			});
 

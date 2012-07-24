@@ -9,7 +9,5 @@
 	</div>
 % endif
 
-<div id="content_inner">
-	${next.body()}
-</div>
+${next.body()}
 

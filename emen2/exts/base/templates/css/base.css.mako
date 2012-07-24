@@ -37,7 +37,7 @@ table {
 }
 
 /* Paragraphs and uls have an irritating default margin */
-ul {
+ol, ul {
 	padding-left:20px;
 }
 
@@ -309,9 +309,9 @@ h4
 	display:none;
 	z-index: 1000;
 }
-.e2-tab li.e2-tab-active {	
+.e2-tab > li.e2-tab-active {	
 }
-.e2-tab div.e2-tab-active {
+.e2-tab > div.e2-tab-active {
 	display:block;
 }
 /* e2l-shaded is the same background as .e2-tab... */
@@ -425,6 +425,7 @@ h4
 }
 .e2l-help {
 	display:none;
+	margin:20px;
 }
 
 /***** e2-upload: Upload Control *****/
@@ -879,6 +880,86 @@ line {
 	height: 300px;
 }
 */
+
+
+/* TODO -- Integrate this back into the rest of the CSS */
+
+	
+.home-sidebar .e2-tab-active > a {
+	background:<%self:ADDED />;
+}
+
+.home-sidebar {
+	position: absolute;
+	left: 30px;
+	width: 180px;
+	padding-bottom:50px;
+}
+
+.home-main {
+	margin-left:180px;
+	padding-left:20px;
+	min-height:600px;
+}
+
+.home-sidebar h2 {
+	position:relative;
+	font-size:12pt;
+	margin:0px;
+	padding:5px;
+	padding-left: 0px;
+	padding-right: 5px;
+	border-bottom:solid 1px #ccc;
+}
+.home-sidebar h2 a {
+	display:block;
+}
+
+.home-label, 
+.home-sidebar h2 a.e2-record-new {
+	position:absolute;
+	right:5px;
+	top:6px;
+	font-size:10pt;
+	font-weight:normal;
+}
+
+.home-sidebar > ul {
+	padding-left:0px;
+	margin-bottom:40px;
+}
+.home-sidebar > ul > li {
+	list-style:none;
+	position:relative;
+}
+.home-sidebar > ul > li > a {
+	font-size:10pt;
+	display:block;
+	padding:5px;
+	padding-right:50px;
+}
+
+.home-profile img {
+	max-height: 64px;
+	max-width: 64px;
+}
+
+.home-count {
+	position:absolute;
+	right:8px;
+	top:6px;
+	background:#f0f0f0;
+	padding:2px;
+	font-size:8pt;
+	border-radius: 4px;
+}	
+
+
+
+
+
+
+
 
 <%!
 public = True
