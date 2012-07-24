@@ -25,7 +25,6 @@ from twisted.python import util
 from twisted.python.log import _safeFormat, textFromEventDict
 
 import emen2.db.config
-import emen2.db.debug
 
 
 class SubLogger(twisted.python.log.FileLogObserver):
@@ -67,7 +66,7 @@ class EMEN2Logger(object):
 		self.log_level = 0
 		self.loggers = {}
 		# Turn on logging to stdout by default
-		twisted.python.log.startLogging(sys.stdout, setStdout=False)
+		# twisted.python.log.startLogging(sys.stdout, setStdout=False)
 
 	def init(self):
 		# print "EMEN2Logger.init"

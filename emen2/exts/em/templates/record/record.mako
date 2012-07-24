@@ -9,35 +9,9 @@ import collections
 
 
 <%
-
-# Database queries.
-torender = set()
-def nodeleted(items):
-	return filter(lambda x:not x.get('deleted'), items)
-
-# Groups
-groups = nodeleted(DB.record.get(DB.record.findbyrectype('group')))
-groups = set([i.name for i in groups])
-torender |= groups
-
-# Top-level children of groups (any rectype)
-groups_children = DB.rel.children(groups)
-projs = set()
-for v in groups_children.values():
-	projs |= v
-torender |= projs
-
-# Get projects, most recent children, and progress reports
-# projects_children = DB.rel.children(projs, recurse=-1)
-projects_children = {}
-
-# Get all the recent records we want to display
-recnames = DB.record.render(torender)
-
-%>
-
-<%
-print rec
+children_groups = collections.defaultdict(set)
+for i in children:
+	children_groups[i.rectype].add(i)
 %>
 
 ## Relationship tree
@@ -45,7 +19,6 @@ print rec
 	${parent.precontent()}
 	<div class="e2-tree-main" style="overflow:hidden">${parentmap}</div>
 </%block>
-
 
 
 <%block name="css_inline">
@@ -124,8 +97,6 @@ print rec
 
 	
 </%block>
-
-
 
 <%block name="js_ready">
 	${parent.js_ready()}
@@ -273,25 +244,22 @@ print rec
 
 		<ul class="e2l-cf home-projectlist" role="menubar tablist" data-tabgroup="record">
 
+			<li data-tab="main"><a href="#main">Main</a></li>
 
 			## Edit Record
 			% if rec.writable():
-				<li data-tab="edit"><a href="#edit"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a></li>
+				<li data-tab="edit"><a href="#edit">${buttons.image('edit.png')} Edit</a></li>
 			% endif
 
 
 			## New Record
 			% if create:
-				<li data-tab="new"><a href="#new">New</a></li>
+				<li data-tab="new"><a href="#new">${buttons.image('new.png')}New</a></li>
 			% endif
 
 
-			## Relationship Editor
-			<li data-tab="relationships"><a href="#relationships">Relationships</a></li>
-
-
 			## Permissions Editor
-			<li data-tab="permissions"><a href="#permissions">Permissions</a></li>
+			<li data-tab="permissions"><a href="#permissions">${buttons.image('permissions.png')} Permissions</a></li>
 
 
 			## Attachments Editor
@@ -307,22 +275,26 @@ print rec
 			%>		
 			<li data-tab="attachments">
 				<a href="#attachments">
+					${buttons.image('attachments.png')}
 					<span id="attachment_count">
 					% if attachments:
 						${len(attachments)}
 					% endif
-					</span>
-					<img id="e2l-editbar2-comments-img" src="${EMEN2WEBROOT}/static/images/attachments.png" alt="Attachments" /> Attachments
+					</span> Attachments
 				</a>
 			</li>
 
 
 			## View Selector
-			<li data-tab="views"><a href="#views"><img src="${EMEN2WEBROOT}/static/images/table.png" alt="Param/Value Table" /> Views</a></li>
+			<li data-tab="views"><a href="#views">${buttons.image('table.png')} Views</a></li>
+
+
+			## Relationship Editor
+			<li data-tab="relationships"><a href="#relationships">${buttons.image('relationships.png')} Relationships</a></li>
 
 
 			## Tools
-			<li data-tab="tools"><a href="#tools">Tools</a></li>
+			<li data-tab="tools"><a href="#tools">${buttons.image('tools.png')} Tools</a></li>
 
 
 			## Comments!
@@ -393,8 +365,12 @@ print rec
 	<div data-tab="main" class="e2-tab-active">
 		${next.body()}
 	</div>
-	
-	<div data-tab="edit"></div>
+
+	<div data-tab="edit">
+		<form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${EMEN2WEBROOT}/record/${rec.name}/edit/">
+			${rendered}
+		</form>	
+	</div>
 	
 	<div data-tab="new"></div>
 	
@@ -415,10 +391,8 @@ print rec
 	<div data-tab="views">
 		<%
 		prettynames = {'defaultview': 'default', 'mainview': 'protocol', 'recname': 'record name', 'tabularview':'table columns', 'dicttable':'parameter-value table'}
-		recdef.views['defaultview'] = recdef.views.get('defaultview') or recdef.mainview
-		
+		recdef.views['defaultview'] = recdef.views.get('defaultview') or recdef.mainview		
 		%>
-
 		<h4>Record views</h4>
 		
 		<p>You are viewing the ${prettynames.get(viewname, viewname)} view for this record.</p>
@@ -457,6 +431,7 @@ print rec
 
 		</%block>
 	</div>
+
 </div>
 
 

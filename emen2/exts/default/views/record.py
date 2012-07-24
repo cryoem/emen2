@@ -15,18 +15,24 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 
 
 
-
 @View.register
 class Record(View):
 	
-	def initr(self, name=None, children=True, parents=True, **kwargs):
+	def common(self, name=None, children=True, parents=True, **kwargs):
 		"""Main record rendering."""
-
 		# Get record..
 		self.rec = self.db.record.get(name, filt=False)
-		self.name = self.rec.name
-		recnames = {}
 		recnames = self.db.record.render([self.rec])
+
+		# Some warnings/alerts
+		if self.rec.get('deleted'):
+			self.ctxt['ERRORS'].append('Hidden record')
+		if 'publish' in self.rec.get('groups',[]):
+			self.ctxt['NOTIFY'].append('Record marked as published data')
+		if 'authenticated' in self.rec.get('groups',[]):
+			self.ctxt['NOTIFY'].append('Any authenticated user can read this record')
+		if 'anon' in self.rec.get('groups', []):
+			self.ctxt['NOTIFY'].append('Anyone may access this record anonymously')
 
 		# Find if this record is in the user's bookmarks
 		bookmarks = []
@@ -45,53 +51,44 @@ class Record(View):
 		self.recdef = self.db.recorddef.get(self.rec.rectype)
 
 		# User display names
-		# These are generally displayed: creator, modifyuser, comments.
-		users = set([self.rec.get('creator'), self.rec.get('modifyuser')])
-		users = self.db.user.get(users)
-
-		# Some warnings/alerts
-		if self.rec.get('deleted'):
-			self.ctxt['ERRORS'].append('Hidden record')
-		if 'publish' in self.rec.get('groups',[]):
-			self.ctxt['NOTIFY'].append('Record marked as published data')
-		if 'authenticated' in self.rec.get('groups',[]):
-			self.ctxt['NOTIFY'].append('Any authenticated user can read this record')
-		if 'anon' in self.rec.get('groups', []):
-			self.ctxt['NOTIFY'].append('Anyone may access this record anonymously')
+		users = self.db.user.get([self.rec.get('creator'), self.rec.get('modifyuser')])
 
 		# Parent map
-		parentmap = self.routing.execute('Tree/embed', db=self.db, root=self.name, mode='parents', recurse=-1, expandable=False)
+		parentmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='parents', recurse=-1, expandable=False)
 
 		# Children
-		pages = collections.OrderedDict()
-		pages.uris = {}
-		pages['main'] = recnames.get(self.rec.name, self.rec.name)
-		pages.uris['main'] = self.routing.reverse('Record/main', name=self.rec.name)
-		for k,v in self.db.record.groupbyrectype(self.rec.children).items():
-			pages[k] = "%s (%s)"%(k,len(v))
-			pages.uris[k] = self.routing.reverse('Record/children', name=self.rec.name, childtype=k)
+		# pages = collections.OrderedDict()
+		# pages.uris = {}
+		# pages['main'] = recnames.get(self.rec.name, self.rec.name)
+		# pages.uris['main'] = self.routing.reverse('Record/main', name=self.rec.name)
+		# for k,v in self.db.record.groupbyrectype(self.rec.children).items():
+		# 	pages[k] = "%s (%s)"%(k,len(v))
+		# 	pages.uris[k] = self.routing.reverse('Record/children', name=self.rec.name, childtype=k)
+		children = self.db.record.get(self.rec.children)
+
+		pages = {}
 
 		# Update context
 		self.ctxt.update(
 			rec = self.rec,
-			recs = {str(self.name):self.rec},
+			children = children,
 			recdef = self.recdef,
-			title = "Record: %s: %s (%s)"%(self.rec.rectype, recnames.get(self.rec.name), self.name),
-			pages = pages,
+			title = "Record: %s (%s)"%(recnames.get(self.rec.name), self.rec.name),
 			users = users,
 			recnames = recnames,
 			parentmap = parentmap,
-			viewname = "defaultview",
 			edit = False,
-			key = self.name,
-			keytype = "record",
 			create = self.db.auth.check.create()
 		)	
-	
+		# recs = {str(self.rec.name):self.rec},
+		# pages = pages,
+		# key = self.rec.name,
+		# keytype = "record",
+		
 	
 	@View.add_matcher(r'^/record/(?P<name>\w+)/$')
 	def main(self, name=None, sibling=None, viewname='defaultview', **kwargs):
-		self.initr(name=name)
+		self.common(name=name)
 		
 		# Look for any recorddef-specific template.
 		template = '/record/rectypes/%s'%self.rec.rectype
@@ -127,25 +124,22 @@ class Record(View):
 			return
 
 		# Get the record
-		rec = self.db.record.get(name, filt=False)
-		if not rec.writable():
-			raise emen2.db.exceptions.SecurityError, "No write permission for record %s"%rec.name
+		self.rec = self.db.record.get(name)
+		if not self.rec.writable():
+			raise emen2.db.exceptions.SecurityError, "No write permission for record %s"%self.rec.name
 
 		# Update the record
 		if kwargs:
-			rec.update(kwargs)
-			self.db.record.put(rec)
+			self.rec.update(kwargs)
+			self.rec = self.db.record.put(self.rec)
 
 		for f in self.request_files:
 			param = f.get('param', 'file_binary')
 			bdo = self.db.binary.put(f)
-			self.db.binary.addreference(rec.name, param, bdo.name)
+			self.db.binary.addreference(self.rec.name, param, bdo.name)
 
 		# Redirect
-		if _location:
-			self.redirect(_location)
-		else:
-			self.redirect(self.routing.reverse('Record/main', name=name))
+		self.redirect(_location or self.routing.reverse('Record/main', name=self.rec.name))
 
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/edit/attachments/$', name='edit/attachments', write=True)
@@ -157,21 +151,20 @@ class Record(View):
 	@View.add_matcher(r'^/record/(?P<name>\w+)/edit/relationships/$', name='edit/relationships', write=True)
 	def edit_relationships(self, name=None, parents=None, children=None):
 		# ian: todo: Check orphans, show orphan confirmation page
+		self.rec = self.db.record.get(name)
 		parents = set(map(unicode,listops.check_iterable(parents)))
 		children = set(map(unicode,listops.check_iterable(children)))
 		if self.request_method == 'post':
-			rec = self.db.record.get(name, filt=False)
-			rec.parents = parents
-			rec.children = children
-			rec = self.db.record.put(rec)
+			self.rec.parents = parents
+			self.rec.children = children
+			self.rec = self.db.record.put(self.rec)
 
-		self.redirect('%s/record/%s/#relationships'%(self.ctxt['EMEN2WEBROOT'], name))
-		# self.template = '/redirect'
-		# self.headers['Location'] = '%s/record/%s/#relationships'%(self.ctxt['EMEN2WEBROOT'], name)
+		self.redirect('%s/record/%s/#relationships'%(self.ctxt['EMEN2WEBROOT'], self.rec.name))
 
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/edit/permissions/$', name='edit/permissions', write=True)
 	def edit_permissions(self, name=None, permissions=None, groups=None, action=None, filt=True):
+		self.rec = self.db.record.get(name)
 		permissions = permissions or {}
 		groups = groups or []
 		users = set()
@@ -184,74 +177,64 @@ class Record(View):
 
 		if self.request_method == 'post':
 			if action == 'add':
-				self.db.record.setpermissionscompat(names=name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt)
+				self.db.record.setpermissionscompat(names=self.rec.name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt)
 
 			elif action == 'remove':
-				self.db.record.setpermissionscompat(names=name, recurse=-1, removeusers=users, removegroups=groups, filt=filt)
+				self.db.record.setpermissionscompat(names=self.rec.name, recurse=-1, removeusers=users, removegroups=groups, filt=filt)
 
 			elif action == 'overwrite':
-				self.db.record.setpermissionscompat(names=name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt, overwrite_users=True, overwrite_groups=True)
+				self.db.record.setpermissionscompat(names=self.rec.name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt, overwrite_users=True, overwrite_groups=True)
 
 			else:
-				rec = self.db.record.get(name, filt=False)
-				rec['groups'] = groups
-				rec['permissions'] = permissions
-				rec = self.db.record.put(rec)
+				self.rec['groups'] = groups
+				self.rec['permissions'] = permissions
+				self.rec = self.db.record.put(self.rec)
 
-		self.redirect('%s/record/%s/#permissions'%(self.ctxt['EMEN2WEBROOT'], name))
-		# self.template = '/redirect'
-		# self.headers['Location'] = '%s/record/%s/#permissions'%(self.ctxt['EMEN2WEBROOT'], name)
+		self.redirect('%s/record/%s/#permissions'%(self.ctxt['EMEN2WEBROOT'], self.rec.name))
 
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/new/(?P<rectype>\w+)/$', write=True)
 	def new(self, name=None, rectype=None, _location=None, **kwargs): 
+		"""Create a new record."""
+		self.common(name=name)
 		viewname = 'mainview'
-		inherit = [name]
-
+		inherit = [self.rec.name]
 		newrec = self.db.record.new(rectype, inherit=inherit)
 		
-		if self.request_method not in ['post', 'put']:
-			# Show the form
-			self.template = '/record/record.new'
-			recnames = self.db.record.render(inherit)
-			parentrec = self.db.record.get(name)
-			parentmap = self.routing.execute('Tree/embed', db=self.db, root=name, mode='parents', recurse=-1)
-			recdef = self.db.recorddef.get(newrec.rectype)
-			rendered = self.db.record.render(newrec, edit=True, viewname=viewname)
-			self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
-			self.ctxt.update(
-				parentmap = parentmap,
-				recnames = recnames,
-				rec = parentrec,
-				recdef = recdef,
-				newrec = newrec,
-				viewname = viewname,
-				rendered = rendered
-			)
+		if self.request_method in ['post', 'put']:
+			# Save the new record
+			newrec.update(kwargs)
+			newrec = self.db.record.put(newrec)
+
+			for f in self.request_files:
+				param = f.get('param', 'file_binary')
+				bdo = self.db.binary.put(f)
+				self.db.binary.addreference(newrec.name, param, bdo.name)
+
+			# Redirect
+			self.redirect(_location or self.routing.reverse('Record/main', name=newrec.name), content=newrec.name)
 			return
+			
+		self.template = '/record/record.new'
+		recdef = self.db.recorddef.get(newrec.rectype)
+		rendered = self.db.record.render(newrec, edit=True, viewname=viewname)
+		self.title = 'New %s (%s)'%(recdef.desc_short, recdef.name)
+		self.ctxt.update(
+			newrec = newrec,
+			viewname = viewname,
+			rendered = rendered
+		)
+		return
 
-		# Save the new record
-		newrec.update(kwargs)
-		newrec = self.db.record.put(newrec)
-
-		for f in self.request_files:
-			param = f.get('param', 'file_binary')
-			bdo = self.db.binary.put(f)
-			self.db.binary.addreference(newrec.name, param, bdo.name)
-
-		# Redirect
-		if _location:
-			self.redirect(_location)
-		else:
-			self.redirect(self.routing.reverse('Record/main', name=newrec.name), content=newrec.name)
 
 
 	@View.add_matcher('^/record/(?P<name>\w+)/children/(?P<childtype>\w+)/$')
 	def children(self, name=None, childtype=None):
 		"""Main record rendering."""
-		self.initr(name=name)
+		self.common(name=name)
 		self.template = "/record/record.table"
 
+		# Child table
 		c = [['children', '==', name], ['rectype', '==', childtype]]
 		query = self.routing.execute('Query/embed', db=self.db, c=c, parent=name, rectype=childtype)
 
@@ -259,47 +242,45 @@ class Record(View):
 		query.request_location = self.request_location
 		query.ctxt['REQUEST_LOCATION'] = self.request_location
 
+		# Update context
 		self.ctxt['table'] = query
 		self.ctxt['q'] = {}
 		self.ctxt["pages"].active = childtype
 
 
 	@View.add_matcher("^/record/(?P<name>\w+)/hide/$", write=True)
-	def hide(self, commit=False, name=None, childaction=None):
+	def hide(self, name=None, commit=False, childaction=None):
 		"""Main record rendering."""
-
-		self.initr(name=name)
+		self.common(name=name)
 		self.template = "/record/record.hide"
 		self.title = "Hide record"
 
-		orphans = self.db.record.findorphans([self.name])
-		recnames = {} #self.db.record.render([self.name])
-		children = self.db.rel.children(self.name, recurse=-1)
+		orphans = self.db.record.findorphans([self.rec.name])
+		children = self.db.rel.children(self.rec.name, recurse=-1)
 
-		if commit:
-			self.db.record.hide(self.name, childaction=childaction)
+		if self.request_method == 'post' and commit:
+			self.db.record.hide(self.rec.name, childaction=childaction)
 
-		self.ctxt['name'] = name
-		self.ctxt['children'] = children
+		# Update context
 		self.ctxt['commit'] = commit
 		self.ctxt['orphans'] = orphans
-		self.ctxt['recnames'] = recnames
 
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/history/$')
 	@View.add_matcher(r'^/record/(?P<name>\w+)/history/(?P<revision>.*)/', name='history/revision')
 	def history(self, name=None, simple=False, revision=None):
 		"""Revision/history/comment viewer"""
+		self.common(name=name, parents=True, children=True)
+		self.template = "/record/record.history"
+		self.title = "History"
 
 		if revision:
 			revision = revision.replace("+", " ")
 
-		self.initr(name=name, parents=True, children=True)
-		self.template = "/record/record.history"
-
-
 		users = set()
 		paramdefs = set()
+		users.add(rec.get('creator'))
+		users.add(rec.get('modifyuser'))
 		for i in self.rec.get('history',[]) + self.rec.get('comments',[]):
 			users.add(i[0])
 		for i in self.rec.get('history', []):
@@ -308,25 +289,21 @@ class Record(View):
 		users = self.db.user.get(users)
 		paramdefs = self.db.paramdef.get(paramdefs)
 
+		# Update context
 		self.ctxt['users'] = users
-		self.ctxt['users_d'] = emen2.util.listops.dictbykey(users, 'name')
+		self.ctxt['users_d'] = emen2.util.listops.dictbykey(users, 'name') # do this in template
 		self.ctxt['paramdefs'] = paramdefs
-		self.ctxt['paramdefs_d'] = emen2.util.listops.dictbykey(paramdefs, 'name')
-
-		rendered = ""
-		self.title = "History"
-		self.set_context_item('simple', simple)
-		self.set_context_item("revision", revision)
-		self.set_context_item("rendered", rendered)
+		self.ctxt['paramdefs_d'] = emen2.util.listops.dictbykey(paramdefs, 'name') # do this in template
+		self.ctxt['simple'] = simple
+		self.ctxt['revision'] = revision
 
 
 	@View.add_matcher("^/record/(?P<name>\w+)/email/$")
 	def email(self, name=None):
-		"""Main record rendering."""
-
-		self.initr(name=name)
+		"""Email referenced users."""
+		self.common(name=name)
 		self.template = "/record/record.email"
-		self.title = "Users"
+		self.title = "Email users"
 
 		# ian: todo: replace!!
 		pds = self.db.paramdef.find(record=self.rec.keys())
@@ -354,13 +331,12 @@ class Record(View):
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/publish/$', write=True)
 	def publish(self, name=None, state=None):
-		self.initr(name=name)
+		self.common(name=name)
 		self.template = '/record/record.publish'
-		self.title = 'Publish Records'
-	
-		# published = self.db.query([['children', '==', '%s'%self.name], ['groups', 'contains', 'publish']])['names']	
-		names = self.db.rel.children(self.name, recurse=-1)
-		names.add(self.name)
+		self.title = 'Managed published records'
+
+		names = self.db.rel.children(self.rec.name, recurse=-1)
+		names.add(self.rec.name)
 
 		published = set()
 		state = set(map(unicode, state or [])) & names
@@ -394,8 +370,7 @@ class Record(View):
 				if 'publish' in rec.groups:
 					published.add(rec.name)
 		
-		childmap = self.routing.execute('Tree/embed', db=self.db, root=self.name, mode='children', recurse=-1, collapse_rectype='grid_imaging')
-	
+		childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=-1, collapse_rectype='grid_imaging')
 		self.set_context_item("childmap", childmap)
 		self.set_context_item("published", published)
 

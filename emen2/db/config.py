@@ -344,6 +344,7 @@ class UsageParser(object):
 		self.options.load_config()
 
 		# Tell the logger that we're initialized!
+		import emen2.db.log
 		emen2.db.log.logger.init()
 
 

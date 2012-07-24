@@ -66,13 +66,23 @@ case $COMMAND in
 		db_recover -v -h ${EMEN2DBHOME}
 		;;
 
+	create)
+		echo "Creating emen2 database environment"
+		python -m emen2.db --create -h ${EMEN2DBHOME}
+		;;
+
+	passwd)
+		echo "Resetting password"
+		# python -m emen2.db --create -h ${EMEN2DBHOME}
+		;;
+
 	archive)
 		echo "Running emen2 database log archive"
 		python -m emen2.db.log_archive -h ${EMEN2DBHOME}
 		;;
 
     *)
-		echo "Usage: ${0} {start|stop|restart|recover|archive} [options]" >&2
+		echo "Usage: ${0} {start|stop|restart|create|recover|archive} [options]" >&2
 		exit 1
 		;;
 esac
