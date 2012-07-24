@@ -38,7 +38,7 @@ import jsonrpc.jsonutil
 <h1>
 	Activity and recent records
 	<ul class="e2l-actions">
-		<li><a class="e2-button" href="${EMEN2WEBROOT}/records/">Record relationships</a></li>
+		<li><a class="e2-button" href="${EMEN2WEBROOT}/records/">Record tree</a></li>
 		<li><a class="e2-button" href="${EMEN2WEBROOT}/query/">All records</a></li>
 	</ul>
 </h1>
