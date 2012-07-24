@@ -58,9 +58,6 @@ class Record(View):
 			pass
 		self.ctxt['bookmarks'] = bookmarks
 
-		# Get RecordDef
-		self.recdef = self.db.recorddef.get(self.rec.rectype)
-
 		# User display names
 		users = self.db.user.get([self.rec.get('creator'), self.rec.get('modifyuser')])
 
@@ -69,6 +66,15 @@ class Record(View):
 
 		# Children
 		children = self.db.record.get(self.rec.children)
+		children_groups = collections.defaultdict(set)
+		for i in children:
+			children_groups[i.rectype].add(i)
+
+	
+		# Get RecordDefs
+		recdef = self.db.recorddef.get(self.rec.rectype)
+		recdefs = self.db.recorddef.get(children_groups.keys())
+
 
 		pages = {}
 
@@ -77,8 +83,9 @@ class Record(View):
 			tab = "main",
 			rec = self.rec,
 			children = children,
-			recdef = self.recdef,
-			title = recnames.get(self.rec.name, self.rec.name),
+			recdef = recdef,
+			recdefs = recdefs,
+			title = "Record: %s"%recnames.get(self.rec.name, self.rec.name),
 			users = users,
 			recnames = recnames,
 			parentmap = parentmap,
@@ -218,13 +225,16 @@ class Record(View):
 		return
 
 
-
-
 	# @View.add_matcher('^/record/(?P<name>\w+)/query/$')
 	# def query(self, name=None, childtype=None):
+
 	
-
-
+	@View.add_matcher('^/record/(?P<name>\w+)/children/$')
+	def children_map(self, name=None):
+		self.common(name=name)
+		childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, expandable=True, collapse_rectype=["grid_imaging"])
+		self.ctxt['childmap'] = childmap
+		self.template = '/record/record.tree'
 
 	@View.add_matcher('^/record/(?P<name>\w+)/children/(?P<childtype>\w+)/$')
 	def children(self, name=None, childtype=None):
@@ -250,7 +260,7 @@ class Record(View):
 		"""Main record rendering."""
 		self.common(name=name)
 		self.template = "/record/record.hide"
-		self.title = "Hide record"
+		# self.title = "Hide record"
 
 		orphans = self.db.record.findorphans([self.rec.name])
 		children = self.db.rel.children(self.rec.name, recurse=-1)
@@ -269,7 +279,7 @@ class Record(View):
 		"""Revision/history/comment viewer"""
 		self.common(name=name, parents=True, children=True)
 		self.template = "/record/record.history"
-		self.title = "History"
+		# self.title = "History"
 
 		if revision:
 			revision = revision.replace("+", " ")
@@ -300,7 +310,7 @@ class Record(View):
 		"""Email referenced users."""
 		self.common(name=name)
 		self.template = "/record/record.email"
-		self.title = "Email users"
+		# self.title = "Email users"
 
 		# ian: todo: replace!!
 		pds = self.db.paramdef.find(record=self.rec.keys())
@@ -330,7 +340,7 @@ class Record(View):
 	def publish(self, name=None, state=None):
 		self.common(name=name)
 		self.template = '/record/record.publish'
-		self.title = 'Managed published records'
+		# self.title = 'Managed published records'
 
 		names = self.db.rel.children(self.rec.name, recurse=-1)
 		names.add(self.rec.name)

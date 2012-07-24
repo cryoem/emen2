@@ -1,5 +1,5 @@
 <%! import jsonrpc.jsonutil %>
-<%inherit file="/page" />
+<%inherit file="/record/record" />
 <%namespace name="buttons" file="/buttons"  /> 
 
 <%block name="js_ready">
@@ -14,7 +14,7 @@
 
 <form method="post" action="">
 <h1>
-	<span id="publish_count">${len(published)}</span> records selected
+	Manage public data &mdash; <span id="publish_count">${len(published)}</span> records selected
 	<ul class="e2l-actions">
 		<li><button type="submit" id="publish_save">${buttons.spinner(False)} Save</button></li>
 	</ul>

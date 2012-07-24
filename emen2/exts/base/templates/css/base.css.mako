@@ -23,24 +23,6 @@ td {
 	padding:0;
 }
 
-/* Set some default font and margins. */
-body {
-	font-family: sans-serif;
-}
-
-p {
-	margin-bottom: 10px;
-}
-
-table {
-	width: 100%;
-}
-
-/* Paragraphs and uls have an irritating default margin */
-ol, ul {
-	padding-left:20px;
-}
-
 /******************************************
  		Basic EMEN2 Layouts
 
@@ -127,6 +109,12 @@ ul.e2l-actions li {
 	float: right;
 }
 
+h1 .e2l-actions {
+	position:absolute;
+	right: 0px;
+	top: -10px;
+}
+
 /* e2-alert: Alerts, notifications, and errors */
 .e2-alert {
 	list-style: none;
@@ -205,6 +193,7 @@ a.e2l-capsule {
 table.e2l-shaded tbody tr:nth-of-type(odd) {
 	background: #eee;
 }
+
 /* e2l-kv: Simple two column tables */
 table.e2l-kv td:first-child {
 	vertical-align: top;
@@ -874,6 +863,7 @@ line {
 /* Dialogs that aren't allowed to close */
 .e2-dialog-no-close .ui-dialog-titlebar-close {display: none }
 
+
 /* IE 6 doesn't support max-height
  * we use height instead, but this forces the menu to always be this tall
 * html .ui-autocomplete {
@@ -900,6 +890,7 @@ line {
 	margin-left:180px;
 	padding-left:20px;
 	min-height:600px;
+	border-left:solid 1px #ccc;
 }
 
 .home-sidebar h2 {

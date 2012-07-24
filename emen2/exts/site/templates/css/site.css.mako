@@ -3,6 +3,26 @@
 
 /***** Layouts *****/
 
+p {
+	margin-bottom: 10px;
+}
+
+table {
+	width: 100%;
+}
+
+/* Paragraphs and uls have an irritating default margin */
+ol, ul {
+	padding-left:20px;
+}
+
+h4, h1 {
+	font-size:16pt;
+	position:relative;
+}
+
+
+
 /* body and top level containers */
 html,
 body

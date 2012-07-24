@@ -1,4 +1,4 @@
-<%inherit file="/page" />
+<%inherit file="/record/record" />
 
 <%def name="emailtable(users)">
 	<table class="e2l-kv e2l-shaded" cellpadding="0" cellspacing="0">
@@ -19,7 +19,10 @@
 	</table>
 </%def>
 
-<h1>${title}</h1>
+<h1>
+	Email users 
+	## referenced by ${recnames.get(rec.name, rec.name)}
+</h1>
 
 ${emailtable(users)}
 

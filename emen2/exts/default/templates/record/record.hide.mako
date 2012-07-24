@@ -1,4 +1,4 @@
-<%inherit file="/page" />
+<%inherit file="/record/record" />
 
 
 <div>
@@ -20,19 +20,19 @@
 		
 		## <p>You are considering hiding this record:</p>
 		## <ul style="list-style:none">
-		##	<li>${recnames.get(name)}</li>
+		##	<li>${recnames.get(rec.name)}</li>
 		## </ul>
 
 		<p>
 			Records cannot be permanently deleted. 
-			Hiding a record removes all parents and permissions, and a flag is set to mark the record as hidden.
-			Administrators are still be able to view the hidden records, but they are omitted from most queries.
+			Hiding a record removes all parents and permissions, and sets a flag to mark the record as hidden.
+			Administrators are still be able to view the hidden records.
 		</p>
 		
 		% if children:
 			<p>
-				Please note that this record has ${len(orphans)} child records that will no longer be connected to the main tree after hiding.
-				These "orphaned" records will not be marked as hidden, but they will be become difficult to find.
+				Please note that this record has ${len(orphans)} child records that will no longer be connected to the main record tree after hiding.
+				These "orphaned" records will not be marked as hidden, but they may become difficult to find.
 			</p>
 					
 			<ul style="list-style:none">
@@ -41,12 +41,12 @@
 				<li><input type="radio" name="childaction" value="all"> Hide all ${len(children)} child records, including those connected to other records</li>
 			</ul>
 			
-			<p>Please select carefully; there is not currently an "undo" action.</p>
+			<p>Please select carefully -- there is no "undo" action.</p>
 		% endif
 
 			<ul class="e2l-controls">
 				<li>
-					<a class="e2-button" href="${EMEN2WEBROOT}/record/${name}/">No, cancel</a>&nbsp;&nbsp;
+					<a class="e2-button" href="${EMEN2WEBROOT}/record/${rec.name}/">No, cancel</a>&nbsp;&nbsp;
 					<input type="submit" value="Yes, hide this record" />
 					<input type="hidden" name="commit" value="True" />
 				</li>

@@ -386,9 +386,8 @@ class EMEN2DBEnv(object):
 		bsddb3.db.DB_INIT_TXN | \
 		bsddb3.db.DB_INIT_LOCK | \
 		bsddb3.db.DB_INIT_LOG | \
-		bsddb3.db.DB_THREAD | \
-		bsddb3.db.DB_INIT_REP
-
+		bsddb3.db.DB_THREAD
+		
 	# paths from global configuration
 	LOGPATH = emen2.db.config.get('paths.LOGPATH')
 	LOG_ARCHIVE = emen2.db.config.get('paths.LOG_ARCHIVE')

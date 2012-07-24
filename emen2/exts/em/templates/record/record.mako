@@ -18,9 +18,9 @@ import collections
 children_groups = collections.defaultdict(set)
 for i in children:
 	children_groups[i.rectype].add(i)
-	
-	
+
 users_d = dict((i.name, i) for i in users)	
+recdefs_d = dict((i.name, i) for i in recdefs)
 %>
 
 
@@ -146,7 +146,7 @@ users_d = dict((i.name, i) for i in users)
 	<ul id="e2-tab-editbar2" class="e2l-cf home-projectlist" role="tablist" data-tabgroup="record">
 
 		## Title
-		<li data-tab="main"><h2><a href="#main">Record ${rec.name}</a></h2></li>
+		<li><h1><a href="${EMEN2WEBROOT}/record/${rec.name}/">Record ${rec.name}</a></h1></li>
 
 
 		## Main tab
@@ -233,21 +233,22 @@ users_d = dict((i.name, i) for i in users)
 				<p style="text-align:center">
 				Created: ${users_d.get(cu, dict()).get('displayname', cu)} on ${rec.get("creationtime")[:10]}
 				<br />
-				% if rec.history:
+				% if rec.creationtime != rec.modifytime:
 					Modified: ${users_d.get(mu, dict()).get('displayname', mu)} on ${rec.get("modifytime")[:10]}
 				% endif
 				</p>
 
 			</a>
-			
-			
-			
-			
 		</li>
 		
 		
 		## Children tabs
-		<li><br /><h2 class="e2l-cf">Children</h2></li>
+		<li>
+			<br />
+			<h1 class="e2l-cf">
+				<a href="${EMEN2WEBROOT}/record/${rec.name}/children/">Children</a>
+			</h1>
+		</li>
 
 		% if not children_groups:
 			## <li data-tab="new"><a href="#new">No children</a></li>
@@ -256,7 +257,7 @@ users_d = dict((i.name, i) for i in users)
 
 		% for k,v in children_groups.items():
 			<li ${istab(tab, "children-%s"%k)}>
-				<a href="${EMEN2WEBROOT}/record/${rec.name}/children/${k}/">${k}</a>
+				<a href="${EMEN2WEBROOT}/record/${rec.name}/children/${k}/">${recdefs_d.get(k, dict()).get('desc_short', k)}</a>
 				<span class="e2l-shadow home-count">${len(v)}</span>
 			</li>
 		% endfor
@@ -334,7 +335,6 @@ users_d = dict((i.name, i) for i in users)
 				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/attachments/">Download all attachments in children</a></li>
 				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage published data</a></li>
 				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
-				<li><a href="${EMEN2WEBROOT}/records/?root=${rec.name}">Record tree starting at this record</a></li>
 			</ul>
 
 			<h4>Common Queries:</h4>
