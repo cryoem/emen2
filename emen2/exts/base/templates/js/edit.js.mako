@@ -82,7 +82,7 @@
 			$.each(this.comments, function(){all.push(this)})
 			$.each(this.history, function(){all.push(this)})
 
-			this.element.append("<h4>Comments and history</h4>");
+			this.element.append("<h2>Comments and history</h2>");
 
 			// Break each log event out by date
 			var bydate = {};
@@ -378,7 +378,7 @@
 			this.element.empty();
 
 			if (this.options.help || this.options.summary) {
-				var header = $('<h4 class="e2l-cf">New record</h4>');				
+				var header = $('<h2 class="e2l-cf">New record</h2>');				
 				this.element.append(header);
 			}
 			if (this.options.help) {
@@ -396,7 +396,7 @@
 				this.element.append(help);
 				var helper = $('<span class="e2-button e2l-float-right">Help</span>');
 				helper.click(function(e){$('[role=help]', self.element).toggle()})
-				$('h4', this.element).append(helper);
+				$('h2', this.element).append(helper);
 			}			
 			if (this.options.summary) {
 				var summary = $('<p></p>');

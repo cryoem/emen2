@@ -16,9 +16,15 @@ ol, ul {
 	padding-left:20px;
 }
 
-h4, h1 {
+h1, h2, h3, h4 {
 	font-size:16pt;
 	position:relative;
+	border-bottom: solid 1px #ccc;
+	margin-top:10px;
+	margin-bottom:10px;
+}
+h3, h4 {
+	font-size: 12pt;
 }
 
 

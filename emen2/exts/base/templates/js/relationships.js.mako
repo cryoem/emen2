@@ -79,7 +79,7 @@
 			var children = rec.children;
 			
 			if (this.options.summary || this.options.help) {
-				this.element.append('<h4 class="e2l-cf">Relationships</h4>');
+				this.element.append('<h2 class="e2l-cf">Relationships</h2>');
 			}
 			if (this.options.help) {
 				var help = $(' \
@@ -96,7 +96,7 @@
 				this.element.append(help);
 				var helper = $('<span class="e2-button e2l-float-right">Help</span>');
 				helper.click(function(e){$('[role=help]', self.element).toggle()})
-				$('h4', this.element).append(helper);
+				$('h2', this.element).append(helper);
 			}
 			// Build a textual summary
 			if (this.options.summary && this.options.keytype == 'record') {

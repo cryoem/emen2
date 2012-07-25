@@ -210,13 +210,6 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 
 /***** These should go in style.css *****/
 
-h1,
-h4
-{
-	border-bottom: solid 1px #ccc;
-	margin-top:10px;
-	margin-bottom:10px;
-}
 
 /* e2l-menu: Navigation */
 .e2l-menu {
@@ -893,15 +886,6 @@ line {
 	border-left:solid 1px #ccc;
 }
 
-.home-sidebar h2 {
-	position:relative;
-	font-size:12pt;
-	margin:0px;
-	padding:5px;
-	padding-left: 0px;
-	padding-right: 5px;
-	border-bottom:solid 1px #ccc;
-}
 .home-sidebar h2 a {
 	display:block;
 }
@@ -922,9 +906,9 @@ line {
 .home-sidebar > ul > li {
 	list-style:none;
 	position:relative;
+	font-size: 10pt;
 }
 .home-sidebar > ul > li > a {
-	font-size:10pt;
 	display:block;
 	padding:5px;
 	padding-right:50px;

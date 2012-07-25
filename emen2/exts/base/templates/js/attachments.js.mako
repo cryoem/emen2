@@ -290,7 +290,7 @@
 			//} else 
 			
 			if (this.options.summary || this.options.help) {
-				this.element.append('<h4 class="e2l-cf">Attachments</h4>');
+				this.element.append('<h2 class="e2l-cf">Attachments</h2>');
 			}
 
 			if (this.options.help) {

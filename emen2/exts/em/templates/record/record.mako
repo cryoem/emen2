@@ -146,7 +146,17 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 	<ul id="e2-tab-editbar2" class="e2l-cf home-projectlist" role="tablist" data-tabgroup="record">
 
 		## Title
-		<li><h1><a href="${EMEN2WEBROOT}/record/${rec.name}/">Record ${rec.name}</a></h1></li>
+		<li>
+			<h2>
+				<a href="${EMEN2WEBROOT}/record/${rec.name}/">
+					Record 
+					## ${rec.name}
+					## % if tab == "main":
+					##	<span class="e2l-float-right" style="padding-right:5px;">&raquo;</span>
+					## % endif
+				</a>
+			</h2>
+		</li>
 
 
 		## Main tab
@@ -245,9 +255,9 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 		## Children tabs
 		<li>
 			<br />
-			<h1 class="e2l-cf">
+			<h2 class="e2l-cf">
 				<a href="${EMEN2WEBROOT}/record/${rec.name}/children/">Children</a>
-			</h1>
+			</h2>
 		</li>
 
 		% if not children_groups:
@@ -312,7 +322,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 		prettynames = {'defaultview': 'default', 'mainview': 'protocol', 'recname': 'record name', 'tabularview':'table columns', 'dicttable':'parameter-value table'}
 		recdef.views['defaultview'] = recdef.views.get('defaultview') or recdef.mainview		
 		%>
-		<h4>Record views</h4>
+		<h2>Record views</h2>
 		
 		<p>You are viewing the ${prettynames.get(viewname, viewname)} view for this record.</p>
 
@@ -330,14 +340,14 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 	<div data-tab="tools">
 		<%block name="tools">
 
-			<h4>Tools</h4>
+			<h2>Tools</h2>
 			<ul>
 				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/attachments/">Download all attachments in children</a></li>
 				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage published data</a></li>
 				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
 			</ul>
 
-			<h4>Common Queries:</h4>
+			<h2>Common Queries:</h2>
 			<ul>
 				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/">Child records, sorted by creation time</a></li>
 				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/?sortkey=modifytime">Child records, sorted by last modification</a></li>
