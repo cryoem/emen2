@@ -4,6 +4,7 @@ import jsonrpc.jsonutil
 
 <%inherit file="/em/home" />
 <%namespace name="buttons" file="/buttons"  /> 
+<%namespace name="user_util" file="/pages/user"  /> 
 
 
 <%block name="js_ready">
@@ -19,6 +20,27 @@ import jsonrpc.jsonutil
 </%block>
 
 
+<h1>
+	${USER.displayname}
+	<ul class="e2l-actions">
+		% if ADMIN:
+			<li><a class="e2-button" href="${EMEN2WEBROOT}/user/${USER.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></li>
+		% endif
+	</li>
+</h1>
+
+<div class="e2l-cf">
+	${user_util.profile(user=USER, userrec=USER.userrec, edit=False)}
+</div>
+
+<br /><br />
+
+
+
+
+
+
+
 % if banner:
 	<h1>
 		Welcome to ${EMEN2DBNAME}
@@ -31,9 +53,14 @@ import jsonrpc.jsonutil
 	<div>
 	${render_banner}
 	</div>
+	<br /><br />
 % endif
 
-<br /><br />
+
+
+
+
+
 
 <h1>
 	Activity and recent records
@@ -49,9 +76,14 @@ import jsonrpc.jsonutil
 
 ${recent_activity_table}
 
-
-
 <br /><br />
+
+
+
+
+
+
+
 
 % for group in groups:
 	<h1>

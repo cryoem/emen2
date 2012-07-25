@@ -26,19 +26,6 @@ import collections
 
 <div class="home-sidebar">
 
-	## <div class="e2-infobox" style="width:100%">
-	##	% if USER.userrec.get('person_photo'):
-	##		<img class="e2l-thumbnail" src="${EMEN2WEBROOT}/download/${USER.userrec.get('person_photo')}/user.jpg?size=small" />
-	##	% endif	
-	##	<div>
-	##		<h4>${USER.displayname}</h4>
-	##		<div class="e2l-small">
-	##			${USER.email}
-	##		</div>
-	##	</div>
-	## </div>
-	## <br /><br /><br /><br />
-
 	<ul class="e2l-cf home-projectlist" role="tablist" data-tabgroup="record">
 		<li><h2>Groups</h2></li>
 		% for group in groups:
