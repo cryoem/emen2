@@ -88,15 +88,15 @@
 				</p><p>To <strong>add parent or child relationships</strong>, click one of the <strong>+</strong> buttons below. \
 					This will show a record chooser. You can either navigate to the record you want to add, or type \
 					the record ID directly into the input box. This will add the chosen record to the list of parents or children. \
-					The changes will take effect when you click <strong>Save relationships</strong>. \
-				</p><p>To <strong>remove parent or child relationships</strong>, uncheck the relationships you want to remove and click <strong>Save relationships</strong>. \
+					The changes will take effect when you click <strong>save relationships</strong>. \
+				</p><p>To <strong>remove parent or child relationships</strong>, uncheck the relationships you want to remove and click <strong>save relationships</strong>. \
 				</p><p> \
 					Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Relationships">EMEN2 Wiki</a>. \
 				</p></div>');
 				this.element.append(help);
-				var helper = $('<span class="e2-button e2l-float-right">Help</span>');
-				helper.click(function(e){$('[role=help]', self.element).toggle()})
-				$('h2', this.element).append(helper);
+				// var helper = $('<span class="e2-button e2l-float-right">Help</span>');
+				// helper.click(function(e){$('[role=help]', self.element).toggle()})
+				// $('h2', this.element).append(helper);
 			}
 			// Build a textual summary
 			if (this.options.summary && this.options.keytype == 'record') {

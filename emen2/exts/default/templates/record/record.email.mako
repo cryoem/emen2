@@ -33,4 +33,10 @@ allemails = ['%s &lt;%s&gt;'%(user.displayname, user.email) for user in users]
 
 <h1>Distribution list</h1>
 
-<a href="mailto:${','.join([user.email for user in users])}">${','.join(allemails)}</a>
+<p>Click to compose an email to all users:</p>
+
+<div class="e2l-help"><a href="mailto:${', '.join([user.email for user in users])}">${','.join(allemails)}</a></div>
+
+<p>Or copy and paste just the addresses:</p>
+
+<div class="e2l-help">${', '.join([user.email for user in users])}</div>

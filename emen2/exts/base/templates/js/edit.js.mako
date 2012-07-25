@@ -385,18 +385,15 @@
 				var help = $(' \
 					<div class="e2l-help" role="help"><p> \
 						Records can have an arbitrary number of child records. \
-					</p><p>To <strong>create a new child record</strong>, select a Protocol from the list below, or use the button to search for a different protocol. \
-						When a protocol is chosen, a form will be displayed where you can fill in the details for the new record. Click <strong>Save</strong> to save the new record. \
-					</p><p> \
-						The protocols suggested below are those that are commonly \
-						used as children of this record\'s protocol. \
+					</p><p>To <strong>create a new child record</strong>, select a <strong>protocol</strong> from the list below, or search for a different protocol. \
+						When you select a protocol, a form will be displayed where you can fill in the details for the new record. Click <strong>save</strong> to save the new record. \
 					</p><p> \
 						Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/NewRecord">EMEN2 wiki</a>. \
 					</p></div>');
 				this.element.append(help);
-				var helper = $('<span class="e2-button e2l-float-right">Help</span>');
-				helper.click(function(e){$('[role=help]', self.element).toggle()})
-				$('h2', this.element).append(helper);
+				// var helper = $('<span class="e2-button e2l-float-right">Help</span>');
+				// helper.click(function(e){$('[role=help]', self.element).toggle()})
+				// $('h2', this.element).append(helper);
 			}			
 			if (this.options.summary) {
 				var summary = $('<p></p>');
@@ -561,10 +558,10 @@
 				
 				// Add 10px padding to the hide button b/c aarrgghh.
 				var controls = $(' \
-					<textarea class="e2l-fw" name="comments" placeholder="'+placeholder+'"></textarea> \
+					<p><br /><hr /><br /><textarea class="e2l-fw" name="comments" placeholder="'+placeholder+'"></textarea> \
 					<ul class="e2l-controls e2l-fw"> \
 						<li><a style="padding-top:10px" class="e2l-float-left e2l-small" href="'+EMEN2WEBROOT+'/record/'+self.options.name+'/hide/">(Hide this record?)</a><input type="submit" class="e2-edit-save e2l-float-right" value="Save" /></li> \
-					</ul>');
+					</ul></p>');
 				$('.e2-edit-show', controls).click(function() {self.show()})
 				$('.e2-edit-cancel', controls).click(function() {self.hide()})
 				$('.e2-edit-save', controls).click(function(e){self.save(e)})

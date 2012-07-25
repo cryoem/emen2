@@ -1,6 +1,6 @@
 <%! import jsonrpc.jsonutil  %>
 
-<%def name="traverse(tree, root, recnames, recurse, mode='children', keytype='record', expandable=True, collapsed=None, id='')">
+<%def name="traverse(tree, root, recnames, recurse, mode='children', keytype='record', expandable=True, collapsed=None, id='', link=None, showroot=True)">
 	<%def name="inner(parent, children, depth)">
 		<%
 		## MAXRECURSE
@@ -13,7 +13,7 @@
 			% for child in sorted(children, key=lambda x:(recnames.get(x) or '').lower()):
 				## Create a LI for each child.
 				<li data-name="${child}">
-					<a href="${EMEN2WEBROOT}/${keytype}/${child}/">${recnames.get(child) or child}</a>
+					<a href="${EMEN2WEBROOT+link%child}">${recnames.get(child) or child}</a>
 					
 					% if not tree.get(child):
 					
@@ -37,13 +37,18 @@
 
 	<%
 	collapsed = collapsed or []
+	link = link or "/"+keytype+"/%s/"
 	%>
 	
 	## The top level container
-	<div class="e2-tree e2-tree-${mode} e2l-cf" data-root="${root}" data-mode="${mode}" data-keytype="${keytype}" id="${id}">
-		${inner(None, tree.get(None, [root]), depth=1)}
-	</div>
+	% if showroot:
+		<div class="e2-tree e2-tree-${mode} e2l-cf" data-root="${root}" data-mode="${mode}" data-keytype="${keytype}" id="${id}">
+			${inner(None, tree.get(None, [root]), depth=1)}
+		</div>
+	% else:
+		${inner(None, tree.get(root, tree.get(root, [])), depth=1)}
+	% endif
 	
 </%def>
 
-${traverse(tree, root, recnames, recurse, mode=mode, keytype=keytype, expandable=expandable, id=id, collapsed=collapsed)}
+${traverse(tree, root, recnames, recurse, mode=mode, keytype=keytype, expandable=expandable, id=id, collapsed=collapsed, link=link, showroot=True)}

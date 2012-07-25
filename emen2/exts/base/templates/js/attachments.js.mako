@@ -1,5 +1,50 @@
 (function($) {
 	
+	$.widget("emen2.DownloadControl", {
+		options: {
+		},
+		
+		_create: function() {
+			var self = this;
+			$('.e2-download-allbids', this.element).click(function() {
+				var s = $(this).attr('checked');
+				if (!s) {s=false}
+				$('input[name=bids]', this.element).each(function() {
+					$(this).attr('checked', s);
+				});
+				self.updatefilesize();
+			});
+	
+			$('input[name=bids]', this.element).click(function() {
+				self.updatefilesize();
+			});
+
+			this.updatefilesizes();
+			this.updatefilesize();
+		},
+		
+		updatefilesizes: function() {
+			var c = $('.e2-download-filesizes', this.element);
+			c.each(function() {
+				var z = parseInt($(this).attr('data-filesize'));
+				$(this).text(emen2.template.prettybytes(z));
+			});
+		},
+		
+		updatefilesize: function() {
+			var s = 0;
+			var c = $('input[name=bids]:checked', this.element);
+			c.each(function() {
+				var z = parseInt($(this).attr('data-filesize'));
+				if (z > 0) {
+					s += z;
+				}
+			});
+			$('.e2-download-filesize', this.element).text(emen2.template.prettybytes(s));
+			$('.e2-download-filecount', this.element).text(c.length);
+		},
+	});
+	
     $.widget("emen2.UploadControl", {
 		options: {
 			modal: true,
@@ -298,13 +343,13 @@
 					<div class="e2l-help" role="help"><p> \
 						Records can have an arbitrary number of file attachments. \
 					</p><p> \
-						To <strong>upload attachments</strong>, click the <strong>Browse</strong> button below. \
+						To <strong>upload attachments</strong>, click the <strong>browse</strong> button below. \
 						Select the files you want to upload, and a dialog will appear \
 						showing current upload progress. After all the files have \
 						been uploaded, click "Ok" to view the updated record. \
 					</p><p> \
 						To <strong>remove attachments</strong>, uncheck the corresponding checkboxes \
-						and click <strong>Save attachments</strong>.  \
+						and click <strong>save attachments</strong>.  \
 					</p><p>Please note that attachments are never truly deleted; \
 						only the association with the record is removed. The person who originally \
 						uploaded the attachment will still be able to access the attachment and reassociate \
@@ -331,7 +376,7 @@
 				var sum2 = $('<p>This record has '+this.bdos.length+' attachments.</p>');
 				var rec = emen2.cache.get(this.options.name);
 				if (rec['children'].length) {
-					sum2.append(' There may be additional attachments in child records: <a href="'+EMEN2WEBROOT+'/query/children.is.'+this.options.name+'*/attachments/">view all attachments in child records</a>.');
+					sum2.append(' There may be additional attachments in child records: <a href="'+EMEN2WEBROOT+'/record/'+this.options.name+'/query/attachments/">view all attachments in child records</a>.');
 				}
 				summary.append(sum2);
 				this.element.append(summary);

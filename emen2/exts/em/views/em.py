@@ -74,6 +74,37 @@ class EMHome(View):
 		self.ctxt['recent_activity_table'] = q_table
 		
 		
+		# Groups and projects
+		torender = set()
+		def nodeleted(items):
+			return filter(lambda x:not x.get('deleted'), items)
+
+		# Groups
+		groups = nodeleted(self.db.record.get(self.db.record.findbyrectype('group')))
+		groupnames = set([i.name for i in groups])
+		torender |= groupnames
+
+		# Top-level children of groups (any rectype)
+		groups_children = self.db.rel.children(groupnames)
+		projs = set()
+		for v in groups_children.values():
+			projs |= v
+		torender |= projs
+
+		# Get projects, most recent children, and progress reports
+		# projects_children = self.db.rel.children(projs, recurse=-1)
+		projects_children = {}
+
+		# Get all the recent records we want to display
+		recnames = self.db.record.render(torender)
+
+		# Update context
+		self.ctxt['recnames'] = recnames
+		self.ctxt['groups'] = groups
+		self.ctxt['groups_children'] = groups_children
+		self.ctxt['projects_children'] = {}
+		
+		
 	# @View.add_matcher(r'^/em/home/project/(?P<name>\w+)/$')
 	# def project(self, name):
 	# 	self.title = 'Project'

@@ -23,6 +23,7 @@ class Record(View):
 		# Get record..
 		self.rec = self.db.record.get(name, filt=False)
 		recnames = self.db.record.render([self.rec])
+		self.title = "Record: %s"%recnames.get(self.rec.name, self.rec.name)
 
 		# Look for any recorddef-specific template.
 		template = '/record/rectypes/%s'%self.rec.rectype
@@ -70,14 +71,23 @@ class Record(View):
 		for i in children:
 			children_groups[i.rectype].add(i)
 
-	
 		# Get RecordDefs
 		recdef = self.db.recorddef.get(self.rec.rectype)
 		recdefs = self.db.recorddef.get(children_groups.keys())
 
 
-		pages = {}
-
+		# Pages -- a deprecated UI element. 
+		recdefs_d = dict([i.name, i] for i in recdefs)
+		pages = collections.OrderedDict()
+		pages.uris = {}
+		pages['main'] = self.title
+		pages.uris
+		pages.uris['main'] = self.routing.reverse('Record/main', name=self.rec.name)
+		for k,v in children_groups.items():
+			pages[k] = "%s (%s)"%(recdefs_d.get(k,dict()).get('desc_short', k),len(v))
+			pages.uris[k] = self.routing.reverse('Record/children', name=self.rec.name, childtype=k)	
+	
+	
 		# Update context
 		self.ctxt.update(
 			tab = "main",
@@ -85,7 +95,6 @@ class Record(View):
 			children = children,
 			recdef = recdef,
 			recdefs = recdefs,
-			title = "Record: %s"%recnames.get(self.rec.name, self.rec.name),
 			users = users,
 			recnames = recnames,
 			parentmap = parentmap,
@@ -93,7 +102,8 @@ class Record(View):
 			create = self.db.auth.check.create(),
 			rendered = rendered,
 			viewname = viewname,
-			table = ""
+			table = "",
+			pages = pages
 		)	
 		
 	
@@ -225,16 +235,45 @@ class Record(View):
 		return
 
 
-	# @View.add_matcher('^/record/(?P<name>\w+)/query/$')
-	# def query(self, name=None, childtype=None):
+	@View.add_matcher(r'^/record/(?P<name>\w+)/query/$')
+	@View.add_matcher(r'^/record/(?P<name>\w+)/query/(?P<path>.*)/$')
+	def query(self, name=None, path=None, q=None, c=None, **kwargs):
+		self.common(name=name)
+	
 
+	# @View.add_matcher(r'^/record/(?P<name>\w+)/query/(?P<path>.*)/attachments/$')
+	@View.add_matcher(r'^/record/(?P<name>\w+)/query/attachments/$')
+	def query_attachments(self, name=None, path=None, q=None, c=None, **kwargs):
+		self.common(name=name)
+		self.template = '/record/record.query.attachments'
+		# Look up all the binaries
+		children = self.db.rel.children(self.rec.name, recurse=-1)
+		bdos = self.db.binary.find(record=children, count=0)
+		if len(bdos) > 100000 and not confirm:
+			raise Exception, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
+
+		records = set([i.record for i in bdos])
+		users = set([bdo.get('creator') for bdo in bdos])
+		users = self.db.user.get(users)
+		self.ctxt['users'].extend(users)
+		self.ctxt['recnames'].update(self.db.record.render(records))
+		self.ctxt['bdos'] = bdos
+
+	
 	
 	@View.add_matcher('^/record/(?P<name>\w+)/children/$')
 	def children_map(self, name=None):
 		self.common(name=name)
-		childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, expandable=True, collapse_rectype=["grid_imaging"])
-		self.ctxt['childmap'] = childmap
 		self.template = '/record/record.tree'
+		link = "/record/%s/children/"
+		childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, expandable=True, collapse_rectype=["grid_imaging"], link=link)
+		self.ctxt['childmap'] = childmap
+		# parentmap2 = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='parents', recurse=1, expandable=False, showroot=False, link=link)
+		# parents = self.db.record.get(self.rec.parents)
+		# self.ctxt['recnames'].update(self.db.record.render(self.rec.parents))
+		# self.ctxt['link'] = link
+		# self.ctxt['parents'] = parents
+		# self.ctxt['parentmap2'] = parentmap2
 
 	@View.add_matcher('^/record/(?P<name>\w+)/children/(?P<childtype>\w+)/$')
 	def children(self, name=None, childtype=None):
@@ -253,7 +292,8 @@ class Record(View):
 		self.ctxt['table'] = query
 		self.ctxt['tab'] = 'children-%s'%childtype
 		self.ctxt['childtype'] = childtype
-		
+		self.ctxt["pages"].active = childtype # This is going away
+
 
 	@View.add_matcher("^/record/(?P<name>\w+)/hide/$", write=True)
 	def hide(self, name=None, commit=False, childaction=None):
@@ -340,8 +380,6 @@ class Record(View):
 	def publish(self, name=None, state=None):
 		self.common(name=name)
 		self.template = '/record/record.publish'
-		# self.title = 'Managed published records'
-
 		names = self.db.rel.children(self.rec.name, recurse=-1)
 		names.add(self.rec.name)
 
@@ -376,6 +414,8 @@ class Record(View):
 			for rec in recs:
 				if 'publish' in rec.groups:
 					published.add(rec.name)
+			
+			self.ctxt['NOTIFY'].append('Saved changes to published records!')
 		
 		childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=-1, collapse_rectype='grid_imaging')
 		self.set_context_item("childmap", childmap)

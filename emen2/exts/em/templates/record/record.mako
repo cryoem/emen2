@@ -201,14 +201,12 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 			</a>
 		</li>
 
-
-		## View Selector
-		<li data-tab="views"><a href="#views">${buttons.image('table.png')} Views</a></li>
-
-
 		## Relationship Editor
 		<li data-tab="relationships"><a href="#relationships">${buttons.image('relationships.png')} Relationships</a></li>
 
+
+		## View Selector
+		<li data-tab="views"><a href="#views">${buttons.image('table.png')} Views</a></li>
 
 		## Tools
 		<li data-tab="tools"><a href="#tools">${buttons.image('tools.png')} Tools</a></li>
@@ -241,10 +239,10 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 				<br /><br />
 				<p style="text-align:center">
-				Created: ${users_d.get(cu, dict()).get('displayname', cu)} on ${rec.get("creationtime")[:10]}
+				Created: ${users_d.get(cu, dict()).get('displayname', cu)} on <time class="e2-localize" datetime="${rec.get("creationtime")}">${rec.get("creationtime")[:10]}</time>
 				<br />
 				% if rec.creationtime != rec.modifytime:
-					Modified: ${users_d.get(mu, dict()).get('displayname', mu)} on ${rec.get("modifytime")[:10]}
+					Modified: ${users_d.get(mu, dict()).get('displayname', mu)} on <time class="e2-localize" datetime="${rec.get("modifytime")}">${rec.get("modifytime")[:10]}</time>
 				% endif
 				</p>
 

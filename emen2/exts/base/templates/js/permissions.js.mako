@@ -104,26 +104,26 @@
 				var help = (' \
 				<div class="e2l-help" role="help"><p> \
 					There are four types of permissions: \
-				</p><ul><li><strong>Read-only</strong>: can access record</li> \
-					<li><strong>Comment</strong>: can access record and add comments</li> \
-					<li><strong>Write</strong>: can access record, add comments, and change values</li> \
-					<li><strong>Owner</strong>: can access record, add comments, change values, and change permissions</li> \
-				</ul><p>You can also assign <strong>Group</strong> permissions. The permissions of each specified group will be added to the record. \
-					For example, say user "John" is a member of the group "Technicians," and he has write permission in that group. If you added "Technicians" \
-					to this record, "John" would then have write access to this record. \
+				</p><ul><li><strong>Read-only</strong>: access record</li> \
+					<li><strong>Comment</strong>: access record and add comments</li> \
+					<li><strong>Write</strong>: access record, add comments, and change values</li> \
+					<li><strong>Owner</strong>: access record, add comments, change values, and change permissions</li> \
+				</ul><p>You can also assign <strong>user group</strong> permissions. The permissions of each group will be added to the record. \
+					For example, say user <em>John</em> is a member of the user group <em>Technicians</em>, and he has write permission in that group. If you added <em>Technicians</em> \
+					to this record, <em>John</em> would then have write access to this record. \
 					There are also a few special groups. <em>Authenticated</em> group will permit <em>all</em> logged-in users to access the record. \
-					<em>Anonymous</em> will make the record publicly accessible to anyone. \
-				</p><p>To <strong>add users or groups</strong>, click one of the <strong>+</strong> buttons below. \
-					This will show a chooser. Search for the user or group you wish to add, and click their name. \
-					They will be added to the list of users or groups. The changes will take effect when you click <strong>Save permissions</strong>. \
-				</p><p>To <strong>remove users or groups</strong>, uncheck their name, and click <strong>Save permissions</strong>. \
+					<em>Anonymous</em> will make the record publicly accessible to anyone who can access the server. \
+				</p><p>To <strong>add a user or group</strong>, click one of the <strong>+</strong> buttons below. \
+					Search for the user or group you wish to add, and click their name to add to the list. \
+					To <strong>remove users or groups</strong>, uncheck their name. Click <strong>save permissions</strong> to save the permissions for this record, \
+					or click <strong>save permissions recursively</strong> to save to this record and all child records. \
 				</p><p> \
 					Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Permissions">EMEN2 Wiki</a>. \
 				</p></div>');
 				this.element.append(help);
-				var helper = $('<span class="e2-button e2l-float-right">Help</span>');
-				helper.click(function(e){$('[role=help]', self.element).toggle()})
-				$('h2', this.element).append(helper);
+				// var helper = $('<span class="e2-button e2l-float-right">Help</span>');
+				// helper.click(function(e){$('[role=help]', self.element).toggle()})
+				// $('h2', this.element).append(helper);
 			}
 			if (this.options.summary) {
 				var summary = $('<p />');			
@@ -133,7 +133,7 @@
 
 			// Build the permissions levels
 			if (this.options.groups) {
-				this.element.append(this.build_level('Groups', 'groups', groups, 'group'));
+				this.element.append(this.build_level('User groups', 'groups', groups, 'group'));
 			}
 			this.element.append(this.build_level('Read-only', 'read', permissions[0]));
 			this.element.append(this.build_level('Comment', 'comment', permissions[1]));
@@ -155,29 +155,42 @@
 		
 		build_controls: function() {
 			var self = this;
+			// var controls = $(' \
+			// 	<ul class="e2l-options"> \
+			// 		<li class="e2-select"></li> \
+			// 		<li><span class="e2-permissions-advanced e2l-a">'+emen2.template.caret('up')+'Advanced</span></li> \
+			//  	</ul> \
+			// 	<ul class="e2l-advanced e2l-hide"> \
+			//  		<li><input type="button" name="add" value="Add selection to children" /></li> \
+			// 		 			<li><input type="button" name="remove" value="Remove selection from children" /></li> \
+			//  		<li><input type="button" name="overwrite" value="Overwrite children with selection" /></li> \
+			// 	 	<li><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label><br /></li> \
+			// 	</ul> \
+			// 	<ul class="e2l-controls"> \
+			// 		<li><input type="button" name="save" value="Save permissions" /></li> \
+			// 	</ul>');
 			var controls = $(' \
 				<ul class="e2l-options"> \
 					<li class="e2-select"></li> \
-					<li><span class="e2-permissions-advanced e2l-a">'+emen2.template.caret('up')+'Advanced</span></li> \
-			 	</ul> \
-				<ul class="e2l-advanced e2l-hide"> \
-			 		<li><input type="button" name="add" value="Add selection to children" /></li> \
-		 			<li><input type="button" name="remove" value="Remove selection from children" /></li> \
-			 		<li><input type="button" name="overwrite" value="Overwrite children with selection" /></li> \
-				 	<li><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label><br /></li> \
+					<li><span class="e2-permissions-caret e2l-a">'+emen2.template.caret('up')+'Advanced</span></li> \
 				</ul> \
 				<ul class="e2l-controls"> \
 					<li><input type="button" name="save" value="Save permissions" /></li> \
-				</ul>');
+					<li><input type="button" name="overwrite" value="Save permissions recurisvely" /></li> \
+					<li class="e2-permissions-advanced e2l-hide"><input type="button" name="add" value="Add checked users to children" /></li> \
+					<li class="e2-permissions-advanced e2l-hide"><input type="button" name="remove" value="Remove checked users from children" /></li> \
+					<li class="e2-permissions-advanced e2l-hide"><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label></li> \
+				</ul> \
+				');
 
 			// Selection control
 			$('.e2-select', controls).SelectControl({root: this.element});
 			
 			// Show/hide advanced options
-			$('.e2-permissions-advanced', controls).click(function(){
+			$('.e2-permissions-caret', controls).click(function(){
 				emen2.template.caret('toggle', self.options.controls);
-				$('.e2l-controls', self.options.controls).toggle();
-				$('.e2l-advanced', self.options.controls).toggle();
+				//$('.e2l-controls', self.options.controls).toggle();
+				$('.e2-permissions-advanced', self.options.controls).toggle();
 			});
 			
 			// Action buttons

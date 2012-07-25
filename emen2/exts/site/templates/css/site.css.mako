@@ -4,6 +4,7 @@
 /***** Layouts *****/
 
 p {
+	margin-top:10px;
 	margin-bottom: 10px;
 }
 
@@ -261,8 +262,10 @@ input.e2l-cancel {
 	-webkit-box-shadow: 3px 3px 3px #ddd;
 	box-shadow: 3px 3px 3px #ddd;
 }
+.e2l-help {
+	display:block;
+}
 .e2l-help:before {
-    content: "Help:";
     display: block; 
     clear: both; 
 }

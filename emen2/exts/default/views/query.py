@@ -143,23 +143,14 @@ class Query(View):
 
 		# Look up all the binaries
 		bdos = self.db.binary.find(record=self.q['names'], count=0)
-
-		for bdo in bdos:
-			if bdo.get('filesize') == None:
-				if os.access(bdo.get('filepath'), os.F_OK):
-					bdo.filesize = os.stat(bdo.get('filepath')).st_size
-
 		if len(bdos) > 100000 and not confirm:
 			raise TooManyFiles, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
-
-		filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
 
 		records = set([i.record for i in bdos])
 		users = set([bdo.get('creator') for bdo in bdos])
 		users = self.db.user.get(users)
-		self.ctxt['users'] = emen2.util.listops.dictbykey(users, 'name')
-		self.ctxt['rendered'] = self.db.record.render(records)
-		self.ctxt['filesize'] = filesize
+		self.ctxt['users'] = users
+		self.ctxt['recnames'] = self.db.record.render(records)
 		self.ctxt['bdos'] = bdos
 
 

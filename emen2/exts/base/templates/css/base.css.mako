@@ -156,7 +156,7 @@ a.e2l-capsule {
 	float: right;
 	margin: 0px;
 	margin-top: 10px;
-	margin-bottom:50px;
+	margin-bottom:10px;
 	padding: 0px;
 }
 
@@ -631,10 +631,12 @@ textarea.e2l-fw {
 	background:url('${EMEN2WEBROOT}/static-${VERSION}/images/bg.-.parents.png') no-repeat;
 	background-position:top right;
 }
+/* why */
+/*
 .e2-tree:first-child > ul:first-child > li:first-child {
 	background:none
 }
-
+*/
 
 /***** e2-select: Selection helper *****/
 

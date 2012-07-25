@@ -26,7 +26,7 @@ class Tree(View):
 
 
 	@View.add_matcher(r'^/tree/(?P<keytype>\w+)/(?P<root>\w+)/(?P<mode>\w+)/$', name='embed')
-	def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", rectype=None, expandable=True, collapse_rectype=None, collapsed=None, id=''):
+	def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", rectype=None, expandable=True, collapse_rectype=None, collapsed=None, id='', link=None, showroot=True):
 		self.template = '/pages/tree'
 		self.title = 'Sitemap'
 
@@ -85,6 +85,8 @@ class Tree(View):
 		self.ctxt['collapsed'] = collapsed
 		self.ctxt['collapse_rectype'] = collapse_rectype
 		self.ctxt['id'] = id
+		self.ctxt['link'] = link
+		self.ctxt['showroot'] = showroot
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
