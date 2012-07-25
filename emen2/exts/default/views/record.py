@@ -3,11 +3,12 @@ import urllib
 import time
 import collections
 
+import jsonrpc
+
 import emen2.db.exceptions
 import emen2.util.listops as listops
 import emen2.web.responsecodes
 from emen2.web.view import View
-
 
 class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 	title = 'Record not Found'
@@ -202,12 +203,13 @@ class Record(View):
 
 
 	@View.add_matcher(r'^/record/(?P<name>\w+)/new/(?P<rectype>\w+)/$', write=True)
-	def new(self, name=None, rectype=None, _location=None, **kwargs): 
+	def new(self, name=None, rectype=None, _location=None, _format=None, **kwargs): 
 		"""Create a new record."""
 		self.common(name=name)
 		viewname = 'mainview'
 		inherit = [self.rec.name]
 		newrec = self.db.record.new(rectype, inherit=inherit)
+		_format = "json"
 		
 		if self.request_method in ['post', 'put']:
 			# Save the new record
@@ -219,8 +221,13 @@ class Record(View):
 				bdo = self.db.binary.put(f)
 				self.db.binary.addreference(newrec.name, param, bdo.name)
 
-			# Redirect
-			self.redirect(_location or self.routing.reverse('Record/main', name=newrec.name), content=newrec.name)
+			if _format == "json":
+				# Hack
+				self.template = '/raw'
+				self.ctxt['content'] = jsonrpc.jsonutil.encode(newrec)
+			else:
+				# Redirect
+				self.redirect(_location or self.routing.reverse('Record/main', name=newrec.name), content=newrec.name)
 			return
 			
 		self.template = '/record/record.new'

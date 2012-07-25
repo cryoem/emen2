@@ -31,7 +31,7 @@ class ProcessWorker(object):
 			if task is None:
 				self.queue.add_task(None)
 				return
-			emen2.db.log.info("ProcessWorker run: %s"%task)
+			emen2.db.log.info("ProcessWorker run: %s"%(repr(task)))
 			a = subprocess.Popen(task)
 			returncode = a.wait()
 			self.queue.task_done()
