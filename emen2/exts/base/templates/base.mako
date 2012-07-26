@@ -40,9 +40,9 @@
 	<%block name="js_include">
 
 		## <!--[if lt IE 9]>
-		## <script type="text/javascript" src="https://getfirebug.com/firebug-lite.js"></script>		
-		## <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/iefix.js"></script>		
-		## <script src="http://ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js"></script>
+		##	<script type="text/javascript" src="https://getfirebug.com/firebug-lite.js"></script>		
+		##	<script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/iefix.js"></script>		
+		##	<script src="http://ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js"></script>
 		## <![endif]-->		
 
 		## EMEN2 Settings

@@ -8,6 +8,10 @@
 		},
 		
 		_create: function() {
+			if (d3 == null) {
+				this.element.append("<div>Plotting not supported on this browser.</div>");
+				return
+			}
 			this.built = 0;
 			// Check the query
 			if (this.options.q == null) {this.options.q = {}}
@@ -433,6 +437,11 @@
 		},
 
 		_create: function() {
+			if (d3 == null) {
+				this.element.append("<div>Plotting not supported on this browser.</div>");
+				return
+			}
+
 			this.built = 0;
 			
 			// Check size options
