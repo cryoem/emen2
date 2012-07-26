@@ -39,14 +39,14 @@ def parselocal(d):
 	# return t.isoformat()
 
 
-def updatebt(btree, txn):
-	for name, item in btree.items(txn=txn):
+def updatebt(btree, txn, ctx):
+	for name, item in btree.items(txn=txn, ctx=ctx):
 		# print name
 		ct = item.__dict__.get('creationtime') or '2001/01/01'
 		item.__dict__['creationtime'] = parseutc(ct)
 		item.__dict__['modifytime'] = parseutc(item.get('modifytime') or ct)
 		try:
-			btree.put(name, item, txn=txn)
+			btree.put(str(name), item, txn=txn)
 		except Exception, e:
 			print "Skipped...", e
 
@@ -59,8 +59,8 @@ with db:
 	ctx = db._ctx
 	txn = db._txn
 	
-	for i in ['user', 'group', 'paramdef', 'recorddef']:
-		updatebt(db._db.dbenv[i], txn=txn)
+	for i in ['user', 'group', 'paramdef', 'recorddef', 'binary']:
+		updatebt(db._db.dbenv[i], txn=txn, ctx=ctx)
 	
 	#for name in db._db.dbenv["record"].keys(txn=txn): 
 	for name in range(550000):

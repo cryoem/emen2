@@ -32,7 +32,7 @@ with db._newtxn(write=True):
 		
 		
 	for name, item in db._db.dbenv['binary'].iteritems(txn=txn):
-		if item.__dict__['record'] is not None:
+		if item.__dict__.get('record') is not None:
 			item.__dict__['record'] = unicode(item.__dict__['record'])
 		item.__dict__['creationtime'] = parseutc(item.__dict__['creationtime'])
 		item.__dict__['modifytime'] = parseutc(item.__dict__['modifytime'] or item.__dict__['creationtime'])	
