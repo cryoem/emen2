@@ -5,16 +5,17 @@
 
 
 // To compile on OS X:
-// export BDBVERSION=5.2
-// export BDBMODULEPATH=$HOME/src/bsddb3-5.0.0/Modules/
-// rm db/bulk.*o;gcc-4.2 -fno-strict-aliasing -fno-common -dynamic -g -fwrapv -Os -Wall -Wstrict-prototypes  -pipe -I/usr/local/BerkeleyDB.$BDBVERSION/include -I/System/Library/Frameworks/Python.framework/Versions/2.6/include/python2.6 -I$BDBMODULEPATH -c db/bulk.c -o db/bulk.o; gcc-4.2 -Wl,-F. -bundle -undefined dynamic_lookup -L/usr/local/BerkeleyDB.$BDBVERSION/lib -L/usr/local/BerkeleyDB.$BDBVERSION/lib -ldb-$BDBVERSION db/bulk.o -o db/bulk.so && python -c "import emen2.db.bulk"
+// export BERKELEYDBPATH=/usr/local/BerkeleyDB.5.3
+// export BSDDB3PATH=$HOME/src/bsddb3-5.3.0/Modules
+// rm emen2/db/bulk.*o
+// gcc -fno-strict-aliasing -fno-common -dynamic -g -fwrapv -Os -Wall -Wstrict-prototypes  -pipe -I${BERKELEYDBPATH}/include -I/System/Library/Frameworks/Python.framework/Versions/2.7/include/python2.7 -I${BSDDB3PATH} -c emen2/db/bulk.c -o emen2/db/bulk.o
+// gcc -Wl,-F. -bundle -undefined dynamic_lookup -L${BERKELEYDBPATH}/lib -ldb emen2/db/bulk.o -o emen2/db/bulk.so 
+// python -c "import emen2.db.bulk"
 
-// On Linux
-// gcc -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -fPIC -DPYBSDDB_STANDALONE=1 -I/usr/local/BerkeleyDB.4.8/include -I/usr/local/include/python2.6 -I/home/emen2/src/bsddb3-4.8.2/Modules  -c db/bulk.c -o db/bulk.o
-// gcc -pthread -shared db/bulk.o -L/usr/local/BerkeleyDB.4.8/lib -Wl,-R/usr/local/BerkeleyDB.4.8/lib -ldb-4.8 -o db/bulk.so
 
 // Linux -- new
 // gcc -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -fPIC -DPYBSDDB_STANDALONE=1 -I/usr/local/BerkeleyDB.5.3/include -I/home/emen2/EMAN2/Python/include/python2.7  -I/home/emen2/bsddb3-5.3.0/Modules/  -c test/emen2/emen2/db/bulk.c -o bulk.o
+// gcc -pthread -shared db/bulk.o -L/usr/local/BerkeleyDB.4.8/lib -Wl,-R/usr/local/BerkeleyDB.4.8/lib -ldb-4.8 -o db/bulk.so
 
 
 

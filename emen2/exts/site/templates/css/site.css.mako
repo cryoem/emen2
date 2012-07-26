@@ -198,13 +198,12 @@ textarea,
 	-moz-border-radius: 4px;
 	-webkit-border-radius: 4px;
 	border-radius: 4px;
-
 	font-size:12pt;
 	font-weight:normal;
 	display:inline-block;
 	margin: 4px;
 	padding: 4px;
-	/* background: #eee; */
+	background: #eee;
 	color: #000;
 	border:solid 1px #aaa;
 	box-sizing:  content-box;

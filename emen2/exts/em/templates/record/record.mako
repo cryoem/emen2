@@ -340,7 +340,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 			<h2>Tools</h2>
 			<ul>
-				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/attachments/">Download all attachments in children</a></li>
+				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/query/attachments/">Download all attachments in children</a></li>
 				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage published data</a></li>
 				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
 			</ul>

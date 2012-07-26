@@ -209,7 +209,6 @@ class Record(View):
 		viewname = 'mainview'
 		inherit = [self.rec.name]
 		newrec = self.db.record.new(rectype, inherit=inherit)
-		_format = "json"
 		
 		if self.request_method in ['post', 'put']:
 			# Save the new record
@@ -221,13 +220,10 @@ class Record(View):
 				bdo = self.db.binary.put(f)
 				self.db.binary.addreference(newrec.name, param, bdo.name)
 
+			self.redirect(_location or self.routing.reverse('Record/main', name=newrec.name), content=newrec.name)
 			if _format == "json":
-				# Hack
 				self.template = '/raw'
 				self.ctxt['content'] = jsonrpc.jsonutil.encode(newrec)
-			else:
-				# Redirect
-				self.redirect(_location or self.routing.reverse('Record/main', name=newrec.name), content=newrec.name)
 			return
 			
 		self.template = '/record/record.new'

@@ -140,60 +140,64 @@
 			
 			this.built = 1;
 			this.container = $('<div class="e2l-cf" />');
-						
 			var m = $(' \
-				<table cellpadding="0" cellspacing="0" class="e2l-shaded" > \
-					<thead> \
-						<tr> \
-							<th>Parameter</th> \
-							<th></th> \
-							<th>Value</th> \
-							<th></th> \
-							<th>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear-all')+' Reset</th> \
-						</tr> \
-					</thead> \
-					<tbody class="e2-query-base e2-query-constraints"> \
-						<tr> \
-							<td><input type="hidden" name="param" value="*" />Keywords</td> \
-							<td><input type="hidden" name="cmp" value="contains" /></td> \
-							<td><input type="text" size="12" name="value" /></td> \
-							<td><input type="checkbox" name="recurse_p" checked="checked" class="e2l-hide" /></td> \
-							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
-						</tr><tr> \
-							<td><input type="hidden" name="param" value="rectype" />Protocol</td> \
-							<td><input type="hidden" name="cmp" value="is" /></td> \
-							<td><input type="text" size="12" name="value" class="e2-find-recorddef" /></td> \
-							<td><input type="checkbox" name="recurse_v" /><label>Child Protocols</label></td> \
-							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
-						</tr><tr> \
-							<td><input type="hidden" name="param" value="creator" />Creator</td> \
-							<td><input type="hidden" name="cmp" value="is" /></td> \
-							<td><input type="text" size="12" name="value" class="e2-find-user" /></td> \
-							<td></td> \
-							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
-						</tr><tr> \
-							<td><input type="hidden" name="param" value="permissions" />Permissions</td> \
-							<td><input type="hidden" name="cmp" value="contains" /></td> \
-							<td><input type="text" size="12" name="value" class="e2-find-user" /></td> \
-							<td></td> \
-							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
-						</tr><tr> \
-							<td><input type="hidden" name="param" value="groups" />Groups</td> \
-							<td><input type="hidden" name="cmp" value="contains" /></td> \
-							<td><input type="text" size="12" name="value" class="e2-find-group" /></td> \
-							<td></td> \
-							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
-						</tr><tr> \
-							<td><input type="hidden" name="param" value="children" />Child Of</td> \
-							<td><input type="hidden" name="cmp" value="name" /></td> \
-							<td><input type="text" size="12" name="value" class="e2-find-record" /></td> \
-							<td><input type="checkbox" name="recurse_v" /><label>Recursive</label></td> \
-							<td>'+emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear')+'</td> \
-						</tr> \
-					</tbody> \
-					<tbody class="e2-query-param e2-query-constraints"></tbody> \
-				</table> \
-				');
+			<h2>Record query</h2> \
+			<ul class="e2l-nonlist e2-query-base e2-query-constraints"> \
+				<li class="e2-query-constraint"> \
+					<strong class="e2-query-label">Protocol:</strong> \
+					<input type="hidden" name="param" value="rectype" /> \
+					<input type="hidden" name="cmp" value="is" /> \
+					<input type="text" name="value" class="e2-find-recorddef" placeholder="Select protocol"/> \
+					<input type="checkbox" name="recurse_v" id="e2-query-id-rectype"/><label for="e2-query-id-rectype">Include child protocols</label> \
+				</li> \
+				<li class="e2-query-constraint"> \
+					<strong class="e2-query-label">Child of:</strong> \
+					<input type="hidden" name="param" value="children" /> \
+					<input type="hidden" name="cmp" value="name" /> \
+					<input type="text" name="value" class="e2-find-record" placeholder="Select record"/> \
+					<input type="checkbox" name="recurse_v" id="e2-query-paramid-children" /><label for="e2-query-paramid-children">Recursive</label> \
+				</li> \
+				<li class="e2-query-constraint"> \
+					<strong class="e2-query-label">Creator:</strong> \
+					<input type="hidden" name="param" value="creator" /> \
+					<input type="hidden" name="cmp" value="is" /> \
+					<input type="text" name="value" class="e2-find-user" placeholder="Select user" /> \
+				</li> \
+				<li> \
+					<strong class="e2-query-label">Created:</strong> \
+					<span  class="e2-query-constraint"> \
+						<input type="hidden" name="param" value="creationtime" /> \
+						<input type="hidden" name="cmp" value=">=" /> \
+						<input type="text" name="value" placeholder="Start date" /> \
+					</span>&nbsp;&nbsp;&nbsp;to&nbsp;&nbsp;&nbsp;<span class="e2-query-constraint"> \
+						<input type="hidden" name="param" value="creationtime" /> \
+						<input type="hidden" name="cmp" value="<=" /> \
+						<input type="text" name="value" placeholder="end date" /> \
+					</span> \
+				</li> \
+			</ul> \
+			<ul class="e2l-nonlist e2-query-param e2-query-constraints"></ul> \
+			');
+
+			// <li class="e2-query-constraint"> \
+			// 	<strong class="e2-query-label">Modified by:</strong> \
+			// 	<input type="hidden" name="param" value="modifyuser" /> \
+			// 	<input type="hidden" name="cmp" value="is" /> \
+			// 	<input type="text" name="value" class="e2-find-user" placeholder="Select user" /> \
+			// </li> \
+			// <li> \
+			// 	<strong class="e2-query-label">Modified:</strong> \
+			// 	<span  class="e2-query-constraint"> \
+			// 		<input type="hidden" name="param" value="modifytime" /> \
+			// 		<input type="hidden" name="cmp" value=">=" /> \
+			// 		<input type="text" name="value" placeholder="Start date" /> \
+			// 	</span>&nbsp;&nbsp;&nbsp;to&nbsp;&nbsp;&nbsp;<span class="e2-query-constraint"> \
+			// 		<input type="hidden" name="param" value="modifytime" /> \
+			// 		<input type="hidden" name="cmp" value="<=" /> \
+			// 		<input type="text" name="value" placeholder="end date" /> \
+			// 	</span> \
+			// </li> \
+
 
 			this.container.append(m);
 			
@@ -210,7 +214,7 @@
 			$('input[name=save]', this.container).bind("click", function(e){self.query()});			
 
 			$('.e2-query-clear-all', this.container).click(function(e) {
-				$('.e2-query-constraints tr').each(function(){self.clear($(this))});
+				$('.e2-query-constraints .e2-query-constraint', this).each(function(){self.clear($(this))});
 			});
 
 			$('.e2-query-clear', this.container).click(function(e) {
@@ -263,11 +267,11 @@
 			var ignorecase = $('input[name=ignorecase]', this.container).attr('checked');
 			var boolmode = $('input[name=boolmode]:checked', this.container).val();
 									
-			$('.e2-query-base tr', this.container).each(function() {
+			$('.e2-query-base .e2-query-constraint', this.container).each(function() {
 				var p = self._getconstraint(this);
 				if (p[0] && p[1] && p[2]) {c.push(p)}
 			});
-			$('.e2-query-param tr', this.container).each(function() {
+			$('.e2-query-param .e2-query-constraint', this.container).each(function() {
 				var p = self._getconstraint(this);
 				if (p[0]) {c.push(p)}
 			});
@@ -297,27 +301,28 @@
 				param = param.replace('*', '');
 				recurse = true;
 			}	
-			
-			var newconstraint = $('<tr>')
-				.append('<td><input type="text" name="param" size="12" value="'+param+'" /></td>')
-				.append($('<td/>').append(cmpi))
-				.append('<td><input type="text" name="value" size="12" value="'+value+'" /></td>')
-				.append('<td><input name="recurse_p" type="checkbox" /><label>Child Parameters</td>');
 
-			if (recurse) {$('input[name=recurse_p]', newconstraint).attr('checked', 'checked')}
-
-			var controls = $('<td />');
-
-			var addimg = $(emen2.template.image('add_small.png', 'Add'))
+			var controls = $('<strong class="e2-query-label"></strong>');
+			var addimg = $(emen2.template.image('add.png', 'Add'))
 			addimg.click(function() {self.addconstraint()});
-
-			var removeimg = $(emen2.template.image('remove_small.png', 'Remove', 'e2-query-clear'))
+			var removeimg = $(emen2.template.image('cancel.png', 'Remove', 'e2-query-clear'))
 			removeimg.click(function(e) {
 				self.event_clear(e);
 			});
-
 			controls.append(addimg, removeimg);
-			newconstraint.append(controls);
+			
+			var newconstraint = $('<li class="e2-query-constraint" />')
+				.append(controls)
+				.append(' <input type="text" name="param" value="'+param+'" placeholder="Select parameter" /> ')
+				.append(cmpi)
+				.append('<input type="text" name="value" size="12" value="'+value+'" placeholder="value" />');
+				// .append('<input name="recurse_p" type="checkbox" /><label>Child Parameters');
+
+			if (recurse) {$('input[name=recurse_p]', newconstraint).attr('checked', 'checked')}
+
+
+			// controls.append(addimg, removeimg);
+			// newconstraint.append(controls);
 			$('input[name=param]', newconstraint).FindControl({keytype: 'paramdef'});
 			$('.e2-query-param', this.container).append(newconstraint);
 		},
@@ -395,10 +400,10 @@
 		
 		_find_constraints: function(c, base) {
 			var self = this;
-			var selector = '.e2-query-param tr';
+			var selector = '.e2-query-param .e2-query-constraint';
 			var param_constraints = [];
 			if (base) {
-				var selector = '.e2-query-base tr';
+				var selector = '.e2-query-base .e2-query-constraint';
 			}
 			$.each(c, function() {
 				var constraint = this;
@@ -427,9 +432,9 @@
 			$.each(new_constraints, function() {
 				self.addconstraint(this[0], this[1], this[2]);
 			});	
-			if (new_constraints.length == 0) {
+			// if (new_constraints.length == 0) {
 				self.addconstraint();
-			}
+			//}
 		}
 	});
 	
@@ -471,10 +476,10 @@
 			
 			// Statistics
 			ul.append('<li><span class="e2-query-length">Records</span></li>'); //'+emen2.template.caret()+'
-			ul.append('<li data-tab="controls"><span class="e2l-a">Query '+emen2.template.caret()+'</span></li>')
+			ul.append('<li data-tab="controls"><span class="e2l-a">Modify query '+emen2.template.caret()+'</span></li>')
 
 			// Edit
-			ul.append('<li data-tab="edit"><span class="e2l-a">Edit '+emen2.template.caret()+'</span></li>')
+			// ul.append('<li data-tab="edit"><span class="e2l-a">Edit '+emen2.template.caret()+'</span></li>')
 
 			// Plotting
 			// ul.append('<li data-tab="plot"><span class="e2l-a">Plot '+emen2.template.caret()+'</span></li>')
@@ -544,19 +549,19 @@
 				});	
 			});			
 			
-			tab.TabControl('setcb', 'edit', function(page) {
-				var form = $('form.e2-query-tableform');
-				form.MultiEditControl({
-					selector: '.e2-edit',
-					controls: page,
-					prefix: true
-				});
-				form.MultiEditControl('show');
-			});
-			tab.TabControl('sethidecb', 'edit', function(page) {
-				var form = $('form.e2-query-tableform');				
-				form.MultiEditControl('hide');	
-			});	
+			// tab.TabControl('setcb', 'edit', function(page) {
+			// 	var form = $('form.e2-query-tableform');
+			// 	form.MultiEditControl({
+			// 		selector: '.e2-edit',
+			// 		controls: page,
+			// 		prefix: true
+			// 	});
+			// 	form.MultiEditControl('show');
+			// });
+			// tab.TabControl('sethidecb', 'edit', function(page) {
+			// 	var form = $('form.e2-query-tableform');				
+			// 	form.MultiEditControl('hide');	
+			// });	
 			
 			if (this.options.qc) {
 				tab.TabControl('show', 'controls');

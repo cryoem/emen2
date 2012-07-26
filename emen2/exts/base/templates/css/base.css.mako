@@ -442,7 +442,14 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 	padding-right: 5px;
 	padding-left: 5px;
 }
-
+.e2-query-label {
+	width:100px;
+	display:inline-block;
+}
+.e2-query-label img {
+	margin-left:10px;
+	margin-right:10px;
+}
 
 /***** e2-find: Find popup *****/
 /* Search box */
