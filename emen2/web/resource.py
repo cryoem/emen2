@@ -96,13 +96,17 @@ class EMEN2Resource(object):
 		# Parse and filter the request arguments
 		args = self.parse_args(request)
 
-		# Authentication token
-		ctxid = args.pop('ctxid', None) or request.getCookie("ctxid")
+		# Authentication token -- if supplied as an argument, send it back as a cookie.
+		ctxid = args.pop('ctxid', None)
+		if ctxid:
+			self._set_ctxid(request, str(ctxid))
+		ctxid = ctxid or request.getCookie("ctxid")
+
+		# Client Host
 		host = request.getClientIP()
 
 		# self._render can either return an immediate result,
 		# or a deferred that will write to request using callbacks.
-		self.events.event('web.request.received')(request, ctxid, args, host)
 		return self._render(request, method, ctxid=ctxid, host=host, args=args)
 
 
@@ -194,13 +198,17 @@ class EMEN2Resource(object):
 		# a querystring argument.
 		setctxid = headers.pop('X-Ctxid', None)
 		if setctxid != None:
-			request.addCookie("ctxid", setctxid, path='/')
+			self._set_ctxid(request, setctxid)
 
 		# Set the remaining headers
 		[request.setHeader(key, str(headers[key])) for key in headers]
 
 		# Send result to client
 		self.render_result(result, request)
+
+
+	def _set_ctxid(self, request, ctxid):
+		request.addCookie("ctxid", ctxid, path='/')
 
 
 	def render_result(self, result, request):
@@ -319,7 +327,6 @@ class EMEN2Resource(object):
 
 		# HTTP arguments with '.' will be turned into dicts, e.g. 'child.key' -> child['key']
 		args = self._parse_args_dict(args)
-
 		return args
 
 
@@ -331,9 +338,6 @@ class EMEN2Resource(object):
 		if request.method == "PUT":
 			# The param?..
 			# Need to convert to unicode
-			fn = request.getHeader('x-file-name').decode('utf-8')
-			print type(fn)
-			
 			f = emen2.db.handlers.BinaryHandler.get_handler(
 				filename=request.getHeader('x-file-name'),
 				param=request.getHeader('x-file-param'),
@@ -355,7 +359,7 @@ class EMEN2Resource(object):
 			)
 
 			# Rebuild the request args.
-			args = {}
+			# args = {}
 			for param in img:
 				# img.getlist() only returns the values.
 				newvalues = []
@@ -373,12 +377,11 @@ class EMEN2Resource(object):
 						files.append(f)
 					else:
 						newvalues.append(value.value)
+				args[param] = newvalues
 
-
-		# Fix Unicode filename... arghg.
+		# Fix Unicode filename... Arrrgghghh..
 		for f in files:
-			fn = f.filename.decode('utf-8')
-			f.filename = fn
+			f.filename = f.filename.decode('utf-8')
 
 		# Make available to Views...
 		self.request_files = files

@@ -686,6 +686,8 @@ class EMEN2DBEnv(object):
 					self._txncb_rename(*args, **kwargs)
 				elif action == 'email':
 					self._txncb_email(*args, **kwargs)
+				elif action == 'thumbnail':
+					self._txncb_thumbnail(*args, **kwargs)
 	
 	
 	def _txncb_rename(self, source, dest):
@@ -693,15 +695,23 @@ class EMEN2DBEnv(object):
 		try:
 			shutil.move(source, dest)
 		except Exception, e:
-			emen2.db.log.error("Couldn't rename file %s -> %s: %s"%(source, dest, e))
+			emen2.db.log.error("Couldn't rename file %s -> %s"%(source, dest))
 
 		
 	def _txncb_email(self, *args, **kwargs):
 		try:
 			sendmail(*args, **kwargs)
 		except Exception, e:
-			emen2.db.log.error("Couldn't send email: %s"%e)
+			emen2.db.log.error("Couldn't send email")
 			
+			
+	def _txncb_thumbnail(self, bdo):
+		try:
+			emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
+		except Exception, e:
+			emen2.db.log.error("Couldn't start thumbnail builder")
+			print e
+	
 
 
 ##### Main Database Class #####
@@ -1132,48 +1142,42 @@ class DB(object):
 	##### Login and Context Management #####
 
 	@publicmethod(write=True, compat="login")
-	def auth_login(self, name="anonymous", password="", host=None, ctx=None, txn=None):
+	def auth_login(self, username, password, host=None, ctx=None, txn=None):
 		"""Login.
 
 		Returns auth token (ctxid), or fails with AuthenticationError.
 
 		Examples:
 
-		>>> db.auth.login(name='example@example.com', password='foobar')
+		>>> db.auth.login(username='example@example.com', password='foobar')
 		654067667525479cba8eb2940a3cf745de3ce608
 
-		>>> db.auth.login(name='ian@example.com', password='foobar')
-		AuthenticationError, "Invalid user name, email, or password"
+		>>> db.auth.login(username='ian@example.com', password='foobar')
+		AuthenticationError, "Invalid username, email, or password"
 
-		:keyword name: Account name or email address
+		:keyword username: Account name or email address
 		:keyword password: Account password
 		:keyword host: Bind auth token to this host. This is set by the proxy.
 		:return: Auth token (ctxid)
-		:exception AuthenticationError: Invalid user name, email, or password
+		:exception AuthenticationError: Invalid user username, email, or password
 		"""
-		# Make an anonymous Context
-		if name == "anonymous":
-			newcontext = emen2.db.context.AnonymousContext(host=host)
+		# Check the password; user.checkpassword will raise Exception if wrong
+		try:
+			user = self.dbenv["user"].getbyemail(username, filt=False, txn=txn)
+			user.checkpassword(password)
+		except SecurityError, e:
+			emen2.db.log.security("Login failed, bad password: %s"%(username))				
+			raise AuthenticationError, str(e)
+		except KeyError, e:
+			emen2.db.log.security("Login failed, no such user: %s"%(username))				
+			raise AuthenticationError, AuthenticationError.__doc__
 
-		# Try to find the user by account name, or by email
-		else:
-			# Check the password; user.checkpassword will raise Exception if wrong
-			try:
-				user = self.dbenv["user"].getbyemail(name, filt=False, txn=txn)
-				user.checkpassword(password)
-			except SecurityError, e:
-				emen2.db.log.security("Login failed, bad password: %s"%(name))				
-				raise AuthenticationError, str(e)
-			except KeyError, e:
-				emen2.db.log.security("Login failed, no such user: %s"%(name))				
-				raise AuthenticationError, AuthenticationError.__doc__
-
-			# Create the Context for this user/host
-			newcontext = emen2.db.context.Context(username=user.name, host=host)
+		# Create the Context for this user/host
+		newcontext = emen2.db.context.Context(username=user.name, host=host)
 
 		# This puts directly, instead of using cput.
 		self.dbenv._context.put(newcontext.name, newcontext, txn=txn)
-		emen2.db.log.security("Login succeeded: %s -> %s" % (name, newcontext.name))
+		emen2.db.log.security("Login succeeded: %s -> %s" % (newcontext.username, newcontext.name))
 
 		return newcontext.name
 
@@ -3449,7 +3453,7 @@ class DB(object):
 		:exception ValidationError:
 		"""
 		bdos = []
-		rename = []
+		actions = []
 		for bdo in items:
 			newfile = False
 			if not bdo.get('name'):
@@ -3461,12 +3465,13 @@ class DB(object):
 			bdos.append(bdo)
 
 			if newfile:
-				rename.append([newfile, bdo.filepath])
+				actions.append([bdo, newfile, bdo.filepath])
 			
 		# Rename the file at the end of the txn.
-		for newfile, filepath in rename:
+		for bdo, newfile, filepath in actions:
 			self.dbenv.txncb(txn, 'rename', [newfile, filepath])
-
+			self.dbenv.txncb(txn, 'thumbnail', [bdo])
+			
 		return bdos
 
 

@@ -290,8 +290,8 @@ class DBProxy(object):
 
 		return _Method(self, name)
 
-	def _login(self, username, passwd, host=None):
-		ctxid = self.auth.login(username, passwd)
+	def _login(self, username, password, host=None):
+		ctxid = self.auth.login(username, password)
 		self._setContext(ctxid, host)
 
 	def _wrap(self, func):

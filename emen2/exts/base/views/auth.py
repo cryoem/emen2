@@ -6,19 +6,19 @@ class Auth(View):
 
 	# @View.provides('auth_login')
 	@View.add_matcher(r'^/auth/login/$')
-	def login(self, name=None, pw=None, msg='', errmsg='', location=None, **kwargs):
+	def login(self, username=None, password=None, msg='', errmsg='', location=None, **kwargs):
 		self.template = '/auth/login'
 		self.title = 'Login'
 		location = location or self.ctxt['EMEN2WEBROOT']
 		if 'auth' in location or not location:
 			location = self.ctxt['EMEN2WEBROOT']
 
-		self.set_context_item("name",name)
+		self.set_context_item("username", username)
 		self.set_context_item('location', location)
 
 		ctxid = None
-		if name != None:
-			ctxid = self.db.auth.login(name, pw, host=self.ctxt['HOST'])
+		if username != None:
+			ctxid = self.db.auth.login(username, password, host=self.ctxt['HOST'])
 			msg = 'Successfully logged in'
 			self.set_header('X-Ctxid', ctxid)
 			self.redirect(location or '/')
