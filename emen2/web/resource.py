@@ -218,6 +218,7 @@ class EMEN2Resource(object):
 
 
 	def render_eb(self, failure, request, t=0, **_):
+		print failure
 		e, data = '', ''
 		headers = {}
 
@@ -329,6 +330,10 @@ class EMEN2Resource(object):
 
 		if request.method == "PUT":
 			# The param?..
+			# Need to convert to unicode
+			fn = request.getHeader('x-file-name').decode('utf-8')
+			print type(fn)
+			
 			f = emen2.db.handlers.BinaryHandler.get_handler(
 				filename=request.getHeader('x-file-name'),
 				param=request.getHeader('x-file-param'),
@@ -369,7 +374,11 @@ class EMEN2Resource(object):
 					else:
 						newvalues.append(value.value)
 
-				args[param] = newvalues
+
+		# Fix Unicode filename... arghg.
+		for f in files:
+			fn = f.filename.decode('utf-8')
+			f.filename = fn
 
 		# Make available to Views...
 		self.request_files = files

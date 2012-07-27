@@ -139,15 +139,14 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 	def _set_filename(self, key, value, vtm=None, t=None):
 		# Sanitize filename.. This will allow unicode characters,
 		#	and check for reserved filenames on linux/windows
-		filename = value
-		filename = "".join([i for i in filename if i.isalpha() or i.isdigit() or i in '.()-=_'])
-		if filename.upper() in ['..', '.', 'CON', 'PRN', 'AUX', 'NUL',
+		value = unicode(value)
+		value = "".join([i for i in value if i.isalpha() or i.isdigit() or i in '.()-=_'])
+		if value.upper() in ['..', '.', 'CON', 'PRN', 'AUX', 'NUL',
 									'COM1', 'COM2', 'COM3', 'COM4', 'COM5',
 									'COM6', 'COM7', 'COM8', 'COM9', 'LPT1',
 									'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6',
 									'LPT7', 'LPT8', 'LPT9']:
-			filename = "renamed."+filename
-		value = unicode(filename)
+			value = u"renamed."+value
 		return self._set(key, value, self.isowner())
 
 	def _set_record(self, key, value, vtm=None, t=None):

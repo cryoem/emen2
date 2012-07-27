@@ -155,7 +155,7 @@ class EMEN2DB(object):
 		# keyclass, keydump, keyload methods.
 		if keyformat == 's':
 			self.keyclass = unicode
-			self.keydump = lambda x:str(x).encode('utf-8')
+			self.keydump = lambda x:x.encode('utf-8')
 			self.keyload = lambda x:x.decode('utf-8')
 		elif keyformat == 'd':
 			self.keyclass = int

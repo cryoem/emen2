@@ -341,8 +341,6 @@
 			if (this.options.help) {
 				var help = $(' \
 					<div class="e2l-help" role="help"><p> \
-						Records can have an arbitrary number of file attachments. \
-					</p><p> \
 						To <strong>upload attachments</strong>, click the <strong>browse</strong> button below. \
 						Select the files you want to upload, and a dialog will appear \
 						showing current upload progress. After all the files have \
@@ -352,8 +350,8 @@
 						and click <strong>save attachments</strong>.  \
 					</p><p>Please note that attachments are never truly deleted; \
 						only the association with the record is removed. The person who originally \
-						uploaded the attachment will still be able to access the attachment and reassociate \
-						a different record. Additionally, attachments cannot be modified after they \
+						uploaded the attachment will still be able to access the attachment. \
+						Additionally, attachments cannot be modified after they \
 						have been created. To make changes, upload a new copy of the file. \
 					</p><p> \
 						Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Attachments">EMEN2 wiki</a>. \

@@ -489,8 +489,8 @@ class vt_datetime(vt_string):
 		return self._rci(ret)
 
 	def _render(self, value, embedtype=None):
-		if self.markup:
-			value = ['<time class="e2-localize" datetime="%s">%s</time>'%(i,i) for i in value]
+		#if self.markup:
+		value = ['<time class="e2-localize" datetime="%s">%s</time>'%(i,i) for i in value]
 		return super(vt_datetime, self)._render(value, embedtype=embedtype)
 
 

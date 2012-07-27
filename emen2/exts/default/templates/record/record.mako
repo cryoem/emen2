@@ -134,7 +134,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 	
 	$('.e2-record-new').RecordControl({});
 	
-	
 </%block>
 
 
@@ -147,9 +146,10 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 		## Title
 		<li>
-			<h2>
+			<h2 class="e2l-gradient">
 				<a href="${EMEN2WEBROOT}/record/${rec.name}/">
-					Record 
+					Record: ${recnames.get(rec.name, rec.name)}
+					## Record
 					## ${rec.name}
 					## % if tab == "main":
 					##	<span class="e2l-float-right" style="padding-right:5px;">&raquo;</span>
@@ -208,10 +208,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 		## View Selector
 		<li data-tab="views"><a href="#views">${buttons.image('table.png')} Views</a></li>
 
-		## Tools
-		<li data-tab="tools"><a href="#tools">${buttons.image('tools.png')} Tools</a></li>
-
-
 		## Comments!
 		<%
 		displaynames = dict([i.name, i.displayname] for i in users)
@@ -237,13 +233,12 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 					${historycount} Edits
 				</span>			
 
-				<br /><br />
 				<p style="text-align:center">
-				Created: ${users_d.get(cu, dict()).get('displayname', cu)} on <time class="e2-localize" datetime="${rec.get("creationtime")}">${rec.get("creationtime")[:10]}</time>
-				<br />
-				% if rec.creationtime != rec.modifytime:
-					Modified: ${users_d.get(mu, dict()).get('displayname', mu)} on <time class="e2-localize" datetime="${rec.get("modifytime")}">${rec.get("modifytime")[:10]}</time>
-				% endif
+				## C: ${users_d.get(cu, dict()).get('displayname', cu)}<br /> <time class="e2-localize" datetime="${rec.get("creationtime")}">${rec.get("creationtime")[:10]}</time>
+				## <br />
+				## % if rec.creationtime != rec.modifytime:
+				${users_d.get(mu, dict()).get('displayname', mu)}<br /> <time class="e2-localize e2l-tiny" datetime="${rec.get("modifytime")}">${rec.get("modifytime")[:10]}</time>
+				## % endif
 				</p>
 
 			</a>
@@ -252,8 +247,8 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 		
 		## Children tabs
 		<li>
-			<br />
-			<h2 class="e2l-cf">
+			<br /><br />
+			<h2 class="e2l-cf e2l-gradient">
 				<a href="${EMEN2WEBROOT}/record/${rec.name}/children/">Children</a>
 			</h2>
 		</li>
@@ -269,6 +264,21 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 				<span class="e2l-shadow home-count">${len(v)}</span>
 			</li>
 		% endfor
+
+
+		## Tools
+		## ${buttons.image('tools.png')} 
+		## This is a block that can be extended by rectype-specific child templates.
+		<%block name="tools">
+			<li>
+				<br /><br />
+				<h2 class="e2l-gradient"><a href="#">Tools</a></h2>
+			</li>
+			<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
+			<li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage public data</a></li>
+			<li><a href="${EMEN2WEBROOT}/record/${rec.name}/query/attachments/">Child attachments</a></li>
+		</%block>
+
 		
 		
 	</ul>
@@ -334,30 +344,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 			</ul>
 		</p>		
 	</div>
-	
-	<div data-tab="tools">
-		<%block name="tools">
-
-			<h2>Tools</h2>
-			<ul>
-				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/query/attachments/">Download all attachments in children</a></li>
-				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage published data</a></li>
-				<li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
-			</ul>
-
-			<h2>Common Queries:</h2>
-			<ul>
-				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/">Child records, sorted by creation time</a></li>
-				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/?sortkey=modifytime">Child records, sorted by last modification</a></li>
-				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/rectype.is.image_capture*/">Child images (ccd, scan, tomogram)</a></li>
-				<li><a href="${EMEN2WEBROOT}/query/children.is.${rec.name}*/rectype.is.grid_imaging/">Child grid imaging sessions</a></li>
-				<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/">${rec.rectype} records</a></li>
-				<li><a href="${EMEN2WEBROOT}/query/rectype.is.${rec.rectype}/creator.is.${rec.get('creator')}/">${rec.rectype} records, created by ${rec.get('creator')}</a></li>
-			</ul>				
-
-		</%block>
-	</div>
-	
 </div>
 
 

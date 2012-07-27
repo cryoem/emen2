@@ -108,11 +108,10 @@
 					<li><strong>Comment</strong>: access record and add comments</li> \
 					<li><strong>Write</strong>: access record, add comments, and change values</li> \
 					<li><strong>Owner</strong>: access record, add comments, change values, and change permissions</li> \
-				</ul><p>You can also assign <strong>user group</strong> permissions. The permissions of each group will be added to the record. \
-					For example, say user <em>John</em> is a member of the user group <em>Technicians</em>, and he has write permission in that group. If you added <em>Technicians</em> \
-					to this record, <em>John</em> would then have write access to this record. \
-					There are also a few special groups. <em>Authenticated</em> group will permit <em>all</em> logged-in users to access the record. \
+				</ul><p>You can also assign <strong>group</strong> permissions, including a few special groups. \
+					<em>Authenticated</em> group will permit <em>all</em> logged-in users to access the record. \
 					<em>Anonymous</em> will make the record publicly accessible to anyone who can access the server. \
+					See the wiki for more details on how to manage groups. \
 				</p><p>To <strong>add a user or group</strong>, click one of the <strong>+</strong> buttons below. \
 					Search for the user or group you wish to add, and click their name to add to the list. \
 					To <strong>remove users or groups</strong>, uncheck their name. Click <strong>save permissions</strong> to save the permissions for this record, \
@@ -133,7 +132,7 @@
 
 			// Build the permissions levels
 			if (this.options.groups) {
-				this.element.append(this.build_level('User groups', 'groups', groups, 'group'));
+				this.element.append(this.build_level('Groups', 'groups', groups, 'group'));
 			}
 			this.element.append(this.build_level('Read-only', 'read', permissions[0]));
 			this.element.append(this.build_level('Comment', 'comment', permissions[1]));

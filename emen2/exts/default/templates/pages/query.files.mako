@@ -36,9 +36,18 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
 			<tr>
 				<td><input type="checkbox" checked="checked" name="bids" value="${bdo.name}" data-filesize="${bdo.get('filesize',0)}" /></td>
 				<td>
-					<a href="${EMEN2WEBROOT}/download/${bdo.name}/${bdo.filename}">
+					<%
+					## Grumble...
+					fn = bdo.filename
+					try:
+						if isinstance(fn, str):
+							fn = bdo.filename.decode('utf-8')
+					except:
+						fn = bdo.name
+					%>
+					<a href="${EMEN2WEBROOT}/download/${bdo.name}/${fn}">
 						<img class="e2l-thumbnail" src="${EMEN2WEBROOT}/download/${bdo.name}/thumb.jpg?size=thumb" alt="" /> 
-						${bdo.filename}
+						${fn}
 					</a>
 				</td>
 				<td class="e2-download-filesizes" data-filesize="${bdo.get('filesize',0)}">${bdo.get('filesize',0)}</td>
