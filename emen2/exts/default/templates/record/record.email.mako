@@ -1,27 +1,27 @@
 <%inherit file="/record/record" />
 
 <%def name="emailtable(emailusers)">
-	<table class="e2l-kv e2l-shaded" cellpadding="0" cellspacing="0">
-		<thead>
-			<tr>
-				<th>Name</th>
-				<th>Email</th>
-			</tr>	
-		</thead>
-		<tbody>
-		% for user in sorted(emailusers, key=lambda x:x.displayname):
-			<tr>
-				<td><a href="${EMEN2WEBROOT}/user/${user.name}/">${user.displayname}</a></td>
-				<td><a href="mailto:${user.email}">${user.email}</a></td>
-			</tr>
-		% endfor
-		</tbody>
-	</table>
+    <table class="e2l-kv e2l-shaded" cellpadding="0" cellspacing="0">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Email</th>
+            </tr>    
+        </thead>
+        <tbody>
+        % for user in sorted(emailusers, key=lambda x:x.displayname):
+            <tr>
+                <td><a href="${EMEN2WEBROOT}/user/${user.name}/">${user.displayname}</a></td>
+                <td><a href="mailto:${user.email}">${user.email}</a></td>
+            </tr>
+        % endfor
+        </tbody>
+    </table>
 </%def>
 
 <h1>
-	Email users 
-	## referenced by ${recnames.get(rec.name, rec.name)}
+    Email users 
+    ## referenced by ${recnames.get(rec.name, rec.name)}
 </h1>
 
 ## <div class="e2l-help">This asdf.</div>

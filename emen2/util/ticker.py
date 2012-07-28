@@ -36,7 +36,7 @@ class AsciiSpinner(threading.Thread):
        while self.running:
             print self.running
             #for char in '/-\|': # there should be a backslash in here.
-				#for char in '.oOo': # there should be a backslash in here.
+                #for char in '.oOo': # there should be a backslash in here.
             #for char in ':.,;': # there should be a backslash in here.
             #for char in '_-^-': # there should be a backslash in here.
             #for char in '<^>v': # there should be a backslash in here.
@@ -70,8 +70,8 @@ def spinning_distraction():
 
 def main():
     with spinning_distraction():
-		while 1:
-			time.sleep(5) # pretend this is real work here.
+        while 1:
+            time.sleep(5) # pretend this is real work here.
 
 
 if __name__ == '__main__':

@@ -10,11 +10,11 @@ ${q}
 
 
 ## % for rec, bdos in c.items():
-##	
-##	<h1><a href="${EMEN2WEBROOT}/record/${rec}/">${recnames.get(rec, rec)}</a></h1>
-##	<ul>
-##	% for bdo in bdos:
-##		<li>${bdo.filename}</li>
-##	% endfor
-##	</ul>
+##    
+##    <h1><a href="${EMEN2WEBROOT}/record/${rec}/">${recnames.get(rec, rec)}</a></h1>
+##    <ul>
+##    % for bdo in bdos:
+##        <li>${bdo.filename}</li>
+##    % endfor
+##    </ul>
 ## % endfor

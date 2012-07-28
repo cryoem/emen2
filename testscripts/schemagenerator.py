@@ -17,7 +17,7 @@ Record Definition:
         >mainview
         #tabular view
         ?default view
-		  N recname view
+          N recname view
         ---
 '''
 
@@ -136,7 +136,7 @@ class Token(object):
     def __unicode__(self):
         result = [u'<Token name="%s"' % self._name]
         for x,y in self._args.items():
-		      result.append(unicode("%s = %s" % (x,y)))
+              result.append(unicode("%s = %s" % (x,y)))
         result.append(u'</Token>')
         return unicode.join(u'\n', result)
     __str__ = __unicode__

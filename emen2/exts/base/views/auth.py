@@ -4,188 +4,188 @@ from emen2.web.view import View
 @View.register
 class Auth(View):
 
-	# @View.provides('auth_login')
-	@View.add_matcher(r'^/auth/login/$')
-	def login(self, username=None, password=None, msg='', errmsg='', location=None, **kwargs):
-		self.template = '/auth/login'
-		self.title = 'Login'
-		location = location or self.ctxt['EMEN2WEBROOT']
-		if 'auth' in location or not location:
-			location = self.ctxt['EMEN2WEBROOT']
+    # @View.provides('auth_login')
+    @View.add_matcher(r'^/auth/login/$')
+    def login(self, username=None, password=None, msg='', errmsg='', location=None, **kwargs):
+        self.template = '/auth/login'
+        self.title = 'Login'
+        location = location or self.ctxt['EMEN2WEBROOT']
+        if 'auth' in location or not location:
+            location = self.ctxt['EMEN2WEBROOT']
 
-		self.set_context_item("username", username)
-		self.set_context_item('location', location)
+        self.set_context_item("username", username)
+        self.set_context_item('location', location)
 
-		ctxid = None
-		if username != None:
-			ctxid = self.db.auth.login(username, password, host=self.ctxt['HOST'])
-			msg = 'Successfully logged in'
-			self.set_header('X-Ctxid', ctxid)
-			self.redirect(location or '/')
-			# self.set_header('Location', location or '/')
+        ctxid = None
+        if username != None:
+            ctxid = self.db.auth.login(username, password, host=self.ctxt['HOST'])
+            msg = 'Successfully logged in'
+            self.set_header('X-Ctxid', ctxid)
+            self.redirect(location or '/')
+            # self.set_header('Location', location or '/')
 
-		if msg:
-			self.ctxt['NOTIFY'].append(msg)
-		if errmsg:
-			self.ctxt['ERRORS'].append(errmsg)
-
-
-
-
-	# @View.provides('auth_logout')
-	@View.add_matcher(r'^/auth/logout/$')
-	def logout(self, msg='', location=None, **kwargs):
-		self.template = '/auth/login'
-		self.title = 'Logout'
-		msg = ''
-		errmsg = ''
-
-		location = location or self.ctxt['EMEN2WEBROOT']
-		if 'auth' in location or not location:
-			location = self.ctxt['EMEN2WEBROOT']
-
-		self.set_context_item('location', location)
-		try:
-			self.db.auth.logout()
-			msg = 'Successfully logged out'
-		except Exception, errmsg:
-			pass
-
-		self.set_header('Location', location or '/')
-		self.set_header('X-Ctxid', '')
-
-		if msg:
-			self.ctxt['NOTIFY'].append(msg)
-		if errmsg:
-			self.ctxt['ERRORS'].append(errmsg)
+        if msg:
+            self.ctxt['NOTIFY'].append(msg)
+        if errmsg:
+            self.ctxt['ERRORS'].append(errmsg)
 
 
 
-	@View.add_matcher(r'^/auth/password/change/$', name='password/change')
-	def setpassword(self, location=None, **kwargs):
-		self.template = '/auth/password.change'
-		self.title = "Password Change"
-		self.ctxt['location'] = location
 
-		name = kwargs.pop("name",None) or self.db.auth.check.context()[0]
-		opw = kwargs.pop("opw",None)
-		on1 = kwargs.pop("on1",None)
-		on2 = kwargs.pop("on2",None)
+    # @View.provides('auth_logout')
+    @View.add_matcher(r'^/auth/logout/$')
+    def logout(self, msg='', location=None, **kwargs):
+        self.template = '/auth/login'
+        self.title = 'Logout'
+        msg = ''
+        errmsg = ''
 
-		msg = ''
-		errmsg = ''
+        location = location or self.ctxt['EMEN2WEBROOT']
+        if 'auth' in location or not location:
+            location = self.ctxt['EMEN2WEBROOT']
 
-		self.ctxt['name'] = name
+        self.set_context_item('location', location)
+        try:
+            self.db.auth.logout()
+            msg = 'Successfully logged out'
+        except Exception, errmsg:
+            pass
 
-		if not on1 and not on2:
-			pass
+        self.set_header('Location', location or '/')
+        self.set_header('X-Ctxid', '')
 
-		elif on1 != on2:
-			errmsg = "New passwords did not match"
-
-		else:
-			try:
-				self.db.user.setpassword(opw, on1, name=name)
-				msg = "Password changed successfully"
-			except Exception, errmsg:
-				pass
-
-		if msg:
-			self.ctxt['NOTIFY'].append(msg)
-		if errmsg:
-			self.ctxt['ERRORS'].append(errmsg)
+        if msg:
+            self.ctxt['NOTIFY'].append(msg)
+        if errmsg:
+            self.ctxt['ERRORS'].append(errmsg)
 
 
 
-	@View.add_matcher(r'^/auth/password/reset/$', name='password/reset')
-	@View.add_matcher(r'^/auth/password/reset/(?P<email>.+)/(?P<secret>\w+)/$', name='password/reset/confirm')
-	def resetpassword(self, location=None, email=None, secret=None, newpassword=None, **kwargs):
-		self.template = '/auth/password.reset'
-		self.title = "Reset Password"
-		self.set_context_item('email',email)
-		self.set_context_item('secret',secret)
-		self.set_context_item('newpassword','')
-		self.set_context_item('location',location)
-		msg = ''
-		errmsg = ''
+    @View.add_matcher(r'^/auth/password/change/$', name='password/change')
+    def setpassword(self, location=None, **kwargs):
+        self.template = '/auth/password.change'
+        self.title = "Password Change"
+        self.ctxt['location'] = location
 
-		if email:
-			if secret and newpassword:
-				try:
-					name = self.db.user.setpassword(oldpassword=None, newpassword=newpassword, secret=secret, name=email)
-					msg = 'The password for your account, %s, has been changed'%name
-				except Exception, errmsg:
-					pass
+        name = kwargs.pop("name",None) or self.db.auth.check.context()[0]
+        opw = kwargs.pop("opw",None)
+        on1 = kwargs.pop("on1",None)
+        on2 = kwargs.pop("on2",None)
 
-			elif secret and not newpassword:
-				# errmsg = "No new password given..."
-				pass
+        msg = ''
+        errmsg = ''
 
-			else:
-				try:
-					self.db.user.resetpassword(email)
-					msg = 'Instructions for resetting your password have been sent to %s'%email
-				except Exception, errmsg:
-					pass
+        self.ctxt['name'] = name
 
-		if msg:
-			self.ctxt['NOTIFY'].append(msg)
-		if errmsg:
-			self.ctxt['ERRORS'].append(errmsg)
+        if not on1 and not on2:
+            pass
+
+        elif on1 != on2:
+            errmsg = "New passwords did not match"
+
+        else:
+            try:
+                self.db.user.setpassword(opw, on1, name=name)
+                msg = "Password changed successfully"
+            except Exception, errmsg:
+                pass
+
+        if msg:
+            self.ctxt['NOTIFY'].append(msg)
+        if errmsg:
+            self.ctxt['ERRORS'].append(errmsg)
 
 
 
-	@View.add_matcher(r'^/auth/email/change/$', name='email/change')
-	def setemail(self, location=None, **kwargs):
-		self.template = '/auth/email.change'
-		self.title = "Change Email"
-		self.ctxt['location'] = location
+    @View.add_matcher(r'^/auth/password/reset/$', name='password/reset')
+    @View.add_matcher(r'^/auth/password/reset/(?P<email>.+)/(?P<secret>\w+)/$', name='password/reset/confirm')
+    def resetpassword(self, location=None, email=None, secret=None, newpassword=None, **kwargs):
+        self.template = '/auth/password.reset'
+        self.title = "Reset Password"
+        self.set_context_item('email',email)
+        self.set_context_item('secret',secret)
+        self.set_context_item('newpassword','')
+        self.set_context_item('location',location)
+        msg = ''
+        errmsg = ''
 
-		name = kwargs.get("name") or self.db.auth.check.context()[0]
-		opw = kwargs.get('opw', None)
-		email = kwargs.get('email', None)
+        if email:
+            if secret and newpassword:
+                try:
+                    name = self.db.user.setpassword(oldpassword=None, newpassword=newpassword, secret=secret, name=email)
+                    msg = 'The password for your account, %s, has been changed'%name
+                except Exception, errmsg:
+                    pass
 
-		self.set_context_item('email',email)
-		msg = ''
-		errmsg = ''
+            elif secret and not newpassword:
+                # errmsg = "No new password given..."
+                pass
 
-		if email:
-			try:
-				ret = self.db.user.setemail(email, password=opw, name=name)
-				if email == ret:
-					msg = 'Email address successfully updated to %s'%ret
-				else:
-					msg = 'A verification email has been sent to %s'%email
-					
-			except Exception, errmsg:
-				ret = None
+            else:
+                try:
+                    self.db.user.resetpassword(email)
+                    msg = 'Instructions for resetting your password have been sent to %s'%email
+                except Exception, errmsg:
+                    pass
 
-
-		if msg:
-			self.ctxt['NOTIFY'].append(msg)
-		if errmsg:
-			self.ctxt['ERRORS'].append(errmsg)
-
+        if msg:
+            self.ctxt['NOTIFY'].append(msg)
+        if errmsg:
+            self.ctxt['ERRORS'].append(errmsg)
 
 
-	@View.add_matcher(r'^/auth/email/verify/(?P<email>.+)/(?P<secret>\w+)/$', name='email/verify')
-	def verifyemail(self, location=None, email=None, secret=None, **kwargs):
-		self.template = '/auth/email.verify'
-		self.title = "Verify Email"
-		msg = ''
-		errmsg = ''
 
-		if email and secret:
-			try:
-				ret = self.db.user.setemail(email, secret=secret)
-				msg = "The email address for your account has been changed to %s"%ret
-			except Exception, errmsg:
-				pass
+    @View.add_matcher(r'^/auth/email/change/$', name='email/change')
+    def setemail(self, location=None, **kwargs):
+        self.template = '/auth/email.change'
+        self.title = "Change Email"
+        self.ctxt['location'] = location
 
-		if msg:
-			self.ctxt['NOTIFY'].append(msg)
-		if errmsg:
-			self.ctxt['ERRORS'].append(errmsg)
+        name = kwargs.get("name") or self.db.auth.check.context()[0]
+        opw = kwargs.get('opw', None)
+        email = kwargs.get('email', None)
+
+        self.set_context_item('email',email)
+        msg = ''
+        errmsg = ''
+
+        if email:
+            try:
+                ret = self.db.user.setemail(email, password=opw, name=name)
+                if email == ret:
+                    msg = 'Email address successfully updated to %s'%ret
+                else:
+                    msg = 'A verification email has been sent to %s'%email
+                    
+            except Exception, errmsg:
+                ret = None
+
+
+        if msg:
+            self.ctxt['NOTIFY'].append(msg)
+        if errmsg:
+            self.ctxt['ERRORS'].append(errmsg)
+
+
+
+    @View.add_matcher(r'^/auth/email/verify/(?P<email>.+)/(?P<secret>\w+)/$', name='email/verify')
+    def verifyemail(self, location=None, email=None, secret=None, **kwargs):
+        self.template = '/auth/email.verify'
+        self.title = "Verify Email"
+        msg = ''
+        errmsg = ''
+
+        if email and secret:
+            try:
+                ret = self.db.user.setemail(email, secret=secret)
+                msg = "The email address for your account has been changed to %s"%ret
+            except Exception, errmsg:
+                pass
+
+        if msg:
+            self.ctxt['NOTIFY'].append(msg)
+        if errmsg:
+            self.ctxt['ERRORS'].append(errmsg)
 
 
 

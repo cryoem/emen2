@@ -29,23 +29,23 @@ elif v.flowstyle.lower() == 'compact': kwargs['fs'] = 1
 if v.file is not None: kwargs['file'] = v.file
 if v.keys is not None: kwargs['kg'] = v.keys
 if v.set:
-	if len(args) != 2: raise ValueError, 'wrong number of arguments'
-	emen2.db.config.globalns.setattr(args[0], yaml.safe_load(args[1]))
+    if len(args) != 2: raise ValueError, 'wrong number of arguments'
+    emen2.db.config.globalns.setattr(args[0], yaml.safe_load(args[1]))
 
 if v.get:
-	val = emen2.db.config.globalns.getattr(v.get)
-	if v.json: print(jsonrpc.jsonutil.encode(val))
-	else: print(val)
+    val = emen2.db.config.globalns.getattr(v.get)
+    if v.json: print(jsonrpc.jsonutil.encode(val))
+    else: print(val)
 
 else:
-	out = emen2.db.config.globalns.to_yaml(**kwargs)
-	if v.ofile and v.file is None:
-		with file(v.ofile, 'w') as f:
-			f.write(out)
-	elif v.set and v.file and v.inline:
-		with file(v.file, 'w') as f:
-			f.write(out)
-	else:
-		print(out)
+    out = emen2.db.config.globalns.to_yaml(**kwargs)
+    if v.ofile and v.file is None:
+        with file(v.ofile, 'w') as f:
+            f.write(out)
+    elif v.set and v.file and v.inline:
+        with file(v.file, 'w') as f:
+            f.write(out)
+    else:
+        print(out)
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

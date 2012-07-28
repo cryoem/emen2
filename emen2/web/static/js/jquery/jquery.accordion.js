@@ -1,6 +1,6 @@
 (function($) {
     $.widget("ui.accordion1", {
-		options: {
+        options: {
          helpDialog: $('<div class="help"></div>'),
          active: 0,
          animated: 'slide',
@@ -18,9 +18,9 @@
             return this.href.toLowerCase() == location.href.toLowerCase();
          }
 
-		},
-				
-		_create: function() {
+        },
+                
+        _create: function() {
 
          var o = this.options, self = this;
          this.running = 0;
@@ -91,7 +91,7 @@
          }
 
          this.active.focus();
-   	},
+       },
 
       _initHelp: function(target) {
         var self = this;
@@ -229,13 +229,13 @@
          this.active.focus();
          
       },
-				
-		destroy: function() {
-		},
-		
-		_setOption: function(option, value) {
-			$.Widget.prototype._setOption.apply( this, arguments );
-		},
+                
+        destroy: function() {
+        },
+        
+        _setOption: function(option, value) {
+            $.Widget.prototype._setOption.apply( this, arguments );
+        },
 
       help: function(target) {
          if (!this.options.helpDialog.dialog('isOpen'))
@@ -244,5 +244,5 @@
             this.options.helpDialog.dialog('close');
       }
 
-	});
+    });
 })(jQuery);

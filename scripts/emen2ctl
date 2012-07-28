@@ -12,7 +12,7 @@ while getopts ":h:" opt; do
   case $opt in
     h)
       # echo "-h was triggered, Parameter: $OPTARG" >&2
-	  EMEN2DBHOME=$OPTARG
+      EMEN2DBHOME=$OPTARG
       ;;
     :)
       echo "Option -$OPTARG requires an argument." >&2
@@ -23,8 +23,8 @@ done
 
 
 if [ -z $EMEN2DBHOME -a $COMMAND ]; then
-	echo "You must specify an EMEN2 database environment, either using the -h (--home) argument or the environment variable \$EMEN2DBHOME"
-	exit 1
+    echo "You must specify an EMEN2 database environment, either using the -h (--home) argument or the environment variable \$EMEN2DBHOME"
+    exit 1
 fi
 
 
@@ -34,54 +34,54 @@ PATH=${EMAN2DIR}/Python/bin:${EMAN2DIR}/usr/bin:/bin:/usr/sbin:/sbin:$PATH
 TWISTD=`which twistd`
 
 case $COMMAND in
-	start)
-		echo "Starting emen2"
-		$TWISTD \
-			--pidfile=$pidfile \
-			--logger=emen2.tap.logger \
-			--rundir=$EMEN2DBHOME \
-			emen2 $@
-		# echo "[process `cat ${pidfile}`]"
-		;;
+    start)
+        echo "Starting emen2"
+        $TWISTD \
+            --pidfile=$pidfile \
+            --logger=emen2.tap.logger \
+            --rundir=$EMEN2DBHOME \
+            emen2 $@
+        # echo "[process `cat ${pidfile}`]"
+        ;;
 
-	stop)
-		if [ -f $pidfile ] 
-		then
-			pid=`cat ${pidfile}`
-			echo "Stopping emen2 [process ${pid}]"
-			kill ${pid}
-		fi
-		;;
+    stop)
+        if [ -f $pidfile ] 
+        then
+            pid=`cat ${pidfile}`
+            echo "Stopping emen2 [process ${pid}]"
+            kill ${pid}
+        fi
+        ;;
 
-	restart)
-		"${0}" stop $@
-		"${0}" start $@
-		;;
-		
-	recover)
-		echo "Running emen2 database recovery"
-		db_recover -v -h ${EMEN2DBHOME}
-		;;
+    restart)
+        "${0}" stop $@
+        "${0}" start $@
+        ;;
+        
+    recover)
+        echo "Running emen2 database recovery"
+        db_recover -v -h ${EMEN2DBHOME}
+        ;;
 
-	create)
-		echo "Creating emen2 database environment"
-		python -m emen2.db --create -h ${EMEN2DBHOME}
-		;;
+    create)
+        echo "Creating emen2 database environment"
+        python -m emen2.db --create -h ${EMEN2DBHOME}
+        ;;
 
-	passwd)
-		echo "Resetting password"
-		# python -m emen2.db --create -h ${EMEN2DBHOME}
-		;;
+    passwd)
+        echo "Resetting password"
+        # python -m emen2.db --create -h ${EMEN2DBHOME}
+        ;;
 
-	archive)
-		echo "Running emen2 database log archive"
-		python -m emen2.db.log_archive -h ${EMEN2DBHOME}
-		;;
+    archive)
+        echo "Running emen2 database log archive"
+        python -m emen2.db.log_archive -h ${EMEN2DBHOME}
+        ;;
 
     *)
-		echo "Usage: ${0} {start|stop|restart|create|recover|archive} [options]" >&2
-		exit 1
-		;;
+        echo "Usage: ${0} {start|stop|restart|create|recover|archive} [options]" >&2
+        exit 1
+        ;;
 esac
 
 exit 0

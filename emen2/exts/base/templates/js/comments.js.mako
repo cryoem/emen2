@@ -5,7 +5,7 @@
 <%!
 public = True
 headers = {
-	'Content-Type': 'application/javascript',
-	'Cache-Control': 'max-age=86400'
+    'Content-Type': 'application/javascript',
+    'Cache-Control': 'max-age=86400'
 }
 %>

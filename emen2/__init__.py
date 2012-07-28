@@ -5,4 +5,4 @@ __version__ = "$Revision$".split(":")[1][:-1].strip()
 # Support Python 2.6
 import collections
 if not hasattr(collections, 'OrderredDict'):
-	from .util import orderreddict
+    from .util import orderreddict

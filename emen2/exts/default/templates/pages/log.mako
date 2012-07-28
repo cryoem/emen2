@@ -34,7 +34,7 @@
 
 <%def name="layoutdata(data)" filter="trim">
    <div id="accordion">
-		<%
+        <%
          counter = 0
       %>
       %for key, values in sorted(group_dict(data, norm.norm).items(), lambda x,y:(cmp(y,x) if viewargs['reverse'] else cmp(x,y))):

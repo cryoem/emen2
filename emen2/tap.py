@@ -13,23 +13,23 @@ Options = emen2.web.server.WebServerOptions
 
 
 class Testlog(FileLogObserver):
-	def emit(self, event):
-		util.untilConcludes(self.write, "%s\n"%(event))
-		util.untilConcludes(self.flush)	 # Hoorj!		
+    def emit(self, event):
+        util.untilConcludes(self.write, "%s\n"%(event))
+        util.untilConcludes(self.flush)     # Hoorj!        
 
 
 def logger():
-	emen2.db.log.logger.start()
-	return emen2.db.log.logger.emit
+    emen2.db.log.logger.start()
+    return emen2.db.log.logger.emit
 
 
 def makeService(options):
-	# Load the configuration
-	import emen2.db.config
-	emen2.db.config.UsageParser(options=options)
+    # Load the configuration
+    import emen2.db.config
+    emen2.db.config.UsageParser(options=options)
 
-	# Start the service
-	s = service.MultiService()
-	server = emen2.web.server.EMEN2Server(options)
-	server.start(service=s)	
-	return s
+    # Start the service
+    s = service.MultiService()
+    server = emen2.web.server.EMEN2Server(options)
+    server.start(service=s)    
+    return s
