@@ -92,7 +92,7 @@ publicmethod = emen2.db.proxy.publicmethod
 # Version names
 # from emen2.clients import __version__
 VERSIONS = {
-    "API": emen2.VERSION
+    "API": emen2.__version__
 }
 
 # Regular expression to parse Protocol views.
@@ -136,17 +136,17 @@ def clock(times, key=0, t=0, limit=180):
 
 
 def getrandomid():
-    """Generate a random ID"""
+    """Generate a random ID."""
     return uuid.uuid4().hex
 
 
 def getctime():
-    """:return: Current database time, as float in seconds since the epoch."""
+    """Current database time, as float in seconds since the epoch."""
     return time.time()
 
 
 def gettime():
-    """Returns the current database UTC time in ISO 8601 format"""
+    """Returns the current database UTC time in ISO 8601 format."""
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat()+'+00:00'
 
 
@@ -168,7 +168,9 @@ def getpw(pw=None):
 
 
 def ol(name, output=True):
-    """Use method argument introspection to convert an argument value to a list.
+    """Convert a function argument to a list.
+    
+    Use method argument introspection to convert an argument value to a list.
     If the value was originally a list, return a list. If it was not, return
     a single value.
 
@@ -252,9 +254,9 @@ def sendmail(email, subject='', msg='', template=None, ctxt=None):
 
     :param email: Email recipient
     :keyword msg: Message text, or
-    :keyword template: ... Template name
-    :keyword ctxt: ... Dictionary to pass to template
-    :return: Email recipient, or None if no message was sent
+    :keyword template: ... Template name  
+    :keyword ctxt: ... Dictionary to pass to template  
+    :return: Email recipient, or None if no message was sent  
 
     """    
     mailadmin = emen2.db.config.get('mailsettings.MAILADMIN')
@@ -380,13 +382,13 @@ class EMEN2DBEnv(object):
     snapshot = emen2.db.config.get('params.SNAPSHOT')
 
     # Open DB environment; check if global DBEnv has been opened yet
-    ENVOPENFLAGS = \
-        bsddb3.db.DB_CREATE | \
-        bsddb3.db.DB_INIT_MPOOL | \
-        bsddb3.db.DB_INIT_TXN | \
-        bsddb3.db.DB_INIT_LOCK | \
-        bsddb3.db.DB_INIT_LOG | \
-        bsddb3.db.DB_THREAD
+    ENVOPENFLAGS = 0
+    ENVOPENFLAGS |= bsddb3.db.DB_CREATE
+    ENVOPENFLAGS |= bsddb3.db.DB_INIT_MPOOL
+    ENVOPENFLAGS |= bsddb3.db.DB_INIT_TXN
+    ENVOPENFLAGS |= bsddb3.db.DB_INIT_LOCK
+    ENVOPENFLAGS |= bsddb3.db.DB_INIT_LOG
+    ENVOPENFLAGS |= bsddb3.db.DB_THREAD
         
     # paths from global configuration
     LOGPATH = emen2.db.config.get('paths.LOGPATH')

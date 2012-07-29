@@ -300,7 +300,7 @@ class BinaryDB(emen2.db.btrees.DBODB):
     dataclass = Binary
 
     def _name_generator(self, item, txn=None):
-         """Assign a name based on date, and the counter for that day."""
+        """Assign a name based on date, and the counter for that day."""
         # Get the current date and counter.
         dkey = emen2.db.binary.Binary.parse('')
         # Increment the day's counter.
@@ -311,7 +311,6 @@ class BinaryDB(emen2.db.btrees.DBODB):
         item.__dict__['_filepath'] = newdkey['filepath']
         # Return the new name.
         return newdkey['name']
-        
 
     def openindex(self, param, txn=None):
         """Index on filename (and possibly MD5 in the future.)"""

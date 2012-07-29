@@ -143,7 +143,7 @@ class NewUser(View):
                 
         # Snap off the base user parameters
         email = user.get('email', '').strip()
-         password = user.get('password', None)
+        password = user.get('password', None)
         
         #try:
         if 1:

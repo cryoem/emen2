@@ -2,7 +2,7 @@ import os
 import subprocess
 from distutils.core import setup
 
-from emen2 import VERSION
+import emen2
 
 if __name__ == "__main__":
     # Base
@@ -30,7 +30,7 @@ if __name__ == "__main__":
 
     setup(
         name='emen2',
-        version=VERSION,
+        version=emen2.__version__,
         description='EMEN2 Object-Oriented Scientific Database',
         author='Ian Rees',
         author_email='ian.rees@bcm.edu',

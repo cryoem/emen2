@@ -258,7 +258,7 @@ class View(TemplateView):
             USER = user,
             ADMIN = admin,
             DB = self.db,
-            VERSION = emen2.VERSION,
+            VERSION = emen2.__version__,
             EMEN2WEBROOT = emen2.db.config.get('network.EMEN2WEBROOT'),
             EMEN2DBNAME = emen2.db.config.get('customization.EMEN2DBNAME'),
             EMEN2LOGO = emen2.db.config.get('customization.EMEN2LOGO'),

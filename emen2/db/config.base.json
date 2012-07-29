@@ -65,7 +65,6 @@
     // You probably don't want to change any of these.
     "params":{
         "BLOCKLENGTH": 100000,
-        "VERSION": 20120215,
         "MAXRECURSE": 50,
         "MAXIDLE": 604800,
         "SNAPSHOT": 1
