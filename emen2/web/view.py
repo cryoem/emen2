@@ -24,7 +24,6 @@ import jsonrpc.jsonutil
 # emen2 imports
 import emen2.util.decorators
 import emen2.util.listops
-import emen2.util.fileops
 
 import emen2.web.routing
 import emen2.web.resource

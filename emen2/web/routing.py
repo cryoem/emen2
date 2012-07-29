@@ -54,7 +54,6 @@ class Router(twisted.web.resource.Resource):
         view.render = functools.partial(view.render, method=method)
         return view
 
-
     def logrequest(self, x, request, t=0.0, *args, **kwargs):
         ctxid = None
         headers = request.responseHeaders.getAllRawHeaders()
@@ -63,18 +62,6 @@ class Router(twisted.web.resource.Resource):
             k = k.lower()
             if k not in tmp and k in set(['x-username', 'content-length', 'x-resource']):
                 tmp[k] = v
-
-        # logline = emen2.util.loganalyzer.AccessLogLine(
-        #     host = request.getClientIP(),
-        #     ctxid = request.getCookie('ctxid'),
-        #     username = tmp.get('x-username',[''])[0],
-        #     rtime = time.strftime(emen2.util.loganalyzer.CTIME),
-        #     request = '"%s %s"' % (request.method, request.uri),
-        #     response_code = request.code,
-        #     size = tmp.get('content-length',[0])[0],
-        #     resource = tmp.get('x-resource', '-'),
-        #     cputime = (time.time()-t)*1000,
-        # )
 
     # Resource was not found
     def render(self, request):

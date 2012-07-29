@@ -152,7 +152,6 @@ except ImportError:
     except ImportError:
         json = False
 
-import emen2.util.datastructures
 from emen2.db import debug
 import jsonrpc.jsonutil
 

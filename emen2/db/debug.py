@@ -28,8 +28,6 @@ import sys
 import traceback
 from twisted.python import log
 
-import emen2.util.datastructures
-
 
 __all__ = ['DebugState', 'Output', 'Bounded', 'Headless', 'Min']
 

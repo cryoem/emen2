@@ -1,5 +1,4 @@
 # $Id$
-from emen2.util import caching
 import itertools
 import collections
 import operator
