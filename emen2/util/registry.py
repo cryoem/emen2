@@ -10,7 +10,8 @@ class CallableGeneratorContextManager(contextlib.GeneratorContextManager):
         with self as obj:
             return obj(*a, **kw)
 
-#NOTE: (ed) this is literally ripped out of contextlib but I've replaced contextlib.GeneratorContextManager with the previous class
+#NOTE: (ed) this is literally ripped out of contextlib,
+# but I've replaced contextlib.GeneratorContextManager with the previous class
 def contextmanager(func):
     '''see documentation for :py:class:`contextlib.GeneratorContextManager`'''
     @functools.wraps(func)
