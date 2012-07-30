@@ -7601,21 +7601,21 @@ EMAN2paramdefs = [{
     'vartype': 'string',
     'keytype': 'paramdef'
 }, {
-    'desc_short': 'Angstroms per pixel (X)',
+    'desc_short': '(EMData) Angstroms per pixel (X)',
     'name': 'emdata_apix_x',
     'vartype': 'float',
     'property': 'length',
     'defaultunits': 'Angstrom',
     'keytype': 'paramdef'
 }, {
-    'desc_short': 'Angstroms per pixel (Y)',
+    'desc_short': '(EMData) Angstroms per pixel (Y)',
     'name': 'emdata_apix_y',
     'vartype': 'float',
     'property': 'length',
     'defaultunits': 'Angstrom',
     'keytype': 'paramdef'
 }, {
-    'desc_short': 'Angstroms per pixel (Z)',
+    'desc_short': '(EMData) Angstroms per pixel (Z)',
     'name': 'emdata_apix_z',
     'vartype': 'float',
     'property': 'length',
@@ -7758,7 +7758,7 @@ EMAN2paramdefs = [{
     'keytype': 'paramdef'
 }, {
     'desc_long': 'Cs of the microscope in mm',
-    'desc_short': 'Microscope Cs',
+    'desc_short': '(EMData) Microscope Cs',
     'name': 'emdata_microscope_cs',
     'vartype': 'float',
     'property': 'length',
@@ -7766,7 +7766,7 @@ EMAN2paramdefs = [{
     'keytype': 'paramdef'
 }, {
     'desc_long': 'Voltage of the microscope in kV',
-    'desc_short': 'Microscope Voltage',
+    'desc_short': '(EMData) Microscope Voltage',
     'property': 'voltage',
     'defaultunits': 'kV',
     'name': 'emdata_microscope_voltage',

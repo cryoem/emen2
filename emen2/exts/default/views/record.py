@@ -119,9 +119,9 @@ class Record(View):
     
     @View.add_matcher(r'^/record/(?P<name>\w+)/edit/$', write=True)
     def edit(self, name=None, _location=None, _format=None, **kwargs):
-        self.main(name=name)
+        self.main(name=name, **kwargs)
         if self.request_method not in ['post', 'put']:
-            # self.ctxt['tab'] = 'edit'
+            self.ctxt["tab"] = "edit"
             self.ctxt["edit"] = True
             return
 

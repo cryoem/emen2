@@ -515,8 +515,9 @@ emen2.util.set_remove = function(i, l) {
 
         // Check the window hash (e.g. "#permissions")
         // and open that tab if it exists
-        checkhash: function() {
-            var active = window.location.hash.replace("#","")
+        checkhash: function(_default) {
+            var active = window.location.hash.replace("#","");
+            // if (!active) {active = _default}
             if (active) {
                 this.hide();
                 this.show(active);

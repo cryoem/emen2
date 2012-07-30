@@ -127,10 +127,10 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         page.SiblingsControl({
             name: rec.name
         })
-    });    
+    });
     
     // Now that we have all the callbacks added...
-    tab.TabControl('checkhash');
+    tab.TabControl('checkhash', ${jsonrpc.jsonutil.encode(tab)});
     
     $('.e2-record-new').RecordControl({});
     
@@ -206,7 +206,9 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 
         ## View Selector
-        <li data-tab="views"><a href="#views">${buttons.image('table.png')} Views</a></li>
+        <li data-tab="views">
+            <a href="#views">${buttons.image('table.png')} Views</a>
+        </li>
 
         ## Comments!
         <%
@@ -270,13 +272,14 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         ## ${buttons.image('tools.png')} 
         ## This is a block that can be extended by rectype-specific child templates.
         <%block name="tools">
-            ## <li>
-            ##    <br /><br />
-            ##    <h2 class="e2l-gradient"><a href="#">Tools</a></h2>
-            ## </li>
-            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
-            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage public data</a></li>
-            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/query/attachments/">Child attachments</a></li>
+            <li>
+                <br /><br />
+                <h2 class="e2l-gradient"><a href="#">Tools</a></h2>
+            </li>
+            <li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
+            <li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage public data</a></li>
+            <li><a href="${EMEN2WEBROOT}/record/${rec.name}/query/attachments/">Child attachments</a></li>
+            <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=dicttable">Param-value table</a></li>
         </%block>
 
         
@@ -303,7 +306,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         ${next.body()}
     </div>
 
-    <div data-tab="edit">
+    <div data-tab="edit" ${istab(tab, "edit")}>
         <form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${EMEN2WEBROOT}/record/${rec.name}/edit/">
             ${rendered}
         </form>    
