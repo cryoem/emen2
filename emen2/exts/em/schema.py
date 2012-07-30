@@ -110,8 +110,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 'A',
   'desc_long': '',
@@ -288,8 +287,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Last Dark Frame Dataset',
@@ -302,8 +300,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 'um',
   'desc_long': 'Intended defocus while imaging, underfocus positive',
@@ -526,7 +523,6 @@ paramdefs =  [
 
 
  {'children': ['lens_voltage_projector', 'lens_voltage_objective'],
-  'choices': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Placeholder: lens voltage',
@@ -556,8 +552,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Description of the event or discussion',
   'desc_short': 'Text',
@@ -766,7 +761,6 @@ paramdefs =  [
                 'box_color',
                 'box_coords',
                 'box_size'],
-  'choices': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Box file attachments. Typically ordered by date.',
@@ -781,8 +775,7 @@ paramdefs =  [
   'vartype': 'binary'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Box Label',
   'desc_short': 'Box Label',
@@ -952,8 +945,11 @@ paramdefs =  [
                 'time_preexposure',
                 'ddd_temperature_control_mode',
                 'ddd_last_dark_frame_dataset',
-                'ddd_dark_frame_status'],
-  'choices': [],
+                'ddd_dark_frame_status',
+                'ddd_binary_raw',
+                'ddd_binary_sum',
+                'ddd_binary_info',
+                'ddd_binary_final'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Direct Electron Detector parameters',
@@ -995,8 +991,7 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'User-defined bookmarks',
   'desc_short': 'Bookmarks',
@@ -1239,8 +1234,7 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Number of blots done on the grid',
   'desc_short': 'Number of blots',
@@ -1266,8 +1260,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 'uL',
   'desc_long': 'Volume of the aliquot',
@@ -1347,8 +1340,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 'degC',
   'desc_long': '',
@@ -1422,8 +1414,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Vacuum Level',
@@ -1523,8 +1514,7 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 's',
   'desc_long': '',
@@ -1554,8 +1544,7 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Box Coords',
   'desc_short': 'Box Coords',
@@ -1885,8 +1874,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Workshop Agenda',
   'desc_short': 'Workshop Agenda',
@@ -1996,8 +1984,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Gain Frame Status',
@@ -2104,8 +2091,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Mask files for a 3D map or volume',
   'desc_short': '3D Volume Masks',
@@ -2172,8 +2158,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Recent Progress',
   'desc_short': 'Recent Progress',
@@ -2478,8 +2463,7 @@ paramdefs =  [
   'vartype': 'boolean'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Date the sample was received',
   'desc_short': 'Date received',
@@ -2532,8 +2516,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Box Size',
   'desc_short': 'Box Size',
@@ -2786,8 +2769,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Raw Frames Filename Suffix',
@@ -2912,8 +2894,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Title or Subject of this note',
   'desc_short': 'Subject',
@@ -2998,8 +2979,7 @@ paramdefs =  [
 
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Title of the grid',
   'desc_short': 'Label',
@@ -3093,8 +3073,7 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Temperature of microscopy stage',
   'desc_short': 'Temp stage',
@@ -3406,8 +3385,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'The title of the publication',
   'desc_short': 'Title',
@@ -3583,8 +3561,7 @@ paramdefs =  [
 
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Faraday Plate Peak Reading During Last Exposure',
@@ -3708,8 +3685,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Purification procedure',
   'desc_short': 'Purification procedure',
@@ -3804,8 +3780,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 's',
   'desc_long': 'Length of exposure',
@@ -3834,8 +3809,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Whatever done after freezing',
   'desc_short': 'Post-freezing comments',
@@ -3877,8 +3851,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Temperature Control Mode',
@@ -3918,8 +3891,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Sample storage conditions',
   'desc_short': 'Sample storage conditions',
@@ -3932,8 +3904,7 @@ paramdefs =  [
   'vartype': 'text'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Specimen stability',
   'desc_short': 'Specimen stability',
@@ -3946,8 +3917,7 @@ paramdefs =  [
   'vartype': 'text'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Sensor Output Mode',
@@ -4150,8 +4120,7 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Sample components and sequences/IDs',
   'desc_short': 'Sample components and sequences/IDs',
@@ -4179,8 +4148,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Box Color; hex RGB string',
   'desc_short': 'Box Color',
@@ -4380,8 +4348,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 'cm',
   'desc_long': 'The diameter of the electron beam',
@@ -4492,8 +4459,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'FPGA Version',
@@ -4639,8 +4605,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 'degC',
   'desc_long': '',
@@ -4924,8 +4889,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Temperature Control',
@@ -4977,8 +4941,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 'mg/ml',
   'desc_long': 'Solution concentration',
@@ -5309,8 +5272,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 'degC',
   'desc_long': '',
@@ -5503,8 +5465,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 'nm',
   'desc_long': 'Absorbance of the sample at a specific wavelength (wavelength_at_absorbance)',
@@ -5750,8 +5711,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': u'\xc5/pixel',
   'desc_long': 'Apixel',
@@ -5798,8 +5758,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Dark Frame Status',
@@ -5812,8 +5771,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'ROI Offset Y',
@@ -5826,8 +5784,7 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'ROI Offset X',
@@ -5875,8 +5832,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Workshop Instructors',
   'desc_short': 'Instructors',
@@ -5890,8 +5846,7 @@ paramdefs =  [
   'vartype': 'user'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'ROI Offset Width',
@@ -5904,8 +5859,7 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'ROI Offset Height',
@@ -6116,8 +6070,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Sensor Coarse Gain',
@@ -6369,8 +6322,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Links',
   'desc_short': 'Links',
@@ -6385,7 +6337,6 @@ paramdefs =  [
 
 
  {'children': ['box'],
-  'choices': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Image processing related parameters',
@@ -6580,8 +6531,7 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'This person is responsible for the next progress in this project. It should be updated to reflect who is currently responsible for periodic progress updates. This field should not relate to authorship expectations.',
   'desc_short': 'Current Workflow',
@@ -6608,8 +6558,7 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Workshop Organizers',
   'desc_short': 'Workshop Organizers',
@@ -6623,8 +6572,7 @@ paramdefs =  [
   'vartype': 'user'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Number of boxes',
   'desc_short': 'Box Count',
@@ -6817,8 +6765,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Sensor Offset',
@@ -6943,7 +6890,6 @@ paramdefs =  [
 
 
  {'children': ['file_volume_masks'],
-  'choices': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '3D Density map or volume',
@@ -7064,8 +7010,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Data Output Mode',
@@ -7091,8 +7036,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Journal article abstract',
   'desc_short': 'Abstract text',
@@ -7180,8 +7124,60 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
+  'creator': 'root',
+  'desc_long': '',
+  'desc_short': 'DDD Raw frames',
+  'indexed': True,
+  'keytype': 'paramdef',
+  'modifytime': '2011-12-08T11:39:12Z',
+  'modifyuser': 'root',
+  'name': 'ddd_binary_raw',
+  'parents': ['ddd_camera'],
+  'iter': True,
+  'vartype': 'binary'},
+
+ {'creationtime': '2011-12-08T11:39:12Z',
+  'creator': 'root',
+  'desc_long': '',
+  'desc_short': 'DDD Sum frames',
+  'indexed': True,
+  'keytype': 'paramdef',
+  'modifytime': '2011-12-08T11:39:12Z',
+  'modifyuser': 'root',
+  'name': 'ddd_binary_sum',
+  'parents': ['ddd_camera'],
+  'iter': True,
+  'vartype': 'binary'},
+
+ {'creationtime': '2011-12-08T11:39:12Z',
+  'creator': 'root',
+  'desc_long': '',
+  'desc_short': 'DDD Info file',
+  'indexed': True,
+  'keytype': 'paramdef',
+  'modifytime': '2011-12-08T11:39:12Z',
+  'modifyuser': 'root',
+  'name': 'ddd_binary_info',
+  'parents': ['ddd_camera'],
+  'iter': True,
+  'vartype': 'binary'},
+
+ {'creationtime': '2011-12-08T11:39:12Z',
+  'creator': 'root',
+  'desc_long': '',
+  'desc_short': 'DDD Final frames',
+  'indexed': True,
+  'keytype': 'paramdef',
+  'modifytime': '2011-12-08T11:39:12Z',
+  'modifyuser': 'root',
+  'name': 'ddd_binary_final',
+  'parents': ['ddd_camera'],
+  'iter': True,
+  'vartype': 'binary'},
+
+
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Last Gain Frame Dataset',
@@ -7254,8 +7250,7 @@ paramdefs =  [
 
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'This parameter is used for testing the database',
   'desc_short': 'Test Parameter',
@@ -7298,7 +7293,6 @@ paramdefs =  [
                 'lens_voltage_objective',
                 'current_lens',
                 'voltage_lens'],
-  'choices': [],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Placeholder: lens',
@@ -7392,8 +7386,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'choices': [],
-  'creationtime': '2011-12-08T11:39:12Z',
+ {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': '',
   'desc_short': 'Raw Frame Type',
