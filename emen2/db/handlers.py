@@ -19,11 +19,9 @@ import hashlib
 import cStringIO
 import tempfile
 
-#################################################
+##########################################################
 # ** Do NOT import ANY EMEN2 or EMAN2 packages here!! ** #
-#################################################
-
-
+##########################################################
 
 def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
     """Given a Binary instance, run the thumbnail builder as a separate process
@@ -185,8 +183,8 @@ class BinaryHandler(object):
         self._tmpfiles = []
 
         # One of the following is required: filepath / filedata / fileobj
-        # ian: note... doesn't have to be set during init -- the resource
-        # will do it later for POST'd files.
+        # ian: note... doesn't have to be set during init -- the 
+        # web resource will do it later for PUT/POST'd files.
         self.filepath = filepath
         self.filedata = filedata
         self.fileobj = fileobj
