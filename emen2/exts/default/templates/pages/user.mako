@@ -62,7 +62,7 @@
 <%def name="profile(user=None, userrec=None, edit=False, prefix='userrec.')">
     % if edit:
     
-        <table  class="e2l-kv">    
+        <table class="e2l-kv">    
             <tbody>                    
                 <tr>
                     <td>First Name:</td>
@@ -135,7 +135,7 @@
             <a class="e2l-float-right" href="${pf_url}"><img src="${pf_url}?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" /></a>
         % endif
     
-        <table>
+        <table style="width:auto;">
             <tbody>
                 <tr>
                     <td>Department:</td>

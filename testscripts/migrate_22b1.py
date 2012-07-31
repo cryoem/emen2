@@ -34,6 +34,7 @@ with db._newtxn(write=True):
     for name, item in db._db.dbenv['binary'].iteritems(txn=txn):
         if item.__dict__.get('record') is not None:
             item.__dict__['record'] = unicode(item.__dict__['record'])
+        # These dates weren't properly converted by a previous script.
         item.__dict__['creationtime'] = parseutc(item.__dict__['creationtime'])
         item.__dict__['modifytime'] = parseutc(item.__dict__['modifytime'] or item.__dict__['creationtime'])    
         db._db.dbenv['binary'].put(item.name, item, txn=txn)

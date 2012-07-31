@@ -23,9 +23,7 @@ import jsonrpc.jsonutil
 <h1>
     ${USER.displayname}
     <ul class="e2l-actions">
-        % if ADMIN:
-            <li><a class="e2-button" href="${EMEN2WEBROOT}/user/${USER.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></li>
-        % endif
+		<li><a class="e2-button" href="${EMEN2WEBROOT}/user/${USER.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></li>
     </li>
 </h1>
 
@@ -87,10 +85,13 @@ ${recent_activity_table}
 
 % for group in groups:
     <h1>
-        <a name="groups-${group.name}"></a>
-        ${recnames.get(group.name, group.name)}
+        <a href="${EMEN2WEBROOT}/record/${group.name}/" name="groups-${group.name}">
+        	${recnames.get(group.name, group.name)}
+		</a>
         <ul class="e2l-actions">
-            <li><a class="e2-button e2-record-new" href="${EMEN2WEBROOT}/record/${group.name}/new/project/" class="e2-record-new" data-parent="${group.name}" data-rectype="project">${buttons.image('new.png')} New project</a>
+			% if ADMIN:
+            	<li><a class="e2-button e2-record-new" href="${EMEN2WEBROOT}/record/${group.name}/new/project/" class="e2-record-new" data-parent="${group.name}" data-rectype="project">${buttons.image('new.png')} New project</a>
+			% endif
             <li><a class="e2-button" href="${EMEN2WEBROOT}/record/${group.name}/children/project/">View projects in table</a></li>
         </ul>
     </h1>

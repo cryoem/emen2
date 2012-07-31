@@ -33,7 +33,9 @@ import collections
         % endfor
     </ul>
 
-    <a class="e2-button e2-record-new" href="${EMEN2WEBROOT}/record/0/new/group/" class="e2-record-new" data-parent="0" data-rectype="group">${buttons.image('new.png')} New group</a>
+	% if ADMIN:
+    	<a class="e2-button e2-record-new" href="${EMEN2WEBROOT}/record/0/new/group/" class="e2-record-new" data-parent="0" data-rectype="group">${buttons.image('new.png')} New group</a>
+	% endif
     
 </div>
 

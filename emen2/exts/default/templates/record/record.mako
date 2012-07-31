@@ -271,13 +271,13 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         ## ${buttons.image('tools.png')} 
         ## This is a block that can be extended by rectype-specific child templates.
         <%block name="tools">
-            <li style="margin-top:100px">
-                <h2 class="e2l-gradient"><a href="#">Tools</a></h2>
-            </li>
-            <li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
-            <li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage public data</a></li>
-            <li><a href="${EMEN2WEBROOT}/record/${rec.name}/query/attachments/">Child attachments</a></li>
-            <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=dicttable">Param-value table</a></li>
+            ## <li style="margin-top:100px">
+            ##    <h2 class="e2l-gradient"><a href="#">Tools</a></h2>
+            ## </li>
+            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
+            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage public data</a></li>
+            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/query/attachments/">Child attachments</a></li>
+            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=dicttable">Param-value table</a></li>
         </%block>
 
         
