@@ -17,7 +17,7 @@ if __name__ == "__main__":
     package_data = {            
         'emen2.db': ['config.base.json', 'skeleton.json', 'base.json', 'bulk.c'],
         'emen2.web': ['static/*.*', 'static/*/*.*', 'static/*/*/*.*', 'static/*/*/*/*.*'],
-        'twisted': ['plugins/emen2*'] #emen2_plugin.py
+        # 'twisted': ['plugins/emen2_plugin.py'] #emen2_plugin.py
     }
     
     scripts = ['scripts/emen2ctl']

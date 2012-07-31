@@ -72,7 +72,7 @@ class EMEN2Logger(object):
         self.log_level = 0
         self.loggers = {}
         # Turn on logging to stdout by default
-        twisted.python.log.startLogging(sys.stdout, setStdout=False)
+        # twisted.python.log.startLogging(sys.stdout, setStdout=False)
 
     def init(self):
         """Start logging system."""
@@ -99,21 +99,28 @@ class EMEN2Logger(object):
         for k,v in self.loggers.items():
             v.close()
 
+    def emit(self, e):
+        """Twisted log file observer function."""
+        level = e.get("system", "INFO")
+        output = self.loggers.get(level, self.loggers["INFO"])
+        output.emit(e)
+
     def log(self, message, level='INFO'):
         """Print or write the log message."""
         priority = self.log_levels.get(level, 0)        
         if priority < self.log_level:
             return
-        # Everything flows through twisted.python.log    
-        twisted.python.log.msg(message, system=level)
 
-    def emit(self, e):
-        """Twisted log file observer function."""
-        level = e.get("system", "INFO")
-        messages = e.get("message")
-        t = e.get("time")
-        output = self.loggers.get(level, self.loggers["INFO"])
-        output.emit(e)
+        print "[%s]"%level, message
+        return
+
+        # If we're using twisted logging, pass through...
+        if self.started: 
+            twisted.python.log.msg(message, system=level)
+        else:
+            pass
+            # print "[%s]"%level, message
+
 
 
 # Create the logger
