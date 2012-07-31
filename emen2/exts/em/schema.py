@@ -11054,10 +11054,7 @@ $#ctf_ampcont: $$ctf_ampcont
   'private': False,
   'typicalchld': ['box'],
   'views': { 'recname': """DDD $$file_binary_image""",
-             'tabularview': """$@thumbnail() $$file_binary_image $$ctf_defocus_set $$ctf_defocus_measured $$tem_magnification_set $$ctf_bfactor $$time_exposure_tem $$tem_dose_rate $$assess_image_quality"""}},
-
-
-
+             'tabularview': """$@thumbnail(ddd_binary_sum) $$ddd_binary_sum $$ctf_defocus_set $$ctf_defocus_measured $$tem_magnification_set $$ctf_bfactor $$time_exposure_tem $$tem_dose_rate $$assess_image_quality"""}},
 
  {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
