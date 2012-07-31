@@ -9,12 +9,13 @@ import threading
 import Queue
 
 
-try:
-    import multiprocessing
-    CPU_COUNT = multiprocessing.cpu_count()
-except:
-    CPU_COUNT = 1
+# try:
+#    import multiprocessing
+#    CPU_COUNT = multiprocessing.cpu_count()
+# except:
+#    CPU_COUNT = 1
 
+CPU_COUNT = 2
 
 import emen2.db.log
 
@@ -31,10 +32,16 @@ class ProcessWorker(object):
             if task is None:
                 self.queue.add_task(None)
                 return
-            emen2.db.log.info("ProcessWorker run: %s"%(repr(task)))
-            a = subprocess.Popen(task)
-            returncode = a.wait()
-            self.queue.task_done()
+            desc = ' '.join(map(str, task))
+            emen2.db.log.info("ProcessWorker run: %s"%(desc))
+            # a = subprocess.Popen(task)
+            # returncode = a.wait()
+            try:
+                ret = subprocess.check_output(task, stderr=subprocess.STDOUT)
+            except Exception, e:
+                emen2.db.log.error("Couldn't build tile: %s"%e)
+            finally:
+                self.queue.task_done()
             
             
 
@@ -51,7 +58,8 @@ class ProcessQueue(Queue.LifoQueue):
             raise ValueError, "Highest priority is -100, lowest priority is 100"
 
         if name in [i[1] for i in self.queue]:
-            raise ValueError, "Task name already in queue: %s"%name
+		priority = 0
+        #    raise ValueError, "Task name already in queue: %s"%name
 
         emen2.db.log.info("ProcessQueue: Adding task %s with priority %s to queue: %s"%(name, priority, task))
         return self.put((priority, name, task))

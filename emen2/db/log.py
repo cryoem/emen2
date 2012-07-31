@@ -111,15 +111,12 @@ class EMEN2Logger(object):
         if priority < self.log_level:
             return
 
-        print "[%s]"%level, message
-        return
-
         # If we're using twisted logging, pass through...
         if self.started: 
             twisted.python.log.msg(message, system=level)
         else:
             pass
-            # print "[%s]"%level, message
+            print "[%s]"%level, message
 
 
 
