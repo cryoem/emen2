@@ -15,9 +15,22 @@ import cPickle as pickle
 import tempfile
 
 # EMEN2 imports
-import emen2.db.handlers
-BinaryHandler = emen2.db.handlers.BinaryHandler
+# Provide a dummy handler if EMEN2 cannot be imported.
+class DummyHandler(object):
+    @classmethod
+    def register(cls, *args, **kwargs):
+        def f(o):
+            return o
+        return f
+  
+try:
+    import emen2.db.handlers
+    BinaryHandler = emen2.db.handlers.BinaryHandler
+except:
+    BinaryHandler = DummyHandler
+    
 
+# EMAN2 can only be imported in the main thread.
 try:
     import EMAN2
     # We need to steal these handlers back from EMAN2...
@@ -28,7 +41,22 @@ except ImportError:
 
 
 class EMDataBuilder(object):
-    '''Helper class to build previews for EMAN2-readable files.'''
+    '''Helper class to build tiles and thumbnails for EMAN2-readable files.
+    
+    Ex:
+    builder = EMDataBuilder()
+    tile = builder.build("test.dm3", "test.dm3.tile")
+
+    There is a kludge to write out some additional scaled images:
+    
+    copyout = {
+        128: "thumb.jpg",
+        512: "small.jpg"
+    }
+    builder = EMDataBuilder()
+    tile = builder.build("test.dm3", "test.dm3.tile", copyout=copyout)
+
+    '''
     
     def build(self, workfile, outfile, copyout=None):
         '''Main build function.'''
@@ -55,10 +83,11 @@ class EMDataBuilder(object):
         
         # CLeanup
         try:
+            # print "Removing tmpdir:", self.tmpdir
             os.rmdir(self.tmpdir)
         except:
-            pass
             # print "Couldn't remove tmpdir: ", self.tmpdir
+            pass
         
         # print ret
         return ret
@@ -314,8 +343,7 @@ class MicrographHandler(EMDataHandler):
     
 
 
-
-# IMPORTANT.
+# IMPORTANT -- Do not change this.
 if __name__ == "__main__":
     emen2.db.handlers.main(globals())
 
