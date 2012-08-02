@@ -7,7 +7,6 @@ import uuid
     <%
         tname = uuid.uuid4().hex
     %>
-
     <script type="text/javascript">
     //<![CDATA[
         var q${tname} = ${jsonrpc.jsonutil.encode(q)};
@@ -51,7 +50,7 @@ import uuid
                 <tbody>
             
                     % if not q['names']:
-                        <tr><td>No Records found for this query.</td></tr>
+                        <tr><td colspan="0">No Records found for this query.</td></tr>
                     % endif
 
                     % for rowid, name in enumerate(q['names']):
