@@ -756,6 +756,7 @@ class DBODB(EMEN2DB):
         expand            Process '*' operators in names to parents/children
         names            Similar to keys, but Context aware
         items            Context-aware items
+        query           Query
         validate        Validate an item
         reindex            Calculate index updates
         _reindex        Write index updates
