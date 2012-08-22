@@ -266,17 +266,6 @@ class View(TemplateView):
             BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', []),
         ))
 
-    # def notify(self, msg):
-    #     if self.ctxid is not None:
-    #         self.events.event('notify')(self.ctxid, msg)
-    #
-    # def get_data(self, *a, **kw):
-    #     # Get notifications if the user has a ctxid
-    #     if self.ctxid is not None:
-    #         self._notify.extend(self.notifications.get_notifications(self.ctxid))
-    #     return TemplateView.get_data(self, *a, **kw)
-
-
 
 
 ##### II. View plugins #####
