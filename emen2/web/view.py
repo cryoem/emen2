@@ -191,6 +191,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
         self.ctxt['title'] = title
         self.ctxt['content'] = content        
         self.ctxt['showlink'] = showlink
+        location = location or '/'
         if auto:
             self.headers['Location'] = location.replace('//','/')
 
