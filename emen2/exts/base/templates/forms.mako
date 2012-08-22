@@ -25,25 +25,144 @@ def test(echo):
 <%def name="ifselected(exp=None)">${f_iftrue(exp, 'selected="selected"')}</%def>
 
 
-<%def name="input(name, value, type='text', chk=False)">
-    % if type=='text':
-        <input type="${type}" name="${name}" value="${value}" />
-    % elif type=='checkbox':
-        <input type="${type}" name="${name}" value="${value}" ${f_iftrue(chk, checked)}/>    
-    % elif type=='radio':
-        <input type="${type}" name="${name}" value="${value}" ${f_iftrue(chk, checked)}/>    
+<%def name="text(name, value=None, required=False, cls='')">
+    <%
+        if value is None: value = ''
+    %>
+    % if required:
+        <input name="${name}" value="${value}" class="${cls}" required="required" />
+    % else:
+        <input name="${name}" value="${value}" class="${cls}" />    
     % endif
 </%def>
 
 
-<%def name="select(name, value, values=None)">
-    <% values = values or [] %>
+
+<%def name="textarea(name, value=None, required=False, cls='')">
+    <%
+        if value is None: value = ''
+    %>
+    % if required:
+        <textarea name="${name}" class="${cls}" required="required" />${value}</textarea>
+    % else:
+        <textarea name="${name}" class="${cls}" />${value}</textarea>
+    % endif
 </%def>
 
 
-<%def name="input_rec(name, rec, type='text', chk=False)">
-    ${input(name, rec.get(name,''), type=type, chk=chk)}
+
+
+<%def name="checkbox(name, v, label=None, value=None, required=False, cls='')">
+    <%
+    if required:
+        required = 'required="required"'
+    else:
+        required = ""        
+    %>
+    % if v == value:
+        <input type="checkbox" name="${name}" ${required} checked="checked" id="checkbox_${name}">
+    % else:
+        <input type="checkbox" name="${name}" ${required} id="checkbox_${name}">    
+    % endif
+    <label for="">${label or v}</label>
 </%def>
+
+
+
+<%def name="checkboxes(name, v, values=None, required=False, cls='', elem=None)">
+    <%
+    values = values or []
+    if hasattr(v, "items"):
+        v = v.items()
+    else:
+        v = [[i,i] for i in v]
+
+    if required:
+        required = 'required="required"'
+    else:
+        required = ""
+    %>
+    % for count, (i,j) in enumerate(v):
+        % if elem:
+            <${elem}>
+        % endif
+            % if i in values:
+                <input type="checkbox" name="${name}" class="${cls}" ${required} checked="checked" id="checkbox_${name}_${count}" value="${i}" /> 
+                <label for="checkbox_${name}_${count}">${j}</label>
+            % else:
+                <input type="checkbox" name="${name}" class="${cls}" ${required} id="checkbox_${name}_${count}" value="${i}" /> 
+                <label for="checkbox_${name}_${count}">${j}</label>
+            % endif
+        
+        % if elem:
+            </${elem}>
+        % endif
+    % endfor
+
+</%def>
+
+
+
+<%def name="radios(name, v, value=None, required=False, cls='', elem=None)">
+    <%
+
+    if hasattr(v, "items"):
+        v = v.items()
+    else:
+        v = [[i,i] for i in v]
+
+    if required:
+        required = 'required="required"'
+    else:
+        required = ""
+    %>
+    % for count, (i,j) in enumerate(v):
+        % if elem:
+            <${elem}>
+        % endif
+            % if i == value:
+                <input type="radio" name="${name}" class="${cls}" ${required} checked="checked" id="radio_${name}_${count}" value="${i}" /> 
+                <label for="radio_${name}_${count}">${j}</label>
+            % else:
+                <input type="radio" name="${name}" class="${cls}" ${required} id="radio_${name}_${count}" value="${i}"/> 
+                <label for="radio_${name}_${count}">${j}</label>
+            % endif
+            
+        % if elem:
+            </${elem}>
+        % endif
+    % endfor
+</%def>
+
+
+
+
+<%def name="select(name, v, value=None, required=False, cls='')">
+    <% 
+    if hasattr(v, "items"):
+        v = v.items()
+    else:
+        v = [[i,i] for i in v]
+    %>
+    
+    % if required:
+        <select name="${name}" required="required" class="${cls}">
+    % else:
+        <select name="${name}" class="${cls}"> 
+    % endif
+
+        <option></option>
+        % for i,j in v:
+            % if i == value:
+                <option selected="selected" value="${i}">${j}</option>
+            % else:
+                <option value="${i}">${j}</option>
+            % endif
+        % endfor
+    </select>
+</%def>
+
+
 
 
 <%def name="countries()">
