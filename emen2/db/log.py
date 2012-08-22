@@ -88,10 +88,10 @@ class EMEN2Logger(object):
         if not self.logpath:
             raise Exception, "No LOGPATH set"
             
-        self.loggers["INFO"] = SubLogger(open(os.path.join(self.logpath, "emen2.log"), "w"))
-        self.loggers["SECURITY"] = SubLogger(open(os.path.join(self.logpath, "security.log"), "w"))
-        self.loggers["ERROR"] = ErrorLogger(open(os.path.join(self.logpath, "error.log"), "w"))
-        self.loggers["WEB"] = WebLogger(open(os.path.join(self.logpath, "access.log"), "w"))
+        self.loggers["INFO"] = SubLogger(open(os.path.join(self.logpath, "emen2.log"), "a+"))
+        self.loggers["SECURITY"] = SubLogger(open(os.path.join(self.logpath, "security.log"), "a+"))
+        self.loggers["ERROR"] = ErrorLogger(open(os.path.join(self.logpath, "error.log"), "a+"))
+        self.loggers["WEB"] = WebLogger(open(os.path.join(self.logpath, "access.log"), "a+"))
 
     def stop(self):
         """Stop file-backed logging."""
