@@ -17,7 +17,7 @@
     </ul>    
 </h1>
 
-<div class="e2l-shaded-drop">
+<div class="e2l-shadow-drop">
     <p>
         Click to select a record; it will become highlighted in orange. Each selected record represents a single parent-child relationship.
     </p>

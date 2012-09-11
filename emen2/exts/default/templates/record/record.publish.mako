@@ -20,7 +20,7 @@
     </ul>
 </h1>
 
-<div class="e2l-shaded-drop">
+<div class="e2l-shadow-drop">
     <p>
         Records marked in "orange" will be marked as public data when this form is saved. The number of selected records is shown above.
     </p>

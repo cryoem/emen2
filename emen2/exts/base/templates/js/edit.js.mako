@@ -288,7 +288,7 @@
             var rd = emen2.caches['recorddef'][this.options.rectype];
             if (this.options.mode == 'new') {
                 var desc = $.trim(rd.desc_long).replace('\n','<br /><br />'); // hacked in line breaks
-                var desc = $('<p class="e2l-shaded-drop">'+desc+'</p>');
+                var desc = $('<p class="e2l-shadow-drop">'+desc+'</p>');
                 this.dialog.append(desc);
                 // Add the parent for a new record
                 form.attr('data-name', 'None');

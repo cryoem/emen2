@@ -251,16 +251,6 @@ input.e2l-cancel {
 
 
 /* tweaks */
-.e2l-shaded-drop, 
-.e2l-help
-{
-    border:solid 1px #ccc;
-    background: #eee;
-    padding: 10px;
-    -moz-box-shadow: 3px 3px 3px #ddd;
-    -webkit-box-shadow: 3px 3px 3px #ddd;
-    box-shadow: 3px 3px 3px #ddd;
-}
 .e2l-help {
     display:block;
 }
