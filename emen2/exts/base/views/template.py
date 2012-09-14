@@ -23,13 +23,13 @@ class TemplateRender(View):
     def main(self, template='/simple', **kwargs):
         makot = emen2.db.config.templates.get_template(template)
 
-        self.set_context_item('inherit', False)
+        self.ctxt['inherit'] = False
         if (self.db and self.db._getctx().checkadmin()) or getattr(makot.module, 'public', False):
             self.template = template
             self.headers = getattr(makot.module, 'headers', {})
 
         else:
-            self.set_context_item('content', '<b>Error, Private Template</b>')
+            self.ctxt['content'] = '<b>Error, Private Template</b>'
 
         # self.etag = '"%s"' % template.mtime
 

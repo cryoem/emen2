@@ -89,7 +89,7 @@ emen2.db.config.load_exts()
 ##### Conveniences #####
 publicmethod = emen2.db.proxy.publicmethod
 
-# Version names
+# Versions
 # from emen2.clients import __version__
 VERSIONS = {
     "API": emen2.__version__
@@ -112,7 +112,9 @@ set_lg_max 8388608
 set_lg_bsize 2097152
 """
 
+# Global DBEnv
 
+DBENV = None
 
 ##### Utility methods #####
 
@@ -232,7 +234,7 @@ def limit_result_length(default=None):
 def error(e=None, msg='', warning=False):
     """Error handler.
 
-    :keyword msg: Error message; default is Excpetion's docstring
+    :keyword msg: Error message; default is Exception's docstring
     :keyword e: Exception class; default is ValidationError
     """
     if e == None:
@@ -381,7 +383,13 @@ class EMEN2DBEnv(object):
     create = emen2.db.config.get('params.CREATE')
     snapshot = emen2.db.config.get('params.SNAPSHOT')
 
-    # Open DB environment; check if global DBEnv has been opened yet
+    # Paths from global configuration
+    LOGPATH = emen2.db.config.get('paths.LOGPATH')
+    LOG_ARCHIVE = emen2.db.config.get('paths.LOG_ARCHIVE')
+    TMPPATH = emen2.db.config.get('paths.TMPPATH')
+    SSLPATH = emen2.db.config.get('paths.SSLPATH')
+
+    # DB Environment flags
     ENVOPENFLAGS = 0
     ENVOPENFLAGS |= bsddb3.db.DB_CREATE
     ENVOPENFLAGS |= bsddb3.db.DB_INIT_MPOOL
@@ -390,12 +398,6 @@ class EMEN2DBEnv(object):
     ENVOPENFLAGS |= bsddb3.db.DB_INIT_LOG
     ENVOPENFLAGS |= bsddb3.db.DB_THREAD
         
-    # paths from global configuration
-    LOGPATH = emen2.db.config.get('paths.LOGPATH')
-    LOG_ARCHIVE = emen2.db.config.get('paths.LOG_ARCHIVE')
-    TMPPATH = emen2.db.config.get('paths.TMPPATH')
-    SSLPATH = emen2.db.config.get('paths.SSLPATH')
-
 
     def __init__(self, path=None, create=None, snapshot=False):
         """
@@ -411,7 +413,6 @@ class EMEN2DBEnv(object):
         self.path = path or self.path
         if not self.path:
             raise ValueError, "No EMEN2 Database Environment specified."
-
 
         # Check that all the needed directories exist
         self.create = create or self.create
@@ -438,29 +439,37 @@ class EMEN2DBEnv(object):
 
         # Open the Database Environment
         emen2.db.log.info("Opening Database Environment: %s"%self.path)
-        dbenv = bsddb3.db.DBEnv()
 
-        if snapshot or self.snapshot:
-            dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
+        global DBENV
+        if not DBENV:
+            DBENV = bsddb3.db.DBEnv()
+            dbenv = DBENV
+
+            if snapshot or self.snapshot:
+                dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
             
-        cachesize = self.cachesize * 1024 * 1024l
-        txncount = (cachesize / 4096) * 2
-        if txncount > 1024*128:
-            txncount = 1024*128
+            cachesize = self.cachesize * 1024 * 1024l
+            txncount = (cachesize / 4096) * 2
+            if txncount > 1024*128:
+                txncount = 1024*128
 
-        dbenv.set_cachesize(0, cachesize)
-        dbenv.set_tx_max(txncount)
-        dbenv.set_lk_max_locks(300000)
-        dbenv.set_lk_max_lockers(300000)
-        dbenv.set_lk_max_objects(300000)
-        self.dbenv = dbenv
+            dbenv.set_cachesize(0, cachesize)
+            dbenv.set_tx_max(txncount)
+            dbenv.set_lk_max_locks(300000)
+            dbenv.set_lk_max_lockers(300000)
+            dbenv.set_lk_max_objects(300000)
 
-        # repmgr_host = emen2.db.config.get('params.REPMGR_HOST')
-        # repmgr_port = int(emen2.db.config.get('params.REPMGR_PORT', 0))
-        # self.start_replication(repmgr_host, repmgr_port)
+            self.dbenv = DBENV
+
+            # repmgr_host = emen2.db.config.get('params.REPMGR_HOST')
+            # repmgr_port = int(emen2.db.config.get('params.REPMGR_PORT', 0))
+            # self.start_replication(repmgr_host, repmgr_port)
         
-        # Open the DBEnv
-        self.open()
+            # Open the DBEnv
+            self.open()
+        else:
+            self.dbenv = DBENV
+
 
 
     def start_replication(self, repmgr_host, repmgr_port):

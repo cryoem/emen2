@@ -3,13 +3,11 @@
 import re
 import time
 import cgi
-import random
 import traceback
 import collections
 import functools
 import Queue
 import itertools
-import tempfile
 
 import twisted.internet
 import twisted.web.static
@@ -39,10 +37,13 @@ import emen2.web.server
 # http://krondo.com/?p=2601
 
 class EMEN2Resource(object):
-    """Base resource for EMEN2. Handles proper parsing of HTTP request arguments
+    """Base resource for EMEN2. 
+    
+    Handles proper parsing of HTTP request arguments
     into a format that plays well with EMEN2, and contains all the common features
     of setting up the deferreds, threadpool, handling errors, etc.
     """
+
     # Subclasses should do the following:
     #     - Register using View.register as a decorator
     #
@@ -55,10 +56,12 @@ class EMEN2Resource(object):
     #         - define a method named get_json in order to return a json representation of the view
 
     isLeaf = True
-    events = emen2.web.events.EventRegistry()
     routing = emen2.web.routing
 
     def __init__(self, request_location='', request_headers=None, request_method='get'):
+        # Response headers
+        self.headers = {}
+
         # HTTP Method
         self.request_method = request_method
 
@@ -74,24 +77,53 @@ class EMEN2Resource(object):
         # HTTP ETags (cache control)
         self.etag = None
 
+    
+    def __unicode__(self):
+        '''Render the View into a string that can be sent to the client'''
+        return unicode(self.get_data())
+
+
+    def __str__(self):
+        '''Render the View, encoded as UTF-8'''
+        return self.get_data().encode('utf-8', 'replace')
+        # data = self.get_data()
+        # try:
+        #     return str(data.encode('utf-8', 'replace'))
+        # except UnicodeDecodeError:
+        #     return data
+
+
+    ##### Headers #####
+    
+    def _normalize_header_name(self, name):
+        return '-'.join(x.capitalize() for x in name.split('-'))
+
+    def set_header(self, name, value):
+        '''Set a single header'''
+        name = self._normalize_header_name(name)
+        self.headers[name] = value
+        
 
     ##### Resource interface #####
 
+    def get_json(self):
+        return None
+
+
+    def get_data(self):
+        return ""
+        
+            
     def render(self, request, method=None):
-        # Override self._render to change how the result is returned
-        # The default is to run a supplied method (or default: render_action)
+        # The default is to run a supplied method
         # wrapped in a DB transaction from the DBPool.
-        method = method or self.render_action
+        method = method or (lambda x:None)
 
         # Update request details
         self.request_method = request.method.lower()
         self.request_headers = request.getAllHeaders()
         self.request_location = request.path
-        # In the future the base ctxt will just have a ref to the view..
-        self.ctxt['REQUEST_METHOD'] = self.request_method
-        self.ctxt['REQUEST_HEADERS'] = self.request_headers
-        self.ctxt['REQUEST_LOCATION'] = self.request_location
-
+        
         # Parse and filter the request arguments
         args = self.parse_args(request)
 
@@ -162,11 +194,6 @@ class EMEN2Resource(object):
         return result
 
 
-    def render_action(self, *args, **kwargs):
-        '''Default render method'''
-        return 'Rendered %s'%self.__class__.name
-
-
     ##### Callbacks #####
 
     def render_cb(self, result, request, t=0, **_):
@@ -176,12 +203,6 @@ class EMEN2Resource(object):
         request._log_username = self._log_username
         request._log_ctxid = self._log_ctxid
         
-        # If a result was passed, use that. Otherwise use str(self).
-        # Note: the template rendering will occur here,
-        #     outside of the DB transaction.
-        if result == None:
-            result = str(self)
-
         # Filter the headers.
         headers = {}
         headers.update(self.headers)
@@ -212,26 +233,23 @@ class EMEN2Resource(object):
 
     def render_result(self, result, request):
         """Write the result to the client and close the request."""
-        length = 0
-        if result is not None:
-            length = len(result)
-            request.setHeader("Content-Length", length)
-
-        if result is not None:
-            request.write(result)
+        # if result is not None:
+        length = len(result)
+        request.setHeader("Content-Length", length)
+        request.write(result)
         
         # Close the request and write to log
         request.finish()
 
 
     def render_eb(self, failure, request, t=0, **_):
+        # This method accepts either a regular Exception or Twisted Failure
         print failure
         e, data = '', ''
         headers = {}
 
         # Raise the exception
         try:
-            # This method accepts either a regular Exception or Twisted Failure
             if isinstance(failure, twisted.python.failure.Failure):
                 failure.raiseException()
             else:
@@ -330,13 +348,12 @@ class EMEN2Resource(object):
 
 
     def _parse_content(self, request):
-        # Fix things.
+        # Fixes file uploads.
         files = []
         args = request.args
 
         if request.method == "PUT":
             # The param?..
-            # Need to convert to unicode
             f = emen2.db.handlers.BinaryHandler.get_handler(
                 filename=request.getHeader('x-file-name'),
                 param=request.getHeader('x-file-param'),
@@ -536,9 +553,6 @@ class XMLRPCResource(object):
     pass
 
 
-import emen2.web.notifications
-emen2.web.notifications.NotificationHandler().register_eventhandlers()
-
 class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
     q = Queue.Queue()
 
@@ -601,7 +615,6 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
         return methodresult
 
     def defer(self, method, *a, **kw):
-        # deferred = emen2.web.server.pool.rundb(emen2.db.log.Variables.logger.debug_func(method), *a, **kw)
         deferred = emen2.web.server.pool.rundb(method, *a, **kw)
         return deferred
 

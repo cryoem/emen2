@@ -25,6 +25,7 @@ except ImportError:
 
 import emen2.db.config
 import emen2.db.log
+import emen2.web.routing
 
 class DBPool(object):
     """Simple DB Pool loosely based on twisted.enterprise.adbapi.ConnectionPool."""
@@ -76,13 +77,11 @@ class DBPool(object):
         return result
 
 
+# The thread pool.
 pool = DBPool()
 
 
 ##### Web server ######
-
-import emen2.db.log
-import emen2.web.routing
 
 class WebServerOptions(emen2.db.config.DBOptions):
     optParameters = [
@@ -120,7 +119,7 @@ class EMEN2Site(twisted.web.server.Site):
 
 
 
-class EMEN2Server(object):
+class EMEN2BaseServer(object):
 
     usage = WebServerOptions
 
@@ -156,6 +155,31 @@ class EMEN2Server(object):
             self.attach_standalone()
 
     def attach_resources(self, root):
+        pass
+        
+    def attach_to_service(self, service):
+        emen2_service = internet.TCPServer(self.port, self.site)
+        emen2_service.setServiceParent(service)
+        # if self.EMEN2HTTPS and ssl:
+        #    pass
+
+    def attach_standalone(self):
+        reactor = twisted.internet.reactor
+        reactor.listenTCP(self.port, self.site)
+        reactor.run()
+
+
+class EMEN2RPCServer(EMEN2BaseServer):
+    """Only start the RPC server."""
+    def attach_resources(self, root):
+        import jsonrpc.server
+        from emen2.web.resource import JSONRPCServerEvents
+        root.putChild('jsonrpc', jsonrpc.server.JSON_RPC().customize(JSONRPCServerEvents))
+    
+
+class EMEN2WebServer(EMEN2BaseServer):
+    """Start the full web server."""
+    def attach_resources(self, root):
         # Load all View extensions
         import emen2.db.config
         emen2.db.config.load_views()
@@ -171,23 +195,18 @@ class EMEN2Server(object):
         root.putChild('static-%s'%emen2.__version__, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
         root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
         root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
-
-    def attach_to_service(self, service):
-        emen2_service = internet.TCPServer(self.port, self.site)
-        emen2_service.setServiceParent(service)
-        # if self.EMEN2HTTPS and ssl:
-        #    pass
-
-    def attach_standalone(self):
-        reactor = twisted.internet.reactor
-        reactor.listenTCP(self.port, self.site)
-        reactor.run()
-
-
+    
+    
 
 def start_standalone():
     opt = emen2.db.config.UsageParser(WebServerOptions)
-    server = EMEN2Server(opt.options)
+    server = EMEN2WebServer(opt.options)
+    server.start()
+    
+    
+def start_rpc():
+    opt = emen2.db.config.UsageParser(WebServerOptions)
+    server = EMEN2RPCServer(opt.options)
     server.start()
 
 

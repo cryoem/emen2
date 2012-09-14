@@ -137,11 +137,11 @@ class RecordDefs(View):
                 count[pd.name] = len(self.db.record.findbyrectype(pd.name))
 
         self.ctxt['recorddefnames'] = recorddefnames
-        self.set_context_item('q',q)
-        self.set_context_item('count', count)
-        self.set_context_item("recorddefs", recorddefs)
-        self.set_context_item("childmap", childmap)
-        self.set_context_item('create', self.db.auth.check.create())
+        self.ctxt['q'] = q
+        self.ctxt['count'] = count
+        self.ctxt["recorddefs"] = recorddefs
+        self.ctxt["childmap"] = childmap
+        self.ctxt['create'] = self.db.auth.check.create()
 
 
 

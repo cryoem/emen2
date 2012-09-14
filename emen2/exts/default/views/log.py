@@ -6,9 +6,30 @@ import os.path
 
 import emen2.db.config
 from emen2.web.view import View, AdminView
-from emen2.util.decorators import cast_arguments
 from emen2.util.loganalyzer import AccessLogFile, AccessLogLine
 import datetime
+
+
+class _Null: pass
+def cast_arguments(*postypes, **kwtypes):
+    def _func(func):
+        @functools.wraps(func)
+        def _inner(*args, **kwargs):
+            out = []
+            for typ, arg in itertools.izip_longest(postypes, args, fillvalue=_Null):
+                if arg != _Null:
+                    if typ != _Null and typ != None:
+                        arg = typ(arg)
+                    out.append(arg)
+            for k,v in kwargs.iteritems():
+                typ = kwtypes.get(k, _Null)
+                if typ != _Null and typ != None:
+                    kwargs[k] = typ(kwargs[k])
+            return func(*args, **kwargs)
+        return _inner
+    return _func
+
+
 
 class RecordNotFound(emen2.web.responsecodes.NotFoundError):
     title = 'Record Not Found'

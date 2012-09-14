@@ -11,15 +11,15 @@ class Groups(View):
     def main(self,q=None):
         self.template="/pages/groups"
         self.title = "User group directory"
-        self.set_context_item("q","")
+        self.ctxt["q"] = ""
         groupnames = self.db.group.names()
         groups = self.db.group.get(groupnames)
         admin = self.db.auth.check.admin()
-        self.set_context_item("admin",admin)
+        self.ctxt["admin"] = admin
 
         if groups == None:
             self.template="/simple"
-            self.set_context_item("content","""No user groups found, or insufficient permissions to view user group list.""")
+            self.ctxt['content'] = """No user groups found, or insufficient permissions to view user group list."""
             return
         
         self.ctxt['groupnames'] = groupnames

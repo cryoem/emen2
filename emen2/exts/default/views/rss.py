@@ -78,7 +78,7 @@ class RSS(View):
         items = []
         for x in recs:
             items.append(Item(x.name, x))
-        self.set_context_item('items', items)
+        self.ctxt['items'] = items
         self.title = '%s Record Feed - %s to %s' % (emen2.db.config.get('customization.EMEN2DBNAME', 'EMEN2'), self._begin, self._end)
         return View.get_data(self)
 __version__ = "$Revision$".split(":")[1][:-1].strip()

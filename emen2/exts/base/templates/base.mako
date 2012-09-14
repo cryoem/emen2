@@ -38,13 +38,6 @@
     </style>
 
     <%block name="js_include">
-
-        ## <!--[if lt IE 9]>
-        ##    <script type="text/javascript" src="https://getfirebug.com/firebug-lite.js"></script>        
-        ##    <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/iefix.js"></script>        
-        ##    <script src="http://ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js"></script>
-        ## <![endif]-->        
-
         ## EMEN2 Settings
         <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/settings.js"></script>
 
@@ -70,22 +63,16 @@
         <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/relationships.js"></script>
         <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/query.js"></script>
         <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/tile.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/plot.js"></script>
-        
+        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${VERSION}/js/plot.js"></script>      
     </%block>
 
-    <script type="text/javascript">
-    
-        <%block name="js_inline" />
-        
+    <script type="text/javascript">    
+        <%block name="js_inline" />        
         $(document).ready(function() {
-            $('time.e2-localize').localize({
-                format: 'yyyy/mm/dd HH:MM'
-            });
+            $('time.e2-localize').localize({format: 'yyyy/mm/dd HH:MM'});
             $('time.e2-timeago').timeago();
             <%block name="js_ready" />
-        });    
-            
+        });                
     </script>
 
 </head>

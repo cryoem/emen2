@@ -102,7 +102,7 @@ class Query(View):
     def main(self, path=None, q=None, c=None, **kwargs):
         self.initq(path, q, c, **kwargs)
         self.q = self.db.table(**self.q)
-        self.set_context_item('q', self.q)
+        self.ctxt['q'] = self.q
 
 
     @View.add_matcher(r'^/query/(?P<path>.*)/embed/$')
@@ -122,7 +122,7 @@ class Query(View):
         self.initq(path, q, c)
         self.template = '/pages/query.edit'
         self.q = self.db.table(**self.q)
-        self.set_context_item('q', self.q)
+        self.ctxt['q'] = self.q
 
 
     @View.add_matcher(r'^/plot/(?P<path>.*)/edit/$', name='edit')
@@ -130,7 +130,7 @@ class Query(View):
         self.initq(path, q, c)
         self.template = '/pages/query.plot'
         self.q = self.db.plot(**self.q)
-        self.set_context_item('q', self.q)
+        self.ctxt['q'] = self.q
 
 
     # /download/ can't be in the path because of a emen2resource.getchild issue
@@ -139,7 +139,7 @@ class Query(View):
         self.initq(path, q, c)
         self.template = '/pages/query.files'
         self.q = self.db.query(**self.q)
-        self.set_context_item('q', self.q)
+        self.ctxt['q'] = self.q
 
         # Look up all the binaries
         bdos = self.db.binary.find(record=self.q['names'], count=0)

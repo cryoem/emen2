@@ -9,22 +9,22 @@ class Error(View):
     def main(self, error='', location='/', **kwargs):
         self.template = '/errors/error'
         self.title = 'Error'
-        self.set_context_item("error", error)
-        self.set_context_item('location', location)
+        self.ctxt["error"] = error
+        self.ctxt['location'] = location
 
     @View.add_matcher('/error/auth')
     def auth(self, error='', location='/', **kwargs):
         self.template = '/errors/auth'
         self.title = 'Error'
-        self.set_context_item("error", error)
-        self.set_context_item('location', location)
+        self.ctxt["error"] = error
+        self.ctxt['location'] = location
 
     @View.add_matcher('/error/resp')
     def resp(self, error='', location='/', **kwargs):
         self.template = '/errors/resp'
         self.title = 'Error'
-        self.set_context_item("error", error)
-        self.set_context_item('location', location)
+        self.ctxt["error"] = error
+        self.ctxt['location'] = location
 
 
         

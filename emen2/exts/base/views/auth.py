@@ -13,8 +13,8 @@ class Auth(View):
         if 'auth' in location or not location:
             location = self.ctxt['EMEN2WEBROOT']
 
-        self.set_context_item("username", username)
-        self.set_context_item('location', location)
+        self.ctxt["username"] = username
+        self.ctxt['location'] = location
 
         ctxid = None
         if username != None:
@@ -44,7 +44,7 @@ class Auth(View):
         if 'auth' in location or not location:
             location = self.ctxt['EMEN2WEBROOT']
 
-        self.set_context_item('location', location)
+        self.ctxt['location'] = location
         try:
             self.db.auth.logout()
             msg = 'Successfully logged out'
@@ -102,10 +102,10 @@ class Auth(View):
     def resetpassword(self, location=None, email=None, secret=None, newpassword=None, **kwargs):
         self.template = '/auth/password.reset'
         self.title = "Reset Password"
-        self.set_context_item('email',email)
-        self.set_context_item('secret',secret)
-        self.set_context_item('newpassword','')
-        self.set_context_item('location',location)
+        self.ctxt['email'] = email
+        self.ctxt['secret'] = secret
+        self.ctxt['newpassword'] = ''
+        self.ctxt['location'] = location
         msg = ''
         errmsg = ''
 
@@ -145,7 +145,7 @@ class Auth(View):
         opw = kwargs.get('opw', None)
         email = kwargs.get('email', None)
 
-        self.set_context_item('email',email)
+        self.ctxt['email'] = email
         msg = ''
         errmsg = ''
 

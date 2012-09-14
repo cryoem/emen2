@@ -3,27 +3,47 @@ import re
 import sre_parse
 import cgi
 import contextlib
+import time
+import functools
 
 from functools import partial
-import functools
 from itertools import izip
+
 import twisted.web.resource
 
-import emen2.web.events
 import emen2.util.registry
-import emen2.util.datastructures
-import emen2.web.events
-
 from emen2.db.exceptions import *
 from emen2.web import responsecodes
 from emen2.util import listops
 
 
+class IndexedListIterator(object):
+    def __init__(self, lis):
+        self.lis = tuple(lis)
+
+        # public
+        self.pos = 0
+
+    def next(self, delta = 1):
+        try:
+            result = self.lis[self.pos]
+            self.pos += delta
+            self.pos %= len(self.lis)
+        except IndexError:
+            result = None
+        return result
+
+    def prev(self, delta = 1):
+        self.pos -= delta
+        return self.lis[self.pos]
+
+    def __getitem__(self, arg):
+        return self.lis[arg]
+
 
 
 ##### Routing Resource #####
 
-import time
 class Router(twisted.web.resource.Resource):
     isLeaf = False
 
@@ -160,7 +180,6 @@ class _Router(emen2.util.registry.Registry):
     """Private"""
 
     _prepend = ''
-    events = emen2.web.events.EventRegistry()
     child_class = Route
 
     def __init__(self, prepend='', default=True):
@@ -235,7 +254,6 @@ class _Router(emen2.util.registry.Registry):
         '''
         p = cls()
         route = emen2.util.registry.Registry.register(p, route)
-        cls.events.event('web.routing.route.register')(route)
         return route
 
 
@@ -290,7 +308,7 @@ class NoReverseMatch(Exception):
 class MatchChecker(object):
     "Class used in reverse lookup."
     def __init__(self, args, kwargs):
-        self.args = emen2.util.datastructures.IndexedListIterator( (str(x) for x in args) )
+        self.args = IndexedListIterator( (str(x) for x in args) )
         self.kwargs = dict(  ( x, str(y) ) for x, y in kwargs.items()  )
         self.used_kwargs = set([])
 

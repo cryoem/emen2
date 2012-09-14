@@ -22,13 +22,9 @@ import functools
 import jsonrpc.jsonutil
 
 # emen2 imports
-import emen2.util.decorators
 import emen2.util.listops
-
 import emen2.web.routing
 import emen2.web.resource
-import emen2.web.notifications
-
 import emen2.db.config
 import emen2.db.log
 
@@ -42,6 +38,9 @@ __all__ = ['TemplateView', 'View', 'ViewPlugin', 'AdminView', 'AuthView']
 class TemplateContext(collections.MutableMapping):
     '''Template Context'''
 
+    host = emen2.db.config.get('network.EMEN2HOST', 'localhost')
+    port = emen2.db.config.get('network.EMEN2PORT', 80)
+    
     def __init__(self, base=None):
         self.__base = {}
         self.__dict = self.__base.copy()
@@ -75,10 +74,6 @@ class TemplateContext(collections.MutableMapping):
     def set(self, name, value=None):
         self[name] = value
 
-
-    host = emen2.db.config.get('network.EMEN2HOST', 'localhost')
-    port = emen2.db.config.get('network.EMEN2PORT', 80)
-
     def reverse(self, _name, *args, **kwargs):
         """Create a URL given a view Name and arguments"""
 
@@ -100,15 +95,8 @@ class TemplateContext(collections.MutableMapping):
 
 
 
-###NOTE: This class should not access the db in any way, such activity is carried out by
-###        the View class below.
 class TemplateView(emen2.web.resource.EMEN2Resource):
     '''An EMEN2Resource class that renders a result using a template.'''
-
-    # Registration methods moved to the new EMEN2resource
-
-    # A list of methods to call during init (with self)
-    preinit = []
 
     # Basic properties
     title = property(
@@ -121,19 +109,10 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 
 
     def __init__(self, db=None, *args, **blargh):
-        '''\
-        request_method is the HTTP method
-        request_headers are the request headers
-        request_location is the request URI
-        '''
-
         super(TemplateView, self).__init__()
 
-        #
+        # Database connection
         self.db = db
-
-        # Response headers
-        self._headers = {}
 
         # Notifications and errors
         self._notify = []
@@ -144,12 +123,17 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
         # Then update with any extra arguments specified.
         self.ctxt = TemplateContext()
         self.ctxt.update(dict(
-            HEADERS = self._headers,
+            title = '',
             NOTIFY = self._notify,
             ERRORS = self._errors,
+            REQUEST_METHOD = self.request_method,
             REQUEST_LOCATION = self.request_location,
             REQUEST_HEADERS = self.request_headers,
-            title = 'No Title'
+            VERSION = emen2.__version__,
+            EMEN2WEBROOT = emen2.db.config.get('network.EMEN2WEBROOT'),
+            EMEN2DBNAME = emen2.db.config.get('customization.EMEN2DBNAME'),
+            EMEN2LOGO = emen2.db.config.get('customization.EMEN2LOGO'),
+            BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', [])            
         ))
 
         # ETags
@@ -158,27 +142,11 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
     def init(self, *arrgghs, **blarrgghs):
         pass
 
-    # def notify(self, msg):
-    #     self.events.event('notify')(id(self), msg)
-
 
     #### Output methods #####
 
-    def __unicode__(self):
-        '''Render the View into a string that can be sent to the client'''
-        return unicode(self.get_data())
-
-    def __str__(self):
-        '''Render the View, encoded as UTF-8'''
-        # return unicode(self.get_data()).encode('utf-8', 'replace')
-        data = self.get_data()
-        try:
-            return str(data.encode('utf-8', 'replace'))
-        except UnicodeDecodeError:
-            return data
-
     def error(self, msg):
-        '''Set the output to a simple error message'''
+        '''Set the output to a simple error message.'''
         self.template = "/errors/error"
         self.title = 'Error'
         self.ctxt['errmsg'] = msg
@@ -201,46 +169,10 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
         return emen2.db.config.templates.render_template(self.template, self.ctxt)
 
 
-    #### Metadata manipulation #####
-
-    # HTTP header manipulation
-    headers = property(
-        fget=lambda self: self._headers,
-        fdel=lambda self: self._headers.clear())
-
-    @headers.setter
-    def headers(self, value):
-        '''Add a dictionary containing several headers to the HTTP headers'''
-        value = dict( (self._normalize_header_name(k),v) for k,v in value.items() )
-        self._headers.update(value)
-
-    def _normalize_header_name(self, name):
-        return '-'.join(x.capitalize() for x in name.split('-'))
-
-    # Ian: I may deprecate these methods in favor of the header/ctxt
-    # property-style getter/setter.
-    def set_header(self, name, value):
-        '''Set a single header'''
-        name = self._normalize_header_name(name)
-        self._headers[name] = value
-        return (name, value)
-
-    def get_header(self, name):
-        '''Get a HTTP header that this view will return'''
-        name = self._normalize_header_name(name)
-        return self._headers[name]
-
-    def set_context_item(self, name, value):
-        '''Add a single item to the tempalte context'''
-        self.ctxt[name] = value
-
-
 
 
 class View(TemplateView):
     '''A View that checks some DB specific details'''
-
-    notifications = emen2.web.notifications.NotificationHandler()
 
     def init(self, *args, **kwargs):
         '''Run this before the requested view method.'''
@@ -258,57 +190,52 @@ class View(TemplateView):
             HOST = getattr(ctx, 'host', None),
             USER = user,
             ADMIN = admin,
-            DB = self.db,
-            VERSION = emen2.__version__,
-            EMEN2WEBROOT = emen2.db.config.get('network.EMEN2WEBROOT'),
-            EMEN2DBNAME = emen2.db.config.get('customization.EMEN2DBNAME'),
-            EMEN2LOGO = emen2.db.config.get('customization.EMEN2LOGO'),
-            BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', []),
+            DB = self.db
         ))
 
 
 
 ##### II. View plugins #####
 
-class ViewPlugin(object):
-    '''Parent class the interface for View plugins
-
-    To write a view plugin, subclass this class and provide a iterable
-    classattribute called "preinit" which contains a list of methods
-    executed before the view method is called
-
-    .. py:function:: preinit(self)'''
-
-    @classmethod
-    def attach(cls, view):
-        '''Decorate a class with this method to add a :py:class:`ViewPlugin` to the class'''
-        view.preinit = view.preinit[:]
-        view.preinit.extend(cls.preinit)
-        return view
-
-
-class AdminView(ViewPlugin):
-    '''A :py:class:`ViewPlugin` which only allows Administrators to access a view'''
-
-    preinit = []
-
-    @preinit.append
-    def checkadmin(self):
-        context = self.db._getctx()
-        if not context.checkadmin():
-            raise emen2.web.responsecodes.ForbiddenError, 'User %r is not an administrator.' % context.username
-
-
-class AuthView(ViewPlugin):
-    '''A :py:class:`ViewPlugin` which only allows Authenticated Users to access a view'''
-
-    preinit = []
-
-    @preinit.append
-    def checkadmin(self):
-        context = self.db._getctx()
-        if not 'authenticated' in context.groups:
-            raise emen2.web.responsecodes.ForbiddenError, 'User %r is not authenticated.' % context.username
+# class ViewPlugin(object):
+#     '''Parent class the interface for View plugins
+# 
+#     To write a view plugin, subclass this class and provide a iterable
+#     classattribute called "preinit" which contains a list of methods
+#     executed before the view method is called
+# 
+#     .. py:function:: preinit(self)'''
+# 
+#     @classmethod
+#     def attach(cls, view):
+#         '''Decorate a class with this method to add a :py:class:`ViewPlugin` to the class'''
+#         view.preinit = view.preinit[:]
+#         view.preinit.extend(cls.preinit)
+#         return view
+# 
+# 
+# class AdminView(ViewPlugin):
+#     '''A :py:class:`ViewPlugin` which only allows Administrators to access a view'''
+# 
+#     preinit = []
+# 
+#     @preinit.append
+#     def checkadmin(self):
+#         context = self.db._getctx()
+#         if not context.checkadmin():
+#             raise emen2.web.responsecodes.ForbiddenError, 'User %r is not an administrator.' % context.username
+# 
+# 
+# class AuthView(ViewPlugin):
+#     '''A :py:class:`ViewPlugin` which only allows Authenticated Users to access a view'''
+# 
+#     preinit = []
+# 
+#     @preinit.append
+#     def checkadmin(self):
+#         context = self.db._getctx()
+#         if not 'authenticated' in context.groups:
+#             raise emen2.web.responsecodes.ForbiddenError, 'User %r is not authenticated.' % context.username
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

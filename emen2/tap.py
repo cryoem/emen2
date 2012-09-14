@@ -7,6 +7,7 @@ import emen2.web.server
 
 Options = emen2.web.server.WebServerOptions
 
+
 def logger():
     emen2.db.log.logger.start()
     return emen2.db.log.logger.emit
@@ -21,15 +22,11 @@ def makeService(options):
     server = emen2.web.server.EMEN2Server(options)
     server.start(service=s)    
     return s
-
-
-
-
-
+    
 def run_twistd():
-    # This is a HORRIBLE, AWFUL HACK.
+    # This is a (somewhat awful hack) based on twistd.
 
-    # Twistd plugins have great difficulty being packaed
+    # Twistd plugins have great difficulty being packaged
     # by distutils, pip, etc., and there is no
     # current workaround. 
     

@@ -25,7 +25,7 @@ class Home(View):
         except (emen2.db.exceptions.AuthenticationError, emen2.db.exceptions.SessionError), inst:
             user = "anonymous"
             groups = set(["anon"])
-            self.set_context_item("msg",str(inst))
+            self.ctxt["msg"] = str(inst)
 
         if user == "anonymous":
             banner = bookmarks.get('bookmarks.BANNER_NOAUTH', banner)
