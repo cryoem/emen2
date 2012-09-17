@@ -42,9 +42,9 @@ class TemplateContext(collections.MutableMapping):
         self.host = emen2.db.config.get('network.EMEN2HOST', 'localhost')
         self.port = emen2.db.config.get('network.EMEN2PORT', 80)
         
-        self.ctxt.request_host = None
-        self.ctxt.request_location = None
-        self.ctxt.request_headers = None
+        self.request_host = None
+        self.request_location = None
+        self.request_headers = None
 
     def __getitem__(self, n):
         return self.__dict[n]
@@ -101,11 +101,11 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
     # Basic properties
     title = property(
         lambda self: self.ctxt.title,
-        lambda self, value: self.ctxt.title = value)
+        lambda self, value: setattr(self.ctxt, "title", value))
 
     template = property(
         lambda self: self.ctxt.template,
-        lambda self, value: self.ctxt.template = value)
+        lambda self, value: setattr(self.ctxt, "template", value))
 
     def __init__(self, db=None, *args, **blargh):
         super(TemplateView, self).__init__()

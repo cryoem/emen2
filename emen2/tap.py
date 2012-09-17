@@ -19,7 +19,7 @@ def makeService(options):
 
     # Start the service
     s = twisted.application.service.MultiService()
-    server = emen2.web.server.EMEN2Server(options)
+    server = emen2.web.server.EMEN2WebServer(options)
     server.start(service=s)    
     return s
     
