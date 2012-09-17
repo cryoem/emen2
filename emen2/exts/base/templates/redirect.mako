@@ -9,7 +9,7 @@
     % endif
 </%block>
 
-<h1>${title}</h1>
+<h1>${ctxt.title}</h1>
 
 <p>
 ${content}

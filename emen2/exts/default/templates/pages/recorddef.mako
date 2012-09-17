@@ -29,7 +29,7 @@
 
 
 <h1>
-    ${title}
+    ${ctxt.title}
     <ul class="e2l-actions">
         % if new or edit:
             <li><input type="submit" value="Save">

@@ -4,7 +4,7 @@
 <%namespace name="forms" file="/forms"  /> 
 
 <h1>
-    ${title}
+    ${ctxt.title}
 
     <ul class="e2l-actions">
         <li><a class="e2-button" href="${EMEN2WEBROOT}/query/${paramdef.name}.!None./">${buttons.image('query.png', 'Query')} Query</a></li>

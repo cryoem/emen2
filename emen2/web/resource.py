@@ -36,300 +36,97 @@ import emen2.web.server
 # helping sort out my deferred cancel/callback/errback situation:
 # http://krondo.com/?p=2601
 
-class EMEN2Resource(object):
-    """Base resource for EMEN2. 
-    
-    Handles proper parsing of HTTP request arguments
-    into a format that plays well with EMEN2, and contains all the common features
-    of setting up the deferreds, threadpool, handling errors, etc.
-    """
-
-    # Subclasses should do the following:
-    #     - Register using View.register as a decorator
-    #
-    #     - Decorate methods with @View.add_matcher(matcher), where matcher is:
-    #         - A Regular Expression representing the url which matches the class
-    #         - A list of Regular Expressions to match against
-    #
-    #     - Optionally define data output methods:
-    #         - define a method named get_data in order to return data for web browsers
-    #         - define a method named get_json in order to return a json representation of the view
-
-    isLeaf = True
+class RoutedResource(object):
+    #### Routing registration methods #####
     routing = emen2.web.routing
+    isLeaf = True
 
-    def __init__(self, request_location='', request_headers=None, request_method='get'):
-        # Response headers
-        self.headers = {}
+    def render(self, request):
+        return "No content"
 
-        # HTTP Method
-        self.request_method = request_method
+    @classmethod
+    def add_matcher(cls, *matchers, **kwargs):
+        '''Decorator used to add a matcher to an already existing class
 
-        # Request headers
-        self.request_headers = request_headers or {}
+        Named groups in matcher get passed as keyword arguments
+        Other groups in matcher get passed as positional arguments
+        Nothing else gets passed
 
-        # Request location
-        self.request_location = request_location
+        write=True will hint to the database that writes will occur.
+        This may do things like disable snapshot transactions.
+        '''
+        if not matchers:
+            raise ValueError, 'A view must have at least one matcher'
 
-        # Any uploaded files
-        self.request_files = []
+        # Default name (this is usually the method name)
+        def check_name(name):
+            return 'main' if name.lower() == 'init' else name
 
-        # HTTP ETags (cache control)
-        self.etag = None
+        # Inner decorator method
+        def inner(func):
+            name = kwargs.pop('name', check_name(func.__name__))
+            view = kwargs.pop('view', None)
+            write = kwargs.pop('write', False)
+            matcherinfo = getattr(func, 'matcherinfo', [])
+            for count, m in enumerate(matchers):
+                if count>0:
+                    name='%s/%s'%(name, count)
+                matcherinfo.append((m, name, view, write))
 
+            # save all matchers to the function
+            func.matcherinfo = matcherinfo
+            return func
+
+        return inner
+
+    @classmethod
+    def register(self, cls):
+        '''Register a View and connect it to a URL.
+        - Multiple regular expressions can be registered per sub view
+        - This also registers urls defined by the add_matcher decorator. In this case, the sub view name will default to the method name.
+        - These can be reversed with self.ctxt.reverse('ClassName/alt1', param1='asd') and such
+        '''
+        # Register mtchers produced by the add_matcher decorator
+        for func in cls.__dict__.values():
+            if not callable(func): continue
+
+            for matcher in getattr(func, 'matcherinfo', []):
+                matcher, name, view, write = matcher
+                view = view or cls.__name__
+                name = '%s/%s'%(view, name)
+                # These will be set as attributes on the Route instance
+                with emen2.web.routing._Router().route(name=name, matcher=matcher, cls=cls, method=func, write=write) as url:
+                    pass
+
+        return cls
+
+    slots = collections.defaultdict(list)
+    @classmethod
+    def provides(cls, slot):
+        '''Decorate a method to indicate that the method provides a certain functionality'''
+        def _inner(view):
+            cls.slots[slot].append(functools.partial(cls, init=view))
+            return view
+        return _inner
+
+    @classmethod
+    def require(cls, slot):
+        '''Use to get a view with a desired functionality'''
+        if slot in cls.slots:
+            return cls.slots[slot][-1]
+        else: raise ValueError, "No such slot"
+
+
+class FixedArgsResource(object):
     
-    def __unicode__(self):
-        '''Render the View into a string that can be sent to the client'''
-        return unicode(self.get_data())
-
-
-    def __str__(self):
-        '''Render the View, encoded as UTF-8'''
-        return self.get_data().encode('utf-8', 'replace')
-        # data = self.get_data()
-        # try:
-        #     return str(data.encode('utf-8', 'replace'))
-        # except UnicodeDecodeError:
-        #     return data
-
-
-    ##### Headers #####
+    def render(self, request):
+        return "No content."
     
-    def _normalize_header_name(self, name):
-        return '-'.join(x.capitalize() for x in name.split('-'))
-
-    def set_header(self, name, value):
-        '''Set a single header'''
-        name = self._normalize_header_name(name)
-        self.headers[name] = value
-        
-
-    ##### Resource interface #####
-
-    def get_json(self):
-        return None
-
-
-    def get_data(self):
-        return ""
-        
-            
-    def render(self, request, method=None):
-        # The default is to run a supplied method
-        # wrapped in a DB transaction from the DBPool.
-        method = method or (lambda x:None)
-
-        # Update request details
-        self.request_method = request.method.lower()
-        self.request_headers = request.getAllHeaders()
-        self.request_location = request.path
-        
-        # Parse and filter the request arguments
-        args = self.parse_args(request)
-
-        # Authentication token -- if supplied as an argument, send it back as a cookie.
-        ctxid = args.pop('ctxid', None)
-        if ctxid:
-            self._set_ctxid(request, str(ctxid))
-        ctxid = ctxid or request.getCookie("ctxid")
-
-        # Client Host
-        host = request.getClientIP()
-
-        # self._render can either return an immediate result,
-        # or a deferred that will write to request using callbacks.
-        return self._render(request, method, ctxid=ctxid, host=host, args=args)
-
-
-    def _render(self, request, method, ctxid=None, host=None, args=None):
-        # Setup deferred rendering using a DB transaction.
-        t = time.time()
-
-        # Use the EMEN2 DB thread pool.
-        deferred = emen2.web.server.pool.rundb(
-            self._render_db,
-            method,
-            ctxid = ctxid,
-            host = host,
-            args = args)
-
-        # Callbacks
-        deferred.addCallback(self.render_cb, request, t=t)
-        deferred.addErrback(self.render_eb, request, t=t)
-        request.notifyFinish().addErrback(self._request_broken, request, deferred)
-        return twisted.web.static.server.NOT_DONE_YET
-
-
-    def _render_db(self, method, db=None, ctxid=None, host=None, args=None):
-        # Render method
-        self.db = db
-
-        # Result
-        result = None
-        
-        # Hack to log username and ctxid
-        self._log_username = None
-        self._log_ctxid = ctxid
-
-        # The DBProxy context manager will open a transaction, and abort
-        # on an uncaught exception.
-        write = getattr(method, "write", False)
-        # self.db._newtxn(write=write)
-        with self.db._newtxn(write=write):
-            # Bind the ctxid/host to the DBProxy
-            self.db._setContext(ctxid, host)
-            self._log_username = self.db._ctx.username
-            
-            # Any View init method is run inside the transaction
-            self.init()
-            result = method(self, **args)
-            # Ugly hack
-            # If the method returns a value, it uses that as the value
-            # otherwise, calls str() on the View.
-            if result is None:
-                result = str(self)
-
-        self.db = None
-
-        return result
-
-
-    ##### Callbacks #####
-
-    def render_cb(self, result, request, t=0, **_):
-        # Render callback -- setup basic headers
-
-        # This is a hack to log the ctxid and username
-        request._log_username = self._log_username
-        request._log_ctxid = self._log_ctxid
-        
-        # Filter the headers.
-        headers = {}
-        headers.update(self.headers)
-        headers = dict( (k,v) for k,v in headers.iteritems() if v != None )
-
-        # Redirect if necessary
-        if headers.get('Location'):
-            request.setResponseCode(303)
-
-        # If X-Ctxid (auth token) was supplied as a header,
-        # set the client's cookie. This is is used by login, logout
-        # and opening a web browser from desktop clients with ?ctxid as
-        # a querystring argument.
-        setctxid = headers.pop('X-Ctxid', None)
-        if setctxid != None:
-            self._set_ctxid(request, setctxid)
-
-        # Set the remaining headers
-        [request.setHeader(key, str(headers[key])) for key in headers]
-
-        # Send result to client
-        self.render_result(result, request)
-
-
-    def _set_ctxid(self, request, ctxid):
-        request.addCookie("ctxid", ctxid, path='/')
-
-
-    def render_result(self, result, request):
-        """Write the result to the client and close the request."""
-        # if result is not None:
-        length = len(result)
-        request.setHeader("Content-Length", length)
-        request.write(result)
-        
-        # Close the request and write to log
-        request.finish()
-
-
-    def render_eb(self, failure, request, t=0, **_):
-        # This method accepts either a regular Exception or Twisted Failure
-        print failure
-        e, data = '', ''
-        headers = {}
-
-        # Raise the exception
-        try:
-            if isinstance(failure, twisted.python.failure.Failure):
-                failure.raiseException()
-            else:
-                raise failure
-
-        # Closed connection error. Nothing to write, and no connection to close.
-        except (twisted.internet.defer.CancelledError), e:
-            return
-
-        # Expired or invalid session. Remove ctxid and redirect to root.
-        except emen2.db.exceptions.SessionError, e:
-            data = self.render_error_security(request.uri, e)
-            headers['Location'] = '/'
-            request.addCookie('ctxid', '', path='/')
-            emen2.db.log.security(e)
-
-        # Authentication exceptions
-        except emen2.db.exceptions.SecurityError, e:
-            data = self.render_error_security(request.uri, e)
-            emen2.db.log.security(e)
-
-        # HTTP errors
-        except emen2.web.responsecodes.HTTPResponseCode, e:
-            data = self.render_error_response(request.uri, e)
-            emen2.db.log.error(e)
-
-        # General error
-        except BaseException, e:
-            data = self.render_error(request.uri, e)
-            emen2.db.log.error(e)
-
-        # Write the response
-        headers.update(getattr(e, 'headers', {}))
-        request.setResponseCode(getattr(e, 'code', 500))
-        [request.setHeader(k, v) for k,v in headers.items()]
-        request.write(data)
-
-        request.finish()
-
-
-    ##### Error handlers #####
-
-    # ian: todo: Use a config value to choose which error pages (mako, or emen2) to use.
-    # ed: Couldn't that be based on the DEBUG flag?
-    def render_error(self, location, e):
-        # return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
-        return mako.exceptions.html_error_template().render()
-
-
-    def render_error_security(self, location, e):
-        return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
-        # return mako.exceptions.html_error_template().render()
-
-
-    def render_error_response(self, location, e):
-        return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
-        # return mako.exceptions.html_error_template().render()
-
-
-    def _request_broken(self, failure, request, deferred):
-        # Cancel the deferred.
-        # The errback will be called, but not the callback.
-        deferred.cancel()
-
-
-    def _request_canceller(self, deferred, *args, **kwargs):
-        # Do nothing -- my deferreds don't support cancellation at the moment
-        pass
-        # Create a failure to pass to the errback
-        # failure = twisted.python.failure.Failure(exc_value=Exception("Cancelled request"))
-        # deferred.errback(failure)
-
-
     ##### Process request arguments #####
 
     def parse_args(self, request):
         # Massage the post and querystring arguments
-
-        # PUT requests, and
-        # twistd's handling of POST is broken
+        # ... PUT requests, and twistd's handling of POST is broken
         args = self._parse_content(request)
 
         # Twisted provides all args as lists.
@@ -345,7 +142,6 @@ class EMEN2Resource(object):
         # HTTP arguments with '.' will be turned into dicts, e.g. 'child.key' -> child['key']
         args = self._parse_args_dict(args)
         return args
-
 
     def _parse_content(self, request):
         # Fixes file uploads.
@@ -403,7 +199,6 @@ class EMEN2Resource(object):
         self.request_files = files
         return args
 
-
     def _parse_args_dict(self, args):
         # Break keys with '.' into child dictionaries, recursively.
         # {'root': 1, 'child.key2': 2, 'child.key1.subkey1': 3, 'child.key1.subkey2':4}
@@ -442,7 +237,6 @@ class EMEN2Resource(object):
 
         return newargs
 
-
     def _parse_coerce_unicode(self, args, keyname=''):
         # This is terribly hacky, to deal with various Unicode issues
         # To disable this for a class, override and return {}
@@ -466,83 +260,261 @@ class EMEN2Resource(object):
 
 
 
-    #### Routing registration methods #####
+class EMEN2Resource(RoutedResource, FixedArgsResource):
+    """Base resource for EMEN2. 
+    
+    Handles proper parsing of HTTP request arguments
+    into a format that plays well with EMEN2, and contains all the common features
+    of setting up the deferreds, threadpool, handling errors, etc.
+    """
 
-    @classmethod
-    def add_matcher(cls, *matchers, **kwargs):
-        '''Decorator used to add a matcher to an already existing class
+    def __init__(self, request_location='', request_headers=None, request_method='get', request_host=None):
+        # Response headers
+        self.headers = {}
 
-        Named groups in matcher get passed as keyword arguments
-        Other groups in matcher get passed as positional arguments
-        Nothing else gets passed
+        # HTTP Method
+        self.request_method = request_method
 
-        write=True will hint to the database that writes will occur.
-        This may do things like disable snapshot transactions.
-        '''
-        if not matchers:
-            raise ValueError, 'A view must have at least one matcher'
+        # Request headers
+        self.request_headers = request_headers or {}
 
-        # Default name (this is usually the method name)
-        def check_name(name):
-            return 'main' if name.lower() == 'init' else name
+        # Request host
+        self.request_host = request_host
+        
+        # Request location
+        self.request_location = request_location
 
-        # Inner decorator method
-        def inner(func):
-            name = kwargs.pop('name', check_name(func.__name__))
-            view = kwargs.pop('view', None)
-            write = kwargs.pop('write', False)
-            matcherinfo = getattr(func, 'matcherinfo', [])
-            for count, m in enumerate(matchers):
-                if count>0:
-                    name='%s/%s'%(name, count)
-                matcherinfo.append((m, name, view, write))
+        # Any uploaded files
+        self.request_files = []
 
-            # save all matchers to the function
-            func.matcherinfo = matcherinfo
-            return func
+        # HTTP ETags (cache control)
+        self.etag = None
 
-        return inner
+    def __unicode__(self):
+        '''Render the resource into a string that can be sent to the client'''
+        return unicode(self.get_data())
 
-
-    @classmethod
-    def register(self, cls):
-        '''Register a View and connect it to a URL.
-        - Multiple regular expressions can be registered per sub view
-        - This also registers urls defined by the add_matcher decorator. In this case, the sub view name will default to the method name.
-        - These can be reversed with self.ctxt.reverse('ClassName/alt1', param1='asd') and such
-        '''
-
-        # Register mtchers produced by the add_matcher decorator
-        for func in cls.__dict__.values():
-            if not callable(func): continue
-
-            for matcher in getattr(func, 'matcherinfo', []):
-                matcher, name, view, write = matcher
-                view = view or cls.__name__
-                name = '%s/%s'%(view, name)
-                # These will be set as attributes on the Route instance
-                with emen2.web.routing._Router().route(name=name, matcher=matcher, cls=cls, method=func, write=write) as url:
-                    pass
-
-        return cls
+    def __str__(self):
+        '''Render the resource, encoded as UTF-8'''
+        return self.get_data().encode('utf-8', 'replace')
 
 
-    slots = collections.defaultdict(list)
-    @classmethod
-    def provides(cls, slot):
-        '''Decorate a method to indicate that the method provides a certain functionality'''
-        def _inner(view):
-            cls.slots[slot].append(functools.partial(cls, init=view))
-            return view
-        return _inner
+    ##### Headers #####
+    
+    def _normalize_header_name(self, name):
+        return '-'.join(x.capitalize() for x in name.split('-'))
+
+    def set_header(self, name, value):
+        '''Set a single header'''
+        name = self._normalize_header_name(name)
+        self.headers[name] = value
+
+    def _set_ctxid(self, request, ctxid):
+        request.addCookie("ctxid", ctxid, path='/')
+
+    ##### Resource interface #####
+
+    def get_json(self):
+        return None
+
+    def get_data(self):
+        return ""
+        
+    def render(self, request, method=None):
+        # The default is to run a supplied method
+        # wrapped in a DB transaction from the DBPool.
+        method = method or (lambda x:None)
+
+        # Update request details
+        self.request_method = request.method.lower()
+        self.request_headers = request.getAllHeaders()
+        self.request_location = request.path
+        self.request_host = request.getClientIP()
+        
+        # Parse and filter the request arguments
+        args = self.parse_args(request)
+
+        # Authentication token -- if supplied as an argument, send it back as a cookie.
+        ctxid = args.pop('ctxid', None)
+        if ctxid:
+            self._set_ctxid(request, str(ctxid))
+        ctxid = ctxid or request.getCookie("ctxid")
+
+        # _render will setup the deferred response
+        return self._render(request, method, ctxid=ctxid, host=self.request_host, args=args)
+
+    def _render(self, request, method, ctxid=None, host=None, args=None):
+        # Setup deferred rendering using a DB transaction.
+        t = time.time()
+
+        # Use the EMEN2 DB thread pool.
+        deferred = emen2.web.server.pool.rundb(
+            self._render_db,
+            method,
+            ctxid = ctxid,
+            host = host,
+            args = args)
+
+        # Callbacks
+        deferred.addCallback(self.render_cb, request, t=t)
+        deferred.addErrback(self.render_eb, request, t=t)
+        request.notifyFinish().addErrback(self._request_broken, request, deferred)
+        return twisted.web.static.server.NOT_DONE_YET
+
+    def _render_db(self, method, db=None, ctxid=None, host=None, args=None):
+        # Render method
+        self.db = db
+
+        # Result
+        result = None
+        
+        # Hack to log username and ctxid
+        self._log_username = None
+        self._log_ctxid = ctxid
+
+        # The DBProxy context manager will open a transaction, and abort
+        # on an uncaught exception.
+        write = getattr(method, "write", False)
+        with self.db._newtxn(write=write):
+            # Bind the ctxid/host to the DBProxy
+            self.db._setContext(ctxid, host)
+            self._log_username = self.db._ctx.username
+            
+            # Any View init method is run inside the transaction
+            self.init()
+            result = method(self, **args)
+ 
+             # If the method returns a value, it uses that as the value
+            # otherwise, calls str() on the View.
+            if result is None:
+                result = str(self)
+
+        self.db = None
+
+        return result
 
 
-    @classmethod
-    def require(cls, slot):
-        '''Use to get a view with a desired functionality'''
-        if slot in cls.slots:
-            return cls.slots[slot][-1]
-        else: raise ValueError, "No such slot"
+    ##### Callbacks #####
+
+    def render_cb(self, result, request, t=0, **_):
+        # Render callback -- setup basic headers
+
+        # This is a hack to log the ctxid and username
+        request._log_username = self._log_username
+        request._log_ctxid = self._log_ctxid
+        
+        # Filter the headers.
+        headers = {}
+        headers.update(self.headers)
+        headers = dict( (k,v) for k,v in headers.iteritems() if v != None )
+
+        # Redirect if necessary
+        if headers.get('Location'):
+            request.setResponseCode(303)
+
+        # If X-Ctxid (auth token) was supplied as a header,
+        # set the client's cookie. This is is used by login, logout
+        # and opening a web browser from desktop clients with ?ctxid as
+        # a querystring argument.
+        setctxid = headers.pop('X-Ctxid', None)
+        if setctxid != None:
+            self._set_ctxid(request, setctxid)
+
+        # Set the remaining headers
+        [request.setHeader(key, str(headers[key])) for key in headers]
+
+        # Send result to client
+        self.render_result(result, request)
+
+    def render_result(self, result, request):
+        """Write the result to the client and close the request."""
+        # if result is not None:
+        length = len(result)
+        request.setHeader("Content-Length", length)
+        request.write(result)
+        
+        # Close the request and write to log
+        request.finish()
+
+    def render_eb(self, failure, request, t=0, **_):
+        # This method accepts either a regular Exception or Twisted Failure
+        print failure
+        e, data = '', ''
+        headers = {}
+
+        # Raise the exception
+        try:
+            if isinstance(failure, twisted.python.failure.Failure):
+                failure.raiseException()
+            else:
+                raise failure
+
+        # Closed connection error. Nothing to write, and no connection to close.
+        except (twisted.internet.defer.CancelledError), e:
+            return
+
+        # Expired or invalid session. Remove ctxid and redirect to root.
+        except emen2.db.exceptions.SessionError, e:
+            data = self.render_error_security(request.uri, e)
+            headers['Location'] = '/'
+            request.addCookie('ctxid', '', path='/')
+            emen2.db.log.security(e)
+
+        # Authentication exceptions
+        except emen2.db.exceptions.SecurityError, e:
+            data = self.render_error_security(request.uri, e)
+            emen2.db.log.security(e)
+
+        # HTTP errors
+        except emen2.web.responsecodes.HTTPResponseCode, e:
+            data = self.render_error_response(request.uri, e)
+            emen2.db.log.error(e)
+
+        # General error
+        except BaseException, e:
+            data = self.render_error(request.uri, e)
+            emen2.db.log.error(e)
+
+        # Write the response
+        headers.update(getattr(e, 'headers', {}))
+        request.setResponseCode(getattr(e, 'code', 500))
+        [request.setHeader(k, v) for k,v in headers.items()]
+        request.write(data)
+
+        request.finish()
+
+
+    ##### Error handlers #####
+
+    # ian: todo: Use a config value to choose which error pages (mako, or emen2) to use.
+    # ed: Couldn't that be based on the DEBUG flag?
+    def render_error(self, location, e):
+        # return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
+        return mako.exceptions.html_error_template().render()
+
+    def render_error_security(self, location, e):
+        return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
+        # return mako.exceptions.html_error_template().render()
+
+    def render_error_response(self, location, e):
+        return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
+        # return mako.exceptions.html_error_template().render()
+
+    def _request_broken(self, failure, request, deferred):
+        # Cancel the deferred.
+        # The errback will be called, but not the callback.
+        deferred.cancel()
+
+    def _request_canceller(self, deferred, *args, **kwargs):
+        # Do nothing -- my deferreds don't support cancellation at the moment
+        pass
+        # Create a failure to pass to the errback
+        # failure = twisted.python.failure.Failure(exc_value=Exception("Cancelled request"))
+        # deferred.errback(failure)
+
+
+
+
 
 
 
@@ -568,7 +540,6 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
         self.ctxid = ctxid
         self.host = request.getClientIP()
         return content
-
 
     def callmethod(self, request, rpcrequest, db=None, ctxid=None, **kw):
         # Lookup the method and call
@@ -610,8 +581,6 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
                 #     This should work for COMET-style long-polling, but that results in server hangs on exit :)
                 e = emen2.web.events.EventRegistry().event('pub.%s'%rpcrequest.method)
                 methodresult = e(self.ctxid, request.getClientIP(), db=db, *rpcrequest.args, **rpcrequest.kwargs)
-
-
         return methodresult
 
     def defer(self, method, *a, **kw):

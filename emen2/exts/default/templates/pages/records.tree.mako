@@ -10,7 +10,7 @@
 
 
 <h1>
-    ${title}
+    ${ctxt.title}
     <ul class="e2l-actions">
         <li><a href="${EMEN2WEBROOT}/records/edit/relationships/?root=${root}" class="e2-button">Edit relationships</a></li>
     </ul>

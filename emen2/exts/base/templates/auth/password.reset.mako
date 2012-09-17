@@ -1,7 +1,7 @@
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 
-<h1>${title}</h1>
+<h1>${ctxt.title}</h1>
 
 % if secret:
     <p>Please enter a new password to complete the password reset process.</p>

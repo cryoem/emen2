@@ -13,9 +13,9 @@
         <ul class="e2l-cf">
             % for k,v in tabs.items():
                 % if k == active:
-                    <li class="e2-tab-active"><a href="${uris.get(k,REQUEST_LOCATION)}">${v}</a></li>
+                    <li class="e2-tab-active"><a href="${uris.get(k,ctxt.request_location)}">${v}</a></li>
                 % else:
-                    <li><a href="${uris.get(k,REQUEST_LOCATION)}">${v}</a></li>                
+                    <li><a href="${uris.get(k,ctxt.request_location)}">${v}</a></li>                
                 % endif
             % endfor
         </ul>
@@ -37,7 +37,7 @@
 ## Some simple helpers
 
 <%def name="image(name, alt='', cls='')">
-    <img src="${EMEN2WEBROOT}/static-${VERSION}/images/${name}" class="${cls}" alt="${alt}" />
+    <img src="${EMEN2WEBROOT}/static-${ctxt.version}/images/${name}" class="${cls}" alt="${alt}" />
 </%def>
 
 
@@ -119,7 +119,7 @@
                     <a href="${link}">
                 % endif
 
-                ${title}
+                ${ctxt.title}
 
                 % if time:
                     @ <time class="e2-localize" datetime="${time}">${time}</time>

@@ -18,53 +18,48 @@ import emen2.db.handlers
 class Preview(View):
     @View.add_matcher(r'^/preview/(?P<bid>.+)/(?P<mode>.+)/$')    
     def main(self, bid=None, mode='tiles', **kwargs):
-        self.bid = bid
-        if self.bid == None:
+        if bid == None:
             return "No Binary ID supplied."
 
         # Make sure we can access bdo
-        bdo = self.db.binary.get(self.bid, filt=False)
-        self.bdo = bdo
-        self.filename = bdo.get('filename')
-        self.mode = mode
-        self.size = int(kwargs.get('size', 512))
-        self.index = int(kwargs.get('index', 0))
-        self.scale = int(kwargs.get('scale', 1))
-        self.z = int(kwargs.get('z', 0))
-        self.x = int(kwargs.get('x', 0))
-        self.y = int(kwargs.get('y', 0))
+        bdo = self.db.binary.get(bid, filt=False)
+        filename = bdo.get('filename')
+        size = int(kwargs.get('size', 512))
+        index = int(kwargs.get('index', 0))
+        scale = int(kwargs.get('scale', 1))
+        z = int(kwargs.get('z', 0))
+        x = int(kwargs.get('x', 0))
+        y = int(kwargs.get('y', 0))
 
-
-    def get_data(self):
-        previewpath = emen2.db.binary.Binary.parse(self.bid).get('previewpath')
+        # get_data(self)
+        previewpath = emen2.db.binary.Binary.parse(bid).get('previewpath')
         previewpath = '%s.eman2'%(previewpath)
 
         if not os.path.exists(previewpath):
-            status = emen2.db.handlers.thumbnail_from_binary(self.bdo, wait=False)
+            status = emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
             raise Exception, "Building tile..."
-            
 
         f = file(previewpath, "r")
         header = pickle.load(f)
 
-        if self.mode == 'header':
-            h = header[self.index]
+        if mode == 'header':
+            h = header[index]
             data = {
                 'nx': h['nx'],
                 'ny': h['ny'],
                 'nz': h['nz'],
                 'maxscale': 8,
-                'filename': self.filename
+                'filename': filename
             }
             f.close()
             return jsonrpc.jsonutil.encode(data)
 
-        h = header[self.index]['slices'][self.z]
-        key = self.size
-        if self.mode == 'tiles':
-            key = (self.scale, self.x, self.y)
+        h = header[index]['slices'][z]
+        key = size
+        if mode == 'tiles':
+            key = (scale, x, y)
 
-        ret = h[self.mode][key]
+        ret = h[mode][key]
 
         f.seek(ret[0], 1)
         data = f.read(ret[1])

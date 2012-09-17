@@ -6,7 +6,7 @@
 <form method="post" action="${ctxt.reverse('ParamDef/edit', name=paramdef.name)}">
 
 <h1>
-    ${title}
+    ${ctxt.title}
     <ul class="e2l-actions">
         <li><input type="submit" value="Save" /></li>
     </ul>

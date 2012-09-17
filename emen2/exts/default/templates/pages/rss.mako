@@ -12,7 +12,7 @@ rfc822 = lambda x: email.utils.formatdate(time.mktime(parse_datetime(x)[0].timet
    xmlns:content="http://purl.org/rss/1.0/modules/content/"
    xmlns:slash="http://purl.org/rss/1.0/modules/slash/">
   <channel>
-    <title>${title}</title>
+    <title>${ctxt.title}</title>
     <link>${ctxt.reverse('Home', _full=True)}</link>
     <description>EMEN2 record feed retrieved by modifytime</description>
     <lastBuildDate>${email.utils.formatdate()}</lastBuildDate>

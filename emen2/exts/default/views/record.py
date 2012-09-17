@@ -275,7 +275,6 @@ class Record(View):
 
         # ian: awful hack, so the page will redirect back to this location after saving.
         # query.request_location = self.request_location
-        # query.ctxt['REQUEST_LOCATION'] = self.request_location
 
         # Update context
         self.ctxt['table'] = query

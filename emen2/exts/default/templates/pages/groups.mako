@@ -22,7 +22,7 @@ for k,v in d.items():
 <form method="post" action="${EMEN2WEBROOT}/groups/">
 <h1>
 
-    ${title}
+    ${ctxt.title}
     <ul class="e2l-actions">
         <li>
             <input value="${q or ''}" name="q" type="text" size="8" />

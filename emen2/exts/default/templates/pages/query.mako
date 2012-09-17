@@ -35,7 +35,7 @@ import uuid
 
         ## This form is used for editing table cells
         <form class="e2-query-tableform" method="post" action="${ctxt.reverse('Records/edit')}">
-            <input type="hidden" name="_location" value="${REQUEST_LOCATION}" />
+            <input type="hidden" name="_location" value="${ctxt.request_location}" />
         
             <table class="e2-query-table e2l-shaded" cellspacing="0" cellpadding="0"> 
 

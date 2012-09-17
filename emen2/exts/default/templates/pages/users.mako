@@ -4,7 +4,7 @@
 
 <form method="post" action="${EMEN2WEBROOT}/users/">
 <h1>
-    ${title}
+    ${ctxt.title}
     <ul class="e2l-actions">
         <li>
             <a class="e2-button" href="${EMEN2WEBROOT}/users/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a>

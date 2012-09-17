@@ -1,7 +1,7 @@
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 
-<h1>${title}</h1>
+<h1>${ctxt.title}</h1>
 
 <form action="${EMEN2WEBROOT}/auth/password/change/" method="post">
 

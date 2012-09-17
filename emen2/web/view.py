@@ -5,12 +5,6 @@ Module contents:
 I. Views
     - class :py:class:`TemplateView`
     - class :py:class:`View`
-
-II. View Plugins
-    - class :py:class:`ViewPlugin`
-    - class :py:class:`AdminView`
-    - class :py:class:`AuthView`
-
 '''
 
 import sys
@@ -29,22 +23,28 @@ import emen2.db.config
 import emen2.db.log
 
 
-# Exported classes
-__all__ = ['TemplateView', 'View', 'ViewPlugin', 'AdminView', 'AuthView']
-
-
 ##### I. Views #####
 
 class TemplateContext(collections.MutableMapping):
     '''Template Context'''
 
-    host = emen2.db.config.get('network.EMEN2HOST', 'localhost')
-    port = emen2.db.config.get('network.EMEN2PORT', 80)
-    
     def __init__(self, base=None):
         self.__base = {}
         self.__dict = self.__base.copy()
         self.__dict['ctxt'] = self
+        
+        self.notify = []
+        self.errors = []
+        self.title = 'No title'
+        self.template = '/simple'
+        self.version = emen2.__version__
+        
+        self.host = emen2.db.config.get('network.EMEN2HOST', 'localhost')
+        self.port = emen2.db.config.get('network.EMEN2PORT', 80)
+        
+        self.ctxt.request_host = None
+        self.ctxt.request_location = None
+        self.ctxt.request_headers = None
 
     def __getitem__(self, n):
         return self.__dict[n]
@@ -100,13 +100,12 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 
     # Basic properties
     title = property(
-        lambda self: self.ctxt.get('title'),
-        lambda self, value: self.ctxt.set('title',value))
+        lambda self: self.ctxt.title,
+        lambda self, value: self.ctxt.title = value)
 
     template = property(
-        lambda self: self.ctxt.get('template', '/simple'),
-        lambda self, value: self.ctxt.set('template', value))
-
+        lambda self: self.ctxt.template,
+        lambda self, value: self.ctxt.template = value)
 
     def __init__(self, db=None, *args, **blargh):
         super(TemplateView, self).__init__()
@@ -114,28 +113,20 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
         # Database connection
         self.db = db
 
-        # Notifications and errors
-        self._notify = []
-        self._errors = []
-
         # Template Context
         # Init context with headers, errors, etc.
         # Then update with any extra arguments specified.
         self.ctxt = TemplateContext()
         self.ctxt.update(dict(
-            title = '',
-            NOTIFY = self._notify,
-            ERRORS = self._errors,
-            REQUEST_METHOD = self.request_method,
-            REQUEST_LOCATION = self.request_location,
-            REQUEST_HEADERS = self.request_headers,
-            VERSION = emen2.__version__,
             EMEN2WEBROOT = emen2.db.config.get('network.EMEN2WEBROOT'),
             EMEN2DBNAME = emen2.db.config.get('customization.EMEN2DBNAME'),
             EMEN2LOGO = emen2.db.config.get('customization.EMEN2LOGO'),
             BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', [])            
         ))
-
+        self.ctxt.request_host = self.request_host
+        self.ctxt.request_location = self.request_location
+        self.ctxt.request_headers = self.request_headers
+        
         # ETags
         self.etag = None
 
@@ -156,7 +147,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
         using the redirect template'''
         content = content or """<p>Please <a href="%s">click here</a> if the page does not automatically redirect.</p>"""%(location)
         self.template = '/redirect'
-        self.ctxt['title'] = title
+        self.title = title
         self.ctxt['content'] = content        
         self.ctxt['showlink'] = showlink
         location = location or '/'
@@ -166,7 +157,7 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 
     def get_data(self):
         '''Render the template'''
-        return emen2.db.config.templates.render_template(self.template, self.ctxt)
+        return emen2.db.config.templates.render_template(self.ctxt.template, self.ctxt)
 
 
 
@@ -187,55 +178,10 @@ class View(TemplateView):
             pass
 
         self.ctxt.update(dict(
-            HOST = getattr(ctx, 'host', None),
             USER = user,
             ADMIN = admin,
             DB = self.db
         ))
-
-
-
-##### II. View plugins #####
-
-# class ViewPlugin(object):
-#     '''Parent class the interface for View plugins
-# 
-#     To write a view plugin, subclass this class and provide a iterable
-#     classattribute called "preinit" which contains a list of methods
-#     executed before the view method is called
-# 
-#     .. py:function:: preinit(self)'''
-# 
-#     @classmethod
-#     def attach(cls, view):
-#         '''Decorate a class with this method to add a :py:class:`ViewPlugin` to the class'''
-#         view.preinit = view.preinit[:]
-#         view.preinit.extend(cls.preinit)
-#         return view
-# 
-# 
-# class AdminView(ViewPlugin):
-#     '''A :py:class:`ViewPlugin` which only allows Administrators to access a view'''
-# 
-#     preinit = []
-# 
-#     @preinit.append
-#     def checkadmin(self):
-#         context = self.db._getctx()
-#         if not context.checkadmin():
-#             raise emen2.web.responsecodes.ForbiddenError, 'User %r is not an administrator.' % context.username
-# 
-# 
-# class AuthView(ViewPlugin):
-#     '''A :py:class:`ViewPlugin` which only allows Authenticated Users to access a view'''
-# 
-#     preinit = []
-# 
-#     @preinit.append
-#     def checkadmin(self):
-#         context = self.db._getctx()
-#         if not 'authenticated' in context.groups:
-#             raise emen2.web.responsecodes.ForbiddenError, 'User %r is not authenticated.' % context.username
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

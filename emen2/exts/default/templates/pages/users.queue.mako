@@ -10,7 +10,7 @@
     });
 </%block>
 
-<h1>${title}</h1>
+<h1>${ctxt.title}</h1>
 
 <%buttons:singlepage label='Account requests'>
     <p>Showing ${len(queue)} of ${len(queue)} pending accounts.</p>

@@ -27,10 +27,10 @@
     ## Alerts and notifications
     <%block name="alert">
         <ul class="e2-alert e2-alert-main" role="alert">
-            % for msg in NOTIFY:
+            % for msg in ctxt.notify:
                <li>${msg}</li>
             % endfor
-            % for msg in ERRORS:
+            % for msg in ctxt.errors:
                <li class="e2l-error">${msg}</li>
             % endfor
        </ul>
