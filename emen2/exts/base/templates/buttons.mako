@@ -13,9 +13,9 @@
         <ul class="e2l-cf">
             % for k,v in tabs.items():
                 % if k == active:
-                    <li class="e2-tab-active"><a href="${uris.get(k,ctxt.request_location)}">${v}</a></li>
+                    <li class="e2-tab-active"><a href="">${v}</a></li>
                 % else:
-                    <li><a href="${uris.get(k,ctxt.request_location)}">${v}</a></li>                
+                    <li><a href="${uris.get(k,'')}">${v}</a></li>                
                 % endif
             % endfor
         </ul>

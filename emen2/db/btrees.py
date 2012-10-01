@@ -145,7 +145,8 @@ class EMEN2DB(object):
 
     def _pickleload(self, data):
         # Load a pickled DBO.
-        if data != None: return pickle.loads(data)
+        # None = 'N.'; faster than "if data != None:"
+        return pickle.loads(data or 'N.')
 
     def _timedump(self, data):
         pass
@@ -155,7 +156,7 @@ class EMEN2DB(object):
         # keyclass, keydump, keyload methods.
         if keyformat == 's':
             self.keyclass = unicode
-            self.keydump = lambda x:x.encode('utf-8')
+            self.keydump = lambda x:unicode(x).encode('utf-8')
             self.keyload = lambda x:x.decode('utf-8')
         elif keyformat == 'd':
             self.keyclass = int
@@ -176,7 +177,7 @@ class EMEN2DB(object):
         if dataformat == 's':
             # String dataformat; use UTF-8 encoded strings.
             self.dataclass = unicode
-            self.datadump = lambda x:x.encode('utf-8')
+            self.datadump = lambda x:unicode(x).encode('utf-8')
             self.dataload = lambda x:x.decode('utf-8')
         elif dataformat == 'd':
             # Decimal dataformat, use str encoded ints.
@@ -824,7 +825,6 @@ class DBODB(EMEN2DB):
         return super(DBODB, self).exists(key, txn=txn, flags=flags)
 
 
-
     ##### Sequences #####
 
     def update_names(self, items, txn=None):
@@ -1009,7 +1009,6 @@ class DBODB(EMEN2DB):
                 return names
             items = self.cgets(names, ctx=ctx, txn=txn)
             return set([i.name for i in items])
-
         return set(self.keys(txn=txn))
 
     def items(self, ctx=None, txn=None):

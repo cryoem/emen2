@@ -371,9 +371,6 @@ def setup(db=None, rootpw=None, rootemail=None):
 class EMEN2DBEnv(object):
     """EMEN2 Database Environment."""
     
-    # Manage open btrees
-    opendbs = weakref.WeakKeyDictionary()
-
     # Transaction counter
     txncounter = 0
 
@@ -500,7 +497,6 @@ class EMEN2DBEnv(object):
     def open(self):
         """Open the Database Environment."""
         self.dbenv.open(self.path, self.ENVOPENFLAGS)
-        self.opendbs[self] = True
 
 
     # ian: todo: make this nicer.

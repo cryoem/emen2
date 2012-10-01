@@ -27,7 +27,7 @@ class User(View):
         self.title = "User: %s"%(user.displayname)
 
         if user.disabled:
-            self.ctxt['ERRORS'].append("This user account is disabled")    
+            self.ctxt.errors.append("This user account is disabled")    
 
 
 
@@ -50,13 +50,13 @@ class User(View):
         # if userrec:
         #    user.userrec.update(userrec)
         #    self.db.record.put(user.userrec)
-        #    self.ctxt['NOTIFY'].append('Saved profile.')
+        #    self.ctxt.notify.append('Saved profile.')
 
         u = kwargs.get('user', {})
         if u:
             user.update(u)
             self.db.user.put(user)
-            self.ctxt['NOTIFY'].append('Saved account settings.')
+            self.ctxt.notify.append('Saved account settings.')
         
         user = self.db.user.get(name)
         self.ctxt['user'] = user
@@ -152,7 +152,7 @@ class NewUser(View):
             self.db.newuser.put(user)
         try: pass
         except Exception, e:
-            self.ctxt['ERRORS'].append('There was a problem creating your account: %s'%e)
+            self.ctxt.errors.append('There was a problem creating your account: %s'%e)
 
         else:
             self.template = "/simple"

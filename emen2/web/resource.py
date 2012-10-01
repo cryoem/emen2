@@ -268,21 +268,21 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
     of setting up the deferreds, threadpool, handling errors, etc.
     """
 
-    def __init__(self, request_location='', request_headers=None, request_method='get', request_host=None):
+    def __init__(self):
         # Response headers
         self.headers = {}
 
         # HTTP Method
-        self.request_method = request_method
+        self.request_method = None # request_method
 
         # Request headers
-        self.request_headers = request_headers or {}
+        self.request_headers = {}
 
         # Request host
-        self.request_host = request_host
+        self.request_host = None
         
         # Request location
-        self.request_location = request_location
+        self.request_location = ''
 
         # Any uploaded files
         self.request_files = []

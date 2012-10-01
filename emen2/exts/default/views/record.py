@@ -40,13 +40,13 @@ class Record(View):
 
         # Some warnings/alerts
         if self.rec.get('deleted'):
-            self.ctxt['ERRORS'].append('Hidden record')
+            self.ctxt.errors.append('Hidden record')
         if 'publish' in self.rec.get('groups',[]):
-            self.ctxt['NOTIFY'].append('Record marked as published data')
+            self.ctxt.notify.append('Record marked as published data')
         if 'authenticated' in self.rec.get('groups',[]):
-            self.ctxt['NOTIFY'].append('Any authenticated user can read this record')
+            self.ctxt.notify.append('Any authenticated user can read this record')
         if 'anon' in self.rec.get('groups', []):
-            self.ctxt['NOTIFY'].append('Anyone may access this record anonymously')
+            self.ctxt.notify.append('Anyone may access this record anonymously')
 
         # Find if this record is in the user's bookmarks
         bookmarks = []
@@ -272,9 +272,6 @@ class Record(View):
         # Child table
         c = [['children', '==', self.rec.name], ['rectype', '==', childtype]]
         query = self.routing.execute('Query/embed', db=self.db, c=c, parent=self.rec.name, rectype=childtype)
-
-        # ian: awful hack, so the page will redirect back to this location after saving.
-        # query.request_location = self.request_location
 
         # Update context
         self.ctxt['table'] = query

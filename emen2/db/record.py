@@ -420,13 +420,14 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
         return ret
 
-    # This builds UP the accessible items, instead of pruning a big list DOWN; filter does the opposite..
     def names(self, names=None, ctx=None, txn=None, **kwargs):
         if names is not None:
             return self.filter(names, rectype=kwargs.get('rectype'), ctx=ctx, txn=txn)
 
         if ctx.checkreadadmin():
-            return set(self.keys(txn=txn))
+            m = self.get_max(txn=txn)
+            return set(map(unicode, range(0, m)))
+            # return set(self.keys(txn=txn))
 
         ind = self.getindex("permissions", txn=txn)
         indc = self.getindex('creator', txn=txn)

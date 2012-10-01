@@ -16,7 +16,6 @@ import functools
 import jsonrpc.jsonutil
 
 # emen2 imports
-import emen2.util.listops
 import emen2.web.routing
 import emen2.web.resource
 import emen2.db.config
@@ -28,34 +27,25 @@ import emen2.db.log
 class TemplateContext(collections.MutableMapping):
     '''Template Context'''
 
-    def __init__(self, base=None):
-        self.__base = {}
-        self.__dict = self.__base.copy()
+    def __init__(self, d=None):
+        self.__dict = {}
         self.__dict['ctxt'] = self
+        self.__dict.update(d or {})
         
         self.notify = []
         self.errors = []
         self.title = 'No title'
         self.template = '/simple'
         self.version = emen2.__version__
-        
-        self.host = emen2.db.config.get('network.EMEN2HOST', 'localhost')
-        self.port = emen2.db.config.get('network.EMEN2PORT', 80)
-        
-        self.request_host = None
-        self.request_location = None
-        self.request_headers = None
 
     def __getitem__(self, n):
         return self.__dict[n]
 
     def __setitem__(self, n, v):
         self.__dict[n] = v
-        self.__dict.update(self.__base)
 
     def __delitem__(self, n):
         del self.__dict[n]
-        self.__dict.update(self.__base)
 
     def __len__(self):
         return len(self.__dict)
@@ -64,26 +54,25 @@ class TemplateContext(collections.MutableMapping):
         return iter(self.__dict)
 
     def __repr__(self):
-        return '<TemplateContext: %r>' % self.__dict
+        return '<TemplateContext: %r>'%self.__dict
 
     def copy(self):
-        new = TemplateContext(self.__base)
-        new.__dict.update(self.__dict)
-        return new
+        return TemplateContext(self.__dict)
 
     def set(self, name, value=None):
         self[name] = value
 
     def reverse(self, _name, *args, **kwargs):
         """Create a URL given a view Name and arguments"""
-
+        
+        host = emen2.db.config.get('network.EMEN2HOST', 'localhost')
+        port = emen2.db.config.get('network.EMEN2PORT', 80)
         full = kwargs.pop('_full', False)
-        # webroot = emen2.db.config.get('network.EMEN2WEBROOT', '')
 
         result = emen2.web.routing.reverse(_name, *args, **kwargs)
         result = result.replace('//','/')
         if full:
-            result = 'http://%s:%s%s' % (self.host, self.port, result)
+            result = 'http://%s:%s%s' % (host, port, result)
 
         containsqs = '?' in result
         if not result.endswith('/') and not containsqs:
@@ -123,9 +112,6 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
             EMEN2LOGO = emen2.db.config.get('customization.EMEN2LOGO'),
             BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', [])            
         ))
-        self.ctxt.request_host = self.request_host
-        self.ctxt.request_location = self.request_location
-        self.ctxt.request_headers = self.request_headers
         
         # ETags
         self.etag = None

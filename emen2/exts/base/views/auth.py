@@ -18,16 +18,16 @@ class Auth(View):
 
         ctxid = None
         if username != None:
-            ctxid = self.db.auth.login(username, password, host=self.ctxt.request_host)
+            ctxid = self.db.auth.login(username, password, host=self.request_host)
             msg = 'Successfully logged in'
             self.set_header('X-Ctxid', ctxid)
             self.redirect(location or '/')
             # self.set_header('Location', location or '/')
 
         if msg:
-            self.ctxt['NOTIFY'].append(msg)
+            self.ctxt.notify.append(msg)
         if errmsg:
-            self.ctxt['ERRORS'].append(errmsg)
+            self.ctxt.notify.append(errmsg)
 
 
 
@@ -55,9 +55,9 @@ class Auth(View):
         self.set_header('X-Ctxid', '')
 
         if msg:
-            self.ctxt['NOTIFY'].append(msg)
+            self.ctxt.notify.append(msg)
         if errmsg:
-            self.ctxt['ERRORS'].append(errmsg)
+            self.ctxt.errors.append(errmsg)
 
 
 
@@ -91,9 +91,9 @@ class Auth(View):
                 pass
 
         if msg:
-            self.ctxt['NOTIFY'].append(msg)
+            self.ctxt.notify.append(msg)
         if errmsg:
-            self.ctxt['ERRORS'].append(errmsg)
+            self.ctxt.errors.append(errmsg)
 
 
 
@@ -129,9 +129,9 @@ class Auth(View):
                     pass
 
         if msg:
-            self.ctxt['NOTIFY'].append(msg)
+            self.ctxt.notify.append(msg)
         if errmsg:
-            self.ctxt['ERRORS'].append(errmsg)
+            self.ctxt.errors.append(errmsg)
 
 
 
@@ -162,9 +162,9 @@ class Auth(View):
 
 
         if msg:
-            self.ctxt['NOTIFY'].append(msg)
+            self.ctxt.notify.append(msg)
         if errmsg:
-            self.ctxt['ERRORS'].append(errmsg)
+            self.ctxt.errors.append(errmsg)
 
 
 
@@ -183,9 +183,9 @@ class Auth(View):
                 pass
 
         if msg:
-            self.ctxt['NOTIFY'].append(msg)
+            self.ctxt.notify.append(msg)
         if errmsg:
-            self.ctxt['ERRORS'].append(errmsg)
+            self.ctxt.errors.append(errmsg)
 
 
 
