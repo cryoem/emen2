@@ -27,7 +27,7 @@ import collections
 <div class="home-sidebar">
 
     <ul class="e2l-cf home-projectlist" role="tablist" data-tabgroup="record">
-        <li><h2>Groups</h2></li>
+        <li><h2>Lab Groups</h2></li>
         % for group in groups:
             <li><a href="#groups-${group.name}">${recnames.get(group.name,group.name)}</a></li>
         % endfor

@@ -25,11 +25,8 @@ class User(View):
         user = self.db.user.get(name, filt=False)
         self.ctxt["user"] = user
         self.title = "User: %s"%(user.displayname)
-
         if user.disabled:
-            self.ctxt.errors.append("This user account is disabled")    
-
-
+            self.notify("This user account is disabled", error=True)
 
     @View.add_matcher("^/user/(?P<name>[\w\- ]+)/edit/$")
     def edit(self, name=None, **kwargs):
@@ -43,27 +40,23 @@ class User(View):
         if self.db.auth.check.context()[0] != user.name and not self.ctxt['ADMIN']:
             raise emen2.db.exceptions.SecurityError, "You may only edit your own user page"
 
+        msgs = {
+            "password":"Password updated.", 
+            "email":"Email updated.", 
+            "privacy":"Privacy updated.", 
+            "profile":"Profile information updated."}
+        msg = msgs.get(kwargs.get('saved'))
+        if msg:
+            self.notify(msg)
+
         if self.request_method != 'post':
             return
-
-        # userrec = kwargs.get('userrec', {})
-        # if userrec:
-        #    user.userrec.update(userrec)
-        #    self.db.record.put(user.userrec)
-        #    self.ctxt.notify.append('Saved profile.')
 
         u = kwargs.get('user', {})
         if u:
             user.update(u)
             self.db.user.put(user)
-            self.ctxt.notify.append('Saved account settings.')
-        
-        user = self.db.user.get(name)
-        self.ctxt['user'] = user
-        
-
-
-
+            self.simple("Saved account settings.")
 
 
 
@@ -82,14 +75,12 @@ class Users(View):
             users = self.db.user.get(usernames)
         
         if not users:
-            self.template = '/simple'
-            self.ctxt['content'] = 'No users found, or insufficient permissions to view user roster.'
+            self.simple(content='No users found, or insufficient permissions to view user roster.')
             return
 
         self.ctxt['usernames'] = usernames
         self.ctxt['users'] = users
         self.ctxt['q'] = q or ''
-
 
     @View.add_matcher(r'^/users/admin/$', name='admin')    
     def admin(self, sortby="name_last", reverse=0, q=None, **kwargs):
@@ -106,9 +97,6 @@ class Users(View):
         self.ctxt['users'] = users
         self.ctxt['sortby'] = sortby
         self.ctxt['reverse'] = reverse
-
-
-
 
 
 
@@ -145,26 +133,17 @@ class NewUser(View):
         email = user.get('email', '').strip()
         password = user.get('password', None)
         
-        #try:
-        if 1:
+        try:
             user = self.db.newuser.new(password=password, email=email)
             user.setsignupinfo(userrec)
             self.db.newuser.put(user)
-        try: pass
         except Exception, e:
-            self.ctxt.errors.append('There was a problem creating your account: %s'%e)
-
+            self.notify('There was a problem creating your account: %s'%e, error=True)
         else:
-            self.template = "/simple"
-            self.ctxt['content'] = '''
-                <h1>New User Request</h1>
-                <p>
-                    Your request for a new account is being processed. 
-                    You will be notified via email when it is approved.
-                </p>
+            self.simple(content='''
+                <p>Your request for a new account is being processed. You will be notified via email when it is approved.</p>
                 <p>Email: %s</p>
-                '''%(user.email)
-
+                '''%(user.email))
 
     @View.add_matcher(r'^/users/queue/$', view='Users', name='queue')    
     def queue(self, action=None, name=None, **kwargs):
@@ -197,10 +176,6 @@ class NewUser(View):
                 for group in self.db.group.get(g):
                     group.adduser(user.name)
                     self.db.group.put(group)
-
-            if kwargs.get('location'):
-                self.headers['Location'] = kwargs.get('location')
-
 
         queue = self.db.newuser.get(self.db.newuser.names())
         self.ctxt['queue'] = queue

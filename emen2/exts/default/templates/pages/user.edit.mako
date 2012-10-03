@@ -10,7 +10,7 @@
 
         <form method="post" enctype="multipart/form-data" action="${EMEN2WEBROOT}/record/${user.record}/edit/">
 
-            <input type="hidden" name="_location" value="${ctxt.reverse('User/edit', name=user.name)}" />
+            <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='profile')}" />
         
             ${user_util.profile(user=user, userrec=user.userrec, edit=True, prefix='')}
 
@@ -50,22 +50,23 @@
 <%buttons:singlepage label='Change Email'>
     <form method="post" action="${EMEN2WEBROOT}/auth/email/change/">
 
-    <input type="hidden" name="name" value="${user.name or ''}" />
+        <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='email')}" />
+        <input type="hidden" name="name" value="${user.name or ''}" />
 
-    <table class="e2l-kv">
-        <tbody>
-            <tr>
-                <td>Current password:</td>
-                <td><input type="password" name="opw" value="" /> <span class="e2l-small">(required to change email)</span></td>
-            </tr>
-            </tr>
-                <td>New email:</td>
-                <td><input type="text" name="email" value="${user.get('email','')}" /></td>
-            </tr>
-        </tbody>
-    </table>
+        <table class="e2l-kv">
+            <tbody>
+                <tr>
+                    <td>Current password:</td>
+                    <td><input type="password" name="opw" value="" /> <span class="e2l-small">(required to change email)</span></td>
+                </tr>
+                </tr>
+                    <td>New email:</td>
+                    <td><input type="text" name="email" value="${user.get('email','')}" /></td>
+                </tr>
+            </tbody>
+        </table>
 
-    ${buttons.save('Change email')}
+        ${buttons.save('Change email')}
 
     </form>
 </%buttons:singlepage>
@@ -75,7 +76,7 @@
 <%buttons:singlepage label='Change Password'>
     <form action="${EMEN2WEBROOT}/auth/password/change/" method="post">
 
-        <input type="hidden" name="location" value="${ctxt.reverse('User/main', name=user.name)}" />
+        <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='password')}" />
         <input type="hidden" name="name" value="${user.name or ''}" />
 
         <table class="e2l-kv">
@@ -106,6 +107,7 @@
     Who may view your account information:
         
     <form method="post" action="${ctxt.reverse('User/edit', name=user.name)}">
+        <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='privacy')}" />    
         <input type="radio" name="user.privacy" value="0" ${['checked="checked"','',''][user.privacy]}> Public <br />
         <input type="radio" name="user.privacy" value="1" ${['','checked="checked"',''][user.privacy]}> Only authenticated users<br />
         <input type="radio" name="user.privacy" value="2" ${['','','checked="checked"'][user.privacy]}> Private<br />
@@ -118,6 +120,7 @@
 % if ADMIN:
     <%buttons:singlepage label='Account Status'>
         <form method="post" action="${ctxt.reverse('User/edit', name=user.name)}">
+            <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='status')}" />        
             <input type="radio" name="user.disabled" value="" ${['checked="checked"',''][user.disabled]}> Enabled <br />
             <input type="radio" name="user.disabled" value="True" ${['','checked="checked"'][user.disabled]}> Disabled
             ${buttons.save('Set account status')}

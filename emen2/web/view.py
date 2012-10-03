@@ -122,24 +122,37 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
 
     #### Output methods #####
 
+    def notify(self, msg, error=False):
+        if not msg:
+            return
+        if error:
+            self.ctxt.errors.append(msg)            
+        else:
+            self.ctxt.notify.append(msg)
+
+    def simple(self, title=None, content=None):
+        self.template = '/simple'
+        self.title = title
+        self.ctxt['content'] = content
+
     def error(self, msg):
         '''Set the output to a simple error message.'''
         self.template = "/errors/error"
         self.title = 'Error'
         self.ctxt['errmsg'] = msg
 
-    def redirect(self, location, title='Redirect', content='', auto=True, showlink=True):
+    def redirect(self, redirect, title='Redirect', content='', auto=True, showlink=True):
         '''Redirect by setting Location header and
         using the redirect template'''
-        content = content or """<p>Please <a href="%s">click here</a> if the page does not automatically redirect.</p>"""%(location)
+        content = content or """<p>Please <a href="%s">click here</a> if the page does not automatically redirect.</p>"""%(redirect)
         self.template = '/redirect'
         self.title = title
         self.ctxt['content'] = content        
         self.ctxt['showlink'] = showlink
-        location = location or '/'
-        self.ctxt['location'] = location
+        redirect = redirect or '/'
+        self.ctxt['redirect'] = redirect
         if auto:
-            self.headers['Location'] = location.replace('//','/')
+            self._redirect = redirect.replace('//','/')
 
     def get_data(self):
         '''Render the template'''

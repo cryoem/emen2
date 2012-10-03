@@ -1,9 +1,10 @@
 <%namespace name="buttons" file="/buttons"  />
 <%inherit file="/page" />
 
-<%def name="login(location='')">
+<%def name="login(redirect='')">
     <form action="${EMEN2WEBROOT}/auth/login/" method="post">
-        <input type="hidden" name="location" value="${EMEN2WEBROOT}/${location}" />
+
+        <input type="hidden" name="_redirect" value="${redirect}" />
         <table class="login" cellpadding="0" cellspacing="0">
             <tr>
                 <td>Email:</td>

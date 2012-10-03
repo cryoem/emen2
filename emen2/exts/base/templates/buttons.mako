@@ -119,7 +119,7 @@
                     <a href="${link}">
                 % endif
 
-                ${ctxt.title}
+                ${title}
 
                 % if time:
                     @ <time class="e2-localize" datetime="${time}">${time}</time>

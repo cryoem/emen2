@@ -23,7 +23,7 @@
 
     <title>
         <%block name="title">
-            ${EMEN2DBNAME}: ${context.get('title','No Title')}
+            ${EMEN2DBNAME}: ${ctxt.title}
         </%block>
     </title>
 

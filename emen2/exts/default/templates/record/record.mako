@@ -148,9 +148,9 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         <li>
             <h2 class="e2l-gradient">
                 <a href="${EMEN2WEBROOT}/record/${rec.name}/">
-                    Record: ${recnames.get(rec.name, rec.name)}
-                    ## Record
-                    ## ${rec.name}
+                    ## Record: 
+                    ## ${recnames.get(rec.name, rec.name)}
+                    Record #${rec.name}
                     ## % if tab == "main":
                     ##    <span class="e2l-float-right" style="padding-right:5px;">&raquo;</span>
                     ## % endif
@@ -277,7 +277,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
             ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage public data</a></li>
             ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/query/attachments/">Child attachments</a></li>
-            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=dicttable">Param-value table</a></li>
+            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=kv">Param-value table</a></li>
         </%block>
 
         
@@ -328,7 +328,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     
     <div data-tab="views">
         <%
-        prettynames = {'defaultview': 'default', 'mainview': 'protocol', 'recname': 'record name', 'tabularview':'table columns', 'dicttable':'parameter-value table'}
+        prettynames = {'defaultview': 'default', 'mainview': 'protocol', 'recname': 'record name', 'tabularview':'table columns', 'kv':'parameter-value table'}
         recdef.views['defaultview'] = recdef.views.get('defaultview') or recdef.mainview        
         %>
         <h2>Record views</h2>
@@ -338,7 +338,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         <p>This record uses the <a href="${EMEN2WEBROOT}/recorddef/${recdef.name}">${recdef.desc_short} protocol</a>, which provides ${len(recdef.views)+2} views:
             <ul>
                 <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=mainview">Protocol</a></li>
-                <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=dicttable">Parameter-Value table</a></li>                
+                <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=kv">Parameter-Value table</a></li>                
                 % for v in recdef.views:
                     <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=${v}">${prettynames.get(v, v).capitalize()}</a></li>
                 % endfor

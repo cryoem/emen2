@@ -25,7 +25,7 @@ class Record(View):
         # Get record..
         self.rec = self.db.record.get(name, filt=False)
         recnames = self.db.record.render([self.rec])
-        self.title = "Record: %s"%recnames.get(self.rec.name, self.rec.name)
+        self.title = recnames.get(self.rec.name, self.rec.name)
 
         # Look for any recorddef-specific template.
         template = '/record/rectypes/%s'%self.rec.rectype
@@ -40,13 +40,13 @@ class Record(View):
 
         # Some warnings/alerts
         if self.rec.get('deleted'):
-            self.ctxt.errors.append('Hidden record')
+            self.notify('Hidden record', error=True)
         if 'publish' in self.rec.get('groups',[]):
-            self.ctxt.notify.append('Record marked as published data')
+            self.notify('Record marked as published data')
         if 'authenticated' in self.rec.get('groups',[]):
-            self.ctxt.notify.append('Any authenticated user can read this record')
+            self.notify('Any authenticated user can read this record')
         if 'anon' in self.rec.get('groups', []):
-            self.ctxt.notify.append('Anyone may access this record anonymously')
+            self.notify('Anyone may access this record anonymously')
 
         # Find if this record is in the user's bookmarks
         bookmarks = []
@@ -118,7 +118,7 @@ class Record(View):
         
     
     @View.add_matcher(r'^/record/(?P<name>\w+)/edit/$', write=True)
-    def edit(self, name=None, _location=None, _format=None, **kwargs):
+    def edit(self, name=None, _redirect=None, _format=None, **kwargs):
         self.main(name=name, **kwargs)
         if self.request_method not in ['post', 'put']:
             self.ctxt["tab"] = "edit"
@@ -141,7 +141,7 @@ class Record(View):
 
         # Redirect
         # IMPORTANT NOTE: Some clients (EMDash) require the _format support below as part of the REST API.        
-        self.redirect(_location or self.routing.reverse('Record/main', name=self.rec.name))
+        self.redirect(_redirect or self.routing.reverse('Record/main', name=self.rec.name))
         if _format == "json":
             return jsonrpc.jsonutil.encode(self.rec)
 
@@ -193,7 +193,7 @@ class Record(View):
 
 
     @View.add_matcher(r'^/record/(?P<name>\w+)/new/(?P<rectype>\w+)/$', write=True)
-    def new(self, name=None, rectype=None, _location=None, _format=None, **kwargs): 
+    def new(self, name=None, rectype=None, _redirect=None, _format=None, **kwargs): 
         """Create a new record."""
         self.main(name=name)
     
@@ -222,7 +222,7 @@ class Record(View):
             self.db.binary.addreference(newrec.name, param, bdo.name)
 
         # IMPORTANT NOTE: Some clients (EMDash) require the _format support below as part of the REST API.
-        self.redirect(_location or self.routing.reverse('Record/main', name=newrec.name), content="Your changes were saved.")
+        self.redirect(_redirect or self.routing.reverse('Record/main', name=newrec.name), content="Your changes were saved.")
         if _format == "json":
             return jsonrpc.jsonutil.encode(newrec)
 
@@ -436,7 +436,7 @@ class Records(View):
 
     @View.add_matcher("^/records/edit/$", write=True)
     def edit(self, *args, **kwargs):
-        location = kwargs.pop('_location', None)
+        redirect = kwargs.pop('_redirect', None)
         comments = kwargs.pop('comments', '')
         if self.request_method != 'post':
             return
@@ -450,12 +450,11 @@ class Records(View):
                 rec.addcomment(comments)
             self.db.record.put(recs)
 
-        if location:
-            self.redirect(location)
+        if redirect:
+            self.redirect(redirect)
             return
 
-        self.template = '/simple'
-        self.ctxt['content'] = "Saved %s records"%(len(recs))
+        self.simple(content="Saved %s records."%(len(recs)))
 
 
 

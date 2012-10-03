@@ -141,6 +141,10 @@ class FixedArgsResource(object):
 
         # HTTP arguments with '.' will be turned into dicts, e.g. 'child.key' -> child['key']
         args = self._parse_args_dict(args)
+
+        # Redirect...?
+        self._redirect = args.pop('_redirect', None)
+
         return args
 
     def _parse_content(self, request):
@@ -283,7 +287,10 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         
         # Request location
         self.request_location = ''
-
+        
+        # Redirect...
+        self._redirect = None
+        
         # Any uploaded files
         self.request_files = []
 
@@ -409,6 +416,8 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         headers = dict( (k,v) for k,v in headers.iteritems() if v != None )
 
         # Redirect if necessary
+        if self._redirect:
+            headers['Location'] = self._redirect
         if headers.get('Location'):
             request.setResponseCode(303)
 
@@ -456,7 +465,6 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         # Expired or invalid session. Remove ctxid and redirect to root.
         except emen2.db.exceptions.SessionError, e:
             data = self.render_error_security(request.uri, e)
-            headers['Location'] = '/'
             request.addCookie('ctxid', '', path='/')
             emen2.db.log.security(e)
 

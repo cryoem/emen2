@@ -383,10 +383,11 @@ class EMEN2DB(object):
         """
         
         # Check BDB
+        kd = self.keydump(key)
         d = self.dataload(
-            self.bdb.get(self.keydump(key), txn=txn, flags=flags) 
-            or 
-            self.cache.get(self.keydump(key), flags=flags)
+            self.cache.get(kd, flags=flags)
+            or
+            self.bdb.get(kd, txn=txn, flags=flags) 
             )
         if d:
             return d

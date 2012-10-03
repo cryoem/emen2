@@ -5,7 +5,6 @@
 
 <form method="post" action="${EMEN2WEBROOT}/auth/email/change/">
 
-    <input type="hidden" name="location" value="${location or ''}" />
     <input type="hidden" name="name" value="${name or ''}" />
 
     <table>

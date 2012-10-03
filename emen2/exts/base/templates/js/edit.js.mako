@@ -281,7 +281,7 @@
 
             // ...redirect after submission
             if (this.options.redirect) {
-                form.append('<input type="hidden" name="_location" value="'+this.options.redirect+'"/>');
+                form.append('<input type="hidden" name="_redirect" value="'+this.options.redirect+'"/>');
             }
 
             // Show the recorddef long description

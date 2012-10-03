@@ -1039,10 +1039,10 @@ class DB(object):
         par.extend(sorted(public, key=lambda x:descs.get(x, x)))
         # par = [p for p in recdefs.get(rec.rectype).paramsK if p not in builtinparams]
         # par += [p for p in rec.keys() if p not in par]
-        return self._view_dicttable(par, markup=markup, ctx=ctx, txn=txn)
+        return self._view_kv(par, markup=markup, ctx=ctx, txn=txn)
 
 
-    def _view_dicttable(self, params, paramdefs={}, markup=False, ctx=None, txn=None):
+    def _view_kv(self, params, paramdefs={}, markup=False, ctx=None, txn=None):
         """(Internal) Create an HTML table for rendering.
 
         :param params: Use these ParamDef names
@@ -1171,7 +1171,11 @@ class DB(object):
         # Check the password; user.checkpassword will raise Exception if wrong
         try:
             user = self.dbenv["user"].getbyemail(username, filt=False, txn=txn)
-            user.checkpassword(password)
+            # Allow admins to login to other accounts.
+            if ctx.checkadmin():
+                pass
+            else:
+                user.checkpassword(password)
         except SecurityError, e:
             emen2.db.log.security("Login failed, bad password: %s"%(username))                
             raise AuthenticationError, str(e)
@@ -2341,7 +2345,7 @@ class DB(object):
         # Absolutely never reveal the secret via any mechanism
         # but email to registered address
         ctxt = {'secret': user.secret[2]}
-        self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'template':'/email/password.reset', 'ctxt':ctxt})
+        self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'name':user.name, 'template':'/email/password.reset', 'ctxt':ctxt})
 
         emen2.db.log.security("Setting resetpassword secret for %s"%user.name)        
         return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
@@ -3208,7 +3212,7 @@ class DB(object):
         each parameter defined in the view, and an additional 'header' item in the
         returned dictionary. Both edit and table will imply markup=True.
 
-        The special view 'dicttable' will returned a markup=True result with each
+        The special view 'kv' will returned a markup=True result with each
         record parameter/value pair rendered as a two-column HTML table.
 
         Examples:
@@ -3277,7 +3281,7 @@ class DB(object):
             if markup and markdown:
                 viewdef = markdown.markdown(viewdef, ['tables'])
             groupviews[None] = viewdef
-        elif viewname == "dicttable":
+        elif viewname == "kv":
             for rec in recs:
                 groupviews[rec.name] = self._make_tables(recdefs, rec, markup, ctx=ctx, txn=txn)
         else:
@@ -3334,7 +3338,7 @@ class DB(object):
             key = rec.rectype
             if viewdef:
                 key = None
-            elif viewname == "dicttable":
+            elif viewname == "kv":
                 key = rec.name
 
             _edit = edit

@@ -49,7 +49,7 @@
         options: {
             modal: true,
             action: '/upload/',
-            location: '/',
+            redirect: '/',
             wait: 1000,
             param: 'file_binary',
         },
@@ -59,7 +59,7 @@
             this.built = 0;
             this.files = [];            
             this.options.action = this.element.attr('action');
-            this.options.location = $('input[name=location]', this.element).val() || '';
+            this.options.redirect = $('input[name=_redirect]', this.element).val() || '';
             
             // Check that we have browser support for File API
             if (window.File && window.FileReader && window.FileList && window.Blob) {

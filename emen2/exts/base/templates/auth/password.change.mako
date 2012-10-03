@@ -5,7 +5,6 @@
 
 <form action="${EMEN2WEBROOT}/auth/password/change/" method="post">
 
-    <input type="hidden" name="location" value="${location}" />
     <input type="hidden" name="name" value="${name or ''}" />
 
     <table class="e2l-kv">

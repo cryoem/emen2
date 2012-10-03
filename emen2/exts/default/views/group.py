@@ -18,8 +18,7 @@ class Groups(View):
         self.ctxt["admin"] = admin
 
         if groups == None:
-            self.template="/simple"
-            self.ctxt['content'] = """No user groups found, or insufficient permissions to view user group list."""
+            self.simple(content="""No user groups found, or insufficient permissions to view user group list.""")
             return
         
         self.ctxt['groupnames'] = groupnames

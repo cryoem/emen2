@@ -9,7 +9,7 @@ A request for a password reset has been submitted for this account on ${EMEN2DBN
 
 To complete your request, please follow this link:
 
-${EMEN2EXTURI}/auth/password/reset/${recipient}/${secret}/
+${EMEN2EXTURI}/auth/password/reset/${name}/${secret}/
 
 If you did not request a new password, please contact the ${EMEN2DBNAME} administrator, ${MAILADMIN}
 

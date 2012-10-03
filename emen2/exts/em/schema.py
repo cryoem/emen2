@@ -9657,7 +9657,7 @@ $#sequence_protein: $$sequence_protein
                    'manuscript',
                    'progress_report'],
   'views': { 'recname': """Project: $$name_project ($$name_pi)""",
-             'tabularview': """$$name_project $$name_specimen $$name_pi $$project_type $$project_status $$project_block $@childcount(publication*)"""}},
+             'tabularview': """$$name_project $$name_pi $$project_status $$project_block $@childcount(publication*)"""}},
 
 
 

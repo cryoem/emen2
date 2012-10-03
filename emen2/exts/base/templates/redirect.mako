@@ -5,7 +5,7 @@
 <%block name="meta">
     ${parent.meta()}
     % if auto:
-        <meta http-equiv="refresh" content="0; url=${location}">
+        <meta http-equiv="refresh" content="0; url=${redirect}">
     % endif
 </%block>
 
@@ -16,5 +16,5 @@ ${content}
 </p>
 
 % if showlink:
-    <p>Please <a href="${location}">click here</a> to continue.</p>
+    <p>Please <a href="${redirect}">click here</a> to continue.</p>
 % endif

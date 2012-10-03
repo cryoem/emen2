@@ -41,7 +41,7 @@
 
     ## Tabs
     <%block name="tabs">
-        ${buttons.newtabs(pages or context.get('title','No Title'), cls='e2-tab-main')}
+        ${buttons.newtabs(pages or ctxt.title or 'No title', cls='e2-tab-main')}
     </%block>
 
     </div>
