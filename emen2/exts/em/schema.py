@@ -845,8 +845,8 @@ paramdefs =  [
 
  {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'Number of grids lost ',
-  'desc_short': 'Grids lost ',
+  'desc_long': 'Number of grids discarded',
+  'desc_short': 'Number of grids discarded ',
   'indexed': True,
   'keytype': 'paramdef',
   'modifytime': '2011-12-08T11:39:12Z',
@@ -1973,8 +1973,8 @@ paramdefs =  [
  {'choices': ['200', '300', '400'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'Meshsize of the grid',
-  'desc_short': 'Grid meshsize',
+  'desc_long': 'Mesh size of the grid',
+  'desc_short': 'Grid mesh size',
   'indexed': True,
   'keytype': 'paramdef',
   'modifytime': '2011-12-08T11:39:12Z',
@@ -2133,8 +2133,8 @@ paramdefs =  [
 
  {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'ID of the grid batch',
-  'desc_short': 'ID of grid batch',
+  'desc_long': 'Grid manufacturer batch ID',
+  'desc_short': 'Grid manufacturer batch ID',
   'indexed': True,
   'keytype': 'paramdef',
   'modifytime': '2011-12-08T11:39:12Z',
@@ -5069,8 +5069,8 @@ paramdefs =  [
 
  {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'Title of the grid',
-  'desc_short': 'Grid label',
+  'desc_long': 'Grid description',
+  'desc_short': 'Grid description',
   'indexed': True,
   'keytype': 'paramdef',
   'modifytime': '2011-12-08T11:39:12Z',
@@ -5938,8 +5938,8 @@ paramdefs =  [
  {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'defaultunits': 's',
-  'desc_long': 'Glowdischarge time prior to freezing',
-  'desc_short': 'Glowdischarge time',
+  'desc_long': 'Glow discharge time',
+  'desc_short': 'Glow discharge time',
   'indexed': True,
   'keytype': 'paramdef',
   'modifytime': '2011-12-08T11:39:12Z',
@@ -6465,7 +6465,7 @@ paramdefs =  [
  {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Substrate preparation',
-  'desc_short': 'Substrate comments',
+  'desc_short': 'Substrate preparation',
   'indexed': True,
   'keytype': 'paramdef',
   'modifytime': '2011-12-08T11:39:12Z',
@@ -6645,8 +6645,8 @@ paramdefs =  [
                'Pre-irradiated'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'Whatever done prior to the freezing',
-  'desc_short': 'Pre-freezing comments',
+  'desc_long': 'Preperation done before grid freezing',
+  'desc_short': 'Preperation done before grid freezing',
   'indexed': True,
   'keytype': 'paramdef',
   'modifytime': '2011-12-08T11:39:12Z',
@@ -7220,7 +7220,7 @@ paramdefs =  [
  {'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
   'desc_long': 'Number of grids used',
-  'desc_short': 'Num grids used',
+  'desc_short': 'Number of grids used',
   'indexed': True,
   'keytype': 'paramdef',
   'modifytime': '2011-12-08T11:39:12Z',
@@ -9577,7 +9577,9 @@ Use the alignment protocol for the particular microscope to:
 3. Correct the Objective Astigmatism  
 4. Set up a Parallel Beam Condition  
 
-# Collect gain reference and calculate dose
+# Detector calibration
+1. Collect gain reference
+2. Calibrate dose
 """,
   'modifytime': '2011-12-08T11:39:12Z',
   'modifyuser': 'root',
@@ -9697,8 +9699,6 @@ $#grids_tem_used: $$grids_tem_used
 
 # Grid Pre-Treatment
 $#description_grid_prefreezing: $$description_grid_prefreezing  
-
-If Glow Discharged,
 $#time_glowdischarge: $$time_glowdischarge 
 
 # Freezing or Staining
@@ -10269,31 +10269,31 @@ $$file_binary
 $#performed_by: $$performed_by  
 $#date_occurred: $$date_occurred  
 
-# Grid type
+# Grid information
 $#title_grid: $$title_grid  
 $#id_grid_batch: $$id_grid_batch   
 $#grid_tem_type: $$grid_tem_type  
 $#grid_tem_mesh_size: $$grid_tem_mesh_size  
 
-# Grid Preparation
-Get a grid $$description_storage (which canister) canister and fill it with liquid nitrogen.  
+# Grid storage
+If the grid was previously frozen and stored, retrieve it from $$description_storage canister and fill it with liquid nitrogen.  
 
 Add a loading stick into the canister to cool as well.  
 
 Add a grid holder and a spider into the vitrobot's black rubber holder outside of the inner copper circle. Fill the rubber holder with liquid nitrogen.  
 
-The grids should have a $$select_substrate_grid that was prepared by the following procedure: $$select_substrate_grid_prep  
+# Grid pre-treatment
+
+The grids should have a $$select_substrate_grid that was prepared by the following procedure:  
+$$select_substrate_grid_prep  
+
+$#description_grid_prefreezing: $$description_grid_prefreezing  
+$#time_glowdischarge: $$time_glowdischarge 
 
 Check the quality of each grid with a light microscope. Discard any grids that do not meet the experiment's standards.  
-$#grids_tem_lost: $$grids_tem_lost 
-
+$#grids_tem_lost: $$grids_tem_lost  
 $#grids_tem_used: $$grids_tem_used  
 
-# Grid Pre-Treatment
-$#description_grid_prefreezing: $$description_grid_prefreezing  
-
-If Glow Discharged:
-$#time_glowdischarge: $$time_glowdischarge 
 
 # Freezing or Staining
 For a frozen-hydrated grid, please make sure a freezing session is linked as a parent. This will allow you to specify the full set of Vitrobot or freezing parameters.  
