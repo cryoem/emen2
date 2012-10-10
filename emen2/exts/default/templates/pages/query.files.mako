@@ -63,6 +63,7 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
 
 
 <form id="e2-download" method="post" action="${EMEN2WEBROOT}/download/">
+    <input type="hidden" name="tar" value="True" />
     <h1>
         <span class="e2-download-filecount">${len(bdos)}</span> files, <span class="e2-download-filesize">${filesize}</span>
 

@@ -39,7 +39,7 @@ class Download(View):
 
     @View.add_matcher('^/download/$', name='multi')
     @View.add_matcher('^/download/(?P<bids>.+)/(?P<filename>.+)/$')
-    def main(self, bids, filename=None, size=None, format=None, q=None, rename=None):
+    def main(self, bids, filename=None, size=None, format=None, q=None, rename=None, tar=None):
         if not hasattr(bids, '__iter__'):
             bids = [bids]
 
@@ -57,6 +57,7 @@ class Download(View):
         size = request.args.get('size')
         format = request.args.get('format', 'jpg')
         rename = request.args.get('rename', False)
+        tar = request.args.get('tar', None)
         files = {}
         cache = True
         
@@ -100,7 +101,7 @@ class Download(View):
                 files[k] = renamefile(v, count=seen.count(v)+1)
             seen.append(v)
             
-        if len(files) > 1:
+        if tar or len(files) > 1:
             return self._transfer_tar(files, request)
         
         return self._transfer_single(files, request, cache=cache)
