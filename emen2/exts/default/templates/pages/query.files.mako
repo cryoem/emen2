@@ -66,6 +66,7 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
     <h1>
         <span class="e2-download-filecount">${len(bdos)}</span> files, <span class="e2-download-filesize">${filesize}</span>
         <ul class="e2l-actions">
+            <li><input type="checkbox" name="rename" value="name" /></li>
             <li><input type="submit" value="Download selected attachments" /></li>
         </ul>
     </h1>
