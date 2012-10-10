@@ -2263,8 +2263,9 @@ class DB(object):
             emen2.db.log.security("Changing email for user %s to %s"%(user.name, user.email))
             # Note: Since we're putting directly,
             #     have to force the index to update
-            self.dbenv["user"].reindex([user], ctx=ctx, txn=txn)
-            self.dbenv["user"].put(user.name, user, txn=txn)
+            self.dbenv['user'].cputs([user], ctx=ctx, txn=txn)
+            # self.dbenv["user"].reindex([user], ctx=ctx, txn=txn)
+            # self.dbenv["user"].put(user.name, user, txn=txn)
 
             # Send the user an email to acknowledge the change
             self.dbenv.txncb(txn, 'email', kwargs={'email':email, 'template':'/email/email.verified', 'ctxt':ctxt})

@@ -47,7 +47,7 @@
 
 
 
-<%buttons:singlepage label='Change Email'>
+<%buttons:singlepage label='Change email'>
     <form method="post" action="${EMEN2WEBROOT}/auth/email/change/">
 
         <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='email')}" />
@@ -73,7 +73,7 @@
 
 
 
-<%buttons:singlepage label='Change Password'>
+<%buttons:singlepage label='Change password'>
     <form action="${EMEN2WEBROOT}/auth/password/change/" method="post">
 
         <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='password')}" />
@@ -103,7 +103,7 @@
 
 
 
-<%buttons:singlepage label='Set Privacy'>
+<%buttons:singlepage label='Set privacy'>
     Who may view your account information:
         
     <form method="post" action="${ctxt.reverse('User/edit', name=user.name)}">
@@ -118,7 +118,7 @@
 
 
 % if ADMIN:
-    <%buttons:singlepage label='Account Status'>
+    <%buttons:singlepage label='Account status'>
         <form method="post" action="${ctxt.reverse('User/edit', name=user.name)}">
             <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='status')}" />        
             <input type="radio" name="user.disabled" value="" ${['checked="checked"',''][user.disabled]}> Enabled <br />
