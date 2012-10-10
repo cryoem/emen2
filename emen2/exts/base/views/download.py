@@ -148,46 +148,38 @@ class Download(View):
         
 
 class TarPipe(object):
-    """This class implements a compression pipe suitable for asynchronous
-    process."""
-
-    # ian: todo: stream in added gz files, and write compressed tar output. Basically repackaged a bunch of .gz's to a .tar.gz with non-gz's inside.
     def __init__(self, files={}):
         self.files = files
-        self.cbuffer = cStringIO.StringIO()
-        self.tarfile = tarfile.open(mode='w|', fileobj=self)
+        self.buffer = cStringIO.StringIO()
+        self.tarfile = tarfile.open(mode='w|', fileobj=self.buffer)
 
     def close(self):
         pass
 
     def _addnextfile(self):
         if not self.files:
+            print "...Closing tarfile"
+            self.tarfile.close()
             return
-
+            
         key = self.files.keys()[0]
         filename = self.files.pop(key)
 
-        self.cbuffer.seek(0)
-        self.cbuffer.truncate(0)
+        self.buffer.seek(0)
+        self.buffer.truncate(0)
+        
+        print "Adding %s: %s... %s files left"%(key, filename, len(self.files))
         self.tarfile.add(key, arcname=filename)
-        print "Added %s: %s... %s files left"%(key, filename, len(self.files))
-        self.cbuffer.seek(0)
 
+        self.buffer.seek(0)
 
-    def write(self, data):
-        self.cbuffer.write(data)
-
-    def read(self, size=65536):
-        data = self.cbuffer.read(size)
-
-        if len(data) == 0:
+    def read(self, size=256**2):
+        data = self.buffer.read(size)
+        if not data:
             self._addnextfile()
-            data = self.cbuffer.read(size)
-            print "...read data:", len(data)
-            if not data:
-                self.tarfile.close()
-
+            data = self.buffer.read(size)
         return data
+
 
 
 
