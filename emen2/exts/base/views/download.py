@@ -151,14 +151,14 @@ class TarPipe(object):
     def __init__(self, files={}):
         self.files = files
         self.buffer = cStringIO.StringIO()
-        self.tarfile = tarfile.open(mode='w|', fileobj=self.buffer)
+        self.tarfile = tarfile.open(mode='w', fileobj=self.buffer)
 
     def close(self):
         pass
 
     def _addnextfile(self):
         if not self.files:
-            print "...Closing tarfile"
+            # print "...Closing tarfile"
             self.tarfile.close()
             return
             
@@ -168,7 +168,7 @@ class TarPipe(object):
         self.buffer.seek(0)
         self.buffer.truncate(0)
         
-        print "Adding %s: %s... %s files left"%(key, filename, len(self.files))
+        # print "Adding %s: %s... %s files left"%(key, filename, len(self.files))
         self.tarfile.add(key, arcname=filename)
 
         self.buffer.seek(0)
