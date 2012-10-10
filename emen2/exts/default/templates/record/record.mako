@@ -266,7 +266,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 
                 <tr>
-                    <td>
+                    <td style="width:15px">
                         % if siblings_index > 0:
                             <a href="${EMEN2WEBROOT}/record/${siblings_sort[siblings_index-1]}?sibling=${sibling}">&laquo;</a>
                         % endif
@@ -281,7 +281,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                             ${siblings_index+1} of ${len(siblings_sort)}                        
                         % endif
                     </td>
-                    <td>
+                    <td style="width:15px">
                         % if siblings_index < len(siblings)-1:
                             <a href="${EMEN2WEBROOT}/record/${siblings_sort[siblings_index+1]}?sibling=${sibling}">&raquo;</a>
                         % endif

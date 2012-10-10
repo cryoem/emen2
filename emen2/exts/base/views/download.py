@@ -170,9 +170,9 @@ class TarPipe(object):
         self.cbuffer.seek(0)
         self.cbuffer.truncate(0)
         self.tarfile.add(key, arcname=filename)
-        print "Added %s / %s.. buffer size is %s. %s files left"%(key, filename, 0, len(self.files))
-
+        print "Added %s: %s... %s files left"%(key, filename, len(self.files))
         self.cbuffer.seek(0)
+
 
     def write(self, data):
         self.cbuffer.write(data)
@@ -183,6 +183,7 @@ class TarPipe(object):
         if len(data) == 0:
             self._addnextfile()
             data = self.cbuffer.read(size)
+            print "...read data:", len(data)
             if not data:
                 self.tarfile.close()
 
