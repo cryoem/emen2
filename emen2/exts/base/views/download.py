@@ -18,6 +18,13 @@ import emen2.web.responsecodes
 import emen2.db.exceptions
 import emen2.db.handlers
 
+def rename(filename, count=0):
+    if not count:
+        return filename
+    parts = filename.split(".")
+    fn = parts[:-1] + ["%s"%count] + parts[-1:]
+    return ".".join(fn)
+
 @View.register
 class Download(View):
 
@@ -51,10 +58,13 @@ class Download(View):
         # Process the returned BDOs into files to send
         size = request.args.get('size')
         format = request.args.get('format', 'jpg')
+        rename = request.args.get('rename', False)
         files = {}
         cache = True
         
         for bdo in bdos:
+            name = bdo.get('name', 'none')
+            record = bdo.get('record', 'none')
             filename = bdo.get("filename")
             filepath = bdo.get("filepath")
             previewpath = emen2.db.binary.Binary.parse(bdo.get('name')).get('previewpath')
@@ -72,9 +82,12 @@ class Download(View):
                     status = emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
                     files[emen2.db.config.get_filename('emen2', 'web/static/images/handler.%s.png'%status)] = 'handler.%s.png'%status
 
-
             elif os.access(filepath, os.F_OK):
                 # Found the file
+                if rename == 'bdo':
+                    filename = "%s.%s"%(bdo.get('name', 'none').replace('bdo:', ''), filename)
+                elif rename == 'record'
+                    filename = "%s.%s"%(bdo.get('record', 'none'), filename)
                 files[filepath] = filename
             
             else:
@@ -82,6 +95,13 @@ class Download(View):
                 raise IOError, "Could not access file"
 
 
+        # Check for files that have the same name...
+        seen = []
+        for k,v in files.items():
+            if v in seen:
+                files[k] = rename(v, count=seen.count(v)+1)
+            seen.append(v)
+            
         if len(files) > 1:
             return self._transfer_tar(files, request)
         
