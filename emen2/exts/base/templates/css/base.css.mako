@@ -111,11 +111,10 @@ ul.e2l-actions {
 ul.e2l-actions li {
     float: right;
 }
-
 h1 .e2l-actions {
     position:absolute;
     right: 0px;
-    top: -10px;
+    top: 0px;
 }
 
 /* e2-alert: Alerts, notifications, and errors */

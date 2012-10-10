@@ -18,7 +18,7 @@ import emen2.web.responsecodes
 import emen2.db.exceptions
 import emen2.db.handlers
 
-def rename(filename, count=0):
+def renamefile(filename, count=0):
     if not count:
         return filename
     parts = filename.split(".")
@@ -97,7 +97,7 @@ class Download(View):
         seen = []
         for k,v in files.items():
             if v in seen:
-                files[k] = rename(v, count=seen.count(v)+1)
+                files[k] = renamefile(v, count=seen.count(v)+1)
             seen.append(v)
             
         if len(files) > 1:
@@ -136,7 +136,8 @@ class Download(View):
 
     def _transfer_tar(self, files, request, cache=False):
         # Download multiple files using TarPipe
-        request.setHeader('Content-Disposition', 'attachment; filename=archive.tar')
+        t = emen2.db.database.gettime()[:10]
+        request.setHeader('Content-Disposition', 'attachment; filename=archive-%s.tar'%t)
         request.setHeader('Content-Type', 'application/x-tar')
         request.setHeader('Content-Encoding', 'application/octet-stream')
 
@@ -177,7 +178,7 @@ class TarPipe(object):
         self.cbuffer.truncate(0)
 
         self.tarfile.add(key, arcname=filename)
-        # print "Added %s / %s.. buffer size is %s. %s files left"%(key, filename, 0, len(self.files))
+        print "Added %s / %s.. buffer size is %s. %s files left"%(key, filename, 0, len(self.files))
 
         if len(self.files) == 0:
             # print "Closing tarfile"

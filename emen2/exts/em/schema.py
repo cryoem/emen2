@@ -9150,7 +9150,7 @@ $#description_background: $$description_background
   'private': 0,
   'typicalchld': ['progress_report'],
   'views': { 'recname': """Software project: $$name_project""",
-             'tabularview': """$$name_project $$name_pi $$project_type $$project_status $$project_block"""}},
+             'tabularview': """$$name_project $$name_pi $$project_investigators $$project_type $$project_status $$project_block"""}},
 
 
 
@@ -9659,7 +9659,7 @@ $#sequence_protein: $$sequence_protein
                    'manuscript',
                    'progress_report'],
   'views': { 'recname': """Project: $$name_project ($$name_pi)""",
-             'tabularview': """$$name_project $$name_pi $$project_status $$project_block $@childcount(publication*)"""}},
+             'tabularview': """$$name_project $$name_pi $$project_investigators $$project_status $$project_block $@childcount(publication*)"""}},
 
 
 
@@ -10806,7 +10806,7 @@ $#description_background: $$description_background
   'private': 0,
   'typicalchld': ['progress_report'],
   'views': { 'recname': """Project $$name_project ($$name_specimen)""",
-             'tabularview': """$$name_project $$name_pi  $$project_type $$project_status $$project_block"""}},
+             'tabularview': """$$name_project $$name_pi $$project_investigators $$project_type $$project_status $$project_block"""}},
 
 
 
@@ -10920,7 +10920,7 @@ $#sequence_protein: $$sequence_protein
                  'manuscript',
                  'progress_report'],
   'views': { 'recname': """Subproject: $$name_project""",
-             'tabularview': """$$name_project $$name_specimen $$name_pi $$project_status $$project_block $@childcount(publication*) $@childcount(grid_imaging)"""}},
+             'tabularview': """$$name_project $$name_specimen $$name_pi $$project_investigators $$project_status $$project_block $@childcount(publication*) $@childcount(grid_imaging)"""}},
 
 
 

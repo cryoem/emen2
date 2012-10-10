@@ -34,10 +34,18 @@ h3, h4 {
 html,
 body
 {
-    font-family: arial, Verdana, Helvetica, sans-serif;
     margin:0px;
     padding:0px;
 }
+
+html,
+body,
+input,
+select,
+textarea {
+    font-family: arial, Verdana, Helvetica, sans-serif;
+}
+
 
 a, .e2l-a {
     color: #2C2C94;
@@ -189,6 +197,7 @@ ul {
 
 /***** Input control Styling ********/
 
+
 button,
 select,
 input,
@@ -198,16 +207,28 @@ textarea,
     -moz-border-radius: 4px;
     -webkit-border-radius: 4px;
     border-radius: 4px;
-    font-size:12pt;
-    font-weight:normal;
-    display:inline-block;
-    margin: 4px;
+    font-size: 12pt;
+    font-weight: normal;
+    display: inline-block;
+    margin: 0px;
+    margin-right:4px;
+    margin-bottom:4px;
     padding: 4px;
     background: #eee;
     color: #000;
     border:solid 1px #aaa;
-    box-sizing:  content-box;
+    box-sizing: content-box;
 }
+h1 .e2l-actions button,
+h1 .e2l-actions input,
+h1 .e2l-actions .e2-button {
+    margin-top:-10px;
+    margin-left:10px;
+}
+h1 label {
+    font-weight: normal;
+}
+
 
 input[type=button]:hover,
 input[type=submit]:hover,

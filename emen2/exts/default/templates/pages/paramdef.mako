@@ -36,7 +36,7 @@
             <td>Name:</td>
             <td>
                 % if new:
-                    <input name="name" value="" required="required" />
+                    <input type="text" name="name" value="" required="required" />
                 % else:
                     ${paramdef.name or ''}
                 % endif
@@ -47,7 +47,7 @@
             <td>Short description:</td>
             <td>
                 % if edit:
-                    <input name="desc_short" value="${paramdef.desc_short or ''}" required />
+                    <input type="text" name="desc_short" value="${paramdef.desc_short or ''}" required />
                 % else:
                     ${paramdef.desc_short or ''}
                 % endif
@@ -94,7 +94,7 @@
             <td>Control hint:</td>
             <td>
                 % if edit:
-                    <input name="controlhint" value="${paramdef.get('controlhint') or ''}" />
+                    <input type="text" name="controlhint" value="${paramdef.get('controlhint') or ''}" />
                 % else:
                     ${paramdef.get('controlhint') or ''}
                 % endif

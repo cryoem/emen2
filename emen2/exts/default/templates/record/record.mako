@@ -234,16 +234,60 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                     <img id="e2l-editbar2-comments-img" src="${EMEN2WEBROOT}/static/images/history.png" alt="Edits" />
                     ${historycount} Edits
                 </span>            
-
-                <p style="text-align:center">
-                ## C: ${users_d.get(cu, dict()).get('displayname', cu)}<br /> <time class="e2-localize" datetime="${rec.get("creationtime")}">${rec.get("creationtime")[:10]}</time>
-                ## <br />
-                ## % if rec.creationtime != rec.modifytime:
-                ${users_d.get(mu, dict()).get('displayname', mu)}<br /> <time class="e2-localize e2l-tiny" datetime="${rec.get("modifytime")}">${rec.get("modifytime")[:10]}</time>
-                ## % endif
-                </p>
-
             </a>
+        </li>
+        
+        
+        <li style="text-align:center;margin-top:10px">
+            ## Yes, it's wrong to use a table for layout -- 
+            ##  but easiest way to have this kind of horizontal flow.
+            <% 
+                siblings_sort = sorted(siblings)
+                try:
+                    siblings_index = siblings_sort.index(rec.name)
+                except ValueError:
+                    siblings_index = 0
+            %>
+            <table>
+                <tr>
+                    <td />
+                    <td>
+                    
+                        ## C: ${users_d.get(cu, dict()).get('displayname', cu)}<br /> 
+                        ## <time class="e2-localize" datetime="${rec.get("creationtime")}">${rec.get("creationtime")[:10]}</time>
+                        ## <br />
+                        ## % if rec.creationtime != rec.modifytime:
+                            ${users_d.get(mu, dict()).get('displayname', mu)}<br /> 
+                            <time class="e2-localize e2l-tiny" datetime="${rec.get("modifytime")}">${rec.get("modifytime")[:10]}</time>
+                        ## % endif
+                    </td>
+                    <td />
+                </tr>
+
+
+                <tr>
+                    <td>
+                        % if siblings_index > 0:
+                            <a href="${EMEN2WEBROOT}/record/${siblings_sort[siblings_index-1]}?sibling=${sibling}">&laquo;</a>
+                        % endif
+                    </td>
+                    <td>
+                        ## <a href="${EMEN2WEBROOT}/recorddef/${rec.rectype}">
+                        ${recdefs_d.get(rec.rectype, dict()).get('desc_short', rec.rectype)}
+                        ## </a>
+                        
+                        % if len(siblings) > 1:
+                            <br />
+                            ${siblings_index+1} of ${len(siblings_sort)}                        
+                        % endif
+                    </td>
+                    <td>
+                        % if siblings_index < len(siblings)-1:
+                            <a href="${EMEN2WEBROOT}/record/${siblings_sort[siblings_index+1]}?sibling=${sibling}">&raquo;</a>
+                        % endif
+                    </td>
+                </tr>
+            </table>
         </li>
         
         

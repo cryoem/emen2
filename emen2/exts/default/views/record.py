@@ -81,7 +81,7 @@ class Record(View):
 
         # Get RecordDefs
         recdef = self.db.recorddef.get(self.rec.rectype)
-        recdefs = self.db.recorddef.get(children_groups.keys())
+        recdefs = [recdef] + self.db.recorddef.get(children_groups.keys())
 
 
         # Pages -- a deprecated UI element. 
@@ -111,7 +111,7 @@ class Record(View):
             rendered = rendered,
             viewname = viewname,
             sibling = sibling,
-            siblings = sorted(siblings),
+            siblings = siblings,
             table = "",
             pages = pages
         )    
