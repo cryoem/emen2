@@ -153,18 +153,12 @@ class TarPipe(object):
 
     # ian: todo: stream in added gz files, and write compressed tar output. Basically repackaged a bunch of .gz's to a .tar.gz with non-gz's inside.
     def __init__(self, files={}):
-        self.pos = 0
         self.files = files
-
-        # StringIO.StringIO.__init__(self)
         self.cbuffer = cStringIO.StringIO()
-        # self.cbuffer = ''
         self.tarfile = tarfile.open(mode='w|', fileobj=self)
-
 
     def close(self):
         pass
-
 
     def _addnextfile(self):
         if not self.files:
@@ -173,33 +167,24 @@ class TarPipe(object):
         key = self.files.keys()[0]
         filename = self.files.pop(key)
 
-        self.pos = 0
-        self.cbuffer.seek(self.pos)
+        self.cbuffer.seek(0)
         self.cbuffer.truncate(0)
-
         self.tarfile.add(key, arcname=filename)
         print "Added %s / %s.. buffer size is %s. %s files left"%(key, filename, 0, len(self.files))
 
-        if len(self.files) == 0:
-            # print "Closing tarfile"
-            self.tarfile.close()
-
-        self.cbuffer.seek(self.pos)
-
+        self.cbuffer.seek(0)
 
     def write(self, data):
         self.cbuffer.write(data)
 
-
     def read(self, size=65536):
-        data = self.cbuffer.read(size) # [self.pos:self.pos+size]
+        data = self.cbuffer.read(size)
 
         if len(data) == 0:
             self._addnextfile()
-            data = self.cbuffer.read(size) #[self.pos:self.pos+size]
-
-        self.pos += len(data)
-        # print "set pos to %s"%self.pos
+            data = self.cbuffer.read(size)
+            if not data:
+                self.tarfile.close()
 
         return data
 
