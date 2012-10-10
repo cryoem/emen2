@@ -86,7 +86,7 @@ class Download(View):
                 # Found the file
                 if rename == 'bdo':
                     filename = "%s.%s"%(bdo.get('name', 'none').replace('bdo:', ''), filename)
-                elif rename == 'record'
+                elif rename == 'record':
                     filename = "%s.%s"%(bdo.get('record', 'none'), filename)
                 files[filepath] = filename
             
