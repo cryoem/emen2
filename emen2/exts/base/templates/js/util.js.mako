@@ -602,9 +602,8 @@ emen2.util.set_remove = function(i, l) {
             
             // Run any callbacks
             var cb = this.options.cbs[tab];
-            if (cb) {
-                cb(p);
-            }
+            if (cb) {cb(p)}
+            if (this.options.cb) {this.options.cb(p)}
 
             t.addClass(this.options.active);
             p.addClass(this.options.active);

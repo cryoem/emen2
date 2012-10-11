@@ -61,7 +61,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         $('#e2-edit', page).MultiEditControl({
             show: true,
             controls: page,
-        });
+        })
     });
 
     // Permissions editor
@@ -73,7 +73,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             controls: page,
             summary: true,
             help: true
-        });
+        })
     });
     
     // Attachments editor
@@ -85,7 +85,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             summary: true,
             help: true,
             controls: $('#e2-attachments', page)
-        });
+        })
     });
     
     // New record editor
@@ -95,7 +95,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             controls: page,
             help: true,
             summary: true
-        });
+        })
     });        
 
     // Relationship editor
@@ -108,7 +108,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             summary: true,
             help: true,
             controls: page
-        });
+        })
     });
 
     // Comments editor
@@ -119,7 +119,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             controls: page,
             historycount: "#e2l-editbar2-commentcount",
             commentcount: '#e2l-editbar2-historycount'
-        });
+        })
     });
 
     // Simple handler for browsing siblings...
