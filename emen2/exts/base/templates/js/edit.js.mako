@@ -929,7 +929,7 @@
     // True-False
     $.widget("emen2edit.boolean", $.emen2.EditBase, {
         build_item: function(val, index) {
-            var editw = $('<select name="'+this.cachepd().name+'"><option selected="selected"></option><option>True</option><option>False</option></select>');
+            var editw = $('<select name="'+this.options.prefix+this.cachepd().name+'"><option selected="selected"></option><option>True</option><option>False</option></select>');
             if (this.options.required && !index) {editw.attr('required',true)}
             if (val === true) {
                 editw.val("True");
