@@ -145,16 +145,9 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     <ul id="e2-tab-editbar2" class="e2l-cf home-projectlist" role="tablist" data-tabgroup="record">
 
         ## Title
-        <li>
+        <li role="tab">
             <h2 class="e2l-gradient">
-                <a href="${EMEN2WEBROOT}/record/${rec.name}/">
-                    ## Record: 
-                    ## ${recnames.get(rec.name, rec.name)}
-                    Record #${rec.name}
-                    ## % if tab == "main":
-                    ##    <span class="e2l-float-right" style="padding-right:5px;">&raquo;</span>
-                    ## % endif
-                </a>
+                <a href="${EMEN2WEBROOT}/record/${rec.name}/">Record #${rec.name}</a>
             </h2>
         </li>
 
@@ -165,18 +158,18 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
         ## Edit Record
         % if rec.writable():
-            <li data-tab="edit" ${istab(tab, "edit")}><a href="#edit">${buttons.image('edit.png')} Edit</a></li>
+            <li role="tab" data-tab="edit" ${istab(tab, "edit")}><a href="#edit">${buttons.image('edit.png')} Edit</a></li>
         % endif
 
 
         ## New Record
         % if create:
-            <li data-tab="new" ${istab(tab, "new")}><a href="#new">${buttons.image('new.png')}New</a></li>
+            <li role="tab" data-tab="new" ${istab(tab, "new")}><a href="#new">${buttons.image('new.png')}New</a></li>
         % endif
 
 
         ## Permissions Editor
-        <li data-tab="permissions"><a href="#permissions">${buttons.image('permissions.png')} Permissions</a></li>
+        <li role="tab" data-tab="permissions"><a href="#permissions">${buttons.image('permissions.png')} Permissions</a></li>
 
 
         ## Attachments Editor
@@ -190,7 +183,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             elif "bdo:" in unicode(v):
                 attachments.extend([v])
         %>        
-        <li data-tab="attachments">
+        <li role="tab" data-tab="attachments">
             <a href="#attachments">
                 ${buttons.image('attachments.png')}
                 <span id="attachment_count">
@@ -202,11 +195,11 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         </li>
 
         ## Relationship Editor
-        <li data-tab="relationships"><a href="#relationships">${buttons.image('relationships.png')} Relationships</a></li>
+        <li role="tab" data-tab="relationships"><a href="#relationships">${buttons.image('relationships.png')} Relationships</a></li>
 
 
         ## View Selector
-        <li data-tab="views">
+        <li role="tab" data-tab="views">
             <a href="#views">${buttons.image('table.png')} Views</a>
         </li>
 
@@ -219,26 +212,26 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         cu = rec.get('creator')
         mu = rec.get('modifyuser')
         %>
-        <li data-tab="comments">
+        <li role="tab" data-tab="comments">
             <a href="#comments">
                 <span id="e2l-editbar2-commentcount">
-                    <img id="e2l-editbar2-comments-img" src="${EMEN2WEBROOT}/static/images/comment.closed.png" alt="Comments" />
+                    <img src="${EMEN2WEBROOT}/static/images/comment.closed.png" alt="Comments" />
                     ${len(comments)} Comments
                 </span>
             </a>
         </li>
         
-        <li data-tab="comments">
+        <li role="tab" data-tab="comments">
             <a href="#comments">
                 <span id="e2l-editbar2-historycount">
-                    <img id="e2l-editbar2-comments-img" src="${EMEN2WEBROOT}/static/images/history.png" alt="Edits" />
+                    <img src="${EMEN2WEBROOT}/static/images/history.png" alt="Edits" />
                     ${historycount} Edits
                 </span>            
             </a>
         </li>
         
         
-        <li style="text-align:center;margin-top:10px">
+        <li role="tab" style="text-align:center;margin-top:10px">
             ## Yes, it's wrong to use a table for layout -- 
             ##  but easiest way to have this kind of horizontal flow.
             <% 
@@ -250,7 +243,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             %>
             <table>
                 <tr>
-                    <td />
+                    <td></td>
                     <td>
                     
                         ## C: ${users_d.get(cu, dict()).get('displayname', cu)}<br /> 
@@ -261,7 +254,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                             <time class="e2-localize e2l-tiny" datetime="${rec.get("modifytime")}">${rec.get("modifytime")[:10]}</time>
                         ## % endif
                     </td>
-                    <td />
+                    <td></td>
                 </tr>
 
 
@@ -292,7 +285,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         
         
         ## Children tabs
-        <li style="margin-top:50px">
+        <li role="tab" style="margin-top:50px">
             <h2 class="e2l-cf e2l-gradient">
                 <a href="${EMEN2WEBROOT}/record/${rec.name}/children/">Children</a>
             </h2>
@@ -300,11 +293,11 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
         % if not children_groups:
             ## <li data-tab="new"><a href="#new">No children</a></li>
-            <li><a href="">No children</a></li>
+            <li role="tab"><a href="">No children</a></li>
         % endif
 
         % for k,v in children_groups.items():
-            <li ${istab(tab, "children-%s"%k)}>
+            <li role="tab" ${istab(tab, "children-%s"%k)}>
                 <a href="${EMEN2WEBROOT}/record/${rec.name}/children/${k}/">${recdefs_d.get(k, dict()).get('desc_short', k)}</a>
                 <span class="e2l-shadow home-count">${len(v)}</span>
             </li>

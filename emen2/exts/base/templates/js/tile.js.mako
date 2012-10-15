@@ -373,10 +373,10 @@
     //                     
     //                                             
     //         // Attach everything to the table..
-    //         var colorcontrols = $('<td />');
+    //         var colorcontrols = $('<td></td>');
     //         colorcontrols.append(pen, hide, colorpicker);
     // 
-    //         var actions = $('<td />');
+    //         var actions = $('<td></td>');
     //         actions.append(emen2.template.spinner(), save1, remove);                    
     // 
     //         var boxheader = $('<tr data-label="'+label+'" />');

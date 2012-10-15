@@ -26,8 +26,8 @@ import uuid
     <div class="e2-query" id="${tname}">
         
         % if controls:
-            <div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tab">
-                <ul class="e2-query-header e2l-cf" role="tablist"></ul>
+            <div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tablist">
+                <ul class="e2-query-header e2l-cf" role="tab"></ul>
             </div>
 
             <div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tabpanel"></div>
@@ -36,13 +36,15 @@ import uuid
         ## This form is used for editing table cells
         <form class="e2-query-tableform" method="post" action="${ctxt.reverse('Records/edit')}">
             ## <input type="hidden" name="_redirect" value="" />
-            <table class="e2-query-table e2l-shaded" cellspacing="0" cellpadding="0"> 
+            <table class="e2-query-table e2l-shaded" > 
 
                 % if header:
                     <thead>
-                        % for v in q['table']['headers'].get(None, []):
-                            <th><div data-name="${v[2]}" data-args="${v[3]}">${v[0]}</div></th>
-                        % endfor
+                        <tr>
+                            % for v in q['table']['headers'].get(None, []):
+                                <th><div data-name="${v[2]}" data-args="${v[3]}">${v[0]}</div></th>
+                            % endfor
+                        </tr>
                     </thead>
                 % endif
 

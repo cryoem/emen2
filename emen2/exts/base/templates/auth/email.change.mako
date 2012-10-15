@@ -13,7 +13,7 @@
         % endif
     
         <tr><td>New Email:</td><td><input type="text" name="email" value="${email or ''}" /></td>
-        <tr><td/><td><input type="submit" value="Change Email" name="save"></td></tr>
+        <tr><td></td><td><input type="submit" value="Change Email" name="save"></td></tr>
 
     </table>
 

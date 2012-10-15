@@ -38,7 +38,7 @@ users_sorted = sorted(users, key=sortkey, reverse=reverse)
 %>
 
 <form name="form_admin_userlist">
-    <table cellpadding="0" cellspacing="0" class="e2l-shaded" width="100%" >
+    <table  class="e2l-shaded" width="100%" >
         <thead>
             <tr>
                 <th><a href="${EMEN2WEBROOT}/users/admin/?sortby=disabled">Active</a></th>

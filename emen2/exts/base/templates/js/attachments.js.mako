@@ -77,7 +77,7 @@
             
             //style="table-layout:fixed" 
             var table = $(' \
-                <table cellspacing="0" cellpadding="0" class="e2l-shaded e2-upload-table"> \
+                <table class="e2l-shaded e2-upload-table"> \
                     <thead> \
                         <tr> \
                             <th>Filename</th> \

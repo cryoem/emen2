@@ -19,7 +19,7 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
     users_d = dict((i.name, i) for i in users)    
     %>
 
-    <table class="e2l-shaded" cellpadding="0" cellspacing="0">
+    <table class="e2l-shaded">
         <thead>
             <tr>
                 <th><input type="checkbox" checked="checked" class="e2-download-allbids" value="" /></th>

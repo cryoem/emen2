@@ -11,7 +11,7 @@
 
 
 <form method="post" action="">
-    <table cellpadding="0" cellspacing="0">
+    <table>
     % if not secret:
         <tr>
             <td>Email:</td>
@@ -28,7 +28,7 @@
     % endif
 
         <tr>
-            <td />
+            <td></td>
             <td><input type="submit" value="Submit" /></td>
         </tr>
 

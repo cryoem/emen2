@@ -84,7 +84,7 @@ ul {
     padding-top: 10px;
 }
 
-#nav > ul,
+#navigation > ul,
 #precontent > .e2-tree-main,
 #precontent > .e2-alert-main,
 #precontent > .e2-tab-main,
@@ -147,24 +147,24 @@ ul {
 
 /***** Nav bar *****/
 
-#nav {
+#navigation {
     background:white;
     margin:0px;
     border-bottom:solid 2px #ccc;
 }
-#nav > ul a {
+#navigation > ul a {
     padding:8px;
 }
-#nav > ul li ul {
+#navigation > ul li ul {
     padding:0px;
 }
-#nav > ul li:last-child ul {
+#navigation > ul li:last-child ul {
     right:0px;
 }
-#nav #logo {
+#navigation #logo {
     height:36px;
 }
-#nav input {
+#navigation input {
     margin-top:4px;
     color: #666;
     font-weight: lighter;

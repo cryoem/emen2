@@ -1,7 +1,7 @@
 <%inherit file="/record/record" />
 
 <%def name="emailtable(emailusers)">
-    <table class="e2l-kv e2l-shaded" cellpadding="0" cellspacing="0">
+    <table class="e2l-kv e2l-shaded" >
         <thead>
             <tr>
                 <th>Name</th>

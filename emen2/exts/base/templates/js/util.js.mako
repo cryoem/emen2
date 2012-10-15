@@ -9,6 +9,9 @@ window.log = function(){
   }
 };
 
+// Plot...
+var d3 = null;
+
 // Time localize format
 $.localize.format = 'mm/dd/yyyy';
 

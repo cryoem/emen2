@@ -26,7 +26,7 @@ import collections
 
 <div class="home-sidebar">
 
-    <ul class="e2l-cf home-projectlist" role="tablist" data-tabgroup="record">
+    <ul class="e2l-cf home-projectlist">
         <li><h2>Lab Groups</h2></li>
         % for group in groups:
             <li><a href="#groups-${group.name}">${recnames.get(group.name,group.name)}</a></li>
@@ -34,7 +34,7 @@ import collections
     </ul>
 
 	% if ADMIN:
-    	<a class="e2-button e2-record-new" href="${EMEN2WEBROOT}/record/0/new/group/" class="e2-record-new" data-parent="0" data-rectype="group">${buttons.image('new.png')} New group</a>
+    	<a class="e2-button e2-record-new" href="${EMEN2WEBROOT}/record/0/new/group/" data-parent="0" data-rectype="group">${buttons.image('new.png')} New group</a>
 	% endif
     
 </div>

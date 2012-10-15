@@ -391,9 +391,6 @@
                         Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/NewRecord">EMEN2 wiki</a>. \
                     </p></div>');
                 this.element.append(help);
-                // var helper = $('<span class="e2-button e2l-float-right">Help</span>');
-                // helper.click(function(e){$('[role=help]', self.element).toggle()})
-                // $('h2', this.element).append(helper);
             }            
             if (this.options.summary) {
                 var summary = $('<p></p>');

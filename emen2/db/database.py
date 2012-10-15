@@ -112,10 +112,6 @@ set_lg_max 8388608
 set_lg_bsize 2097152
 """
 
-# Global DBEnv
-
-DBENV = None
-
 ##### Utility methods #####
 
 def clock(times, key=0, t=0, limit=180):
@@ -396,7 +392,7 @@ class EMEN2DBEnv(object):
     ENVOPENFLAGS |= bsddb3.db.DB_THREAD
         
 
-    def __init__(self, path=None, create=None, snapshot=False):
+    def __init__(self, path=None, create=None, snapshot=False, dbenv=None):
         """
         :keyword path: Directory containing environment.
         :keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
@@ -437,10 +433,10 @@ class EMEN2DBEnv(object):
         # Open the Database Environment
         emen2.db.log.info("Opening Database Environment: %s"%self.path)
 
-        global DBENV
-        if not DBENV:
-            DBENV = bsddb3.db.DBEnv()
-            dbenv = DBENV
+        if dbenv:
+            self.dbenv = dbenv
+        else:
+            dbenv = bsddb3.db.DBEnv()
 
             if snapshot or self.snapshot:
                 dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
@@ -456,16 +452,10 @@ class EMEN2DBEnv(object):
             dbenv.set_lk_max_lockers(300000)
             dbenv.set_lk_max_objects(300000)
 
-            self.dbenv = DBENV
+            self.dbenv = dbenv
 
-            # repmgr_host = emen2.db.config.get('params.REPMGR_HOST')
-            # repmgr_port = int(emen2.db.config.get('params.REPMGR_PORT', 0))
-            # self.start_replication(repmgr_host, repmgr_port)
-        
             # Open the DBEnv
             self.open()
-        else:
-            self.dbenv = DBENV
 
 
 
@@ -1051,7 +1041,7 @@ class DB(object):
         :return: HTML table of params
         """
         if markup:
-            dt = ["""<table class="e2l-kv e2l-shaded" cellspacing="0" cellpadding="0">
+            dt = ["""<table class="e2l-kv e2l-shaded">
                     <thead><th>Parameter</th><th>Value</th></thead>
                     <tbody>"""]
             for count, i in enumerate(params):

@@ -8,7 +8,7 @@
         },
         
         _create: function() {
-            if (d3 == null) {
+            if (!d3) {
                 this.element.append("<div>Plotting not supported on this browser.</div>");
                 return
             }
@@ -399,7 +399,7 @@
             controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
             controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:150px" type="text" name="key" /></div>')
             var total = 0;
-            var table = $('<table cellspacing="0" cellpadding="0"><tbody></tbody></table>');
+            var table = $('<table><tbody></tbody></table>');
             var tb = $('tbody', table);
             this.keys.map(function(key, i) {
                 var row = $('<tr></tr>');
@@ -415,7 +415,7 @@
                 row.append('<td><span class="e2-plot-color" style="background:'+self.scale(i)+'">&nbsp;</span></td>');
                 tb.append(row);
             });
-            tb.append('<tr class="e2-plot-totals"><td /><td>Total: </td><td>'+total+'</td><td /></tr>');
+            tb.append('<tr class="e2-plot-totals"><td></td><td>Total: </td><td>'+total+'</td><td></td></tr>');
             controls.append(table);
             this.controls.append(controls);
             this.controls = controls;
@@ -437,7 +437,7 @@
         },
 
         _create: function() {
-            if (d3 == null) {
+            if (!d3) {
                 this.element.append("<div>Plotting not supported on this browser.</div>");
                 return
             }
@@ -850,7 +850,7 @@
     /***** Histogram Plot Control *****/
     
     $.widget('emen2.PlotHistogram', $.emen2.PlotBase, {        
-        setup: function() {
+        setup: function() {    
             // Axis options
             var q = this.options.q;
             var x = q.x;

@@ -1,6 +1,6 @@
 <%namespace name="buttons" file="/buttons"  />
 
-<div id="nav" role="nav">
+<div id="nav" role="navigation">
     <ul class="e2l-menu e2l-cf">
 
         <li>
@@ -24,7 +24,7 @@
                 <a href="${EMEN2WEBROOT}/query/">Query ${buttons.caret()}</a>
                 <ul>
                     <li><a href="${EMEN2WEBROOT}/query">All records</a></li>
-                    <li class="e2l-menu-divider"</li>
+                    <li class="e2l-menu-divider"></li>
                     <li><a href="${EMEN2WEBROOT}/query/rectype.is.project/">Projects</a></li>
                     <li><a href="${EMEN2WEBROOT}/query/rectype.is.grid_imaging/">Imaging sessions</a></li>
                     <li><a href="${EMEN2WEBROOT}/query/rectype.is.image_capture*/">Images</a></li>

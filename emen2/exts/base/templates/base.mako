@@ -17,8 +17,6 @@
 
     <%block name="meta">
         <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-        <meta http-equiv="Content-Language" content="en-us" />
-        <meta http-equiv="X-UA-Compatible" content="IE=Edge">
     </%block>
 
     <title>
@@ -50,10 +48,6 @@
         <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/jquery/jquery.timeago.js"></script>
         <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/jquery/jquery.localize.js"></script>
 
-        ## D3 visualization library
-        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/d3/d3.js" type="text/javascript"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/d3/d3.time.js" type="text/javascript"></script>
-
         ## Base EMEN2 widgets
         <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/util.js"></script>
         <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/edit.js"></script>
@@ -63,7 +57,18 @@
         <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/relationships.js"></script>
         <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/query.js"></script>
         <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/tile.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/plot.js"></script>      
+        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/plot.js"></script>  
+
+        ## D3 visualization library
+        ## <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/d3/d3.js"></script>
+        ## <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/d3/d3.time.js"></script>
+        
+        ## Internet Explorer...
+        ## <script type="text/javascript" src="https://getfirebug.com/firebug-lite.js"></script>
+        <!--[if lt IE 9]>
+            <script src="http://ie7-js.googlecode.com/svn/version/2.1(beta4)/IE9.js"></script>
+        <![endif]-->            
+
     </%block>
 
     <script type="text/javascript">    

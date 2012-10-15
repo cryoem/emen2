@@ -42,7 +42,7 @@
     
     ## The top level container
     % if showroot:
-        <div class="e2-tree e2-tree-${mode} e2l-cf" data-root="${root}" data-mode="${mode}" data-keytype="${keytype}" id="${id}">
+        <div class="e2-tree e2-tree-${mode} e2l-cf" data-root="${root}" data-mode="${mode}" data-keytype="${keytype}">
             ${inner(None, tree.get(None, [root]), depth=1)}
         </div>
     % else:

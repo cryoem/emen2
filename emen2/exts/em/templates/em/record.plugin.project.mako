@@ -48,7 +48,7 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
 
 <h1>In this project...</h1>
 
-<table class="e2l-shaded" cellpadding="0" cellspacing="0">
+<table class="e2l-shaded" >
     
     ## Ugly; make the comparison key a function
     % for rectype,items in sorted(children_grouped.items(), key=lambda x:recorddefs_d.get(x[0], dict()).get('desc_short')):

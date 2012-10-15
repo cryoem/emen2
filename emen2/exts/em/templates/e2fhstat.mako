@@ -22,7 +22,7 @@
         <td><input type="file" name="pdb" /></td>
     </tr>
     <tr>
-        <td />
+        <td></td>
         <td><input type="submit" value="Submit" /></td>
     </tr>
 </table>
