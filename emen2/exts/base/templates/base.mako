@@ -60,8 +60,8 @@
         <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/plot.js"></script>  
 
         ## D3 visualization library
-        ## <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/d3/d3.js"></script>
-        ## <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/d3/d3.time.js"></script>
+        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/d3/d3.js"></script>
+        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/d3/d3.time.js"></script>
         
         ## Internet Explorer...
         ## <script type="text/javascript" src="https://getfirebug.com/firebug-lite.js"></script>

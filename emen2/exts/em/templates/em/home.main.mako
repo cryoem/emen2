@@ -20,16 +20,14 @@ import jsonrpc.jsonutil
 </%block>
 
 
-<h1>
-    ${USER.displayname}
-    <a class="e2l-hact e2-button" href="${EMEN2WEBROOT}/user/${USER.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a>
-</h1>
-
-<div class="e2l-cf">
-    ${user_util.profile(user=USER, userrec=USER.userrec, edit=False)}
-</div>
-
-<br /><br />
+## <h1>
+##    ${USER.displayname}
+##    <a class="e2l-hact e2-button" href="${EMEN2WEBROOT}/user/${USER.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a>
+## </h1>
+## <div class="e2l-cf">
+##    ${user_util.profile(user=USER, userrec=USER.userrec, edit=False)}
+## </div>
+## <br /><br />
 
 
 
@@ -45,7 +43,7 @@ import jsonrpc.jsonutil
         % endif
     </h1>
     <div class="e2l-cf">
-        ## ${render_banner}
+        ${render_banner}
     </div>
     <br /><br />
 % endif
