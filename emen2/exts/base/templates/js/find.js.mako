@@ -95,7 +95,7 @@
                 body = 'Created by '+user+' on '+$.localize(new Date(item.creationtime));
             } else {
                 title = $.trim(item.desc_short) || item.name;
-                body = ''
+                body = '<em>'+item.name+'</em>';
             }
             
             // Create the link
@@ -204,7 +204,16 @@
             modal: true,
             vartype: null,
             minimum: 2,
-            selected: function(self, value){self.element.val(value)}
+            target: null,
+            selected: function(self, value){self.selected(self, value)}
+        },
+        
+        selected: function(self, value) {
+            // Hacked together. Clean this up later.
+            if (this.options.target) {
+                $('#'+this.options.target).val(value);
+            }            
+            this.element.val(value);
         },
                 
         _create: function() {
@@ -216,7 +225,9 @@
             this.options.modal = emen2.util.checkopt(this, 'modal');
             this.options.minimum = emen2.util.checkopt(this, 'minimum');
             this.options.value = emen2.util.checkopt(this, 'value');
-                        
+            this.options.target = emen2.util.checkopt(this, 'target');
+            
+
             this.element.click(function(e){self.show(e)});
             if (this.options.show) {
                 this.show();

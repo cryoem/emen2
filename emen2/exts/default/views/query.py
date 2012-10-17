@@ -1,6 +1,7 @@
 # $Id$
 import os
 import operator
+import datetime
 import copy
 import urllib
 
@@ -125,11 +126,16 @@ class Query(View):
         self.ctxt['q'] = self.q
 
 
-    @View.add_matcher(r'^/plot/(?P<path>.*)/edit/$', name='edit')
-    def edit(self, path=None, q=None, c=None, **kwargs):
+    @View.add_matcher(r'^/plot/$', name='plot')
+    @View.add_matcher(r'^/plot/(?P<path>.*)/$', name='plot_path')
+    def plot(self, path=None, q=None, c=None, x=None, y=None, z=None, **kwargs):
         self.initq(path, q, c)
+        self.q['x'] = x
+        self.q['y'] = y
+        self.q['z'] = z
         self.template = '/pages/query.plot'
         self.q = self.db.plot(**self.q)
+        # print "Plot results:", self.q
         self.ctxt['q'] = self.q
 
 

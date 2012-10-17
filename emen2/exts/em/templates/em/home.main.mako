@@ -39,7 +39,7 @@ import jsonrpc.jsonutil
     <h1>
         Welcome to ${EMEN2DBNAME}
         % if banner.writable():
-            <a class="e2l-hact e2-button e2-record e2-record-edit" data-name="${banner.name}" href="${EMEN2WEBROOT}/record/${banner.name}#edit">${buttons.image('edit.png')} Edit banner</a>
+            <a class="e2l-hact e2-button e2-record e2-record-edit" data-name="${banner.name}" href="${EMEN2WEBROOT}/record/${banner.name}#edit">${buttons.image('edit.png')} Edit</a>
         % endif
     </h1>
     <div class="e2l-cf">

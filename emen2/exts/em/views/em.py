@@ -30,7 +30,7 @@ class EMEquipment(View):
 class EMHome(View):
 
     @View.add_matcher(r'^/$', view='Root', name='main')
-    @View.add_matcher(r'^/em/home/$')
+    @View.add_matcher(r'^/em/home/$', r'^/db/home/$')
     def main(self, hideinactive=False, sortkey='name', reverse=False):
         self.title = 'Home'
         self.template = '/em/home.main'

@@ -32,7 +32,7 @@
 {"name": "email", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Email", "uri":"http://ncmidb.bcm.edu"}
 
 // Record
-{"name": "recid", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "record", "desc_short": "Record Name", "desc_long": "Record ID integer. This has been deprecated in favor of \"name.\"", "uri":"http://ncmidb.bcm.edu"}
+{"name": "recid", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "record", "desc_short": "(Deprecated) Record name", "desc_long": "Record ID integer. This has been deprecated in favor of \"name.\"", "uri":"http://ncmidb.bcm.edu"}
 {"name": "rectype", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol", "desc_long": "The Record's Protocol; this is may also be referred to as the \"rectype\" or \"recorddef.\"", "uri":"http://ncmidb.bcm.edu"}
 {"name": "history", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "history", "desc_short": "History", "desc_long": "A log of all changes made to a Record.", "uri":"http://ncmidb.bcm.edu"}
 {"name": "groups", "keytype": "paramdef","parents": ["core"], "vartype": "group", "iter":true, "desc_short": "Groups", "desc_long": "Group permissions to apply to this item", "uri":"http://ncmidb.bcm.edu"}

@@ -1,6 +1,6 @@
 <%namespace name="buttons" file="/buttons"  />
 
-<div id="nav" role="navigation">
+<div id="navigation" role="navigation">
     <ul class="e2l-menu e2l-cf">
 
         <li>

@@ -93,6 +93,8 @@
                 
         _create: function() {
 
+            this.count = 0; // temporary fix
+
             this.comparators = {
                 "is": "is",
                 "not": "is not",
@@ -141,27 +143,30 @@
             this.built = 1;
             this.container = $('<div class="e2l-cf" />');
             var m = $(' \
-            <h2>Record query</h2> \
+            <h2>Query constraints</h2> \
             <ul class="e2l-nonlist e2-query-base e2-query-constraints"> \
                 <li class="e2-query-constraint"> \
                     <strong class="e2-query-label">Protocol:</strong> \
                     <input type="hidden" name="param" value="rectype" /> \
                     <input type="hidden" name="cmp" value="is" /> \
-                    <input type="text" name="value" class="e2-find-recorddef" placeholder="Select protocol"/> \
+                    <input type="text" name="value" id="e2-query-find-protocol" placeholder="Select protocol"/> \
+                    <img class="e2-query-find" data-keytype="recorddef" data-target="e2-query-find-protocol" src="'+EMEN2WEBROOT+'/static/images/query.png" /> \
                     <input type="checkbox" name="recurse_v" id="e2-query-id-rectype"/><label for="e2-query-id-rectype">Include child protocols</label> \
-                </li> \
-                <li class="e2-query-constraint"> \
-                    <strong class="e2-query-label">Child of:</strong> \
-                    <input type="hidden" name="param" value="children" /> \
-                    <input type="hidden" name="cmp" value="name" /> \
-                    <input type="text" name="value" class="e2-find-record" placeholder="Select record"/> \
-                    <input type="checkbox" name="recurse_v" id="e2-query-paramid-children" /><label for="e2-query-paramid-children">Recursive</label> \
                 </li> \
                 <li class="e2-query-constraint"> \
                     <strong class="e2-query-label">Creator:</strong> \
                     <input type="hidden" name="param" value="creator" /> \
                     <input type="hidden" name="cmp" value="is" /> \
-                    <input type="text" name="value" class="e2-find-user" placeholder="Select user" /> \
+                    <input type="text" name="value" id="e2-query-find-user" placeholder="Select user" /> \
+                    <img class="e2-query-find" data-keytype="user" data-target="e2-query-find-user" src="'+EMEN2WEBROOT+'/static/images/query.png" /> \
+                </li> \
+                <li class="e2-query-constraint"> \
+                    <strong class="e2-query-label">Child of:</strong> \
+                    <input type="hidden" name="param" value="children" /> \
+                    <input type="hidden" name="cmp" value="name" /> \
+                    <input type="text" name="value" id="e2-query-find-record" placeholder="Select record"/> \
+                    <img class="e2-query-tree" data-keytype="record" data-target="e2-query-find-record" src="'+EMEN2WEBROOT+'/static/images/query.png" /> \
+                    <input type="checkbox" name="recurse_v" id="e2-query-paramid-children" /><label for="e2-query-paramid-children">Recursive</label> \
                 </li> \
                 <li> \
                     <strong class="e2-query-label">Created:</strong> \
@@ -202,14 +207,23 @@
             this.container.append(m);
             
             // ian: todo
-            $('.e2-find-user', this.container).FindControl({keytype: 'user'});
-            $('.e2-find-group', this.container).FindControl({keytype: 'group'});
-            $('.e2-find-recorddef', this.container).FindControl({keytype: 'recorddef'});
-            $('.e2-find-paramdef', this.container).FindControl({keytype: 'paramdef'});
+            $('.e2-query-find', this.container).FindControl({keytype: 'user'});
+            $('.e2-query-tree', this.container).TreeBrowseControl({
+                root: "0",
+                keytype: "record",
+                selected: function(ui, name) {
+                    // Hacked: fix
+                    //console.log("added:", ui, name)
+                    $("#e2-query-find-record").val(name);
+                }
+            })
+            // $('.e2-find-group', this.container).FindControl({keytype: 'group'});
+            // $('.e2-find-recorddef', this.container).FindControl({keytype: 'recorddef'});
+            // $('.e2-find-paramdef', this.container).FindControl({keytype: 'paramdef'});
 
-            var save = $('<div class="e2l-controls"> \
+            var save = $('<ul class="e2l-controls"><li> \
                 '+emen2.template.spinner()+' \
-                <input type="button" value="Query" name="save" /></div>');                
+                <input type="button" value="Query" name="save" /></li>');
             this.container.append(save);
             $('input[name=save]', this.container).bind("click", function(e){self.query()});            
 
@@ -310,20 +324,21 @@
                 self.event_clear(e);
             });
             controls.append(addimg, removeimg);
+
+            this.count += 1;
             
             var newconstraint = $('<li class="e2-query-constraint" />')
                 .append(controls)
-                .append(' <input type="text" name="param" value="'+param+'" placeholder="Select parameter" /> ')
+                .append(' <input type="text" name="param" value="'+param+'" placeholder="Select parameter" id="e2-query-find-'+this.count+'" /> ')
+                .append(' <img class="e2-query-find" data-keytype="paramdef" data-target="e2-query-find-'+this.count+'" src="'+EMEN2WEBROOT+'/static/images/query.png" /> ')
                 .append(cmpi)
                 .append('<input type="text" name="value" size="12" value="'+value+'" placeholder="value" />');
                 // .append('<input name="recurse_p" type="checkbox" /><label>Child Parameters');
 
             if (recurse) {$('input[name=recurse_p]', newconstraint).attr('checked', 'checked')}
-
-
             // controls.append(addimg, removeimg);
             // newconstraint.append(controls);
-            $('input[name=param]', newconstraint).FindControl({keytype: 'paramdef'});
+            $('.e2-query-find', newconstraint).FindControl({keytype: 'paramdef'});
             $('.e2-query-param', this.container).append(newconstraint);
         },
         
@@ -543,11 +558,11 @@
                 });    
             });
             
-            tab.TabControl('setcb', 'plot', function(page) {
-                page.PlotControl({
-                    q: self.options.q
-                });    
-            });            
+            // tab.TabControl('setcb', 'plot', function(page) {
+            //     page.PlotControl({
+            //         q: self.options.q
+            //     });    
+            // });            
             
             // tab.TabControl('setcb', 'edit', function(page) {
             //     var form = $('form.e2-query-tableform');
@@ -759,7 +774,7 @@
 
             // Empty results
             if (names.length == 0) {
-                var row = '<tr><td>No Records found for this query.</td</tr>';
+                var row = '<tr><td>No records found for this query.</td</tr>';
                 rows.push(row);
             }
 

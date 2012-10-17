@@ -46,18 +46,20 @@
             this.element.append(plotelem);        
                 
             // Pass along the parent options
-            var opts = {};
-            opts['controls'] = this;
-            opts['recs'] = recs;
-            opts['x'] = this.options.q['x'];
-            opts['y'] = this.options.q['y'];
-            opts['z'] = this.options.q['z'];
-            var bin = this.options.q['x']['bin'];
+            // var opts = {};
+            // opts['controls'] = this;
+            // opts['recs'] = recs;
+            // opts['x'] = this.options.q['x'];
+            // opts['y'] = this.options.q['y'];
+            // opts['z'] = this.options.q['z'];
+            
+            this.options.q['recs'] = recs;
+            var bin = this.options.q['x']['bin'];          
             if (bin) {
-                plotelem.PlotHistogram(opts);
+                plotelem.PlotHistogram(this.options);
                 this.plot = plotelem.data('PlotHistogram');                    
             } else {
-                plotelem.PlotScatter(opts);
+                plotelem.PlotScatter(this.options);
                 this.plot = plotelem.data('PlotScatter');                
             }
         },
@@ -94,10 +96,15 @@
                 this.build(recs);
             }
         },
-
-        query: function() {
+        
+        query: function(q) {
             var self = this;
             this.built = 0;
+
+            // Update constraints?
+            if (q) {
+                self.options.q['c'] = q['c'];
+            }
 
             // Copy the query
             var newq = {};
@@ -217,7 +224,7 @@
             var controls = $('<li></li>');
 
             controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
-            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:150px" type="text" name="key" /></div>')
+            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+this.options.name+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+this.options.name+'" src="'+EMEN2WEBROOT+'/static/images/query.png" /></div>')
             controls.append('<div><span class="e2-plot-label">Range:</span><input class="e2-plot-bounds" type="text" name="min" /> - <input class="e2-plot-bounds" type="text" name="max" /></div>');
             
             if (this.options.binnable) {
@@ -229,6 +236,7 @@
             this.controls = controls;
             $('input[name=key]', this.controls).val(this.options.key);
             $('select[name=bin]', this.controls).val(this.options.bin);
+            $('.e2-query-find', this.controls).FindControl({});
             this.update_controls();
         },
         
@@ -397,7 +405,7 @@
             var self = this;
             var controls = $('<li></li>');
             controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
-            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:150px" type="text" name="key" /></div>')
+            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+this.options.name+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+this.options.name+'" src="'+EMEN2WEBROOT+'/static/images/query.png" /></div>')
             var total = 0;
             var table = $('<table><tbody></tbody></table>');
             var tb = $('tbody', table);
@@ -420,7 +428,8 @@
             this.controls.append(controls);
             this.controls = controls;
             $('input[name=key]', this.controls).val(this.options.key);
-            $('select[name=bin]', this.controls).val(this.options.bin);            
+            $('select[name=bin]', this.controls).val(this.options.bin); 
+            $('.e2-query-find', this.controls).FindControl({});          
             this.update_controls();
         }
     });
@@ -433,7 +442,8 @@
             padding: [20,20,50,50],
             width: 600,
             height: 600,
-            pan: true
+            pan: true,
+            q: null
         },
 
         _create: function() {
@@ -451,6 +461,7 @@
             this.width = this.options.width - (this.options.padding[1] + this.options.padding[3]);
 
             // Setup axes
+            console.log("options:", this.options);
             var q = this.options.q
             if (q.x == null) {q.x = {}};
             if (q.y == null) {q.y = {}};

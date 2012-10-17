@@ -307,12 +307,12 @@ emen2.util = {};
 // this.element.attr('data-'+key)
 // This includes a check so that record ID = 0 works
 emen2.util.checkopt = function(self, key, dfault) {
+    var specified = self.element.attr('data-'+key)
     var value = self.options[key];
     if (value == 0) {
-        //  && key == 'name') {
         return value
     }
-    value = value || self.element.attr('data-'+key) || dfault;
+    value = specified || value || dfault;
     return value
 };
 

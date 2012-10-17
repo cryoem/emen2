@@ -10,7 +10,10 @@ import emen2.util.listops
 # below this number, use the actual items instead of indexes.
 INDEXMIN = 1000 
 # max number of items that can be searched directly
-ITEMSMAX = 500000 
+ITEMSMAX = 1000000 
+
+# Max query time
+MAXTIME = 180.0
 
 # Synonyms
 synonyms = {
@@ -277,7 +280,7 @@ class MacroConstraint(Constraint):
 class Query(object):
     def __init__(self, constraints, mode='AND', subset=None, ctx=None, txn=None, btree=None):
         self.time = 0.0
-        self.maxtime = 60.0
+        self.maxtime = MAXTIME
         self.starttime = time.time()
         
         # Subset

@@ -116,20 +116,6 @@ class macro_name(Macro):
         return "Record Name"
 
 
-# legacy..
-@vtm.register_macro('recid')
-class macro_recid(Macro):
-    """name macro"""
-    keyformat = 'd'
-
-    def process(self, macro, params, rec):
-        return rec.name
-
-
-    def macro_name(self, macro, params):
-        return "Record Name"
-
-
 
 @vtm.register_macro('parents')
 class macro_parents(Macro):

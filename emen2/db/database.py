@@ -3056,7 +3056,7 @@ class DB(object):
 
         :param names: Record name(s)
         :keyword filt: Ignore failures
-        :return: A list of comments, with the Record ID as the first item@[[recid, username, time, comment], ...]
+        :return: A list of comments, with the Record ID as the first item@[[record name, username, time, comment], ...]
         :exception KeyError:
         :exception SecurityError:
         """

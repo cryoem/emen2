@@ -10673,7 +10673,7 @@ $$file_binary
   'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Abstract: $$title_publication. $$name_conference, $$year_published, $$city_conference""",
-             'tabularview': """$$year_published $$author_list $$title_publication $$name_conference $$city_conference $@recid() $$modifytime"""}},
+             'tabularview': """$$year_published $$author_list $$title_publication $$name_conference $$city_conference $$modifytime"""}},
 
 
 

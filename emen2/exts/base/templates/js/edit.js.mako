@@ -699,7 +699,6 @@
                 'html':'textarea',
                 'history':'none',
                 'uri':'none',
-                'recid':'none',
                 'acl':'not_ready',
                 'links':'not_ready',
                 'groups':'not_ready',
