@@ -257,7 +257,7 @@
         
         add: function(level, name) {
             var boxes = $('div[data-level='+level+']', this.element);
-            if ($('.e2-infobox[data-name='+name+']', boxes).length) {
+            if ($('.e2-infobox[data-name="'+name+'"]', boxes).length) {
                 return
             }
             var box = this.build_item(level, name, true);
@@ -715,7 +715,7 @@
             for (var i=0;i<items.length;i++) {
                 var name = items[i];
                 this.state[name] = true;
-                $('li[data-name='+name+'] > a').addClass('e2-browse-selected');
+                $('li[data-name="'+name+'"] > a').addClass('e2-browse-selected');
             }
             this.count_selected();        
         },
@@ -724,7 +724,7 @@
             for (var i=0;i<items.length;i++) {
                 var name = items[i];
                 this.state[name] = false;
-                $('li[data-name='+name+'] > a').removeClass('e2-browse-selected');
+                $('li[data-name="'+name+'"] > a').removeClass('e2-browse-selected');
             }
             this.count_selected();        
         },

@@ -263,7 +263,7 @@
                 // Enter should check for an exact match and return
                 if (e.keyCode == '13') { 
                     e.preventDefault();
-                    var check = $('[data-name='+v+']');
+                    var check = $('[data-name="'+v+'"]');
                     if (check.length) {
                         self.select(v);
                     }

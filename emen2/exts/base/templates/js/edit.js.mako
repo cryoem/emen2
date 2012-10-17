@@ -484,7 +484,7 @@
             this.options.name = emen2.util.checkopt(this, 'name');
             
             // jQuery selector for this multi-edit control to activate
-            this.options.selector = emen2.util.checkopt(this, 'selector', '.e2-edit[data-name='+this.options.name+']');
+            this.options.selector = emen2.util.checkopt(this, 'selector', '.e2-edit[data-name="'+this.options.name+'"]');
             
             // Show
             if (this.options.show) {

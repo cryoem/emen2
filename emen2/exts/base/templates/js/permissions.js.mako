@@ -264,7 +264,7 @@
         add: function(level, name) {
             var self = this;
             var lvl = $('div[data-level='+level+']');
-            if ($('div[data-name='+name+']', lvl).length) {
+            if ($('div[data-name="'+name+'"]', lvl).length) {
                 return
             }
             var item = this.build_item(level, name);

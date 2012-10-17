@@ -438,6 +438,7 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     margin-bottom: 5px;
     font-weight:normal;
     font-size:12pt;
+    border-bottom:none;
 }
 .e2-infobox > div {
     margin:0px;

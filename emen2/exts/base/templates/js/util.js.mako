@@ -403,7 +403,7 @@ emen2.util.set_remove = function(i, l) {
             emen2.caches['record'][rec.name] = rec;
             var name = rec.name;
         }
-        $.rebuild_views('.e2-view[data-name='+name+']');
+        $.rebuild_views('.e2-view[data-name="'+name+'"]');
         $('.e2-comments').CommentsControl('rebuild');
         $('.e2-attachments').AttachmentControl('rebuild');    
     }
