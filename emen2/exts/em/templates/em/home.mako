@@ -24,10 +24,13 @@ import collections
 
 
 
-<div class="home-sidebar">
+<div class="e2l-sidebar-sidebar">
+    
+    <ul class="e2l-cf e2l-sidebar-projectlist">
+        ## <li><h2 class="e2l-gradient">Home</h2></li>
+        ## <li><a href="#activity">Activity</a></li>
 
-    <ul class="e2l-cf home-projectlist">
-        <li><h2>Lab Groups</h2></li>
+        <li><h2 class="e2l-gradient">Lab Groups</h2></li>
         % for group in groups:
             <li><a href="#groups-${group.name}">${recnames.get(group.name,group.name)}</a></li>
         % endfor
@@ -39,6 +42,6 @@ import collections
     
 </div>
 
-<div class="home-main">
+<div class="e2l-sidebar-main">
     ${next.body()}
 </div>

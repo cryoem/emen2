@@ -30,11 +30,6 @@ import jsonrpc.jsonutil
 ## <br /><br />
 
 
-
-
-
-
-
 % if banner:
     <h1>
         Welcome to ${TITLE}
@@ -47,9 +42,6 @@ import jsonrpc.jsonutil
     </div>
     <br /><br />
 % endif
-
-
-
 
 
 
@@ -71,10 +63,6 @@ ${recent_activity_table}
 
 
 
-
-
-
-
 % for group in groups:
     <h1>
         <a href="${ROOT}/record/${group.name}/" id="groups-${group.name}">
@@ -86,13 +74,13 @@ ${recent_activity_table}
             <a class="e2l-hact e2-button" href="${ROOT}/record/${group.name}/children/project/">View projects in table</a>
     </h1>
     
-    <ul class="home-projectlist">
+    <ul class="e2l-sidebar-projectlist">
         % for project in sorted(groups_children.get(group.name, []), key=lambda x:recnames.get(x, '').lower()):
             <li>
                 <a href="${ROOT}/record/${project}/">
                     ${recnames.get(project, project)}
                 </a>
-                <span class="e2l-shadow home-count">
+                <span class="e2l-shadow e2l-sidebar-count">
                     ${len(projects_children.get(project, [])) or ''}                        
                 </span>
                 </li>

@@ -15,19 +15,19 @@ import collections
         pan: false,
         height:200,
     }, $('#recent_activity'));
-    plot.z.build_legend($("#home-activity-users"));
+    plot.z.build_legend($("#e2l-sidebar-activity-users"));
     
     
-    $('#home-project-children').TabControl();
+    $('#e2l-sidebar-project-children').TabControl();
 
 </%block>
 
 <%block name="css_inline">
     ${parent.css_inline()}
-    #home-activity-users ul {
+    #e2l-sidebar-activity-users ul {
         list-style: none;
     }
-    #home-activity-users li {
+    #e2l-sidebar-activity-users li {
         float: left;
         margin: 5px;
     }
@@ -68,13 +68,13 @@ if project['permissions'][0] or project['permissions'][1] or set(project['permis
 %>
 
 
-<div class="home-main">
+<div class="e2l-sidebar-main">
     
     <h1>
         Project details
         <ul class="e2l-actions">
-            <li><a data-name="${project.name}" class="e2-button" href="${ROOT}/record/${project.name}/">View full record</a></li>
-            <li><a data-name="${project.name}" class="e2-button e2-record-edit" href="${ROOT}/record/${project.name}/edit">${buttons.image('edit.png')} Edit</a></li>
+            <li><a data-name="${project.name}" class="e2-button" href="${EMEN2WEBROOT}/record/${project.name}/">View full record</a></li>
+            <li><a data-name="${project.name}" class="e2-button e2-record-edit" href="${EMEN2WEBROOT}/record/${project.name}/edit">${buttons.image('edit.png')} Edit</a></li>
         </ul>
     </h1>
     
@@ -108,7 +108,7 @@ if project['permissions'][0] or project['permissions'][1] or set(project['permis
                 <strong>Note:</strong> this will overwrite the permissions in all child records, including any subprojects.
         
                 <br />
-                <form action="${ROOT}/em/home/project/${project.name}/resetpermissions/" method="post">
+                <form action="${EMEN2WEBROOT}/em/home/project/${project.name}/resetpermissions/" method="post">
                 <ul class="e2l-actions">
                     <li><input type="submit" value="Set permissions to match investigators" /></li>
                 </ul>        
@@ -123,11 +123,11 @@ if project['permissions'][0] or project['permissions'][1] or set(project['permis
         <div id="recent_activity">
             <div class="e2-plot"></div>
         </div>
-        <div id="home-activity-users"></div>
+        <div id="e2l-sidebar-activity-users"></div>
     </%buttons:singlepage>
     
 
-    <div class="e2-tab e2-tab-switcher" id="home-project-children">
+    <div class="e2-tab e2-tab-switcher" id="e2l-sidebar-project-children">
         <ul class="e2l-cf">
         % for count, k in enumerate(childtables):
             % if count == 0:
