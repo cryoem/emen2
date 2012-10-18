@@ -8,7 +8,7 @@
         <h1>Record hidden</h1>
 
         <p>
-            <a href="${EMEN2WEBROOT}/">Return to the home page.</a>
+            <a href="${ROOT}/">Return to the home page.</a>
         <p>
     
     % else:
@@ -46,7 +46,7 @@
 
             <ul class="e2l-controls">
                 <li>
-                    <a class="e2-button" href="${EMEN2WEBROOT}/record/${rec.name}/">No, cancel</a>&nbsp;&nbsp;
+                    <a class="e2-button" href="${ROOT}/record/${rec.name}/">No, cancel</a>&nbsp;&nbsp;
                     <input type="submit" value="Yes, hide this record" />
                     <input type="hidden" name="commit" value="True" />
                 </li>

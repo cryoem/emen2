@@ -97,15 +97,15 @@ def set(key, value):
 ##### Extensions #####
 
 def load_exts():
-    for ext in Config.globalns.extensions.EXTS:
+    for ext in Config.globalns.extensions.exts:
         load_ext(ext)
 
 def load_views():
-    for ext in Config.globalns.extensions.EXTS:
+    for ext in Config.globalns.extensions.exts:
         load_view(ext)
 
 def load_jsons(cb=None):
-    for ext in Config.globalns.extensions.EXTS:
+    for ext in Config.globalns.extensions.exts:
         load_json(ext, cb=cb)
 
 def load_ext(ext):
@@ -114,7 +114,7 @@ def load_ext(ext):
     if modulename in sys.modules:
         # print "%s already loaded"%modulename
         return
-    paths = list(Config.globalns.paths.EXTPATHS)
+    paths = list(Config.globalns.paths.exts)
     module = imp.find_module(ext, paths)
     ret = imp.load_module(ext, *module)
     # Extensions may have an optional "templates" directory,
@@ -129,7 +129,7 @@ def load_view(ext):
     if modulename in sys.modules:
         # print "%s already loaded"%modulename
         return
-    paths = list(Config.globalns.paths.EXTPATHS)
+    paths = list(Config.globalns.paths.exts)
     module = imp.find_module(ext, paths)
     path = module[1]
     try:
@@ -150,7 +150,7 @@ def load_json(ext, cb=None):
         cb(j)
 
 def resolve_ext(ext):
-    paths = list(Config.globalns.paths.EXTPATHS)
+    paths = list(Config.globalns.paths.exts)
     return imp.find_module(ext, paths)[1]
 
 
@@ -214,10 +214,10 @@ class DBOptions(usage.Options):
     optParameters = [
         ['home', 'h', None, 'EMEN2 database environment directory'],
         ['ext', 'e', None, 'Add extension; can be comma-separated.'],
-        ['loglevel', 'l', None, ''],
-        ['repmgr_host', None, None, 'Replication manager host'],
-        ['repmgr_port', None, None, 'Replication manager port']        
+        ['loglevel', 'l', None, '']
     ]
+    # ['repmgr_host', None, None, 'Replication manager host'],
+    # ['repmgr_port', None, None, 'Replication manager port']        
 
     def opt_configfile(self, file_):
         self.setdefault('configfile', []).append(file_)
@@ -293,18 +293,18 @@ class UsageParser(object):
         self.config.load_file(os.path.join(h, "config.json"))
 
         # Set default log levels
-        loglevel = self.config.globalns.getattr('LOG_LEVEL', 'INFO')
+        log_level = self.config.globalns.getattr('log_level', 'INFO')
         if self.options['quiet']:
             loglevel = 'ERROR'
         elif self.options['debug']:
             loglevel = 'DEBUG'
         elif self.options['loglevel']:
             loglevel = self.options['loglevel']
-        self.config.load_data(LOG_LEVEL=loglevel)
+        self.config.load_data(log_level=log_level)
 
         # Make sure paths to log files exist
-        if not os.path.exists(self.config.globalns.paths.LOGPATH):
-            os.makedirs(self.config.globalns.paths.LOGPATH)
+        if not os.path.exists(self.config.globalns.paths.log):
+            os.makedirs(self.config.globalns.paths.log)
 
         # Extend the python module path
         # if getattr(self.config.globalns.paths, 'PYTHONPATH', []):
@@ -314,13 +314,13 @@ class UsageParser(object):
         #    sys.path.extend(pp)
 
         # EXTPATHS points to directories containing emen2 ext modules.
-        # This will be used with imp.find_module(ext, self.config.globalns.paths.EXTPATHS)
-        self.config.globalns.paths.EXTPATHS.append(get_filename('emen2', 'exts'))
+        # This will be used with imp.find_module(ext, self.config.globalns.paths.exts)
+        self.config.globalns.paths.exts.append(get_filename('emen2', 'exts'))
         if os.getenv('EMEN2EXTPATH'):
             for path in filter(None, os.getenv('EMEN2EXTPATH','').split(":")):
-                self.config.globalns.paths.EXTPATHS.append(path)
+                self.config.globalns.paths.exts.append(path)
 
-        self.config.globalns.paths.EXTPATHS.append(os.path.join(h, 'exts'))
+        self.config.globalns.paths.exts.append(os.path.join(h, 'exts'))
 
 
         # Add the extensions, including the 'base' extension
@@ -329,18 +329,14 @@ class UsageParser(object):
             exts = exts.split(',')
             if 'base' not in exts:
                 exts.insert(0,'base')
-            exts.extend(self.config.globalns.extensions.EXTS)
-            self.config.globalns.extensions.EXTS = exts
+            exts.extend(self.config.globalns.extensions.exts)
+            self.config.globalns.extensions.exts = exts
 
         # Enable/disable snapshot
-        self.config.globalns.params.SNAPSHOT = (not self.options['nosnapshot'])
+        self.config.globalns.bdb.snapshot = (not self.options['nosnapshot'])
 
         # Create new database?
-        self.config.globalns.params.CREATE = self.options['create']
-
-        # Replication manager
-        self.config.globalns.params.REPMGR_HOST = self.options['repmgr_host']
-        self.config.globalns.params.REPMGR_PORT = self.options['repmgr_port']
+        self.config.globalns.params.create = self.options['create']
 
         # Enable root user?
         # self.config.globalns.ENABLEROOT = self.values.enableroot or False

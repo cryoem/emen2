@@ -65,8 +65,8 @@ class TemplateContext(collections.MutableMapping):
     def reverse(self, _name, *args, **kwargs):
         """Create a URL given a view Name and arguments"""
         
-        host = emen2.db.config.get('network.EMEN2HOST', 'localhost')
-        port = emen2.db.config.get('network.EMEN2PORT', 80)
+        host = emen2.db.config.get('web.host')
+        port = emen2.db.config.get('web.port')
         full = kwargs.pop('_full', False)
 
         result = emen2.web.routing.reverse(_name, *args, **kwargs)
@@ -107,10 +107,10 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
         # Then update with any extra arguments specified.
         self.ctxt = TemplateContext()
         self.ctxt.update(dict(
-            EMEN2WEBROOT = emen2.db.config.get('network.EMEN2WEBROOT'),
-            EMEN2DBNAME = emen2.db.config.get('customization.EMEN2DBNAME'),
-            EMEN2LOGO = emen2.db.config.get('customization.EMEN2LOGO'),
-            BOOKMARKS = emen2.db.config.get('bookmarks.BOOKMARKS', [])            
+            ROOT = emen2.db.config.get('web.root'),
+            TITLE = emen2.db.config.get('customization.title'),
+            LOGO = emen2.db.config.get('customization.logo'),
+            BOOKMARKS = emen2.db.config.get('bookmarks.bookmarks')
         ))
         
         # ETags

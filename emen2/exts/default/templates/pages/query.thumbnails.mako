@@ -11,7 +11,7 @@ ${q}
 
 ## % for rec, bdos in c.items():
 ##    
-##    <h1><a href="${EMEN2WEBROOT}/record/${rec}/">${recnames.get(rec, rec)}</a></h1>
+##    <h1><a href="${ROOT}/record/${rec}/">${recnames.get(rec, rec)}</a></h1>
 ##    <ul>
 ##    % for bdo in bdos:
 ##        <li>${bdo.filename}</li>

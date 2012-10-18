@@ -1,6 +1,6 @@
-From: ${MAILADMIN}
+From: ${from}
 To: ${recipient}
-Cc: ${MAILADMIN}
+Cc: ${from}
 Subject: ${dbname} Account Request
 
 ${recipient}:
@@ -12,4 +12,4 @@ You will be notified via email when it is approved.
 Thankyou,
 
 ${dbname} Administrator
-${MAILADMIN}
+${from}

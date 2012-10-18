@@ -136,7 +136,7 @@
                 } else if (e.length == 4) {
                     var pdname = e[2];
                     if (emen2.caches['paramdef'][pdname]){pdname=emen2.caches['paramdef'][pdname].desc_short}
-                    var row = '<div>'+emen2.template.image('edit.png')+' edited <a href="'+EMEN2WEBROOT+'/paramdef/'+e[2]+'/">'+pdname+'</a>. Previous value was:</div><div style="margin-left:50px">'+e[3]+'</div>';
+                    var row = '<div>'+emen2.template.image('edit.png')+' edited <a href="'+ROOT+'/paramdef/'+e[2]+'/">'+pdname+'</a>. Previous value was:</div><div style="margin-left:50px">'+e[3]+'</div>';
                     comments.push(row);
                 }
             });
@@ -272,9 +272,9 @@
             var form = $('<form enctype="multipart/form-data"  action="" method="post" data-name="'+this.options.name+'" />');
 
             // Set the form action
-            var action_alt = EMEN2WEBROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/';
+            var action_alt = ROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/';
             if (this.options.mode == 'edit') {
-                var action_alt = EMEN2WEBROOT+'/record/'+this.options.name+'/edit/';
+                var action_alt = ROOT+'/record/'+this.options.name+'/edit/';
             }
             var action = this.options.action || this.element.attr('data-action') || action_alt;
             form.attr('action',action);
@@ -557,7 +557,7 @@
                 var controls = $(' \
                     <p><br /><hr /><br /><textarea class="e2l-fw" name="comments" placeholder="'+placeholder+'"></textarea> \
                     <ul class="e2l-controls e2l-fw"> \
-                        <li><a style="padding-top:10px" class="e2l-float-left e2l-small" href="'+EMEN2WEBROOT+'/record/'+self.options.name+'/hide/">(Hide this record?)</a><input type="submit" class="e2-edit-save e2l-float-right" value="Save" /></li> \
+                        <li><a style="padding-top:10px" class="e2l-float-left e2l-small" href="'+ROOT+'/record/'+self.options.name+'/hide/">(Hide this record?)</a><input type="submit" class="e2-edit-save e2l-float-right" value="Save" /></li> \
                     </ul></p>');
                 $('.e2-edit-show', controls).click(function() {self.show()})
                 $('.e2-edit-cancel', controls).click(function() {self.hide()})

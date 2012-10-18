@@ -430,7 +430,7 @@ class Records(View):
             return
             
         self.db.rel.relink(removerels=removerels, addrels=addrels)
-        self.redirect('%s/records/edit/relationships/?root=%s'%(self.ctxt['EMEN2WEBROOT'], root), title=self.title, content="Your changes were saved.")
+        self.redirect('%s/records/edit/relationships/?root=%s'%(self.ctxt['ROOT'], root), title=self.title, content="Your changes were saved.")
 
 
 

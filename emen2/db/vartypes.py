@@ -166,7 +166,7 @@ class Vartype(object):
     # After pre-processing values into markup
     def _render(self, value, embedtype=None):
         # Note: Value should already be escaped!
-        webroot = emen2.db.config.get('network.EMEN2WEBROOT')
+        root = emen2.db.config.get('web.root')
         label = ''
         if embedtype == '!':
             embedtype = 'data-required="True"'
@@ -183,14 +183,14 @@ class Vartype(object):
 
         # Empty value
         if not value:
-            label = '<img src="%s/static/images/blank.png" class="e2l-label" alt="No value" />'%webroot
+            label = '<img src="%s/static/images/blank.png" class="e2l-label" alt="No value" />'%root
             if self.edit:
                 return '<%s class="%s" %s>%s</%s>'%(self.elem, self.elem_class, editmarkup, label, self.elem)
             return '<%s></%s>'%(self.elem, self.elem)
 
         # Tables have links to the record
         if self.table:
-            value = ['<a href="%s/record/%s">%s</a>'%(webroot, self.name, i) for i in value]
+            value = ['<a href="%s/record/%s">%s</a>'%(root, self.name, i) for i in value]
 
         # Iterable parameters
         if self.pd.iter:
@@ -623,7 +623,7 @@ class vt_binary(Vartype):
 
 
     def process(self, value):
-        webroot = emen2.db.config.get('network.EMEN2WEBROOT')
+        root = emen2.db.config.get('web.root')
         value = ci(value)
         t = self.table
         if not self.markup:
@@ -639,7 +639,7 @@ class vt_binary(Vartype):
                     <a target="_blank" href="%s/download/%s/%s">
                     <img class="e2l-thumbnail" src="%s/download/%s/thumb.jpg?size=thumb" />
                     %s
-                    </a>'''%(webroot, i.name, cgi.escape(i.filename), webroot, i.name, cgi.escape(i.filename)) for i in v]
+                    </a>'''%(root, i.name, cgi.escape(i.filename), root, i.name, cgi.escape(i.filename)) for i in v]
 
         except (ValueError, TypeError), e:
             value = ['Error getting binary %s'%(i) for i in value]
@@ -706,7 +706,7 @@ class vt_user(Vartype):
 
 
     def process(self, value):
-        webroot = emen2.db.config.get('network.EMEN2WEBROOT')
+        root = emen2.db.config.get('web.root')
         value = ci(value)
         lnf = False
         if self.table:
@@ -721,7 +721,7 @@ class vt_user(Vartype):
             if self.table or not self.markup:
                 lis.append(dn)
             else:
-                lis.append('<a href="%s/user/%s">%s</a>'%(webroot, i, dn))
+                lis.append('<a href="%s/user/%s">%s</a>'%(root, i, dn))
 
         return lis
 
@@ -829,7 +829,7 @@ class vt_comments(Vartype):
         return value
 
     def process(self, value):
-        webroot = emen2.db.config.get('network.EMEN2WEBROOT')
+        root = emen2.db.config.get('web.root')
         value = ci(value)
         users = [i[0] for i in value]
         update_username_cache(self.engine, users)
@@ -843,7 +843,7 @@ class vt_comments(Vartype):
             if self.table or not self.markup:
                 t = '%s @ %s: %s'%(user, time, comment)
             else:
-                t = '<div><h4><a href="%s/user/%s">%s</a> @ <time class="e2-localize" datetime="%s">%s</time></h4><p>%s</p></div>'%(webroot, user, dn, time, time, comment)
+                t = '<div><h4><a href="%s/user/%s">%s</a> @ <time class="e2-localize" datetime="%s">%s</time></h4><p>%s</p></div>'%(root, user, dn, time, time, comment)
             lis.append(t)
 
         return lis

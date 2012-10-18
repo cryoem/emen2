@@ -9,7 +9,7 @@
 </%block>
 
 
-<form method="post" action="${EMEN2WEBROOT}/paramdefs/name/">
+<form method="post" action="${ROOT}/paramdefs/name/">
 <h1>
     ${ctxt.title}
     <ul class="e2l-actions">
@@ -18,7 +18,7 @@
             <input type="submit" value="Search" />
         </li>
         % if create:
-            <li><a class="e2-button" href="${EMEN2WEBROOT}/paramdef/root/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a></li>
+            <li><a class="e2-button" href="${ROOT}/paramdef/root/new/"><img src="${ROOT}/static/images/edit.png" alt="Edit" /> New</a></li>
         % endif
     </ul>
 

@@ -339,7 +339,7 @@ class GlobalNamespace(Hier):
             self.from_dict(data)
 
             # load alternate config files
-            # for fn in self.paths.CONFIGFILES:
+            # for fn in self.paths.configfiles:
             #    fn = os.path.abspath(fn)
             #    if os.path.exists(fn):
             #        cls.from_file(fn=fn)

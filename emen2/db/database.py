@@ -92,7 +92,8 @@ publicmethod = emen2.db.proxy.publicmethod
 # Versions
 # from emen2.clients import __version__
 VERSIONS = {
-    "API": emen2.__version__
+    "API": emen2.__version__,
+    None: emen2.__version__
 }
 
 # Regular expression to parse Protocol views.
@@ -176,7 +177,6 @@ def ol(name, output=True):
     :keyword output: Transform output.
     """
     # This will be easier in Python 2.7 using inspect.getcallargs.
-
     def wrap(f):
         olpos = inspect.getargspec(f).args.index(name)
 
@@ -247,40 +247,40 @@ def error(e=None, msg='', warning=False):
 ##### Email #####
 
 # ian: TODO: put this in a separate module
-def sendmail(email, subject='', msg='', template=None, ctxt=None):
+def sendmail(to_addr, subject='', msg='', template=None, ctxt=None):
     """(Semi-internal) Send an email. You can provide either a template or a message subject and body.
 
-    :param email: Email recipient
+    :param to_addr: Email recipient
     :keyword msg: Message text, or
     :keyword template: ... Template name  
     :keyword ctxt: ... Dictionary to pass to template  
     :return: Email recipient, or None if no message was sent  
 
     """    
-    mailadmin = emen2.db.config.get('mailsettings.MAILADMIN')
-    mailhost = emen2.db.config.get('mailsettings.MAILHOST')
+    from_addr = emen2.db.config.get('mail.from')
+    smtphost = emen2.db.config.get('mail.smtphost')
 
-    if not mailadmin:
+    if not from_addr:
         emen2.db.log.warn("Couldn't get mail config: No admin email set")
         return
-    if not mailhost:
+    if not smtphost:
         emen2.db.log.warn("Couldn't get mail config: No SMTP Server")
         return
 
     ctxt = ctxt or {}
-    ctxt["recipient"] = email
-    ctxt["MAILADMIN"] = mailadmin
-    ctxt["EMEN2DBNAME"] = emen2.db.config.get('customization.EMEN2DBNAME', 'EMEN2')
-    ctxt["EMEN2EXTURI"] = emen2.db.config.get('network.EMEN2EXTURI', '')
+    ctxt["to"] = to_addr
+    ctxt["from"] = from_addr
+    ctxt["TITLE"] = emen2.db.config.get('customization.title')
+    ctxt["uri"] = emen2.db.config.get('web.uri')
 
-    if not email:
+    if not to_addr:
         return
 
     if msg:
         msg = email.mime.text.MIMEText(msg)
         msg['Subject'] = subject
-        msg['From'] = mailadmin
-        msg['To'] = email
+        msg['From'] = from_addr
+        msg['To'] = to_addr
         msg = msg.as_string()
 
     elif template:
@@ -293,12 +293,11 @@ def sendmail(email, subject='', msg='', template=None, ctxt=None):
         raise ValueError, "No message to send!"
 
     # Actually send the message
-    s = smtplib.SMTP(mailhost)
+    s = smtplib.SMTP(smtphost)
     s.set_debuglevel(1)
-    s.sendmail(mailadmin, [mailadmin, email], msg)
-    emen2.db.log.info('Mail sent: %s -> %s'%(mailadmin, email))
-
-    return email
+    s.sendmail(from_addr, [from_addr, to_addr], msg)
+    emen2.db.log.info('Mail sent: %s -> %s'%(from_addr, to_addr))
+    return to_addr
     
     
     
@@ -352,8 +351,6 @@ def setup(db=None, rootpw=None, rootemail=None):
         db.put([root], keytype='user')
         loader = emen2.db.load.Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
         loader.load()
-        # Root record
-        # {"name":0, "keytype":"record", "rectype": "folder", "name_folder": "Root", "groups":["authenticated"]}
         rec = db.record.new(rectype='folder')
         rec.addgroup('authenticated')
         rec['name_folder'] = 'Root'
@@ -370,18 +367,6 @@ class EMEN2DBEnv(object):
     # Transaction counter
     txncounter = 0
 
-    # From global configuration
-    cachesize = emen2.db.config.get('BDB.CACHESIZE')
-    path = emen2.db.config.get('EMEN2DBHOME')
-    create = emen2.db.config.get('params.CREATE')
-    snapshot = emen2.db.config.get('params.SNAPSHOT')
-
-    # Paths from global configuration
-    LOGPATH = emen2.db.config.get('paths.LOGPATH')
-    LOG_ARCHIVE = emen2.db.config.get('paths.LOG_ARCHIVE')
-    TMPPATH = emen2.db.config.get('paths.TMPPATH')
-    SSLPATH = emen2.db.config.get('paths.SSLPATH')
-
     # DB Environment flags
     ENVOPENFLAGS = 0
     ENVOPENFLAGS |= bsddb3.db.DB_CREATE
@@ -390,7 +375,7 @@ class EMEN2DBEnv(object):
     ENVOPENFLAGS |= bsddb3.db.DB_INIT_LOCK
     ENVOPENFLAGS |= bsddb3.db.DB_INIT_LOG
     ENVOPENFLAGS |= bsddb3.db.DB_THREAD
-        
+
 
     def __init__(self, path=None, create=None, snapshot=False, dbenv=None):
         """
@@ -398,18 +383,24 @@ class EMEN2DBEnv(object):
         :keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
         :keyword create: Create the environment if it does not already exist.
         """
-
-        # DBO BTrees
-        self.keytypes =  {}
-
+        
         # Database environment directory
-        self.path = path or self.path
+        self.path = path or emen2.db.config.get('EMEN2DBHOME')
         if not self.path:
             raise ValueError, "No EMEN2 Database Environment specified."
 
-        # Check that all the needed directories exist
-        self.create = create or self.create
-        self.checkdirs()
+        self.create = create or emen2.db.config.get('params.create')
+        self.snapshot = snapshot or emen2.db.config.get('bdb.snapshot')
+        self.cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024l
+
+        # Paths
+        self.LOGPATH = emen2.db.config.get('paths.log')
+        self.JOURNAL_ARCHIVE = emen2.db.config.get('paths.journal_archive')
+        self.TMPPATH = emen2.db.config.get('paths.tmp')
+        self.SSLPATH = emen2.db.config.get('paths.ssl')
+
+        # DBO BTrees
+        self.keytypes =  {}
 
         # Txn info
         self.txnlog = {}
@@ -430,6 +421,9 @@ class EMEN2DBEnv(object):
             if y.keyformat:
                 self.indexablevartypes.add(y.vartype)
 
+        # Check that all the needed directories exist
+        self.checkdirs()
+
         # Open the Database Environment
         emen2.db.log.info("Opening Database Environment: %s"%self.path)
 
@@ -441,12 +435,11 @@ class EMEN2DBEnv(object):
             if snapshot or self.snapshot:
                 dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
             
-            cachesize = self.cachesize * 1024 * 1024l
-            txncount = (cachesize / 4096) * 2
+            txncount = (self.cachesize / 4096) * 2
             if txncount > 1024*128:
                 txncount = 1024*128
 
-            dbenv.set_cachesize(0, cachesize)
+            dbenv.set_cachesize(0, self.cachesize)
             dbenv.set_tx_max(txncount)
             dbenv.set_lk_max_locks(300000)
             dbenv.set_lk_max_lockers(300000)
@@ -534,7 +527,7 @@ class EMEN2DBEnv(object):
         for path in ['data', 'journal']:
             paths.append(os.path.join(self.path, path))
         
-        for path in [self.LOGPATH, self.LOG_ARCHIVE,  self.TMPPATH, self.SSLPATH]:
+        for path in [self.LOGPATH, self.JOURNAL_ARCHIVE,  self.TMPPATH, self.SSLPATH]:
             try:
                 paths.append(path)
             except AttributeError:
@@ -558,7 +551,7 @@ class EMEN2DBEnv(object):
         :keyword remove: Remove the log files after moving them to the backup location
         :keyword checkpoint: Run a checkpoint first; this will allow more files to be archived
         """
-        outpath = self.LOG_ARCHIVE
+        outpath = self.JOURNAL_ARCHIVE
 
         if checkpoint:
             emen2.db.log.info("Log Archive: Checkpoint")
@@ -719,7 +712,6 @@ class DB(object):
     This class provides access to the public API methods.
     """
 
-    extensions = emen2.db.config.get('extensions.EXTS')
     sync_contexts = threading.Event()
 
     def __init__(self, path=None, create=None):
@@ -729,6 +721,7 @@ class DB(object):
         :keyword create: Create the environment if it does not already exist.
 
         """
+
         # Open the database
         self.dbenv = EMEN2DBEnv(path=path, create=create)
 
@@ -1563,9 +1556,7 @@ class DB(object):
                 else:
                     viewdef = rd.views.get('tabularview', defaultviewdef)
 
-        # addparamdefs = ["creator","creationtime"]
-        addparamdefs = emen2.db.config.get('customization.TABLE_ADD_COLUMNS', ['creator', 'creationtime'])
-        for i in addparamdefs:
+        for i in emen2.db.config.get('customization.table_add_columns'):
             viewdef = '%s $$%s'%(viewdef.replace('$$%s'%i, ''), i)
 
         # Render the table
@@ -2246,7 +2237,7 @@ class DB(object):
 
             # Send the verify email containing the auth token
             ctxt['secret'] = user.secret[2]
-            self.dbenv.txncb(txn, 'email', kwargs={'email':email, 'template':'/email/email.verify', 'ctxt':ctxt})
+            self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verify', 'ctxt':ctxt})
 
         else:
             # Email changed.
@@ -2258,7 +2249,7 @@ class DB(object):
             # self.dbenv["user"].put(user.name, user, txn=txn)
 
             # Send the user an email to acknowledge the change
-            self.dbenv.txncb(txn, 'email', kwargs={'email':email, 'template':'/email/email.verified', 'ctxt':ctxt})
+            self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verified', 'ctxt':ctxt})
 
         return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
@@ -2301,7 +2292,7 @@ class DB(object):
         # ian: todo: evaluate to use put/cput..
         emen2.db.log.security("Changing password for %s"%user.name)
         self.dbenv["user"].put(user.name, user, txn=txn)
-        self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'template':'/email/password.changed'})
+        self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/password.changed'})
         return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
 
@@ -2336,8 +2327,7 @@ class DB(object):
         # Absolutely never reveal the secret via any mechanism
         # but email to registered address
         ctxt = {'secret': user.secret[2]}
-        self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'name':user.name, 'template':'/email/password.reset', 'ctxt':ctxt})
-
+        self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'name':user.name, 'template':'/email/password.reset', 'ctxt':ctxt})
         emen2.db.log.security("Setting resetpassword secret for %s"%user.name)        
         return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
@@ -2382,16 +2372,15 @@ class DB(object):
         """
         items = self.dbenv["newuser"].cputs(items, ctx=ctx, txn=txn)
 
-        user_autoapprove = emen2.db.config.get('users.USER_AUTOAPPROVE', False)
-        if user_autoapprove:
+        autoapprove = emen2.db.config.get('users.autoapprove')
+        if autoapprove:
             rootctx = self._sudo()
             rootctx.db._txn = txn
             self.newuser_approve([user.name for user in items], ctx=rootctx, txn=txn)
         else:
             # Send account request email
             for user in items:
-                self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'template':'/email/adduser.signup'})
-                # sendmail(user.email, template='/email/adduser.signup')
+                self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/adduser.signup'})
 
         return items
         
@@ -2432,8 +2421,9 @@ class DB(object):
         :exception SecurityError:
         :exception ValidationError:
         """
-        # group_defaults = emen2.db.config.get('users.GROUP_DEFAULTS', ['create'])
-        user_autoapprove = emen2.db.config.get('users.USER_AUTOAPPROVE', False)
+
+        group_defaults = emen2.db.config.get('users.group_defaults')
+        autoapprove = emen2.db.config.get('users.autoapprove')
 
         # Get users from the new user approval queue
         newusers = self.dbenv["newuser"].cgets(names, filt=filt, ctx=ctx, txn=txn)
@@ -2486,9 +2476,9 @@ class DB(object):
             user.getdisplayname()
             ctxt = {'name':user.name, 'displayname':user.displayname}
             template = '/email/adduser.approved'
-            if user_autoapprove:
+            if autoapprove:
                 template = '/email/adduser.autoapproved'
-            self.dbenv.txncb(txn, 'email', kwargs={'email':user.email, 'template':template, 'ctxt':ctxt})
+            self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':template, 'ctxt':ctxt})
 
         return self.dbenv["user"].cgets(set([user.name for user in cusers]), ctx=ctx, txn=txn)
 
@@ -2523,7 +2513,7 @@ class DB(object):
         # Send the emails
         for name, email in emails.items():
             ctxt = {'name':name}
-            self.dbenv.txncb(txn, 'email', kwargs={'email':email, 'template':'/email/adduser.rejected', 'ctxt':ctxt})
+            self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/adduser.rejected', 'ctxt':ctxt})
 
         return set(emails.keys())
 
@@ -3586,7 +3576,7 @@ class DB(object):
     @publicmethod(write=True)
     @ol('items')
     def upload_put(self, items, ctx=None, txn=None):
-        tmpdir = emen2.db.config.get('paths.TMPPATH')        
+        tmpdir = emen2.db.config.get('paths.tmp')        
         bdos = []
         rename = []
         for bdo in items:

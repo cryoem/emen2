@@ -1,16 +1,16 @@
-From: ${MAILADMIN}
+From: ${from}
 To: ${recipient}
-Cc: ${MAILADMIN}
-Subject: RE: ${EMEN2DBNAME} Verify Email
+Cc: ${from}
+Subject: RE: ${TITLE} Verify Email
 
 ${recipient}:
 
-This email address for your account on ${EMEN2DBNAME} has been verified.
+This email address for your account on ${TITLE} has been verified.
 
-If you did not issue this request, please contact the ${EMEN2DBNAME} administrator, ${MAILADMIN}
+If you did not issue this request, please contact the ${TITLE} administrator, ${from}
 
 Thankyou,
 
-${EMEN2DBNAME} Administrator
-${MAILADMIN}
-${EMEN2EXTURI}
+${TITLE} Administrator
+${from}
+${uri}

@@ -2,12 +2,12 @@
 <%namespace name="buttons"  file="/buttons"  /> 
 
 
-<form method="post" action="${EMEN2WEBROOT}/users/">
+<form method="post" action="${ROOT}/users/">
 <h1>
     ${ctxt.title}
     <ul class="e2l-actions">
         <li>
-            <a class="e2-button" href="${EMEN2WEBROOT}/users/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> New</a>
+            <a class="e2-button" href="${ROOT}/users/new/"><img src="${ROOT}/static/images/edit.png" alt="Edit" /> New</a>
         </li>
         <li>
             <input value="${q or ''}" name="q" type="text" size="8" />

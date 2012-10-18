@@ -1,6 +1,6 @@
 <%inherit file="/page" />
 
-<form action="${EMEN2WEBROOT}/record/${name}/public/process/" method="post" name="form_publish">
+<form action="${ROOT}/record/${name}/public/process/" method="post" name="form_publish">
 
 <h1>Select Records to Make Public</h1>
 

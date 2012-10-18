@@ -45,14 +45,14 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
                     except:
                         fn = bdo.name
                     %>
-                    <a href="${EMEN2WEBROOT}/download/${bdo.name}/${fn}">
-                        <img class="e2l-thumbnail" src="${EMEN2WEBROOT}/download/${bdo.name}/thumb.jpg?size=thumb" alt="" /> 
+                    <a href="${ROOT}/download/${bdo.name}/${fn}">
+                        <img class="e2l-thumbnail" src="${ROOT}/download/${bdo.name}/thumb.jpg?size=thumb" alt="" /> 
                         ${fn}
                     </a>
                 </td>
                 <td class="e2-download-filesizes" data-filesize="${bdo.get('filesize',0)}">${bdo.get('filesize',0)}</td>
-                <td><a href="${EMEN2WEBROOT}/record/${bdo.record}/">${recnames.get(bdo.record)}</a></td>
-                <td><a href="${EMEN2WEBROOT}/user/${bdo.get('creator')}/">${users_d.get(bdo.get('creator'), dict()).get('displayname')}</a></td>
+                <td><a href="${ROOT}/record/${bdo.record}/">${recnames.get(bdo.record)}</a></td>
+                <td><a href="${ROOT}/user/${bdo.get('creator')}/">${users_d.get(bdo.get('creator'), dict()).get('displayname')}</a></td>
                 <td><time class="e2-localize" datetime="${bdo.get('creationtime')}">${bdo.get('creationtime')}</time></td>
             </tr>
         % endfor
@@ -62,7 +62,7 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
 </%def>
 
 
-<form id="e2-download" method="post" action="${EMEN2WEBROOT}/download/">
+<form id="e2-download" method="post" action="${ROOT}/download/">
     <input type="hidden" name="tar" value="True" />
     <h1>
         <span class="e2-download-filecount">${len(bdos)}</span> files, <span class="e2-download-filesize">${filesize}</span>

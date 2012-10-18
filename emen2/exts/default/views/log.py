@@ -73,8 +73,8 @@ class Reverser(object):
 # class TableJS(emen2.web.templating.BaseJS):
 #     def main(self):
 #         super(TableJS, self).init()
-#         self.files = '%s/static/js/jquery/jquery.dataTables.js' % g.EMEN2WEBROOT
-#         self.files = '%s/static/js/jquery/jquery.accordion.js' % g.EMEN2WEBROOT
+#         self.files = '%s/static/js/jquery/jquery.dataTables.js' % g.ROOT
+#         self.files = '%s/static/js/jquery/jquery.accordion.js' % g.ROOT
 
 ident = lambda x:x
 class Normalizer(object):
@@ -124,7 +124,7 @@ class LogAnalysis(View):#AdminView):
     def _getlines(self, file_, logclass, start, end, reverse=True, index=None):
         lines, errors = [],[]
 
-        logpath = emen2.db.config.get('paths.LOGPATH')
+        logpath = emen2.db.config.get('paths.log')
         with file(os.path.join(logpath, file_)) as f:
             extra = lambda x:x
             if reverse: extra = Reverser

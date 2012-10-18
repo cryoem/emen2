@@ -1,6 +1,6 @@
-From: ${MAILADMIN}
+From: ${from}
 To: ${recipient}
-Cc: ${MAILADMIN}
+Cc: ${from}
 Subject: RE: ${dbname} Account Request -- Approved
 
 ${displayname}:
@@ -15,4 +15,4 @@ Please make sure your profile information is correct after signing in.
 Thankyou,
 
 ${dbname} Administrator
-${MAILADMIN}
+${from}

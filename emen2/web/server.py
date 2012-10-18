@@ -125,7 +125,7 @@ class EMEN2BaseServer(object):
 
     def __init__(self, options=None):
         options = options or {}
-        self.port = options.get('port') or emen2.db.config.get('network.EMEN2PORT')
+        self.port = options.get('port') or emen2.db.config.get('web.port')
 
     #@contextlib.contextmanager
     def start(self, service=None):
@@ -146,7 +146,7 @@ class EMEN2BaseServer(object):
         self.site = EMEN2Site(root)
 
         reactor = twisted.internet.reactor
-        reactor.suggestThreadPoolSize(emen2.db.config.get('network.NUMTHREADS', 1))
+        reactor.suggestThreadPoolSize(emen2.db.config.get('web.threads', 1))
 
         # Attach to a service, or run standalone.
         if service:
@@ -160,7 +160,7 @@ class EMEN2BaseServer(object):
     def attach_to_service(self, service):
         emen2_service = internet.TCPServer(self.port, self.site)
         emen2_service.setServiceParent(service)
-        # if self.EMEN2HTTPS and ssl:
+        # if self.https and ssl:
         #    pass
 
     def attach_standalone(self):

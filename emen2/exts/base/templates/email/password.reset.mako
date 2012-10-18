@@ -1,20 +1,20 @@
-From: ${MAILADMIN}
+From: ${from}
 To: ${recipient}
-Cc: ${MAILADMIN}
-Subject: ${EMEN2DBNAME} Password Reset
+Cc: ${from}
+Subject: ${TITLE} Password Reset
 
 ${recipient}:
 
-A request for a password reset has been submitted for this account on ${EMEN2DBNAME}
+A request for a password reset has been submitted for this account on ${TITLE}
 
 To complete your request, please follow this link:
 
-${EMEN2EXTURI}/auth/password/reset/${name}/${secret}/
+${uri}/auth/password/reset/${name}/${secret}/
 
-If you did not request a new password, please contact the ${EMEN2DBNAME} administrator, ${MAILADMIN}
+If you did not request a new password, please contact the ${TITLE} administrator, ${from}
 
 Thankyou,
 
-${EMEN2DBNAME} Administrator
-${MAILADMIN}
-${EMEN2EXTURI}
+${TITLE} Administrator
+${from}
+${uri}

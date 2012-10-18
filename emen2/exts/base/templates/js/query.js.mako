@@ -28,7 +28,7 @@
         delete q['boolmode'];
         // }
         qs = '?' + $.param(q);
-        return EMEN2WEBROOT + '/query/' + output.join("/") + '/' + qs;
+        return ROOT + '/query/' + output.join("/") + '/' + qs;
     }
 
 
@@ -150,7 +150,7 @@
                     <input type="hidden" name="param" value="rectype" /> \
                     <input type="hidden" name="cmp" value="is" /> \
                     <input type="text" name="value" id="e2-query-find-protocol" placeholder="Select protocol"/> \
-                    <img class="e2-query-find" data-keytype="recorddef" data-target="e2-query-find-protocol" src="'+EMEN2WEBROOT+'/static/images/query.png" /> \
+                    <img class="e2-query-find" data-keytype="recorddef" data-target="e2-query-find-protocol" src="'+ROOT+'/static/images/query.png" /> \
                     <input type="checkbox" name="recurse_v" id="e2-query-id-rectype"/><label for="e2-query-id-rectype">Include child protocols</label> \
                 </li> \
                 <li class="e2-query-constraint"> \
@@ -158,14 +158,14 @@
                     <input type="hidden" name="param" value="creator" /> \
                     <input type="hidden" name="cmp" value="is" /> \
                     <input type="text" name="value" id="e2-query-find-user" placeholder="Select user" /> \
-                    <img class="e2-query-find" data-keytype="user" data-target="e2-query-find-user" src="'+EMEN2WEBROOT+'/static/images/query.png" /> \
+                    <img class="e2-query-find" data-keytype="user" data-target="e2-query-find-user" src="'+ROOT+'/static/images/query.png" /> \
                 </li> \
                 <li class="e2-query-constraint"> \
                     <strong class="e2-query-label">Child of:</strong> \
                     <input type="hidden" name="param" value="children" /> \
                     <input type="hidden" name="cmp" value="name" /> \
                     <input type="text" name="value" id="e2-query-find-record" placeholder="Select record"/> \
-                    <img class="e2-query-tree" data-keytype="record" data-target="e2-query-find-record" src="'+EMEN2WEBROOT+'/static/images/query.png" /> \
+                    <img class="e2-query-tree" data-keytype="record" data-target="e2-query-find-record" src="'+ROOT+'/static/images/query.png" /> \
                     <input type="checkbox" name="recurse_v" id="e2-query-paramid-children" /><label for="e2-query-paramid-children">Recursive</label> \
                 </li> \
                 <li> \
@@ -330,7 +330,7 @@
             var newconstraint = $('<li class="e2-query-constraint" />')
                 .append(controls)
                 .append(' <input type="text" name="param" value="'+param+'" placeholder="Select parameter" id="e2-query-find-'+this.count+'" /> ')
-                .append(' <img class="e2-query-find" data-keytype="paramdef" data-target="e2-query-find-'+this.count+'" src="'+EMEN2WEBROOT+'/static/images/query.png" /> ')
+                .append(' <img class="e2-query-find" data-keytype="paramdef" data-target="e2-query-find-'+this.count+'" src="'+ROOT+'/static/images/query.png" /> ')
                 .append(cmpi)
                 .append('<input type="text" name="value" size="12" value="'+value+'" placeholder="value" />');
                 // .append('<input name="recurse_p" type="checkbox" /><label>Child Parameters');
@@ -521,7 +521,7 @@
                 var create = $(' \
                     <li class="e2l-float-right"> \
                         <span> \
-                        <form action="'+EMEN2WEBROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/" method="get"> \
+                        <form action="'+ROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/" method="get"> \
                             <input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
                         </form> \
                         </span> \

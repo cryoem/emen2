@@ -4,32 +4,32 @@
     <ul class="e2l-menu e2l-cf">
 
         <li>
-            <a style="padding:0px;padding-left:8px;" href="${EMEN2WEBROOT}/"><img id="logo" src="${EMEN2WEBROOT}/static/images/${EMEN2LOGO}" alt="${EMEN2DBNAME}" /></a>
+            <a style="padding:0px;padding-left:8px;" href="${ROOT}/"><img id="logo" src="${ROOT}/static/images/${LOGO}" alt="${TITLE}" /></a>
         </li>
     
         % if USER:
 
-            <li><a href="${EMEN2WEBROOT}/">Home ${buttons.caret()}</a>
+            <li><a href="${ROOT}/">Home ${buttons.caret()}</a>
                 <ul>
-                    <li><a href="${EMEN2WEBROOT}/records/">Records</a></li>
-                    <li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/paramdefs/">Params</a></li>
-                    <li><a href="${EMEN2WEBROOT}/recorddefs/">Protocols</a></li>
-                    <li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/users/">Users</a></li>
-                    <li><a href="${EMEN2WEBROOT}/groups/">User groups</a></li>
-                    <li class="e2l-menu-divider"><a href="${EMEN2WEBROOT}/help/">Help</a></li>                
+                    <li><a href="${ROOT}/records/">Records</a></li>
+                    <li class="e2l-menu-divider"><a href="${ROOT}/paramdefs/">Params</a></li>
+                    <li><a href="${ROOT}/recorddefs/">Protocols</a></li>
+                    <li class="e2l-menu-divider"><a href="${ROOT}/users/">Users</a></li>
+                    <li><a href="${ROOT}/groups/">User groups</a></li>
+                    <li class="e2l-menu-divider"><a href="${ROOT}/help/">Help</a></li>                
                 </ul>
             </li>
 
             <li>
-                <a href="${EMEN2WEBROOT}/query/">Query ${buttons.caret()}</a>
+                <a href="${ROOT}/query/">Query ${buttons.caret()}</a>
                 <ul>
-                    <li><a href="${EMEN2WEBROOT}/query">All records</a></li>
+                    <li><a href="${ROOT}/query">All records</a></li>
                     <li class="e2l-menu-divider"></li>
-                    <li><a href="${EMEN2WEBROOT}/query/rectype.is.project/">Projects</a></li>
-                    <li><a href="${EMEN2WEBROOT}/query/rectype.is.grid_imaging/">Imaging sessions</a></li>
-                    <li><a href="${EMEN2WEBROOT}/query/rectype.is.image_capture*/">Images</a></li>
-                    <li><a href="${EMEN2WEBROOT}/query/rectype.is.labnotebook/">Lab notebooks</a></li>
-                    <li><a href="${EMEN2WEBROOT}/query/rectype.is.publication*/">Publications</a></li>
+                    <li><a href="${ROOT}/query/rectype.is.project/">Projects</a></li>
+                    <li><a href="${ROOT}/query/rectype.is.grid_imaging/">Imaging sessions</a></li>
+                    <li><a href="${ROOT}/query/rectype.is.image_capture*/">Images</a></li>
+                    <li><a href="${ROOT}/query/rectype.is.labnotebook/">Lab notebooks</a></li>
+                    <li><a href="${ROOT}/query/rectype.is.publication*/">Publications</a></li>
                 </ul>
             </li>
             
@@ -47,7 +47,7 @@
         % endif
 
         % if ADMIN:
-            <li><a href="${EMEN2WEBROOT}/">Admin ${buttons.caret()}</a>
+            <li><a href="${ROOT}/">Admin ${buttons.caret()}</a>
                 <ul>
                     <li><a href="${ctxt.reverse('Users/queue')}">Account requests</a></li>
                     ## <li><a href="${ctxt.reverse('Users/admin')}">User administration</a></li>
@@ -58,7 +58,7 @@
         % endif
 
         ## <li class="e2l-float-right nohover" role="search">
-        ##    <form method="get" action="${EMEN2WEBROOT}/query/">
+        ##    <form method="get" action="${ROOT}/query/">
         ##        ## type="search"
         ##        <input type="text" name="keywords" size="8" placeholder="Search" id="e2-header-search" />
         ##    </form>
@@ -66,18 +66,18 @@
 
         % if USER:
             <li class="e2l-float-right">
-                    <a href="${EMEN2WEBROOT}/user/${USER.name}/">${USER.displayname} ${buttons.caret()}</a>
+                    <a href="${ROOT}/user/${USER.name}/">${USER.displayname} ${buttons.caret()}</a>
                     <ul>                
-                        <li><a href="${EMEN2WEBROOT}/user/${USER.name}/edit/">Edit profile</a></li>
-                        <li><a href="${EMEN2WEBROOT}/auth/logout/">Logout</a></li>
+                        <li><a href="${ROOT}/user/${USER.name}/edit/">Edit profile</a></li>
+                        <li><a href="${ROOT}/auth/logout/">Logout</a></li>
                     </ul>
             </li>
         % else:
             <li class="e2l-float-right">
-                <a href="${EMEN2WEBROOT}/auth/login/">Login</a>
+                <a href="${ROOT}/auth/login/">Login</a>
             </li>
             <li class="e2l-float-right">
-                <a href="${EMEN2WEBROOT}/users/new/">Register</a>
+                <a href="${ROOT}/users/new/">Register</a>
             </li>
         % endif
 

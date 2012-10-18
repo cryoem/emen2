@@ -7,14 +7,14 @@
     ${ctxt.title}
 
     <ul class="e2l-actions">
-        <li><a class="e2-button" href="${EMEN2WEBROOT}/query/${paramdef.name}.!None./">${buttons.image('query.png', 'Query')} Query</a></li>
+        <li><a class="e2-button" href="${ROOT}/query/${paramdef.name}.!None./">${buttons.image('query.png', 'Query')} Query</a></li>
 
         % if editable:
-            <li><a class="e2-button" href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/edit/">${buttons.image('edit.png', 'Edit')} Edit</a></li>
+            <li><a class="e2-button" href="${ROOT}/paramdef/${paramdef.name}/edit/">${buttons.image('edit.png', 'Edit')} Edit</a></li>
         % endif
 
         % if create:
-            <li><a class="e2-button" href="${EMEN2WEBROOT}/paramdef/${paramdef.name}/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="New" /> New</a></li>
+            <li><a class="e2-button" href="${ROOT}/paramdef/${paramdef.name}/new/"><img src="${ROOT}/static/images/edit.png" alt="New" /> New</a></li>
         % endif
     </ul>
 </h1>

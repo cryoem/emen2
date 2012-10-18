@@ -34,9 +34,9 @@
         % if new or edit:
             <li><input type="submit" value="Save">
         % else:
-            <li><a class="e2-button" href="${EMEN2WEBROOT}/query/rectype.is.${recorddef.name}/">${buttons.image('query.png', 'Query')} Query</a></li>
-            <li><a class="e2-button" href="${EMEN2WEBROOT}/recorddef/${recorddef.name}/edit/">${buttons.image('edit.png', 'Edit')} Edit</a></li>
-            <li><a class="e2-button" href="${EMEN2WEBROOT}/recorddef/${recorddef.name}/new/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="New" /> New</a></li>
+            <li><a class="e2-button" href="${ROOT}/query/rectype.is.${recorddef.name}/">${buttons.image('query.png', 'Query')} Query</a></li>
+            <li><a class="e2-button" href="${ROOT}/recorddef/${recorddef.name}/edit/">${buttons.image('edit.png', 'Edit')} Edit</a></li>
+            <li><a class="e2-button" href="${ROOT}/recorddef/${recorddef.name}/new/"><img src="${ROOT}/static/images/edit.png" alt="New" /> New</a></li>
         % endif
     </ul>
         
@@ -189,12 +189,12 @@
         <table class="e2l-kv">
             <tr>
                 <td>Created:</td>
-                <td><a href="${EMEN2WEBROOT}/user/${recorddef.creator}">${recorddef.creator}</a> @ <time class="e2-localize" datetime="${recorddef.creationtime}">${recorddef.creationtime}</time></td>
+                <td><a href="${ROOT}/user/${recorddef.creator}">${recorddef.creator}</a> @ <time class="e2-localize" datetime="${recorddef.creationtime}">${recorddef.creationtime}</time></td>
             </tr>
 
             <tr>
                 <td>Modified:</td>
-                <td><a href="${EMEN2WEBROOT}/user/${recorddef.modifyuser}">${recorddef.modifyuser}</a> @ <time class="e2-localize" datetime="${recorddef.modifytime}">${recorddef.modifytime}</time></td>
+                <td><a href="${ROOT}/user/${recorddef.modifyuser}">${recorddef.modifyuser}</a> @ <time class="e2-localize" datetime="${recorddef.modifytime}">${recorddef.modifytime}</time></td>
             </tr>
         </table>
     </%buttons:singlepage>

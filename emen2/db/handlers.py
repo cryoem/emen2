@@ -73,7 +73,7 @@ def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
             cmd = cmd.replace(f, '.py')
 
     # Use a specific Python interpreter if configured.
-    python = emen2.db.config.get('EMAN2.EMAN2PYTHON')
+    python = emen2.db.config.get('EMAN2.python')
     if python:
         args.append(python)
 

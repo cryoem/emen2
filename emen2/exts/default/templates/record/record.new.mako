@@ -48,7 +48,7 @@
 
 ## Main rendered record
 
-<form id="e2-edit" data-name="None" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/new/${newrec.rectype}/" enctype="multipart/form-data">
+<form id="e2-edit" data-name="None" method="post" action="${ROOT}/record/${rec.name}/new/${newrec.rectype}/" enctype="multipart/form-data">
     <div id="rendered" class="e2-view" data-viewname="${viewname}">
         ${rendered}
     </div>

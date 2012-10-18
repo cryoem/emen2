@@ -41,7 +41,7 @@ class EMHome(View):
         if not self.ctxt['USER']:            
             self.template = '/em/home.noauth'
             try:
-                banner = self.db.record.get(emen2.db.config.get('bookmarks.BANNER_NOAUTH'))
+                banner = self.db.record.get(emen2.db.config.get('bookmarks.banner_noauth'))
                 render_banner = self.db.record.render(banner, viewname="banner")
             except:
                 pass
@@ -50,7 +50,7 @@ class EMHome(View):
             return
 
         try:
-            banner = self.db.record.get(emen2.db.config.get('bookmarks.BANNER'))
+            banner = self.db.record.get(emen2.db.config.get('bookmarks.banner'))
             render_banner = self.db.record.render(banner, viewname="banner")
         except:
             pass
@@ -164,7 +164,7 @@ class EMHome(View):
     #     perms = [[], [], project.get('project_investigators', []), project.get('name_pi', [])]
     #     groups = project.get('groups', [])
     #     self.db.record.setpermissionscompat([project.name], addumask=perms, overwrite_users=True, recurse=-1)
-    #     self.redirect('%s/em/home/project/%s/'%(self.ctxt['EMEN2WEBROOT'], project.name))
+    #     self.redirect('%s/em/home/project/%s/'%(self.ctxt['ROOT'], project.name))
 
 
         

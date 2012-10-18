@@ -1,16 +1,16 @@
-From: ${MAILADMIN}
+From: ${from}
 To: ${recipient}
-Cc: ${MAILADMIN}
-Subject: RE: ${EMEN2DBNAME} Account Request -- Declined
+Cc: ${from}
+Subject: RE: ${TITLE} Account Request -- Declined
 
 ${recipient}:
 
-Your ${EMEN2DBNAME} account request has been declined.
+Your ${TITLE} account request has been declined.
 
-If you feel this is in error, please contact the database admin: ${MAILADMIN}
+If you feel this is in error, please contact the database admin: ${from}
 
 Thankyou,
 
-${EMEN2DBNAME} Administrator
-${MAILADMIN}
-${EMEN2EXTURI}
+${TITLE} Administrator
+${from}
+${uri}

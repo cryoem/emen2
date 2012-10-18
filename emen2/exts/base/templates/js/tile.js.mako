@@ -113,7 +113,7 @@
     //         var self = this;    
     //         $.ajax({
     //             type: 'POST',
-    //             url: EMEN2WEBROOT+'/eman2/'+this.options.bdo+'/get_attr_dict',
+    //             url: ROOT+'/eman2/'+this.options.bdo+'/get_attr_dict',
     //             dataType: 'json',
     //             success: function(d) {
     //                 self.emdata = d;
@@ -570,7 +570,7 @@
     //         var eman2_x = self.options.x - self.options.size / 2;
     //         var eman2_y = self.options.y - self.options.size / 2;
     //         
-    //         var src = EMEN2WEBROOT+'/eman2/'+self.options.bdo+'/box?x='+eman2_x+'&y='+eman2_y+'&size='+self.options.size+'&scale='+self.options.scale;
+    //         var src = ROOT+'/eman2/'+self.options.bdo+'/box?x='+eman2_x+'&y='+eman2_y+'&size='+self.options.size+'&scale='+self.options.scale;
     //         if (self.options.rmin || self.options.rmax) {
     //             src += '&amp;min='+self.options.rmin+'&amp;max='+self.options.rmax;
     //         } 
@@ -616,7 +616,7 @@
             // Get the details about this image
             $.ajax({
                 type: 'POST',
-                url: EMEN2WEBROOT+'/preview/'+this.options.bdo+'/header/',
+                url: ROOT+'/preview/'+this.options.bdo+'/header/',
                 dataType: 'json',
                 success: function(d) {
                     self.element.empty();
@@ -684,7 +684,7 @@
                 <input type="button" name="zoomout" value="-" /> \
                 <input type="button" name="zoomin" value="+" /><br /> \
                 <input type="button" name="autocenter" value="Center" /><br /> \
-                <a class="e2-button" href="'+EMEN2WEBROOT+'/download/'+self.options.bdo+'/'+self.options.filename+'">Download</a><br /> \
+                <a class="e2-button" href="'+ROOT+'/download/'+self.options.bdo+'/'+self.options.filename+'">Download</a><br /> \
                 <button name="convert">Convert</button> \
                 <h4 class="e2l-label">Mode</h4> \
                 <div style="text-align:left"> \
@@ -724,7 +724,7 @@
             var self = this;
             var dialog = $(' \
                 <div> \
-                <form method="post" action="'+EMEN2WEBROOT+'/eman2/'+self.options.bdo+'/convert/"> \
+                <form method="post" action="'+ROOT+'/eman2/'+self.options.bdo+'/convert/"> \
                     <h4>Format</h4> \
                     <ul class="e2l-nonlist"> \
                         <li><input type="radio" name="format" value="tif" id="format-tif" checked="checked"  /><label for="format-tif"> TIFF</label></li> \
@@ -771,7 +771,7 @@
                 this.autocenter();
             } else if (mode == "pspec") {
                 // Draw 2D FFT
-                var modeimg = $('<img class="e2-tile-pspec" src="'+EMEN2WEBROOT+'/preview/'+this.options.bdo+'/pspec/" alt="pspec" />');
+                var modeimg = $('<img class="e2-tile-pspec" src="'+ROOT+'/preview/'+this.options.bdo+'/pspec/" alt="pspec" />');
                 var w = this.element.width() / 2;
                 modeimg.css('margin-left', w-256);
                 this.element.append(modeimg);            
@@ -779,7 +779,7 @@
                 var apix = $('input[name=apix]', this.element).val();
                 $.ajax({
                     type: 'POST',
-                    url: EMEN2WEBROOT+'/preview/'+this.options.bdo+'/pspec1d/',
+                    url: ROOT+'/preview/'+this.options.bdo+'/pspec1d/',
                     dataType: 'json',
                     success: function(d) {
                         self.plot1d(d, apix);
@@ -896,7 +896,7 @@
         },
 
         get_tile: function(x, y) {
-            return EMEN2WEBROOT+'/preview/'+this.options.bdo+'/tiles/?x='+x+'&y='+y+'&scale='+this.options.scale
+            return ROOT+'/preview/'+this.options.bdo+'/tiles/?x='+x+'&y='+y+'&scale='+this.options.scale
         },
         
         recalc: function() {

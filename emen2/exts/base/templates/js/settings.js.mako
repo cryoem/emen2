@@ -16,7 +16,7 @@ for prop in vtm.getproperties():
     properties[prop] = [p.defaultunits, p.units]
 %>
 
-var EMEN2WEBROOT=${jsonrpc.jsonutil.encode(EMEN2WEBROOT)};
+var ROOT=${jsonrpc.jsonutil.encode(ROOT)};
 var VERSION=${jsonrpc.jsonutil.encode(ctxt.version)};
 
 var valid_properties=${jsonrpc.jsonutil.encode(properties)};

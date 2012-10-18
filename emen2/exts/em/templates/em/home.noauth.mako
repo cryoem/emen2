@@ -5,7 +5,7 @@
     $('input[name=name]').focus();
 </%block>
 
-<h1>Welcome to ${EMEN2DBNAME}</h1>
+<h1>Welcome to ${TITLE}</h1>
 
 <div>${render_banner or ''}</div>
 

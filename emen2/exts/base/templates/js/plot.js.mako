@@ -224,7 +224,7 @@
             var controls = $('<li></li>');
 
             controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
-            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+this.options.name+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+this.options.name+'" src="'+EMEN2WEBROOT+'/static/images/query.png" /></div>')
+            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+this.options.name+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+this.options.name+'" src="'+ROOT+'/static/images/query.png" /></div>')
             controls.append('<div><span class="e2-plot-label">Range:</span><input class="e2-plot-bounds" type="text" name="min" /> - <input class="e2-plot-bounds" type="text" name="max" /></div>');
             
             if (this.options.binnable) {
@@ -405,7 +405,7 @@
             var self = this;
             var controls = $('<li></li>');
             controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
-            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+this.options.name+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+this.options.name+'" src="'+EMEN2WEBROOT+'/static/images/query.png" /></div>')
+            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+this.options.name+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+this.options.name+'" src="'+ROOT+'/static/images/query.png" /></div>')
             var total = 0;
             var table = $('<table><tbody></tbody></table>');
             var tb = $('tbody', table);

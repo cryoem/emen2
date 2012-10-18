@@ -10,7 +10,7 @@
 </%block>
 
 
-<h1>Welcome to ${EMEN2DBNAME}</h1>
+<h1>Welcome to ${TITLE}</h1>
 
 <p>
     Please complete this form to create an account. 
@@ -29,7 +29,7 @@
     when your account is approved.
 </p>
 
-<form action="${EMEN2WEBROOT}/users/new/" method="post">
+<form action="${ROOT}/users/new/" method="post">
 
     <%buttons:singlepage label='Account Details'>
         ${user_util.newuser(user=user)}

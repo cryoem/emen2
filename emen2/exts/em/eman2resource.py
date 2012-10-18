@@ -87,7 +87,7 @@
 #     #
 #     #     if compress:
 #     #         fs.pop()
-#     #         workfile = os.path.join(g.paths.TMPPATH, "%s.%s"%(bdo.name.replace(":","."), fs[-1]))
+#     #         workfile = os.path.join(g.paths.tmp, "%s.%s"%(bdo.name.replace(":","."), fs[-1]))
 #     #         if not os.access(workfile, os.F_OK):
 #     #             print "Decompressing %s to %s"%(filepath, workfile)
 #     #             a = subprocess.Popen("%s -d -c %s > %s"%(compress, filepath, workfile), shell=True)
@@ -164,7 +164,7 @@
 # 
 #         if compress:
 #             fs.pop()
-#             tmppath = emen2.db.config.get('paths.TMPPATH')
+#             tmppath = emen2.db.config.get('paths.tmp')
 #             workfile = os.path.join(tmppath, "%s.%s"%(bdo.name.replace(":","."), fs[-1]))
 #             if not os.access(workfile, os.F_OK):
 #                 # print "Decompressing %s to %s"%(filepath, workfile)

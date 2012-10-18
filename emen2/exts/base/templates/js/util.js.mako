@@ -201,7 +201,7 @@ emen2.template.caret = function(state, elem) {
 };
 
 emen2.template.static = function(name) {
-    return EMEN2WEBROOT+'/static-'+VERSION+'/'+name
+    return ROOT+'/static-'+VERSION+'/'+name
 };
 
 emen2.template.image = function(name, alt, cls) {
@@ -374,7 +374,7 @@ emen2.util.set_remove = function(i, l) {
 
 // $.getFromURL = function(args, data, callback, errback, dataType){
 //     $.get_url(args.name, args.args, args.kwargs)(function(url) {
-//         $.getJSON(EMEN2WEBROOT+url, data, callback, errback, dataType)
+//         $.getJSON(ROOT+url, data, callback, errback, dataType)
 //     })
 // }
 // 
@@ -668,7 +668,7 @@ emen2.util.set_remove = function(i, l) {
                 ul.append('<li><a href="">No bookmarks</a></li>');
             }
             $.each(bookmarks, function() {
-                var li = $('<li><a href="'+EMEN2WEBROOT+'/record/'+this+'/">'+emen2.caches['recnames'][this]+'</a></li>');
+                var li = $('<li><a href="'+ROOT+'/record/'+this+'/">'+emen2.caches['recnames'][this]+'</a></li>');
                 ul.append(li);
             });            
             this.element.append(ul);
@@ -783,10 +783,10 @@ emen2.util.set_remove = function(i, l) {
 
             var prevnext = $('<h4 class="e2l-cf" style="text-align:center">Siblings</h4>');
             if (this.options.prev) {
-                prevnext.append('<div class="e2l-float-left"><a href="'+EMEN2WEBROOT+'/record/'+this.options.prev+'/#siblings">&laquo; Previous</a></div>');
+                prevnext.append('<div class="e2l-float-left"><a href="'+ROOT+'/record/'+this.options.prev+'/#siblings">&laquo; Previous</a></div>');
             }
             if (this.options.next) {
-                prevnext.append('<div class="e2l-float-right"><a href="'+EMEN2WEBROOT+'/record/'+this.options.next+'/#siblings">Next &raquo;</a></div>');
+                prevnext.append('<div class="e2l-float-right"><a href="'+ROOT+'/record/'+this.options.next+'/#siblings">Next &raquo;</a></div>');
             }                    
             this.element.append(prevnext);
             
@@ -794,7 +794,7 @@ emen2.util.set_remove = function(i, l) {
             $.each(siblings, function(i,k) {
                 var rn = emen2.cache.get(k, 'recnames') || k;
                 if (k != rec.name) {
-                    ul.append('<li><a href="'+EMEN2WEBROOT+'/record/'+k+'/?sibling='+self.options.name+'">'+rn+'</a></li>');
+                    ul.append('<li><a href="'+ROOT+'/record/'+k+'/?sibling='+self.options.name+'">'+rn+'</a></li>');
                 } else {
                     ul.append('<li class="e2-siblings-active">'+rn+'</li>');
                 }

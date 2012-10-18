@@ -101,9 +101,9 @@
             // Create the link
             var link = '';
             if (this.options.autolink) {
-                var link = EMEN2WEBROOT+'/'+this.options.keytype+'/'+this.options.name+'/';
+                var link = ROOT+'/'+this.options.keytype+'/'+this.options.name+'/';
             } else if (this.options.keytype == 'binary') {
-                var link = EMEN2WEBROOT+'/download/'+item.name+'/'+item.filename;
+                var link = ROOT+'/download/'+item.name+'/'+item.filename;
             }
             
             // Set the box properties
@@ -135,10 +135,10 @@
             var img = $(emen2.template.image(src, '', 'e2l-thumbnail'));
             
             if (this.options.keytype == 'user' && item.userrec['person_photo']) {
-                src = EMEN2WEBROOT+'/download/'+item.userrec['person_photo']+'/user.jpg?size=thumb';
+                src = ROOT+'/download/'+item.userrec['person_photo']+'/user.jpg?size=thumb';
                 img.attr('src', src);
             } else if (this.options.keytype == 'binary') {
-                src = EMEN2WEBROOT+'/download/'+item.name+'/user.jpg?size=thumb';
+                src = ROOT+'/download/'+item.name+'/user.jpg?size=thumb';
                 img.attr('src', src);
             } 
             

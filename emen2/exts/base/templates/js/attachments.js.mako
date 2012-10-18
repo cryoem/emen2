@@ -374,7 +374,7 @@
                 var sum2 = $('<p>This record has '+this.bdos.length+' attachments.</p>');
                 var rec = emen2.cache.get(this.options.name);
                 if (rec['children'].length) {
-                    sum2.append(' There may be additional attachments in child records: <a href="'+EMEN2WEBROOT+'/record/'+this.options.name+'/query/attachments/">view all attachments in child records</a>.');
+                    sum2.append(' There may be additional attachments in child records: <a href="'+ROOT+'/record/'+this.options.name+'/query/attachments/">view all attachments in child records</a>.');
                 }
                 summary.append(sum2);
                 this.element.append(summary);

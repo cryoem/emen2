@@ -4,7 +4,7 @@ import emen2.db.config
 
 
 def dfs(root, tree, recurse=1):
-    maxrecurse = emen2.db.config.get('params.MAXRECURSE', 50)
+    maxrecurse = emen2.db.config.get('params.maxrecurse')
     def inner(stack, children, depth=0):
         if depth >= maxrecurse:
             return

@@ -261,7 +261,7 @@ class _Router(emen2.util.registry.Registry):
     @classmethod
     def reverse(cls, *args, **kwargs):
         '''Take a route name and arguments, and return a Route'''
-        root = emen2.db.config.get('network.EMEN2WEBROOT') or ""
+        root = emen2.db.config.get('web.root')
         result = '/error'
         anchor = kwargs.pop('anchor', '')
         if anchor:

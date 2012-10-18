@@ -1318,7 +1318,6 @@ class RelateDB(DBODB):
 
     """
 
-    maxrecurse = emen2.db.config.get('params.MAXRECURSE', 50)
 
     def update_names(self, items, txn=None):
         # Update all the record's links
@@ -1694,8 +1693,10 @@ class RelateDB(DBODB):
     def _dfs(self, key, rel='children', recurse=1, ctx=None, txn=None):
         # (Internal) Tree search
         # Return a dict of results as well as the nodes visited (saves time)
+        
+        # Check max recursion depth
         if recurse == -1:
-            recurse = self.maxrecurse
+            recurse = emen2.db.config.get('params.maxrecurse')
 
         # Cached items..
         if rel == 'children':

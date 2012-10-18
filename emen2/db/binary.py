@@ -240,7 +240,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
         # Get the binary storage paths from config
         # Find the last item matching the current date
-        binarypaths = emen2.db.config.get('paths.BINARYPATH')
+        binarypaths = emen2.db.config.get('paths.binary')
         bp = [x for x in sorted(binarypaths.keys()) if str(x)<=datekey]
 
         # Resolve the parsed bdo key to a directory (basepath) and file (filepath)
@@ -248,7 +248,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
         filepath = os.path.join(basepath, "%05X"%counter)
         
         # ... same for previewpath
-        previewpaths = emen2.db.config.get('paths.PREVIEWPATH')
+        previewpaths = emen2.db.config.get('paths.preview')
         pp = [x for x in sorted(previewpaths.keys()) if str(x)<=datekey]
         previewpath = os.path.join(previewpaths[pp[-1]], datedir, "%05X"%counter)
 

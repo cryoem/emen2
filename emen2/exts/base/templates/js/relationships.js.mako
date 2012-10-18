@@ -127,7 +127,7 @@
                 this.build_summary_label(parents, 'parents')+
                 ' and '+
                 this.build_summary_label(children, 'children')+
-                '. Click to <a href="'+EMEN2WEBROOT+'/records/?root='+this.options.name+'">view the record tree starting at this record</a>.</p>');
+                '. Click to <a href="'+ROOT+'/records/?root='+this.options.name+'">view the record tree starting at this record</a>.</p>');
             // '. Select <span class="e2l-a e2-permissions-all">all</span>
             //    or <span class="e2l-a e2-permissions-none">none</span>.
 
@@ -506,7 +506,7 @@
             // Set the image to expanded
             var img = elem.find('img.e2-tree-expand');
             img.addClass('e2-tree-expanded');
-            img.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg.close.'+this.options.mode+'.png');
+            img.attr('src', ROOT+'/static-'+VERSION+'/images/bg.close.'+this.options.mode+'.png');
             
             // The new ul
             var ul = $('<ul data-name="'+name+'"></ul>');
@@ -528,7 +528,7 @@
             $.each(sortkeys, function() {
                 var li = $(' \
                     <li data-name="'+this+'"> \
-                        <a href="'+EMEN2WEBROOT+'/'+self.options.keytype+'/'+this+'/">'
+                        <a href="'+ROOT+'/'+self.options.keytype+'/'+this+'/">'
                             +self.getname(this)+
                         '</a> \
                     </li>');
@@ -558,7 +558,7 @@
 
             // Show activity indicator
             var img = elem.children('img');
-            img.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/spinner.gif'); 
+            img.attr('src', ROOT+'/static-'+VERSION+'/images/spinner.gif'); 
             
             // Remove any current children
             elem.find('ul').remove();
@@ -588,7 +588,7 @@
                 // Contract this branch
                 elem.removeClass('e2-tree-expanded');
                 elem.siblings('ul').remove();
-                elem.attr('src', EMEN2WEBROOT+'/static-'+VERSION+'/images/bg.open.'+this.options.mode+'.png');
+                elem.attr('src', ROOT+'/static-'+VERSION+'/images/bg.open.'+this.options.mode+'.png');
             } else {
                 // Expand this branch
                 this.expand(elem.parent());

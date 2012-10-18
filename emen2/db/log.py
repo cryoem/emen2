@@ -77,8 +77,8 @@ class EMEN2Logger(object):
     def init(self):
         """Start logging system."""
         # The configuration has been loaded
-        self.logpath = emen2.db.config.get("paths.LOGPATH")
-        self.log_level = self.log_levels.get(emen2.db.config.get('LOG_LEVEL', 0))
+        self.logpath = emen2.db.config.get("paths.log")
+        self.log_level = self.log_levels.get(emen2.db.config.get('log_level', 0))
 
     def start(self):
         """Start file-backed logging."""
@@ -86,7 +86,7 @@ class EMEN2Logger(object):
 
         # Open the various log files.        
         if not self.logpath:
-            raise Exception, "No LOGPATH set"
+            raise Exception, "No log path set"
             
         self.loggers["INFO"] = SubLogger(open(os.path.join(self.logpath, "emen2.log"), "a+"))
         self.loggers["SECURITY"] = SubLogger(open(os.path.join(self.logpath, "security.log"), "a+"))

@@ -4,7 +4,7 @@
 
 
 <p>
-    <form method="post" action="${EMEN2WEBROOT}/users/admin/">
+    <form method="post" action="${ROOT}/users/admin/">
         % if q:
             <input type="text" name="q" length="30" value="${q}" />
         % else:
@@ -41,11 +41,11 @@ users_sorted = sorted(users, key=sortkey, reverse=reverse)
     <table  class="e2l-shaded" width="100%" >
         <thead>
             <tr>
-                <th><a href="${EMEN2WEBROOT}/users/admin/?sortby=disabled">Active</a></th>
-                <th><a href="${EMEN2WEBROOT}/users/admin/?sortby=disabled">Disabled</a></th>
-                <th><a href="${EMEN2WEBROOT}/users/admin/?sortby=name">Account Name</a></th>
-                <th><a href="${EMEN2WEBROOT}/users/admin/?sortby=displayname">Name</a></th>
-                <th><a href="${EMEN2WEBROOT}/users/admin/?sortby=email">Email</a> (<a href="${EMEN2WEBROOT}/users/admin/?sortby=domain">sort by domain</a>)</th>
+                <th><a href="${ROOT}/users/admin/?sortby=disabled">Active</a></th>
+                <th><a href="${ROOT}/users/admin/?sortby=disabled">Disabled</a></th>
+                <th><a href="${ROOT}/users/admin/?sortby=name">Account Name</a></th>
+                <th><a href="${ROOT}/users/admin/?sortby=displayname">Name</a></th>
+                <th><a href="${ROOT}/users/admin/?sortby=email">Email</a> (<a href="${ROOT}/users/admin/?sortby=domain">sort by domain</a>)</th>
             </tr>
         </thead>
         <tbody>
@@ -58,7 +58,7 @@ users_sorted = sorted(users, key=sortkey, reverse=reverse)
                         <td><input type="radio" name="${user.name}" value="0" /></td>
                         <td><input type="radio" name="${user.name}" checked="1" value="1" /></td>            
                     % endif
-                    <td><a href="${EMEN2WEBROOT}/user/${user.name}/edit/">${user.name}</a></td>
+                    <td><a href="${ROOT}/user/${user.name}/edit/">${user.name}</a></td>
                     <td>${user.displayname}</td>
                     <td>${user.get('email','')}</td>
                 </tr>

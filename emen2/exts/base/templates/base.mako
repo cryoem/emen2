@@ -21,14 +21,14 @@
 
     <title>
         <%block name="title">
-            ${EMEN2DBNAME}: ${ctxt.title}
+            ${TITLE}: ${ctxt.title}
         </%block>
     </title>
 
     <%block name="css_include">
-        <link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/static-${ctxt.version}/css/custom-theme/jquery-ui-1.8.16.custom.css" />
-        <link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/tmpl-${ctxt.version}/css/base.css" />
-        <link rel="StyleSheet" type="text/css" href="${EMEN2WEBROOT}/tmpl-${ctxt.version}/css/site.css" />
+        <link rel="StyleSheet" type="text/css" href="${ROOT}/static-${ctxt.version}/css/custom-theme/jquery-ui-1.8.16.custom.css" />
+        <link rel="StyleSheet" type="text/css" href="${ROOT}/tmpl-${ctxt.version}/css/base.css" />
+        <link rel="StyleSheet" type="text/css" href="${ROOT}/tmpl-${ctxt.version}/css/site.css" />
     </%block>
     
     <style type="text/css">
@@ -37,31 +37,31 @@
 
     <%block name="js_include">
         ## EMEN2 Settings
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/settings.js"></script>
+        <script type="text/javascript" src="${ROOT}/tmpl-${ctxt.version}/js/settings.js"></script>
 
         ## jQuery, jQuery-UI, and plugins
-        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/jquery/jquery.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/jquery/jquery-ui.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/jquery/jquery.json.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/jquery/jquery.jsonrpc.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/jquery/jquery.ui.timepicker-addon.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/jquery/jquery.timeago.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/jquery/jquery.localize.js"></script>
+        <script type="text/javascript" src="${ROOT}/static-${ctxt.version}/js/jquery/jquery.js"></script>
+        <script type="text/javascript" src="${ROOT}/static-${ctxt.version}/js/jquery/jquery-ui.js"></script>
+        <script type="text/javascript" src="${ROOT}/static-${ctxt.version}/js/jquery/jquery.json.js"></script>
+        <script type="text/javascript" src="${ROOT}/static-${ctxt.version}/js/jquery/jquery.jsonrpc.js"></script>
+        <script type="text/javascript" src="${ROOT}/static-${ctxt.version}/js/jquery/jquery.ui.timepicker-addon.js"></script>
+        <script type="text/javascript" src="${ROOT}/static-${ctxt.version}/js/jquery/jquery.timeago.js"></script>
+        <script type="text/javascript" src="${ROOT}/static-${ctxt.version}/js/jquery/jquery.localize.js"></script>
 
         ## Base EMEN2 widgets
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/util.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/edit.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/attachments.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/find.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/permissions.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/relationships.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/query.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/tile.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/tmpl-${ctxt.version}/js/plot.js"></script>  
+        <script type="text/javascript" src="${ROOT}/tmpl-${ctxt.version}/js/util.js"></script>
+        <script type="text/javascript" src="${ROOT}/tmpl-${ctxt.version}/js/edit.js"></script>
+        <script type="text/javascript" src="${ROOT}/tmpl-${ctxt.version}/js/attachments.js"></script>
+        <script type="text/javascript" src="${ROOT}/tmpl-${ctxt.version}/js/find.js"></script>
+        <script type="text/javascript" src="${ROOT}/tmpl-${ctxt.version}/js/permissions.js"></script>
+        <script type="text/javascript" src="${ROOT}/tmpl-${ctxt.version}/js/relationships.js"></script>
+        <script type="text/javascript" src="${ROOT}/tmpl-${ctxt.version}/js/query.js"></script>
+        <script type="text/javascript" src="${ROOT}/tmpl-${ctxt.version}/js/tile.js"></script>
+        <script type="text/javascript" src="${ROOT}/tmpl-${ctxt.version}/js/plot.js"></script>  
 
         ## D3 visualization library
-        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/d3/d3.js"></script>
-        <script type="text/javascript" src="${EMEN2WEBROOT}/static-${ctxt.version}/js/d3/d3.time.js"></script>
+        <script type="text/javascript" src="${ROOT}/static-${ctxt.version}/js/d3/d3.js"></script>
+        <script type="text/javascript" src="${ROOT}/static-${ctxt.version}/js/d3/d3.time.js"></script>
         
         ## Internet Explorer...
         ## <script type="text/javascript" src="https://getfirebug.com/firebug-lite.js"></script>

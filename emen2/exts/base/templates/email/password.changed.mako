@@ -1,16 +1,16 @@
-From: ${MAILADMIN}
+From: ${from}
 To: ${recipient}
-Cc: ${MAILADMIN}
-Subject: ${EMEN2DBNAME} Password Changed
+Cc: ${from}
+Subject: ${TITLE} Password Changed
 
 ${recipient}:
 
-The password for your account on ${EMEN2DBNAME} has been changed.
+The password for your account on ${TITLE} has been changed.
 
-If you did not change your password, please contact the ${EMEN2DBNAME} administrator, ${MAILADMIN}
+If you did not change your password, please contact the ${TITLE} administrator, ${from}
 
 Thankyou,
 
-${EMEN2DBNAME} Administrator
-${MAILADMIN}
-${EMEN2EXTURI}
+${TITLE} Administrator
+${from}
+${uri}

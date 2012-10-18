@@ -18,7 +18,7 @@ class Home(View):
         
         # Get the banner/welcome message
         bookmarks = {}
-        banner = emen2.db.config.get('bookmarks.BANNER')
+        banner = emen2.db.config.get('bookmarks.banner')
 
         try:
             user, groups = self.db.auth.check.context()
@@ -28,7 +28,7 @@ class Home(View):
             self.ctxt["msg"] = str(inst)
 
         if user == "anonymous":
-            banner = bookmarks.get('bookmarks.BANNER_NOAUTH', banner)
+            banner = bookmarks.get('bookmarks.banner_noauth', banner)
 
         try:
             banner = self.db.record.get(banner)

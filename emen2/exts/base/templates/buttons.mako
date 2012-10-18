@@ -37,20 +37,20 @@
 ## Some simple helpers
 
 <%def name="image(name, alt='', cls='')">
-    <img src="${EMEN2WEBROOT}/static-${ctxt.version}/images/${name}" class="${cls}" alt="${alt}" />
+    <img src="${ROOT}/static-${ctxt.version}/images/${name}" class="${cls}" alt="${alt}" />
 </%def>
 
 
 <%def name="spinner(show=True, cls='')">
-    <img src="${EMEN2WEBROOT}/static/images/spinner.gif" class="e2l-spinner ${forms.iffalse(show, 'e2l-hide')} ${cls}" alt="Loading" />
+    <img src="${ROOT}/static/images/spinner.gif" class="e2l-spinner ${forms.iffalse(show, 'e2l-hide')} ${cls}" alt="Loading" />
 </%def>
 
 
 <%def name="caret(state='down')">
     % if state == 'up':
-        <img src="${EMEN2WEBROOT}/static/images/caret.up.png" alt="^" />
+        <img src="${ROOT}/static/images/caret.up.png" alt="^" />
     % elif state == 'down':
-        <img src="${EMEN2WEBROOT}/static/images/caret.down.png" alt="^" />    
+        <img src="${ROOT}/static/images/caret.down.png" alt="^" />    
     % endif
 </%def>
 
@@ -63,7 +63,7 @@
 
 
 <%def name="editicon()">
-    <img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" />
+    <img src="${ROOT}/static/images/edit.png" alt="Edit" />
 </%def>
 
 
@@ -84,21 +84,21 @@
     item = item or dict()
     
     if autolink:
-        link = '%s/%s/%s/'%(EMEN2WEBROOT, item.get('keytype'), item.get('name'))
+        link = '%s/%s/%s/'%(ROOT, item.get('keytype'), item.get('name'))
 
-    src = "%s/static/images/gears.png"%EMEN2WEBROOT
+    src = "%s/static/images/gears.png"%ROOT
     title = title or item.get('desc_short') or item.get('name')
     body = ''
         
     if item.get('keytype') == 'user':
-        src = "%s/static/images/nophoto.png"%EMEN2WEBROOT
+        src = "%s/static/images/nophoto.png"%ROOT
         title = item.get('displayname') or item.get('name')
         body = body or item.get('email')
         photo = item.get('userrec', dict()).get('person_photo')
         if photo:
-            src = "%s/download/%s/user.jpg?size=thumb"%(EMEN2WEBROOT, photo)
+            src = "%s/download/%s/user.jpg?size=thumb"%(ROOT, photo)
     elif item.get('keytype') == 'group':
-        src = "%s/static/images/group.png"%EMEN2WEBROOT
+        src = "%s/static/images/group.png"%ROOT
         title = item.get('displayname')
         body = body or '%s members'%sum([len(i) for i in item.get('permissions',[])])
     elif item.get('keytype') == 'paramdef':

@@ -5,7 +5,7 @@
 
 <h1>
     ${USER.displayname}
-    <span class="e2l-label"><a href="${EMEN2WEBROOT}/user/${USER.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
+    <span class="e2l-label"><a href="${ROOT}/user/${USER.name}/edit/"><img src="${ROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></span>
 </h1>
 
 <div class="e2l-cf">
@@ -19,10 +19,10 @@
 
 % if banner:
     <h1>
-        Welcome to ${EMEN2DBNAME}
+        Welcome to ${TITLE}
         % if banner.writable():
             <span class="e2l-label">
-                <a href="${EMEN2WEBROOT}/record/${banner.name}/edit/"><img src="${EMEN2WEBROOT}/static/images/edit.png" alt="Edit" /> Edit</a>
+                <a href="${ROOT}/record/${banner.name}/edit/"><img src="${ROOT}/static/images/edit.png" alt="Edit" /> Edit</a>
             </span>
         % endif
     </h1>
