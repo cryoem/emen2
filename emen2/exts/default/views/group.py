@@ -29,7 +29,7 @@ class Groups(View):
 @View.register
 class Group(View):
     
-    @View.add_matcher(r'^/group/(?P<name>[\w\- ]+)/$')
+    @View.add_matcher(r'^/group/(?P<name>[^/]*)/$')
     def main(self, name=None):
         group = self.db.group.get(name)
         self.title = "User group: %s"%(group.displayname)
@@ -39,7 +39,7 @@ class Group(View):
         self.ctxt['edit'] = False
 
 
-    @View.add_matcher(r'^/group/(?P<name>[\w\- ]+)/edit/$')
+    @View.add_matcher(r'^/group/(?P<name>[^/]*)/edit/$')
     def edit(self, name=None, **kwargs):
         group = self.db.group.get(name)
         self.title = "User group: %s"%(group.displayname)
@@ -57,7 +57,6 @@ class Group(View):
         self.redirect('/group/%s/'%group.name)
         
 
-    # @View.add_matcher(r'^/group/(?P<name>[\w\- ]+)/new/$')
     @View.add_matcher(r'^/groups/new/$')
     def new(self, name=None, **kwargs):
         # We have to supply a group name.. just use a random string.

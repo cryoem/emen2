@@ -54,7 +54,7 @@ class AddExtLookup(mako.lookup.TemplateLookup):
         return tmpl.render(**ctxt)
 
 # Mako Template Loader
-templates = AddExtLookup(input_encoding='utf-8')
+templates = AddExtLookup(input_encoding='utf-8') ## , default_filters=['h']
 
 
 

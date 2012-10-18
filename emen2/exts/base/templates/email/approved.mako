@@ -1,6 +1,6 @@
-From: ${from}
-To: ${recipient}
-Cc: ${from}
+From: ${from_addr}
+To: ${to_addr}
+Cc: ${from_addr}
 Subject: RE: ${dbname} Account Request -- Approved
 
 ${displayname}:
@@ -15,4 +15,4 @@ Please make sure your profile information is correct after signing in.
 Thankyou,
 
 ${dbname} Administrator
-${from}
+${from_addr}

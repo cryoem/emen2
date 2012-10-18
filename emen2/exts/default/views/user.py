@@ -19,7 +19,7 @@ HASH_USERNAME = True
 @View.register
 class User(View):
 
-    @View.add_matcher("^/user/(?P<name>[\w\- ]+)/$")
+    @View.add_matcher("^/user/(?P<name>[^/]*)/$")
     def main(self, name=None):
         self.template = "/pages/user.view"
         user = self.db.user.get(name, filt=False)
@@ -28,7 +28,7 @@ class User(View):
         if user.disabled:
             self.notify("This user account is disabled", error=True)
 
-    @View.add_matcher("^/user/(?P<name>[\w\- ]+)/edit/$")
+    @View.add_matcher("^/user/(?P<name>[^/]*)/edit/$")
     def edit(self, name=None, **kwargs):
         self.template = "/pages/user.edit"
         user = self.db.user.get(name, filt=False)

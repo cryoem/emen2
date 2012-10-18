@@ -147,7 +147,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         ## Title
         <li role="tab">
             <h2 class="e2l-gradient">
-                <a href="${EMEN2WEBROOT}/record/${rec.name}/">Record #${rec.name}</a>
+                <a href="${ROOT}/record/${rec.name}/">Record #${rec.name}</a>
             </h2>
         </li>
 
@@ -215,7 +215,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         <li role="tab" data-tab="comments">
             <a href="#comments">
                 <span id="e2l-editbar2-commentcount">
-                    <img src="${EMEN2WEBROOT}/static/images/comment.closed.png" alt="Comments" />
+                    <img src="${ROOT}/static/images/comment.closed.png" alt="Comments" />
                     ${len(comments)} Comments
                 </span>
             </a>
@@ -224,7 +224,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         <li role="tab" data-tab="comments">
             <a href="#comments">
                 <span id="e2l-editbar2-historycount">
-                    <img src="${EMEN2WEBROOT}/static/images/history.png" alt="Edits" />
+                    <img src="${ROOT}/static/images/history.png" alt="Edits" />
                     ${historycount} Edits
                 </span>            
             </a>
@@ -261,11 +261,11 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                 <tr>
                     <td style="width:15px">
                         % if siblings_index > 0:
-                            <a href="${EMEN2WEBROOT}/record/${siblings_sort[siblings_index-1]}?sibling=${sibling}">&laquo;</a>
+                            <a href="${ROOT}/record/${siblings_sort[siblings_index-1]}?sibling=${sibling}">&laquo;</a>
                         % endif
                     </td>
                     <td>
-                        ## <a href="${EMEN2WEBROOT}/recorddef/${rec.rectype}">
+                        ## <a href="${ROOT}/recorddef/${rec.rectype}">
                         ${recdefs_d.get(rec.rectype, dict()).get('desc_short', rec.rectype)}
                         ## </a>
                         
@@ -276,7 +276,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                     </td>
                     <td style="width:15px">
                         % if siblings_index < len(siblings)-1:
-                            <a href="${EMEN2WEBROOT}/record/${siblings_sort[siblings_index+1]}?sibling=${sibling}">&raquo;</a>
+                            <a href="${ROOT}/record/${siblings_sort[siblings_index+1]}?sibling=${sibling}">&raquo;</a>
                         % endif
                     </td>
                 </tr>
@@ -287,7 +287,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         ## Children tabs
         <li role="tab" style="margin-top:50px">
             <h2 class="e2l-cf e2l-gradient">
-                <a href="${EMEN2WEBROOT}/record/${rec.name}/children/">Children</a>
+                <a href="${ROOT}/record/${rec.name}/children/">Children</a>
             </h2>
         </li>
 
@@ -298,7 +298,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
         % for k,v in children_groups.items():
             <li role="tab" ${istab(tab, "children-%s"%k)}>
-                <a href="${EMEN2WEBROOT}/record/${rec.name}/children/${k}/">${recdefs_d.get(k, dict()).get('desc_short', k)}</a>
+                <a href="${ROOT}/record/${rec.name}/children/${k}/">${recdefs_d.get(k, dict()).get('desc_short', k)}</a>
                 <span class="e2l-shadow e2l-sidebar-count">${len(v)}</span>
             </li>
         % endfor
@@ -311,10 +311,10 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             ## <li style="margin-top:100px">
             ##    <h2 class="e2l-gradient"><a href="#">Tools</a></h2>
             ## </li>
-            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/email/">Email Users</a></li>
-            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/publish/">Manage public data</a></li>
-            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/query/attachments/">Child attachments</a></li>
-            ## <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=kv">Param-value table</a></li>
+            ## <li><a href="${ROOT}/record/${rec.name}/email/">Email Users</a></li>
+            ## <li><a href="${ROOT}/record/${rec.name}/publish/">Manage public data</a></li>
+            ## <li><a href="${ROOT}/record/${rec.name}/query/attachments/">Child attachments</a></li>
+            ## <li><a href="${ROOT}/record/${rec.name}/?viewname=kv">Param-value table</a></li>
         </%block>
 
         
@@ -342,7 +342,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     </div>
 
     <div data-tab="edit" ${istab(tab, "edit")}>
-        <form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${EMEN2WEBROOT}/record/${rec.name}/edit/">
+        <form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${ROOT}/record/${rec.name}/edit/">
             ${rendered}
         </form>    
     </div>
@@ -350,15 +350,15 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     <div data-tab="new"></div>
     
     <div data-tab="relationships">
-        <form id="e2-relationships" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/edit/relationships/"></form>
+        <form id="e2-relationships" method="post" action="${ROOT}/record/${rec.name}/edit/relationships/"></form>
     </div>     
     
     <div data-tab="permissions">
-        <form id="e2-permissions" method="post" action="${EMEN2WEBROOT}/record/${rec.name}/edit/permissions/"></form>
+        <form id="e2-permissions" method="post" action="${ROOT}/record/${rec.name}/edit/permissions/"></form>
     </div>
     
     <div data-tab="attachments">
-        <form id="e2-attachments" method="post" enctype="multipart/form-data" action="${EMEN2WEBROOT}/record/${rec.name}/edit/attachments/"></form>
+        <form id="e2-attachments" method="post" enctype="multipart/form-data" action="${ROOT}/record/${rec.name}/edit/attachments/"></form>
     </div>
     
     <div data-tab="comments"></div>
@@ -372,12 +372,12 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         
         <p>You are viewing the ${prettynames.get(viewname, viewname)} view for this record.</p>
 
-        <p>This record uses the <a href="${EMEN2WEBROOT}/recorddef/${recdef.name}">${recdef.desc_short} protocol</a>, which provides ${len(recdef.views)+2} views:
+        <p>This record uses the <a href="${ROOT}/recorddef/${recdef.name}">${recdef.desc_short} protocol</a>, which provides ${len(recdef.views)+2} views:
             <ul>
-                <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=mainview">Protocol</a></li>
-                <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=kv">Parameter-Value table</a></li>                
+                <li><a href="${ROOT}/record/${rec.name}/?viewname=mainview">Protocol</a></li>
+                <li><a href="${ROOT}/record/${rec.name}/?viewname=kv">Parameter-Value table</a></li>                
                 % for v in recdef.views:
-                    <li><a href="${EMEN2WEBROOT}/record/${rec.name}/?viewname=${v}">${prettynames.get(v, v).capitalize()}</a></li>
+                    <li><a href="${ROOT}/record/${rec.name}/?viewname=${v}">${prettynames.get(v, v).capitalize()}</a></li>
                 % endfor
             </ul>
         </p>        

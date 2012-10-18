@@ -16,7 +16,7 @@ import emen2.db.handlers
 
 @View.register
 class Preview(View):
-    @View.add_matcher(r'^/preview/(?P<bid>.+)/(?P<mode>.+)/$')    
+    @View.add_matcher(r'^/preview/(?P<bid>[^/]*)/(?P<mode>.+)/$')    
     def main(self, bid=None, mode='tiles', **kwargs):
         if bid == None:
             return "No Binary ID supplied."

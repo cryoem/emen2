@@ -14,12 +14,12 @@ from emen2.web.view import View
 @View.register
 class EMEquipment(View):
 
-    @View.add_matcher(r'^/em/equipment/(?P<name>\w+)/$')
+    @View.add_matcher(r'^/em/equipment/(?P<name>[^/]*)/$')
     def main(self, name, **kwargs):
         self.title = 'Equipment'
         self.template = '/em/project.main'
 
-    @View.add_matcher(r'^/em/equipment/new/(?P<rectype>\w+)/$')
+    @View.add_matcher(r'^/em/equipment/new/(?P<rectype>[^/]*)/$')
     def new(self, rectype, **kwargs):
         self.title = 'New Equipment'
         self.template = '/em/project.new'

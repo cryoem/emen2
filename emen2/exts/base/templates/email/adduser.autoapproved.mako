@@ -1,6 +1,6 @@
-From: ${from}
-To: ${recipient}
-Cc: ${from}
+From: ${from_addr}
+To: ${to_addr}
+Cc: ${from_addr}
 Subject: Your ${TITLE} account has been created
 
 ${displayname}:
@@ -15,5 +15,5 @@ Please make sure your profile information is correct after signing in.
 Thankyou,
 
 ${TITLE} Administrator
-${from}
+${from_addr}
 ${uri}

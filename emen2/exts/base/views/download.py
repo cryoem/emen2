@@ -38,7 +38,7 @@ class Download(View):
     defaultType = 'application/octet-stream'
 
     @View.add_matcher('^/download/$', name='multi')
-    @View.add_matcher('^/download/(?P<bids>.+)/(?P<filename>.+)/$')
+    @View.add_matcher('^/download/(?P<bids>[^/]*)/(?P<filename>[^/]*)/$')
     def main(self, bids, filename=None, size=None, format=None, q=None, rename=None, tar=None):
         if not hasattr(bids, '__iter__'):
             bids = [bids]

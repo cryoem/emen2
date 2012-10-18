@@ -1,9 +1,9 @@
-From: ${from}
-To: ${recipient}
-Cc: ${from}
-Subject: ${TITLE} Password Reset
+From: ${from_addr}
+To: ${to_addr}
+Cc: ${from_addr}
+Subject: ${TITLE} password reset
 
-${recipient}:
+${to_addr}:
 
 A request for a password reset has been submitted for this account on ${TITLE}
 
@@ -11,10 +11,10 @@ To complete your request, please follow this link:
 
 ${uri}/auth/password/reset/${name}/${secret}/
 
-If you did not request a new password, please contact the ${TITLE} administrator, ${from}
+If you did not request a new password, please contact the ${TITLE} administrator, ${from_addr}
 
 Thankyou,
 
 ${TITLE} Administrator
-${from}
+${from_addr}
 ${uri}

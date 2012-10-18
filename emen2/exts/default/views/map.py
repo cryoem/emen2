@@ -25,7 +25,7 @@ def dfs(root, tree, recurse=1):
 class Tree(View):
 
 
-    @View.add_matcher(r'^/tree/(?P<keytype>\w+)/(?P<root>\w+)/(?P<mode>\w+)/$', name='embed')
+    @View.add_matcher(r'^/tree/(?P<keytype>\w+)/(?P<root>[^/]*)/(?P<mode>\w+)/$', name='embed')
     def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", rectype=None, expandable=True, collapse_rectype=None, collapsed=None, id='', link=None, showroot=True):
         self.template = '/pages/tree'
         self.title = 'Sitemap'

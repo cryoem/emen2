@@ -1,9 +1,9 @@
-From: ${from}
-To: ${recipient}
-Cc: ${from}
+From: ${from_addr}
+To: ${to_addr}
+Cc: ${from_addr}
 Subject: ${dbname} Account Request
 
-${recipient}:
+${to_addr}:
 
 An ${dbname} ( ${dburi} ) account request has been submitted and is pending review. 
 
@@ -12,4 +12,4 @@ You will be notified via email when it is approved.
 Thankyou,
 
 ${dbname} Administrator
-${from}
+${from_addr}

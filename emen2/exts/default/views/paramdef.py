@@ -7,7 +7,7 @@ from emen2.web.view import View
 @View.register
 class ParamDef(View):
 
-    @View.add_matcher(r'^/paramdef/(?P<name>\w+)/$')
+    @View.add_matcher(r'^/paramdef/(?P<name>[^/]*)/$')
     def main(self, name=None):
         self.paramdef = self.db.get(name, filt=False, keytype='paramdef')
         self.template = '/pages/paramdef.main'
@@ -34,7 +34,7 @@ class ParamDef(View):
             ))
 
 
-    @View.add_matcher(r'^/paramdef/(?P<name>\w+)/edit/$')
+    @View.add_matcher(r'^/paramdef/(?P<name>[^/]*)/edit/$')
     def edit(self, name, **kwargs):
         if self.request_method == 'post':            
             paramdef = self.db.get(name, filt=False, keytype='paramdef')
@@ -50,7 +50,7 @@ class ParamDef(View):
         self.title = 'Edit Parameter: %s'%self.paramdef.desc_short
         
         
-    @View.add_matcher(r'^/paramdef/(?P<name>\w+)/new/$')
+    @View.add_matcher(r'^/paramdef/(?P<name>[^/]*)/new/$')
     def new(self, name, **kwargs):
         if self.request_method == 'post':
             vartype = kwargs.pop('vartype', None)            

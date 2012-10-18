@@ -1,9 +1,9 @@
-From: ${from}
-To: ${recipient}
-Cc: ${from}
+From: ${from_addr}
+To: ${to_addr}
+Cc: ${from_addr}
 Subject: RE: ${TITLE} Account Request -- Approved
 
-${recipient}:
+${to_addr}:
 
 Your ${TITLE} account has been approved by the admin.
 
@@ -15,5 +15,5 @@ Please make sure your profile information is correct after signing in.
 Thankyou,
 
 ${TITLE} Administrator
-${from}
+${from_addr}
 ${uri}

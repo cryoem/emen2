@@ -19,7 +19,7 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 @View.register
 class Record(View):
     
-    @View.add_matcher(r'^/record/(?P<name>\w+)/$')
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/$')
     def main(self, name=None, children=True, parents=True, sibling=None, viewname="defaultview", **kwargs):
         """Main record rendering."""
         # Get record..
@@ -117,7 +117,7 @@ class Record(View):
         )    
         
     
-    @View.add_matcher(r'^/record/(?P<name>\w+)/edit/$', write=True)
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/$', write=True)
     def edit(self, name=None, _redirect=None, _format=None, **kwargs):
         self.main(name=name, **kwargs)
         if self.request_method not in ['post', 'put']:
@@ -146,20 +146,20 @@ class Record(View):
             return jsonrpc.jsonutil.encode(self.rec)
 
 
-    @View.add_matcher(r'^/record/(?P<name>\w+)/edit/attachments/$', name='edit/attachments', write=True)
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/attachments/$', name='edit/attachments', write=True)
     def edit_attachments(self, name=None, **kwargs):
         self.edit(name=name, **kwargs)
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name, anchor='attachments'))
 
 
-    @View.add_matcher(r'^/record/(?P<name>\w+)/edit/relationships/$', name='edit/relationships', write=True)
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/relationships/$', name='edit/relationships', write=True)
     def edit_relationships(self, name=None, **kwargs):
         # ian: todo: Check orphans, show orphan confirmation page
         self.edit(name=name, **kwargs)
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name, anchor='relationships'))
 
 
-    @View.add_matcher(r'^/record/(?P<name>\w+)/edit/permissions/$', name='edit/permissions', write=True)
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/permissions/$', name='edit/permissions', write=True)
     def edit_permissions(self, name=None, permissions=None, groups=None, action=None, filt=True):
         self.rec = self.db.record.get(name)
         permissions = permissions or {}
@@ -192,7 +192,7 @@ class Record(View):
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name, anchor='permissions'))
 
 
-    @View.add_matcher(r'^/record/(?P<name>\w+)/new/(?P<rectype>\w+)/$', write=True)
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/new/(?P<rectype>[^/]*)/$', write=True)
     def new(self, name=None, rectype=None, _redirect=None, _format=None, **kwargs): 
         """Create a new record."""
         self.main(name=name)
@@ -227,14 +227,14 @@ class Record(View):
             return jsonrpc.jsonutil.encode(newrec)
 
 
-    @View.add_matcher(r'^/record/(?P<name>\w+)/query/$')
-    @View.add_matcher(r'^/record/(?P<name>\w+)/query/(?P<path>.*)/$')
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/$')
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/(?P<path>.*)/$')
     def query(self, name=None, path=None, q=None, c=None, **kwargs):
         self.main(name=name)
     
 
-    # @View.add_matcher(r'^/record/(?P<name>\w+)/query/(?P<path>.*)/attachments/$')
-    @View.add_matcher(r'^/record/(?P<name>\w+)/query/attachments/$')
+    # @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/(?P<path>.*)/attachments/$')
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/attachments/$')
     def query_attachments(self, name=None, path=None, q=None, c=None, **kwargs):
         self.main(name=name)
         self.template = '/record/record.query.attachments'
@@ -253,7 +253,7 @@ class Record(View):
         self.ctxt['bdos'] = bdos
     
     
-    @View.add_matcher('^/record/(?P<name>\w+)/children/$')
+    @View.add_matcher('^/record/(?P<name>[^/]*)/children/$')
     def children_map(self, name=None):
         self.main(name=name)
         self.template = '/record/record.tree'
@@ -264,7 +264,7 @@ class Record(View):
         # self.ctxt['tab'] = 'children'
 
 
-    @View.add_matcher('^/record/(?P<name>\w+)/children/(?P<childtype>\w+)/$')
+    @View.add_matcher('^/record/(?P<name>[^/]*)/children/(?P<childtype>\w+)/$')
     def children(self, name=None, childtype=None):
         """Main record rendering."""
         self.main(name=name)
@@ -280,7 +280,7 @@ class Record(View):
         self.ctxt["pages"].active = childtype # This is going away
 
 
-    @View.add_matcher("^/record/(?P<name>\w+)/hide/$", write=True)
+    @View.add_matcher("^/record/(?P<name>[^/]*)/hide/$", write=True)
     def hide(self, name=None, confirm=False, childaction=None):
         """Main record rendering."""
         self.main(name=name)
@@ -298,8 +298,8 @@ class Record(View):
 
 
 
-    @View.add_matcher(r'^/record/(?P<name>\w+)/history/$')
-    @View.add_matcher(r'^/record/(?P<name>\w+)/history/(?P<revision>.*)/', name='history/revision')
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/history/$')
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/history/(?P<revision>.*)/', name='history/revision')
     def history(self, name=None, simple=False, revision=None):
         """Revision/history/comment viewer"""
         self.main(name=name, parents=True, children=True)
@@ -330,7 +330,7 @@ class Record(View):
         self.ctxt['revision'] = revision
 
 
-    @View.add_matcher("^/record/(?P<name>\w+)/email/$")
+    @View.add_matcher("^/record/(?P<name>[^/]*)/email/$")
     def email(self, name=None):
         """Email referenced users."""
         self.main(name=name)
@@ -359,7 +359,7 @@ class Record(View):
         self.ctxt['emailusers'] = emailusers
 
 
-    @View.add_matcher(r'^/record/(?P<name>\w+)/publish/$', write=True)
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/publish/$', write=True)
     def publish(self, name=None, state=None):
         self.main(name=name)
 

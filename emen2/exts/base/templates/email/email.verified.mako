@@ -1,16 +1,16 @@
-From: ${from}
-To: ${recipient}
-Cc: ${from}
+From: ${from_addr}
+To: ${to_addr}
+Cc: ${from_addr}
 Subject: RE: ${TITLE} Verify Email
 
-${recipient}:
+${to_addr}:
 
 This email address for your account on ${TITLE} has been verified.
 
-If you did not issue this request, please contact the ${TITLE} administrator, ${from}
+If you did not issue this request, please contact the ${TITLE} administrator, ${from_addr}
 
 Thankyou,
 
 ${TITLE} Administrator
-${from}
+${from_addr}
 ${uri}

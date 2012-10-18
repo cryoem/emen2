@@ -570,31 +570,31 @@ textarea.e2l-fw {
 
 /* Backgrounds */
 .e2-tree.e2-tree-children li {
-    background:url('${EMEN2WEBROOT}/static-${ctxt.version}/images/bg.F.children.png') repeat-y;    
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.F.children.png') repeat-y;    
 }
 .e2-tree.e2-tree-parents li {
-    background:url('${EMEN2WEBROOT}/static-${ctxt.version}/images/bg.F.parents.png') repeat-y;    
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.F.parents.png') repeat-y;    
     background-position:top right;    
 }
 .e2-tree.e2-tree-children li:first-child {
-    background:url('${EMEN2WEBROOT}/static-${ctxt.version}/images/bg.T.children.png') repeat-y;    
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.T.children.png') repeat-y;    
 }
 .e2-tree.e2-tree-parents li:first-child {
-    background:url('${EMEN2WEBROOT}/static-${ctxt.version}/images/bg.T.parents.png') repeat-y;    
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.T.parents.png') repeat-y;    
     background-position:top right;
 }
 .e2-tree.e2-tree-children li:last-child {
-    background:url('${EMEN2WEBROOT}/static-${ctxt.version}/images/bg.L.children.png') no-repeat;
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.L.children.png') no-repeat;
 }
 .e2-tree.e2-tree-parents li:last-child {
-    background:url('${EMEN2WEBROOT}/static-${ctxt.version}/images/bg.L.parents.png') no-repeat;
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.L.parents.png') no-repeat;
     background-position:top right;
 }
 .e2-tree.e2-tree-children ul li:only-child {
-    background:url('${EMEN2WEBROOT}/static-${ctxt.version}/images/bg.-.children.png') no-repeat;
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.-.children.png') no-repeat;
 }
 .e2-tree.e2-tree-parents ul li:only-child {
-    background:url('${EMEN2WEBROOT}/static-${ctxt.version}/images/bg.-.parents.png') no-repeat;
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.-.parents.png') no-repeat;
     background-position:top right;
 }
 /* why */
@@ -836,51 +836,51 @@ line {
 /* TODO -- Integrate this back into the rest of the CSS */
 
     
-.home-sidebar .e2-tab-active > a {
+.e2l-sidebar-sidebar .e2-tab-active > a {
     background:<%self:ADDED />;
 }
 
-.home-sidebar {
+.e2l-sidebar-sidebar {
     position: absolute;
     left: 30px;
     width: 180px;
     padding-bottom:50px;
     font-size:10pt;
 }
-.home-sidebar h2 {
+.e2l-sidebar-sidebar h2 {
     font-size:10pt;
     margin:0px;
     padding: 4px;
     font-weight:normal;
 }
-.home-sidebar h2 a,
-.home-sidebar h2 span {
+.e2l-sidebar-sidebar h2 a,
+.e2l-sidebar-sidebar h2 span {
     display:block;
 }
 
-.home-sidebar > ul {
+.e2l-sidebar-sidebar > ul {
     padding-left:0px;
     margin-bottom:40px;
 }
-.home-sidebar > ul > li {
+.e2l-sidebar-sidebar > ul > li {
     list-style:none;
     position:relative;
 }
-.home-sidebar > ul > li > a {
+.e2l-sidebar-sidebar > ul > li > a {
     display:block;
     padding: 4px;
     padding-left: 8px;
     padding-right:50px;
 }
 
-.home-main {
+.e2l-sidebar-main {
     margin-left:180px;
     padding-left:20px;
     min-height:600px;
     border-left:solid 1px #ccc;
 }
 
-.home-count {
+.e2l-sidebar-count {
     position:absolute;
     right:8px;
     top:6px;

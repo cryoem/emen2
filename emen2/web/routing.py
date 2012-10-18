@@ -5,6 +5,7 @@ import cgi
 import contextlib
 import time
 import functools
+import urllib
 
 from functools import partial
 from itertools import izip
@@ -131,16 +132,6 @@ def execute(_execute_name, db=None, *args, **kwargs):
     return view
 
 
-# def execute_path(_execute_path, db=None, *args, **kwargs):
-#     """Find and execute a route by a path URI.
-#     The route path (e.g. '/home/') must be the first positional argument.
-#     """
-#     cb, matched = _Router.resolve(path=_execute_path)
-#     matched.update(kwargs)
-#     view = cb(db=db)(*args, **kwargs)
-#     return view
-
-
 
 def reverse(*args, **kwargs):
     return _Router.reverse(*args, **kwargs)
@@ -169,7 +160,10 @@ class Route(object):
         result = None
         match = self.matcher.match(path)
         if match:
-            result = match.groupdict()
+            # url unquote
+            result = {}
+            for k,v in match.groupdict().items():
+                result[urllib.unquote(k)] = urllib.unquote(v)
         return result
 
 

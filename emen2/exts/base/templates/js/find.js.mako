@@ -80,7 +80,12 @@
                 for (var i=0;i<item['permissions'].length;i++) {
                     count += item['permissions'][i].length;
                 }
-                body = count+' members'
+                body = count+' members';
+                if (item.displayname == 'authenticated') {
+                    body = 'All logged in users';
+                } else if (item.displayname == 'anonymous') {
+                    body = 'Public access';
+                }
             } else if (this.options.keytype == 'record') {
                 var recname = emen2.caches['recnames'][item.name];
                 title = $.trim(recname || item.rectype);

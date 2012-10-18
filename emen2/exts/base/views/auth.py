@@ -42,13 +42,13 @@ class Auth(View):
 
         else:
             try:
-                self.db.user.setpassword(opw, on1, name=name)
+                self.db.user.setpassword(name, opw, on1, name=name)
                 self.notify("Password changed successfully.")
             except Exception, errmsg:
                 self.notify(errmsg, error=True)
 
     @View.add_matcher(r'^/auth/password/reset/$', name='password/reset')
-    @View.add_matcher(r'^/auth/password/reset/(?P<name>.+)/(?P<secret>\w+)/$', name='password/reset/confirm')
+    @View.add_matcher(r'^/auth/password/reset/(?P<name>[^/]*)/(?P<secret>\w+)/$', name='password/reset/confirm')
     def resetpassword(self, email=None, name=None, secret=None, newpassword=None, **kwargs):
         self.template = '/auth/password.reset'
         self.title = "Reset Password"
@@ -58,7 +58,7 @@ class Auth(View):
         self.ctxt['newpassword'] = ''
         if name and secret and newpassword:
             try:
-                self.db.user.setpassword(oldpassword=None, newpassword=newpassword, secret=secret, name=name)
+                self.db.user.setpassword(name, oldpassword=None, newpassword=newpassword, secret=secret)
                 self.notify('The password for your account has been changed.')
             except Exception, errmsg:
                 self.notify(errmsg, error=True)
@@ -83,7 +83,7 @@ class Auth(View):
 
         if email:
             try:
-                user = self.db.user.setemail(email, password=opw, name=name)
+                user = self.db.user.setemail(name, email, password=opw)
                 if email == user.email:
                     self.notify('Email address successfully updated to %s.'%user.email)
                 else:
@@ -91,7 +91,7 @@ class Auth(View):
             except Exception, errmsg:
                 self.notify(errmsg, error=True)
 
-    @View.add_matcher(r'^/auth/email/verify/(?P<email>.+)/(?P<secret>\w+)/$', name='email/verify')
+    @View.add_matcher(r'^/auth/email/verify/(?P<email>[^/]*)/(?P<secret>\w+)/$', name='email/verify')
     def verifyemail(self, email=None, secret=None, **kwargs):
         self.template = '/auth/email.verify'
         self.title = "Verify Email"

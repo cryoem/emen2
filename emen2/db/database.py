@@ -247,7 +247,7 @@ def error(e=None, msg='', warning=False):
 ##### Email #####
 
 # ian: TODO: put this in a separate module
-def sendmail(to_addr, subject='', msg='', template=None, ctxt=None):
+def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
     """(Semi-internal) Send an email. You can provide either a template or a message subject and body.
 
     :param to_addr: Email recipient
@@ -257,24 +257,15 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None):
     :return: Email recipient, or None if no message was sent  
 
     """    
+    print kwargs
     from_addr = emen2.db.config.get('mail.from')
     smtphost = emen2.db.config.get('mail.smtphost')
 
-    if not from_addr:
-        emen2.db.log.warn("Couldn't get mail config: No admin email set")
-        return
-    if not smtphost:
-        emen2.db.log.warn("Couldn't get mail config: No SMTP Server")
-        return
-
     ctxt = ctxt or {}
-    ctxt["to"] = to_addr
-    ctxt["from"] = from_addr
+    ctxt["to_addr"] = to_addr
+    ctxt["from_addr"] = from_addr
     ctxt["TITLE"] = emen2.db.config.get('customization.title')
     ctxt["uri"] = emen2.db.config.get('web.uri')
-
-    if not to_addr:
-        return
 
     if msg:
         msg = email.mime.text.MIMEText(msg)
@@ -291,6 +282,16 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None):
             return
     else:
         raise ValueError, "No message to send!"
+
+    print "Sending mail:"
+    print msg
+
+    if not from_addr:
+        emen2.db.log.warn("Couldn't get mail config: No admin email set")
+        return
+    if not smtphost:
+        emen2.db.log.warn("Couldn't get mail config: No SMTP Server")
+        return
 
     # Actually send the message
     s = smtplib.SMTP(smtphost)
@@ -692,7 +693,7 @@ class EMEN2DBEnv(object):
         try:
             sendmail(*args, **kwargs)
         except Exception, e:
-            emen2.db.log.error("Couldn't send email")
+            emen2.db.log.error("Couldn't send email: %s"%e)
             
             
     def _txncb_thumbnail(self, bdo):
@@ -2142,15 +2143,15 @@ class DB(object):
 
 
     @publicmethod(write=True, compat="setprivacy")
-    def user_setprivacy(self, state, names=None, ctx=None, txn=None):
+    def user_setprivacy(self, names, state, ctx=None, txn=None):
         """Set privacy level.
 
         Examples:
 
-        >>> db.user.setprivacy(2)
+        >>> db.user.setprivacy('ian', 2)
         <User ian>
 
-        >>> db.user.setprivacy(2, names=['ian', 'wah'])
+        >>> db.user.setprivacy(names=['ian', 'wah'], state=2)
         [<User ian>, <User wah>]
 
         :param state: 0, 1, or 2, in increasing level of privacy.
@@ -2168,7 +2169,7 @@ class DB(object):
     # These methods sometimes use put instead of cput because they need to modify
     # the user's secret auth token.
     @publicmethod(write=True, compat="setemail")
-    def user_setemail(self, email, secret=None, password=None, name=None, ctx=None, txn=None):
+    def user_setemail(self, name, email, secret=None, password=None, ctx=None, txn=None):
         """Change a User's email address.
 
         This will require you to verify that you own the account by
@@ -2182,10 +2183,10 @@ class DB(object):
 
         Examples:
 
-        >>> db.user.setemail('ian@example.com', password='foobar')
+        >>> db.user.setemail('ian', 'ian@example.com', password='foobar')
         <User ian>
 
-        >>> db.user.setemail('ian@example.com', secret='654067667525479cba8eb2940a3cf745de3ce608')
+        >>> db.user.setemail('ian', 'ian@example.com', secret='654067667525479cba8eb2940a3cf745de3ce608')
         <User ian>
 
         :param str email: New email address
@@ -2198,9 +2199,6 @@ class DB(object):
         :exception ValidationError:
         """
         # :exception InvalidEmail:
-        # Get the record.
-        # Keep the existing email address to see if it changes.
-        name = name or ctx.username
 
         # Verify the email address is owned by the user requesting change.
         # 1. User authenticates they *really* own the account
@@ -2228,7 +2226,6 @@ class DB(object):
             time.sleep(2)
             raise SecurityError, "The email address %s is already in use"%(email)
 
-        ctxt = {}
         if user.email == oldemail:
             emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, user.email))
             # The email didn't change, but the secret did
@@ -2236,6 +2233,7 @@ class DB(object):
             self.dbenv["user"].put(user.name, user, txn=txn)
 
             # Send the verify email containing the auth token
+            ctxt = {}
             ctxt['secret'] = user.secret[2]
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verify', 'ctxt':ctxt})
 
@@ -2249,13 +2247,13 @@ class DB(object):
             # self.dbenv["user"].put(user.name, user, txn=txn)
 
             # Send the user an email to acknowledge the change
-            self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verified', 'ctxt':ctxt})
+            self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verified'})
 
         return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
 
     @publicmethod(write=True, compat="setpassword")
-    def user_setpassword(self, oldpassword, newpassword, secret=None, name=None, ctx=None, txn=None):
+    def user_setpassword(self, name, oldpassword, newpassword, secret=None, ctx=None, txn=None):
         """Change password.
 
         Note: This method only takes a single User name.
@@ -2284,7 +2282,7 @@ class DB(object):
         # Note: The password will be hidden if ctx.username != user.name
         # user = self.dbenv["user"].cget(name or ctx.username, filt=False, ctx=ctx, txn=txn)
         #ed: odded 'or ctx.username' to match docs
-        user = self.dbenv["user"].getbyemail(name or ctx.username, filt=False, txn=txn)
+        user = self.dbenv["user"].getbyemail(name, filt=False, txn=txn)
         if not secret:
             user.setContext(ctx)
         user.setpassword(oldpassword, newpassword, secret=secret)
@@ -2297,7 +2295,7 @@ class DB(object):
 
 
     @publicmethod(write=True, compat="resetpassword")
-    def user_resetpassword(self, name=None, ctx=None, txn=None):
+    def user_resetpassword(self, name, ctx=None, txn=None):
         """Reset User password.
 
         This is accomplished by sending a password reset auth token to the
@@ -2316,8 +2314,6 @@ class DB(object):
         :exception KeyError:
         :exception SecurityError:
         """
-
-        name = name or ctx.username
         user = self.dbenv["user"].getbyemail(name, filt=False, txn=txn)
         user.resetpassword()
 
@@ -2326,8 +2322,10 @@ class DB(object):
 
         # Absolutely never reveal the secret via any mechanism
         # but email to registered address
-        ctxt = {'secret': user.secret[2]}
-        self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'name':user.name, 'template':'/email/password.reset', 'ctxt':ctxt})
+        ctxt = {}
+        ctxt['secret'] =  user.secret[2]
+        ctxt['name'] = user.name
+        self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/password.reset', 'ctxt':ctxt})
         emen2.db.log.security("Setting resetpassword secret for %s"%user.name)        
         return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 

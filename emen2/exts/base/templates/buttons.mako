@@ -101,6 +101,11 @@
         src = "%s/static/images/group.png"%ROOT
         title = item.get('displayname')
         body = body or '%s members'%sum([len(i) for i in item.get('permissions',[])])
+        if item.get('name') == 'authenticated':
+            body = "All logged in users"
+        elif item.get('name') == 'anonymous':
+            body = "Public access"
+        
     elif item.get('keytype') == 'paramdef':
         body = '%s (%s)'%(item.name, item.vartype)
 

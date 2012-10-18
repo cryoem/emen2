@@ -8,7 +8,7 @@ from emen2.web.view import View
 @View.register
 class RecordDef(View):
 
-    @View.add_matcher(r'^/recorddef/(?P<name>\w+)/new/$')    
+    @View.add_matcher(r'^/recorddef/(?P<name>[^/]*)/new/$')    
     def new(self, name=None, **kwargs):
         if self.request_method == 'post':
             mainview = kwargs.pop('mainview', '')
@@ -38,7 +38,7 @@ class RecordDef(View):
 
 
 
-    @View.add_matcher(r'^/recorddef/(?P<name>\w+)/edit/$')    
+    @View.add_matcher(r'^/recorddef/(?P<name>[^/]*)/edit/$')    
     def edit(self, name=None, **kwargs):
         if self.request_method == 'post':
             views = {}    
@@ -62,7 +62,7 @@ class RecordDef(View):
         self.title = 'Edit Protocol: %s'%self.recorddef.desc_short
 
 
-    @View.add_matcher(r'^/recorddef/(?P<name>\w+)/$')    
+    @View.add_matcher(r'^/recorddef/(?P<name>[^/]*)/$')    
     def main(self, name=None):
         self.recorddef = self.db.recorddef.get(name, filt=False)
         self.template = '/pages/recorddef'
