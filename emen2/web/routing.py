@@ -1,6 +1,7 @@
 # $Id$
 import re
 import sre_parse
+import urllib
 import cgi
 import contextlib
 import time
@@ -163,7 +164,7 @@ class Route(object):
             # url unquote
             result = {}
             for k,v in match.groupdict().items():
-                result[urllib.unquote(k)] = urllib.unquote(v)
+                result[urllib.unquote_plus(k)] = urllib.unquote_plus(v)
         return result
 
 
@@ -265,11 +266,11 @@ class _Router(emen2.util.registry.Registry):
         if len(name) == 1:
             name.append('main')
         name = '/'.join(name)
+        
         route = cls.get(name, None)
         if route:
             result = cls._reverse_helper(route.matcher, *args, **kwargs)
             result = str.join('', (cls._prepend, result))
-
             # temp hack
             if root not in result+anchor:
                 return root+result+anchor
@@ -281,12 +282,11 @@ class _Router(emen2.util.registry.Registry):
     def _reverse_helper(cls, regex, *args, **kwargs):
         mc = MatchChecker(args, kwargs)
         result = re.sub(r'\(([^)]+)\)', mc, regex.pattern)
-
-        qs = '&'.join( '%s=%s' % (k,v) for k,v in mc.get_unused_kwargs().items() )
+        qs = '&'.join( '%s=%s' % (urllib.quote_plus(k),urllib.quote_plus(v)) for k,v in mc.get_unused_kwargs().items() )
         result = [result.replace('^', '').replace('$', ''),qs]
         if qs == '':
             result.pop()
-
+        
         return '?'.join(result)
 
 
@@ -302,8 +302,9 @@ class NoReverseMatch(Exception):
 class MatchChecker(object):
     "Class used in reverse lookup."
     def __init__(self, args, kwargs):
-        self.args = IndexedListIterator( (str(x) for x in args) )
-        self.kwargs = dict(  ( x, str(y) ) for x, y in kwargs.items()  )
+        # Don't forget to quote the values.
+        self.args = IndexedListIterator( (urllib.quote_plus(x) for x in args) )
+        self.kwargs = dict(  ( x, urllib.quote_plus(y) ) for x, y in kwargs.items()  )
         self.used_kwargs = set([])
 
     def get_arg(self, name):

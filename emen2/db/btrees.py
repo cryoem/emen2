@@ -1109,6 +1109,7 @@ class DBODB(EMEN2DB):
 
         emen2.db.log.info("Committed %s items"%(len(crecs)))
         return crecs
+        
 
     def reindex(self, items, reindex=False, ctx=None, txn=None):
         """Update indexes. This is really a private method.

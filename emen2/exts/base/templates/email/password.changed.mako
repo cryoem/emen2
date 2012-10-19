@@ -1,7 +1,7 @@
 From: ${from_addr}
 To: ${to_addr}
 Cc: ${from_addr}
-Subject: ${TITLE} Password Changed
+Subject: ${TITLE} password changed
 
 ${to_addr}:
 

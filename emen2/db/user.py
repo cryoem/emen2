@@ -183,7 +183,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # After a long discussion in #python, it is impossible to validate
         #     emails other than checking for '@'
         # Note: Forcing emails to be stored as lower case.
-        email = unicode(email or '').lower()
+        email = unicode(email or '').lower().strip()
         if not email or '@' not in email:
             self.error("Invalid email format '%s'"%email)
         return email
@@ -349,6 +349,10 @@ class User(BaseUser):
 
         if not hasattr(self, 'secret'):
             self.__dict__['secret'] = None
+
+        print "checking secret:"
+        print action, args, secret
+        print self.secret
 
         # This should check expiration time...
         if action and secret and self.secret:

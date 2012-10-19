@@ -116,7 +116,7 @@ class Record(View):
         
     
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/$', write=True)
-    def edit(self, name=None, _redirect=None, _format=None, **kwargs):
+    def edit(self, name=None, _format=None, **kwargs):
         self.main(name=name, **kwargs)
         if self.request_method not in ['post', 'put']:
             self.ctxt["tab"] = "edit"
@@ -139,7 +139,7 @@ class Record(View):
 
         # Redirect
         # IMPORTANT NOTE: Some clients (EMDash) require the _format support below as part of the REST API.        
-        self.redirect(_redirect or self.routing.reverse('Record/main', name=self.rec.name))
+        self.redirect(self._redirect or self.routing.reverse('Record/main', name=self.rec.name))
         if _format == "json":
             return jsonrpc.jsonutil.encode(self.rec)
 

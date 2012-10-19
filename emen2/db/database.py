@@ -257,7 +257,6 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
     :return: Email recipient, or None if no message was sent  
 
     """    
-    print kwargs
     from_addr = emen2.db.config.get('mail.from')
     smtphost = emen2.db.config.get('mail.smtphost')
 
@@ -2208,43 +2207,44 @@ class DB(object):
         # 3. The user comes back and calls the method with this token
         # 4. Email address is updated and reindexed
 
-        # Do not use cget; it will strip out the secret.
-        user = self.dbenv["user"].get(name, filt=False, txn=txn)
-
-        # If we're an admin, the secret and password aren't required,
-        # but user._ctx is.
-        if ctx.checkadmin():
-            user.setContext(ctx)
-
-        # Actually change user email.
-        oldemail = user.email
-        email = user.setemail(email, password=password, secret=secret)
-
         # Check that no other user is currently using this email.
         ind = self.dbenv["user"].getindex('email', txn=txn)
-        if ind.get(email, txn=txn) - set([user.name]):
+        if ind.get(email, txn=txn):
             time.sleep(2)
             raise SecurityError, "The email address %s is already in use"%(email)
 
+        # Do not use cget; it will strip out the secret.
+        user = self.dbenv["user"].get(name, filt=False, txn=txn)
+
+        # Actually change user email.
+        oldemail = user.email
+        user.setemail(email, secret=secret, password=password)
+        user_secret = user.secret
+
+        ctxt = {}
+        ctxt['name'] = user.name
+        ctxt['email'] = email
+        ctxt['oldemail'] = oldemail
+
+        # Send out confirmation or verification email.
         if user.email == oldemail:
+            # Need to verify email address by receiving secret.
             emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, user.email))
-            # The email didn't change, but the secret did
             # Note: cputs will always ignore the secret; write directly
             self.dbenv["user"].put(user.name, user, txn=txn)
 
             # Send the verify email containing the auth token
-            ctxt = {}
-            ctxt['secret'] = user.secret[2]
+            ctxt['secret'] = user_secret[2]
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verify', 'ctxt':ctxt})
 
         else:
-            # Email changed.
+            raise Exception, "There is a known issue with this form. I am working on it."
+            # Verified with secret.
+            # user.setContext(ctx)
             emen2.db.log.security("Changing email for user %s to %s"%(user.name, user.email))
+            # self.dbenv['user'].cputs([user], ctx=ctx, txn=txn)
             # Note: Since we're putting directly,
             #     have to force the index to update
-            self.dbenv['user'].cputs([user], ctx=ctx, txn=txn)
-            # self.dbenv["user"].reindex([user], ctx=ctx, txn=txn)
-            # self.dbenv["user"].put(user.name, user, txn=txn)
 
             # Send the user an email to acknowledge the change
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verified'})

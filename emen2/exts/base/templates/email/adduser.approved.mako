@@ -1,14 +1,14 @@
 From: ${from_addr}
 To: ${to_addr}
 Cc: ${from_addr}
-Subject: RE: ${TITLE} Account Request -- Approved
+Subject: RE: ${TITLE} account request -- approved
 
 ${to_addr}:
 
 Your ${TITLE} account has been approved by the admin.
 
-${uri}
-Username: ${name}
+Site: ${uri}
+Account email: ${to_addr}
 
 Please make sure your profile information is correct after signing in.
 

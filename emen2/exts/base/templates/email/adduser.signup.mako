@@ -1,11 +1,11 @@
 From: ${from_addr}
 To: ${to_addr}
 Cc: ${from_addr}
-Subject: ${TITLE} Account Request
+Subject: ${TITLE} account request
 
 ${to_addr}:
 
-An ${TITLE} account request has been submitted and is pending review. 
+Your request for an account on ${TITLE} has been received and is being reviewed.
 
 You will be notified via email when it is approved.
 

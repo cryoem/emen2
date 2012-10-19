@@ -50,7 +50,7 @@
 <%buttons:singlepage label='Change email'>
     <form method="post" action="${ROOT}/auth/email/change/">
 
-        <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='email')}" />
+        ## <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='email')}" />
         <input type="hidden" name="name" value="${user.name or ''}" />
 
         <table class="e2l-kv">
@@ -76,7 +76,7 @@
 <%buttons:singlepage label='Change password'>
     <form action="${ROOT}/auth/password/change/" method="post">
 
-        <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='password')}" />
+        ## <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='password')}" />
         <input type="hidden" name="name" value="${user.name or ''}" />
 
         <table class="e2l-kv">

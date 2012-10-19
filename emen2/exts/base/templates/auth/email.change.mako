@@ -9,10 +9,10 @@
 
     <table>
         % if not admin:
-            <tr><td>Current Password:</td><td><input type="password" name="opw" /></td></tr>        
+            <tr><td>Current password:</td><td><input type="password" name="opw" /></td></tr>        
         % endif
     
-        <tr><td>New Email:</td><td><input type="text" name="email" value="${email or ''}" /></td>
+        <tr><td>New email:</td><td><input type="text" name="email" value="${email or ''}" /></td>
         <tr><td></td><td><input type="submit" value="Change Email" name="save"></td></tr>
 
     </table>

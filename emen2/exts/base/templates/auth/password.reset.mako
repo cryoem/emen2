@@ -19,18 +19,13 @@
         </tr>
     % else:
         <tr>
-            <td>Email:</td>
-            <td>${email or ''}</td>
-        </tr><tr>
             <td>New Password:</td>
             <td><input type="password" name="newpassword" value="" /></td>
         </tr>
     % endif
-
         <tr>
             <td></td>
             <td><input type="submit" value="Submit" /></td>
         </tr>
-
     </table>
 </form>

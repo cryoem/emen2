@@ -3,12 +3,12 @@ To: ${to_addr}
 Cc: ${from_addr}
 Subject: Your ${TITLE} account has been created
 
-${displayname}:
+${to_addr}:
 
 Your ${TITLE} account has been approved by the admin.
 
-${uri}
-Username: ${name}
+Site: ${uri}
+Account email: ${to_addr}
 
 Please make sure your profile information is correct after signing in.
 
