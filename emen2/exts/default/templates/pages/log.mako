@@ -95,7 +95,7 @@
 
          /*table = $('.dataset').dataTable({
             'bPaginate': true, 'bJQueryUI': true,
-            'oSearch': {'sSearch': ${jsonrpc.jsonutil.encode(filter_str)}},
+            'oSearch': {'sSearch': ${filter_str | n,jsonencode}},
             "sScrollX": "100%",
             "sScrollXInner": "110%"
 

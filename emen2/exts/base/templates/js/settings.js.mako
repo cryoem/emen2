@@ -16,12 +16,10 @@ for prop in vtm.getproperties():
     properties[prop] = [p.defaultunits, p.units]
 %>
 
-var ROOT=${jsonrpc.jsonutil.encode(ROOT)};
-var VERSION=${jsonrpc.jsonutil.encode(ctxt.version)};
-
-var valid_properties=${jsonrpc.jsonutil.encode(properties)};
-var valid_vartypes=${jsonrpc.jsonutil.encode(vtm.getvartypes())};
-
-var reverse_uri='${ctxt.reverse('ReverseURI_alt')}';
+## Don't forget to disable escaping with | n
+var ROOT = ${ROOT | n,jsonencode};
+var VERSION = ${ctxt.version | n,jsonencode};
+var valid_properties = ${properties | n,jsonencode};
+var valid_vartypes = ${vtm.getvartypes() | n,jsonencode};
 
 

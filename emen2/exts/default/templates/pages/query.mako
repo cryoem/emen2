@@ -1,7 +1,4 @@
-<%! 
-import jsonrpc.jsonutil
-import uuid
-%>
+<%! import uuid %>
 
 <%def name="table(q, parent=None, rectype=None, qc=True, header=True, controls=True)">
     <%
@@ -9,15 +6,15 @@ import uuid
     %>
     <script type="text/javascript">
     //<![CDATA[
-        var q${tname} = ${jsonrpc.jsonutil.encode(q)};
+        var q${tname} = ${q | n,jsonencode};
         $(document).ready(function() {
             $("#${tname}").TableControl({
                 q: q${tname}, 
-                rectype: ${jsonrpc.jsonutil.encode(rectype)},
-                parent: ${jsonrpc.jsonutil.encode(parent)},
-                header: ${jsonrpc.jsonutil.encode(header)},
-                controls: ${jsonrpc.jsonutil.encode(controls)},
-                qc: ${jsonrpc.jsonutil.encode(qc)}
+                rectype: ${rectype | n,jsonencode},
+                parent: ${parent | n,jsonencode},
+                header: ${header | n,jsonencode},
+                controls: ${controls | n,jsonencode},
+                qc: ${qc | n,jsonencode}
             })
         });    
     //]]>

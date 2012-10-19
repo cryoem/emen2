@@ -54,7 +54,16 @@ class AddExtLookup(mako.lookup.TemplateLookup):
         return tmpl.render(**ctxt)
 
 # Mako Template Loader
-templates = AddExtLookup(input_encoding='utf-8') ## , default_filters=['h']
+# Turn on HTML escaping by default. Use ${variable | n} to disable escaping.
+
+# todo: fix jsonrpc, to escape forward slashes -- until then..
+# ["from jsonrpc.jsonutil import encode as jsonencode"]
+
+templates = AddExtLookup(
+    input_encoding='utf-8', 
+    imports=['from emen2.db.util import jsonencode']
+    # default_filters=['h'],
+    )
 
 
 

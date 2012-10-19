@@ -17,13 +17,5 @@
     </ul>
 </h1>
 
-## <div style="position:relative">
-## <div style="position:absolute;left:300px;width:300px">
-##    ${parentmap2}
-## </div>    
-## <div style="position:absolute;left:600px">
-##    ${childmap}
-## </div>
-## </div>
-
-${childmap}
+## Disable filtering -- this comes from a template.
+${childmap | n,unicode}

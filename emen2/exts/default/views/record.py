@@ -83,7 +83,6 @@ class Record(View):
         recdef = self.db.recorddef.get(self.rec.rectype)
         recdefs = [recdef] + self.db.recorddef.get(children_groups.keys())
 
-
         # Pages -- a deprecated UI element. 
         recdefs_d = dict([i.name, i] for i in recdefs)
         pages = collections.OrderedDict()
@@ -94,7 +93,6 @@ class Record(View):
         for k,v in children_groups.items():
             pages[k] = "%s (%s)"%(recdefs_d.get(k,dict()).get('desc_short', k),len(v))
             pages.uris[k] = self.routing.reverse('Record/children', name=self.rec.name, childtype=k)    
-    
     
         # Update context
         self.ctxt.update(
@@ -257,11 +255,8 @@ class Record(View):
     def children_map(self, name=None):
         self.main(name=name)
         self.template = '/record/record.tree'
-        # Format string for the links
-        # link = "/record/%s/children/"
         childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, expandable=True, collapse_rectype=["grid_imaging"])
         self.ctxt['childmap'] = childmap
-        # self.ctxt['tab'] = 'children'
 
 
     @View.add_matcher('^/record/(?P<name>[^/]*)/children/(?P<childtype>\w+)/$')
@@ -277,7 +272,7 @@ class Record(View):
         self.ctxt['table'] = query
         self.ctxt['tab'] = 'children-%s'%childtype
         self.ctxt['childtype'] = childtype
-        self.ctxt["pages"].active = childtype # This is going away
+        self.ctxt["pages"].active = childtype # Show the active tab -- this might go away at some point.
 
 
     @View.add_matcher("^/record/(?P<name>[^/]*)/hide/$", write=True)

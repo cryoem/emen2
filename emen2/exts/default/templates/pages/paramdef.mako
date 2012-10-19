@@ -1,4 +1,3 @@
-<%! import jsonrpc.jsonutil %>
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 <%namespace name="forms" file="/forms"  /> 
@@ -8,7 +7,7 @@
     ${parent.js_ready()}
     ${buttons.tocache(paramdef)}
     $('#e2-relationships').RelationshipControl({
-        edit: ${jsonrpc.jsonutil.encode(edit)}
+        edit: ${edit | n,jsonencode}
     });
     
     // Add choices

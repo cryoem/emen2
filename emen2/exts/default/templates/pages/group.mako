@@ -6,16 +6,15 @@
 <%block name="js_ready">
     ${parent.js_ready()}
     ${buttons.tocache(group)}
-    var edit = ${jsonrpc.jsonutil.encode(edit)};
+    var edit = ${edit | n,jsonencode};
     $('#members').PermissionsControl({
         keytype: 'group',
-        name: ${jsonrpc.jsonutil.encode(group.name)},
+        name: ${group.name | n,jsonencode},
         edit: edit,
         embed: true,
         groups: false
     });
 </%block>
-
 
 
 <h1>

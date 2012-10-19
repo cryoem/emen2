@@ -48,7 +48,7 @@
                 <li>
                     <a class="e2-button" href="${ROOT}/record/${rec.name}/">No, cancel</a>&nbsp;&nbsp;
                     <input type="submit" value="Yes, hide this record" />
-                    <input type="hidden" name="commit" value="True" />
+                    <input type="hidden" name="confirm" value="True" />
                 </li>
             </ul>
 

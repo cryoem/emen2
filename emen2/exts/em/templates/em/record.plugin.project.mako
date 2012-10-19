@@ -1,7 +1,4 @@
-<%! 
-import jsonrpc.jsonutil
-import emen2.util.listops
-%>
+<%! import emen2.util.listops %>
 
 <%namespace name="buttons" file="/buttons"  /> 
 
@@ -13,7 +10,7 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
     $(document).ready(function() {
 
         ## Recent activity viewer
-        var q = ${jsonrpc.jsonutil.encode(recent_activity)}; 
+        var q = ${recent_activity | n,jsonencode}; 
         $('#recent_activity').PlotHistogram({
             q:q,
             pan: false,

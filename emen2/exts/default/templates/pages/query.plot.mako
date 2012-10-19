@@ -1,4 +1,3 @@
-<%! import jsonrpc.jsonutil %>
 <%inherit file="/page" />
 <%namespace name="query"  file="/pages/query"  />
 
@@ -6,7 +5,7 @@
     ${parent.js_ready()}
 
     ## Recent activity viewer
-    var q = ${jsonrpc.jsonutil.encode(q)}; 
+    var q = ${q | n,jsonencode}; 
     $('#query-plot').PlotControl({
         q:q
     });

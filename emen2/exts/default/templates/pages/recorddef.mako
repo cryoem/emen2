@@ -11,7 +11,7 @@
     ${parent.js_ready()}
     ${buttons.tocache(recorddef)}
     $('#e2-relationships').RelationshipControl({
-        edit: ${jsonrpc.jsonutil.encode(edit)}
+        edit: ${edit | n,jsonencode}
     });
 
     $('.e2-tree').TreeControl({'attach':true});

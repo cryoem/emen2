@@ -107,7 +107,7 @@
                             ${forms.countries()}
                         </select>
                         <script type="text/javascript">
-                            var country = ${jsonrpc.jsonutil.encode(userrec.get('country','United States'))};
+                            var country = ${userrec.get('country','United States') | n,jsonencode};
                             $('select[name=userrec\\.country]').val(country);
                         </script>
 

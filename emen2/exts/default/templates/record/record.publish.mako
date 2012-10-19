@@ -1,4 +1,3 @@
-<%! import jsonrpc.jsonutil %>
 <%inherit file="/record/record" />
 <%namespace name="buttons" file="/buttons"  /> 
 
@@ -6,7 +5,7 @@
     ${parent.js_ready()}
     $('#publishmap').TreeSelectControl({
         attach: true,
-        active: ${jsonrpc.jsonutil.encode(published)},
+        active: ${published | n,jsonencode},
         display_count: '#publish_count'
     });
 </%block>

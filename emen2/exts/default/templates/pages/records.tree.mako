@@ -16,4 +16,5 @@
     </ul>
 </h1>
 
-${childmap}
+## Disable filtering -- this comes from another template.
+${childmap | n,unicode}

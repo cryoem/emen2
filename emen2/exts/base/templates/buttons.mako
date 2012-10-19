@@ -1,4 +1,3 @@
-<%! import jsonrpc.jsonutil %>
 <%namespace name="forms"  file="/forms"  /> 
 
 <%def name="newtabs(tabs, cls='')">
@@ -73,7 +72,7 @@
     if name == None:
         name = 'None'
     %>
-    emen2.caches[${jsonrpc.jsonutil.encode(item.keytype)}][${jsonrpc.jsonutil.encode(name)}] = ${jsonrpc.jsonutil.encode(item)};
+    emen2.caches[${item.keytype | n,jsonencode}][${name | n,jsonencode}] = ${item | n,jsonencode};
 </%def>
 
 

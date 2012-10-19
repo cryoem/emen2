@@ -1,9 +1,4 @@
-<%! 
-import jsonrpc.jsonutil
-import operator 
-import collections
-%>
-
+<%! import collections %>
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 
@@ -27,7 +22,8 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 ## Relationship tree
 <%block name="precontent">
     ${parent.precontent()}
-    <div class="e2-tree-main" style="overflow:hidden">${parentmap}</div>
+    ## Disable encoding -- this comes from another template.
+    <div class="e2-tree-main" style="overflow:hidden">${parentmap | n,unicode}</div>
 </%block>
 
 
@@ -41,13 +37,13 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
     ${buttons.tocache(rec)}
 
-    emen2.caches['recnames'] = ${jsonrpc.jsonutil.encode(recnames)};
+    emen2.caches['recnames'] = ${recnames | n,jsonencode};
 
     $('.e2-tree').TreeControl({'attach':true});
 
     // Record, ptest
-    var rec = emen2.caches['record'][${jsonrpc.jsonutil.encode(rec.name)}];
-    var ptest = ${jsonrpc.jsonutil.encode(rec.ptest())}
+    var rec = emen2.caches['record'][${rec.name | n,jsonencode}];
+    var ptest = ${rec.ptest() | n,jsonencode}
 
     // Tile browser
     $('.e2-tile').TileControl({'mode':'cached'});
@@ -130,7 +126,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     });
     
     // Now that we have all the callbacks added...
-    tab.TabControl('checkhash', ${jsonrpc.jsonutil.encode(tab)});
+    tab.TabControl('checkhash', ${tab | n,jsonencode});
     
     $('.e2-record-new').RecordControl({});
     
@@ -331,7 +327,8 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
     % for k,v in children_groups.items():
         % if k == childtype:
-            <div data-tab="children-${k}" class="e2-tab-active">${table}</div>
+            ## Disable filtering -- this comes from another template.
+            <div data-tab="children-${k}" class="e2-tab-active">${table | n,unicode}</div>
         % else:
             <div data-tab="children-${k}"></div>        
         % endif
@@ -343,7 +340,8 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
     <div data-tab="edit" ${istab(tab, "edit")}>
         <form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${ROOT}/record/${rec.name}/edit/">
-            ${rendered}
+            ## Disable filtering -- each param/macro renderer is responsible for this.
+            ${rendered | n,unicode}
         </form>    
     </div>
     

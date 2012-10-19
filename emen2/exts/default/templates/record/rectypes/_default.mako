@@ -1,2 +1,3 @@
 ## Main rendered record
-${rendered}
+## Disable filtering -- each param/macro renderer is responsible for this.
+${rendered | n}

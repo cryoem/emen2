@@ -9,7 +9,7 @@ import collections
 <%block name="js_ready">
     ${parent.js_ready()}
     ## Recent activity viewer
-    var q = ${jsonrpc.jsonutil.encode(recent_activity)}; 
+    var q = ${recent_activity | n,jsonencode}; 
     var plot = new $.emen2.PlotHistogram({
         q:q,
         pan: false,
