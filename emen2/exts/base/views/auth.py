@@ -42,7 +42,7 @@ class Auth(View):
 
         else:
             try:
-                self.db.user.setpassword(name, opw, on1, name=name)
+                self.db.user.setpassword(name, opw, on1)
                 self.redirect(content="Password changed successfully.", auto=False)
             except Exception, errmsg:
                 self.notify(errmsg, error=True)
