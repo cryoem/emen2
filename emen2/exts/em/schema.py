@@ -10750,11 +10750,11 @@ Deprecated; use project_meeting
                 'vitrification_device'],
   'creationtime': '2011-12-08T11:39:12Z',
   'creator': 'root',
-  'desc_long': 'Specialized folder for equipment records',
-  'desc_short': 'Equipment folder',
+  'desc_long': 'Generic equipment',
+  'desc_short': 'Equipment',
   'keytype': 'recorddef',
   'mainview': """
-# Equipment folder: $$name_folder
+# Equipment: $$name_folder
 
 Description: $$folder_description  
 """,
@@ -10764,7 +10764,7 @@ Description: $$folder_description
   'parents': ['root'],
   'private': 0,
   'typicalchld': ['equipment_maintenance'],
-  'views': { 'recname': """Equipment: $$name_folder"""}},
+  'views': { 'recname': """$$name_folder"""}},
 
 
 

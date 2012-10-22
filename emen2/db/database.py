@@ -2215,7 +2215,11 @@ class DB(object):
 
         # Do not use cget; it will strip out the secret.
         user = self.dbenv["user"].get(name, filt=False, txn=txn)
-
+        user_secret = user.secret
+        user.setContext(ctx)
+        if user_secret:
+            user.__dict__['secret'] = user_secret
+        
         # Actually change user email.
         oldemail = user.email
         user.setemail(email, secret=secret, password=password)
@@ -2228,7 +2232,7 @@ class DB(object):
 
         # Send out confirmation or verification email.
         if user.email == oldemail:
-            # Need to verify email address by receiving secret.
+            # Need to verify email address change by receiving secret.
             emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, user.email))
             # Note: cputs will always ignore the secret; write directly
             self.dbenv["user"].put(user.name, user, txn=txn)
@@ -2238,14 +2242,14 @@ class DB(object):
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verify', 'ctxt':ctxt})
 
         else:
-            raise Exception, "There is a known issue with this form. I am working on it."
+            # raise Exception, "There is a known issue with this form. I am working on it."
             # Verified with secret.
             # user.setContext(ctx)
             emen2.db.log.security("Changing email for user %s to %s"%(user.name, user.email))
-            # self.dbenv['user'].cputs([user], ctx=ctx, txn=txn)
+            self.dbenv['user'].cputs([user], ctx=ctx, txn=txn)
             # Note: Since we're putting directly,
             #     have to force the index to update
-
+            
             # Send the user an email to acknowledge the change
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verified'})
 

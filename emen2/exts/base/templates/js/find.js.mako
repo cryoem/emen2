@@ -81,9 +81,9 @@
                     count += item['permissions'][i].length;
                 }
                 body = count+' members';
-                if (item.displayname == 'authenticated') {
+                if (item.name == 'authenticated') {
                     body = 'All logged in users';
-                } else if (item.displayname == 'anonymous') {
+                } else if (item.name == 'anon') {
                     body = 'Public access';
                 }
             } else if (this.options.keytype == 'record') {

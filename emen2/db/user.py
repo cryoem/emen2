@@ -58,7 +58,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         return super(BaseUser, self).isowner() or self._ctx.username == self.name
 
 
-
     ##### Password methods #####
 
     def _hashpassword(self, password):
@@ -127,7 +126,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
     def setemail(self, email, password=None, secret=None):
         email = self.validate_email(email)
-
         # Check that we know the existing password, or an authentication secret
         # Note that admin users always return True for _checksecret
         # Note: the auth token is bound both to the method (setemail) and the
@@ -151,10 +149,14 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     # Secrets for account password resets
     #################################
 
+    def _set_secret(self, key, value, **kwargs):
+        # Complicated.. cput/cputs will strip out secret.
+        # You have to get/put directly to get or set the secret.
+        pass
+
     def _checksecret(self, action, args, secret):
         # I only want this to work on certain subclasses. See: User
         return False
-
 
     def _setsecret(self, action, args):
         # secret is set using __dict__ (like _ctx/_ptest) because it's a secret, and not a normal attribute.
@@ -168,7 +170,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         import emen2.db.database
         secret = emen2.db.database.getrandomid()
         self.__dict__['secret'] = (action, args, secret, time.time())
-
 
     def _delsecret(self):
         self.__dict__['secret'] = None
@@ -349,10 +350,6 @@ class User(BaseUser):
 
         if not hasattr(self, 'secret'):
             self.__dict__['secret'] = None
-
-        print "checking secret:"
-        print action, args, secret
-        print self.secret
 
         # This should check expiration time...
         if action and secret and self.secret:
