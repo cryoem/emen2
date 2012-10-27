@@ -438,7 +438,7 @@
                     keytype: 'recorddef',
                     name: this,
                     selected: function(self, e) {
-                        console.log(e);
+                        // console.log(e);
                     }
                 });
                 box.click(function(){self.build_dialog($(this).attr('data-name'))});

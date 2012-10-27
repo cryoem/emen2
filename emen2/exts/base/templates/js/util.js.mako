@@ -234,11 +234,11 @@ emen2.template.notify = function(msg, error, fade) {
 emen2.template.poll_notifications = function(freq) {
    $.jsonRPC.call('poll', {}, function(result) {
       emen2.template.notify(result, false);
-      console.log('found_notification');
+      // console.log('found_notification');
       emen2.template.poll_notifications();
    }, function(result) {
       emen2.template.notify(result, true);
-      console.log('found_error');
+      // console.log('found_error');
    });
 };
 
@@ -491,10 +491,7 @@ emen2.util.set_remove = function(i, l) {
     });
 
     // EMEN2 Tabs
-    // Works somewhat like jQuery-UI Tabs -- uses
-    //        basically the same markup
-    // This control uses the role= attribute to identify components
-    // roles: tablist, tabpanel
+    // Works somewhat like jQuery-UI Tabs.
     $.widget('emen2.TabControl', {
         options: {
             active: 'e2-tab-active',

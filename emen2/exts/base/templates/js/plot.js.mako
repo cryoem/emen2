@@ -461,7 +461,7 @@
             this.width = this.options.width - (this.options.padding[1] + this.options.padding[3]);
 
             // Setup axes
-            console.log("options:", this.options);
+            // console.log("options:", this.options);
             var q = this.options.q
             if (q.x == null) {q.x = {}};
             if (q.y == null) {q.y = {}};
