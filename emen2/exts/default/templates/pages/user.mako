@@ -110,7 +110,6 @@
                             var country = ${userrec.get('country','United States') | n,jsonencode};
                             $('select[name=userrec\\.country]').val(country);
                         </script>
-
                     </td>
                 </tr>
                 <tr>

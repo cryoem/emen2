@@ -2215,7 +2215,7 @@ class DB(object):
 
         # Do not use cget; it will strip out the secret.
         user = self.dbenv["user"].get(name, filt=False, txn=txn)
-        user_secret = user.secret
+        user_secret = getattr(user, 'secret', None)
         user.setContext(ctx)
         if user_secret:
             user.__dict__['secret'] = user_secret
@@ -2223,7 +2223,7 @@ class DB(object):
         # Actually change user email.
         oldemail = user.email
         user.setemail(email, secret=secret, password=password)
-        user_secret = user.secret
+        user_secret = getattr(user, 'secret', None)
 
         ctxt = {}
         ctxt['name'] = user.name
@@ -2249,9 +2249,8 @@ class DB(object):
             self.dbenv['user'].cputs([user], ctx=ctx, txn=txn)
             # Note: Since we're putting directly,
             #     have to force the index to update
-            
             # Send the user an email to acknowledge the change
-            self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verified'})
+            self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verified', 'ctxt':ctxt})
 
         return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 

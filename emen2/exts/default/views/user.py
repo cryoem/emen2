@@ -45,6 +45,7 @@ class User(View):
             "email":"Email updated.", 
             "privacy":"Privacy updated.", 
             "profile":"Profile information updated."}
+            
         msg = msgs.get(kwargs.get('saved'))
         if msg:
             self.notify(msg)

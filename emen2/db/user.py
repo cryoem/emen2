@@ -352,7 +352,7 @@ class User(BaseUser):
             self.__dict__['secret'] = None
 
         # This should check expiration time...
-        if action and secret and self.secret:
+        if action and secret and getattr(self, 'secret', None):
             if action == self.secret[0] and args == self.secret[1] and secret == self.secret[2]:
                 return True
 

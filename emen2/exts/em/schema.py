@@ -11954,4 +11954,4 @@ $#ctf_ampcont: $$ctf_ampcont
 #    emen2.db.load.write_json(sys.argv[1], paramdefs=paramdefs+EMAN2paramdefs, recorddefs=recorddefs)
 
 if __name__ == "__main__":
-    emen2.db.dump.dump_json(sys.argv[1], items=paramdefs+EMAN2paramdefs+recorddefs)
+    emen2.db.dump.dump_json(sys.argv[1], items=paramdefs+paramdefs+recorddefs)

@@ -1077,8 +1077,8 @@ class DBODB(EMEN2DB):
                 # Get the existing item.
                 orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
                 orec.setContext(ctx)
-                if orec.get('uri'):
-                    raise emen2.db.exceptions.SecurityError, "Cannot modify read-only item %s"%orec.name
+                # if orec.get('uri'):
+                #    raise emen2.db.exceptions.SecurityError, "Cannot modify read-only item %s"%orec.name
             else:
                 # Create a new item.
                 p = dict((k,updrec.get(k)) for k in self.dataclass.attr_required)
