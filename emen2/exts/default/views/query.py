@@ -24,7 +24,8 @@ cmp_order = [
     "<",
     ".any.",
     '.none.',
-    '.noop.'
+    '.noop.',
+    '.name.',
 ]
 
 
@@ -102,7 +103,9 @@ class Query(View):
     @View.add_matcher(r'^/query/(?P<path>.*)/$', name='query')
     def main(self, path=None, q=None, c=None, **kwargs):
         self.initq(path, q, c, **kwargs)
+	print "Running query:", self.q
         self.q = self.db.table(**self.q)
+	print "Result:", self.q
         self.ctxt['q'] = self.q
 
 
