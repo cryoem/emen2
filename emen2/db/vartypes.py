@@ -169,7 +169,7 @@ class Vartype(object):
         root = emen2.db.config.get('web.root')
         label = ''
         if embedtype == '!':
-            embedtype = 'data-required="True"'
+            embedtype = 'required="required"'
         else:
             embedtype = ''
         editmarkup = 'data-name="%s" data-param="%s" %s'%(self.name, self.pd.name, embedtype)
