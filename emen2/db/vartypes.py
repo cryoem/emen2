@@ -239,7 +239,6 @@ class Vartype(object):
                 found.add(i)
                 changed = True
             elif ALLOW_MISSING:
-                # Convert.. Warning: using a private method.
                 emen2.db.log.warn("Validation: Could not find, but allowing: %s %s (param %s)"%(self.vartype, i, self.pd.name))
                 ret.append(i)
             else:

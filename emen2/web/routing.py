@@ -64,10 +64,10 @@ class Router(twisted.web.resource.Resource):
             path = '/'
         if path[-1] != "/":
             path = "%s/"%path
-        request.path = path
+        # request.path = path
 
         try:
-            view, method = resolve(path=request.path)
+            view, method = resolve(path=path)
         except:
             return self
 
@@ -87,13 +87,31 @@ class Router(twisted.web.resource.Resource):
 
     # Resource was not found
     def render(self, request):
-        try:
-            return unicode(
-                emen2.web.routing.execute('Error/resp', db=None, error=responsecodes.NotFoundError(request.uri), location=request.uri)
-                ).encode('utf-8')
-        except:
-            return 'Not found'
-            # raise responsecodes.NotFoundError(request.uri)
+        
+        # Try to find a template...
+        template = request.path        
+        makot = emen2.db.config.templates.get_template(template)
+
+        # self.ctxt['inherit'] = False
+        # if (self.db and self.db._getctx().checkadmin()) or getattr(makot.module, 'public', False):
+        #     self.template = template
+        #     self.headers = getattr(makot.module, 'headers', {})
+        # else:
+        #     self.ctxt['content'] = '<b>Error, private template</b>'
+        
+        
+                
+        # try:
+        #     return unicode(
+        #         emen2.web.routing.execute(
+        #             'Error/resp', 
+        #             db=None, 
+        #             error=responsecodes.NotFoundError(request.uri), 
+        #             location=request.uri)
+        #         ).encode('utf-8')
+        # except:
+        #     return 'Not found'
+        #     # raise responsecodes.NotFoundError(request.uri)
 
 
 

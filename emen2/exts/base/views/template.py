@@ -27,11 +27,8 @@ class TemplateRender(View):
         if (self.db and self.db._getctx().checkadmin()) or getattr(makot.module, 'public', False):
             self.template = template
             self.headers = getattr(makot.module, 'headers', {})
-
         else:
-            self.ctxt['content'] = '<b>Error, Private Template</b>'
-
-        # self.etag = '"%s"' % template.mtime
+            self.ctxt['content'] = '<b>Error, private template</b>'
 
 
 
