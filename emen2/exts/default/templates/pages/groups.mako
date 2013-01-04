@@ -19,7 +19,7 @@ for k,v in d.items():
 
 %>
 
-<form method="post" action="${ROOT}/groups/">
+<form method="post" action="${ctxt.root}/groups/">
 <h1>
 
     ${ctxt.title}
@@ -29,7 +29,7 @@ for k,v in d.items():
             <input type="submit" value="Search" />
         </li>
         % if admin:
-            <li><a class="e2-button" href="${ROOT}/groups/new/"><img src="${ROOT}/static/images/edit.png" alt="Edit" /> New</a></li>
+            <li><a class="e2-button" href="${ctxt.root}/groups/new/"><img src="${ctxt.root}/static/images/edit.png" alt="Edit" /> New</a></li>
         % endif
     </ul>
 </h1>

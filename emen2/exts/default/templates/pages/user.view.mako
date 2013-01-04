@@ -5,7 +5,7 @@
     ${user.displayname}
     <ul class="e2l-actions">
         % if ADMIN:
-            <li><a class="e2-button" href="${ROOT}/user/${user.name}/edit/"><img src="${ROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a></li>
+            <li><a class="e2-button" href="${ctxt.root}/user/${user.name}/edit/"><img src="${ctxt.root}/static/images/edit.png" alt="Edit" /> Edit Profile</a></li>
         % endif
     </li>
 </h1>

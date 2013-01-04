@@ -73,8 +73,8 @@ if project['permissions'][0] or project['permissions'][1] or set(project['permis
     <h1>
         Project details
         <ul class="e2l-actions">
-            <li><a data-name="${project.name}" class="e2-button" href="${ROOT}/record/${project.name}/">View full record</a></li>
-            <li><a data-name="${project.name}" class="e2-button e2-record-edit" href="${ROOT}/record/${project.name}/edit">${buttons.image('edit.png')} Edit</a></li>
+            <li><a data-name="${project.name}" class="e2-button" href="${ctxt.root}/record/${project.name}/">View full record</a></li>
+            <li><a data-name="${project.name}" class="e2-button e2-record-edit" href="${ctxt.root}/record/${project.name}/edit">${buttons.image('edit.png')} Edit</a></li>
         </ul>
     </h1>
     
@@ -108,7 +108,7 @@ if project['permissions'][0] or project['permissions'][1] or set(project['permis
                 <strong>Note:</strong> this will overwrite the permissions in all child records, including any subprojects.
         
                 <br />
-                <form action="${ROOT}/em/home/project/${project.name}/resetpermissions/" method="post">
+                <form action="${ctxt.root}/em/home/project/${project.name}/resetpermissions/" method="post">
                 <ul class="e2l-actions">
                     <li><input type="submit" value="Set permissions to match investigators" /></li>
                 </ul>        

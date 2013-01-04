@@ -17,7 +17,7 @@ for prop in vtm.getproperties():
 %>
 
 ## Don't forget to disable escaping with | n
-var ROOT = ${ROOT | n,jsonencode};
+var ROOT = ${ctxt.root | n,jsonencode};
 var VERSION = ${ctxt.version | n,jsonencode};
 var valid_properties = ${properties | n,jsonencode};
 var valid_vartypes = ${vtm.getvartypes() | n,jsonencode};

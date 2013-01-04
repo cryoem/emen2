@@ -11,7 +11,7 @@
         <tbody>
         % for user in sorted(emailusers, key=lambda x:x.displayname):
             <tr>
-                <td><a href="${ROOT}/user/${user.name}/">${user.displayname}</a></td>
+                <td><a href="${ctxt.root}/user/${user.name}/">${user.displayname}</a></td>
                 <td><a href="mailto:${user.email}">${user.email}</a></td>
             </tr>
         % endfor

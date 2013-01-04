@@ -3176,7 +3176,17 @@ class DB(object):
         :exception SecurityError:
         """
         return self.dbenv["record"].groupbyrectype(names, ctx=ctx, txn=txn)
-                
+    
+    
+    @publicmethod()
+    @ol('names')
+    def record_render_new(self, names, keys=None, ctx=None, txn=None):
+        recs = self.dbenv["record"].cgets(names, ctx=ctx, txn=txn)
+        
+        
+        
+        
+        
 
     @publicmethod(compat="renderview")
     @ol('names')

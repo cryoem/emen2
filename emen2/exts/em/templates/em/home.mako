@@ -37,7 +37,7 @@ import collections
     </ul>
 
 	% if ADMIN:
-    	<a class="e2-button e2-record-new" href="${ROOT}/record/0/new/group/" data-parent="0" data-rectype="group">${buttons.image('new.png')} New group</a>
+    	<a class="e2-button e2-record-new" href="${ctxt.root}/record/0/new/group/" data-parent="0" data-rectype="group">${buttons.image('new.png')} New group</a>
 	% endif
     
 </div>

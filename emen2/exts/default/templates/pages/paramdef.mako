@@ -109,12 +109,12 @@
     <table class="e2l-kv">
         <tr>
             <td>Created:</td>
-            <td><a href="${ROOT}/user/${paramdef.creator}">${paramdef.creator}</a> @ <time class="e2-localize" datetime="${paramdef.creationtime}">${paramdef.creationtime}</time></td>
+            <td><a href="${ctxt.root}/user/${paramdef.creator}">${paramdef.creator}</a> @ <time class="e2-localize" datetime="${paramdef.creationtime}">${paramdef.creationtime}</time></td>
         </tr>
 
         <tr>
             <td>Modified:</td>
-            <td><a href="${ROOT}/user/${paramdef.modifyuser}">${paramdef.modifyuser}</a> @ <time class="e2-localize" datetime="${paramdef.modifytime}">${paramdef.modifytime}</time></td>
+            <td><a href="${ctxt.root}/user/${paramdef.modifyuser}">${paramdef.modifyuser}</a> @ <time class="e2-localize" datetime="${paramdef.modifytime}">${paramdef.modifytime}</time></td>
         </tr>
     </table>
 </%def>

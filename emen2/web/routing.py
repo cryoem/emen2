@@ -19,34 +19,50 @@ from emen2.web import responsecodes
 from emen2.util import listops
 
 
-class IndexedListIterator(object):
-    def __init__(self, lis):
-        self.lis = tuple(lis)
+def resolve(name=None, path=None):
+    """Resolve a route using either a route name or path URI."""
+    return _Router.resolve(name=name, path=path)
 
-        # public
-        self.pos = 0
 
-    def next(self, delta = 1):
-        try:
-            result = self.lis[self.pos]
-            self.pos += delta
-            self.pos %= len(self.lis)
-        except IndexError:
-            result = None
+def execute(_execute_name, db=None, *args, **kwargs):
+    """Find and execute a route by name.
+    The route name (e.g. 'Home/main') must be the first positional argument.
+    """
+    view, method = _Router.resolve(name=_execute_name)
+    view = view(db=db)
+    view.init()
+    method(view, *args, **kwargs)
+    return view
+
+
+def reverse(*args, **kwargs):
+    return _Router.reverse(*args, **kwargs)
+
+
+def add(*args, **kwargs):
+    pass
+
+
+def force_unicode(string):
+    result = string
+    if isinstance(result, unicode):
         return result
-
-    def prev(self, delta = 1):
-        self.pos -= delta
-        return self.lis[self.pos]
-
-    def __getitem__(self, arg):
-        return self.lis[arg]
+    elif hasattr(result, '__unicode__'):
+        return unicode(result)
+    else:
+        return unicode(result, 'utf-8', errors='replace')
 
 
 
 ##### Routing Resource #####
 
 class Router(twisted.web.resource.Resource):
+    """Twisted Resource router.
+
+    This is a Twisted Resource with a modified getChild method that will
+    search for a View based on the request's path.
+    """
+    
     isLeaf = False
 
     # Find a resource or view
@@ -87,10 +103,12 @@ class Router(twisted.web.resource.Resource):
 
     # Resource was not found
     def render(self, request):
-        
         # Try to find a template...
-        template = request.path        
+        template = request.path    
+        print "Looking up template -- ", request.path    
         makot = emen2.db.config.templates.get_template(template)
+
+        # return 'Not found'
 
         # self.ctxt['inherit'] = False
         # if (self.db and self.db._getctx().checkadmin()) or getattr(makot.module, 'public', False):
@@ -98,9 +116,6 @@ class Router(twisted.web.resource.Resource):
         #     self.headers = getattr(makot.module, 'headers', {})
         # else:
         #     self.ctxt['content'] = '<b>Error, private template</b>'
-        
-        
-                
         # try:
         #     return unicode(
         #         emen2.web.routing.execute(
@@ -115,54 +130,8 @@ class Router(twisted.web.resource.Resource):
 
 
 
-
-def resolve(name=None, path=None):
-    """Resolve a route using either a route name or path URI.
-    This method returns a callable, and any keywords parsed from the path URI.
-    Bind the DB handle by passing it to the callable. This will produce a second
-    callable that will instantiate the View and run the View's method.
-
-    Example:
-
-    # Get the callback
-    cb, kwargs = routing.resolve(path='/record/1')
-
-    # Update the keyword arguments
-    kwargs['blah'] = True
-
-    # Create the view and run the routed method
-    view = cb(db=db)(**kwargs)
-
-    # Render the View
-    print view
-    """
-    return _Router.resolve(name=name, path=path)
-
-
-
-def execute(_execute_name, db=None, *args, **kwargs):
-    """Find and execute a route by name.
-    The route name (e.g. 'Home/main') must be the first positional argument.
-    """
-    view, method = _Router.resolve(name=_execute_name)
-    view = view(db=db)
-    view.init()
-    method(view, *args, **kwargs)
-    return view
-
-
-
-def reverse(*args, **kwargs):
-    return _Router.reverse(*args, **kwargs)
-
-
-def add(*args, **kwargs):
-    pass
-
-
 class Route(object):
     """Private"""
-
     def __init__(self, name, matcher, cls=None, method=None, write=False):
         self.name = name
         if not hasattr(matcher, 'match'):
@@ -184,7 +153,6 @@ class Route(object):
             for k,v in match.groupdict().items():
                 result[urllib.unquote_plus(k)] = urllib.unquote_plus(v)
         return result
-
 
 
 
@@ -321,7 +289,7 @@ class MatchChecker(object):
     "Class used in reverse lookup."
     def __init__(self, args, kwargs):
         # Don't forget to quote the values.
-        self.args = IndexedListIterator( (urllib.quote_plus(x) for x in args) )
+        self.args = _IndexedListIterator( (urllib.quote_plus(x) for x in args) )
         self.kwargs = dict(  ( x, urllib.quote_plus(y) ) for x, y in kwargs.items()  )
         self.used_kwargs = set([])
 
@@ -356,14 +324,28 @@ class MatchChecker(object):
         return force_unicode(value)
 
 
-def force_unicode(string):
-    result = string
-    if isinstance(result, unicode):
-        return result
-    elif hasattr(result, '__unicode__'):
-        return unicode(result)
-    else:
-        return unicode(result, 'utf-8', errors='replace')
+class _IndexedListIterator(object):
+    def __init__(self, lis):
+        self.lis = tuple(lis)
 
+        # public
+        self.pos = 0
+
+    def next(self, delta = 1):
+        try:
+            result = self.lis[self.pos]
+            self.pos += delta
+            self.pos %= len(self.lis)
+        except IndexError:
+            result = None
+        return result
+
+    def prev(self, delta = 1):
+        self.pos -= delta
+        return self.lis[self.pos]
+
+    def __getitem__(self, arg):
+        return self.lis[arg]
+        
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

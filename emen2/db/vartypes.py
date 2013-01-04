@@ -51,9 +51,9 @@ vtm = emen2.db.datatypes.VartypeManager
 # Allow references to missing items.
 ALLOW_MISSING = True
 
-
 ###########################
 # Helper methods
+
 
 def update_username_cache(engine, values, lnf=False):
     # Check cache
@@ -121,7 +121,6 @@ def iso8601duration(d):
 
 
 
-
 @vtm.register_vartype('none')
 class Vartype(object):
     '''Base class for vartypes'''
@@ -132,9 +131,6 @@ class Vartype(object):
     #: is this vartype iterable?
     iterable = True
 
-    #: the CSS class to use when rendering as HTML
-    elem_class = 'e2-edit'
-
     #: the element to use when rendering as HTML
     elem = 'span'
 
@@ -143,83 +139,11 @@ class Vartype(object):
         self.engine = engine
 
 
-    def process(self, value, *args, **kwargs):
-        return [cgi.escape(unicode(i)) for i in ci(value)]
-
-
-    # This is the default HTML renderer for single-value items. It is important to cgi.escape the values!!
-    def render(self, value, name=0, edit=False, showlabel=False, markup=False, table=False, embedtype=None):
-        '''Render a value as HTML'''
-        # Store these for convenience
-        self.name = name
-        self.edit = edit
-        self.showlabel = showlabel
-        self.markup = markup
-        self.table = table
-        if self.pd.get('immutable'):
-            self.edit = False
-
-        value = self.process(value)
-        return self._render(value, embedtype=embedtype)
-
-
-    # After pre-processing values into markup
-    def _render(self, value, embedtype=None):
-        # Note: Value should already be escaped!
-        root = emen2.db.config.get('web.root')
-        label = ''
-        if embedtype == '!':
-            embedtype = 'required="required"'
-        else:
-            embedtype = ''
-        editmarkup = 'data-name="%s" data-param="%s" %s'%(self.name, self.pd.name, embedtype)
-
-        if value and self.pd.defaultunits:
-            value = ['%s %s'%(i, self.pd.defaultunits) for i in value]
-
-        # Plain text rendering
-        if not self.markup:
-            return ", ".join(value)
-
-        # Empty value
-        if not value:
-            label = '<img src="%s/static/images/blank.png" class="e2l-label" alt="No value" />'%root
-            if self.edit:
-                return '<%s class="%s" %s>%s</%s>'%(self.elem, self.elem_class, editmarkup, label, self.elem)
-            return '<%s></%s>'%(self.elem, self.elem)
-
-        # Tables have links to the record
-        if self.table:
-            value = ['<a href="%s/record/%s">%s</a>'%(root, self.name, i) for i in value]
-
-        # Iterable parameters
-        if self.pd.iter:
-            lis = ['<li>%s</li>'%(i) for i in value]
-            if not self.edit:
-                return '<ul>%s</ul>'%("\n".join(lis))
-            # Editable..
-            return '<ul class="%s" %s>%s</ul>'%(self.elem_class, editmarkup, "\n".join(lis))
-
-        # Non-iterable parameters
-        value = value.pop()
-        if not self.edit:
-            return value
-        return '<%s class="%s" %s>%s%s</%s>'%(self.elem, self.elem_class, editmarkup, value, label, self.elem)
-
-
-    def encode(self, value):
-        return value
-
-
-    def decode(self, pd, value):
-        return value
-
-
     def validate(self, value):
         """Validate a value"""
         raise ValidationError, "%s is an organizational parameter, and is not intended to be used."%self.pd.name
 
-    
+
     def _validate_reference(self, value, keytype=None):
         ret = []
         changed = False
@@ -282,6 +206,59 @@ class Vartype(object):
             del delrefs[None]
 
         return addrefs, delrefs
+
+
+    def process(self, value, *args, **kwargs):
+        """Render."""
+        return [unicode(i) for i in ci(value)]
+
+
+    def escape(self, value):
+        return cgi.escape(value)
+        
+
+    def render(self, value, name=0, edit=False, markup=False, table=False, embedtype=None):
+        '''Render HTML'''
+
+        # Process the values into something human readable.
+        value = self.process(value)
+
+        # Add units if specified.
+        if self.pd.defaultunits:
+            value = ['%s %s'%(i, self.pd.defaultunits) for i in value]
+        
+        # If not markup, return now.
+        # These values will NOT be escaped.
+        if not markup:
+            return ", ".join(value)
+        
+        # Escape the values. This is very imporant!
+        value = [self.escape(i) for i in value]
+
+        # If iterable, wrap each value in an <li>
+        elem = self.elem
+        if self.pd.iter:
+            elem = "ul"
+            value = ['<li>%s</li>'%(i) for i in value]
+
+        # Attributes for editable items. Escape attribute values!
+        required = ''
+        if embedtype == '!':
+           required = 'required="required"'
+        editmarkup = 'data-name="%s" data-param="%s" %s'%(cgi.escape(name), cgi.escape(self.pd.name), required)
+
+        if edit and not self.pd.get('immutable'):
+            return '<%s class="e2-edit" %s>%s</%s>'%(elem, " ".join(value), elem)
+
+        return '<%s>%s</%s>'%(elem, " ".join(value), elem)
+
+
+    def encode(self, value):
+        return value
+
+
+    def decode(self, pd, value):
+        return value
 
 
 
@@ -383,12 +360,6 @@ class vt_string(Vartype):
     def validate(self, value):
         return self._rci([unicode(x).strip() for x in ci(value)])
 
-    def process(self, value):
-        value = ci(value)
-        if self.markup:
-            return [cgi.escape(unicode(i)) for i in value]
-        return value
-
 
 @vtm.register_vartype('choice')
 class vt_choice(vt_string):
@@ -457,15 +428,6 @@ class vt_text(vt_string):
         return set((x[0] or x[1]) for x in self._reindex_getindexwords_m.findall(value))
 
 
-    def process(self, value):
-        value = ci(value)
-        if self.markup:
-            value = [cgi.escape(i) for i in value]
-            if markdown:
-                value = [markdown.markdown(i) for i in value]
-        return value
-
-
 
 
 ###################################
@@ -487,10 +449,9 @@ class vt_datetime(vt_string):
                 ret.append(t.isoformat())
         return self._rci(ret)
 
-    def _render(self, value, embedtype=None):
-        #if self.markup:
-        value = ['<time class="e2-localize" datetime="%s">%s</time>'%(i,i) for i in value]
-        return super(vt_datetime, self)._render(value, embedtype=embedtype)
+    # def _render(self, value, embedtype=None):
+    #    value = ['<time class="e2-localize" datetime="%s">%s</time>'%(i,i) for i in value]
+    #    return super(vt_datetime, self)._render(value, embedtype=embedtype)
 
 
 @vtm.register_vartype('date')
@@ -509,6 +470,8 @@ class vt_date(vt_datetime):
 @vtm.register_vartype('time')
 class vt_time(vt_datetime):
     """Time, HH:MM:SS."""
+
+    elem = "time"
 
     def validate(self, value):
         ret = []
@@ -541,14 +504,6 @@ class vt_uri(Vartype):
         return self._rci(value)
 
 
-    def process(self, value):
-        value = ci(value)
-        if self.markup:
-            value = [cgi.escape(i) for i in value]
-            if not self.table:
-                value = ['<a href="%s">%s</a>'%(i,i) for i in value]
-        return value
-
 
 
 
@@ -571,15 +526,11 @@ class vt_dict(Vartype):
         
 
     def process(self, value):
-        if not value:
-            return 'Empty'
-        r = [cgi.escape('%s: %s'%(k, v)) for k,v in value.items()]
-        return '<br />'.join(r)
-
+        return ['%s: %s\n'%(k, v) for k,v in value.items()]
 
 
 @vtm.register_vartype('dictlist')
-class vt_dict(Vartype):
+class vt_dictlist(vt_dict):
     """Dictionary with string keys and list values."""
 
     keyformat = None
@@ -593,16 +544,7 @@ class vt_dict(Vartype):
             k = unicode(k)
             v = [unicode(i) for i in v]
             ret[k] = v
-
         return ret
-
-
-    def process(self, value):
-        if not value:
-            return 'Empty'
-        r = [cgi.escape('%s: %s'%(k, v)) for k,v in value.items()]
-        return '<br />'.join(r)
-
 
 
 ###################################
@@ -614,35 +556,18 @@ class vt_dict(Vartype):
 class vt_binary(Vartype):
     """File Attachment"""
 
-    elem_class = "e2-edit"
-
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype=self.vartype)
         return self._rci(value)
 
 
     def process(self, value):
-        root = emen2.db.config.get('web.root')
         value = ci(value)
-        t = self.table
-        if not self.markup:
-            t = True
-            # return value
-
         try:
             v = self.engine.db.binary.get(value)
-            if t:
-                value = ['%s'%(cgi.escape(i.filename)) for i in v]
-            else:
-                value = ['''
-                    <a target="_blank" href="%s/download/%s/%s">
-                    <img class="e2l-thumbnail" src="%s/download/%s/thumb.jpg?size=thumb" />
-                    %s
-                    </a>'''%(root, i.name, cgi.escape(i.filename), root, i.name, cgi.escape(i.filename)) for i in v]
-
+            value = [i.filename for i in v]
         except (ValueError, TypeError), e:
-            value = ['Error getting binary %s'%(i) for i in value]
-
+            value = ['Error getting binary: %s'%(i) for i in value]
         return value
 
 
@@ -705,23 +630,13 @@ class vt_user(Vartype):
 
 
     def process(self, value):
-        root = emen2.db.config.get('web.root')
         value = ci(value)
-        lnf = False
-        if self.table:
-            lnf = True
-        update_username_cache(self.engine, value, lnf=lnf)
-
+        update_username_cache(self.engine, value, lnf=True)
         lis = []
         for i in value:
             key = self.engine.get_cache_key('displayname', i)
             hit, dn = self.engine.check_cache(key)
-            dn = cgi.escape(dn or '')
-            if self.table or not self.markup:
-                lis.append(dn)
-            else:
-                lis.append('<a href="%s/user/%s">%s</a>'%(root, i, dn))
-
+            lis.append(dn or '')
         return lis
 
 
@@ -807,10 +722,6 @@ class vt_group(Vartype):
         value = self._validate_reference(ci(value), keytype=self.vartype)
         return self._rci(value)
 
-    def process(self, value):
-        value = ci(value)
-        return [unicode(i) for i in value]
-
 
 ###################################
 # Comment and History vartypes
@@ -828,7 +739,6 @@ class vt_comments(Vartype):
         return value
 
     def process(self, value):
-        root = emen2.db.config.get('web.root')
         value = ci(value)
         users = [i[0] for i in value]
         update_username_cache(self.engine, users)
@@ -837,12 +747,7 @@ class vt_comments(Vartype):
         for user, time, comment in value:
             key = self.engine.get_cache_key('displayname', user)
             hit, dn = self.engine.check_cache(key)
-            dn = cgi.escape(dn)
-            comment = cgi.escape(comment)
-            if self.table or not self.markup:
-                t = '%s @ %s: %s'%(user, time, comment)
-            else:
-                t = '<div><h4><a href="%s/user/%s">%s</a> @ <time class="e2-localize" datetime="%s">%s</time></h4><p>%s</p></div>'%(root, user, dn, time, time, comment)
+            t = '%s @ %s: %s\n'%(user, time, comment)
             lis.append(t)
 
         return lis
@@ -856,10 +761,6 @@ class vt_history(Vartype):
 
     def validate(self, value):
         return value        
-
-    def process(self, value):
-        value = ci(value)
-        return [unicode(i) for i in value]
 
 
 

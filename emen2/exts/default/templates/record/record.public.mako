@@ -1,6 +1,6 @@
 <%inherit file="/page" />
 
-<form action="${ROOT}/record/${name}/public/process/" method="post" name="form_publish">
+<form action="${ctxt.root}/record/${name}/public/process/" method="post" name="form_publish">
 
 <h1>Select Records to Make Public</h1>
 

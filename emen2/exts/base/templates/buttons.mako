@@ -36,20 +36,20 @@
 ## Some simple helpers
 
 <%def name="image(name, alt='', cls='')">
-    <img src="${ROOT}/static-${ctxt.version}/images/${name}" class="${cls}" alt="${alt}" />
+    <img src="${ctxt.root}/static-${ctxt.version}/images/${name}" class="${cls}" alt="${alt}" />
 </%def>
 
 
 <%def name="spinner(show=True, cls='')">
-    <img src="${ROOT}/static/images/spinner.gif" class="e2l-spinner ${forms.iffalse(show, 'e2l-hide')} ${cls}" alt="Loading" />
+    <img src="${ctxt.root}/static/images/spinner.gif" class="e2l-spinner ${forms.iffalse(show, 'e2l-hide')} ${cls}" alt="Loading" />
 </%def>
 
 
 <%def name="caret(state='down')">
     % if state == 'up':
-        <img src="${ROOT}/static/images/caret.up.png" alt="^" />
+        <img src="${ctxt.root}/static/images/caret.up.png" alt="^" />
     % elif state == 'down':
-        <img src="${ROOT}/static/images/caret.down.png" alt="^" />    
+        <img src="${ctxt.root}/static/images/caret.down.png" alt="^" />    
     % endif
 </%def>
 
@@ -62,7 +62,7 @@
 
 
 <%def name="editicon()">
-    <img src="${ROOT}/static/images/edit.png" alt="Edit" />
+    <img src="${ctxt.root}/static/images/edit.png" alt="Edit" />
 </%def>
 
 

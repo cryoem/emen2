@@ -22,7 +22,7 @@ import jsonrpc.jsonutil
 
 ## <h1>
 ##    ${USER.displayname}
-##    <a class="e2l-hact e2-button" href="${ROOT}/user/${USER.name}/edit/"><img src="${ROOT}/static/images/edit.png" alt="Edit" /> Edit Profile</a>
+##    <a class="e2l-hact e2-button" href="${ctxt.root}/user/${USER.name}/edit/"><img src="${ctxt.root}/static/images/edit.png" alt="Edit" /> Edit Profile</a>
 ## </h1>
 ## <div class="e2l-cf">
 ##    ${user_util.profile(user=USER, userrec=USER.userrec, edit=False)}
@@ -34,7 +34,7 @@ import jsonrpc.jsonutil
     <h1>
         Welcome to ${TITLE}
         % if banner.writable():
-            <a class="e2l-hact e2-button e2-record e2-record-edit" data-name="${banner.name}" href="${ROOT}/record/${banner.name}#edit">${buttons.image('edit.png')} Edit</a>
+            <a class="e2l-hact e2-button e2-record e2-record-edit" data-name="${banner.name}" href="${ctxt.root}/record/${banner.name}#edit">${buttons.image('edit.png')} Edit</a>
         % endif
     </h1>
     <div class="e2l-cf">
@@ -48,8 +48,8 @@ import jsonrpc.jsonutil
 
 <h1>
     Activity and recent records
-    <a class="e2l-hact e2-button" href="${ROOT}/records/">Record tree</a>
-    <a class="e2l-hact e2-button" href="${ROOT}/query/">All records</a>
+    <a class="e2l-hact e2-button" href="${ctxt.root}/records/">Record tree</a>
+    <a class="e2l-hact e2-button" href="${ctxt.root}/query/">All records</a>
 </h1>
 
 <div id="recent_activity">
@@ -65,19 +65,19 @@ ${recent_activity_table}
 
 % for group in groups:
     <h1>
-        <a href="${ROOT}/record/${group.name}/" id="groups-${group.name}">
+        <a href="${ctxt.root}/record/${group.name}/" id="groups-${group.name}">
         	${recnames.get(group.name, group.name)}
 		</a>
 			% if ADMIN:
-            	<a class="e2l-hact e2-button e2-record-new" href="${ROOT}/record/${group.name}/new/project/" data-parent="${group.name}" data-rectype="project">${buttons.image('new.png')} New project</a>
+            	<a class="e2l-hact e2-button e2-record-new" href="${ctxt.root}/record/${group.name}/new/project/" data-parent="${group.name}" data-rectype="project">${buttons.image('new.png')} New project</a>
 			% endif
-            <a class="e2l-hact e2-button" href="${ROOT}/record/${group.name}/children/project/">View projects in table</a>
+            <a class="e2l-hact e2-button" href="${ctxt.root}/record/${group.name}/children/project/">View projects in table</a>
     </h1>
     
     <ul class="e2l-sidebar-projectlist">
         % for project in sorted(groups_children.get(group.name, []), key=lambda x:recnames.get(x, '').lower()):
             <li>
-                <a href="${ROOT}/record/${project}/">
+                <a href="${ctxt.root}/record/${project}/">
                     ${recnames.get(project, project)}
                 </a>
                 <span class="e2l-shadow e2l-sidebar-count">

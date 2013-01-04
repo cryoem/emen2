@@ -26,7 +26,7 @@
     <div id='${random_id}' style='border: thin solid black;background: #ccc;position: absolute;visibility:hidden'>
               Logged in as: ${ctxt.get_user().username}&mdash;&gt;
             <a href="${ctxt.reverse('Record', name=str(ctxt.get_path_id([]).pop()))}">[Page Admin]</a>
-            <a href="${ROOT}/auth/logout">[Logout]</a>
+            <a href="${ctxt.root}/auth/logout">[Logout]</a>
               <div id="userbox" style="display:inline-block;position:absolute;bottom:100%; right: 0px; background: #ccc; border: thin solid black"></div>
  % else:
     <div style='border: thin solid black;padding: 2px 8px;float:right;margin-right:.5em;'>
@@ -107,7 +107,7 @@
     <% if child['username'] == 'root': return %>
     <div class="person_box">
         % if child['person_photo']:
-                  <img src="${ROOT}/download/${child['person_photo'][4:]}/${child['username']}" class="person_image" alt="Photo" />
+                  <img src="${ctxt.root}/download/${child['person_photo'][4:]}/${child['username']}" class="person_image" alt="Photo" />
         % else:
                     <div style="width: 70px"/>
         % endif

@@ -570,31 +570,31 @@ textarea.e2l-fw {
 
 /* Backgrounds */
 .e2-tree.e2-tree-children li {
-    background:url('${ROOT}/static-${ctxt.version}/images/bg.F.children.png') repeat-y;    
+    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.F.children.png') repeat-y;    
 }
 .e2-tree.e2-tree-parents li {
-    background:url('${ROOT}/static-${ctxt.version}/images/bg.F.parents.png') repeat-y;    
+    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.F.parents.png') repeat-y;    
     background-position:top right;    
 }
 .e2-tree.e2-tree-children li:first-child {
-    background:url('${ROOT}/static-${ctxt.version}/images/bg.T.children.png') repeat-y;    
+    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.T.children.png') repeat-y;    
 }
 .e2-tree.e2-tree-parents li:first-child {
-    background:url('${ROOT}/static-${ctxt.version}/images/bg.T.parents.png') repeat-y;    
+    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.T.parents.png') repeat-y;    
     background-position:top right;
 }
 .e2-tree.e2-tree-children li:last-child {
-    background:url('${ROOT}/static-${ctxt.version}/images/bg.L.children.png') no-repeat;
+    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.L.children.png') no-repeat;
 }
 .e2-tree.e2-tree-parents li:last-child {
-    background:url('${ROOT}/static-${ctxt.version}/images/bg.L.parents.png') no-repeat;
+    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.L.parents.png') no-repeat;
     background-position:top right;
 }
 .e2-tree.e2-tree-children ul li:only-child {
-    background:url('${ROOT}/static-${ctxt.version}/images/bg.-.children.png') no-repeat;
+    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.-.children.png') no-repeat;
 }
 .e2-tree.e2-tree-parents ul li:only-child {
-    background:url('${ROOT}/static-${ctxt.version}/images/bg.-.parents.png') no-repeat;
+    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.-.parents.png') no-repeat;
     background-position:top right;
 }
 /* why */

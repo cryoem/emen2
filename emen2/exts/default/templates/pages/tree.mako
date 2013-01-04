@@ -13,20 +13,20 @@
             % for child in sorted(children, key=lambda x:(recnames.get(x) or '').lower()):
                 ## Create a LI for each child.
                 <li data-name="${child}">
-                    <a href="${ROOT+link%child}">${recnames.get(child) or child}</a>
+                    <a href="${ctxt.root+link%child}">${recnames.get(child) or child}</a>
                     
                     % if not tree.get(child):
                     
                     % elif child in collapsed:
-                        <img class="e2-tree-expand" alt="collapsed" src="${ROOT}/static/images/bg.open.${mode}.png" />
+                        <img class="e2-tree-expand" alt="collapsed" src="${ctxt.root}/static/images/bg.open.${mode}.png" />
                     % elif depth <= recurse or recurse < 0:
                         ## If we're drawing the next level...
                         % if expandable:
-                            <img class="e2-tree-expand e2-tree-expanded" alt="${len(tree.get(child, []))} children" src="${ROOT}/static/images/bg.close.${mode}.png" />
+                            <img class="e2-tree-expand e2-tree-expanded" alt="${len(tree.get(child, []))} children" src="${ctxt.root}/static/images/bg.close.${mode}.png" />
                         % endif
                         ${inner(child, tree.get(child), depth=depth+1)}
                     % elif depth > recurse and expandable:
-                        <img class="e2-tree-expand" alt="${len(tree.get(child, []))} children" src="${ROOT}/static/images/bg.open.${mode}.png" />
+                        <img class="e2-tree-expand" alt="${len(tree.get(child, []))} children" src="${ctxt.root}/static/images/bg.open.${mode}.png" />
                     % endif
 
                 </li>

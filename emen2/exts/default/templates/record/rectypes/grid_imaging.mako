@@ -16,8 +16,8 @@ children_recnames = DB.record.render(children)
 
     % for bdo in bdos:
         <div class="e2l-float-left" style="margin-right:10px;margin-bottom:10px;padding:10px;border:solid 1px #ccc">
-            <a href="${ROOT}/record/${bdo.record}/">
-                <img src="${ROOT}/download/${bdo.name}/thumb.jpg?size=small&format=jpg" /><br />
+            <a href="${ctxt.root}/record/${bdo.record}/">
+                <img src="${ctxt.root}/download/${bdo.name}/thumb.jpg?size=small&format=jpg" /><br />
                 ${children_recnames.get(bdo.record)}
             </a>
         </div>
