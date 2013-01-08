@@ -125,18 +125,21 @@ def iso8601duration(d):
 class Vartype(object):
     '''Base class for vartypes'''
 
-    #: the index key type for this class
+    #: The index key type for this class
     keyformat = 's'
 
-    #: is this vartype iterable?
+    #: Is this vartype iterable?
     iterable = True
+    
+    #: Sort using rendered values?
+    sort_render = False
 
-    #: the element to use when rendering as HTML
+    #: The element to use when rendering as HTML
     elem = 'span'
 
     def __init__(self, engine=None, pd=None):
         self.pd = pd
-        self.engine = engine
+        self.engine = engine # cache
 
 
     def validate(self, value):
@@ -175,8 +178,7 @@ class Vartype(object):
         
 
     def _rci(self, value):
-        """Validation methods generally work on iterables. 
-        If the parameter is non-iterable, return a single value."""
+        """If the parameter is non-iterable, return a single value."""
         if value and not self.pd.iter:
             return value.pop()
         return value or None
@@ -208,49 +210,13 @@ class Vartype(object):
         return addrefs, delrefs
 
 
-    def process(self, value, *args, **kwargs):
+    def render(self, value):
         """Render."""
-        return [unicode(i) for i in ci(value)]
-
-
-    def escape(self, value):
-        return cgi.escape(value)
-        
-
-    def render(self, value, name=0, edit=False, markup=False, table=False, embedtype=None):
-        '''Render HTML'''
-
-        # Process the values into something human readable.
-        value = self.process(value)
-
-        # Add units if specified.
-        if self.pd.defaultunits:
-            value = ['%s %s'%(i, self.pd.defaultunits) for i in value]
-        
-        # If not markup, return now.
-        # These values will NOT be escaped.
-        if not markup:
-            return ", ".join(value)
-        
-        # Escape the values. This is very imporant!
-        value = [self.escape(i) for i in value]
-
-        # If iterable, wrap each value in an <li>
-        elem = self.elem
+        if value is None:
+            return ''
         if self.pd.iter:
-            elem = "ul"
-            value = ['<li>%s</li>'%(i) for i in value]
-
-        # Attributes for editable items. Escape attribute values!
-        required = ''
-        if embedtype == '!':
-           required = 'required="required"'
-        editmarkup = 'data-name="%s" data-param="%s" %s'%(cgi.escape(name), cgi.escape(self.pd.name), required)
-
-        if edit and not self.pd.get('immutable'):
-            return '<%s class="e2-edit" %s>%s</%s>'%(elem, " ".join(value), elem)
-
-        return '<%s>%s</%s>'%(elem, " ".join(value), elem)
+            return ", ".join([unicode(i) for i in value])
+        return unicode(value)
 
 
     def encode(self, value):
@@ -277,8 +243,13 @@ class vt_float(Vartype):
     def validate(self, value):
         return self._rci(map(float, ci(value)))
 
-    def process(self, value):
-        return ['%g'%i for i in ci(value)]
+    def render(self, value):
+        if value is None:
+            return ''
+        u = self.pd.defaultunits or ''
+        if self.pd.iter:
+            return ", ".join(('%g %s'%(i,u) for i in value))
+        return '%g %s'%(i, u)
 
 
 @vtm.register_vartype('percent')
@@ -294,8 +265,12 @@ class vt_percent(Vartype):
                 raise ValidationError, "Range for percentage is 0 <= value <= 1.0; value was: %s"%i
         return self._rci(value)
 
-    def process(self, value):
-        return ['%0.0f'%(i*100.0) for i in ci(value)]
+    def render(self, value):
+        if value is None:
+            return ''
+        if self.pd.iter:
+            return ", ".join(('%0.0f'%(i*100.0) for i in value))
+        return '%0.0f'%(i*100.0)
 
 
 
@@ -449,10 +424,6 @@ class vt_datetime(vt_string):
                 ret.append(t.isoformat())
         return self._rci(ret)
 
-    # def _render(self, value, embedtype=None):
-    #    value = ['<time class="e2-localize" datetime="%s">%s</time>'%(i,i) for i in value]
-    #    return super(vt_datetime, self)._render(value, embedtype=embedtype)
-
 
 @vtm.register_vartype('date')
 class vt_date(vt_datetime):
@@ -525,8 +496,10 @@ class vt_dict(Vartype):
         return dict(r)
         
 
-    def process(self, value):
-        return ['%s: %s\n'%(k, v) for k,v in value.items()]
+    def render(self, value):
+        if value is None:
+            return ''
+        return ", ".join(('%s: %s'%(k, v) for k,v in value.items()))
 
 
 @vtm.register_vartype('dictlist')
@@ -561,14 +534,14 @@ class vt_binary(Vartype):
         return self._rci(value)
 
 
-    def process(self, value):
+    def render(self, value):
         value = ci(value)
         try:
             v = self.engine.db.binary.get(value)
             value = [i.filename for i in v]
         except (ValueError, TypeError), e:
             value = ['Error getting binary: %s'%(i) for i in value]
-        return value
+        return ", ".join(value)
 
 
 
@@ -607,7 +580,7 @@ class vt_record(Vartype):
 
 @vtm.register_vartype('link')
 class vt_link(Vartype):
-    """Reference to the same type of DBO."""
+    """Reference."""
 
     def validate(self, value):
         # Hack
@@ -629,7 +602,7 @@ class vt_user(Vartype):
         return self._rci(value)
 
 
-    def process(self, value):
+    def render(self, value):
         value = ci(value)
         update_username_cache(self.engine, value, lnf=True)
         lis = []
@@ -672,10 +645,9 @@ class vt_acl(Vartype):
         return value
 
 
-    def process(self, value):
+    def render(self, value):
         if not value:
-            return []
-
+            return ''
         allusers = reduce(lambda x,y:x+y, value)
         unames = {}
         for user in self.engine.db.user.get(allusers):
@@ -686,7 +658,7 @@ class vt_acl(Vartype):
         for level, names in zip(levels, value):
             namesr = [unames.get(i,"(%s)"%i) for i in names]
             ret.append("%s: %s"%(level, ", ".join(namesr)))
-        return ['<br />'.join(ret)]
+        return ', '.join(ret)
 
 
     def reindex(self, items):
@@ -738,19 +710,17 @@ class vt_comments(Vartype):
     def validate(self, value):
         return value
 
-    def process(self, value):
+    def render(self, value):
         value = ci(value)
         users = [i[0] for i in value]
         update_username_cache(self.engine, users)
-
         lis = []
         for user, time, comment in value:
             key = self.engine.get_cache_key('displayname', user)
             hit, dn = self.engine.check_cache(key)
             t = '%s @ %s: %s\n'%(user, time, comment)
             lis.append(t)
-
-        return lis
+        return ", ".join(lis)
 
 
 @vtm.register_vartype('history')

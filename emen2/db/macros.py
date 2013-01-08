@@ -81,18 +81,8 @@ class Macro(object):
         self.table = table
         self.markup = markup
         value = self.process(macro, params, rec)
-        return self._render(value)
-
-
-    # Post-rendering
-    def _render(self, value):
         if hasattr(value, '__iter__'):
             value = ", ".join(map(unicode, value))
-        if not self.markup:
-            return unicode(value)
-        if self.table:
-            root = emen2.db.config.get('web.root')
-            value = '<a href="%s/record/%s/">%s</a>'%(root, self.rec.name, value)
         return unicode(value)
 
 

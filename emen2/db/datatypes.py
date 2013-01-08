@@ -12,6 +12,33 @@ Classes:
 import re
 import cgi
 
+NONEVALUES = [None, "", "N/A", "n/a", "None"]
+
+
+
+class DatatypeManager(object):
+    """Replacement class. Not ready yet."""
+    _registered = {}
+
+    @classmethod
+    def register(cls, name):
+        """Decorator used to register a :py:class:`~.vartypes.Vartype`
+
+        :param str name: the name for the :py:class:`~.vartypes.Vartype`
+        :returns: A function which takes a :py:class:`~.vartypes.Vartype` and registers it
+        """
+        def f(o):
+            if name in cls._registered.keys():
+                raise ValueError("""item %s already registered""" % name)
+            #emen2.db.log.info("Registering %s"% name)
+            o.name = property(lambda *_: name)
+            cls._registered[name] = o
+            return o
+        return f
+
+
+
+
 class VartypeManager(object):
     """Registers available Vartypes, Properties, and Macros
 
@@ -23,7 +50,6 @@ class VartypeManager(object):
     _vartypes = {}
     _properties = {}
     _macros = {}
-    nonevalues = [None, "", "N/A", "n/a", "None"]
 
     @classmethod
     def register_vartype(cls, name):
@@ -130,10 +156,6 @@ class VartypeManager(object):
     def name_render(self, pd, markup=False):
         return u"""<span class="paramdef" title="%s -- %s">%s</span>"""%(pd.name, pd.desc_long, pd.desc_short)
 
-        # if mode in ["html","htmledit"]:
-        # else:
-        # return unicode(pd.desc_short)
-
 
     ###################################
     # Param Rendering
@@ -141,22 +163,6 @@ class VartypeManager(object):
 
     def param_render(self, pd, value, **kwargs):
         return self._vartypes[pd.vartype](engine=self, pd=pd).render(value, **kwargs)
-
-
-    # def param_render_sort(self, pd, value, **kwargs):
-    #     """Render for native sorting, e.g. lexicographical vs. numerical"""
-    # 
-    #     vt = self._vartypes[pd.vartype](engine=self, pd=pd)
-    # 
-    #     if vt.keyformat in ["d","f"]:
-    #         return rec.get(pd.name)
-    # 
-    #     value = vt.render(value=value)
-    # 
-    #     if value == None:
-    #         return value
-    # 
-    #     return value.lower()
 
 
     ###################################
@@ -172,7 +178,7 @@ class VartypeManager(object):
 
 
     def validate(self, pd, value):
-        if value in self.nonevalues:
+        if value in NONEVALUES:
             return None
 
         if pd.property:

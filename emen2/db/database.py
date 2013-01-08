@@ -3180,12 +3180,10 @@ class DB(object):
     
     @publicmethod()
     @ol('names')
-    def record_render_new(self, names, keys=None, ctx=None, txn=None):
+    def record_render_new(self, names, keys=None, viewname=None, ctx=None, txn=None):
         recs = self.dbenv["record"].cgets(names, ctx=ctx, txn=txn)
         
-        
-        
-        
+            
         
 
     @publicmethod(compat="renderview")
@@ -3348,7 +3346,8 @@ class DB(object):
                     v = vtm.name_render(pds[n])
                 elif t == '$' or t == '!':
                     # t = time.time()
-                    v = vtm.param_render(pds[n], rec.get(n), name=rec.name, edit=_edit, markup=markup, table=table, embedtype=t)
+                    v = vtm.param_render(pds[n], rec.get(n))
+                    # , name=rec.name, edit=_edit, markup=markup, table=table, embedtype=t
                     # pt[n].append(time.time()-t)
                 elif t == '@':
                     # t = time.time()
@@ -3360,7 +3359,7 @@ class DB(object):
                 if table:
                     vs.append(v)
                 else:
-                    a = a.replace(match.group(), v+s, 1)
+                    a = a.replace(match.group(), unicode(v)+s, 1)
 
             if table:
                 ret[rec.name] = vs
@@ -3370,6 +3369,8 @@ class DB(object):
         if table:
             ret["headers"] = headers
 
+
+        print ret
         return ret                
 
 
