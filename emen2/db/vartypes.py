@@ -7,12 +7,14 @@ Classes:
 
 """
 
-import cgi
 import operator
 import collections
 import urllib
-import htmlentitydefs
 import re
+
+# Escape HTML
+import htmlentitydefs
+import cgi
 
 # Working with time is fun..
 import time
@@ -44,16 +46,13 @@ import emen2.db.exceptions
 # Convenience
 tzutc = dateutil.tz.tzutc()
 ci = emen2.util.listops.check_iterable
-
-ValidationError = emen2.db.exceptions.ValidationError
 vtm = emen2.db.datatypes.VartypeManager
+ValidationError = emen2.db.exceptions.ValidationError
 
 # Allow references to missing items.
 ALLOW_MISSING = True
 
-###########################
-# Helper methods
-
+##### Helper methods #####
 
 def update_username_cache(engine, values, lnf=False):
     # Check cache
@@ -120,10 +119,16 @@ def iso8601duration(d):
     return rd
 
 
+##### Vartypes #####
 
 @vtm.register_vartype('none')
 class Vartype(object):
-    '''Base class for vartypes'''
+    '''Base class for vartypes
+    
+    render
+    validate
+    reindex
+    '''
 
     #: The index key type for this class
     keyformat = 's'
@@ -210,6 +215,10 @@ class Vartype(object):
         return addrefs, delrefs
 
 
+    def process(self, value):
+        return value
+        
+
     def render(self, value):
         """Render."""
         if value is None:
@@ -220,20 +229,18 @@ class Vartype(object):
 
 
     def encode(self, value):
-        return value
+        # Remove
+        raise NotImplementedError
 
 
     def decode(self, pd, value):
-        return value
+        # Remove
+        raise NotImplementedError
 
 
 
-
-###################################
 # Float vartypes
 #    Indexed as 'f'
-###################################
-
 @vtm.register_vartype('float')
 class vt_float(Vartype):
     """Floating-point number."""
@@ -274,11 +281,8 @@ class vt_percent(Vartype):
 
 
 
-###################################
 # Integer vartypes
 #    Indexed as 'd'
-###################################
-
 @vtm.register_vartype('int')
 class vt_int(Vartype):
     """Integer."""
@@ -323,11 +327,8 @@ class vt_boolean(Vartype):
 
 
 
-###################################
 # String vartypes
 #    Indexed as keyformat 's'
-###################################
-
 @vtm.register_vartype('string')
 class vt_string(Vartype):
     """String."""
@@ -405,11 +406,8 @@ class vt_text(vt_string):
 
 
 
-###################################
 # Time vartypes (keyformat is string)
 #    Indexed as keyformat 's'
-###################################
-
 @vtm.register_vartype('datetime')
 class vt_datetime(vt_string):
     """ISO 8601 Date time."""
@@ -457,11 +455,8 @@ class vt_time(vt_datetime):
 
 
 
-###################################
 # Reference vartypes.
 #    Indexed as keyformat 's'
-###################################
-
 @vtm.register_vartype('uri')
 class vt_uri(Vartype):
     """URI"""
@@ -478,11 +473,7 @@ class vt_uri(Vartype):
 
 
 
-###################################
 # Mapping types
-###################################
-
-
 @vtm.register_vartype('dict')
 class vt_dict(Vartype):
     """Dictionary with string keys and values."""
@@ -520,11 +511,8 @@ class vt_dictlist(vt_dict):
         return ret
 
 
-###################################
 # Binary vartypes
 #    Not indexed.
-###################################
-
 @vtm.register_vartype('binary')
 class vt_binary(Vartype):
     """File Attachment"""
@@ -546,11 +534,8 @@ class vt_binary(Vartype):
 
 
 
-###################################
 # md5 checksum
 #    Indexed as keyformat 's'
-###################################
-
 @vtm.register_vartype('md5')
 class vt_md5(Vartype):
     """String"""
@@ -560,11 +545,8 @@ class vt_md5(Vartype):
 
 
 
-###################################
-# Internal record-record linkes
+# References to other database objects
 #    Not indexed.
-###################################
-
 @vtm.register_vartype('record')
 class vt_record(Vartype):
     """References to other Records."""
@@ -577,7 +559,6 @@ class vt_record(Vartype):
         return self._rci(value)
 
 
-
 @vtm.register_vartype('link')
 class vt_link(Vartype):
     """Reference."""
@@ -588,11 +569,9 @@ class vt_link(Vartype):
         return self._rci(value)
 
 
-###################################
+
 # User, ACL, and Group vartypes
 #    Indexed as keyformat 's'
-###################################
-
 @vtm.register_vartype('user')
 class vt_user(Vartype):
     """Users."""
@@ -611,8 +590,6 @@ class vt_user(Vartype):
             hit, dn = self.engine.check_cache(key)
             lis.append(dn or '')
         return lis
-
-
 
 
 @vtm.register_vartype('acl')
@@ -695,11 +672,8 @@ class vt_group(Vartype):
         return self._rci(value)
 
 
-###################################
 # Comment and History vartypes
 #    Not indexed
-###################################
-
 @vtm.register_vartype('comments')
 class vt_comments(Vartype):
     """Comments."""

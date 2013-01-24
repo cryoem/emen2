@@ -3180,10 +3180,47 @@ class DB(object):
     
     @publicmethod()
     @ol('names')
-    def record_render_new(self, names, keys=None, viewname=None, ctx=None, txn=None):
-        recs = self.dbenv["record"].cgets(names, ctx=ctx, txn=txn)
+    def record_render2(self, names, keys=None, ctx=None, txn=None):
+        # Regular expression for parsing views.
+        regex = VIEW_REGEX
+
+        # Return rendered values.
+        ret = {}
         
-            
+        # VartypeManager provides caching and access to the Vartype classes.
+        vtm = vtm or emen2.db.datatypes.VartypeManager(db=ctx.db)
+
+        # Get Record instances from names argument.
+        names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
+        names.extend(other)
+        recs.extend(self.dbenv["record"].cgets(names, ctx=ctx, txn=txn))
+        for newrec in newrecs:
+            rec = self.dbenv["record"].new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
+            rec.update(newrec)
+            recs.append(rec)
+        
+        # If no keys specified, render everything...
+        if not keys:
+            keys = set()
+            for i in recs:
+                keys |= set(i.keys())
+        
+        # Get all the ParamDefs necessary.
+        pds = listops.dictbykey(self.dbenv["paramdef"].cgets(keys, ctx=ctx, txn=txn), 'name')
+
+        # Process records.
+        pt = collections.defaultdict(list)
+        mt = collections.defaultdict(list)
+
+        for rec in recs:
+            r = {}
+            for key in keys:
+                r[key] = vtm.param_render(pds[key], rec.get(key))
+                # vtm.macro_render(n, match.group('args'), rec)
+            ret[rec.name] = r
+        return ret                 
+        
+        
         
 
     @publicmethod(compat="renderview")
@@ -3244,20 +3281,16 @@ class DB(object):
         if edit:
             markup = True
 
-        # if table:
-        #     edit = "auto"
-
-        # Regular expression for parsing views
+        # Regular expression for parsing views.
         regex = VIEW_REGEX
 
-        # VartypeManager manages the rendering methods
+        # VartypeManager provides caching and access to the Vartype classes.
         vtm = vtm or emen2.db.datatypes.VartypeManager(db=ctx.db)
 
-        # We'll be working with a list of names
+        # Get Record instances from names argument.
         names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
         names.extend(other)
         recs.extend(self.dbenv["record"].cgets(names, ctx=ctx, txn=txn))
-
         for newrec in newrecs:
             rec = self.dbenv["record"].new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
             rec.update(newrec)
@@ -3345,14 +3378,9 @@ class DB(object):
                 if t == '#':
                     v = vtm.name_render(pds[n])
                 elif t == '$' or t == '!':
-                    # t = time.time()
                     v = vtm.param_render(pds[n], rec.get(n))
-                    # , name=rec.name, edit=_edit, markup=markup, table=table, embedtype=t
-                    # pt[n].append(time.time()-t)
                 elif t == '@':
-                    # t = time.time()
-                    v = vtm.macro_render(n, match.group('args'), rec, markup=markup, table=table)
-                    # mt[n].append(time.time()-t)
+                    v = vtm.macro_render(n, match.group('args'), rec)
                 else:
                     continue
 

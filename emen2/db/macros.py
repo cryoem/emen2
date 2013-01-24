@@ -16,7 +16,6 @@ import re
 import emen2.db.datatypes
 import emen2.db.config
 
-
 # Convenience
 ci = emen2.util.listops.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
@@ -24,19 +23,19 @@ vtm = emen2.db.datatypes.VartypeManager
 
 # From http://stackoverflow.com/questions/2212933/python-regex-for-reading-csv-like-rows
 parser = r"""
-    \s*                # Any whitespace.
-    (                  # Start capturing here.
-      [^,"']+?         # Either a series of non-comma non-quote characters.
-      |                # OR
-      "(?:             # A double-quote followed by a string of characters...
-          [^"\\]|\\.   # That are either non-quotes or escaped...
-       )*              # ...repeated any number of times.
-      "                # Followed by a closing double-quote.
-      |                # OR
-      '(?:[^'\\]|\\.)*'# Same as above, for single quotes.
-    )                  # Done capturing.
-    \s*                # Allow arbitrary space before the comma.
-    (?:,|$)            # Followed by a comma or the end of a string.
+    \s*                 # Any whitespace.
+    (                   # Start capturing here.
+      [^,"']+?          # Either a series of non-comma non-quote characters.
+      |                 # OR
+      "(?:              # A double-quote followed by a string of characters...
+          [^"\\]|\\.    # That are either non-quotes or escaped...
+       )*               # ...repeated any number of times.
+      "                 # Followed by a closing double-quote.
+      |                 # OR
+      '(?:[^'\\]|\\.)*' # Same as above, for single quotes.
+    )                   # Done capturing.
+    \s*                 # Allow arbitrary space before the comma.
+    (?:,|$)             # Followed by a comma or the end of a string.
     """
 
 
@@ -57,6 +56,9 @@ def parse_args(args):
     return ret
 
 
+
+##### Macro #####
+
 class Macro(object):
 
     keyformat = 's'
@@ -76,11 +78,8 @@ class Macro(object):
 
 
     # Render the macro
-    def render(self, macro, params, rec, markup=False, table=False):
-        self.rec = rec
-        self.table = table
-        self.markup = markup
-        value = self.process(macro, params, rec)
+    def render(self, macro, params, rec, value=None):
+        value = value or self.process(macro, params, rec)
         if hasattr(value, '__iter__'):
             value = ", ".join(map(unicode, value))
         return unicode(value)
@@ -88,7 +87,7 @@ class Macro(object):
 
     # Get some info about the macro
     def macro_name(self, macro, params):
-        return unicode("Maco: %s(%s)"%(macro,params))
+        return unicode("Macro: %s(%s)"%(macro,params))
 
 
 
@@ -96,7 +95,7 @@ class Macro(object):
 @vtm.register_macro('name')
 class macro_name(Macro):
     """name macro"""
-    keyforamt = 'd'
+    keyformat = 'd'
 
     def process(self, macro, params, rec):
         return rec.name
@@ -204,7 +203,6 @@ class macro_img(Macro):
 
         return "".join(ret)
 
-
     def macro_name(self, macro, params):
         return "Image Macro"
 
@@ -249,21 +247,6 @@ class macro_parentvalue(Macro):
 
 
 
-@vtm.register_macro('first')
-class macro_first(Macro):
-    """Return the first value found from a list of params"""
-
-    def process(self, macro, params, rec):
-        ret = None
-        for param in params.split(","):
-            ret = rec.get(params.strip())
-            if ret != None:
-                return ret
-
-    def macro_name(self, macro, params):
-        return " or ".join(params.split(","))
-
-
 @vtm.register_macro('or')
 class macro_or(Macro):
     """parentvalue macro"""
@@ -277,135 +260,6 @@ class macro_or(Macro):
 
     def macro_name(self, macro, params):
         return " or ".join(params.split(","))
-
-
-
-@vtm.register_macro('escape_paramdef_val')
-class macro_escape_paramdef_val(Macro):
-    """escape_paramdef_val macro"""
-
-    def process(self, macro, params, rec):
-        return cgi.escape(rec.get(params, ''))
-
-
-    def macro_name(self, macro, params):
-        return "Escaped Value: %s"%params
-
-
-@vtm.register_macro('renderchildren')
-class macro_renderchildren(Macro):
-    """renderchildren macro"""
-
-    def process(self, macro, params, rec):
-        root = emen2.db.config.get('web.root')
-        r = self.engine.db.record.render(self.engine.db.rel.children(rec.name), viewname=params or "recname") #ian:mustfix
-
-        hrefs = []
-        for k,v in sorted(r.items(), key=operator.itemgetter(1)):
-            l = """<li><a href="%s/record/%s">%s</a></li>"""%(root, k, v or k)
-            hrefs.append(l)
-
-        return "<ul>%s</ul>"%("\n".join(hrefs))
-
-
-    def macro_name(self, macro, params):
-        return "renderchildren"
-
-
-
-@vtm.register_macro('renderchild')
-class macro_renderchild(Macro):
-    """renderchild macro"""
-
-    def process(self, macro, params, rec):
-        #rinfo = dict(,host=host)
-        #view, key, value = args.split(' ')
-        #def get_records(name):
-        #    return db.getindexbyvalue(key.encode('utf-8'), value, **rinfo).intersection(db.rel.children(name, **rinfo))
-        #return render_records(db, rec, view, get_records,rinfo, html_join_func)
-        return ""
-
-
-    def macro_name(self, macro, params):
-        return "renderchild"
-
-
-
-@vtm.register_macro('renderchildrenoftype')
-class macro_renderchildrenoftype(Macro):
-    """renderchildrenoftype macro"""
-
-
-    def process(self, macro, params, rec):
-        # print macro, params
-        root = emen2.db.config.get('web.root')
-        r = self.engine.db.record.render(self.engine.db.rel.children(rec.name, rectype=params))
-
-        hrefs = []
-        for k,v in sorted(r.items(), key=operator.itemgetter(1)):
-            l = """<li><a href="%s/record/%s">%s</a></li>"""%(root, k, v or k)
-            hrefs.append(l)
-
-        return "<ul>%s</ul>"%("\n".join(hrefs))
-
-
-    def macro_name(self, macro, params):
-        return "renderchildrenoftype"
-
-
-
-@vtm.register_macro('getfilenames')
-class macro_getfilenames(Macro):
-    """getfilenames macro"""
-
-    def process(self, macro, params, rec):
-        # files = {}
-        # if rec["file_binary"] or rec["file_binary_image"]:
-        #     bids = []
-        #     if rec["file_binary"]:
-        #         bids += rec["file_binary"]
-        #     if rec["file_binary_image"]:
-        #         bids += [rec["file_binary_image"]]
-        #
-        #     for bid in bids:
-        #         bid = bid[4:]
-        #         try:
-        #             bname,ipath,bdocounter=db.binary.get(bid,,host=host)
-        #         except Exception, inst:
-        #             bname="Attachment error: %s"%bid
-        #         files[bid]=bname
-        #
-        # return files
-        return ""
-
-
-    def macro_name(self, macro, params):
-        return "getfilenames"
-
-
-
-@vtm.register_macro('getrectypesiblings')
-class macro_getrectypesiblings(Macro):
-    """getrectypesiblings macro"""
-
-    def process(self, macro, params, rec):
-        pass
-        # """returns siblings and cousins of same rectype"""
-        # ret = {}
-        # parents = db.rel.parents(rec.name,,host=host)
-        # siblings = set()
-        #
-        # for i in parents:
-        #     siblings = siblings.union(db.rel.children(i))
-        #
-        # groups = db.record.groupbyrectype(siblings)
-        #
-        # if groups.has_key(rec.rectype):
-        #     q = db.getindexdictbyvaluefast(groups[rec.rectype],"modifytime")
-        #     ret = [i[0] for i in sorted(q.items(), key=itemgetter(1), reverse=True)] #BUG: What is supposed to happen here?
-
-    def macro_name(self, macro, params):
-        return "getrectypesiblings"
 
 
 
@@ -439,9 +293,8 @@ class macro_thumbnail(Macro):
 
 
 
+##### Editing macros #####
 
-
-# Editing macros
 @vtm.register_macro('checkbox')
 class macro_checkbox(Macro):
     """draw a checkbox for editing values"""
