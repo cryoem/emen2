@@ -37,16 +37,12 @@ except ImportError:
         markdown = None
 
 # EMEN2 imports
-import emen2.db.datatypes
-import emen2.db.config
 import emen2.db.exceptions
 import emen2.util.listops
-import emen2.db.exceptions
 
 # Convenience
 tzutc = dateutil.tz.tzutc()
 ci = emen2.util.listops.check_iterable
-vtm = emen2.db.datatypes.VartypeManager
 ValidationError = emen2.db.exceptions.ValidationError
 
 # Allow references to missing items.
@@ -121,7 +117,6 @@ def iso8601duration(d):
 
 ##### Vartypes #####
 
-@vtm.register_vartype('none')
 class Vartype(object):
     '''Base class for vartypes
     
@@ -147,6 +142,30 @@ class Vartype(object):
         self.cache = cache
         self.db = db
 
+
+    ##### Extensions #####
+
+    registered = {}
+    @classmethod
+    def register(cls, name):
+        def f(o):
+            if name in cls.registered:
+                raise ValueError("""%s is already registered""" % name)
+            cls.registered[name] = o
+            return o
+        return f
+
+
+    ##### Validation #####
+
+    # def validate(self, pd, value):
+    #     if value in NONEVALUES:
+    #         return None
+    # 
+    #     if pd.property:
+    #         value = self.properties[pd.property]().validate(self, pd, value, self.db)
+    # 
+    #     return self.vartypes[pd.vartype](cache=self.cache, db=self.db, pd=pd).validate(value)
 
     def validate(self, value):
         """Validate a value"""
@@ -190,6 +209,8 @@ class Vartype(object):
         return value or None
 
 
+    ##### Indexing #####
+
     def reindex(self, items):
         addrefs = collections.defaultdict(set)
         delrefs = collections.defaultdict(set)
@@ -229,20 +250,14 @@ class Vartype(object):
         return unicode(value)
 
 
-    def encode(self, value):
-        # Remove
-        raise NotImplementedError
-
-
-    def decode(self, pd, value):
-        # Remove
-        raise NotImplementedError
-
-
-
+@Vartype.register('none')
+class vt_none(Vartype):
+    pass
+    
+    
 # Float vartypes
 #    Indexed as 'f'
-@vtm.register_vartype('float')
+@Vartype.register('float')
 class vt_float(Vartype):
     """Floating-point number."""
 
@@ -260,7 +275,7 @@ class vt_float(Vartype):
         return '%g %s'%(i, u)
 
 
-@vtm.register_vartype('percent')
+@Vartype.register('percent')
 class vt_percent(Vartype):
     """Percentage. 0 <= x <= 1."""
 
@@ -284,7 +299,7 @@ class vt_percent(Vartype):
 
 # Integer vartypes
 #    Indexed as 'd'
-@vtm.register_vartype('int')
+@Vartype.register('int')
 class vt_int(Vartype):
     """Integer."""
 
@@ -294,7 +309,7 @@ class vt_int(Vartype):
         return self._rci(map(int, ci(value)))
 
 
-@vtm.register_vartype('coordinate')
+@Vartype.register('coordinate')
 class vt_coordinate(Vartype):
     """Coordinates; tuples of floats."""
 
@@ -304,7 +319,7 @@ class vt_coordinate(Vartype):
         return [(float(x), float(y)) for x,y in ci(value)]
 
 
-@vtm.register_vartype('boolean')
+@Vartype.register('boolean')
 class vt_boolean(Vartype):
     """Boolean value. Accepts 0/1, True/False, T/F, Yes/No, Y/N, None."""
 
@@ -330,7 +345,7 @@ class vt_boolean(Vartype):
 
 # String vartypes
 #    Indexed as keyformat 's'
-@vtm.register_vartype('string')
+@Vartype.register('string')
 class vt_string(Vartype):
     """String."""
 
@@ -338,7 +353,7 @@ class vt_string(Vartype):
         return self._rci([unicode(x).strip() for x in ci(value)])
 
 
-@vtm.register_vartype('choice')
+@Vartype.register('choice')
 class vt_choice(vt_string):
     """One value from a defined list of choices."""
 
@@ -351,7 +366,7 @@ class vt_choice(vt_string):
 
 
 
-@vtm.register_vartype('recorddef')
+@Vartype.register('recorddef')
 class vt_recorddef(vt_string):
     """RecordDef name."""
 
@@ -361,7 +376,7 @@ class vt_recorddef(vt_string):
 
 
 
-@vtm.register_vartype('text')
+@Vartype.register('text')
 class vt_text(vt_string):
     """Freeform text, with word indexing."""
 
@@ -409,7 +424,7 @@ class vt_text(vt_string):
 
 # Time vartypes (keyformat is string)
 #    Indexed as keyformat 's'
-@vtm.register_vartype('datetime')
+@Vartype.register('datetime')
 class vt_datetime(vt_string):
     """ISO 8601 Date time."""
 
@@ -424,7 +439,7 @@ class vt_datetime(vt_string):
         return self._rci(ret)
 
 
-@vtm.register_vartype('date')
+@Vartype.register('date')
 class vt_date(vt_datetime):
     """Date, yyyy-mm-dd."""
 
@@ -437,7 +452,7 @@ class vt_date(vt_datetime):
         return self._rci(ret)
 
 
-@vtm.register_vartype('time')
+@Vartype.register('time')
 class vt_time(vt_datetime):
     """Time, HH:MM:SS."""
 
@@ -458,7 +473,7 @@ class vt_time(vt_datetime):
 
 # Reference vartypes.
 #    Indexed as keyformat 's'
-@vtm.register_vartype('uri')
+@Vartype.register('uri')
 class vt_uri(Vartype):
     """URI"""
 
@@ -475,7 +490,7 @@ class vt_uri(Vartype):
 
 
 # Mapping types
-@vtm.register_vartype('dict')
+@Vartype.register('dict')
 class vt_dict(Vartype):
     """Dictionary with string keys and values."""
 
@@ -494,7 +509,7 @@ class vt_dict(Vartype):
         return ", ".join(('%s: %s'%(k, v) for k,v in value.items()))
 
 
-@vtm.register_vartype('dictlist')
+@Vartype.register('dictlist')
 class vt_dictlist(vt_dict):
     """Dictionary with string keys and list values."""
 
@@ -514,7 +529,7 @@ class vt_dictlist(vt_dict):
 
 # Binary vartypes
 #    Not indexed.
-@vtm.register_vartype('binary')
+@Vartype.register('binary')
 class vt_binary(Vartype):
     """File Attachment"""
 
@@ -537,7 +552,7 @@ class vt_binary(Vartype):
 
 # md5 checksum
 #    Indexed as keyformat 's'
-@vtm.register_vartype('md5')
+@Vartype.register('md5')
 class vt_md5(Vartype):
     """String"""
 
@@ -548,7 +563,7 @@ class vt_md5(Vartype):
 
 # References to other database objects
 #    Not indexed.
-@vtm.register_vartype('record')
+@Vartype.register('record')
 class vt_record(Vartype):
     """References to other Records."""
 
@@ -560,7 +575,7 @@ class vt_record(Vartype):
         return self._rci(value)
 
 
-@vtm.register_vartype('link')
+@Vartype.register('link')
 class vt_link(Vartype):
     """Reference."""
 
@@ -572,7 +587,7 @@ class vt_link(Vartype):
 
 # User, ACL, and Group vartypes
 #    Indexed as keyformat 's'
-@vtm.register_vartype('user')
+@Vartype.register('user')
 class vt_user(Vartype):
     """Users."""
     
@@ -592,7 +607,7 @@ class vt_user(Vartype):
         return lis
 
 
-@vtm.register_vartype('acl')
+@Vartype.register('acl')
 class vt_acl(Vartype):
     """Permissions access control list; nested lists of users."""
     
@@ -663,7 +678,7 @@ class vt_acl(Vartype):
 
 
 
-@vtm.register_vartype('group')
+@Vartype.register('group')
 class vt_group(Vartype):
     """Group."""
     
@@ -674,7 +689,7 @@ class vt_group(Vartype):
 
 # Comment and History vartypes
 #    Not indexed
-@vtm.register_vartype('comments')
+@Vartype.register('comments')
 class vt_comments(Vartype):
     """Comments."""
     
@@ -697,7 +712,7 @@ class vt_comments(Vartype):
         return ", ".join(lis)
 
 
-@vtm.register_vartype('history')
+@Vartype.register('history')
 class vt_history(Vartype):
     """History."""
     

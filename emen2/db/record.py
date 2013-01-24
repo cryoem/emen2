@@ -326,11 +326,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
         self.__dict__['rectype'] = unicode(rd.name)
 
-        # Look up any additional validators..
-        validator = emen2.db.recorddef.RecordDef.get_handler(self)
-        if validator:
-            validator.validate()
-
 
 
 class RecordDB(emen2.db.btrees.RelateDB):

@@ -436,7 +436,9 @@ class BaseDBObject(object, UserDict.DictMixin):
             self.error('Cannot change immutable param %s'%pd.name)
 
         # Validate
-        v = vtm.validate(pd, value)
+        # v = vtm.validate(pd, value)
+        vartype = vtm.get_vartype(pd.name, pd=pd)
+        v = vartype.validate(value)
 
         # Issue a warning if param changed during validation
         # if v != value:

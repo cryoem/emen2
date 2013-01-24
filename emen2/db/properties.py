@@ -13,13 +13,14 @@ import math
 import re
 
 # EMEN2 imports
-import emen2.db.datatypes
+import emen2.util.listops
+import emen2.db.exceptions
 import emen2.db.magnitude as mg
+
 
 # Convenience
 ci = emen2.util.listops.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
-vtm = emen2.db.datatypes.VartypeManager
 
 # Unit synonyms
 equivs = {
@@ -251,6 +252,20 @@ class Property(object):
     restricted = False
     defaultunits = None
     units = []
+    
+    ##### Extensions #####
+
+    registered = {}
+    @classmethod
+    def register(cls, name):
+        def f(o):
+            if name in cls.registered:
+                raise ValueError("""%s is already registered""" % name)
+            cls.registered[name] = o
+            return o
+        return f
+
+    ##### Validation #####
 
     def validate(self, engine, pd, value, db):
         if hasattr(value, "__iter__"):
@@ -290,14 +305,12 @@ class Property(object):
     def check_bounds(self, value, target):
         return value
 
-
     def check_restrict(self, units, allowed):
         return
         # allowed = [equivs.get(i,i) for i in allowed]
         # if units not in allowed:
         #     raise ValueError, "Units %s not allowed for this property. Allowed units: %s"%(units, ", ".join(allowed))
             
-
     def convert(self, value, units, target):
         units = equivs.get(units, units)
         target = equivs.get(target, target)    
@@ -309,7 +322,6 @@ class Property(object):
         value = self._convert(value, units, target)
         self.check_bounds(value, target)
         return value
-
 
     def _convert(self, value, units, target):
         # print "value/units/target", value, units, target
@@ -323,73 +335,71 @@ class Property(object):
             self.error(units, target, msg='dimensionless property')        
         return v.toval()
 
-
     def error(self, units, target, msg=None):
-        raise ValueError, "Couldn't convert %s to %s: %s"%(units, target, msg or '')
-        
+        raise ValueError, "Couldn't convert %s to %s: %s"%(units, target, msg or '')        
 
     def unknown(self, units, target):
         raise ValueError, "Don't know how to convert %s to %s"%(units, target)
 
 
 
-@vtm.register_property('transmittance')
+@Property.register('transmittance')
 class prop_transmittance(Property):
     defaultunits = '%T'
     units = ['%T']
 
 
 
-@vtm.register_property('force')
+@Property.register('force')
 class prop_force(Property):
     defaultunits = 'N'
     units = ['N']
 
     
         
-@vtm.register_property('energy')
+@Property.register('energy')
 class prop_energy(Property):
     defaultunits = 'J'
     units = ['J']
 
 
 
-@vtm.register_property('resistance')
+@Property.register('resistance')
 class prop_resistance(Property):
     defaultunits = 'ohm'
     units = ['microohm', 'milliohm', 'ohm']
 
 
 
-@vtm.register_property('dose')
+@Property.register('dose')
 class prop_dose(Property):
     defaultunits = "e/A2/sec"
     units = ["e/A2/sec"]
 
 
 
-@vtm.register_property('exposure')
+@Property.register('exposure')
 class prop_exposure(Property):
     defaultunits = 'e/A^2'
     units = ['e/A^2']
 
 
 
-@vtm.register_property('currency')
+@Property.register('currency')
 class prop_currency(Property):
     defaultunits = 'dollar'
     units = ['dollar']
 
 
 
-@vtm.register_property('voltage')
+@Property.register('voltage')
 class prop_voltage(Property):
     defaultunits = 'V'
     units = ['uV', 'mV', 'V', 'kV', 'MV']
 
 
 
-@vtm.register_property('pH')
+@Property.register('pH')
 class prop_pH(Property):
     defaultunits = 'pH'
     units = ['pH']
@@ -400,14 +410,14 @@ class prop_pH(Property):
 
 
 
-@vtm.register_property('concentration')
+@Property.register('concentration')
 class prop_concentration(Property):
     defaultunits = 'mg/ml'
     units = ['mg/ml', 'pfu', 'kg/kg', 'kg/m^3', 'mol/m^3', 'mol/mol']
 
         
 
-@vtm.register_property('angle')
+@Property.register('angle')
 class prop_angle(Property):
     defaultunits = 'rad'
     units = ['mrad', 'rad', 'degree']
@@ -432,7 +442,7 @@ class prop_angle(Property):
 
 
 
-@vtm.register_property('temperature')
+@Property.register('temperature')
 class prop_temperature(Property):
     defaultunits = 'K'
     units = ['degC', 'K', 'degF']
@@ -469,133 +479,133 @@ class prop_temperature(Property):
     
         
 
-@vtm.register_property('area')
+@Property.register('area')
 class prop_area(Property):
     defaultunits = 'm^2'
     units = ['mm^2', 'cm^2', 'm^2', 'km^2', 'square feet']
 
 
 
-@vtm.register_property('current')        
+@Property.register('current')        
 class prop_current(Property):
     defaultunits = 'A'
     units = ['uA', 'mA', 'A', 'kA', 'MA']
 
 
 
-@vtm.register_property('bytes')
+@Property.register('bytes')
 class prop_bytes(Property):
     defaultunits = 'B'
     units = ['B', 'KB', 'MB', 'GB', 'TB', 'KiB', 'MiB', 'GiB', 'TiB']
 
 
 
-@vtm.register_property('percentage')
+@Property.register('percentage')
 class prop_percentage(Property):
     defaultunits = '%'
     units = ['%']
     
 
         
-@vtm.register_property('property')
+@Property.register('property')
 class prop_momentum(Property):
     defaultunits = 'kg m/s'
     units = ['kg m/s']
 
 
 
-@vtm.register_property('volume')
+@Property.register('volume')
 class prop_volume(Property):
     defaultunits = 'L'
     units = ['nL', 'uL', 'mL', 'L', 'gallon', 'm^3']
 
 
 
-@vtm.register_property('pressure')
+@Property.register('pressure')
 class prop_pressure(Property):
     defaultunits = 'Pa'
     units = ['Pa', 'bar', 'atm', 'torr', 'psi']
 
 
         
-@vtm.register_property('unitless')
+@Property.register('unitless')
 class prop_unitless(Property):
     defaultunits = 'unitless'
     units = ['unitless']
 
         
 
-@vtm.register_property('inductance')
+@Property.register('inductance')
 class prop_inductance(Property):
     defaultunits = 'H'
     units = ['H']
         
 
 
-@vtm.register_property('currentdensity')
+@Property.register('currentdensity')
 class prop_currentdensity(Property):
     defaultunits = 'Pi Amp/cm^2'
     units = ['Pi Amp/cm^2']
 
 
         
-@vtm.register_property('count')
+@Property.register('count')
 class prop_count(Property):
     defaultunits = 'count'
     units = ['count', 'pixel']
 
 
 
-@vtm.register_property('bfactor')
+@Property.register('bfactor')
 class prop_bfactor(Property):
     defaultunits = 'A^2'
     units = ['A^2']
 
 
 
-@vtm.register_property('relative_humidity')
+@Property.register('relative_humidity')
 class prop_relative_humidity(Property):
     defaultunits = '%RH'
     units = ['%RH']
 
         
 
-@vtm.register_property('length')
+@Property.register('length')
 class prop_length(Property):
     defaultunits = 'm'
     units = [u'Å', 'nm', 'um', 'mm', 'm', 'km']
 
 
 
-@vtm.register_property('mass')
+@Property.register('mass')
 class prop_mass(Property):
     defaultunits = 'g'
     units = ['Da', 'kDa', 'MDa', 'ng', 'ug', 'mg', 'g', 'kg']
 
 
 
-@vtm.register_property('time')
+@Property.register('time')
 class prop_time(Property):
     defaultunits = 's'
     units = ['fs', 'ps', 'ns', 'us', 'ms', 's', 'min', 'hour', 'day', 'year']
 
 
 
-@vtm.register_property('velocity')
+@Property.register('velocity')
 class prop_velocity(Property):
     defaultunits = 'm/s'
     units = ['m/s']
 
 
 
-@vtm.register_property('acceleration')
+@Property.register('acceleration')
 class prop_acceleration(Property):
     defaultunits = 'm/s**2'
     units = ['m/s**2']
 
         
 
-@vtm.register_property('resolution')
+@Property.register('resolution')
 class prop_resolution(Property):
     defaultunits = u'Å/pixel'
     units = [u'Å/pixel', 'dpi', 'lpi']

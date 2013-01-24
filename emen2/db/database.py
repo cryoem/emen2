@@ -860,10 +860,10 @@ class DB(object):
         """
         recs = {}
         mrecs = self.dbenv["record"].cgets(names, ctx=ctx, txn=txn)
-        vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
         regex = VIEW_REGEX
-        
         k = regex.match(macro)
+
+        vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
         macro = vtm.get_macro(k.group('name'))
         keyformat = macro.keyformat
         macro.preprocess(k.group('args'), mrecs)

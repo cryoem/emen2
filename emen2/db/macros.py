@@ -12,14 +12,12 @@ import operator
 import cgi
 import re
 
-# EMEN2 imports
-import emen2.db.datatypes
-import emen2.db.config
+import emen2.util.listops
+import emen2.db.exceptions
 
 # Convenience
 ci = emen2.util.listops.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
-vtm = emen2.db.datatypes.VartypeManager
 
 # From http://stackoverflow.com/questions/2212933/python-regex-for-reading-csv-like-rows
 parser = r"""
@@ -67,16 +65,27 @@ class Macro(object):
         self.cache = cache
         self.db = db
 
+    ##### Extensions #####
 
+    registered = {}
+    @classmethod
+    def register(cls, name):
+        def f(o):
+            if name in cls.registered:
+                raise ValueError("""%s is already registered""" % name)
+            cls.registered[name] = o
+            return o
+        return f
+
+    ##### Macro processing #####
+        
     # Pre-cache if we're going to be doing alot of records.. This can be a substantial improvement.
     def preprocess(self, params, recs):
         pass
 
-
     # Run the macro
     def process(self, params, rec):
         return "Macro"
-
 
     # Render the macro
     def render(self, params, rec, value=None):
@@ -85,7 +94,6 @@ class Macro(object):
             value = ", ".join(map(unicode, value))
         return unicode(value)
 
-
     # Get some info about the macro
     def macro_name(self, params):
         return unicode("Macro")
@@ -93,7 +101,7 @@ class Macro(object):
 
 
 
-@vtm.register_macro('name')
+@Macro.register('name')
 class macro_name(Macro):
     """name macro"""
     keyformat = 'd'
@@ -107,7 +115,7 @@ class macro_name(Macro):
 
 
 
-@vtm.register_macro('parents')
+@Macro.register('parents')
 class macro_parents(Macro):
 
     def process(self, params, rec):
@@ -121,7 +129,7 @@ class macro_parents(Macro):
 
 
 
-@vtm.register_macro('recname')
+@Macro.register('recname')
 class macro_recname(Macro):
     """recname macro"""
 
@@ -133,7 +141,7 @@ class macro_recname(Macro):
         return "Record ID"
 
 
-@vtm.register_macro('childcount')
+@Macro.register('childcount')
 class macro_childcount(Macro):
     """childcount macro"""
     keyformat = 'd'
@@ -164,7 +172,7 @@ class macro_childcount(Macro):
 
 
 
-@vtm.register_macro('img')
+@Macro.register('img')
 class macro_img(Macro):
     """image macro"""
 
@@ -197,7 +205,7 @@ class macro_img(Macro):
                 bdoo = self.db.binary.get(i, filt=False)
                 fname = bdoo.get("filename")
                 bname = bdoo.get("filepath")
-                root = emen2.db.config.get('web.root')
+                root = "TEST" # emen2.db.config.get('web.root')
                 ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="" />'%(root,i[4:], fname, height, width))
             except (KeyError, AttributeError, emen2.db.exceptions.SecurityError):
                 ret.append("(Error: %s)"%i)
@@ -209,7 +217,7 @@ class macro_img(Macro):
 
 
 
-@vtm.register_macro('childvalue')
+@Macro.register('childvalue')
 class macro_childvalue(Macro):
     """childvalue macro"""
 
@@ -224,7 +232,7 @@ class macro_childvalue(Macro):
 
 
 
-@vtm.register_macro('parentvalue')
+@Macro.register('parentvalue')
 class macro_parentvalue(Macro):
     """parentvalue macro"""
 
@@ -248,7 +256,7 @@ class macro_parentvalue(Macro):
 
 
 
-@vtm.register_macro('or')
+@Macro.register('or')
 class macro_or(Macro):
     """parentvalue macro"""
 
@@ -264,12 +272,12 @@ class macro_or(Macro):
 
 
 
-@vtm.register_macro('thumbnail')
+@Macro.register('thumbnail')
 class macro_thumbnail(Macro):
     """tile thumb macro"""
 
     def process(self, params, rec):
-        root = emen2.db.config.get('web.root')
+        root = "TEST" # emen2.db.config.get('web.root')
         format = "jpg"
         defaults = ["file_binary_image", "thumb", "jpg"]
         params = (params or '').split(",")
@@ -296,7 +304,7 @@ class macro_thumbnail(Macro):
 
 ##### Editing macros #####
 
-@vtm.register_macro('checkbox')
+@Macro.register('checkbox')
 class macro_checkbox(Macro):
     """draw a checkbox for editing values"""
 
