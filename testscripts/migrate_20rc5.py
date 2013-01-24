@@ -256,10 +256,10 @@ def paramdefs_props(db):
     txn = db._gettxn()
 
     for pd in paramdefs:
-        vt = emen2.db.datatypes.VartypeManager(db=db)
+        vtm = emen2.db.datatypes.VartypeManager(db=db)
         if pd.property:
             try:
-                prop = vt.getproperty(pd.property)
+                prop = vtm.get_property(pd.property)
             except:
                 print pd.name, pd.property
                 pd.__dict__['property'] = None

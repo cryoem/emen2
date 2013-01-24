@@ -11,8 +11,8 @@ import operator
 
 vtm = emen2.db.datatypes.VartypeManager()
 properties={}
-for prop in vtm.getproperties():
-    p = vtm.getproperty(prop)
+for prop in vtm.get_properties():
+    p = vtm.get_property(prop)
     properties[prop] = [p.defaultunits, p.units]
 %>
 
@@ -20,6 +20,6 @@ for prop in vtm.getproperties():
 var ROOT = ${ctxt.root | n,jsonencode};
 var VERSION = ${ctxt.version | n,jsonencode};
 var valid_properties = ${properties | n,jsonencode};
-var valid_vartypes = ${vtm.getvartypes() | n,jsonencode};
+var valid_vartypes = ${vtm.get_vartypes() | n,jsonencode};
 
 

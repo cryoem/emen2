@@ -205,7 +205,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         vtm, t = self._vtmtime(vtm, t)
         value = unicode(value or '') or None
 
-        if value not in vtm.getvartypes():
+        if value not in vtm.get_vartypes():
             self.error("Invalid vartype: %s"%value)
 
         return self._set(key, value)
@@ -221,7 +221,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
             value = None
 
         # Allow for unsetting
-        if value != None and value not in vtm.getproperties():
+        if value != None and value not in vtm.get_properties():
             self.error("Invalid property: %s"%value)
 
         return self._set('property', value)
@@ -243,12 +243,12 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
             
         vtm, _ = self._vtmtime(vtm, t)
         try:
-            vtm.getvartype(self.vartype)
+            vtm.get_vartype(self.vartype)
         except KeyError:
             self.error("Vartype %r is not a valid vartype" % self.vartype)
 
     #     try:
-    #         prop = vtm.getproperty(self.property)
+    #         prop = vtm.get_property(self.property)
     #     except KeyError:
     #         self.error("Cannot set defaultunits without a property!")
     #    m = emen2.db.magnitude.mg(0, value)

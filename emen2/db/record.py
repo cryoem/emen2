@@ -306,8 +306,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         # Check the rectype and any required parameters
         # (Check the cache for the recorddef)
         vtm, t = self._vtmtime(vtm=vtm, t=t)
-        cachekey = vtm.get_cache_key('recorddef', self.rectype)
-        hit, rd = vtm.check_cache(cachekey)
+        cachekey = vtm.cache.get_cache_key('recorddef', self.rectype)
+        hit, rd = vtm.cache.check_cache(cachekey)
 
         if not self.rectype:
             self.error('Protocol required')
@@ -317,7 +317,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
                 rd = self._ctx.db.recorddef.get(self.rectype, filt=False)
             except KeyError:
                 self.error('No such protocol: %s' % self.rectype)
-            vtm.store(cachekey, rd)
+            vtm.cache.store(cachekey, rd)
 
         # This does rely somewhat on validators returning None if empty..
         for param in rd.paramsR:
@@ -349,14 +349,16 @@ class RecordDB(emen2.db.btrees.RelateDB):
         if ind:
             return ind
 
-        # Check the paramdef to see if it's indexed
+        # Check the paramdef to see if it's indexed.
         pd = self.dbenv["paramdef"].get(param, filt=False, txn=txn)
-        if not pd or pd.vartype not in self.dbenv.indexablevartypes or not pd.indexed:
+        
+        # Check the key format.
+        vtm = emen2.db.datatypes.VartypeManager()
+        tp = vtm.get_vartype(pd.vartype).keyformat
+        if not pd.indexed or not tp:
             return None
 
         # Open the index
-        vtm = emen2.db.datatypes.VartypeManager()
-        tp = vtm.getvartype(pd.vartype).keyformat
         ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat=tp, dataformat=self.keyformat, dbenv=self.dbenv)
         return ind
 

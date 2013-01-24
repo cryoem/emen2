@@ -416,14 +416,14 @@ class BaseDBObject(object, UserDict.DictMixin):
         """Validate a single parameter value."""
         # Check the cache for the param
         vtm, t = self._vtmtime(vtm=vtm)
-        cachekey = vtm.get_cache_key('paramdef', key)
-        hit, pd = vtm.check_cache(cachekey)
+        cachekey = vtm.cache.get_cache_key('paramdef', key)
+        hit, pd = vtm.cache.check_cache(cachekey)
 
         # ... otherwise, raise an Exception if the param isn't found.
         if not hit:
             try:
                 pd = self._ctx.db.paramdef.get(key, filt=False)
-                vtm.store(cachekey, pd)
+                vtm.cache.store(cachekey, pd)
             except KeyError:
                 # This helps to bootstrap when ParamDefs are first being imported.
                 if key in self.attr_public:

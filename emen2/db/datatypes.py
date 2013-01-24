@@ -38,69 +38,11 @@ class DatatypeManager(object):
 
 
 
-
-class VartypeManager(object):
-    """Registers available Vartypes, Properties, and Macros
-
-    - Helper methods for access, validating, and rendering parameters
-    - This class may be replaced in the future, by moving it to the
-        appropriate Vartype/Property/Macro classes.
-    """
-
-    _vartypes = {}
-    _properties = {}
-    _macros = {}
-
-    @classmethod
-    def register_vartype(cls, name):
-        """Decorator used to register a :py:class:`~.vartypes.Vartype`
-
-        :param str name: the name for the :py:class:`~.vartypes.Vartype`
-        :returns: A function which takes a :py:class:`~.vartypes.Vartype` and registers it
-        """
-        def f(o):
-            if name in cls._vartypes.keys():
-                raise ValueError("""vartype %s already registered""" % name)
-            #emen2.db.log.info("REGISTERING VARTYPE (%s)"% name)
-            o.vartype = property(lambda *_: name)
-            cls._vartypes[name] = o
-            return o
-        return f
-
-
-    @classmethod
-    def register_property(cls, name):
-        def f(o):
-            if name in cls._properties.keys():
-                raise ValueError("""property %s already registered""" % name)
-            #emen2.db.log.info("REGISTERING PROPERTY (%s)"% name)
-            cls._properties[name] = o
-            return o
-        return f
-
-
-    @classmethod
-    def register_macro(cls, name):
-        def f(o):
-            if name in cls._macros.keys():
-                raise ValueError("""macro %s already registered""" % name)
-            #emen2.db.log.info("REGISTERING MACRO (%s)"% name)
-            cls._macros[name] = o
-            return o
-        return f
-
-
-    def __init__(self, db=None, keytype=None):
-        object.__init__(self)
-        self.db = db
-        self.keytype = keytype
-        self.caching = False
-        self.reset_cache()
-
-
-    ###################################
-    # Caching
-    ###################################
+class Cacher(object):
+    def __init__(self):
+        self.cache = {}
+        self.paramdefcache = {}
+        self.caching = True
 
     def reset_cache(self):
         self.paramdefcache = {}
@@ -127,92 +69,108 @@ class VartypeManager(object):
         if self.cache.has_key(key):
             return True, self.cache[key]
         return False, None
+    
+    
+class VartypeManager(object):
+    """Registers available Vartypes, Properties, and Macros
+
+    - Helper methods for access, validating, and rendering parameters
+    - This class may be replaced in the future, by moving it to the
+        appropriate Vartype/Property/Macro classes.
+    """
 
 
-    ###################################
-    # Macro Rendering
-    ###################################
+    registered = {}
+    vartypes = {}
+    properties = {}
+    macros = {}
 
-    def macro_preprocess(self, macro, params, recs):
-        return self._macros[macro](engine=self).preprocess(macro, params, recs)
+    @classmethod
+    def register_vartype(cls, name):
+        """Decorator used to register a :py:class:`~.vartypes.Vartype`
 
-
-    def macro_process(self, macro, params, rec):
-        return self._macros[macro](engine=self).process(macro, params, rec)
-
-
-    def macro_render(self, macro, params, rec, **kwargs):
-        return self._macros[macro](engine=self).render(macro, params, rec, **kwargs)
-
-
-    def macro_name(self, macro, params):
-        return self._macros[macro](engine=self).macro_name(macro, params, rec)
-
-
-    ###################################
-    # ParamDef Rendering
-    ###################################
-
-    def name_render(self, pd, markup=False):
-        return u"""<span class="paramdef" title="%s -- %s">%s</span>"""%(pd.name, pd.desc_long, pd.desc_short)
+        :param str name: the name for the :py:class:`~.vartypes.Vartype`
+        :returns: A function which takes a :py:class:`~.vartypes.Vartype` and registers it
+        """
+        def f(o):
+            if name in cls.vartypes.keys():
+                raise ValueError("""vartype %s already registered""" % name)
+            cls.registered[('vartype', name)] = o
+            cls.vartypes[name] = o
+            return o
+        return f
 
 
-    ###################################
-    # Param Rendering
-    ###################################
+    @classmethod
+    def register_property(cls, name):
+        def f(o):
+            if name in cls.properties.keys():
+                raise ValueError("""property %s already registered""" % name)
+            cls.registered[('property', name)] = o
+            cls.properties[name] = o
+            return o
+        return f
 
-    def param_render(self, pd, value, **kwargs):
-        return self._vartypes[pd.vartype](engine=self, pd=pd).render(value, **kwargs)
+
+    @classmethod
+    def register_macro(cls, name):
+        def f(o):
+            if name in cls.macros.keys():
+                raise ValueError("""macro %s already registered""" % name)
+            #emen2.db.log.info("REGISTERING MACRO (%s)"% name)
+            cls.registered[('macro', name)] = o
+            cls.macros[name] = o
+            return o
+        return f
+
+
+    def __init__(self, db=None, keytype=None):
+        self.db = db
+        self.keytype = keytype
+        self.cache = Cacher()
+
 
 
     ###################################
     # Validation
     ###################################
 
-    def encode(self, pd, value):
-        return self._vartypes[pd.vartype](engine=self, pd=pd).encode(value)
-
-
-    def decode(self, pd, value):
-        return self._vartypes[pd.vartype](engine=self, pd=pd).decode(value)
-
-
     def validate(self, pd, value):
         if value in NONEVALUES:
             return None
 
         if pd.property:
-            value = self._properties[pd.property]().validate(self, pd, value, self.db)
+            value = self.properties[pd.property]().validate(self, pd, value, self.db)
 
-        return self._vartypes[pd.vartype](engine=self, pd=pd).validate(value)
+        return self.vartypes[pd.vartype](cache=self.cache, db=self.db, pd=pd).validate(value)
 
 
     ###################################
     # Misc
     ###################################
 
-    def getvartype(self, name):
-        return self._vartypes[name]()
+    def get_vartype(self, name, *args, **kwargs):
+        return self.vartypes[name](cache=self.cache, db=self.db, *args, **kwargs)
 
 
-    def getproperty(self, name):
-        return self._properties[name]()
+    def get_property(self, name, *args, **kwargs):
+        return self.properties[name](cache=self.cache, db=self.db, *args, **kwargs)
 
 
-    def getmacro(self, name):
-        return self._macros[name]()
+    def get_macro(self, name, *args, **kwargs):
+        return self.macros[name](cache=self.cache, db=self.db, *args, **kwargs)
 
 
-    def getvartypes(self):
-        return self._vartypes.keys()
+    def get_vartypes(self):
+        return self.vartypes.keys()
 
 
-    def getproperties(self):
-        return self._properties.keys()
+    def get_properties(self):
+        return self.properties.keys()
 
 
-    def getmacros(self):
-        return self._macros.keys()
+    def get_macros(self):
+        return self.macros.keys()
 
 
 

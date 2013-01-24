@@ -1183,7 +1183,7 @@ class DBODB(EMEN2DB):
         # Check that this key is currently marked as indexed
         pd = self.dbenv['paramdef'].cget(param, filt=False, ctx=ctx, txn=txn)
         vtm = emen2.db.datatypes.VartypeManager()
-        vt = vtm.getvartype(pd.vartype)
+        vt = vtm.get_vartype(pd.vartype)
         vt.pd = pd
 
         # Process the changes into index addrefs / removerefs

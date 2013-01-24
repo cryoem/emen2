@@ -54,21 +54,21 @@ ALLOW_MISSING = True
 
 ##### Helper methods #####
 
-def update_username_cache(engine, values, lnf=False):
+def update_username_cache(cache, db, values, lnf=False):
     # Check cache
     to_cache = []
     for v in values:
-        key = engine.get_cache_key('displayname', v)
-        hit, dn = engine.check_cache(key)
+        key = cache.get_cache_key('displayname', v)
+        hit, dn = cache.check_cache(key)
         if not hit:
             to_cache.append(v)
 
     if to_cache:
-        users = engine.db.user.get(to_cache)
+        users = db.user.get(to_cache)
         for user in users:
             user.getdisplayname(lnf=lnf)
-            key = engine.get_cache_key('displayname', user.name)
-            engine.store(key, user.displayname)
+            key = cache.get_cache_key('displayname', user.name)
+            cache.store(key, user.displayname)
 
 
 
@@ -142,9 +142,10 @@ class Vartype(object):
     #: The element to use when rendering as HTML
     elem = 'span'
 
-    def __init__(self, engine=None, pd=None):
+    def __init__(self, pd=None, cache=None, db=None):
         self.pd = pd
-        self.engine = engine # cache
+        self.cache = cache
+        self.db = db
 
 
     def validate(self, value):
@@ -156,17 +157,17 @@ class Vartype(object):
         ret = []
         changed = False
         keytype = keytype or self.vartype
-        key = self.engine.get_cache_key('%s.names'%keytype)
-        hit, found = self.engine.check_cache(key)
+        key = self.cache.get_cache_key('%s.names'%keytype)
+        hit, found = self.cache.check_cache(key)
         if not hit:
             found = set()
             changed = True
 
         for i in value:        
-            i = self.engine.db._db.dbenv[keytype].keyclass(i)
+            i = self.db._db.dbenv[keytype].keyclass(i) # ugly hack :(
             if i in found:
                 ret.append(i)
-            elif self.engine.db.exists(i, keytype=keytype):
+            elif self.db.exists(i, keytype=keytype):
                 ret.append(i)
                 found.add(i)
                 changed = True
@@ -177,7 +178,7 @@ class Vartype(object):
                 raise ValidationError, "Could not find: %s %s (param %s)"%(self.vartype, i, self.pd.name)
         
         if changed:
-            self.engine.store(key, found)
+            self.cache.store(key, found)
         
         return ret
         
@@ -525,7 +526,7 @@ class vt_binary(Vartype):
     def render(self, value):
         value = ci(value)
         try:
-            v = self.engine.db.binary.get(value)
+            v = self.db.binary.get(value)
             value = [i.filename for i in v]
         except (ValueError, TypeError), e:
             value = ['Error getting binary: %s'%(i) for i in value]
@@ -564,8 +565,7 @@ class vt_link(Vartype):
     """Reference."""
 
     def validate(self, value):
-        # Hack
-        value = self._validate_reference(ci(value), keytype=self.engine.keytype)
+        value = self._validate_reference(ci(value), keytype=self.cache.keytype) # Ugly hack :(
         return self._rci(value)
 
 
@@ -583,11 +583,11 @@ class vt_user(Vartype):
 
     def render(self, value):
         value = ci(value)
-        update_username_cache(self.engine, value, lnf=True)
+        update_username_cache(self.cache, self.db, value, lnf=True)
         lis = []
         for i in value:
-            key = self.engine.get_cache_key('displayname', i)
-            hit, dn = self.engine.check_cache(key)
+            key = self.cache.get_cache_key('displayname', i)
+            hit, dn = self.cache.check_cache(key)
             lis.append(dn or '')
         return lis
 
@@ -627,7 +627,7 @@ class vt_acl(Vartype):
             return ''
         allusers = reduce(lambda x,y:x+y, value)
         unames = {}
-        for user in self.engine.db.user.get(allusers):
+        for user in self.db.user.get(allusers):
             unames[user.name] = user.displayname
 
         levels = ["Read","Comment","Write","Owner"]
@@ -687,11 +687,11 @@ class vt_comments(Vartype):
     def render(self, value):
         value = ci(value)
         users = [i[0] for i in value]
-        update_username_cache(self.engine, users)
+        update_username_cache(self.cache, self.db, users)
         lis = []
         for user, time, comment in value:
-            key = self.engine.get_cache_key('displayname', user)
-            hit, dn = self.engine.check_cache(key)
+            key = self.cache.get_cache_key('displayname', user)
+            hit, dn = self.cache.check_cache(key)
             t = '%s @ %s: %s\n'%(user, time, comment)
             lis.append(t)
         return ", ".join(lis)

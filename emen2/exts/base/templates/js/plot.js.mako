@@ -174,7 +174,7 @@
             return this.options.min + binwidth
         },
         
-        getvartype: function() {
+        get_vartype: function() {
             // hack
             var vt = null;
             var pd = emen2.caches['paramdef'][this.options.key];
@@ -193,7 +193,7 @@
             var self = this;
             
             // Todo: check paramdef...
-            var vt = this.getvartype();
+            var vt = this.get_vartype();
             if (vt == 'datetime') {
                 this.f = function(d) {return new Date(d[self.options.key])};
                 this.scale = d3.time.scale();
@@ -379,7 +379,7 @@
         build_legend: function(elem, retry) {
             if (retry==null) {retry=true}
             var self = this;
-            var vt = this.getvartype();
+            var vt = this.get_vartype();
             if (vt=='user') {
                 var getusers = emen2.cache.check('user', this.keys);
                 if (getusers && retry) {
@@ -401,7 +401,7 @@
         
         build_controls: function() {
             if (!this.controls) {return}
-            var vt = this.getvartype();
+            var vt = this.get_vartype();
             var self = this;
             var controls = $('<li></li>');
             controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');

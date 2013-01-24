@@ -260,15 +260,18 @@ class MacroConstraint(Constraint):
         # Parse the macro and get the Macro class
         regex = emen2.db.database.VIEW_REGEX
         k = regex.match(self.param)        
-        # Run the macro
-        self.p.vtm.macro_preprocess(k.group('name'), k.group('args'), self.p.items)
+        # Get the macro
+        macro = self.p.vtm.get_macro(k.group('name'))
+        # Preprocess
+        macro.preprocess(k.group('args'), self.p.items)
         # Convert the term to the right type
-        keyformat = self.p.vtm.getmacro(k.group('name')).keyformat
+        keyformat = macro.keyformat
         term = keyformatconvert(keyformat, self.term)
         # Run the comparison
         cfunc = getop(self.op)
         for item in self.p.items:
-            value = self.p.vtm.macro_process(k.group('name'), k.group('args'), item)
+            # Run the macro
+            value = macro.process(k.group('args'), item)
             if cfunc(term, value):
                 f.add(item.name)
                 self.p.cache[item.name][self.param] = value
@@ -401,11 +404,12 @@ class Query(object):
             # Users need to be rendered... ugly hack.
             if paramdef.vartype == 'user':
                 for i in result:
-                    sortvalues[i] = self.vtm.param_render(paramdef, sortvalues[i], table=True)
+                    vartype = self.vtm.get_vartype(paramdef.vartype, pd=paramdef)
+                    sortvalues[i] = vartype.render(sortvalues[i])
                     self._checktime()
 
             # Case-insensitive sort
-            vt = self.vtm.getvartype(paramdef.vartype)
+            vt = self.vtm.get_vartype(paramdef.vartype)
             if vt.keyformat == 's':
                 sortfunc = lambda x:sortvalues[x].lower()
         

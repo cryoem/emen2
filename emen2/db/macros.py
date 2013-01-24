@@ -63,31 +63,32 @@ class Macro(object):
 
     keyformat = 's'
 
-    def __init__(self, engine=None):
-        self.engine = engine
+    def __init__(self, cache=None, db=None):
+        self.cache = cache
+        self.db = db
 
 
     # Pre-cache if we're going to be doing alot of records.. This can be a substantial improvement.
-    def preprocess(self, macro, params, recs):
+    def preprocess(self, params, recs):
         pass
 
 
     # Run the macro
-    def process(self, macro, params, rec):
-        return "Macro: %s"%macro
+    def process(self, params, rec):
+        return "Macro"
 
 
     # Render the macro
-    def render(self, macro, params, rec, value=None):
-        value = value or self.process(macro, params, rec)
+    def render(self, params, rec, value=None):
+        value = value or self.process(params, rec)
         if hasattr(value, '__iter__'):
             value = ", ".join(map(unicode, value))
         return unicode(value)
 
 
     # Get some info about the macro
-    def macro_name(self, macro, params):
-        return unicode("Macro: %s(%s)"%(macro,params))
+    def macro_name(self, params):
+        return unicode("Macro")
 
 
 
@@ -97,11 +98,11 @@ class macro_name(Macro):
     """name macro"""
     keyformat = 'd'
 
-    def process(self, macro, params, rec):
+    def process(self, params, rec):
         return rec.name
 
 
-    def macro_name(self, macro, params):
+    def macro_name(self, params):
         return "Record Name"
 
 
@@ -109,13 +110,13 @@ class macro_name(Macro):
 @vtm.register_macro('parents')
 class macro_parents(Macro):
 
-    def process(self, macro, params, rec):
+    def process(self, params, rec):
         rectype, _, recurse = params.partition(",")
         recurse = int(recurse or 1)
-        return self.engine.db.rel.parents(rec.name, rectype=rectype, recurse=recurse)
+        return self.db.rel.parents(rec.name, rectype=rectype, recurse=recurse)
 
 
-    def macro_name(self, macro, params):
+    def macro_name(self, params):
         return "Parents: %s"%params
 
 
@@ -124,11 +125,11 @@ class macro_parents(Macro):
 class macro_recname(Macro):
     """recname macro"""
 
-    def process(self, macro, params, rec):
-        return self.engine.db.record.render(rec) #vtm=self.engine
+    def process(self, params, rec):
+        return self.db.record.render(rec) #cache=self.cache
 
 
-    def macro_name(self, macro, params):
+    def macro_name(self, params):
         return "Record ID"
 
 
@@ -137,28 +138,28 @@ class macro_childcount(Macro):
     """childcount macro"""
     keyformat = 'd'
 
-    def preprocess(self, macro, params, recs):
+    def preprocess(self, params, recs):
         rectypes = params.split(",")
         # ian: todo: recurse = -1..
-        children = self.engine.db.rel.children([rec.name for rec in recs], rectype=rectypes, recurse=3)
+        children = self.db.rel.children([rec.name for rec in recs], rectype=rectypes, recurse=3)
         for rec in recs:
-            key = self.engine.get_cache_key('rel.children', rec.name, *rectypes)
-            self.engine.store(key, len(children.get(rec.name,[])))
+            key = self.cache.get_cache_key('rel.children', rec.name, *rectypes)
+            self.cache.store(key, len(children.get(rec.name,[])))
 
 
-    def process(self, macro, params, rec):
+    def process(self, params, rec):
         """Now even more optimized!"""
         rectypes = params.split(",")
-        key = self.engine.get_cache_key('rel.children', rec.name, *rectypes)
-        hit, children = self.engine.check_cache(key)
+        key = self.cache.get_cache_key('rel.children', rec.name, *rectypes)
+        hit, children = self.cache.check_cache(key)
         if not hit:
-            children = len(self.engine.db.rel.children(rec.name, rectype=rectypes, recurse=3))
-            self.engine.store(key, children)
+            children = len(self.db.rel.children(rec.name, rectype=rectypes, recurse=3))
+            self.cache.store(key, children)
 
         return children
 
 
-    def macro_name(self, macro, params):
+    def macro_name(self, params):
         return "Childcount: %s"%(params)
 
 
@@ -167,7 +168,7 @@ class macro_childcount(Macro):
 class macro_img(Macro):
     """image macro"""
 
-    def process(self, macro, params, rec):
+    def process(self, params, rec):
         default = ["file_binary_image","640","640"]
         ps = params.split(",")
         for i,v in list(enumerate(ps))[:3]:
@@ -175,7 +176,7 @@ class macro_img(Macro):
 
         param, width, height = default
 
-        pd = self.engine.db.paramdef.get(param)
+        pd = self.db.paramdef.get(param)
 
         if pd.vartype=="binary":
             if pd.iter:
@@ -193,7 +194,7 @@ class macro_img(Macro):
         ret = []
         for i in bdos:
             try:
-                bdoo = self.engine.db.binary.get(i, filt=False)
+                bdoo = self.db.binary.get(i, filt=False)
                 fname = bdoo.get("filename")
                 bname = bdoo.get("filepath")
                 root = emen2.db.config.get('web.root')
@@ -203,7 +204,7 @@ class macro_img(Macro):
 
         return "".join(ret)
 
-    def macro_name(self, macro, params):
+    def macro_name(self, params):
         return "Image Macro"
 
 
@@ -212,13 +213,13 @@ class macro_img(Macro):
 class macro_childvalue(Macro):
     """childvalue macro"""
 
-    def process(self, macro, params, rec):
+    def process(self, params, rec):
         name = rec.name
-        children = self.engine.db.record.get(self.engine.db.rel.children(name))
+        children = self.db.record.get(self.db.rel.children(name))
         return [i.get(params) for i in children]
 
 
-    def macro_name(self, macro, params):
+    def macro_name(self, params):
         return "Child Value: %s"%params
 
 
@@ -227,7 +228,7 @@ class macro_childvalue(Macro):
 class macro_parentvalue(Macro):
     """parentvalue macro"""
 
-    def process(self, macro, params, rec):
+    def process(self, params, rec):
         p = params.split(",")
         param, recurse, rectype = p[0], 1, None
 
@@ -238,11 +239,11 @@ class macro_parentvalue(Macro):
 
         recurse = int(recurse or 1)
         name = rec.name
-        parents = self.engine.db.record.get(self.engine.db.rel.parents(name, recurse=recurse, rectype=rectype))
+        parents = self.db.record.get(self.db.rel.parents(name, recurse=recurse, rectype=rectype))
         return filter(None, [i.get(param) for i in parents])
 
 
-    def macro_name(self, macro, params):
+    def macro_name(self, params):
         return "Parent Value: %s"%params
 
 
@@ -251,14 +252,14 @@ class macro_parentvalue(Macro):
 class macro_or(Macro):
     """parentvalue macro"""
 
-    def process(self, macro, params, rec):
+    def process(self, params, rec):
         ret = None
         for param in params.split(","):
             ret = rec.get(params.strip())
             if ret != None:
                 return ret
 
-    def macro_name(self, macro, params):
+    def macro_name(self, params):
         return " or ".join(params.split(","))
 
 
@@ -267,7 +268,7 @@ class macro_or(Macro):
 class macro_thumbnail(Macro):
     """tile thumb macro"""
 
-    def process(self, macro, params, rec):
+    def process(self, params, rec):
         root = emen2.db.config.get('web.root')
         format = "jpg"
         defaults = ["file_binary_image", "thumb", "jpg"]
@@ -287,7 +288,7 @@ class macro_thumbnail(Macro):
                 )])
 
 
-    def macro_name(self, macro, params):
+    def macro_name(self, params):
         return "Thumbnail Image"
 
 
@@ -299,7 +300,7 @@ class macro_thumbnail(Macro):
 class macro_checkbox(Macro):
     """draw a checkbox for editing values"""
 
-    def process(self, macro, params, rec):
+    def process(self, params, rec):
         args = parse_args(params)
         return self._process(rec, *args)
 
@@ -317,7 +318,7 @@ class macro_checkbox(Macro):
             <label for="%s">%s</label>
             <input type="hidden" name="%s" value="" />"""%(labelid, param, param, value, checked, labelid, label or value, param)
 
-    def macro_name(self, macro, params):
+    def macro_name(self, params):
         return "Checkbox:", params
 
 

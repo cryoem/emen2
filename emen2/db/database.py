@@ -411,16 +411,6 @@ class EMEN2DBEnv(object):
         #     or be moved to a different place.
         self._txncbs = collections.defaultdict(list)
 
-        # Cache the vartypes that are indexable
-        vtm = emen2.db.datatypes.VartypeManager()
-        self.indexablevartypes = set()
-        allvartypes = set()
-        for y in vtm.getvartypes():
-            y = vtm.getvartype(y)
-            allvartypes.add(y.vartype)
-            if y.keyformat:
-                self.indexablevartypes.add(y.vartype)
-
         # Check that all the needed directories exist
         self.checkdirs()
 
@@ -874,11 +864,11 @@ class DB(object):
         regex = VIEW_REGEX
         
         k = regex.match(macro)
-        keyformat = vtm.getmacro(k.group('name')).keyformat
-        vtm.macro_preprocess(k.group('name'), k.group('args'), mrecs)
-
+        macro = vtm.get_macro(k.group('name'))
+        keyformat = macro.keyformat
+        macro.preprocess(k.group('args'), mrecs)
         for rec in mrecs:
-            recs[rec.name] = vtm.macro_process(k.group('name'), k.group('args'), rec)
+            recs[rec.name] = macro.process(k.group('args'), rec)
 
         return keyformat, recs
 
@@ -929,7 +919,6 @@ class DB(object):
             return values
 
         # get the params we're looking for
-        vtm = emen2.db.datatypes.VartypeManager()
         vt = set()
         vt_iterable = set()
         vt_firstitem = set()
@@ -940,7 +929,6 @@ class DB(object):
         for pd in self.dbenv["paramdef"].cgets(pds, ctx=ctx, txn=txn):
             if pd.vartype not in vartypes:
                 continue
-            vartype = vtm.getvartype(pd.vartype)
             if pd.vartype in ['comments', 'history']:
                 vt_firstitem.add(pd.name)
             elif pd.vartype in ['acl']:
@@ -1933,7 +1921,7 @@ class DB(object):
         :return: Set of all available properties.
         """
         vtm = emen2.db.datatypes.VartypeManager()
-        return set(vtm.getproperties())
+        return set(vtm.get_properties())
 
 
     @publicmethod(compat="getpropertyunits")
@@ -1957,7 +1945,7 @@ class DB(object):
         if not name:
             return set()
         vtm = emen2.db.datatypes.VartypeManager()
-        prop = vtm.getproperty(name)
+        prop = vtm.get_property(name)
         return set(prop.units)
 
 
@@ -1977,7 +1965,7 @@ class DB(object):
         :return: Set of all available datatypes.
         """
         vtm = emen2.db.datatypes.VartypeManager()
-        return set(vtm.getvartypes())
+        return set(vtm.get_vartypes())
 
 
 
@@ -3180,7 +3168,7 @@ class DB(object):
     
     @publicmethod()
     @ol('names')
-    def record_render2(self, names, keys=None, ctx=None, txn=None):
+    def record_render2(self, names, keys=None, ctx=None, txn=None, vtm=None):
         # Regular expression for parsing views.
         regex = VIEW_REGEX
 
@@ -3215,8 +3203,9 @@ class DB(object):
         for rec in recs:
             r = {}
             for key in keys:
-                r[key] = vtm.param_render(pds[key], rec.get(key))
-                # vtm.macro_render(n, match.group('args'), rec)
+                pd = pds[key]
+                vt = vtm.get_vartype(pd.vartype, pd=pd)
+                r[key] = vt.render(rec.get(key))
             ret[rec.name] = r
         return ret                 
         
@@ -3330,7 +3319,8 @@ class DB(object):
 
                 elif match.group('type') == '@':
                     # t = time.time()
-                    vtm.macro_preprocess(match.group('name'), match.group('args'), recs)
+                    macro = vtm.get_macro(match.group('name'))
+                    macro.preprocess(match.group('args'), recs)
 
         pds = listops.dictbykey(self.dbenv["paramdef"].cgets(pds, ctx=ctx, txn=txn), 'name')
 
@@ -3376,11 +3366,14 @@ class DB(object):
                 n = match.group('name')
                 s = match.group('sep') or ''
                 if t == '#':
-                    v = vtm.name_render(pds[n])
+                    # u"""<span class="paramdef" title="%s -- %s">%s</span>"""%(pd.name, pd.desc_long, pd.desc_short)
+                    v = pds[n].desc_short
                 elif t == '$' or t == '!':
-                    v = vtm.param_render(pds[n], rec.get(n))
+                    vartype = vtm.get_vartype(pds[n].vartype, pd=pds[n])
+                    v = vartype.render(rec.get(n))
                 elif t == '@':
-                    v = vtm.macro_render(n, match.group('args'), rec)
+                    macro = vtm.get_macro(n)
+                    v = macro.render(match.group('args'), rec)
                 else:
                     continue
 
