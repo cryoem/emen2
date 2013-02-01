@@ -261,7 +261,7 @@ class MacroConstraint(Constraint):
         regex = emen2.db.database.VIEW_REGEX
         k = regex.match(self.param)        
         # Get the macro
-        macro = self.p.vtm.get_macro(k.group('name'))
+        macro = emen2.db.macros.Macro.get_macro(k.group('name')) # db=ctx.db, cache=ctx.cache
         # Preprocess
         macro.preprocess(k.group('args'), self.p.items)
         # Convert the term to the right type
@@ -303,8 +303,6 @@ class Query(object):
         self.ctx = ctx
         self.txn = txn
         self.btree = btree
-        # vartype manager; handles validation, macros, some caching
-        self.vtm = emen2.db.datatypes.VartypeManager(db=ctx.db, keytype=self.btree.keytype)
 
         # Constraint Groups can contain sub-groups: see also init(), run()
         self.ind = True        
@@ -380,8 +378,8 @@ class Query(object):
             self._checktime()
             
         # If the param is iterable, we need to get the actual values.
-        paramdef = self.btree.dbenv['paramdef'].cget(sortkey, ctx=self.ctx, txn=self.txn)
-        if paramdef and paramdef.iter:
+        pd = self.btree.dbenv['paramdef'].cget(sortkey, ctx=self.ctx, txn=self.txn)
+        if pd and pd.iter:
             self._checkitems(sortkey)
 
         self._checktime()
@@ -400,17 +398,17 @@ class Query(object):
         result -= nones
 
         # Get the data type of the paramdef..
-        if rendered and paramdef:
+        if rendered and pd:
             # Users need to be rendered... ugly hack.
-            if paramdef.vartype == 'user':
+            if pd.vartype == 'user':
                 for i in result:
-                    vartype = self.vtm.get_vartype(paramdef.vartype, pd=paramdef)
+                    vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self.ctx.db, cache=self.ctx.cache)
                     sortvalues[i] = vartype.render(sortvalues[i])
                     self._checktime()
 
             # Case-insensitive sort
-            vt = self.vtm.get_vartype(paramdef.vartype)
-            if vt.keyformat == 's':
+            vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype)  # don't need db/cache; just checking keytype
+            if vartype.keyformat == 's':
                 sortfunc = lambda x:sortvalues[x].lower()
         
 

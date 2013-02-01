@@ -48,6 +48,9 @@ ValidationError = emen2.db.exceptions.ValidationError
 # Allow references to missing items.
 ALLOW_MISSING = True
 
+# Text values equivalent to "None"
+NONEVALUES = [None, "", "N/A", "n/a", "None"]
+
 ##### Helper methods #####
 
 def update_username_cache(cache, db, values, lnf=False):
@@ -154,6 +157,10 @@ class Vartype(object):
             cls.registered[name] = o
             return o
         return f
+
+    @classmethod
+    def get_vartype(cls, name, *args, **kwargs):
+        return cls.registered[name](*args, **kwargs)
 
 
     ##### Validation #####
@@ -371,7 +378,7 @@ class vt_recorddef(vt_string):
     """RecordDef name."""
 
     def validate(self, value):
-        value = self._validate_reference(ci(value), keytype=self.vartype)
+        value = self._validate_reference(ci(value), keytype='recorddef')
         return self._rci(value)
 
 
@@ -534,7 +541,7 @@ class vt_binary(Vartype):
     """File Attachment"""
 
     def validate(self, value):
-        value = self._validate_reference(ci(value), keytype=self.vartype)
+        value = self._validate_reference(ci(value), keytype='binary')
         return self._rci(value)
 
 
@@ -571,7 +578,7 @@ class vt_record(Vartype):
     keyformat = 'd'
 
     def validate(self, value):
-        value = self._validate_reference(ci(value), keytype=self.vartype)
+        value = self._validate_reference(ci(value), keytype='record')
         return self._rci(value)
 
 
@@ -592,7 +599,7 @@ class vt_user(Vartype):
     """Users."""
     
     def validate(self, value):
-        value = self._validate_reference(ci(value), keytype=self.vartype)
+        value = self._validate_reference(ci(value), keytype='user')
         return self._rci(value)
 
 
@@ -683,7 +690,7 @@ class vt_group(Vartype):
     """Group."""
     
     def validate(self, value):
-        value = self._validate_reference(ci(value), keytype=self.vartype)
+        value = self._validate_reference(ci(value), keytype='group')
         return self._rci(value)
 
 

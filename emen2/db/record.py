@@ -141,19 +141,19 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
     ##### Setters #####
 
-    def _set_rectype(self, key, value, vtm=None, t=None):
+    def _set_rectype(self, key, value):
         if not self.isnew():
             self.error("Cannot change rectype")
         self.__dict__['rectype'] = unicode(value)
         return set(['rectype'])
         
 
-    def _set_comments(self, key, value, vtm=None, t=None):
+    def _set_comments(self, key, value):
         """Bind record['comments'] setter"""
         return self.addcomment(value, t=t)
 
     # in Record, params not in self.attr_public are put in self.params{}.
-    def _setoob(self, key, value, vtm=None, t=None):
+    def _setoob(self, key, value):
         """Set a parameter value."""
         # Check write permission
         if not self.writable():
@@ -164,7 +164,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         if self.params.get(key) == value:
             return set()
 
-        self._addhistory(key, t=t)
+        self._addhistory(key)
         # Really set the value
         self.params[key] = value
         return set([key])
@@ -188,7 +188,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
     ##### Comments and history #####
 
-    def _addhistory(self, param, t=None):
+    def _addhistory(self, param):
         """Add an entry to the history log."""
         # Changes aren't logged on uncommitted records
         if self.isnew():
@@ -197,10 +197,9 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         if not param:
             raise Exception, "Unable to add item to history log"
 
-        vtm, t = self._vtmtime(t=t)
-        self.history.append((unicode(self._ctx.username), unicode(t), unicode(param), self.params.get(param)))
+        self.history.append((unicode(self._ctx.username), unicode(self._ctx.utcnow), unicode(param), self.params.get(param)))
 
-    def addcomment(self, value, vtm=False, t=None):
+    def addcomment(self, value):
         """Add a comment. Any $$param="value" comments will be parsed and set as values.
 
         :param value: The comment to be added
@@ -211,7 +210,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         if not value:
             return set()
 
-        vtm, t = self._vtmtime(vtm, t)
         cp = set()
         if value == None:
             return set()
@@ -240,10 +238,10 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
             # Now update the values of any embedded params
             for i,j in d.items():
-                cp |= self.__setitem__(i, j, vtm=vtm, t=t)
+                cp |= self.__setitem__(i, j)
 
             # Store the comment string itself
-            self.comments.append((unicode(self._ctx.username), unicode(t), unicode(value)))
+            self.comments.append((unicode(self._ctx.username), unicode(self._ctx.utcnow), unicode(value)))
             cp.add('comments')
 
         return cp
@@ -287,14 +285,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
     ##### Validation #####
 
-    def validate(self, vtm=None, t=None):
-        """Validate the record before committing.
-
-        :param vtm: the :py:class:`~.datatypes.VartypeManager` used to validate param values
-        :type vtm: :py:class:`.datatypes.VartypeManager`
-        :param t: the time of validation
-
-        """
+    def validate(self):
+        """Validate the record before committing."""
         # Cut out any None's
         # The rest of the parameters are validated 
         # when they are set or updated.
@@ -305,9 +297,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
         # Check the rectype and any required parameters
         # (Check the cache for the recorddef)
-        vtm, t = self._vtmtime(vtm=vtm, t=t)
-        cachekey = vtm.cache.get_cache_key('recorddef', self.rectype)
-        hit, rd = vtm.cache.check_cache(cachekey)
+        cachekey = self._ctx.cache.get_cache_key('recorddef', self.rectype)
+        hit, rd = self._ctx.cache.check_cache(cachekey)
 
         if not self.rectype:
             self.error('Protocol required')
@@ -317,7 +308,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
                 rd = self._ctx.db.recorddef.get(self.rectype, filt=False)
             except KeyError:
                 self.error('No such protocol: %s' % self.rectype)
-            vtm.cache.store(cachekey, rd)
+            self._ctx.cache.store(cachekey, rd)
 
         # This does rely somewhat on validators returning None if empty..
         for param in rd.paramsR:
@@ -348,8 +339,8 @@ class RecordDB(emen2.db.btrees.RelateDB):
         pd = self.dbenv["paramdef"].get(param, filt=False, txn=txn)
         
         # Check the key format.
-        vtm = emen2.db.datatypes.VartypeManager()
-        tp = vtm.get_vartype(pd.vartype).keyformat
+        vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd) # just checking keytype
+        tp = vartype.keyformat
         if not pd.indexed or not tp:
             return None
 

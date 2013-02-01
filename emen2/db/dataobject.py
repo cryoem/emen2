@@ -29,7 +29,7 @@ class BaseDBObject(object, UserDict.DictMixin):
         name, keytype, creator, creationtime, modifytime, modifyuser, uri
 
     The name attribute is usually specified by the user when a new item is created,
-     but the rest are set by the database when an item is committed. The creator
+    but the rest are set by the database when an item is committed. The creator
     and creationtime attributes are set on initial commit, and modifyuser and
     modifytime attributes are usually updated on subsequent commits. The uri
     attribute can be set to indicate an item was imported from an external
@@ -44,18 +44,18 @@ class BaseDBObject(object, UserDict.DictMixin):
 
     All attributes should also be valid EMEN2 parameters. The default behavior
     for BaseDBObject and subclasses is to validate the attributes as parameters
-    when they are set or updated. When a DBO is exported (JSON, XML,
-    network proxy, etc.) only the attributes listed in cls.attr_public are
+    when they are set or updated. When a DBO is exported (JSON, XML, etc.) 
+    only the attributes listed in cls.attr_public are
     exported. Private attributes may be used by using an underscore
     prefix -- but these WILL NOT BE SAVED, and discarded before committing. An
     example of this behavior is the User._displayname attribute, which
     is recalculated whenever the user is retreived from the database. However,
-    the dynamic _displayname attribute is still exported by creating a
+    the _displayname attribute is still exported by creating a
     displayname class property, and listing that in cls.attr_public. In this way
     it is part of the public interface, even though it is a generated, read-only
     attribute. Another example is the params attribute of Record. This is a
     normal attribute, and read/set from within the class's methods, but is not
-    exported (it is instead copied into the regular export dictionary.)
+    exported directly (it is instead copied into the regular export dictionary.)
 
     Required attributes can be specified using cls.attr_required. If any of
     these are None, a ValidationError will be raised during commit.
@@ -112,9 +112,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 
         You may provide either a dictionary named (first argument or _d keyword,
         or any extra keyword arguments.)
-
-        Remove the ctx and use it for setContext. Finally, update with any left
-        over items from _d.
         """
 
         # Set the uncommitted flag. This will be stripped out when committed.
@@ -130,8 +127,6 @@ class BaseDBObject(object, UserDict.DictMixin):
         t = _d.pop('t', None)
         self.__dict__['_ctx'] = ctx
                 
-        vtm, t = self._vtmtime(t=t) # get current time.
-
         # Assign a name; 
         # Names are now assigned and validated by the BTree.
         p = {}
@@ -139,9 +134,9 @@ class BaseDBObject(object, UserDict.DictMixin):
 
         # Base owner/time parameters
         p['creator'] = self._ctx.username
-        p['creationtime'] = t
+        p['creationtime'] = self._ctx.utcnow
         p['modifyuser'] = self._ctx.username
-        p['modifytime'] = t
+        p['modifytime'] = self._ctx.utcnow
 
         # Other attributes.
         p['uri'] = None
@@ -165,7 +160,7 @@ class BaseDBObject(object, UserDict.DictMixin):
         """Subclass init."""
         pass
 
-    def validate(self, vtm=None, t=None):
+    def validate(self):
         """Validate."""
         pass
 
@@ -234,31 +229,26 @@ class BaseDBObject(object, UserDict.DictMixin):
     def keys(self):
         return list(self.attr_public)
 
-    def update(self, update, vtm=None, t=None):
+    def update(self, update):
         """Dict-like update. Returns a set of keys that were updated."""
-        vtm, t = self._vtmtime(vtm, t)
         cp = set()
 
         # Make sure to pass in t=t to keep all the times in sync
         for k,v in update.items():
-            cp |= self.__setitem__(k, v, vtm=vtm, t=t)
+            cp |= self.__setitem__(k, v)
 
         return cp
 
-    def _load(self, update, vtm=None, t=None):
+    def _load(self, update):
         """Load from a JSON file; this skips validation on a few keys."""
         if not self.isnew():
             self.error('Cannot update previously committed items this way.')
 
-        # Validate
-        vtm, t = self._vtmtime(vtm, t)
-        
         # Skip validation for protected keys.
         keys = self.attr_protected & set(update.keys())
         keys.add('name')
         for key in keys:
             value = update.pop(key, None)
-            # value = self.validate_param(key, value, vtm=vtm) # skip
             self.__dict__[unicode(key)] = value
         
         # Skip validation for relationships.
@@ -266,7 +256,7 @@ class BaseDBObject(object, UserDict.DictMixin):
         for key in ['parents', 'children']:
             self.__dict__[unicode(key)] = set(update.pop(key, None) or [])
         
-        self.update(update, vtm=vtm, t=t)
+        self.update(update)
 
     # Low level mapping methods
     # Behave like dict.get(key) instead of dict[key]
@@ -288,7 +278,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 
     # Check if there is a method for setting this key,
     # validate the value, set the value, and update the time stamp.
-    def __setitem__(self, key, value, vtm=None, t=None):
+    def __setitem__(self, key, value):
         """Validate and set an attribute or key."""
 
         # This will validate the parameter, look for a setter, and then call the setter.
@@ -318,12 +308,11 @@ class BaseDBObject(object, UserDict.DictMixin):
 
         # Validate.
         # *ALL VALUES* must pass through a validator.
-        vtm, t = self._vtmtime(vtm, t)
-        value = self.validate_param(key, value, vtm=vtm)
+        value = self.validate_param(key, value)
 
         # The setter might return multiple items that were updated
         # For instance, comments can update other params
-        cp |= setter(key, value, vtm=vtm, t=t)
+        cp |= setter(key, value)
 
         # Only permissions, groups, and links do not trigger a modifytime update
         if cp - set(['permissions', 'groups', 'parents', 'children']) and not self.isnew():
@@ -337,7 +326,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 
     ##### Real updates #####
 
-    def _set(self, key, value, check=None, vtm=None, t=None):
+    def _set(self, key, value, check=None):
         """Actually set a value."""
         # The default permission required to set a key
         # is write permissions. Additionally, the default
@@ -351,7 +340,7 @@ class BaseDBObject(object, UserDict.DictMixin):
         self.__dict__[key] = value
         return set([key])
 
-    def _setoob(self, key, value, vtm=None, t=None):
+    def _setoob(self, key, value):
         """Handle params not found in self.attr_public"""
         self.error("Cannot set param %s in this way"%key, warning=True)
         return set()
@@ -389,10 +378,10 @@ class BaseDBObject(object, UserDict.DictMixin):
         value |= changed - set(i.name for i in access)
         return self._set(key, value, True)
 
-    def _set_children(self, key, value, vtm=None, t=None):
+    def _set_children(self, key, value):
         return self._setrel(key, value)
 
-    def _set_parents(self, key, value, vtm=None, t=None):
+    def _set_parents(self, key, value):
         return self._setrel(key, value)
 
 
@@ -412,18 +401,17 @@ class BaseDBObject(object, UserDict.DictMixin):
     ##### Validation and error control #####
 
     # This is the main mechanism for validation.
-    def validate_param(self, key, value, vtm=None):
+    def validate_param(self, key, value):
         """Validate a single parameter value."""
         # Check the cache for the param
-        vtm, t = self._vtmtime(vtm=vtm)
-        cachekey = vtm.cache.get_cache_key('paramdef', key)
-        hit, pd = vtm.cache.check_cache(cachekey)
+        cachekey = self._ctx.cache.get_cache_key('paramdef', key)
+        hit, pd = self._ctx.cache.check_cache(cachekey)
 
         # ... otherwise, raise an Exception if the param isn't found.
         if not hit:
             try:
                 pd = self._ctx.db.paramdef.get(key, filt=False)
-                vtm.cache.store(cachekey, pd)
+                self._ctx.cache.store(cachekey, pd)
             except KeyError:
                 # This helps to bootstrap when ParamDefs are first being imported.
                 if key in self.attr_public:
@@ -436,8 +424,7 @@ class BaseDBObject(object, UserDict.DictMixin):
             self.error('Cannot change immutable param %s'%pd.name)
 
         # Validate
-        # v = vtm.validate(pd, value)
-        vartype = vtm.get_vartype(pd.name, pd=pd)
+        vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self._ctx.db, cache=self._ctx.cache)
         v = vartype.validate(value)
 
         # Issue a warning if param changed during validation
@@ -449,13 +436,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 
 
     ##### Convenience methods #####
-
-    def _vtmtime(self, vtm=None, t=None):
-        """Utility method to check/get a vartype manager and the current time."""
-        # Time stamps are now in ISO 8601 format.
-        vtm = vtm or emen2.db.datatypes.VartypeManager(db=self._ctx.db, keytype=self.keytype)
-        t = t or emen2.db.database.gettime()
-        return vtm, t
 
     def error(self, msg='', e=None, warning=False):
         """Raise a ValidationError exception.
@@ -556,11 +536,11 @@ class PermissionsDBObject(BaseDBObject):
 
     ##### Setters #####
 
-    def _set_permissions(self, key, value, vtm=None, t=None):
+    def _set_permissions(self, key, value):
         self.setpermissions(value)
         return set(['permissions'])
 
-    def _set_groups(self, key, value, vtm=None, t=None):
+    def _set_groups(self, key, value):
         self.setgroups(value)
         return set(['groups'])
 

@@ -162,35 +162,35 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     # so everything is checked....
     # Several values can only be changed by administrators.
 
-    def _set_choices(self, key, value, vtm=None, t=None):
+    def _set_choices(self, key, value):
         value = emen2.util.listops.check_iterable(value)
         value = filter(None, [unicode(i) for i in value]) or None
         return self._set(key, value, self.isowner())
 
 
-    def _set_desc_short(self, key, value, vtm=None, t=None):
+    def _set_desc_short(self, key, value):
         return self._set(key, unicode(value or self.name), self.isowner())
 
 
-    def _set_desc_long(self, key, value, vtm=None, t=None):
+    def _set_desc_long(self, key, value):
         return self._set(key, unicode(value or ''), self.isowner())
 
 
     # Only admin can change defaultunits/immutable/indexed/vartype.
     # This should still generate lots of warnings.
-    def _set_immutable(self, key, value, vtm=None, t=None):
+    def _set_immutable(self, key, value):
         return self._set(key, bool(value), self._ctx.checkadmin())
 
 
-    def _set_iter(self, key, value, vtm=None, t=None):
+    def _set_iter(self, key, value):
         return self._set(key, bool(value), self._ctx.checkadmin())
 
 
-    def _set_indexed(self, key, value, vtm=None, t=None):
+    def _set_indexed(self, key, value):
         return self._set(key, bool(value), self._ctx.checkadmin())
 
 
-    def _set_controlhint(self, key, value, vtm=None, t=None):
+    def _set_controlhint(self, key, value):
         if value != None:
             value = unicode(value)
         value = value or None
@@ -198,57 +198,50 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
                 
         
     # These can't be changed, it would disrupt the meaning of existing Records.
-    def _set_vartype(self, key, value, vtm=None, t=None):
+    def _set_vartype(self, key, value):
         if not self.isnew():
             self.error("Cannot change vartype from %s to %s."%(self.vartype, value))
 
-        vtm, t = self._vtmtime(vtm, t)
         value = unicode(value or '') or None
 
-        if value not in vtm.get_vartypes():
+        if value not in emen2.db.vartypes.Vartype.registered:
             self.error("Invalid vartype: %s"%value)
 
         return self._set(key, value)
 
 
-    def _set_property(self, key, value, vtm=None, t=None):
+    def _set_property(self, key, value):
         if not self.isnew():
             self.error("Cannot change property from %s to %s."%(self.property, value))
 
-        vtm, t = self._vtmtime(vtm, t)
         value = unicode(value or '')
         if value in ['None', None, '']:
             value = None
 
         # Allow for unsetting
-        if value != None and value not in vtm.get_properties():
+        if value != None and value not in emen2.db.properties.Property.registered:
             self.error("Invalid property: %s"%value)
 
         return self._set('property', value)
 
 
-    def _set_defaultunits(self, key, value, vtm=None, t=None):
+    def _set_defaultunits(self, key, value):
         if not self.isnew():
             self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
 
-        vtm, t = self._vtmtime(vtm, t)
         value = unicode(value or '') or None
         value = emen2.db.properties.equivs.get(value, value)
         return self._set('defaultunits', value)
 
 
-    def validate(self, vtm=None, t=None):
+    def validate(self):
         if not self.vartype:
             self.error("Vartype required")
-            
-        vtm, _ = self._vtmtime(vtm, t)
-        try:
-            vtm.get_vartype(self.vartype)
-        except KeyError:
+        if self.vartype not in emen2.db.vartypes.Vartype.registered:
             self.error("Vartype %r is not a valid vartype" % self.vartype)
 
     #     try:
-    #         prop = vtm.get_property(self.property)
+    #         prop = emen2.db.properties.Property.get_property(self.property)
     #     except KeyError:
     #         self.error("Cannot set defaultunits without a property!")
     #    m = emen2.db.magnitude.mg(0, value)

@@ -77,6 +77,12 @@ class Macro(object):
             return o
         return f
 
+    @classmethod
+    def get_macro(cls, name, *args, **kwargs):
+        return cls.registered[name](*args, **kwargs)
+
+
+
     ##### Macro processing #####
         
     # Pre-cache if we're going to be doing alot of records.. This can be a substantial improvement.

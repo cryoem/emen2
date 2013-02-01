@@ -42,13 +42,13 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # action type, args, ctime for when the token is set, and secret
         self.__dict__['secret'] = None
 
-    def _set_password(self, key, value, vtm=None, t=None):
+    def _set_password(self, key, value):
         # This will always fail unless you're an admin
         #    setpassword requires either a password or auth token as arguments.
         self.setpassword(None, value)
         return set(['password'])
     
-    def _set_email(self, key, value, vtm=None, t=None):
+    def _set_email(self, key, value):
         # This will always fail unless you're an admin --
         #    setemail requires either a password or auth token as arguments.
         self.setemail(value)
@@ -212,7 +212,7 @@ class NewUser(BaseUser):
 
 
     # Setters
-    def _set_signupinfo(self, key, value, vtm=None, t=None):
+    def _set_signupinfo(self, key, value):
         self.setsignupinfo(value)
         return set(['signupinfo'])
 
@@ -222,8 +222,8 @@ class NewUser(BaseUser):
         self.validate()
 
 
-    def validate(self, vtm=None, t=None):
-        super(NewUser, self).validate(vtm=vtm, t=t)
+    def validate(self):
+        super(NewUser, self).validate()
 
         # Check signupinfo
         required = set(["name_first","name_last"])
@@ -235,7 +235,7 @@ class NewUser(BaseUser):
                 
             # These will be transferred to a Record
             try:
-                value = self.validate_param(param, value, vtm=vtm)
+                value = self.validate_param(param, value)
             except ValueError:
                 emen2.db.log.info("NewUser Validation: Couldn't validate new user signup field %s: %s"%(param, value))
                 continue
@@ -301,21 +301,21 @@ class User(BaseUser):
     # These are unvalidated parameters because they cleared when committing
     # They return an empty set because they don't really modify the User.
 
-    def _set_groups(self, key, value, vtm=None, t=None):
+    def _set_groups(self, key, value):
         self._set('_groups', value, True)
         return set()
 
-    def _set_displayname(self, key, value, vtm=None, t=None):
+    def _set_displayname(self, key, value):
         self._set('_displayname', value, True)
         return set()
 
-    def _set_userrec(self, key, value, vtm=None, t=None):
+    def _set_userrec(self, key, value):
         self._set('_userrec', value, True)
         return set()
 
 
     # Users can set their own privacy level
-    def _set_privacy(self, key, value, vtm=None, t=None):
+    def _set_privacy(self, key, value):
         value = int(value)
         if value not in [0,1,2]:
             self.error("User privacy setting may be 0, 1, or 2.")
@@ -324,14 +324,14 @@ class User(BaseUser):
 
     # Only admin can change enabled/disabled or record reference
 
-    def _set_disabled(self, key, value, vtm=None, t=None):
+    def _set_disabled(self, key, value):
         value = bool(value)
         if self.name == self._ctx.username and value:
             self.error("Cannot disable self!")
         return self._set(key, value, self._ctx.checkadmin())
 
 
-    def _set_record(self, key, value, vtm=None, t=None):
+    def _set_record(self, key, value):
         return self._set(key, value, self._ctx.checkadmin())
 
 

@@ -106,37 +106,37 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
 
     # filepath is set during setContext, and discarded during commit (todo)
-    def _set_filepath(self, key, value, vtm=None, t=None):
+    def _set_filepath(self, key, value):
         return set()
 
     # These immutable attributes only ever be set for a new Binary, before commit
-    def _set_md5(self, key, value, vtm=None, t=None):
+    def _set_md5(self, key, value):
         if self.name:
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
         return self._set(key, value, self.isowner())
 
-    def _set_md5_compress(self, key, value, vtm=None, t=None):
+    def _set_md5_compress(self, key, value):
         if self.name:
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
         return self._set(key, value, self.isowner())
 
-    def _set_compress(self, key, value, vtm=None, t=None):
+    def _set_compress(self, key, value):
         if self.name:
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
         return self._set(key, value, self.isowner())
 
-    def _set_filesize(self, key, value, vtm=None, t=None):
+    def _set_filesize(self, key, value):
         if self.name:
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
         return self._set(key, value, self.isowner())
 
-    def _set_filesize_compress(self, key, value, vtm=None, t=None):
+    def _set_filesize_compress(self, key, value):
         if self.name:
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
         return self._set(key, value, self.isowner())
 
     # These can be changed normally
-    def _set_filename(self, key, value, vtm=None, t=None):
+    def _set_filename(self, key, value):
         # Sanitize filename.. This will allow unicode characters,
         #    and check for reserved filenames on linux/windows
         value = unicode(value)
@@ -149,10 +149,10 @@ class Binary(emen2.db.dataobject.BaseDBObject):
             value = u"renamed."+value
         return self._set(key, value, self.isowner())
 
-    def _set_record(self, key, value, vtm=None, t=None):
+    def _set_record(self, key, value):
         return self._set(key, value, self.isowner())
 
-    def validate(self, vtm=None, t=None):
+    def validate(self):
         # Validate
         # These requirements have been relaxed.
         # if self.record is None:

@@ -79,18 +79,18 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 
 
     # Setters
-    def _set_privacy(self, key, value, vtm=None, t=None):
+    def _set_privacy(self, key, value):
         value = int(value)
         if value not in [0,1,2]:
             self.error("User privacy setting may be 0, 1, or 2.")
         return self._set(key, value, self.isowner())
 
 
-    def _set_disabled(self, key, value, vtm=None, t=None):
+    def _set_disabled(self, key, value):
         return self._set(key, bool(value), self.isowner())
 
 
-    def _set_displayname(self, key, value, vtm=None, t=None):
+    def _set_displayname(self, key, value):
         return self._set(key, str(value or self.name), self.isowner())
         
 

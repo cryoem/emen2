@@ -1056,8 +1056,8 @@ class DBODB(EMEN2DB):
 
         """
         # Time and validation helper.
-        t = emen2.db.database.gettime()
-        vtm = emen2.db.datatypes.VartypeManager(db=ctx.db, keytype=self.keytype)
+        # t = emen2.db.database.gettime()
+        # cache = emen2.db.datatypes.Cacher(keytype=self.keytype)
 
         # Updated items
         crecs = []
@@ -1082,10 +1082,10 @@ class DBODB(EMEN2DB):
             else:
                 # Create a new item.
                 p = dict((k,updrec.get(k)) for k in self.dataclass.attr_required)
-                orec = self.new(name=name, t=t, ctx=ctx, txn=txn, **p)
+                orec = self.new(name=name, ctx=ctx, txn=txn, **p)
 
             # Update the item.
-            orec.update(updrec, vtm=vtm, t=t)
+            orec.update(updrec)
             orec.validate()
             crecs.append(orec)
 
@@ -1182,9 +1182,7 @@ class DBODB(EMEN2DB):
 
         # Check that this key is currently marked as indexed
         pd = self.dbenv['paramdef'].cget(param, filt=False, ctx=ctx, txn=txn)
-        vtm = emen2.db.datatypes.VartypeManager()
-        vt = vtm.get_vartype(pd.vartype)
-        vt.pd = pd
+        vt = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=ctx.db, cache=ctx.cache)
 
         # Process the changes into index addrefs / removerefs
         try:

@@ -110,7 +110,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
     ##### Setters #####
 
-    def _set_mainview(self, key, value, vtm=None, t=None):
+    def _set_mainview(self, key, value):
         """Only an admin may change the mainview"""
         if not self.isnew() and not self._ctx.checkadmin():
             self.error("Cannot change mainview")
@@ -121,7 +121,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         return ret
 
     # These require normal record ownership
-    def _set_views(self, key, value, vtm=None, t=None):
+    def _set_views(self, key, value):
         views = {}
         value = value or {}
         for k,v in value.items():
@@ -131,19 +131,19 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         self.findparams()
         return ret
 
-    def _set_private(self, key, value, vtm=None, t=None):
+    def _set_private(self, key, value):
         return self._set('private', int(value), self.isowner())
 
     # ian: todo: Validate that these are actually valid RecordDefs
-    def _set_typicalchld(self, key, value, vtm=None, t=None):
+    def _set_typicalchld(self, key, value):
         value = emen2.util.listops.check_iterable(value)
         value = filter(None, [unicode(i) for i in value]) or None
         return self._set('typicalchld', value, self.isowner())
 
-    def _set_desc_short(self, key, value, vtm=None, t=None):
+    def _set_desc_short(self, key, value):
         return self._set('desc_short', unicode(value or self.name), self.isowner())
 
-    def _set_desc_long(self, key, value, vtm=None, t=None):
+    def _set_desc_long(self, key, value):
         return self._set('desc_long', unicode(value or ''), self.isowner())
 
 
@@ -180,7 +180,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         p['paramsR'] = r
         self.__dict__.update(p)
 
-    def validate(self, vtm=None, t=None):
+    def validate(self):
         # Run findparams one last time before we commit...
         if not self.mainview:
             self.error("Main protocol (mainview) required")

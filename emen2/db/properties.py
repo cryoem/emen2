@@ -265,6 +265,11 @@ class Property(object):
             return o
         return f
 
+    @classmethod
+    def get_property(cls, name, *args, **kwargs):
+        return cls.registered[name](*args, **kwargs)
+
+
     ##### Validation #####
 
     def validate(self, engine, pd, value, db):

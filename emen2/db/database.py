@@ -441,26 +441,6 @@ class EMEN2DBEnv(object):
             self.open()
 
 
-
-    def start_replication(self, repmgr_host, repmgr_port):
-        return
-        # self.dbsite = None
-        # if not (repmgr_host and repmgr_port):
-        #     return
-        #     
-        # priority = repmgr_port - 10000
-        #     
-        # self.dbsite = self.dbenv.repmgr_site(repmgr_host, repmgr_port)
-        # self.dbsite.set_config(bsddb3.db.DB_LOCAL_SITE, 1)
-        # if priority == 0:
-        #     self.dbsite.set_config(bsddb3.db.DB_GROUP_CREATOR, 1)
-        #     
-        # self.dbenv.rep_set_priority(100 - priority)
-        # self.dbenv.repmgr_set_ack_policy(bsddb3.db.DB_REPMGR_ACKS_ONE)
-        # self.dbenv.rep_set_timeout(bsddb3.db.DB_REP_ACK_TIMEOUT, 500)
-        # self.dbenv.repmgr_start(3, bsddb3.db.DB_REP_ELECTION)
-
-
     def add_db(self, cls, **kwargs):
         """Add a BTree."""
         db = cls(dbenv=self, **kwargs)
@@ -480,11 +460,6 @@ class EMEN2DBEnv(object):
         self.dbenv.close()
         self.dbenvs[self] = False
         
-        
-    #@classmethod()
-    #def closeall(cls):
-    #    pass    
-
 
     def __getitem__(self, key, default=None):
         """Pass dictionary gets to self.keytypes."""
@@ -863,8 +838,7 @@ class DB(object):
         regex = VIEW_REGEX
         k = regex.match(macro)
 
-        vtm = emen2.db.datatypes.VartypeManager(db=ctx.db)
-        macro = vtm.get_macro(k.group('name'))
+        macro = emen2.db.macros.Macro.get_macro(k.group('name'), db=ctx.db, cache=ctx.cache)
         keyformat = macro.keyformat
         macro.preprocess(k.group('args'), mrecs)
         for rec in mrecs:
@@ -1920,8 +1894,7 @@ class DB(object):
 
         :return: Set of all available properties.
         """
-        vtm = emen2.db.datatypes.VartypeManager()
-        return set(vtm.get_properties())
+        return set(emen2.db.properties.Property.registered.keys())
 
 
     @publicmethod(compat="getpropertyunits")
@@ -1944,8 +1917,7 @@ class DB(object):
         """
         if not name:
             return set()
-        vtm = emen2.db.datatypes.VartypeManager()
-        prop = vtm.get_property(name)
+        prop = emen2.db.properties.Property.get_property(name)
         return set(prop.units)
 
 
@@ -1964,8 +1936,7 @@ class DB(object):
 
         :return: Set of all available datatypes.
         """
-        vtm = emen2.db.datatypes.VartypeManager()
-        return set(vtm.get_vartypes())
+        return set(emen2.db.vartypes.Vartype.registered.keys())
 
 
 
@@ -3168,16 +3139,13 @@ class DB(object):
     
     @publicmethod()
     @ol('names')
-    def record_render2(self, names, keys=None, ctx=None, txn=None, vtm=None):
+    def record_render2(self, names, keys=None, ctx=None, txn=None):
         # Regular expression for parsing views.
         regex = VIEW_REGEX
 
         # Return rendered values.
         ret = {}
         
-        # VartypeManager provides caching and access to the Vartype classes.
-        vtm = vtm or emen2.db.datatypes.VartypeManager(db=ctx.db)
-
         # Get Record instances from names argument.
         names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
         names.extend(other)
@@ -3204,7 +3172,7 @@ class DB(object):
             r = {}
             for key in keys:
                 pd = pds[key]
-                vt = vtm.get_vartype(pd.vartype, pd=pd)
+                vt = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=ctx.db, cache=ctx.cache)
                 r[key] = vt.render(rec.get(key))
             ret[rec.name] = r
         return ret                 
@@ -3214,7 +3182,7 @@ class DB(object):
 
     @publicmethod(compat="renderview")
     @ol('names')
-    def record_render(self, names, viewname='recname', viewdef=None, edit=False, markup=True, table=False, mode=None, vtm=None, ctx=None, txn=None):
+    def record_render(self, names, viewname='recname', viewdef=None, edit=False, markup=True, table=False, mode=None, ctx=None, txn=None):
         """Render record(s).
 
         For each record, render the view given either by the viewdef keyword,
@@ -3273,9 +3241,6 @@ class DB(object):
         # Regular expression for parsing views.
         regex = VIEW_REGEX
 
-        # VartypeManager provides caching and access to the Vartype classes.
-        vtm = vtm or emen2.db.datatypes.VartypeManager(db=ctx.db)
-
         # Get Record instances from names argument.
         names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
         names.extend(other)
@@ -3318,8 +3283,7 @@ class DB(object):
                     pds.add(match.group('name'))
 
                 elif match.group('type') == '@':
-                    # t = time.time()
-                    macro = vtm.get_macro(match.group('name'))
+                    macro = emen2.db.macros.Macro.get_macro(match.group('name'), db=ctx.db, cache=ctx.cache)
                     macro.preprocess(match.group('args'), recs)
 
         pds = listops.dictbykey(self.dbenv["paramdef"].cgets(pds, ctx=ctx, txn=txn), 'name')
@@ -3369,10 +3333,10 @@ class DB(object):
                     # u"""<span class="paramdef" title="%s -- %s">%s</span>"""%(pd.name, pd.desc_long, pd.desc_short)
                     v = pds[n].desc_short
                 elif t == '$' or t == '!':
-                    vartype = vtm.get_vartype(pds[n].vartype, pd=pds[n])
+                    vartype = emen2.db.vartypes.Vartype.get_vartype(pds[n].vartype, pd=pds[n], db=ctx.db, cache=ctx.cache)
                     v = vartype.render(rec.get(n))
                 elif t == '@':
-                    macro = vtm.get_macro(n)
+                    macro = emen2.db.macros.Macro.get_macro(n, db=ctx.db, cache=ctx.cache)
                     v = macro.render(match.group('args'), rec)
                 else:
                     continue

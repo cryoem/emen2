@@ -25,39 +25,65 @@ import emen2.db.proxy
 import emen2.db.config
 
 
+# This is temporarily here. It may be moved.
+class Cacher(object):
+    """Help keep track of calculated values."""
+    def __init__(self):
+        self.cache = {}
+
+    def reset_cache(self):
+        self.cache = {}
+
+    def get_cache_key(self, *args, **kwargs):
+        return (args, tuple(kwargs.items()))
+
+    def store(self, key, result):
+        self.cache[key] = result
+
+    def check_cache(self, key):
+        if self.cache.has_key(key):
+            return True, self.cache[key]
+        return False, None
+    
+
+
 # Contexts do not use BaseDBObject since they are completely internal to the DB
 class Context(object):
     """Defines a database context (like a session). After a user is authenticated
     a Context is created, and used for subsequent access."""
 
     attr_user = set()
-    # ctxid = property(lambda x:x.name)
 
     # ian: todo: put current txn in ctx?
     def __init__(self, db=None, username=None, user=None, groups=None, host=None, maxidle=604800, requirehost=False):
-        t = emen2.db.database.getctime()
-
         # Points to DBO for this context
         self.db = None
         self.setdb(db)
 
+        # Context UUID
         self.name = emen2.db.database.getrandomid()
 
-        # validated user instance, w/ user record, displayname, groups
+        # Context user information
         self.user = user or {}
         self.groups = groups or set()
         self.grouplevels = {}
 
-        # login name, fall back if user.username does not exist
+        # Login name, fall back if user.username does not exist
         self.username = username
 
-        # ip of validated host for this context
+        # Client IP
         self.host = host
 
-        # last access time for this context
-        self.time = t
+        # Context time
+        self.time = emen2.db.database.getctime()
+        self.utcnow = emen2.db.database.gettime()
 
+        # Maximum idle time before context expires
         self.maxidle = maxidle
+        
+        # Used for caching items
+        self.cache = Cacher()
+
 
         if requirehost and (not self.username or not self.host):
             raise emen2.db.exceptions.SessionError, "username and host required to init context"
@@ -105,6 +131,8 @@ class Context(object):
             raise emen2.db.exceptions.SessionError, "Session expired"
 
         self.time = t
+        self.utcnow = emen2.db.database.gettime()
+        self.cache = Cacher()
         self.grouplevels = grouplevels or {}
         self.setdb(db=db)
 
@@ -147,6 +175,8 @@ class AnonymousContext(Context):
 
         self.setdb(db=db)
         self.time = t
+        self.utcnow = emen2.db.database.gettime()
+        self.cache = Cacher()
         self._init_refresh()
 
 
@@ -176,6 +206,8 @@ class SpecialRootContext(Context):
         self.username = username or u'root'
         self.setdb(db=db)
         self.time = t
+        self.utcnow = emen2.db.database.gettime()
+        self.cache = Cacher()        
         self._init_refresh()
 
 
