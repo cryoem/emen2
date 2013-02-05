@@ -1055,10 +1055,6 @@ class DBODB(EMEN2DB):
         :exception ValidationError:
 
         """
-        # Time and validation helper.
-        # t = emen2.db.database.gettime()
-        # cache = emen2.db.datatypes.Cacher(keytype=self.keytype)
-
         # Updated items
         crecs = []
         

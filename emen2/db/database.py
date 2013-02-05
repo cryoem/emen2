@@ -2,7 +2,7 @@
 """Main database module
 
 Functions:
-    clock: Time a method's execution time
+    clock: Keep track of times
     getctime: Local ctime
     gettime: Formatted time
     ol: Decorator to make sure a method argument is iterable
@@ -58,7 +58,6 @@ import emen2.db.config
 import emen2.db.log
 
 # EMEN2 Core
-import emen2.db.datatypes
 import emen2.db.vartypes
 import emen2.db.properties
 import emen2.db.macros
@@ -116,7 +115,8 @@ set_lg_bsize 2097152
 ##### Utility methods #####
 
 def clock(times, key=0, t=0, limit=180):
-    """A timing method for controlling timeouts to prevent hanging.
+    """A clock to keep track of time.
+    
     On operations that might take a long time, call this at each step.
 
     :param times: Keep track of multiple times, e.g. debugging
@@ -130,7 +130,7 @@ def clock(times, key=0, t=0, limit=180):
         times[key] = 0
     times[key] += t2-t
     if sum(times.values()) >= limit:
-        raise TimeError, "Operation timed out (max %s seconds)"%(limit)
+        raise TimeError, "Exceeded maximum time of %s seconds."%(limit)
     return t2
 
 
@@ -150,18 +150,15 @@ def gettime():
 
 
 def getpw(pw=None):
-    # import platform
-    # import pwd
-    # host = platform.node() or 'localhost'
-    # defaultemail = "%s@%s"%(pwd.getpwuid(os.getuid()).pw_name, host)
+    minlength = 8
     pw = pw or getpass.getpass("Password: ")
-    while len(pw) < 6:
+    while len(pw) < minlength:
         if len(pw) == 0:
             print "Warning! No password!"
             pw = ''
             break
-        elif len(pw) < 6:
-            print "Warning! If you set a password, it needs to be more than 6 characters."
+        elif len(pw) < minlength:
+            print "Warning! If you set a password, it needs to be more than %s characters."%minlength
             pw = getpass.getpass("Password: ")
     return pw
 
@@ -193,13 +190,11 @@ def ol(name, output=True):
                 raise TypeError, 'function %r did not get argument %s' % (f, name)
 
             result = f(*args, **kwargs)
-
             if output and olreturn:
                 return listops.first_or_none(result)
             return result
-
+            
         return wrapped_f
-
     return wrap
 
 
@@ -228,7 +223,7 @@ def limit_result_length(default=None):
 
 # Error handler
 def error(e=None, msg='', warning=False):
-    """Error handler.
+    """Raise an Exception or Warning.
 
     :keyword msg: Error message; default is Exception's docstring
     :keyword e: Exception class; default is ValidationError
@@ -305,7 +300,7 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
 ##### Open or create new database #####
 
 def opendb(name=None, password=None, admin=False, db=None):
-    """Open a database proxy.
+    """Open database.
 
     Returns a DBProxy, with either a
     user context (name and password specified), an administrative context
@@ -313,7 +308,7 @@ def opendb(name=None, password=None, admin=False, db=None):
 
     :keyparam name: Username
     :keyparam password: Password
-    :keyparam admin: Open DBProxy with administrative context
+    :keyparam admin: Open DBProxy with an administrative context
     :keyparam db: Use an existing DB instance.
 
     """
@@ -334,7 +329,7 @@ def opendb(name=None, password=None, admin=False, db=None):
 
 
 def setup(db=None, rootpw=None, rootemail=None):
-    """Initialize a new DB.
+    """Initialize a new database environment.
 
     @keyparam rootpw Root Account Password
     @keyparam rootemail Root Account email
@@ -389,17 +384,16 @@ class EMEN2DBEnv(object):
         if not self.path:
             raise ValueError, "No EMEN2 Database Environment specified."
 
+        # Probably should just get all these from config as needed.
         self.create = create or emen2.db.config.get('params.create')
         self.snapshot = snapshot or emen2.db.config.get('bdb.snapshot')
         self.cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024l
-
-        # Paths
         self.LOGPATH = emen2.db.config.get('paths.log')
         self.JOURNAL_ARCHIVE = emen2.db.config.get('paths.journal_archive')
         self.TMPPATH = emen2.db.config.get('paths.tmp')
         self.SSLPATH = emen2.db.config.get('paths.ssl')
 
-        # DBO BTrees
+        # Databases
         self.keytypes =  {}
 
         # Txn info
@@ -411,15 +405,14 @@ class EMEN2DBEnv(object):
         #     or be moved to a different place.
         self._txncbs = collections.defaultdict(list)
 
-        # Check that all the needed directories exist
+        # Check that all the needed directories exist.
         self.checkdirs()
-
-        # Open the Database Environment
-        emen2.db.log.info("Opening Database Environment: %s"%self.path)
 
         if dbenv:
             self.dbenv = dbenv
-        else:
+        else:            
+            # Open the database environment.
+            emen2.db.log.info("Opening database environment: %s"%self.path)
             dbenv = bsddb3.db.DBEnv()
 
             if snapshot or self.snapshot:
@@ -435,9 +428,8 @@ class EMEN2DBEnv(object):
             dbenv.set_lk_max_lockers(300000)
             dbenv.set_lk_max_objects(300000)
 
-            self.dbenv = dbenv
-
             # Open the DBEnv
+            self.dbenv = dbenv
             self.open()
 
 
@@ -542,19 +534,17 @@ class EMEN2DBEnv(object):
         
     ##### Transaction management #####
 
-    def newtxn(self, parent=None, write=False):
+    def newtxn(self, write=False):
         """Start a new transaction.
-
-        :keyword parent: Open new txn as a child of this parent txn
+        
         :keyword write: Transaction will be likely to write data; turns off Berkeley DB Snapshot
         :return: New transaction
         """
-        parent = None
         flags = bsddb3.db.DB_TXN_SNAPSHOT
         if write:
             flags = 0
 
-        txn = self.dbenv.txn_begin(parent=parent, flags=flags)
+        txn = self.dbenv.txn_begin(flags=flags)
         # emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
 
         type(self).txncounter += 1
@@ -694,7 +684,7 @@ class DB(object):
         self.contexts_cache = {}
 
         # Open Databases
-        self._init()
+        self.init()
 
         # Load DBOs from extensions.
         self._load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
@@ -705,7 +695,7 @@ class DB(object):
             setup(db=self)
 
 
-    def _init(self):
+    def init(self):
         """Open the databases."""
     
         # Authentication. These are not public.
@@ -719,8 +709,6 @@ class DB(object):
         self.dbenv.add_db(emen2.db.binary.BinaryDB, keytype="binary")
         self.dbenv.add_db(emen2.db.recorddef.RecordDefDB, keytype="recorddef")
         self.dbenv.add_db(emen2.db.binary.BinaryTmpDB, keytype="upload")
-        
-        # Records have moved to keyformat "s"
         self.dbenv.add_db(emen2.db.record.RecordDB, keytype="record") 
 
 
@@ -745,6 +733,8 @@ class DB(object):
 
     def _getcontext(self, ctxid, host, ctx=None, txn=None):
         """(Internal) Takes a ctxid key and returns a Context.
+
+        This is the only place you should load a Context.
 
         Note: The host provided must match the host in the Context
 
@@ -973,8 +963,6 @@ class DB(object):
     def _make_tables(self, recdefs, rec, markup, ctx, txn):
         """(Internal) Find "out-of-band" parameters."""
         # move built in params to end of table
-        #par = [p for p in set(recdefs.get(rec.rectype).paramsK) if p not in builtinparams]
-        # Default params
         public = set() | emen2.db.record.Record.attr_public
         show = set(rec.keys()) | recdefs.get(rec.rectype).paramsK | public
         descs = dict((i.name,i.desc_short) for i in self.dbenv['paramdef'].cgets(show, ctx=ctx, txn=txn))
@@ -982,8 +970,6 @@ class DB(object):
         par = []
         par.extend(sorted(show, key=lambda x:descs.get(x, x)))
         par.extend(sorted(public, key=lambda x:descs.get(x, x)))
-        # par = [p for p in recdefs.get(rec.rectype).paramsK if p not in builtinparams]
-        # par += [p for p in rec.keys() if p not in par]
         return self._view_kv(par, markup=markup, ctx=ctx, txn=txn)
 
 
@@ -1031,10 +1017,7 @@ class DB(object):
         :return: Time difference, in seconds.
         """
         t1 = emen2.db.vartypes.parse_iso8601(t1)[0]
-
-        t2 = t2 or gettime()
-        t2 = emen2.db.vartypes.parse_iso8601(t2)[0]
-
+        t2 = emen2.db.vartypes.parse_iso8601(t2 or gettime())[0]
         return t2 - t1
         
         
@@ -1594,6 +1577,85 @@ class DB(object):
         return ret
 
 
+    @publicmethod()
+    @ol('names')
+    def render(self, names, keys=None, keytype='record', ctx=None, txn=None):
+       # Return rendered values.
+        ret = {}
+        
+        # Get Record instances from names argument.
+        names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
+        names.extend(other)
+        recs.extend(self.dbenv[keytype].cgets(names, ctx=ctx, txn=txn))
+
+        # Ugly hack to allow rendering of dictionaries
+        for newrec in newrecs:
+            rec = self.dbenv[keytype].new(ctx=ctx, txn=txn, **newrec) #rectype=newrec.get('rectype'),
+            rec.update(newrec)
+            recs.append(rec)
+        
+        # If no keys specified, render everything...
+        if not keys:
+            keys = set()
+            for i in recs:
+                keys |= set(i.keys())
+            # Skip some items
+            keys -= set(['permissions', 'history', 'comments', 'parents', 'children'])
+            
+        # Get all the ParamDefs necessary.
+        pds = listops.dictbykey(self.dbenv["paramdef"].cgets(keys, ctx=ctx, txn=txn), 'name')
+
+        # Process records.
+        pt = collections.defaultdict(list)
+        mt = collections.defaultdict(list)
+
+        for rec in recs:
+            r = {}
+            for key in keys:
+                pd = pds[key]
+                vt = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=ctx.db, cache=ctx.cache)
+                r[key] = vt.render(rec.get(key))
+            ret[rec.name] = r
+        return ret                 
+        
+
+    @publicmethod()
+    @ol('names')
+    def view(self, names, view=None, viewname='recname', keytype='record', ctx=None, txn=None):
+        views = collections.defaultdict(set)
+        regex = VIEW_REGEX
+        recs = self.get(names, keytype=keytype, ctx=ctx, txn=txn)
+
+        if view:
+            views[view] = names
+        else:
+            # Get a view by name using the item's recorddef.
+            byrt = collections.defaultdict(set)
+            for rec in recs:
+                byrt[rec.rectype].add(rec.name)
+            for recdef in self.dbenv['recorddef'].cgets(byrt.keys(), ctx=ctx, txn=txn):
+                if viewname == 'mainview':
+                    v = recdef.mainview
+                else:
+                    v = recdef.views.get(viewname)
+                views[v or '$$name'] = byrt[recdef.name]
+        
+        # Find parameters
+        pds = set()
+        f = ['#', '$', '!']
+        for v in views:
+            print "view: ", v
+            for match in regex.finditer(v):
+                if match.group('type') in f:
+                    pds.add(match.group('name'))
+                elif match.group('type') == '@':
+                    # Preprocess macros
+                    pass
+                    # run macro on just views[v]
+                    # macro = emen2.db.macros.Macro.get_macro(match.group('name'), db=ctx.db, cache=ctx.cache)
+                    # macro.preprocess(match.group('args'), recs)
+ 
+        print pds
 
     ##### Relationships #####
 
@@ -3137,46 +3199,6 @@ class DB(object):
         return self.dbenv["record"].groupbyrectype(names, ctx=ctx, txn=txn)
     
     
-    @publicmethod()
-    @ol('names')
-    def record_render2(self, names, keys=None, ctx=None, txn=None):
-        # Regular expression for parsing views.
-        regex = VIEW_REGEX
-
-        # Return rendered values.
-        ret = {}
-        
-        # Get Record instances from names argument.
-        names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
-        names.extend(other)
-        recs.extend(self.dbenv["record"].cgets(names, ctx=ctx, txn=txn))
-        for newrec in newrecs:
-            rec = self.dbenv["record"].new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
-            rec.update(newrec)
-            recs.append(rec)
-        
-        # If no keys specified, render everything...
-        if not keys:
-            keys = set()
-            for i in recs:
-                keys |= set(i.keys())
-        
-        # Get all the ParamDefs necessary.
-        pds = listops.dictbykey(self.dbenv["paramdef"].cgets(keys, ctx=ctx, txn=txn), 'name')
-
-        # Process records.
-        pt = collections.defaultdict(list)
-        mt = collections.defaultdict(list)
-
-        for rec in recs:
-            r = {}
-            for key in keys:
-                pd = pds[key]
-                vt = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=ctx.db, cache=ctx.cache)
-                r[key] = vt.render(rec.get(key))
-            ret[rec.name] = r
-        return ret                 
-        
         
         
 

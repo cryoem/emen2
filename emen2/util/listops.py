@@ -3,7 +3,6 @@ import collections
 import itertools
 from UserDict import DictMixin
 from functools import partial
-import emen2.db.datatypes
 
 
 

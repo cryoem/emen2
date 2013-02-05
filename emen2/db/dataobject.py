@@ -13,10 +13,10 @@ import operator
 import hashlib
 import UserDict
 
-# EMEN2 datatypes.
-# This is just used to get the current database time.
-# This may be changed in the future.
-import emen2.db.datatypes
+import emen2.util.listops
+import emen2.db.exceptions
+import emen2.db.vartypes
+
 
 # TODO: Remove UserDict, just do all the methods myself?
 # TODO: implement collections.MutableMapping instead of subclassing DictMixin
@@ -124,26 +124,18 @@ class BaseDBObject(object, UserDict.DictMixin):
 
         # Temporary setContext
         ctx = _d.pop('ctx', None)
-        t = _d.pop('t', None)
         self.__dict__['_ctx'] = ctx
                 
-        # Assign a name; 
-        # Names are now assigned and validated by the BTree.
+        # Basic attributes
         p = {}
         p['name'] = _d.pop('name', None)
-
-        # Base owner/time parameters
-        p['creator'] = self._ctx.username
-        p['creationtime'] = self._ctx.utcnow
-        p['modifyuser'] = self._ctx.username
-        p['modifytime'] = self._ctx.utcnow
-
-        # Other attributes.
+        p['creator'] = ctx.username
+        p['creationtime'] = ctx.utcnow
+        p['modifyuser'] = ctx.username
+        p['modifytime'] = ctx.utcnow
         p['uri'] = None
         p['children'] = set()
         p['parents'] = set()
-
-        # Directly update the base attributes.
         self.__dict__.update(p)
 
         # Subclass init
@@ -193,6 +185,7 @@ class BaseDBObject(object, UserDict.DictMixin):
     def isnew(self):
         return getattr(self, '_new', False) == True
 
+
     ##### Delete and rename. #####
 
     def delete(self):
@@ -218,7 +211,6 @@ class BaseDBObject(object, UserDict.DictMixin):
 
 
     ##### Required mapping interface #####
-    # High level mapping methods
 
     def get(self, key, default=None):
         return self.__getitem__(key, default)
@@ -232,11 +224,8 @@ class BaseDBObject(object, UserDict.DictMixin):
     def update(self, update):
         """Dict-like update. Returns a set of keys that were updated."""
         cp = set()
-
-        # Make sure to pass in t=t to keep all the times in sync
         for k,v in update.items():
             cp |= self.__setitem__(k, v)
-
         return cp
 
     def _load(self, update):
@@ -280,13 +269,11 @@ class BaseDBObject(object, UserDict.DictMixin):
     # validate the value, set the value, and update the time stamp.
     def __setitem__(self, key, value):
         """Validate and set an attribute or key."""
-
         # This will validate the parameter, look for a setter, and then call the setter.
         # If a "_set_<key>" method exists, that will always be used for setting.
         # To allow editing of a public attr, there MUST be a _set_<key> method.
         # Then if no setter, and the method is part of the public attrs, then silently return.
         # Finally, use _setoob as the setter. This can allow OOB attrs, or raise error (default).
-
         cp = set()
         if self.get(key) == value:
             return cp
@@ -307,7 +294,7 @@ class BaseDBObject(object, UserDict.DictMixin):
             setter = self._setoob
 
         # Validate.
-        # *ALL VALUES* must pass through a validator.
+        # *All values* must pass through a validator.
         value = self.validate_param(key, value)
 
         # The setter might return multiple items that were updated
@@ -316,7 +303,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 
         # Only permissions, groups, and links do not trigger a modifytime update
         if cp - set(['permissions', 'groups', 'parents', 'children']) and not self.isnew():
-            self.__dict__['modifytime'] = t
+            self.__dict__['modifytime'] = self._ctx.utcnow
             self.__dict__['modifyuser'] = self._ctx.username
             cp.add('modifytime')
             cp.add('modifyuser')
@@ -334,15 +321,14 @@ class BaseDBObject(object, UserDict.DictMixin):
         if check == None:
             check = self.writable()
         if not check:
-            msg = "Insufficient permissions to change param %s"%key
+            msg = "Insufficient permissions to change parameter %s"%key
             self.error(msg, e=emen2.db.exceptions.SecurityError)
-
         self.__dict__[key] = value
         return set([key])
 
     def _setoob(self, key, value):
         """Handle params not found in self.attr_public"""
-        self.error("Cannot set param %s in this way"%key, warning=True)
+        self.error("Cannot set parameter %s in this way"%key, warning=True)
         return set()
 
 
@@ -352,28 +338,22 @@ class BaseDBObject(object, UserDict.DictMixin):
         """Set a relationship. Make sure we have permissions to edit the relationship."""
         # Filter out changes to permissions on records
         # that we can't access...
-        value = emen2.util.listops.check_iterable(value)
-        value = set(value)
+        value = set(emen2.util.listops.check_iterable(value))
         orig = self.get(key)
-
-        # ian: todo: temporary fix.. force record keys to be ints.
-        # if self.keytype == 'record':
-        #    value = set(map(int, value))
-        #    orig = set(map(int, orig))
-
         changed = orig ^ value
+
         # Get all of the changed items that we can access
         # (KeyErrors will be checked later, during commit..)
         access = self._ctx.db.get(changed, keytype=self.keytype)
 
-        # Check write permissions
+        # Check write permissions; need write permissions for at least one.
         for item in access:
             if not (self.writable() or item.writable()):
                 msg = 'Insufficient permissions to add or remove relationship: %s -> %s'%(self.name, item.name)
                 self.error(msg, e=emen2.db.exceptions.SecurityError)
 
         # Keep items that we can't access..
-        #     they might be new items, or items we won't
+        #    they might be new items, or items we won't
         #    have permission to read/edit.
         value |= changed - set(i.name for i in access)
         return self._set(key, value, True)
@@ -391,7 +371,7 @@ class BaseDBObject(object, UserDict.DictMixin):
     def __getstate__(self):
         """Context and other session-specific information should not be pickled.
         All private keys (starts with underscore) will be removed."""
-        odict = self.__dict__.copy() # shallow copy since we are removing keys
+        odict = self.__dict__.copy() # copy since we are removing keys
         for key in odict.keys():
             if key.startswith('_'):
                 odict.pop(key, None)
@@ -413,25 +393,19 @@ class BaseDBObject(object, UserDict.DictMixin):
                 pd = self._ctx.db.paramdef.get(key, filt=False)
                 self._ctx.cache.store(cachekey, pd)
             except KeyError:
-                # This helps to bootstrap when ParamDefs are first being imported.
+                # This helps when ParamDefs are first being imported.
                 if key in self.attr_public:
                     return value
                 else:
-                    self.error('paramdef %s does not exist' % key)
+                    self.error('Parameter %s does not exist' % key)
 
         # Is it an immutable param?
         if pd.get('immutable') and not self.isnew():
-            self.error('Cannot change immutable param %s'%pd.name)
+            self.error('Cannot change immutable parameter %s'%pd.name)
 
         # Validate
         vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self._ctx.db, cache=self._ctx.cache)
         v = vartype.validate(value)
-
-        # Issue a warning if param changed during validation
-        # if v != value:
-        #    self.error(
-        #        "Parameter %s (%s) changed during validation: %s '%s' -> %s '%s' "%
-        #        (pd.name, pd.vartype, type(value), value, type(v), v), warning=True)
         return v
 
 

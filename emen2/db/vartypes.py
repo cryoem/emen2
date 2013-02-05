@@ -27,7 +27,6 @@ import dateutil.parser
 import dateutil.tz
 import dateutil.rrule
 
-
 try:
     import markdown2 as markdown
 except ImportError:
@@ -37,6 +36,7 @@ except ImportError:
         markdown = None
 
 # EMEN2 imports
+import emen2.db.log
 import emen2.db.exceptions
 import emen2.util.listops
 
@@ -178,7 +178,6 @@ class Vartype(object):
         """Validate a value"""
         raise ValidationError, "%s is an organizational parameter, and is not intended to be used."%self.pd.name
 
-
     def _validate_reference(self, value, keytype=None):
         ret = []
         changed = False
@@ -198,16 +197,14 @@ class Vartype(object):
                 found.add(i)
                 changed = True
             elif ALLOW_MISSING:
-                emen2.db.log.warn("Validation: Could not find, but allowing: %s %s (param %s)"%(self.vartype, i, self.pd.name))
+                emen2.db.log.warn("Validation: Could not find, but allowing: %s %s (parameter %s)"%(self.vartype, i, self.pd.name))
                 ret.append(i)
             else:
-                raise ValidationError, "Could not find: %s %s (param %s)"%(self.vartype, i, self.pd.name)
+                raise ValidationError, "Could not find: %s %s (parameter %s)"%(self.vartype, i, self.pd.name)
         
         if changed:
-            self.cache.store(key, found)
-        
+            self.cache.store(key, found)    
         return ret
-        
 
     def _rci(self, value):
         """If the parameter is non-iterable, return a single value."""
@@ -244,9 +241,10 @@ class Vartype(object):
         return addrefs, delrefs
 
 
+    ##### Rendering #####
+
     def process(self, value):
         return value
-        
 
     def render(self, value):
         """Render."""
@@ -509,7 +507,6 @@ class vt_dict(Vartype):
         r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
         return dict(r)
         
-
     def render(self, value):
         if value is None:
             return ''
@@ -543,7 +540,6 @@ class vt_binary(Vartype):
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='binary')
         return self._rci(value)
-
 
     def render(self, value):
         value = ci(value)
@@ -602,7 +598,6 @@ class vt_user(Vartype):
         value = self._validate_reference(ci(value), keytype='user')
         return self._rci(value)
 
-
     def render(self, value):
         value = ci(value)
         update_username_cache(self.cache, self.db, value, lnf=True)
@@ -611,7 +606,7 @@ class vt_user(Vartype):
             key = self.cache.get_cache_key('displayname', i)
             hit, dn = self.cache.check_cache(key)
             lis.append(dn or '')
-        return lis
+        return ", ".join(lis)
 
 
 @Vartype.register('acl')
@@ -656,7 +651,8 @@ class vt_acl(Vartype):
         ret = []
         for level, names in zip(levels, value):
             namesr = [unames.get(i,"(%s)"%i) for i in names]
-            ret.append("%s: %s"%(level, ", ".join(namesr)))
+            if namesr:
+                ret.append("%s: %s"%(level, ", ".join(namesr)))
         return ', '.join(ret)
 
 
@@ -725,8 +721,17 @@ class vt_history(Vartype):
     
     keyformat = None
 
-    def validate(self, value):
-        return value        
+    def render(self, value):
+        value = ci(value)
+        users = [i[0] for i in value]
+        update_username_cache(self.cache, self.db, users)
+        lis = []
+        for user, time, parameter, oldvalue in value:
+            key = self.cache.get_cache_key('displayname', user)
+            hit, dn = self.cache.check_cache(key)
+            t = '%s @ %s: changed %s\n'%(user, time, parameter)
+            lis.append(t)
+        return ", ".join(lis)
 
 
 

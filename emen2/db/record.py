@@ -12,7 +12,6 @@ import copy
 
 # EMEN2 imports
 import emen2.db.btrees
-import emen2.db.datatypes
 import emen2.db.exceptions
 import emen2.db.dataobject
 import emen2.db.recorddef
