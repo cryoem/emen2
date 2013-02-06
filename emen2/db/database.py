@@ -1582,6 +1582,7 @@ class DB(object):
     def render(self, names, keys=None, keytype='record', ctx=None, txn=None):
        # Return rendered values.
         ret = {}
+        macros = set()
         
         # Get Record instances from names argument.
         names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
@@ -1595,20 +1596,24 @@ class DB(object):
             recs.append(rec)
         
         # If no keys specified, render everything...
-        if not keys:
+        if keys is None:
             keys = set()
             for i in recs:
                 keys |= set(i.keys())
             # Skip some items
             keys -= set(['permissions', 'history', 'comments', 'parents', 'children'])
-            
-        # Get all the ParamDefs necessary.
+        
+        # Process macros.
+        keys = set(keys)
+        macros = set(filter(lambda x:x.endswith(')'), keys))
+        keys -= macros
+    
+        for macro in macros:
+            m = emen2.db.macros.Macro.get_macro('childcount', db=ctx.db, cache=ctx.cache)
+            print "parse args:", emen2.db.macros.parse_args('1,"2",3')
+    
+        # Process parameters.
         pds = listops.dictbykey(self.dbenv["paramdef"].cgets(keys, ctx=ctx, txn=txn), 'name')
-
-        # Process records.
-        pt = collections.defaultdict(list)
-        mt = collections.defaultdict(list)
-
         for rec in recs:
             r = {}
             for key in keys:
@@ -1617,6 +1622,16 @@ class DB(object):
                 r[key] = vt.render(rec.get(key))
             ret[rec.name] = r
         return ret                 
+        
+    
+    def _view_keys(self, view):
+        pass
+        
+    def _view_to_mustache(self, view):
+        print "_view_to_mustache:", view
+        for match in VIEW_REGEX.finditer(view):
+            print match.groups()
+        return view
         
 
     @publicmethod()
@@ -1627,7 +1642,7 @@ class DB(object):
         recs = self.get(names, keytype=keytype, ctx=ctx, txn=txn)
 
         if view:
-            views[view] = names
+            views[self._view_to_mustache(view or '$$name')] = names
         else:
             # Get a view by name using the item's recorddef.
             byrt = collections.defaultdict(set)
@@ -1638,24 +1653,39 @@ class DB(object):
                     v = recdef.mainview
                 else:
                     v = recdef.views.get(viewname)
-                views[v or '$$name'] = byrt[recdef.name]
+                views[v] = byrt[recdef.name]
         
         # Find parameters
-        pds = set()
         f = ['#', '$', '!']
-        for v in views:
+        for k,v in views.items():
             print "view: ", v
-            for match in regex.finditer(v):
+            keys = set()
+            for match in regex.finditer(k):
+                print match.groups()
                 if match.group('type') in f:
-                    pds.add(match.group('name'))
-                elif match.group('type') == '@':
-                    # Preprocess macros
-                    pass
+                    keys.add(match.group('name'))
+            # This has some caching built in that helps.
+            print self.render(v, keys=keys, ctx=ctx, txn=txn)
+
+
+
+
+                # if match.group('type') in f:
+                #     pds.add(match.group('name'))
+                # elif match.group('type') == '@':
+                #     pass
                     # run macro on just views[v]
                     # macro = emen2.db.macros.Macro.get_macro(match.group('name'), db=ctx.db, cache=ctx.cache)
                     # macro.preprocess(match.group('args'), recs)
  
-        print pds
+        # pds = listops.dictbykey(self.dbenv['paramdef'].cgets(pds, ctx=ctx, txn=txn), 'name')
+        # print pds
+        # rendered = self.render(recs, keys=pds.keys(), ctx=ctx, txn=txn)
+        # print rendered
+        
+
+
+
 
     ##### Relationships #####
 
@@ -3199,8 +3229,6 @@ class DB(object):
         return self.dbenv["record"].groupbyrectype(names, ctx=ctx, txn=txn)
     
     
-        
-        
 
     @publicmethod(compat="renderview")
     @ol('names')

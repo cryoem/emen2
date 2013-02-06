@@ -277,7 +277,7 @@ class vt_float(Vartype):
         u = self.pd.defaultunits or ''
         if self.pd.iter:
             return ", ".join(('%g %s'%(i,u) for i in value))
-        return '%g %s'%(i, u)
+        return '%g %s'%(value, u)
 
 
 @Vartype.register('percent')
