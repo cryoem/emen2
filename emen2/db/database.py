@@ -96,6 +96,15 @@ VERSIONS = {
 }
 
 # Regular expression to parse Protocol views.
+# New style
+VIEW_REGEX_P = '''
+        (?P<name>[\w\-\?]+)
+        (?:="(?P<default>.+)")?
+        (?:\((?P<args>[^\)]+)?\))?
+'''
+VIEW_REGEX_CLASSIC = '''(\$[\$\@\#\!]%s(?P<sep>[\s\$]?))'''%VIEW_REGEX_P
+VIEW_REGEX_M = '''(\{\{[\#\^\/]?%s\}\})'''%VIEW_REGEX_P
+# Old style
 VIEW_REGEX = '(\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?)|((?P<text>[^\$]+))'
 VIEW_REGEX = re.compile(VIEW_REGEX)
 
@@ -1579,23 +1588,22 @@ class DB(object):
 
     @publicmethod()
     @ol('names')
-    def render(self, names, keys=None, keytype='record', ctx=None, txn=None):
-       # Return rendered values.
-        ret = {}
-        macros = set()
-        
+    def render(self, names, keys=None, keytype='record', options=None, ctx=None, txn=None):
+        # Some rendering options
+        options = options or {'lnf':False}
+
         # Get Record instances from names argument.
         names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
         names.extend(other)
         recs.extend(self.dbenv[keytype].cgets(names, ctx=ctx, txn=txn))
 
-        # Ugly hack to allow rendering of dictionaries
+        # Allow rendering of dictionaries
         for newrec in newrecs:
             rec = self.dbenv[keytype].new(ctx=ctx, txn=txn, **newrec) #rectype=newrec.get('rectype'),
             rec.update(newrec)
             recs.append(rec)
         
-        # If no keys specified, render everything...
+        # If no keys specified, render almost everything...
         if keys is None:
             keys = set()
             for i in recs:
@@ -1603,51 +1611,107 @@ class DB(object):
             # Skip some items
             keys -= set(['permissions', 'history', 'comments', 'parents', 'children'])
         
+        # Process keys.
+        regex_k = re.compile(VIEW_REGEX_P, re.VERBOSE)
+        params = set()
+        macros = set()
+        descs = set()
+        for key in keys:
+            match = regex_k.search(key)
+            m = match.group('name')
+            if m.endswith('?'):
+                descs.add(m[:-1])
+            elif match.group('args'):
+                macros.add((key, m, match.group('args')))
+            else:
+                params.add(m)
+        
+        # Process parameters and descriptions.
+        pds = listops.dictbykey(self.dbenv["paramdef"].cgets(params | descs, ctx=ctx, txn=txn), 'name')
+        found = set(pds.keys())
+        missed = (params - found) | (descs - found)
+        params -= missed
+        descs -= missed
+
         # Process macros.
-        keys = set(keys)
-        macros = set(filter(lambda x:x.endswith(')'), keys))
-        keys -= macros
-    
-        for macro in macros:
-            m = emen2.db.macros.Macro.get_macro('childcount', db=ctx.db, cache=ctx.cache)
-            print "parse args:", emen2.db.macros.parse_args('1,"2",3')
-    
-        # Process parameters.
-        pds = listops.dictbykey(self.dbenv["paramdef"].cgets(keys, ctx=ctx, txn=txn), 'name')
+        for key,macro,args in macros:
+            macro = emen2.db.macros.Macro.get_macro(macro, db=ctx.db, cache=ctx.cache)
+            macro.preprocess(args, recs)
+
+        # Process view.
+        ret = {}
         for rec in recs:
             r = {}
-            for key in keys:
+            for key in params:
                 pd = pds[key]
-                vt = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=ctx.db, cache=ctx.cache)
+                vt = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=ctx.db, cache=ctx.cache, options=options)
                 r[key] = vt.render(rec.get(key))
+            for key in descs:
+                r[key+'?'] = pds[key].desc_short
+            for key,macro,args in macros:
+                macro = emen2.db.macros.Macro.get_macro(macro, db=ctx.db, cache=ctx.cache) # options=options
+                r[key] = macro.render(args, rec)
             ret[rec.name] = r
-        return ret                 
+        return ret
         
-    
+    def _view_convert(self, view):
+        # Convert old view to {{newstyle}}.
+        regex_classic = re.compile(VIEW_REGEX_CLASSIC, re.VERBOSE)
+        ret = view
+        for match in regex_classic.finditer(view):
+            m = match.groups()[0]
+            key = match.group('name')
+            if match.group('args'):
+                key = '%s(%s)'%(match.group('name'), match.group('args'))
+            if m.startswith('$#'):
+                key = '%s?'%key
+            ret = ret.replace(m, '{{%s}}%s'%(key, match.group('sep')))
+        return ret
+        
     def _view_keys(self, view):
-        pass
-        
-    def _view_to_mustache(self, view):
-        print "_view_to_mustache:", view
-        for match in VIEW_REGEX.finditer(view):
-            print match.groups()
-        return view
-        
+        # Parse {{newstyle}} for keys.
+        regex_m = re.compile(VIEW_REGEX_M, re.VERBOSE)
+        keys = set()
+        for match in regex_m.finditer(view):
+            key = match.group('name')
+            if match.group('args'):
+                key = '%s(%s)'%(match.group('name'), match.group('args'))
+            keys.add(key)
+        return keys
+    
+    def _view_render(self, view, recs):
+        # View is a {{newstyle}} view; recs is the result of self.render(), 
+        #   a dict containing rendered record dicts
+        # Copy the view
+        ret = {}
+        for name in recs:
+            ret[name] = view
+        # Process the view
+        regex_m = re.compile(VIEW_REGEX_M, re.VERBOSE)
+        for match in regex_m.finditer(view):
+            key = match.group('name')
+            if match.group('args'):
+                key = '%s(%s)'%(match.group('name'), match.group('args'))
+            # Replace the values.
+            for name, rec in recs.items():
+                # print match.groups()[0], rec.get(key)
+                ret[name] = ret[name].replace(match.groups()[0], rec.get(key, ''))
+        return ret
 
     @publicmethod()
     @ol('names')
     def view(self, names, view=None, viewname='recname', keytype='record', ctx=None, txn=None):
+        ret = {}
         views = collections.defaultdict(set)
-        regex = VIEW_REGEX
         recs = self.get(names, keytype=keytype, ctx=ctx, txn=txn)
 
         if view:
-            views[self._view_to_mustache(view or '$$name')] = names
+            views[view] = recs
         else:
             # Get a view by name using the item's recorddef.
             byrt = collections.defaultdict(set)
             for rec in recs:
-                byrt[rec.rectype].add(rec.name)
+                byrt[rec.rectype].add(rec)
             for recdef in self.dbenv['recorddef'].cgets(byrt.keys(), ctx=ctx, txn=txn):
                 if viewname == 'mainview':
                     v = recdef.mainview
@@ -1655,36 +1719,20 @@ class DB(object):
                     v = recdef.views.get(viewname)
                 views[v] = byrt[recdef.name]
         
-        # Find parameters
-        f = ['#', '$', '!']
-        for k,v in views.items():
-            print "view: ", v
-            keys = set()
-            for match in regex.finditer(k):
-                print match.groups()
-                if match.group('type') in f:
-                    keys.add(match.group('name'))
-            # This has some caching built in that helps.
-            print self.render(v, keys=keys, ctx=ctx, txn=txn)
-
-
-
-
-                # if match.group('type') in f:
-                #     pds.add(match.group('name'))
-                # elif match.group('type') == '@':
-                #     pass
-                    # run macro on just views[v]
-                    # macro = emen2.db.macros.Macro.get_macro(match.group('name'), db=ctx.db, cache=ctx.cache)
-                    # macro.preprocess(match.group('args'), recs)
- 
-        # pds = listops.dictbykey(self.dbenv['paramdef'].cgets(pds, ctx=ctx, txn=txn), 'name')
-        # print pds
-        # rendered = self.render(recs, keys=pds.keys(), ctx=ctx, txn=txn)
-        # print rendered
-        
-
-
+        # Render.
+        time_converting = 0
+        for view, recs in views.items():
+            t = time.time()
+            # print "\n\n====================================================="
+            view = self._view_convert(view or '{{name}}')
+            keys = self._view_keys(view)
+            # print "view:", view
+            # print "\n\nkeys:", keys
+            # print "recs:", len(recs)
+            recs = self.render(recs, keys=keys, ctx=ctx, txn=txn)
+            ret.update(self._view_render(view, recs))
+            # print "time:", time.time()-t
+        return ret
 
 
     ##### Relationships #####
@@ -3404,8 +3452,6 @@ class DB(object):
         if table:
             ret["headers"] = headers
 
-
-        print ret
         return ret                
 
 

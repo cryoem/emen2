@@ -140,10 +140,11 @@ class Vartype(object):
     #: The element to use when rendering as HTML
     elem = 'span'
 
-    def __init__(self, pd=None, cache=None, db=None):
+    def __init__(self, pd=None, cache=None, db=None, options=None):
         self.pd = pd
         self.cache = cache
         self.db = db
+        self.options = options or {}
 
 
     ##### Extensions #####
@@ -600,7 +601,7 @@ class vt_user(Vartype):
 
     def render(self, value):
         value = ci(value)
-        update_username_cache(self.cache, self.db, value, lnf=True)
+        update_username_cache(self.cache, self.db, value, lnf=self.options.get('lnf'))
         lis = []
         for i in value:
             key = self.cache.get_cache_key('displayname', i)
