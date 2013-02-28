@@ -48,7 +48,7 @@
         "maxidle": 604800
     },
     
-    // Berkeley DB cachesize (in megabytes), max transactions, and locks
+    // Berkeley DB cachesize (in megabytes), and MVCC (snapshot transaction) support.
     "bdb": {
         "snapshot": 1,
         "cachesize": 256
@@ -60,7 +60,7 @@
         "level": "info"
     },
 
-    // Mail settings. If the MAILHOST is configured, and from or root's email address is set,
+    // Mail settings. If the smtphost is configured, and from address is set,
     //    emails will be sent during certain events.
     "mail":{
         //"from": "ian@ianrees.net",
@@ -117,15 +117,5 @@
         "banner": "0",
         "banner_noauth": "0",
         "bookmarks": []
-    },
-
-    // Path to EMAN2 python; if you are using an EMAN2 binary you will want to set this.
-    "EMAN2":{
-        "python":"python"
-    },
-
-    // Path to ImageMagick programs. Used for generating thumbnails.
-    "IMAGEMAGICK":{
-        "convert":"convert"
     }
 }

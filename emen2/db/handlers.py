@@ -12,6 +12,7 @@ import os
 import signal
 import optparse
 import subprocess
+import sys
 
 # For file writing
 import shutil
@@ -65,17 +66,12 @@ def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
     # Prepare the command to run.
     
     # Grumble... Come up with a better way to get the script name.
-    args = []
+    args = [sys.executable]
     cmd = emen2.db.config.get_filename(handler.__module__)
     fix = ['.pyc', '.pyo']
     if cmd[-4:] in fix:
         for f in fix:
             cmd = cmd.replace(f, '.py')
-
-    # Use a specific Python interpreter if configured.
-    python = emen2.db.config.get('EMAN2.python')
-    if python:
-        args.append(python)
 
     args.append(cmd)
 

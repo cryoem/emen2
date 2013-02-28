@@ -12,11 +12,11 @@ import collections
 import urllib
 import re
 
-# Escape HTML
-import htmlentitydefs
-import cgi
+# Escape HTML.. This is fun.
+import markupsafe
+escape = markupsafe.escape
 
-# Working with time is fun..
+# Working with time is even more fun.
 import time
 import calendar
 import datetime
@@ -247,13 +247,30 @@ class Vartype(object):
     def process(self, value):
         return value
 
-    def render(self, value):
-        """Render."""
+    def render(self, value, mode="unicode"):
+        if mode == "unicode":
+            return self.render_unicode(value)
+        elif mode == "html":
+            return self.render_html(value)
+        elif mode == "form":
+            return self.render_form(value)
+        else:
+            raise Exception, "Unknown rendering mode: %s"%mode
+
+    def render_unicode(self, value):
+        """Render unicode values..."""
         if value is None:
             return ''
         if self.pd.iter:
             return ", ".join([unicode(i) for i in value])
         return unicode(value)
+    
+    def render_html(self, value):
+        """Render HTML formatted values. All values MUST be escaped."""
+        return escape(self.render_unicode(value))
+
+    def render_form(self, value):
+        return """Editing unimplemented."""
 
 
 @Vartype.register('none')
@@ -272,7 +289,7 @@ class vt_float(Vartype):
     def validate(self, value):
         return self._rci(map(float, ci(value)))
 
-    def render(self, value):
+    def render_unicode(self, value):
         if value is None:
             return ''
         u = self.pd.defaultunits or ''
@@ -294,7 +311,7 @@ class vt_percent(Vartype):
                 raise ValidationError, "Range for percentage is 0 <= value <= 1.0; value was: %s"%i
         return self._rci(value)
 
-    def render(self, value):
+    def render_unicode(self, value):
         if value is None:
             return ''
         if self.pd.iter:
@@ -508,7 +525,7 @@ class vt_dict(Vartype):
         r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
         return dict(r)
         
-    def render(self, value):
+    def render_unicode(self, value):
         if value is None:
             return ''
         return ", ".join(('%s: %s'%(k, v) for k,v in value.items()))
@@ -542,7 +559,7 @@ class vt_binary(Vartype):
         value = self._validate_reference(ci(value), keytype='binary')
         return self._rci(value)
 
-    def render(self, value):
+    def render_unicode(self, value):
         value = ci(value)
         try:
             v = self.db.binary.get(value)
@@ -599,7 +616,7 @@ class vt_user(Vartype):
         value = self._validate_reference(ci(value), keytype='user')
         return self._rci(value)
 
-    def render(self, value):
+    def render_unicode(self, value):
         value = ci(value)
         update_username_cache(self.cache, self.db, value, lnf=self.options.get('lnf'))
         lis = []
@@ -640,7 +657,7 @@ class vt_acl(Vartype):
         return value
 
 
-    def render(self, value):
+    def render_unicode(self, value):
         if not value:
             return ''
         allusers = reduce(lambda x,y:x+y, value)
@@ -703,7 +720,7 @@ class vt_comments(Vartype):
     def validate(self, value):
         return value
 
-    def render(self, value):
+    def render_unicode(self, value):
         value = ci(value)
         users = [i[0] for i in value]
         update_username_cache(self.cache, self.db, users)
@@ -722,7 +739,7 @@ class vt_history(Vartype):
     
     keyformat = None
 
-    def render(self, value):
+    def render_unicode(self, value):
         value = ci(value)
         users = [i[0] for i in value]
         update_username_cache(self.cache, self.db, users)

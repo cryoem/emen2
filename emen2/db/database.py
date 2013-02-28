@@ -346,7 +346,7 @@ def setup(db=None, rootpw=None, rootemail=None):
     """
     defaultemail = 'root@localhost'
     print "\n=== Setup Admin (root) account ==="
-    rootemail = rootemail or raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
+    rootemail = rootemail or defaultemail # raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
     rootpw = getpw(pw=rootpw)
 
     db = opendb(db=db, admin=True)
@@ -1720,10 +1720,8 @@ class DB(object):
                 views[v] = byrt[recdef.name]
         
         # Render.
-        time_converting = 0
         for view, recs in views.items():
             t = time.time()
-            # print "\n\n====================================================="
             view = self._view_convert(view or '{{name}}')
             keys = self._view_keys(view)
             # print "view:", view
@@ -1731,7 +1729,6 @@ class DB(object):
             # print "recs:", len(recs)
             recs = self.render(recs, keys=keys, ctx=ctx, txn=txn)
             ret.update(self._view_render(view, recs))
-            # print "time:", time.time()-t
         return ret
 
 

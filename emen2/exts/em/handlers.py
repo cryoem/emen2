@@ -1,6 +1,5 @@
 # $Id$
-'''File handlers
-'''
+'''File handlers.'''
 
 import time
 import math
