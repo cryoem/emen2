@@ -247,27 +247,34 @@ class Vartype(object):
     def process(self, value):
         return value
 
-    def render(self, value, mode="unicode"):
-        if mode == "unicode":
-            return self.render_unicode(value)
-        elif mode == "html":
-            return self.render_html(value)
-        elif mode == "form":
-            return self.render_form(value)
-        else:
-            raise Exception, "Unknown rendering mode: %s"%mode
+    def _format(self, value):
+        return unicode(value)
+        
+    def render(self, value):
+        output = self.options.get('output', 'unicode')
+        r = self.render_unicode
+        if output == "html":
+            r = self.render_html
+        elif output == "form":
+            r = self.render_form
+        return r(value)
 
     def render_unicode(self, value):
-        """Render unicode values..."""
+        """Render unicode values."""
         if value is None:
             return ''
         if self.pd.iter:
-            return ", ".join([unicode(i) for i in value])
-        return unicode(value)
+            return ", ".join(self._format(i) for i in value)
+        return self._format(value)
     
     def render_html(self, value):
         """Render HTML formatted values. All values MUST be escaped."""
-        return escape(self.render_unicode(value))
+        if value is None:
+            return ''
+        if self.pd.iter:
+            v = ["<li><%s>%s</%s></li>"%(self.elem, escape(self._format(i)), self.elem) for i in value]
+            return "<ul>%s</ul>"%"".join(v)
+        return "<%s>%s</%s>"%(self.elem, escape(self._format(value)), self.elem)
 
     def render_form(self, value):
         return """Editing unimplemented."""
@@ -289,14 +296,10 @@ class vt_float(Vartype):
     def validate(self, value):
         return self._rci(map(float, ci(value)))
 
-    def render_unicode(self, value):
-        if value is None:
-            return ''
+    def _format(self, value):
         u = self.pd.defaultunits or ''
-        if self.pd.iter:
-            return ", ".join(('%g %s'%(i,u) for i in value))
         return '%g %s'%(value, u)
-
+    
 
 @Vartype.register('percent')
 class vt_percent(Vartype):
@@ -311,11 +314,7 @@ class vt_percent(Vartype):
                 raise ValidationError, "Range for percentage is 0 <= value <= 1.0; value was: %s"%i
         return self._rci(value)
 
-    def render_unicode(self, value):
-        if value is None:
-            return ''
-        if self.pd.iter:
-            return ", ".join(('%0.0f'%(i*100.0) for i in value))
+    def _format(self, value):
         return '%0.0f'%(i*100.0)
 
 
@@ -447,10 +446,13 @@ class vt_text(vt_string):
 
 # Time vartypes (keyformat is string)
 #    Indexed as keyformat 's'
+import dateutil.parser
+import dateutil.tz
+
 @Vartype.register('datetime')
 class vt_datetime(vt_string):
     """ISO 8601 Date time."""
-
+    elem = 'time'
     def validate(self, value):
         ret = []
         for i in ci(value):
@@ -461,11 +463,17 @@ class vt_datetime(vt_string):
                 ret.append(t.isoformat())
         return self._rci(ret)
 
+    def _format(self, value):
+        raw_time = dateutil.parser.parse(value)
+        local_time = raw_time.astimezone(dateutil.tz.gettz()) # 'America/Chicago'
+        return unicode("raw: %s, local: %s"%(raw_time.isoformat(), local_time.isoformat()))
+
+        
+
 
 @Vartype.register('date')
 class vt_date(vt_datetime):
     """Date, yyyy-mm-dd."""
-
     def validate(self, value):
         ret = []
         for i in ci(value):
@@ -478,9 +486,6 @@ class vt_date(vt_datetime):
 @Vartype.register('time')
 class vt_time(vt_datetime):
     """Time, HH:MM:SS."""
-
-    elem = "time"
-
     def validate(self, value):
         ret = []
         for i in ci(value):
@@ -488,9 +493,6 @@ class vt_time(vt_datetime):
             if i:
                 ret.append(i)
         return self._rci(ret)
-
-
-
 
 
 
@@ -510,8 +512,6 @@ class vt_uri(Vartype):
 
 
 
-
-
 # Mapping types
 @Vartype.register('dict')
 class vt_dict(Vartype):
@@ -524,11 +524,6 @@ class vt_dict(Vartype):
             return None
         r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
         return dict(r)
-        
-    def render_unicode(self, value):
-        if value is None:
-            return ''
-        return ", ".join(('%s: %s'%(k, v) for k,v in value.items()))
 
 
 @Vartype.register('dictlist')
@@ -539,8 +534,7 @@ class vt_dictlist(vt_dict):
 
     def validate(self, value):
         if not value:
-            return None
-        
+            return None        
         ret = {}
         for k,v in value.items():
             k = unicode(k)
@@ -559,15 +553,12 @@ class vt_binary(Vartype):
         value = self._validate_reference(ci(value), keytype='binary')
         return self._rci(value)
 
-    def render_unicode(self, value):
-        value = ci(value)
+    def _format(self, value):
         try:
             v = self.db.binary.get(value)
-            value = [i.filename for i in v]
+            return v.filename or value
         except (ValueError, TypeError), e:
-            value = ['Error getting binary: %s'%(i) for i in value]
-        return ", ".join(value)
-
+            return 'Error getting binary: %s'%value
 
 
 
@@ -616,15 +607,11 @@ class vt_user(Vartype):
         value = self._validate_reference(ci(value), keytype='user')
         return self._rci(value)
 
-    def render_unicode(self, value):
-        value = ci(value)
-        update_username_cache(self.cache, self.db, value, lnf=self.options.get('lnf'))
-        lis = []
-        for i in value:
-            key = self.cache.get_cache_key('displayname', i)
-            hit, dn = self.cache.check_cache(key)
-            lis.append(dn or '')
-        return ", ".join(lis)
+    def _format(self, value):
+        update_username_cache(self.cache, self.db, [value], lnf=self.options.get('lnf'))
+        key = self.cache.get_cache_key('displayname', value)
+        hit, dn = self.cache.check_cache(key)
+        return dn or value
 
 
 @Vartype.register('acl')
@@ -657,21 +644,21 @@ class vt_acl(Vartype):
         return value
 
 
-    def render_unicode(self, value):
-        if not value:
-            return ''
-        allusers = reduce(lambda x,y:x+y, value)
-        unames = {}
-        for user in self.db.user.get(allusers):
-            unames[user.name] = user.displayname
-
-        levels = ["Read","Comment","Write","Owner"]
-        ret = []
-        for level, names in zip(levels, value):
-            namesr = [unames.get(i,"(%s)"%i) for i in names]
-            if namesr:
-                ret.append("%s: %s"%(level, ", ".join(namesr)))
-        return ', '.join(ret)
+    # def render_unicode(self, value):
+    #     if not value:
+    #         return ''
+    #     allusers = reduce(lambda x,y:x+y, value)
+    #     unames = {}
+    #     for user in self.db.user.get(allusers):
+    #         unames[user.name] = user.displayname
+    # 
+    #     levels = ["Read","Comment","Write","Owner"]
+    #     ret = []
+    #     for level, names in zip(levels, value):
+    #         namesr = [unames.get(i,"(%s)"%i) for i in names]
+    #         if namesr:
+    #             ret.append("%s: %s"%(level, ", ".join(namesr)))
+    #     return ', '.join(ret)
 
 
     def reindex(self, items):
@@ -720,17 +707,17 @@ class vt_comments(Vartype):
     def validate(self, value):
         return value
 
-    def render_unicode(self, value):
-        value = ci(value)
-        users = [i[0] for i in value]
-        update_username_cache(self.cache, self.db, users)
-        lis = []
-        for user, time, comment in value:
-            key = self.cache.get_cache_key('displayname', user)
-            hit, dn = self.cache.check_cache(key)
-            t = '%s @ %s: %s\n'%(user, time, comment)
-            lis.append(t)
-        return ", ".join(lis)
+    # def render_unicode(self, value):
+    #     value = ci(value)
+    #     users = [i[0] for i in value]
+    #     update_username_cache(self.cache, self.db, users)
+    #     lis = []
+    #     for user, time, comment in value:
+    #         key = self.cache.get_cache_key('displayname', user)
+    #         hit, dn = self.cache.check_cache(key)
+    #         t = '%s @ %s: %s\n'%(user, time, comment)
+    #         lis.append(t)
+    #     return ", ".join(lis)
 
 
 @Vartype.register('history')
@@ -739,17 +726,17 @@ class vt_history(Vartype):
     
     keyformat = None
 
-    def render_unicode(self, value):
-        value = ci(value)
-        users = [i[0] for i in value]
-        update_username_cache(self.cache, self.db, users)
-        lis = []
-        for user, time, parameter, oldvalue in value:
-            key = self.cache.get_cache_key('displayname', user)
-            hit, dn = self.cache.check_cache(key)
-            t = '%s @ %s: changed %s\n'%(user, time, parameter)
-            lis.append(t)
-        return ", ".join(lis)
+    # def render_unicode(self, value):
+    #     value = ci(value)
+    #     users = [i[0] for i in value]
+    #     update_username_cache(self.cache, self.db, users)
+    #     lis = []
+    #     for user, time, parameter, oldvalue in value:
+    #         key = self.cache.get_cache_key('displayname', user)
+    #         hit, dn = self.cache.check_cache(key)
+    #         t = '%s @ %s: changed %s\n'%(user, time, parameter)
+    #         lis.append(t)
+    #     return ", ".join(lis)
 
 
 

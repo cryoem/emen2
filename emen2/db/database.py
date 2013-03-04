@@ -1588,9 +1588,9 @@ class DB(object):
 
     @publicmethod()
     @ol('names')
-    def render(self, names, keys=None, keytype='record', options=None, ctx=None, txn=None):
+    def render(self, names, keys=None, keytype='record', ctx=None, txn=None, **options):
         # Some rendering options
-        options = options or {'lnf':False}
+        options = options or {}
 
         # Get Record instances from names argument.
         names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
@@ -1700,7 +1700,7 @@ class DB(object):
 
     @publicmethod()
     @ol('names')
-    def view(self, names, view=None, viewname='recname', keytype='record', ctx=None, txn=None):
+    def view(self, names, view=None, viewname='recname', keytype='record', ctx=None, txn=None, **options):
         ret = {}
         views = collections.defaultdict(set)
         recs = self.get(names, keytype=keytype, ctx=ctx, txn=txn)
@@ -1719,15 +1719,19 @@ class DB(object):
                     v = recdef.views.get(viewname)
                 views[v] = byrt[recdef.name]
         
+        # Optional: Apply MarkDown formatting to view before inserting values.
+        if options.get('markdown'):
+            views2 = {}
+            for k,v in views.items():
+                views2[markdown.markdown(k)] = v
+            views = views2
+        
         # Render.
         for view, recs in views.items():
             t = time.time()
             view = self._view_convert(view or '{{name}}')
             keys = self._view_keys(view)
-            # print "view:", view
-            # print "\n\nkeys:", keys
-            # print "recs:", len(recs)
-            recs = self.render(recs, keys=keys, ctx=ctx, txn=txn)
+            recs = self.render(recs, keys=keys, ctx=ctx, txn=txn, **options)
             ret.update(self._view_render(view, recs))
         return ret
 

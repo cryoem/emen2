@@ -20,11 +20,12 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 class Record(View):
     
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/$')
-    def main(self, name=None, children=True, parents=True, sibling=None, viewname="defaultview", **kwargs):
+    def main(self, name=None, children=True, parents=True, sibling=None, viewname="mainview", **kwargs):
         """Main record rendering."""
         # Get record..
         self.rec = self.db.record.get(name, filt=False)
-        recnames = self.db.record.render([self.rec])
+        # recnames = self.db.record.render([self.rec])
+        recnames = self.db.view([self.rec])
         self.title = recnames.get(self.rec.name, self.rec.name)
 
         # Look for any recorddef-specific template.
@@ -36,7 +37,7 @@ class Record(View):
         self.template = template
 
         # Render main view
-        rendered = self.db.record.render(self.rec, viewname=viewname, edit=self.rec.writable())
+        rendered = self.db.view(name, viewname=viewname, output='html', markdown=True)
 
         # Some warnings/alerts
         if self.rec.get('deleted'):
