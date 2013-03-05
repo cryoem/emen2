@@ -64,7 +64,7 @@ class Tree(View):
 
         recnames = {}
         if keytype == "record":
-            recnames.update(self.db.record.render(stack))
+            recnames.update(self.db.view(stack))
         elif keytype == "paramdef":
             pds = self.db.paramdef.get(stack)
             for pd in pds:

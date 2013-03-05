@@ -1,20 +1,5 @@
 # $Id$
-"""Main database module
-
-Functions:
-    clock: Keep track of times
-    getctime: Local ctime
-    gettime: Formatted time
-    ol: Decorator to make sure a method argument is iterable
-    limit_result_length: Limit the number of items returned
-    error: Error handler
-    sendmail: Send an email
-
-Classes:
-    EMEN2DBEnv: Manage an EMEN2 Database Environment
-    DB: Main database class
-
-"""
+"""Main database module."""
 
 import datetime
 import threading
@@ -1588,7 +1573,7 @@ class DB(object):
 
     @publicmethod()
     @ol('names')
-    def render(self, names, keys=None, keytype='record', ctx=None, txn=None, **options):
+    def render(self, names, keys=None, keytype='record', output='unicode', options=None, ctx=None, txn=None):
         # Some rendering options
         options = options or {}
 
@@ -1700,7 +1685,8 @@ class DB(object):
 
     @publicmethod()
     @ol('names')
-    def view(self, names, view=None, viewname='recname', keytype='record', ctx=None, txn=None, **options):
+    def view(self, names, view=None, viewname='recname', keytype='record', options=None, ctx=None, txn=None):
+        options = options or {}
         ret = {}
         views = collections.defaultdict(set)
         recs = self.get(names, keytype=keytype, ctx=ctx, txn=txn)
@@ -1728,10 +1714,9 @@ class DB(object):
         
         # Render.
         for view, recs in views.items():
-            t = time.time()
             view = self._view_convert(view or '{{name}}')
             keys = self._view_keys(view)
-            recs = self.render(recs, keys=keys, ctx=ctx, txn=txn, **options)
+            recs = self.render(recs, keys=keys, ctx=ctx, txn=txn, options=options)
             ret.update(self._view_render(view, recs))
         return ret
 
@@ -3277,184 +3262,6 @@ class DB(object):
         """
         return self.dbenv["record"].groupbyrectype(names, ctx=ctx, txn=txn)
     
-    
-
-    @publicmethod(compat="renderview")
-    @ol('names')
-    def record_render(self, names, viewname='recname', viewdef=None, edit=False, markup=True, table=False, mode=None, ctx=None, txn=None):
-        """Render record(s).
-
-        For each record, render the view given either by the viewdef keyword,
-        or the viewname keyword in the record's protocol. The default action
-        is to render the "recname" view.
-
-        The keywords markup, edit, and table affect rendering. markup=True
-        will cause HTML to be returned and, with edit=True, editable parameters
-        wrapped in elements with the "e2-edit" class. If table=True, the results
-        will differ slightly. Each result will be a list of elements, representing
-        each parameter defined in the view, and an additional 'header' item in the
-        returned dictionary. Both edit and table will imply markup=True.
-
-        The special view 'kv' will returned a markup=True result with each
-        record parameter/value pair rendered as a two-column HTML table.
-
-        Examples:
-
-        >>> db.record.render([0, 136, 137])
-        {0: u'EMEN2', 136: u'NCMI', 137: u'A Project'}
-
-        >>> db.record.render([0, 136], viewname="mainview")
-        {0: u'<p>Folder: EMEN2</p>...', 136: u'<h1><span class="e2-paramdef">Group</span>: NCMI</h1>...'}
-
-        >>> db.record.render([0, 136], viewdef="$$creator $$creationtime")
-        {0: u'<p><a href="/user/root">Admin</a> 2007/07/23 10:30:22</p>', 136: u'<p><a href="/user/ian">Rees, Ian</a> 2008/07/05</p>'}
-
-        >>> db.record.render(0, viewname="defaultview", edit=True, markup=True)
-        u'<p>Folder: <span class="e2-edit" data-name="0" data-param="name_folder">EMEN2</span>...'
-
-        >>> db.record.render([0], viewname="tabularview", table=True, markup=True)
-        {0: [u'<a href="/record/0">EMEN2</a>'], 'headers': {u'folder': [[u'Folder name', u'$', u'name_folder', None]]})}
-
-        :param names: Record name(s)
-        :keyword viewdef: View definition
-        :keyword viewname: Use this view from the Record's RecordDdef (default='recname')
-        :keyword edit: Render with editing HTML markup; use 'auto' for autodetect. (default=False)
-        :keyword markup: Render with HTML markup (default=True)
-        :keyword table: Return table format (this may go into a separate method) (default=False)
-        :keyword mode: Deprecated, no effect.
-        :keyword filt: Ignore failures
-        :return: Dictionary of {Record.name: rendered view}
-        :exception KeyError:
-        :exception SecurityError:
-        """
-
-        if viewname == "tabularview":
-            table = True
-
-        if viewname == 'recname' and not viewdef:
-            markup = False
-
-        if edit:
-            markup = True
-
-        # Regular expression for parsing views.
-        regex = VIEW_REGEX
-
-        # Get Record instances from names argument.
-        names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
-        names.extend(other)
-        recs.extend(self.dbenv["record"].cgets(names, ctx=ctx, txn=txn))
-        for newrec in newrecs:
-            rec = self.dbenv["record"].new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
-            rec.update(newrec)
-            recs.append(rec)
-
-        # Get and pre-process views
-        groupviews = {}
-        recdefs = listops.dictbykey(self.dbenv["recorddef"].cgets(set([rec.rectype for rec in recs]), ctx=ctx, txn=txn), 'name')
-
-        if viewdef:
-            if markup and markdown:
-                viewdef = markdown.markdown(viewdef, ['tables'])
-            groupviews[None] = viewdef
-        elif viewname == "kv":
-            for rec in recs:
-                groupviews[rec.name] = self._make_tables(recdefs, rec, markup, ctx=ctx, txn=txn)
-        else:
-            for rd in recdefs.values():
-                rd["views"]["mainview"] = rd.mainview
-
-                if viewname in ["tabularview","recname"]:
-                    v = rd.views.get(viewname, rd.name)
-
-                else:
-                    v = rd.views.get(viewname, rd.mainview)
-                    if markdown:
-                        v = markdown.markdown(v, ['tables'])
-
-                groupviews[rd.name] = v
-
-        # Pre-process once to get paramdefs
-        pds = set()
-        for group, vd in groupviews.items():
-            for match in regex.finditer(vd):
-                if match.group('type') in ["#", "$", '!']:
-                    pds.add(match.group('name'))
-
-                elif match.group('type') == '@':
-                    macro = emen2.db.macros.Macro.get_macro(match.group('name'), db=ctx.db, cache=ctx.cache)
-                    macro.preprocess(match.group('args'), recs)
-
-        pds = listops.dictbykey(self.dbenv["paramdef"].cgets(pds, ctx=ctx, txn=txn), 'name')
-
-        # Parse views and build header row..
-        matches = collections.defaultdict(list)
-        headers = collections.defaultdict(list)
-        for group, vd in groupviews.items():
-            for match in regex.finditer(vd):
-                matches[group].append(match)
-                # ian: temp fix. I added support for text blocks.
-                if not match.group('name'):
-                    continue
-                n = match.group('name')
-                h = pds.get(match.group('name'),dict()).get('desc_short')
-                if match.group('type') == '@':
-                    if n == "childcount":
-                        n = "#"
-                    h = '%s %s'%(n, match.group('args') or '')
-
-                headers[group].append([h, match.group('type'), match.group('name'), match.group('args')])
-
-        # Process records
-        ret = {}
-        pt = collections.defaultdict(list)
-        mt = collections.defaultdict(list)
-
-        for rec in recs:
-            key = rec.rectype
-            if viewdef:
-                key = None
-            elif viewname == "kv":
-                key = rec.name
-
-            _edit = edit
-            if edit == "auto":
-                _edit = rec.writable()
-
-            a = groupviews.get(key)
-            vs = []
-
-            for match in matches.get(key, []):
-                t = match.group('type')
-                n = match.group('name')
-                s = match.group('sep') or ''
-                if t == '#':
-                    # u"""<span class="paramdef" title="%s -- %s">%s</span>"""%(pd.name, pd.desc_long, pd.desc_short)
-                    v = pds[n].desc_short
-                elif t == '$' or t == '!':
-                    vartype = emen2.db.vartypes.Vartype.get_vartype(pds[n].vartype, pd=pds[n], db=ctx.db, cache=ctx.cache)
-                    v = vartype.render(rec.get(n))
-                elif t == '@':
-                    macro = emen2.db.macros.Macro.get_macro(n, db=ctx.db, cache=ctx.cache)
-                    v = macro.render(match.group('args'), rec)
-                else:
-                    continue
-
-                if table:
-                    vs.append(v)
-                else:
-                    a = a.replace(match.group(), unicode(v)+s, 1)
-
-            if table:
-                ret[rec.name] = vs
-            else:
-                ret[rec.name] = a.strip() or '(%s)'%rec.name
-
-        if table:
-            ret["headers"] = headers
-
-        return ret                
-
 
     @publicmethod(compat="renderchildtree")
     def record_renderchildren(self, name, recurse=3, rectype=None, ctx=None, txn=None):

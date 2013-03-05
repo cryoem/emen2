@@ -6,7 +6,7 @@
 <%
 children = DB.rel.children(rec.name, recurse=-1, rectype=['image_capture*'])
 bdos = DB.binary.find(record=children, count=0)
-children_recnames = DB.record.render(children)
+children_recnames = DB.view(children)
 %>
 
 ## <br /><br /> <%buttons:singlepage label='In this session...'>

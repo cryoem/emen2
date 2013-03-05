@@ -159,7 +159,7 @@ class Query(View):
         users = set([bdo.get('creator') for bdo in bdos])
         users = self.db.user.get(users)
         self.ctxt['users'] = users
-        self.ctxt['recnames'] = self.db.record.render(records)
+        self.ctxt['recnames'] = self.db.view(records)
         self.ctxt['bdos'] = bdos
 
 

@@ -247,9 +247,6 @@ class Vartype(object):
     def process(self, value):
         return value
 
-    def _format(self, value):
-        return unicode(value)
-        
     def render(self, value):
         output = self.options.get('output', 'unicode')
         r = self.render_unicode
@@ -264,20 +261,47 @@ class Vartype(object):
         if value is None:
             return ''
         if self.pd.iter:
-            return ", ".join(self._format(i) for i in value)
-        return self._format(value)
+            return ", ".join(self._unicode(i) for i in value)
+        return self._unicode(value)
     
     def render_html(self, value):
         """Render HTML formatted values. All values MUST be escaped."""
         if value is None:
             return ''
         if self.pd.iter:
-            v = ["<li><%s>%s</%s></li>"%(self.elem, escape(self._format(i)), self.elem) for i in value]
-            return "<ul>%s</ul>"%"".join(v)
-        return "<%s>%s</%s>"%(self.elem, escape(self._format(value)), self.elem)
+            return self._li_wrap([self._html(i) for i in value])
+        return self._html(value)
 
     def render_form(self, value):
-        return """Editing unimplemented."""
+        """Render HTML form. All values MUST be escaped."""
+        if value is None:
+            value = ""
+        if self.pd.iter:
+            return self._li_wrap([self._form(i) for i in value])
+        return self._form(value)
+
+    def _unicode(self, value):
+        return unicode(value)
+    
+    def _html(self, value):
+        elem = """<%s class="e2-edit">%s</%s>"""%(
+            self.elem,
+            escape(value),
+            self.elem
+        )
+        return elem
+        
+    def _form(self, value):
+        elem = """<input type="text" name="%s" value="%s" />"""%(
+            escape(self.pd.name),
+            escape(value)
+        )
+        return elem
+
+    def _li_wrap(self, values):
+        lis = ["""<li>%s</li>"""%value for value in values]
+        return """<ul>%s</ul>"""%"".join(lis)
+        
 
 
 @Vartype.register('none')
@@ -296,7 +320,7 @@ class vt_float(Vartype):
     def validate(self, value):
         return self._rci(map(float, ci(value)))
 
-    def _format(self, value):
+    def _unicode(self, value):
         u = self.pd.defaultunits or ''
         return '%g %s'%(value, u)
     
@@ -314,7 +338,7 @@ class vt_percent(Vartype):
                 raise ValidationError, "Range for percentage is 0 <= value <= 1.0; value was: %s"%i
         return self._rci(value)
 
-    def _format(self, value):
+    def _unicode(self, value):
         return '%0.0f'%(i*100.0)
 
 
@@ -462,11 +486,36 @@ class vt_datetime(vt_string):
                     raise ValidationError, "No UTC offset: %s"%i
                 ret.append(t.isoformat())
         return self._rci(ret)
-
-    def _format(self, value):
+    
+    def _unicode(self, value):
+        tz = self.options.get('tz')
         raw_time = dateutil.parser.parse(value)
-        local_time = raw_time.astimezone(dateutil.tz.gettz()) # 'America/Chicago'
-        return unicode("raw: %s, local: %s"%(raw_time.isoformat(), local_time.isoformat()))
+        local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
+        return local_time.strftime("%Y-%m-%d %H:%M")
+    
+    def _elem(self, value):
+        tz = self.options.get('tz')
+        raw_time = dateutil.parser.parse(value)
+        raw_utc = raw_time.astimezone(dateutil.tz.gettz())
+        local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
+        elem = """<time class="e2-edit" datetime="%s" title="Raw value: %s \nUTC time: %s \nLocal time: %s">%s</time>"""%(
+            escape(raw_time.isoformat()),
+            escape(value),
+            escape(raw_utc.isoformat()),
+            escape(local_time.isoformat()),
+            escape(local_time.strftime("%Y-%m-%d %H:%M"))
+            )
+        return elem
+
+    def render_html(self, value):
+        """Render HTML formatted values. All values MUST be escaped."""
+        if value is None:
+            return ''
+        if self.pd.iter:
+            lis = ["<li>%s</li>"%self._elem(i)]
+            return "<ul>%s</ul>"%"".join(lis)
+        return self._elem(value)
+        
 
         
 
@@ -553,7 +602,7 @@ class vt_binary(Vartype):
         value = self._validate_reference(ci(value), keytype='binary')
         return self._rci(value)
 
-    def _format(self, value):
+    def _unicode(self, value):
         try:
             v = self.db.binary.get(value)
             return v.filename or value
@@ -607,12 +656,19 @@ class vt_user(Vartype):
         value = self._validate_reference(ci(value), keytype='user')
         return self._rci(value)
 
-    def _format(self, value):
+    def _unicode(self, value):
         update_username_cache(self.cache, self.db, [value], lnf=self.options.get('lnf'))
         key = self.cache.get_cache_key('displayname', value)
         hit, dn = self.cache.check_cache(key)
         return dn or value
 
+    def _form(self, value):
+        elem = """<input type="checkbox" name="%s"/> %s"""%(
+            escape(self.pd.name),
+            escape(self._unicode(value))
+        )
+        return elem
+        
 
 @Vartype.register('acl')
 class vt_acl(Vartype):

@@ -140,7 +140,7 @@ class macro_recname(Macro):
     """recname macro"""
 
     def process(self, params, rec):
-        return self.db.record.render(rec) #cache=self.cache
+        return self.db.view(rec) #cache=self.cache
 
 
     def macro_name(self, params):

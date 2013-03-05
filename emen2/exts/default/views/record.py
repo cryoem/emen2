@@ -24,7 +24,6 @@ class Record(View):
         """Main record rendering."""
         # Get record..
         self.rec = self.db.record.get(name, filt=False)
-        # recnames = self.db.record.render([self.rec])
         recnames = self.db.view([self.rec])
         self.title = recnames.get(self.rec.name, self.rec.name)
 
@@ -37,7 +36,7 @@ class Record(View):
         self.template = template
 
         # Render main view
-        rendered = self.db.view(name, viewname=viewname, output='html', markdown=True)
+        rendered = self.db.view(name, viewname=viewname, options={'output':'form', 'markdown':True})
 
         # Some warnings/alerts
         if self.rec.get('deleted'):
@@ -201,7 +200,7 @@ class Record(View):
             self.template = '/record/record.new'
             viewname = 'mainview'
             recdef = self.db.recorddef.get(newrec.rectype)
-            rendered = self.db.record.render(newrec, edit=True, viewname=viewname)
+            rendered = self.db.view(newrec, viewname=viewname)
             self.title = 'New %s'%(recdef.desc_short)
             self.ctxt.update(
                 tab = 'new',
@@ -248,7 +247,7 @@ class Record(View):
         users = self.db.user.get(users)
         # self.ctxt['tab'] = 'attachments'
         self.ctxt['users'].extend(users)
-        self.ctxt['recnames'].update(self.db.record.render(records))
+        self.ctxt['recnames'].update(self.db.view(records))
         self.ctxt['bdos'] = bdos
     
     
