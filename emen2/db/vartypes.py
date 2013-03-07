@@ -673,7 +673,7 @@ class vt_link(Vartype):
     """Reference."""
 
     def validate(self, value):
-        value = self._validate_reference(ci(value), keytype=self.cache.keytype) # Ugly hack :(
+        value = self._validate_reference(ci(value), keytype='record') # Ugly hack :(
         return self._rci(value)
 
 

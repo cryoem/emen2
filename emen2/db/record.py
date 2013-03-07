@@ -149,7 +149,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
     def _set_comments(self, key, value):
         """Bind record['comments'] setter"""
-        return self.addcomment(value, t=t)
+        return self.addcomment(value)
 
     # in Record, params not in self.attr_public are put in self.params{}.
     def _setoob(self, key, value):
