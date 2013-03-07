@@ -53,11 +53,11 @@ NONEVALUES = [None, "", "N/A", "n/a", "None"]
 
 ##### Helper methods #####
 
-def update_username_cache(cache, db, values, lnf=False):
+def update_user_cache(cache, db, values):
     # Check cache
     to_cache = []
     for v in values:
-        key = cache.get_cache_key('displayname', v)
+        key = cache.get_cache_key('user', v)
         hit, dn = cache.check_cache(key)
         if not hit:
             to_cache.append(v)
@@ -65,9 +65,8 @@ def update_username_cache(cache, db, values, lnf=False):
     if to_cache:
         users = db.user.get(to_cache)
         for user in users:
-            user.getdisplayname(lnf=lnf)
-            key = cache.get_cache_key('displayname', user.name)
-            cache.store(key, user.displayname)
+            key = cache.get_cache_key('user', user.name)
+            cache.store(key, user)
 
 
 
@@ -274,19 +273,20 @@ class Vartype(object):
 
     def render_form(self, value):
         """Render HTML form. All values MUST be escaped."""
-        if value is None:
-            value = ""
-        if self.pd.iter:
-            return self._li_wrap([self._form(i) for i in value])
-        return self._form(value)
+        return """<%s class="e2-edit" data-name="%s" data-param="%s"></%s>"""%(self.elem, escape(self.options.get('name','')), escape(self.pd.name), self.elem)
+        # if self.pd.iter:
+        #     return self._li_wrap([self._form(i) for i in value])
+        # return self._form(value)
 
     def _unicode(self, value):
         return unicode(value)
     
     def _html(self, value):
+        if value is None:
+            return ''
         elem = """<%s class="e2-edit">%s</%s>"""%(
             self.elem,
-            escape(value),
+            escape(self._unicode(value)),
             self.elem
         )
         return elem
@@ -323,6 +323,13 @@ class vt_float(Vartype):
     def _unicode(self, value):
         u = self.pd.defaultunits or ''
         return '%g %s'%(value, u)
+
+    def _form(self, value):    
+        elem = """<input type="text" name="%s" value="%s" />"""%(
+            escape(self.pd.name),
+            escape(value)
+        )
+        return elem
     
 
 @Vartype.register('percent')
@@ -386,7 +393,17 @@ class vt_boolean(Vartype):
             ret.append(i)
         return self._rci(ret)
 
-
+    def _form(self, value):
+        choices = []
+        if value:
+            choices.append("""<option value="True" checked="checked" />""")
+            choices.append("""<option value="False" />""")
+        else:
+            choices.append("""<option value="True" />""")
+            choices.append("""<option value="False" checked="checked"  />""")
+        return """<select>%s</select>"""%("".join(choices))
+        return elem
+        
 
 
 # String vartypes
@@ -410,6 +427,19 @@ class vt_choice(vt_string):
                 raise ValidationError, "Invalid choice: %s"%v
         return self._rci(value)
 
+    def _form(self, value):
+        choices = []
+        for choice in self.pd.choices:
+            if choice == value:
+                elem = """<option value="%s" selected="selected">%s</option>"""%(escape(choice), escape(choice))
+            else:
+                elem = """<option value="%s">%s</option>"""%(escape(choice), escape(choice))
+            choices.append(elem)
+        return """<select name="%s">%s</select>"""%(
+            escape(self.pd.name),
+            "".join(choices)
+            )
+        
 
 
 @Vartype.register('recorddef')
@@ -465,6 +495,11 @@ class vt_text(vt_string):
         value = unicode(value).lower()
         return set((x[0] or x[1]) for x in self._reindex_getindexwords_m.findall(value))
 
+    def _form(self, value):
+        return """<textarea name="%s">%s</textarea>"""%(
+            escape(self.pd.name),
+            escape(value)
+            )
 
 
 
@@ -516,9 +551,6 @@ class vt_datetime(vt_string):
             return "<ul>%s</ul>"%"".join(lis)
         return self._elem(value)
         
-
-        
-
 
 @Vartype.register('date')
 class vt_date(vt_datetime):
@@ -657,13 +689,15 @@ class vt_user(Vartype):
         return self._rci(value)
 
     def _unicode(self, value):
-        update_username_cache(self.cache, self.db, [value], lnf=self.options.get('lnf'))
-        key = self.cache.get_cache_key('displayname', value)
-        hit, dn = self.cache.check_cache(key)
-        return dn or value
+        update_user_cache(self.cache, self.db, [value])
+        key = self.cache.get_cache_key('user', value)
+        hit, user = self.cache.check_cache(key)
+        if user:
+            return user.getdisplayname(lnf=self.options.get('lnf'))
+        return value
 
     def _form(self, value):
-        elem = """<input type="checkbox" name="%s"/> %s"""%(
+        elem = """<input type="checkbox" checked="checked" name="%s"/> %s"""%(
             escape(self.pd.name),
             escape(self._unicode(value))
         )
@@ -763,18 +797,6 @@ class vt_comments(Vartype):
     def validate(self, value):
         return value
 
-    # def render_unicode(self, value):
-    #     value = ci(value)
-    #     users = [i[0] for i in value]
-    #     update_username_cache(self.cache, self.db, users)
-    #     lis = []
-    #     for user, time, comment in value:
-    #         key = self.cache.get_cache_key('displayname', user)
-    #         hit, dn = self.cache.check_cache(key)
-    #         t = '%s @ %s: %s\n'%(user, time, comment)
-    #         lis.append(t)
-    #     return ", ".join(lis)
-
 
 @Vartype.register('history')
 class vt_history(Vartype):
@@ -782,17 +804,6 @@ class vt_history(Vartype):
     
     keyformat = None
 
-    # def render_unicode(self, value):
-    #     value = ci(value)
-    #     users = [i[0] for i in value]
-    #     update_username_cache(self.cache, self.db, users)
-    #     lis = []
-    #     for user, time, parameter, oldvalue in value:
-    #         key = self.cache.get_cache_key('displayname', user)
-    #         hit, dn = self.cache.check_cache(key)
-    #         t = '%s @ %s: changed %s\n'%(user, time, parameter)
-    #         lis.append(t)
-    #     return ", ".join(lis)
 
 
 

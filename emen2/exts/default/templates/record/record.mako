@@ -134,8 +134,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 
 
-
-
 <div class="e2l-sidebar-sidebar">
 
     <ul id="e2-tab-editbar2" class="e2l-cf e2l-sidebar-projectlist" role="tablist" data-tabgroup="record">
@@ -341,7 +339,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     <div data-tab="edit" ${istab(tab, "edit")}>
         <form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${ctxt.root}/record/${rec.name}/edit/">
             ## Disable filtering -- each param/macro renderer is responsible for this.
-            ${rendered | n,unicode}
+            ${rendered_edit | n,unicode}
         </form>    
     </div>
     

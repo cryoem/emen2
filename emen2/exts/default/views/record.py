@@ -24,7 +24,7 @@ class Record(View):
         """Main record rendering."""
         # Get record..
         self.rec = self.db.record.get(name, filt=False)
-        recnames = self.db.view([self.rec])
+        recnames = self.db.view([name])
         self.title = recnames.get(self.rec.name, self.rec.name)
 
         # Look for any recorddef-specific template.
@@ -36,7 +36,8 @@ class Record(View):
         self.template = template
 
         # Render main view
-        rendered = self.db.view(name, viewname=viewname, options={'output':'form', 'markdown':True})
+        rendered = self.db.view(name, viewname=viewname, options={'output':'html', 'markdown':True})
+        rendered_edit = self.db.view(name, viewname=viewname, options={'output':'form', 'markdown':True, 'name': self.rec.name})
 
         # Some warnings/alerts
         if self.rec.get('deleted'):
@@ -78,7 +79,6 @@ class Record(View):
             sibling = self.rec.name
         siblings = self.db.rel.siblings(sibling, rectype=self.rec.rectype)
 
-
         # Get RecordDefs
         recdef = self.db.recorddef.get(self.rec.rectype)
         recdefs = [recdef] + self.db.recorddef.get(children_groups.keys())
@@ -107,6 +107,7 @@ class Record(View):
             edit = False,
             create = self.db.auth.check.create(),
             rendered = rendered,
+            rendered_edit = rendered_edit,
             viewname = viewname,
             sibling = sibling,
             siblings = siblings,
@@ -348,9 +349,6 @@ class Record(View):
             users_permissions |= set(v)
 
         emailusers = self.db.user.get(users_ref | users_permissions)
-        for user in emailusers:
-            user.getdisplayname(lnf=True)
-
         self.ctxt['emailusers'] = emailusers
 
 

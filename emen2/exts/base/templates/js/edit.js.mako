@@ -258,7 +258,7 @@
                 self.options.rectype = rec['rectype']
                 emen2.db('recorddef.get', [rec['rectype']], function(rds) {
                     emen2.cache.update([rds]);
-                    emen2.db('record.render', {'names':self.options.name, 'viewname':'mainview', 'edit':true}, function(rendered) {
+                    emen2.db('view', {'names':self.options.name, 'viewname':'mainview'}, function(rendered) {
                         self._build(rendered);
                     });                
                 });            

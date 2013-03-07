@@ -38,8 +38,8 @@
                 % if header:
                     <thead>
                         <tr>
-                            % for v in q['table']['headers'].get(None, []):
-                                <th><div data-name="${v[2]}" data-args="${v[3]}">${v[0]}</div></th>
+                            % for key in q['table']['headers']:
+                                <th><div data-name="${key}">${key}</div></th>
                             % endfor
                         </tr>
                     </thead>
@@ -51,18 +51,16 @@
                         <tr><td colspan="0">No Records found for this query.</td></tr>
                     % endif
 
-                    % for rowid, name in enumerate(q['names']):
-                        <tr>
-                    
-                        ## <td>
-                        ##     <input type="checkbox" data-name="${name}" />
-                        ## </td>
-                                        
-                        % for v in q['table'].get(name, []):
-                            <td>${v}</td>
+                    % for name in q['names']:
+                        <tr>                                        
+                        % for key in q['table']['headers']:
+                            <td>
+								<a href="${ctxt.root}/record/${name}/">${q['table'][name].get(key)}</a>
+							</td>
                         % endfor
                         </tr>
                     % endfor            
+
                 </tbody>
 
             </table>

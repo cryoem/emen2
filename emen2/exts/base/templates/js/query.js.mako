@@ -618,11 +618,8 @@
             this.query();
         },
         
-        resort: function(sortkey, args) {
+        resort: function(sortkey) {
             // Sort by a column key
-            if (args) {
-                sortkey = '$@' + sortkey + "(" + args + ")"
-            }
             if (this.options.q['sortkey'] == sortkey) {
                 this.options.q['reverse'] = (this.options.q['reverse']) ? false : true;
             } else {
@@ -721,7 +718,7 @@
             var t = $('.e2-query-table', this.element);
 
             // The query result includes details about columns
-            var headers = this.options.q['table']['headers']['null'];
+            var headers = this.options.q['table']['headers'];
             
             // Clear out the current header
             $('thead', t).empty();
@@ -736,20 +733,16 @@
 
             // Build the rest of the column headers
             $.each(headers, function() {
-                if (this[3] == null) {
-                    this[3]=''
-                }
-                tr.append('<th>'+this[0]+'</th>');
-
+                tr.append('<th>'+this+'</th>');
 
                 // Build the sort button
                 var direction = 'able';
-                if (self.options.q['sortkey'] == this[2] || self.options.q['sortkey'] == '$@'+this[2]+'('+this[3]+')') {
+                if (self.options.q['sortkey'] == this) {
                     var direction = 1;
                     if (self.options.q['reverse']) {direction = 0}
                 }                
                 var sortable = $('<button name="sort" class="e2l-float-right">'+emen2.template.image('sort.'+direction+'.png', 'Sort')+'</button>');
-                var iw = $('<th data-name="'+this[2]+'" data-args="'+this[3]+'" ></th>');                
+                var iw = $('<th data-name="'+this+'"></th>');                
                 iw.append(sortable);
                 tr2.append(iw)
             });
@@ -757,7 +750,7 @@
             // Connect the sort and edit buttons
             $('button[name=sort]', tr2).click(function(e){
                 e.preventDefault();
-                self.resort($(this).parent().attr('data-name'), $(this).parent().attr('data-args'))
+                self.resort($(this).parent().attr('data-name'))
             });
             
             // Append the title row and control row
@@ -768,7 +761,7 @@
             // Rebuild the table body
             var self = this;
             var t = $('.e2-query-table', this.element);            
-            var headers = this.options.q['table']['headers']['null'];
+            var headers = this.options.q['table']['headers'];
             var names = this.options.q['names'];
             var rows = []            
 
@@ -781,8 +774,8 @@
             // Build each row
             for (var i=0;i<names.length;i++) {
                 var row = [];
-                for (var j=0;j<headers.length;j++) {
-                    row.push('<td>'+self.options.q['table'][names[i]][j]+'</td>');
+                for (var j=0; j < headers.length; j++) {
+                    row.push('<td><a href="'+ROOT+'/record/'+names[i]+'/">'+self.options.q['table'][names[i]][headers[j]]+'</a></td>');
                 }
                 row = '<tr>' + row.join('') + '</tr>';                    
                 rows.push(row);

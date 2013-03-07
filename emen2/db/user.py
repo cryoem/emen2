@@ -392,9 +392,8 @@ class User(BaseUser):
                 record = self._ctx.db.record.get(self.record) or {}
             self._set('_userrec', record, True)
 
-        d = self._formatusername(lnf=lnf)
-        self._set('_displayname', d, True)
-        return d
+        # self._set('_displayname', d, True)
+        return self._formatusername(lnf=lnf)
 
 
     def _formatusername(self, lnf=False):
@@ -467,7 +466,7 @@ class User(BaseUser):
             p['record'] = None
 
         self.__dict__.update(p)
-        self.getdisplayname()
+        self.__dict__['_displayname'] = self.getdisplayname()
 
 
 
