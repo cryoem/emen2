@@ -103,30 +103,14 @@ class Router(twisted.web.resource.Resource):
 
     # Resource was not found
     def render(self, request):
-        # Try to find a template...
-        template = request.path    
-        print "Looking up template -- ", request.path    
-        makot = emen2.db.config.templates.get_template(template)
-
-        # return 'Not found'
-
-        # self.ctxt['inherit'] = False
-        # if (self.db and self.db._getctx().checkadmin()) or getattr(makot.module, 'public', False):
-        #     self.template = template
-        #     self.headers = getattr(makot.module, 'headers', {})
-        # else:
-        #     self.ctxt['content'] = '<b>Error, private template</b>'
-        # try:
-        #     return unicode(
-        #         emen2.web.routing.execute(
-        #             'Error/resp', 
-        #             db=None, 
-        #             error=responsecodes.NotFoundError(request.uri), 
-        #             location=request.uri)
-        #         ).encode('utf-8')
-        # except:
-        #     return 'Not found'
-        #     # raise responsecodes.NotFoundError(request.uri)
+        return unicode(
+            emen2.web.routing.execute(
+                'Error/resp', 
+                db=None,
+                error=responsecodes.NotFoundError(request.uri), 
+                location=request.uri)
+            ).encode('utf-8')
+        
 
 
 
@@ -214,7 +198,18 @@ class _Router(emen2.util.registry.Registry):
                     f = route.method
                     f.write = getattr(route, 'write', False)
                     return route.cls, f
-
+        
+        # Try to find a public template.
+        try:
+            template = path[:-1]
+            makot = emen2.db.config.templates.get_template(template)
+            route = cls.registry.get('TemplateRender/main')
+            f = partial(route.method, template=template)
+            return route.cls, f
+        except:
+            pass
+            
+        # Raise a 404.
         raise responsecodes.NotFoundError(path or name)
 
 

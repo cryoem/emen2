@@ -10,15 +10,6 @@
     ${buttons.tocache(newrec)}
     ${buttons.tocache(recdef)}
     
-    // Save Record
-    $('#e2-edit').MultiEditControl({
-        show: true,
-        permissions: $('#e2-permissions')
-    });
-
-    // var tab = $('#e2-tab-editbar');
-    // tab.TabControl({});
-
     // Permissions editor
     // tab.TabControl('setcb','permissions', function(page){
     //    // console.log('perm');

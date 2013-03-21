@@ -269,11 +269,6 @@ textarea,
     box-sizing: content-box;
 }
 
-.e2-edit-widget input[type=text] {
-    width: 500px;
-    
-}
-
 h1 .e2l-actions button,
 h1 .e2l-actions input,
 h1 .e2l-actions .e2-button {

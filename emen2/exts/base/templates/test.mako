@@ -1,25 +1,21 @@
+<%! public = True %>
 <%inherit file="/page" />
 
-<%block name="css_inline">
+<h1>Test!</h1>
+
+<form method="post">
+
+<%
+rendered = DB.view('137', viewname='mainview', options={'output':'newform', 'markdown':True})
+%>
+
+${rendered | n}
+
+<p><input type="submit" value="Submit" /></p>
+
+<script type="text/javascript">
 
 
-</%block>
+bind_edit(document);
 
-
-<%block name="js_ready">
-    ${parent.js_ready()}
-    var t = 'hist';
-    if (t=='hist') {
-        $("#chart").PlotHistogram({
-            'xkey':'creationtime'
-        });
-    } else if (t=='scatter') {    
-        $("#chart").PlotScatter({
-            //'xkey': 'creationtime',
-            'xkey':'ctf_defocus_measured',
-            'ykey':'ctf_bfactor'
-        });
-    }
-</%block>
-
-<div id="chart"></div>
+</script>

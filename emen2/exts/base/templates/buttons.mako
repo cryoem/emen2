@@ -80,34 +80,29 @@
 
 <%def name="infobox(item=None, title=None, body=None, time=None, link=None, autolink=False)">
     <%
-    item = item or dict()
-    
+    ROOT = ''
+    item = item or dict()    
     if autolink:
         link = '%s/%s/%s/'%(ROOT, item.get('keytype'), item.get('name'))
-
-    src = "%s/static/images/gears.png"%ROOT
+    src = "%s/static/images/%s.png"%(ROOT, keytype)
     title = title or item.get('desc_short') or item.get('name')
     body = ''
         
     if item.get('keytype') == 'user':
-        src = "%s/static/images/nophoto.png"%ROOT
         title = item.get('displayname') or item.get('name')
         body = body or item.get('email')
         photo = item.get('userrec', dict()).get('person_photo')
         if photo:
             src = "%s/download/%s/user.jpg?size=thumb"%(ROOT, photo)
     elif item.get('keytype') == 'group':
-        src = "%s/static/images/group.png"%ROOT
         title = item.get('displayname')
         body = body or '%s members'%sum([len(i) for i in item.get('permissions',[])])
         if item.get('name') == 'authenticated':
             body = "All logged in users"
         elif item.get('name') == 'anonymous':
             body = "Public access"
-        
     elif item.get('keytype') == 'paramdef':
         body = '%s (%s)'%(item.name, item.vartype)
-
     %>
     <div class="e2-infobox" data-name="${item.get('name')}" data-keytype="${item.get('keytype')}">
 
@@ -117,23 +112,25 @@
             <img alt="Photo" class="e2l-thumbnail" src="${src}" />
         % endif
 
-        <div>
-            <h4>
-                % if link:
-                    <a href="${link}">
-                % endif
+        <h4>
+            % if link:
+                <a href="${link}">
+            % endif
 
-                ${title}
+            ${title}
 
-                % if time:
-                    @ <time class="e2-localize" datetime="${time}">${time}</time>
-                % endif    
+            % if time:
+                @ <time class="e2-localize" datetime="${time}">${time}</time>
+            % endif    
 
-                % if link:
-                    </a>
-                % endif
-            </h4>
-            <div class="e2l-small">${body}</div>
-        </div>
+            % if link:
+                </a>
+            % endif
+        </h4>
+
+        <p class="e2l-small">
+			${body}
+		</p>
+
     </div>
 </%def>

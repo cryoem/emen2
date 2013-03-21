@@ -34,31 +34,30 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 <%block name="js_ready">
     ${parent.js_ready()}
-
     ${buttons.tocache(rec)}
 
     emen2.caches['recnames'] = ${recnames | n,jsonencode};
 
+	// Bind the tree controls
     $('.e2-tree').TreeControl({'attach':true});
+
+    // Tile browser
+    $('.e2-tile').TileControl({'mode':'cached'});        
 
     // Record, ptest
     var rec = emen2.caches['record'][${rec.name | n,jsonencode}];
     var ptest = ${rec.ptest() | n,jsonencode}
 
-    // Tile browser
-    $('.e2-tile').TileControl({'mode':'cached'});
-        
     // Intialize the Tab controller
     var tab = $("#e2-tab-editbar2");        
     tab.TabControl({});
 
     // Editor
     tab.TabControl('setcb', 'edit', function(page) {
-        $('#e2-edit', page).MultiEditControl({
-            show: true,
-            controls: page,
-        })
-    });
+		page.EditControl({});
+	});
+
+
 
     // Permissions editor
     tab.TabControl('setcb','permissions', function(page) {
@@ -91,7 +90,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             controls: page,
             help: true,
             summary: true
-        })
+        });
     });        
 
     // Relationship editor
@@ -144,10 +143,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                 <a href="${ctxt.root}/record/${rec.name}/">Record #${rec.name}</a>
             </h2>
         </li>
-
-
-        ## Main tab
-        ## <li data-tab="main" ${istab(tab, "main")}><a href="#main">Main</a></li>
 
 
         ## Edit Record
@@ -340,6 +335,16 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         <form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${ctxt.root}/record/${rec.name}/edit/">
             ## Disable filtering -- each param/macro renderer is responsible for this.
             ${rendered_edit | n,unicode}
+
+			<p style="margin-top:20px;padding-top:20px;border-top:solid 1px black">			
+				<textarea name="comments" placeholder="Please provide a reason for the changes."></textarea>            
+				<ul class="e2l-controls e2l-fw"> \
+	                <li>
+						<a class="e2l-float-left e2l-small" href="${ctxt.root}/record/${rec.name}/hide/">(Hide this record?)</a>
+						<input type="submit" class="e2-edit-save e2l-float-right" value="Save" />
+					</li>
+	            </ul>
+			</p>
         </form>    
     </div>
     

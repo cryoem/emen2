@@ -564,20 +564,6 @@
             //     });    
             // });            
             
-            // tab.TabControl('setcb', 'edit', function(page) {
-            //     var form = $('form.e2-query-tableform');
-            //     form.MultiEditControl({
-            //         selector: '.e2-edit',
-            //         controls: page,
-            //         prefix: true
-            //     });
-            //     form.MultiEditControl('show');
-            // });
-            // tab.TabControl('sethidecb', 'edit', function(page) {
-            //     var form = $('form.e2-query-tableform');                
-            //     form.MultiEditControl('hide');    
-            // });    
-            
             if (this.options.qc) {
                 tab.TabControl('show', 'controls');
             }

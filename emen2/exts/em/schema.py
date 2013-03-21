@@ -9125,10 +9125,6 @@ $#project_status: $$project_status
 
 $#project_block: $$project_block  
 
-<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>  
-
-<span class="e2-button e2-record-new" data-rectype="labnotebook" data-parent="$$name">New lab notebook</span>  
-
 </div>
 
 # Important note
@@ -9610,9 +9606,6 @@ $#project_status: $$project_status
 
 $#project_block: $$project_block  
 
-<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>   <br />
-
-<span class="e2-button e2-record-new" data-rectype="labnotebook" data-parent="$$name">New lab notebook entry</span>  
 
 </div>
 
@@ -10784,10 +10777,6 @@ $#project_status: $$project_status
 
 $#project_block: $$project_block  
 
-<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>   <br />
-
-<span class="e2-button e2-record-new" data-rectype="labnotebook" data-parent="$$name">New lab notebook entry</span>  
-
 </div>
 
 $#name_pi: $$name_pi
@@ -10869,10 +10858,6 @@ $$file_binary
 $#project_status: $$project_status  
 
 $#project_block: $$project_block  
-
-<span class="e2-button e2-record-new" data-rectype="progress_report" data-parent="$$name">New progress report</span>   <br />
-
-<span class="e2-button e2-record-new" data-rectype="labnotebook" data-parent="$$name">New lab notebook entry</span>  
 
 </div>
 

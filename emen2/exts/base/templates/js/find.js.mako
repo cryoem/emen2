@@ -10,7 +10,7 @@
             autolink: false,
             selectable: false,
             retry: true,
-            input: ['radio', '', false],
+            input: ['checkbox', '', true],
             show: true,
             // events
             built: function(self) {},
@@ -123,22 +123,12 @@
             }
             h4.append(title);
             if (this.options.time) {
-                // h4.append(' @ '+this.options.time);
-                // <abbr class="timeago" title="2008-07-17T09:24:17Z">July 17, 2008</abbr>
                 var t = $('<time class="e2-localize e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
                 t.localize();
                 h4.append(t);
             }
             
-            // Images
-            var src = 'gears.png';
-            if (this.options.keytype == 'group') {
-                src = 'group.png';
-            } else if (this.options.keytype == 'user') {
-                src = 'nophoto.png';
-            }
-            var img = $(emen2.template.image(src, '', 'e2l-thumbnail'));
-            
+            var img = $(emen2.template.image(this.options.keytype+'.png', '', 'e2l-thumbnail'));            
             if (this.options.keytype == 'user' && item.userrec['person_photo']) {
                 src = ROOT+'/download/'+item.userrec['person_photo']+'/user.jpg?size=thumb';
                 img.attr('src', src);
@@ -147,10 +137,10 @@
                 img.attr('src', src);
             } 
             
-            if (link) {img = $('<a href="'+link+'" target="_blank" />').append(img)}
+            if (link) {img = $('<a href="'+link+'" />').append(img)}
 
             // Widget!!
-            var input = ''
+            var input = '';
             if (this.options.selectable && this.options.input) {
                 var type = this.options.input[0];
                 var name = this.options.input[1];
@@ -160,26 +150,11 @@
                 input.attr('checked', state);
             }
 
-            // Body body
-            var p = $('<div />');
-            p.append(h4);
-            if (this.options.body) {
-                p.append(this.options.body)
-            } else {
-                p.append('<div class="e2l-small">'+body+'</div>');
-            }
-
-
+			var bdy = $('<p/>')
+			bdy.text(body);
+			
             // Put it all together..
-            this.element.append(img, input, p);
-            
-            // I'm undecided on letting the entire element act as a click. Probably not.
-            // this.element.click(function(e) {
-            //     self.toggle(e);
-            //     self.options.selected(self, e);
-            // });
-            
-            // $('time.e2-timeago', this.element).timeago();
+            this.element.append(input, img, h4, bdy);
             this.options.built();
         },
         

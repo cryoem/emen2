@@ -360,13 +360,15 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     border-bottom: dotted 1px <%self:NEUTRAL />;
     width: 50px;
 }
+.e2-edit input[type=text] {
+	width:300px;
+}
+.e2-edit textarea {
+	width:100%;
+	height:200px;
+}
+
 /* Editable items */
-.e2-edit-widget {
-    display:inline-block;
-}
-.e2-edit-containers {
-    list-style: none;
-}
 .e2l-help {
     display:none;
     margin:20px;
@@ -424,39 +426,40 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 
 /***** e2-infobox: Display Infobox *****/
 .e2-infobox {
-    float:left;
+	/*
+	float:left;
     position:relative;
     width:280px;
     margin-right:50px;
-    padding:5px;
-    padding-left:0px;
-    padding-right:0px;
     border-bottom:solid 1px #ddd;
+	*/
+	clear:both;
+	padding:5px;
+	padding-left:0px;
+	padding-right:0px;
 }
-.e2-infobox h4 {
-    margin-top: 0px;
-    margin-bottom: 5px;
+.e2-infobox > h4 {
+	border:none;
+	margin:0px;
+	padding:0px;
     font-weight:normal;
     font-size:12pt;
 }
-.e2-infobox > div {
+.e2-infobox > p {
+	font-size:9pt;
     margin:0px;
-    margin-left: 50px;
+	padding:0px;
 }
-.e2-infobox-input {
+.e2-infobox > input {
     float: left;
-    margin:10px;
-    margin-left:0px;
+	margin-top:8px;
 }
-.e2-infobox img.e2l-thumbnail {
+.e2-infobox > img.e2l-thumbnail {
     float: left;
     height: 32px;
     width: 32px;
     margin-right: 4px;
 }
-.e2-infobox-hover {
-}
-
 .e2-infobox-selected {
     background: <%self:ADDED />;
 }

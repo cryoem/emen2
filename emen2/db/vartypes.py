@@ -136,9 +136,6 @@ class Vartype(object):
     #: Sort using rendered values?
     sort_render = False
 
-    #: The element to use when rendering as HTML
-    elem = 'span'
-
     def __init__(self, pd=None, cache=None, db=None, options=None):
         self.pd = pd
         self.cache = cache
@@ -272,11 +269,15 @@ class Vartype(object):
         return self._html(value)
 
     def render_form(self, value):
-        """Render HTML form. All values MUST be escaped."""
-        return """<%s class="e2-edit" data-name="%s" data-param="%s"></%s>"""%(self.elem, escape(self.options.get('name','')), escape(self.pd.name), self.elem)
-        # if self.pd.iter:
-        #     return self._li_wrap([self._form(i) for i in value])
-        # return self._form(value)
+        if self.pd.iter:
+            elem = self._li_wrap(
+                [self._form(i) for i in (value or [])],
+                hidden=self._form(None),
+                add=self._add()
+                )
+        else:
+            elem = self._form(value)
+        return elem
 
     def _unicode(self, value):
         return unicode(value)
@@ -284,22 +285,27 @@ class Vartype(object):
     def _html(self, value):
         if value is None:
             return ''
-        elem = """<%s class="e2-edit">%s</%s>"""%(
-            self.elem,
-            escape(self._unicode(value)),
-            self.elem
-        )
+        elem = """<span class="e2-edit">%s</span>"""%(escape(self._unicode(value)))
         return elem
         
     def _form(self, value):
-        elem = """<input type="text" name="%s" value="%s" />"""%(
+        if value is None:
+            value = ''
+        elem = """<span class="e2-edit"><input type="text" name="%s" value="%s" /></span>"""%(
             escape(self.pd.name),
-            escape(value)
+            escape(value),
         )
         return elem
 
-    def _li_wrap(self, values):
+    def _add(self):
+        return """<input type="button" value="+" class="e2-edit-add" />"""
+
+    def _li_wrap(self, values, hidden=None, add=None):
         lis = ["""<li>%s</li>"""%value for value in values]
+        if hidden:
+            lis.append("""<li class="e2-edit-template e2l-hide">%s</li>"""%hidden)            
+        if add:
+            lis.append("""<li>%s</li>"""%add)
         return """<ul>%s</ul>"""%"".join(lis)
         
 
@@ -325,9 +331,13 @@ class vt_float(Vartype):
         return '%g %s'%(value, u)
 
     def _form(self, value):    
-        elem = """<input type="text" name="%s" value="%s" />"""%(
+        if value is None:
+            value = ''
+        units = self.pd.defaultunits or ''
+        elem = """<span class="e2-edit"><input type="text" name="%s" value="%s" /> %s</span>"""%(
             escape(self.pd.name),
-            escape(value)
+            escape(value),
+            escape(units)
         )
         return elem
     
@@ -395,13 +405,19 @@ class vt_boolean(Vartype):
 
     def _form(self, value):
         choices = []
-        if value:
-            choices.append("""<option value="True" checked="checked" />""")
-            choices.append("""<option value="False" />""")
+        if value is None:
+            choices.append("""<option value="" checked="checked" />""")
+            choices.append("""<option>True</option>""")
+            choices.append("""<option>False</option>""")
+        elif value:
+            choices.append("""<option value="" />""")
+            choices.append("""<option checked="checked">True</option>""")
+            choices.append("""<option>False</option>""")
         else:
-            choices.append("""<option value="True" />""")
-            choices.append("""<option value="False" checked="checked"  />""")
-        return """<select>%s</select>"""%("".join(choices))
+            choices.append("""<option value="" />""")
+            choices.append("""<option>True</option>""")
+            choices.append("""<option checked="checked" >False</option>""")
+        return """<span class="e2-edit"><select>%s</select></span>"""%("".join(choices))
         return elem
         
 
@@ -429,13 +445,15 @@ class vt_choice(vt_string):
 
     def _form(self, value):
         choices = []
-        for choice in self.pd.choices:
+        if value is None:
+            value = ''
+        for choice in ['']+self.pd.choices:
             if choice == value:
                 elem = """<option value="%s" selected="selected">%s</option>"""%(escape(choice), escape(choice))
             else:
                 elem = """<option value="%s">%s</option>"""%(escape(choice), escape(choice))
             choices.append(elem)
-        return """<select name="%s">%s</select>"""%(
+        return """<span class="e2-edit"><select name="%s">%s</select></span>"""%(
             escape(self.pd.name),
             "".join(choices)
             )
@@ -487,7 +505,6 @@ class vt_text(vt_string):
 
         return addrefs2, delrefs2
 
-
     _reindex_getindexwords_m = re.compile('([a-zA-Z]+)|([0-9][.0-9]+)')
     def _reindex_getindexwords(self, value, ctx=None, txn=None):
         """(Internal) Split up a text param into components"""
@@ -496,7 +513,9 @@ class vt_text(vt_string):
         return set((x[0] or x[1]) for x in self._reindex_getindexwords_m.findall(value))
 
     def _form(self, value):
-        return """<textarea name="%s">%s</textarea>"""%(
+        if value is None:
+            value = ''
+        return """<div class="e2-edit"><textarea name="%s">%s</textarea></div>"""%(
             escape(self.pd.name),
             escape(value)
             )
@@ -511,7 +530,7 @@ import dateutil.tz
 @Vartype.register('datetime')
 class vt_datetime(vt_string):
     """ISO 8601 Date time."""
-    elem = 'time'
+
     def validate(self, value):
         ret = []
         for i in ci(value):
@@ -528,7 +547,7 @@ class vt_datetime(vt_string):
         local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
         return local_time.strftime("%Y-%m-%d %H:%M")
     
-    def _elem(self, value):
+    def _html(self, value):
         tz = self.options.get('tz')
         raw_time = dateutil.parser.parse(value)
         raw_utc = raw_time.astimezone(dateutil.tz.gettz())
@@ -540,17 +559,7 @@ class vt_datetime(vt_string):
             escape(local_time.isoformat()),
             escape(local_time.strftime("%Y-%m-%d %H:%M"))
             )
-        return elem
-
-    def render_html(self, value):
-        """Render HTML formatted values. All values MUST be escaped."""
-        if value is None:
-            return ''
-        if self.pd.iter:
-            lis = ["<li>%s</li>"%self._elem(i)]
-            return "<ul>%s</ul>"%"".join(lis)
-        return self._elem(value)
-        
+        return elem        
 
 @Vartype.register('date')
 class vt_date(vt_datetime):
@@ -641,6 +650,49 @@ class vt_binary(Vartype):
         except (ValueError, TypeError), e:
             return 'Error getting binary: %s'%value
 
+    def _add(self):
+        label = "Change"
+        multiple = ""
+        if self.pd.iter:
+            label = "Add attachments"
+            multiple = """multiple="multiple" """
+        elem = """%s <input type="file" name="%s" %s />"""%(
+            escape(label),
+            escape(self.pd.name),
+            multiple
+            )
+        return elem
+
+    def _form(self, value):
+        if value is None:
+            return ""
+
+        bdo = self.db.binary.get(value)
+
+        src = "/download/%s/thumb.jpg?size=thumb"%(bdo.name)
+        
+        elem = """
+            <div class="e2-infobox" data-name="%s" data-keytype="user">
+                <input type="checkbox" name="%s" value="%s" checked="checked" />
+                <img src="%s" class="e2l-thumbnail" alt="Photo" />
+                <h4>%s</h4>
+                <p class="e2l-small">%s</p>                
+            </div>
+            """%(
+                escape(value),
+                escape(self.pd.name),
+                escape(value),
+                escape(src),
+                escape(bdo.filename),
+                escape(bdo.filesize)
+            )
+        
+        # Show a 'Change' button...
+        if not self.pd.iter:
+            elem += self._add()
+            
+        return """<div class="e2-edit">%s</div>"""%elem
+
 
 
 # md5 checksum
@@ -696,12 +748,52 @@ class vt_user(Vartype):
             return user.getdisplayname(lnf=self.options.get('lnf'))
         return value
 
-    def _form(self, value):
-        elem = """<input type="checkbox" checked="checked" name="%s"/> %s"""%(
+    def _add(self):
+        label = "Change"
+        iter_ = ""
+        if self.pd.iter:
+            label = "+"
+            iter_ = "true"
+        elem = """<input type="button" value="%s" class="e2-edit-add-find" data-keytype="user" data-param="%s" data-iter="%s"/>"""%(
+            escape(label),
             escape(self.pd.name),
-            escape(self._unicode(value))
-        )
+            escape(iter_)
+            )
         return elem
+
+    def _form(self, value):
+        if value is None:
+            return ""
+
+        update_user_cache(self.cache, self.db, [value])
+        key = self.cache.get_cache_key('user', value)
+        hit, user = self.cache.check_cache(key)
+
+        src = "/static/images/user.png"
+        if user.userrec.get('person_photo'):
+            src = "/download/%s/user.jpg?size=thumb"%(user.userrec.get('person_photo'))
+
+        elem = """
+            <div class="e2-infobox" data-name="%s" data-keytype="user">
+                <input type="checkbox" name="%s" value="%s" checked="checked" />
+                <img src="%s" class="e2l-thumbnail" alt="Photo" />
+                <h4>%s</h4>
+                <p class="e2l-small">%s</p>                
+            </div>
+            """%(
+                escape(value),
+                escape(self.pd.name),
+                escape(value),
+                escape(src),
+                escape(user.getdisplayname()),
+                escape(user.email)
+            )
+        
+        # Show a 'Change' button...
+        if not self.pd.iter:
+            elem += self._add()
+            
+        return """<div class="e2-edit">%s</div>"""%elem
         
 
 @Vartype.register('acl')
@@ -733,32 +825,12 @@ class vt_acl(Vartype):
         self._validate_reference(users, keytype='user')
         return value
 
-
-    # def render_unicode(self, value):
-    #     if not value:
-    #         return ''
-    #     allusers = reduce(lambda x,y:x+y, value)
-    #     unames = {}
-    #     for user in self.db.user.get(allusers):
-    #         unames[user.name] = user.displayname
-    # 
-    #     levels = ["Read","Comment","Write","Owner"]
-    #     ret = []
-    #     for level, names in zip(levels, value):
-    #         namesr = [unames.get(i,"(%s)"%i) for i in names]
-    #         if namesr:
-    #             ret.append("%s: %s"%(level, ", ".join(namesr)))
-    #     return ', '.join(ret)
-
-
     def reindex(self, items):
         """(Internal) Calculate secrindex updates"""
         # Calculating security updates...
         addrefs = collections.defaultdict(list)
         delrefs = collections.defaultdict(list)
         for name, new, old in items:
-            #nperms = set(reduce(operator.concat, new or [], []))
-            #operms = set(reduce(operator.concat, old or [], []))
             nperms = set()
             for i in new or []:
                 nperms |= set(i)
@@ -796,6 +868,23 @@ class vt_comments(Vartype):
     # ian: todo... sort this out.
     def validate(self, value):
         return value
+      
+    def _html(self, value):
+        user, dt, comment = value
+        update_user_cache(self.cache, self.db, [user])
+        key = self.cache.get_cache_key('user', user)
+        hit, user = self.cache.check_cache(key)
+        elem = """%s said on <time class="e2-localize" datetime="%s">%s</time>: %s"""%(
+                escape(user.getdisplayname()),
+                escape(dt),
+                escape(dt),
+                escape(comment)
+            )
+        return elem   
+
+    def render_form(self, value):
+        return """<div class="e2-edit"><textarea placeholder="Add additional comments"></textarea></div>"""
+
 
 
 @Vartype.register('history')

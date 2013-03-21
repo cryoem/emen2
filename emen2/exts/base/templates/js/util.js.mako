@@ -420,7 +420,6 @@ emen2.util.set_remove = function(i, l) {
             emen2.db("record.render", {'names':name, 'viewname': viewname, 'edit': edit}, function(view) {
                 elem.html(view);
                 $('time', elem).localize();
-                //$('.e2-edit', elem).EditControl({});
             },
             function(view){}
             );
