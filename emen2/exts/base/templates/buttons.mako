@@ -84,26 +84,31 @@
     item = item or dict()    
     if autolink:
         link = '%s/%s/%s/'%(ROOT, item.get('keytype'), item.get('name'))
-    src = "%s/static/images/%s.png"%(ROOT, keytype)
+    src = "%s/static/images/%s.png"%(ROOT, item.get('keytype'))
     title = title or item.get('desc_short') or item.get('name')
     body = ''
-        
+    
     if item.get('keytype') == 'user':
-        title = item.get('displayname') or item.get('name')
+        title = title or item.get('displayname') or item.get('name')
         body = body or item.get('email')
         photo = item.get('userrec', dict()).get('person_photo')
         if photo:
             src = "%s/download/%s/user.jpg?size=thumb"%(ROOT, photo)
+
     elif item.get('keytype') == 'group':
-        title = item.get('displayname')
+        title = title or item.get('displayname') or item.get('name')
         body = body or '%s members'%sum([len(i) for i in item.get('permissions',[])])
         if item.get('name') == 'authenticated':
             body = "All logged in users"
-        elif item.get('name') == 'anonymous':
+        elif item.get('name') == 'anon':
             body = "Public access"
+
     elif item.get('keytype') == 'paramdef':
-        body = '%s (%s)'%(item.name, item.vartype)
+        body = 'Data type: %s'%(item.vartype)
+        if item.get('iter'):
+            body += ' iterable'
     %>
+	
     <div class="e2-infobox" data-name="${item.get('name')}" data-keytype="${item.get('keytype')}">
 
         % if link:

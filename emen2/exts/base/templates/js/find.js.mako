@@ -5,8 +5,8 @@
             name: null,
             keytype: null,
             time: null,
-            title: null,
-            body: null,
+            title: '',
+            body: '',
             autolink: false,
             selectable: false,
             retry: true,
@@ -50,96 +50,106 @@
                 this.retry += 1;
                 // console.log("Trying to get:", this.options.keytype, this.options.name);
                 emen2.db('get', {
-                    keytype: this.options.keytype,
-                    names: this.options.name
-                }, function(item) {
-                    if (!item) {return}
-                    emen2.caches[item.keytype][item.name] = item;
-                    self._build();
-                });
+                		keytype: this.options.keytype,
+						names: this.options.name
+              	  	}, 
+					function(item) {
+						if (!item) {return}
+						emen2.caches[item.keytype][item.name] = item;
+						self._build();
+					}
+				);
                 return
             }
-            
             this._build();
-            
         }, 
+		
+		_build_user: function(item) {
+            this.options.title = this.options.title || item.displayname || item.name;
+            this.options.body = this.options.body || item.email;
+            if (item['person_photo']) {
+				this.options.thumbnail = ROOT+'/download/'+item.userrec['person_photo']+'/user.jpg?size=thumb';
+			}
+		},
+		
+		_build_recorddef: function(item) {
+			this.options.title = this.options.title || item.desc_short;
+		},
         
+		_build_group: function(item) {
+            this.options.title = this.options.title || item.displayname || item.name;
+            var count = 0;
+            for (var i=0;i<item['permissions'].length;i++) {
+                count += item['permissions'][i].length;
+            }
+            var body = count+' members';
+            if (item.name == 'authenticated') {
+                body = 'All logged in users';
+            } else if (item.name == 'anon') {
+                body = 'Public access';
+            }
+			this.options.body = this.options.title || body;
+		},
+		
+		_build_record: function(item) {
+            var recname = emen2.caches['recnames'][item.name];
+            this.options.title = $.trim(recname || item.rectype);
+            this.options.body = 'Created: '+$.localize(new Date(item.creationtime));
+            this.element.attr('data-rectype', item.rectype);		
+		},
+		
+		_build_binary: function(item) {
+            var title = item.filename;
+            if (item.filesize) {
+                title = title+' ('+emen2.template.prettybytes(item.filesize)+')';
+            }
+			this.options.title = title;
+			this.options.body = 'Uploaded on '+$.localize(new Date(item.creationtime));
+            this.options.thumbnail = ROOT+'/download/'+item.name+'/user.jpg?size=thumb';
+			this.options.link = ROOT+'/download/'+item.name+'/'+item.filename;
+		},
+
         _build: function() {
             var self = this;
-            var item = emen2.caches[this.options.keytype][this.options.name];
-            
-            // ian: todo: This could be refactored somewhat
-            var title = '';
-            var body = '';
-            if (this.options.keytype == 'user') {
-                title = $.trim(this.options.title || item.displayname) || item.name;
-                body = item.email;
-            } else if (this.options.keytype == 'group') {
-                title = $.trim(item.displayname) || item.name;
-                var count = 0;
-                for (var i=0;i<item['permissions'].length;i++) {
-                    count += item['permissions'][i].length;
-                }
-                body = count+' members';
-                if (item.name == 'authenticated') {
-                    body = 'All logged in users';
-                } else if (item.name == 'anon') {
-                    body = 'Public access';
-                }
-            } else if (this.options.keytype == 'record') {
-                var recname = emen2.caches['recnames'][item.name];
-                title = $.trim(recname || item.rectype);
-                body = item.rectype+', '+item.name+', created: '+$.localize(new Date(item.creationtime));
-                this.element.attr('data-rectype', item.rectype);
-            } else if (this.options.keytype == 'binary') {
-                title = item.filename;
-                if (item.filesize) {
-                    title = title+' ('+emen2.template.prettybytes(item.filesize)+')';
-                }
-                var user = item.creator;
-                body = 'Created by '+user+' on '+$.localize(new Date(item.creationtime));
-            } else {
-                title = $.trim(item.desc_short) || item.name;
-                body = '<em>'+item.name+'</em>';
-            }
-            
-            // Create the link
-            var link = '';
-            if (this.options.autolink) {
-                var link = ROOT+'/'+this.options.keytype+'/'+this.options.name+'/';
-            } else if (this.options.keytype == 'binary') {
-                var link = ROOT+'/download/'+item.name+'/'+item.filename;
-            }
+			var item = emen2.caches[this.options.keytype][this.options.name];
+
+			// Run the builder
+			this['_build_'+this.options.keytype](item);
             
             // Set the box properties
             this.element.addClass('e2-infobox');
             this.element.attr('data-name', this.options.name);
             this.element.attr('data-keytype', this.options.keytype);
 
+            // Default link
+            if (this.options.autolink) {
+                this.options.link = ROOT+'/'+this.options.keytype+'/'+this.options.name+'/';
+            }
+			
+			// Default thumbnail
+            var img = $(emen2.template.image(this.options.keytype+'.png', '', 'e2l-thumbnail'));            
+			if (this.options.thumbnail) {
+				img.attr('src', this.options.thumbnail);
+			}
+
+			// Are we linking?
+            if (this.options.link) {
+				img = $('<a href="'+this.options.link+'" />').append(img)
+                this.options.title = '<a href="'+this.link+'">'+this.options.title+'</a>';
+			}
+
             // Box title
             var h4 = $('<h4 />');
-            if (link) {
-                title = '<a href="'+link+'">'+title+'</a>';
-            }
-            h4.append(title);
+            h4.append(this.options.title);
+			
+			// Time
             if (this.options.time) {
                 var t = $('<time class="e2-localize e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
                 t.localize();
                 h4.append(t);
             }
             
-            var img = $(emen2.template.image(this.options.keytype+'.png', '', 'e2l-thumbnail'));            
-            if (this.options.keytype == 'user' && item.userrec['person_photo']) {
-                src = ROOT+'/download/'+item.userrec['person_photo']+'/user.jpg?size=thumb';
-                img.attr('src', src);
-            } else if (this.options.keytype == 'binary') {
-                src = ROOT+'/download/'+item.name+'/user.jpg?size=thumb';
-                img.attr('src', src);
-            } 
-            
-            if (link) {img = $('<a href="'+link+'" />').append(img)}
-
-            // Widget!!
+            // Widget!! Refactor this.
             var input = '';
             if (this.options.selectable && this.options.input) {
                 var type = this.options.input[0];
@@ -150,8 +160,7 @@
                 input.attr('checked', state);
             }
 
-			var bdy = $('<p/>')
-			bdy.text(body);
+			var bdy = $('<p/>').html(this.options.body);
 			
             // Put it all together..
             this.element.append(input, img, h4, bdy);
@@ -166,13 +175,7 @@
             } else {
                 input.attr('checked','checked');        
             }
-        },
-        
-        check: function() {
-            var input = $('input', this.element);
-            input.attr('checked','checked');        
         }
-        
     });
     
     // Search for users, groups, parameters, etc..
@@ -199,15 +202,7 @@
         _create: function() {
             this.built = 0;
             var self=this;
-            
-            this.options.keytype = emen2.util.checkopt(this, 'keytype');
-            this.options.vartype = emen2.util.checkopt(this, 'vartype');
-            this.options.modal = emen2.util.checkopt(this, 'modal');
-            this.options.minimum = emen2.util.checkopt(this, 'minimum');
-            this.options.value = emen2.util.checkopt(this, 'value');
-            this.options.target = emen2.util.checkopt(this, 'target');
-            
-
+			emen2.util.checkopts(this, ['keytype', 'vartype', 'modal', 'minimum', 'value', 'target']);
             this.element.click(function(e){self.show(e)});
             if (this.options.show) {
                 this.show();

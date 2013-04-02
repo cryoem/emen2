@@ -454,7 +454,7 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     float: left;
 	margin-top:8px;
 }
-.e2-infobox > img.e2l-thumbnail {
+.e2-infobox img.e2l-thumbnail {
     float: left;
     height: 32px;
     width: 32px;
@@ -912,6 +912,7 @@ table p {
 }
 
 
+ 
 
 
 <%!

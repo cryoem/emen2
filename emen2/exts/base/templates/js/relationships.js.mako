@@ -3,7 +3,7 @@
     $.widget('emen2.RelationshipControl', {
         options: {
             name: null,
-            keytype: null,
+            keytype: 'record',
             edit: null,
             show: true,
             summary: false,
@@ -14,10 +14,7 @@
         _create: function() {
             this.built = 0;
             var self = this;
-            this.options.name = emen2.util.checkopt(this, 'name');
-            this.options.keytype = emen2.util.checkopt(this, 'keytype', 'record');
-            this.options.edit = emen2.util.checkopt(this, 'edit')
-            this.options.summary = emen2.util.checkopt(this, 'summary')
+			emen2.util.checkopts(this, ['name', 'keytype', 'edit', 'summary']);
             if (this.options.show) {this.show()}            
         },
         
@@ -54,7 +51,7 @@
                 
                 // 2a. Records need a second callback for pretty rendered text
                 if (self.options.keytype == 'record') {
-                    emen2.db('record.render', [found], function(recnames) {
+                    emen2.db('view', [found], function(recnames) {
                         $.each(recnames, function(k,v) {emen2.caches['recnames'][k] = v})
                         self._build();
                     });
@@ -287,7 +284,7 @@
     $.widget('emen2.TreeBrowseControl', {
         options: {
             root: null,
-            keytype: null,
+            keytype: 'record',
             embed: false,
             // events
             selected: function(self, name) {},
@@ -297,10 +294,7 @@
         _create: function() {
             var self = this;
             this.built = 0;
-
-            this.options.mode = emen2.util.checkopt(this, 'mode');
-            this.options.root = emen2.util.checkopt(this, 'root');
-            this.options.keytype = emen2.util.checkopt(this, 'keytype', 'record');
+			emen2.util.checkopts(this, ['mode', 'root', 'keytype']);
     
             this.element.click(function(e){self.show(e)});
             if (this.options.show) {
@@ -423,8 +417,8 @@
     $.widget("emen2.TreeControl", {        
         options: {
             root: null,
-            keytype: null,
-            mode: null,
+            keytype: 'record',
+            mode: 'children',
             expandable: true,
             show: false,
             attach: false,
@@ -442,9 +436,7 @@
             this.state = {};
             
             // Get options from data- attributes
-            this.options.mode = emen2.util.checkopt(this, 'mode', 'children');
-            this.options.root = emen2.util.checkopt(this, 'root');
-            this.options.keytype = emen2.util.checkopt(this, 'keytype', 'record');
+			emen2.util.checkopts(this, ['children', 'root', 'keytype']);
 
             this.element.addClass('e2-tree-'+this.options.mode);            
             if (this.options.attach) {
@@ -643,7 +635,7 @@
                 if (self.options.keytype == 'record') {
                     // For records, we also want to render the names..
                     var found = $.map(items, function(k){return k.name});
-                    emen2.db('record.render', [found], function(recnames) {
+                    emen2.db('view', [found], function(recnames) {
                         $.each(recnames, function(k,v) {emen2.caches['recnames'][k]=v});
                         cb();
                     });

@@ -1689,8 +1689,17 @@ class DB(object):
         options = options or {}
         ret = {}
         views = collections.defaultdict(set)
-        recs = self.get(names, keytype=keytype, ctx=ctx, txn=txn)
 
+        # Get Record instances from names argument.
+        names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
+        names.extend(other)
+        recs.extend(self.dbenv["record"].cgets(names, ctx=ctx, txn=txn))
+        for newrec in newrecs:
+            rec = self.dbenv["record"].new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
+            rec.update(newrec)
+            recs.append(rec)
+
+        
         if view:
             views[view] = recs
         else:

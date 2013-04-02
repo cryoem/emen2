@@ -285,13 +285,14 @@ class Vartype(object):
     def _html(self, value):
         if value is None:
             return ''
-        elem = """<span class="e2-edit">%s</span>"""%(escape(self._unicode(value)))
+        elem = """<span class="e2-edit" data-paramdef="%s">%s</span>"""%(escape(self.pd.name), escape(self._unicode(value)))
         return elem
         
     def _form(self, value):
         if value is None:
             value = ''
-        elem = """<span class="e2-edit"><input type="text" name="%s" value="%s" /></span>"""%(
+        elem = """<span class="e2-edit" data-paramdef="%s"><input type="text" name="%s" value="%s" /></span>"""%(
+            escape(self.pd.name),
             escape(self.pd.name),
             escape(value),
         )
@@ -334,7 +335,8 @@ class vt_float(Vartype):
         if value is None:
             value = ''
         units = self.pd.defaultunits or ''
-        elem = """<span class="e2-edit"><input type="text" name="%s" value="%s" /> %s</span>"""%(
+        elem = """<span class="e2-edit" data-paramdef="%s"><input type="text" name="%s" value="%s" /> %s</span>"""%(
+            escape(self.pd.name),
             escape(self.pd.name),
             escape(value),
             escape(units)
@@ -417,7 +419,7 @@ class vt_boolean(Vartype):
             choices.append("""<option value="" />""")
             choices.append("""<option>True</option>""")
             choices.append("""<option checked="checked" >False</option>""")
-        return """<span class="e2-edit"><select>%s</select></span>"""%("".join(choices))
+        return """<span class="e2-edit" data-paramdef="%s"><select>%s</select></span>"""%(escape(self.pd.name), "".join(choices))
         return elem
         
 
@@ -453,7 +455,8 @@ class vt_choice(vt_string):
             else:
                 elem = """<option value="%s">%s</option>"""%(escape(choice), escape(choice))
             choices.append(elem)
-        return """<span class="e2-edit"><select name="%s">%s</select></span>"""%(
+        return """<span class="e2-edit" data-paramdef="%s"><select name="%s">%s</select></span>"""%(
+            escape(self.pd.name),
             escape(self.pd.name),
             "".join(choices)
             )
@@ -515,7 +518,8 @@ class vt_text(vt_string):
     def _form(self, value):
         if value is None:
             value = ''
-        return """<div class="e2-edit"><textarea name="%s">%s</textarea></div>"""%(
+        return """<div class="e2-edit" data-paramdef="%s"><textarea name="%s">%s</textarea></div>"""%(
+            escape(self.pd.name),
             escape(self.pd.name),
             escape(value)
             )
@@ -552,7 +556,8 @@ class vt_datetime(vt_string):
         raw_time = dateutil.parser.parse(value)
         raw_utc = raw_time.astimezone(dateutil.tz.gettz())
         local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
-        elem = """<time class="e2-edit" datetime="%s" title="Raw value: %s \nUTC time: %s \nLocal time: %s">%s</time>"""%(
+        elem = """<time class="e2-edit" data-paramdef="%s" datetime="%s" title="Raw value: %s \nUTC time: %s \nLocal time: %s">%s</time>"""%(
+            escape(self.pd.name),
             escape(raw_time.isoformat()),
             escape(value),
             escape(raw_utc.isoformat()),
@@ -691,7 +696,7 @@ class vt_binary(Vartype):
         if not self.pd.iter:
             elem += self._add()
             
-        return """<div class="e2-edit">%s</div>"""%elem
+        return """<div class="e2-edit" %s>%s</div>"""%(escape(self.pd.name), elem)
 
 
 
@@ -793,7 +798,7 @@ class vt_user(Vartype):
         if not self.pd.iter:
             elem += self._add()
             
-        return """<div class="e2-edit">%s</div>"""%elem
+        return """<div class="e2-edit" data-paramdef="%s">%s</div>"""%(escape(self.pd.name), elem)
         
 
 @Vartype.register('acl')
@@ -883,7 +888,7 @@ class vt_comments(Vartype):
         return elem   
 
     def render_form(self, value):
-        return """<div class="e2-edit"><textarea placeholder="Add additional comments"></textarea></div>"""
+        return """<div class="e2-edit" data-paramdef="%s"><textarea placeholder="Add additional comments"></textarea></div>"""%(escape(self.pd.name))
 
 
 

@@ -18,7 +18,6 @@
             $('input[name=bids]', this.element).click(function() {
                 self.updatefilesize();
             });
-
             this.updatefilesizes();
             this.updatefilesize();
         },

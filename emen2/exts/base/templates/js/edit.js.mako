@@ -14,15 +14,9 @@
         },
         
         _create: function() {
-            // Todo: If self.options.rectype is null, 
-            //        show the NewRecordChooserControl
-            //        based on the parent
             var self = this;
             this.built = 0;
-            this.options.rectype = emen2.util.checkopt(this, 'rectype');
-            this.options.parent = emen2.util.checkopt(this, 'parent');
-            this.options.name = emen2.util.checkopt(this, 'name');
-            this.options.redirect = emen2.util.checkopt(this, 'redirect');
+			emen2.util.checkopts(this, ['rectype', 'parent', 'name', 'redirect']);
             if (this.options.name != null) {
                 this.options.mode = 'edit';
             }
@@ -89,9 +83,8 @@
             emen2.db('recorddef.get', [[self.options.rectype]], function(rds) {
                 emen2.cache.update(rds);
                 emen2.db('record.new', {'rectype':self.options.rectype, 'inherit':[self.options.parent]}, function(rec) {
-                    // console.log("New record:", rec);
                     emen2.caches['record']['None'] = rec;
-                    emen2.db('record.render', {'names':rec, 'viewname':'mainview', 'edit':true}, function(rendered) {
+                    emen2.db('view', {'names':rec, 'viewname':'mainview', 'options':{'output':'form', 'markdown':true}}, function(rendered) {
                         self._build(rendered);
                     });                
                 });
@@ -105,7 +98,7 @@
                 self.options.rectype = rec['rectype']
                 emen2.db('recorddef.get', [rec['rectype']], function(rds) {
                     emen2.cache.update([rds]);
-                    emen2.db('view', {'names':self.options.name, 'viewname':'mainview'}, function(rendered) {
+                    emen2.db('view', {'names':self.options.name, 'viewname':'mainview', 'options':{'output':'form', 'markdown':true}}, function(rendered) {
                         self._build(rendered);
                     });                
                 });            
@@ -177,11 +170,7 @@
         
         _create: function() {
             this.built = 0;
-            this.options.rectype = emen2.util.checkopt(this, 'rectype');
-            this.options.parent = emen2.util.checkopt(this, 'parent');
-            this.options.private = emen2.util.checkopt(this, 'private');
-            this.options.copy = emen2.util.checkopt(this, 'copy');
-            
+			emen2.util.checkopts(this, ['rectype', 'parent', 'private', 'copy']);
             if (this.options.show) {
                 this.show();
             }
@@ -282,31 +271,12 @@
                 var box = $('<div/>').InfoBox({
                     keytype: 'recorddef',
                     name: this,
-                    selected: function(self, e) {
-                        // console.log(e);
-                    }
+                    selected: function(self, e) {}
                 });
                 box.click(function(){self.build_dialog($(this).attr('data-name'))});
                 boxes.append(box);
             });
             return $('<div/>').append(header, boxes);
-        },
-        
-        add: function(level, name) {
-            var selector = 'div[data-level='+level+']';
-            var boxes = $(selector, this.element);
-            if (!boxes.length) {
-                this.element.prepend(this.build_level('Other protocols', level, []));
-                var boxes = $(selector, this.element);
-            }
-            var box = $('<div/>').InfoBox({
-                keytype: 'recorddef',
-                selectable: true,                        
-                name: name,
-                input: ['radio', 'rectype']
-            });
-            box.InfoBox('check');
-            boxes.append(box);
         }
     });
 	
@@ -481,7 +451,7 @@
                     });
                     self.element.append(d);
                 });
-            })
+            });
 
             if (this.options.edit && this.options.controls) {
                 var controls = $(' \
@@ -515,7 +485,6 @@
             var self = this;
             emen2.db('record.addcomment', [this.options.name, $('textarea[name=comment]', this.options.controls).val()], function(rec) {
                 $.record_update(rec)
-                $.notify('Comment Added');
             });
         }
     });    	

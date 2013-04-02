@@ -68,9 +68,7 @@ ${recent_activity_table}
         <a href="${ctxt.root}/record/${group.name}/" id="groups-${group.name}">
         	${recnames.get(group.name, group.name)}
 		</a>
-			% if ADMIN:
-            	<a class="e2l-hact e2-button e2-record-new" href="${ctxt.root}/record/${group.name}/new/project/" data-parent="${group.name}" data-rectype="project">${buttons.image('new.png')} New project</a>
-			% endif
+        	<a class="e2l-hact e2-button e2-record-new" href="${ctxt.root}/record/${group.name}/new/project/" data-parent="${group.name}" data-rectype="project">${buttons.image('new.png')} New project</a>
             <a class="e2l-hact e2-button" href="${ctxt.root}/record/${group.name}/children/project/">View projects in table</a>
     </h1>
     

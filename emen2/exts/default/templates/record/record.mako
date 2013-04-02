@@ -341,7 +341,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 				<ul class="e2l-controls e2l-fw"> \
 	                <li>
 						<a class="e2l-float-left e2l-small" href="${ctxt.root}/record/${rec.name}/hide/">(Hide this record?)</a>
-						<input type="submit" class="e2-edit-save e2l-float-right" value="Save" />
+						<input type="submit" class="e2l-float-right" value="Save" />
 					</li>
 	            </ul>
 			</p>

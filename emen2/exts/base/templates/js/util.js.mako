@@ -307,13 +307,17 @@ emen2.util = {};
 // this.element.attr('data-'+key)
 // This includes a check so that record ID = 0 works
 emen2.util.checkopt = function(self, key, dfault) {
-    var specified = self.element.attr('data-'+key)
-    var value = self.options[key];
-    if (value == 0) {
-        return value
-    }
-    value = specified || value || dfault;
-    return value
+    var specified = self.element.attr('data-'+key);	
+	if (specified == undefined) {
+		return self.options[key];
+	}
+	return specified
+};
+
+emen2.util.checkopts = function(self, keys) {
+	for (var i=0;i<keys.length;i++) {
+		self.options[keys[i]] = emen2.util.checkopt(self, keys[i]);
+	};
 };
 
 // Sort a dict's keys based on integer values
@@ -417,7 +421,7 @@ emen2.util.set_remove = function(i, l) {
             var name = elem.attr('data-name');
             var viewname = elem.attr('data-viewname');
             var edit = elem.attr('data-edit');
-            emen2.db("record.render", {'names':name, 'viewname': viewname, 'edit': edit}, function(view) {
+            emen2.db("view", {'names':name, 'viewname': viewname, 'edit': edit}, function(view) {
                 elem.html(view);
                 $('time', elem).localize();
             },
@@ -502,7 +506,7 @@ emen2.util.set_remove = function(i, l) {
         
         _create: function() {
             this.built = 0;
-            this.options.tabgroup = emen2.util.checkopt(this, 'tabgroup');
+			emen2.util.checkopts(this, ['tabgroup']);
             this.tablist = this.element.children('ul');
             this.tabpanel = this.element;
             var tablist = $('[data-tabgroup='+this.options.tabgroup+'][role=tablist]');
@@ -617,9 +621,7 @@ emen2.util.set_remove = function(i, l) {
         },
                 
         _create: function() {
-            this.options.parent = emen2.util.checkopt(this, 'parent');
-            this.options.mode = emen2.util.checkopt(this, 'mode');
-            this.options.name = emen2.util.checkopt(this, 'name');
+			emen2.util.checkopts(this, ['parent', 'mode', 'name']);
             this.built_bookmarks = 0;
             var self = this;
             if (this.options.mode) {
@@ -646,7 +648,7 @@ emen2.util.set_remove = function(i, l) {
                     if (rec != null) {
                         var brecs = rec['bookmarks'] || [];
                     }
-                    emen2.db('record.render', [brecs], function(recnames) {
+                    emen2.db('view', [brecs], function(recnames) {
                         $.each(recnames, function(k,v) {
                             emen2.caches['recnames'][k] = v;
                         });
@@ -746,10 +748,7 @@ emen2.util.set_remove = function(i, l) {
         
         _create: function() {
             var self = this;
-            this.options.name = emen2.util.checkopt(this, 'name');
-            this.options.sibling = emen2.util.checkopt(this, 'sibling');
-            this.options.prev = emen2.util.checkopt(this, 'prev');
-            this.options.next = emen2.util.checkopt(this, 'next');
+			emen2.util.checkopts(this, ['name','sibling', 'prev', 'next']);
             this.build();
         },
         
@@ -761,7 +760,7 @@ emen2.util.set_remove = function(i, l) {
             this.element.empty();
             this.element.append(sibs);
             emen2.db("rel.siblings", [rec.name, rec.rectype], function(siblings) {
-                emen2.db("record.render", [siblings], function(recnames) {
+                emen2.db("view", [siblings], function(recnames) {
                     siblings = siblings.sort(function(a,b){return a-b});
                     $.each(recnames, function(k,v) {
                         emen2.caches['recnames'][k] = v;
@@ -809,8 +808,7 @@ emen2.util.set_remove = function(i, l) {
 
         _create: function() {
             var self = this;
-            this.options.max = emen2.util.checkopt(this, 'max');
-            
+			emen2.util.checkopts(this, ['min', 'max']);
             this.wc = $('<div class="e2-wordcount-count"></div>');
             this.element.after(this.wc);
             self.update();

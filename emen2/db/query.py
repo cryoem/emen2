@@ -402,7 +402,7 @@ class Query(object):
             # Users need to be rendered... ugly hack.
             if pd.vartype == 'user':
                 for i in result:
-                    vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self.ctx.db, cache=self.ctx.cache)
+                    vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self.ctx.db, cache=self.ctx.cache, options={'lnf':1})
                     sortvalues[i] = vartype.render(sortvalues[i])
                     self._checktime()
 
