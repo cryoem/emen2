@@ -38,8 +38,8 @@
                 % if header:
                     <thead>
                         <tr>
-                            % for key in q['table']['headers']:
-                                <th><div data-name="${key}">${key}</div></th>
+                            % for key in q['keys']:
+                                <th><div data-name="${key}">${q['keys_desc'].get(key, key)}</div></th>
                             % endfor
                         </tr>
                     </thead>
@@ -53,9 +53,9 @@
 
                     % for name in q['names']:
                         <tr>                                        
-                        % for key in q['table']['headers']:
+                        % for key in q['keys']:
                             <td>
-								<a href="${ctxt.root}/record/${name}/">${q['table'][name].get(key)}</a>
+								<a href="${ctxt.root}/record/${name}/">${q['rendered'][name].get(key)}</a>
 							</td>
                         % endfor
                         </tr>

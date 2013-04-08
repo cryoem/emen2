@@ -9,28 +9,18 @@
             "==": "is",
             "!=": "not"                
         }
-        var output = [];
-        
+        var output = [];        
         $.each(q['c'], function() {
             output.push(encodeURIComponent(this[0])+'.'+(comparators_lookup[this[1]] || this[1])+'.'+encodeURIComponent(this[2]));
         });
-        delete q['c'];
-
         if (postpend) {
-            output.push(postpend);
+            output.push(encodeURIComponent(postpend));
         }
-
-        // remove some default arguments..
-        // if (q['ignorecase'] == 1){
+        delete q['c'];
         delete q['ignorecase'];
-        // }
-        // if (q['boolmode'] == 'AND') {
         delete q['boolmode'];
-        // }
-        qs = '?' + $.param(q);
-        return ROOT + '/query/' + output.join("/") + '/' + qs;
+        return ROOT + '/query/' + output.join("/") + '/?' + $.param(q);
     }
-
 
     $.widget('emen2.QueryStatsControl', {
         options: {
@@ -72,7 +62,9 @@
                 if (emen2.caches['recorddef'][k]) {
                     name = emen2.caches['recorddef'][k].desc_short
                 }
-                var row = $('<tr><td>'+name+'</td><td>'+v+'</td></tr>');
+                var row = $('<tr/>');
+                row.append($('<td />').text(name));
+                row.append($('<td />').text(v));
                 table.append(row);
             });
             d.append(table);
@@ -143,67 +135,48 @@
             this.built = 1;
             this.container = $('<div class="e2l-cf" />');
             var m = $(' \
-            <h2>Query constraints</h2> \
-            <ul class="e2l-nonlist e2-query-base e2-query-constraints"> \
-                <li class="e2-query-constraint"> \
-                    <strong class="e2-query-label">Protocol:</strong> \
-                    <input type="hidden" name="param" value="rectype" /> \
-                    <input type="hidden" name="cmp" value="is" /> \
-                    <input type="text" name="value" id="e2-query-find-protocol" placeholder="Select protocol"/> \
-                    <img class="e2-query-find" data-keytype="recorddef" data-target="e2-query-find-protocol" src="'+ROOT+'/static/images/query.png" /> \
-                    <input type="checkbox" name="recurse_v" id="e2-query-id-rectype"/><label for="e2-query-id-rectype">Include child protocols</label> \
-                </li> \
-                <li class="e2-query-constraint"> \
-                    <strong class="e2-query-label">Creator:</strong> \
-                    <input type="hidden" name="param" value="creator" /> \
-                    <input type="hidden" name="cmp" value="is" /> \
-                    <input type="text" name="value" id="e2-query-find-user" placeholder="Select user" /> \
-                    <img class="e2-query-find" data-keytype="user" data-target="e2-query-find-user" src="'+ROOT+'/static/images/query.png" /> \
-                </li> \
-                <li class="e2-query-constraint"> \
-                    <strong class="e2-query-label">Child of:</strong> \
-                    <input type="hidden" name="param" value="children" /> \
-                    <input type="hidden" name="cmp" value="name" /> \
-                    <input type="text" name="value" id="e2-query-find-record" placeholder="Select record"/> \
-                    <img class="e2-query-tree" data-keytype="record" data-target="e2-query-find-record" src="'+ROOT+'/static/images/query.png" /> \
-                    <input type="checkbox" name="recurse_v" id="e2-query-paramid-children" /><label for="e2-query-paramid-children">Recursive</label> \
-                </li> \
-                <li> \
-                    <strong class="e2-query-label">Created:</strong> \
-                    <span  class="e2-query-constraint"> \
-                        <input type="hidden" name="param" value="creationtime" /> \
-                        <input type="hidden" name="cmp" value=">=" /> \
-                        <input type="text" name="value" placeholder="Start date" /> \
-                    </span>&nbsp;&nbsp;&nbsp;to&nbsp;&nbsp;&nbsp;<span class="e2-query-constraint"> \
-                        <input type="hidden" name="param" value="creationtime" /> \
-                        <input type="hidden" name="cmp" value="<=" /> \
-                        <input type="text" name="value" placeholder="end date" /> \
-                    </span> \
-                </li> \
-            </ul> \
-            <ul class="e2l-nonlist e2-query-param e2-query-constraints"></ul> \
+                <h2>Query constraints</h2> \
+                <ul class="e2l-nonlist e2-query-base e2-query-constraints"> \
+                    <li class="e2-query-constraint"> \
+                        <strong class="e2-query-label">Protocol:</strong> \
+                        <input type="hidden" name="param" value="rectype" /> \
+                        <input type="hidden" name="cmp" value="is" /> \
+                        <input type="text" name="value" id="e2-query-find-protocol" placeholder="Select protocol" /> \
+                        <img class="e2-query-find" data-keytype="recorddef" data-target="e2-query-find-protocol" src="" /> \
+                        <input type="checkbox" name="recurse_v" id="e2-query-id-rectype"/><label for="e2-query-id-rectype">Include child protocols</label> \
+                    </li> \
+                    <li class="e2-query-constraint"> \
+                        <strong class="e2-query-label">Creator:</strong> \
+                        <input type="hidden" name="param" value="creator" /> \
+                        <input type="hidden" name="cmp" value="is" /> \
+                        <input type="text" name="value" id="e2-query-find-user" placeholder="Select user" /> \
+                        <img class="e2-query-find" data-keytype="user" data-target="e2-query-find-user" src="" /> \
+                    </li> \
+                    <li class="e2-query-constraint"> \
+                        <strong class="e2-query-label">Child of:</strong> \
+                        <input type="hidden" name="param" value="children" /> \
+                        <input type="hidden" name="cmp" value="name" /> \
+                        <input type="text" name="value" id="e2-query-find-record" placeholder="Select record"/> \
+                        <img class="e2-query-tree" data-keytype="record" data-target="e2-query-find-record" src="" /> \
+                        <input type="checkbox" name="recurse_v" id="e2-query-paramid-children" /><label for="e2-query-paramid-children">Recursive</label> \
+                    </li> \
+                    <li> \
+                        <strong class="e2-query-label">Created:</strong> \
+                        <span  class="e2-query-constraint"> \
+                            <input type="hidden" name="param" value="creationtime" /> \
+                            <input type="hidden" name="cmp" value=">=" /> \
+                            <input type="text" name="value" placeholder="Start date" /> \
+                        </span>&nbsp;&nbsp;&nbsp;to&nbsp;&nbsp;&nbsp;<span class="e2-query-constraint"> \
+                            <input type="hidden" name="param" value="creationtime" /> \
+                            <input type="hidden" name="cmp" value="<=" /> \
+                            <input type="text" name="value" placeholder="end date" /> \
+                        </span> \
+                    </li> \
+                </ul> \
+                <ul class="e2l-nonlist e2-query-param e2-query-constraints"></ul> \
             ');
-
-            // <li class="e2-query-constraint"> \
-            //     <strong class="e2-query-label">Modified by:</strong> \
-            //     <input type="hidden" name="param" value="modifyuser" /> \
-            //     <input type="hidden" name="cmp" value="is" /> \
-            //     <input type="text" name="value" class="e2-find-user" placeholder="Select user" /> \
-            // </li> \
-            // <li> \
-            //     <strong class="e2-query-label">Modified:</strong> \
-            //     <span  class="e2-query-constraint"> \
-            //         <input type="hidden" name="param" value="modifytime" /> \
-            //         <input type="hidden" name="cmp" value=">=" /> \
-            //         <input type="text" name="value" placeholder="Start date" /> \
-            //     </span>&nbsp;&nbsp;&nbsp;to&nbsp;&nbsp;&nbsp;<span class="e2-query-constraint"> \
-            //         <input type="hidden" name="param" value="modifytime" /> \
-            //         <input type="hidden" name="cmp" value="<=" /> \
-            //         <input type="text" name="value" placeholder="end date" /> \
-            //     </span> \
-            // </li> \
-
-
+            
+            $('img.e2-query-find', m).attr('src', ROOT+'/static/images/query.png');
             this.container.append(m);
             
             // ian: todo
@@ -221,9 +194,7 @@
             // $('.e2-find-recorddef', this.container).FindControl({keytype: 'recorddef'});
             // $('.e2-find-paramdef', this.container).FindControl({keytype: 'paramdef'});
 
-            var save = $('<ul class="e2l-controls"><li> \
-                '+emen2.template.spinner()+' \
-                <input type="button" value="Query" name="save" /></li>');
+            var save = $('<ul class="e2l-controls"><li><input type="button" value="Query" name="save" /></li>');
             this.container.append(save);
             $('input[name=save]', this.container).bind("click", function(e){self.query()});            
 
@@ -329,15 +300,15 @@
             
             var newconstraint = $('<li class="e2-query-constraint" />')
                 .append(controls)
-                .append(' <input type="text" name="param" value="'+param+'" placeholder="Select parameter" id="e2-query-find-'+this.count+'" /> ')
-                .append(' <img class="e2-query-find" data-keytype="paramdef" data-target="e2-query-find-'+this.count+'" src="'+ROOT+'/static/images/query.png" /> ')
+                .append(' <input type="text" name="param" value="" placeholder="Select parameter" /> ')
+                .append(' <img class="e2-query-find" data-keytype="paramdef" src="" /> ')
                 .append(cmpi)
-                .append('<input type="text" name="value" size="12" value="'+value+'" placeholder="value" />');
-                // .append('<input name="recurse_p" type="checkbox" /><label>Child Parameters');
+                .append(' <input type="text" name="value" size="12" value="" placeholder="value" />');                
+            $('input[name=param]', newconstraint).attr('id', 'e2-query-find-'+this.count).val(param);
+            $('img.e2-query-find', newconstraint).attr('id', 'e2-query-find-'+this.count).attr('src', ROOT+'/static/images/query.png');
+            $('input[name=value]', newconstraint).val(value);
 
             if (recurse) {$('input[name=recurse_p]', newconstraint).attr('checked', 'checked')}
-            // controls.append(addimg, removeimg);
-            // newconstraint.append(controls);
             $('.e2-query-find', newconstraint).FindControl({keytype: 'paramdef'});
             $('.e2-query-param', this.container).append(newconstraint);
         },
@@ -349,7 +320,7 @@
             
             var i = $('<select name="cmp" />');
             $.each(this.comparators, function(k,v) {
-                var r = $('<option value="'+k+'">'+v+'</option>');
+                var r = $('<option value="" />').val(k).text(v);
                 if (cmp2==k) {r.attr("selected", "selected")}
                 i.append(r);
             });
@@ -493,12 +464,6 @@
             ul.append('<li><span class="e2-query-length">Records</span></li>'); //'+emen2.template.caret()+'
             ul.append('<li data-tab="controls"><span class="e2l-a">Modify query '+emen2.template.caret()+'</span></li>')
 
-            // Edit
-            // ul.append('<li data-tab="edit"><span class="e2l-a">Edit '+emen2.template.caret()+'</span></li>')
-
-            // Plotting
-            // ul.append('<li data-tab="plot"><span class="e2l-a">Plot '+emen2.template.caret()+'</span></li>')
-
             // Pages
             ul.append('<li class="e2l-float-right e2-query-pages"></li>');
 
@@ -506,7 +471,7 @@
             var count = $('<select name="count" class="e2l-small"></select>');
             count.append('<option value="100">Rows</option>');
             $.each([1, 10,100,1000], function() {
-                count.append('<option value="'+this+'">'+this+'</option>');
+                count.append($('<option />').val(this).text(""+this));
             });
             count.change(function() {
                 self.options.q['pos'] = 0;
@@ -516,21 +481,19 @@
             ul.append(count);
 
             // Create new record
-            // if (this.options.rectype && this.options.parent != null) {
             if (this.options.rectype != null && this.options.parent != null) {
                 var create = $(' \
                     <li class="e2l-float-right"> \
                         <span> \
-                        <form action="'+ROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/" method="get"> \
+                        <form action="" method="get"> \
                             <input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
                         </form> \
                         </span> \
-                    </li>');
+                    </li>');             
+                $('form', create).attr('action', ROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/')
                 ul.append(create);
-                // <input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" />
                 $('input[type=button]', create).RecordControl();
             }            
-
 
             // Download all attachments
             // ul.append('<li class="e2l-float-right"><span><input type="button"  class="e2-query-download" value="Download attachments" /></span></li>')
@@ -589,7 +552,7 @@
             if (count) {newq["count"] = parseInt(count)}
             newq['names'] = [];
             newq['recs'] = true;
-            newq['table'] = true;
+            newq['rendered'] = true;
             emen2.db("table", newq, function(q){self.update(q)});            
         },
         
@@ -704,7 +667,8 @@
             var t = $('.e2-query-table', this.element);
 
             // The query result includes details about columns
-            var headers = this.options.q['table']['headers'];
+            var keys = this.options.q['keys'];
+            var keys_desc = this.options.q['keys_desc'];
             
             // Clear out the current header
             $('thead', t).empty();
@@ -718,8 +682,8 @@
             // tr.append('<th><input type="checkbox" /></th>');
 
             // Build the rest of the column headers
-            $.each(headers, function() {
-                tr.append('<th>'+this+'</th>');
+            $.each(keys, function() {                
+                tr.append($('<th/>').text(keys_desc[this] || this));
 
                 // Build the sort button
                 var direction = 'able';
@@ -727,8 +691,8 @@
                     var direction = 1;
                     if (self.options.q['reverse']) {direction = 0}
                 }                
-                var sortable = $('<button name="sort" class="e2l-float-right">'+emen2.template.image('sort.'+direction+'.png', 'Sort')+'</button>');
-                var iw = $('<th data-name="'+this+'"></th>');                
+                var sortable = $('<button name="sort" class="e2l-float-right" />').append(emen2.template.image('sort.'+direction+'.png', 'Sort'));
+                var iw = $('<th data-name="" />').attr('data-name', this);         
                 iw.append(sortable);
                 tr2.append(iw)
             });
@@ -746,31 +710,34 @@
         rebuild_tbody: function() {
             // Rebuild the table body
             var self = this;
-            var t = $('.e2-query-table', this.element);            
-            var headers = this.options.q['table']['headers'];
+            var keys = this.options.q['keys'];
             var names = this.options.q['names'];
-            var rows = []            
+            var t = $('.e2-query-table', this.element);            
+            var tbody = $('tbody', t);
+            tbody.empty();
 
             // Empty results
             if (names.length == 0) {
-                var row = '<tr><td>No records found for this query.</td</tr>';
-                rows.push(row);
+                tbody.append('<tr><td>No records found for this query.</td</tr>');
             }
 
             // Build each row
             for (var i=0;i<names.length;i++) {
-                var row = [];
-                for (var j=0; j < headers.length; j++) {
-                    row.push('<td><a href="'+ROOT+'/record/'+names[i]+'/">'+self.options.q['table'][names[i]][headers[j]]+'</a></td>');
+                // Slower, but safer.
+                var row = $('<tr />');
+                for (var j=0; j < keys.length; j++) {
+                    var td = $('<td />');
+                    var a = $('<a href="" />');
+                    a.text(self.options.q['rendered'][names[i]][keys[j]]);
+                    a.attr('href', ROOT+'/record/'+names[i]+'/');
+                    td.append(a);
+                    row.append(td);
                 }
-                row = '<tr>' + row.join('') + '</tr>';                    
-                rows.push(row);
+                tbody.append(row);
             }
-            
-            // This was a easonably fast way to do this
-            $('tbody', t).empty();
-            $('tbody', t).append(rows.join(''));
+            // This needs to rebind several things...
             $('tbody time').localize();
+
         }
     });    
     

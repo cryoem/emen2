@@ -978,9 +978,8 @@ class DBODB(EMEN2DB):
                 ret.append(d)
             except filt, e:
                 pass
-
         return ret
-
+        
     def expand(self, names, ctx=None, txn=None):
         """Process a list of names. Requires ctx and txn.
 

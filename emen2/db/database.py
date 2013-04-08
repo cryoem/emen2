@@ -1412,7 +1412,7 @@ class DB(object):
         This method extends query() to include rendered views in the results.
         These are available in the 'rendered' key in the return value. Key is
         the item name, value is a list of the values for each column. The
-        headers for each column are in the 'headers' key.
+        headers for each column are in the 'header' key.
 
         The maximum number of items returned in the table is 1000.
         
@@ -1478,7 +1478,7 @@ class DB(object):
                     for name in v:
                         q.cache[name]['rectype'] = k
 
-            # Update..
+            # Update
             rectypes = set(q.cache[i].get('rectype') for i in q.result)
             rectypes -= set([None])
 
@@ -1500,12 +1500,21 @@ class DB(object):
             view = '%s {{%s}}'%(view.replace('{{%s}}'%i, ''), i)
         keys = self._view_keys(view)
         table = self.render(names, keys=keys, options={'lnf':True}, ctx=ctx, txn=txn)
-        table['headers'] = keys
 
-        ret['table'] = table
+        # Header labels
+        header_desc = {}
+        for pd in self.dbenv['paramdef'].cgets(keys, ctx=ctx, txn=txn):
+            header_desc[pd.name] = pd.desc_short
+
+        # Return format
+        ret['keys'] = keys
+        ret['keys_desc'] = header_desc    
+        ret['rendered'] = table
         ret['names'] = names
         ret['stats']['length'] = len(q.result)
         ret['stats']['time'] = q.time + (time.time()-t)
+        print ret
+
         return ret
 
 

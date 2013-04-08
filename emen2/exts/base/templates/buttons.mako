@@ -104,9 +104,10 @@
             body = "Public access"
 
     elif item.get('keytype') == 'paramdef':
-        body = 'Data type: %s'%(item.vartype)
-        if item.get('iter'):
-            body += ' iterable'
+        # body = 'Data type: %s'%(item.vartype)
+        # if item.get('iter'):
+        #     body += ' iterable'
+        body = ''
     %>
 	
     <div class="e2-infobox" data-name="${item.get('name')}" data-keytype="${item.get('keytype')}">
