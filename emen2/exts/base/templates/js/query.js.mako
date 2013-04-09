@@ -499,6 +499,9 @@
             // ul.append('<li class="e2l-float-right"><span><input type="button"  class="e2-query-download" value="Download attachments" /></span></li>')
             // $('.e2-query-download', ul).click(function() {self.query_download()});
 
+			// Edit
+            ul.append('<li class="e2l-float-right"><span class="e2l-a">Edit</li>')
+
             // Activity spinner
             ul.append('<li class="e2l-float-right e2-query-activity" style="display:none"><span>'+emen2.template.spinner(true)+'</span></li>');
 

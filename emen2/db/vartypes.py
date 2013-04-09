@@ -289,6 +289,8 @@ class Vartype(object):
         return elem
         
     def _form(self, value):
+        if self.pd.immutable:
+            return self._html(value)
         if value is None:
             value = ''
         elem = """<span class="e2-edit" data-paramdef="%s"><input type="text" name="%s" value="%s" /></span>"""%(
@@ -851,6 +853,8 @@ class vt_acl(Vartype):
 
         return addrefs, delrefs
 
+    def _form(self, value):
+        return self._html(value)
 
 
 @Vartype.register('group')

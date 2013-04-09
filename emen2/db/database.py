@@ -28,8 +28,7 @@ import email.mime.text
 # Note: the 'bsddb' module is not sufficient.
 import bsddb3
 
-# Markdown (HTML) Processing
-# At some point, I may provide "extremely simple" markdown processor fallback
+# Markdown processing
 try:
     import markdown
 except ImportError:
@@ -127,21 +126,17 @@ def clock(times, key=0, t=0, limit=180):
         raise TimeError, "Exceeded maximum time of %s seconds."%(limit)
     return t2
 
-
 def getrandomid():
     """Generate a random ID."""
     return uuid.uuid4().hex
-
 
 def getctime():
     """Current database time, as float in seconds since the epoch."""
     return time.time()
 
-
 def gettime():
     """Returns the current database UTC time in ISO 8601 format."""
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat()+'+00:00'
-
 
 def getpw(pw=None):
     minlength = 8
@@ -155,7 +150,6 @@ def getpw(pw=None):
             print "Warning! If you set a password, it needs to be more than %s characters."%minlength
             pw = getpass.getpass("Password: ")
     return pw
-
 
 def ol(name, output=True):
     """Convert a function argument to a list.
@@ -191,7 +185,6 @@ def ol(name, output=True):
         return wrapped_f
     return wrap
 
-
 def limit_result_length(default=None):
     """Limit the number of items returned by a query result."""
     ns = dict(func = None)
@@ -213,7 +206,6 @@ def limit_result_length(default=None):
         result = functools.wraps(default)(_inner)
 
     return result
-
 
 # Error handler
 def error(e=None, msg='', warning=False):
@@ -271,9 +263,8 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
     else:
         raise ValueError, "No message to send!"
 
-    print "Sending mail:"
-    print msg
-
+    # print "Sending mail:"
+    # print msg
     if not from_addr:
         emen2.db.log.warn("Couldn't get mail config: No admin email set")
         return
@@ -287,8 +278,6 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
     s.sendmail(from_addr, [from_addr, to_addr], msg)
     emen2.db.log.info('Mail sent: %s -> %s'%(from_addr, to_addr))
     return to_addr
-    
-    
     
 
 ##### Open or create new database #####
@@ -321,7 +310,6 @@ def opendb(name=None, password=None, admin=False, db=None):
 
     return proxy
 
-
 def setup(db=None, rootpw=None, rootemail=None):
     """Initialize a new database environment.
 
@@ -346,25 +334,10 @@ def setup(db=None, rootpw=None, rootemail=None):
         db.record.put(rec)
 
 
-
-
 ##### EMEN2 Database Environment #####
 
 class EMEN2DBEnv(object):
     """EMEN2 Database Environment."""
-    
-    # Transaction counter
-    txncounter = 0
-
-    # DB Environment flags
-    ENVOPENFLAGS = 0
-    ENVOPENFLAGS |= bsddb3.db.DB_CREATE
-    ENVOPENFLAGS |= bsddb3.db.DB_INIT_MPOOL
-    ENVOPENFLAGS |= bsddb3.db.DB_INIT_TXN
-    ENVOPENFLAGS |= bsddb3.db.DB_INIT_LOCK
-    ENVOPENFLAGS |= bsddb3.db.DB_INIT_LOG
-    ENVOPENFLAGS |= bsddb3.db.DB_THREAD
-
 
     def __init__(self, path=None, create=None, snapshot=False, dbenv=None):
         """
@@ -390,9 +363,6 @@ class EMEN2DBEnv(object):
         # Databases
         self.keytypes =  {}
 
-        # Txn info
-        self.txnlog = {}
-
         # Pre- and post-commit actions.
         # These are used for things like renaming files during the commit phase.
         # TODO: The details of this are highly likely to change,
@@ -405,38 +375,40 @@ class EMEN2DBEnv(object):
         if dbenv:
             self.dbenv = dbenv
         else:            
-            # Open the database environment.
-            emen2.db.log.info("Opening database environment: %s"%self.path)
-            dbenv = bsddb3.db.DBEnv()
-
-            if snapshot or self.snapshot:
-                dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
-            
-            txncount = (self.cachesize / 4096) * 2
-            if txncount > 1024*128:
-                txncount = 1024*128
-
-            dbenv.set_cachesize(0, self.cachesize)
-            dbenv.set_tx_max(txncount)
-            dbenv.set_lk_max_locks(300000)
-            dbenv.set_lk_max_lockers(300000)
-            dbenv.set_lk_max_objects(300000)
-
-            # Open the DBEnv
-            self.dbenv = dbenv
-            self.open()
-
+            self.dbenv = self.open()
 
     def add_db(self, cls, **kwargs):
         """Add a BTree."""
         db = cls(dbenv=self, **kwargs)
         self.keytypes[db.keytype] = db
 
-
     def open(self):
         """Open the Database Environment."""
-        self.dbenv.open(self.path, self.ENVOPENFLAGS)
+        emen2.db.log.info("Opening database environment: %s"%self.path)
+        dbenv = bsddb3.db.DBEnv()
 
+        if self.snapshot:
+            dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
+        
+        txncount = (self.cachesize / 4096) * 2
+        if txncount > 1024*128:
+            txncount = 1024*128
+            
+        dbenv.set_cachesize(0, self.cachesize)
+        dbenv.set_tx_max(txncount)
+        dbenv.set_lk_max_locks(300000)
+        dbenv.set_lk_max_lockers(300000)
+        dbenv.set_lk_max_objects(300000)
+
+        flags = 0
+        flags |= bsddb3.db.DB_CREATE
+        flags |= bsddb3.db.DB_INIT_MPOOL
+        flags |= bsddb3.db.DB_INIT_TXN
+        flags |= bsddb3.db.DB_INIT_LOCK
+        flags |= bsddb3.db.DB_INIT_LOG
+        flags |= bsddb3.db.DB_THREAD
+        dbenv.open(self.path, flags)
+        return dbenv
 
     # ian: todo: make this nicer.
     def close(self):
@@ -445,12 +417,10 @@ class EMEN2DBEnv(object):
             v.close()
         self.dbenv.close()
         self.dbenvs[self] = False
-        
 
     def __getitem__(self, key, default=None):
         """Pass dictionary gets to self.keytypes."""
         return self.keytypes.get(key, default)
-
 
 
     ##### Methods to create a database environment #####
@@ -496,7 +466,7 @@ class EMEN2DBEnv(object):
 
     ##### Log archive #####
 
-    def log_archive(self, remove=True, checkpoint=True, txn=None):
+    def journal_archive(self, remove=True, checkpoint=True, txn=None):
         """Archive completed log files.
 
         :keyword remove: Remove the log files after moving them to the backup location
@@ -508,7 +478,7 @@ class EMEN2DBEnv(object):
             emen2.db.log.info("Log Archive: Checkpoint")
             self.dbenv.txn_checkpoint()
 
-        archivefiles = self.dbenv.log_archive(bsddb3.db.DB_ARCH_ABS)
+        archivefiles = self.dbenv.journal_archive(bsddb3.db.DB_ARCH_ABS)
 
         emen2.db.log.info("Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
 
@@ -523,8 +493,7 @@ class EMEN2DBEnv(object):
             outpaths.append(dest)
 
         return outpaths
-        
-        
+  
         
     ##### Transaction management #####
 
@@ -540,11 +509,7 @@ class EMEN2DBEnv(object):
 
         txn = self.dbenv.txn_begin(flags=flags)
         # emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
-
-        type(self).txncounter += 1
-        self.txnlog[txn.id()] = txn
         return txn
-
 
     def txncheck(self, txn=None, write=False):
         """Check a transaction status, or create a new transaction.
@@ -557,7 +522,6 @@ class EMEN2DBEnv(object):
             txn = self.newtxn(write=write)
         return txn
 
-
     def txnabort(self, txn):
         """Abort transaction.
 
@@ -566,16 +530,10 @@ class EMEN2DBEnv(object):
         """
         # emen2.db.log.msg('TXN', "TXN ABORT --> %s"%txn)
         txnid = txn.id()
-        self._txncb(txnid, 'before', 'abort')
-
+        self._txncb(txnid, 'abort', 'before')
         txn.abort()
-        if txnid in self.txnlog:
-            del self.txnlog[txnid]
-        type(self).txncounter -= 1
-
-        self._txncb(txnid, 'after', 'abort')
+        self._txncb(txnid, 'abort', 'after')
         self._txncbs.pop(txnid, None)
-
 
     def txncommit(self, txn):
         """Commit a transaction.
@@ -585,41 +543,29 @@ class EMEN2DBEnv(object):
         """
         # emen2.db.log.msg('TXN', "TXN COMMIT --> %s"%txn)
         txnid = txn.id()
-        self._txncb(txnid, 'before', 'commit')
-
+        self._txncb(txnid, 'commit', 'before')
         txn.commit()
-        if txnid in self.txnlog:
-            del self.txnlog[txnid]
-        type(self).txncounter -= 1
-
-        self._txncb(txnid, 'after', 'commit')
+        self._txncb(txnid, 'commit', 'after')
         self._txncbs.pop(txnid, None)
-
-        if DB.sync_contexts.is_set():
-            self._context.bdb.sync()
-            DB.sync_contexts.clear()
-
 
     def checkpoint(self, txn=None):
         """Checkpoint the database environment."""
         return self.dbenv.txn_checkpoint()
 
-
-    def txncb(self, txn, action, args=None, kwargs=None, when='before', condition='commit'):
+    def txncb(self, txn, action, args=None, kwargs=None, condition='commit', when='before'):
         if when not in ['before', 'after']:
             raise ValueError, "Transaction callback 'when' must be before or after"
         if condition not in ['commit', 'abort']:
             raise ValueError, "Transaction callback 'condition' must be commit or abort"
-        item = [when, condition, action, args or [], kwargs or {}]
+        item = [condition, when, action, args or [], kwargs or {}]
         self._txncbs[txn.id()].append(item)
 
-
     # This is still being developed. Do not touch.
-    def _txncb(self, txnid, when, condition):
+    def _txncb(self, txnid, condition, when):
         # Note: this takes txnid, not a txn. This
         # is because txn.id() is null after commit.
         actions = self._txncbs.get(txnid, [])
-        for w, c, action, args, kwargs in actions:
+        for c, w, action, args, kwargs in actions:
             if w == when and c == condition:
                 if action == 'rename':
                     self._txncb_rename(*args, **kwargs)
@@ -628,7 +574,6 @@ class EMEN2DBEnv(object):
                 elif action == 'thumbnail':
                     self._txncb_thumbnail(*args, **kwargs)
     
-    
     def _txncb_rename(self, source, dest):
         emen2.db.log.info("Renaming file: %s -> %s"%(source, dest))
         try:
@@ -636,22 +581,18 @@ class EMEN2DBEnv(object):
         except Exception, e:
             emen2.db.log.error("Couldn't rename file %s -> %s"%(source, dest))
 
-        
     def _txncb_email(self, *args, **kwargs):
         try:
             sendmail(*args, **kwargs)
         except Exception, e:
             emen2.db.log.error("Couldn't send email: %s"%e)
             
-            
     def _txncb_thumbnail(self, bdo):
         try:
             emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
         except Exception, e:
             emen2.db.log.error("Couldn't start thumbnail builder")
-            print e
     
-
 
 ##### Main Database Class #####
 
@@ -661,18 +602,15 @@ class DB(object):
     This class provides access to the public API methods.
     """
 
-    sync_contexts = threading.Event()
-
-    def __init__(self, path=None, create=None):
+    def __init__(self, path=None, create=None, dbenv=None):
         """EMEN2 Database.
 
         :keyword path: Directory containing an EMEN2 Database Environment.
         :keyword create: Create the environment if it does not already exist.
 
         """
-
         # Open the database
-        self.dbenv = EMEN2DBEnv(path=path, create=create)
+        self.dbenv = dbenv or EMEN2DBEnv(path=path, create=create)
 
         # Cache for contexts
         self.contexts_cache = {}
@@ -688,7 +626,6 @@ class DB(object):
         if self.dbenv.create:
             setup(db=self)
 
-
     def init(self):
         """Open the databases."""
     
@@ -702,13 +639,10 @@ class DB(object):
         self.dbenv.add_db(emen2.db.user.NewUserDB, keytype='newuser')
         self.dbenv.add_db(emen2.db.binary.BinaryDB, keytype="binary")
         self.dbenv.add_db(emen2.db.recorddef.RecordDefDB, keytype="recorddef")
-        self.dbenv.add_db(emen2.db.binary.BinaryTmpDB, keytype="upload")
         self.dbenv.add_db(emen2.db.record.RecordDB, keytype="record") 
-
 
     def __str__(self):
         return "<DB: %s>"%(hex(id(self)))
-
 
 
     ##### Utility methods #####
@@ -724,7 +658,6 @@ class DB(object):
                 i._load(item)
                 self.dbenv[keytype].addcache(i)
 
-
     def _getcontext(self, ctxid, host, ctx=None, txn=None):
         """(Internal) Takes a ctxid key and returns a Context.
 
@@ -737,7 +670,6 @@ class DB(object):
         :return: Context
         :exception: SessionError
         """
-        
         # Find the context; check the cache first, then the bdb.
         # If no ctxid was provided, make an Anonymous Context.
         if ctxid:
@@ -772,14 +704,12 @@ class DB(object):
 
         return context
 
-
     def _sudo(self, username=None, ctx=None, txn=None):
         """(Internal) Create an admin context for performing actions that require admin privileges."""
         emen2.db.log.security("Temporarily granting user %s administrative privileges"%username)
         ctx = emen2.db.context.SpecialRootContext()
         ctx.refresh(db=self, username=username)
         return ctx
-
 
     def _mapput(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
         """(Internal) Get keytype items, run a method with *args **kwargs, and put.
@@ -799,7 +729,6 @@ class DB(object):
             getattr(item, method)(*args, **kwargs)
         return self.dbenv[keytype].cputs(items, ctx=ctx, txn=txn)
 
-
     def _mapput_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
         """(Internal) See _mapput."""
         if names is None:
@@ -808,7 +737,6 @@ class DB(object):
         ret = self._mapput(keytype, names, method, ctx, txn, *args, **kwargs)
         if ol: return listops.first_or_none(ret)
         return ret
-
 
     def _run_macro(self, macro, names, ctx=None, txn=None):
         """(Internal) Run a macro over a set of Records.
@@ -830,7 +758,6 @@ class DB(object):
 
         return keyformat, recs
 
-
     def _boolmode_collapse(self, rets, boolmode):
         """(Internal) Perform bool operation on results."""
         if not rets:
@@ -841,7 +768,6 @@ class DB(object):
             allret = reduce(set.union, rets)
         return allret
 
-
     def _findrecorddefnames(self, names, ctx=None, txn=None):
         """(Internal) Find referenced recorddefs."""
         recnames, recs, rds = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
@@ -851,7 +777,6 @@ class DB(object):
             grouped = self.record_groupbyrectype(names, ctx=ctx, txn=txn)
             rds |= set(grouped.keys())
         return rds
-
 
     def _findparamdefnames(self, names, ctx=None, txn=None):
         """(Internal) Find referenced paramdefs."""
@@ -865,7 +790,6 @@ class DB(object):
             #for rd in self.dbenv["recorddef"].cgets(rds, ctx=ctx, txn=txn):
             #    params |= set(rd.paramsK)
         return params
-
 
     def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
         """(Internal) Find referenced users/binaries."""
@@ -913,7 +837,6 @@ class DB(object):
 
         return values
 
-
     def _find_pdrd_vartype(self, vartype, items):
         """(Internal) Find RecordDef based on vartype."""
         ret = set()
@@ -922,7 +845,6 @@ class DB(object):
             if item.vartype in vartype:
                 ret.add(item.name)
         return ret
-
 
     # todo: This should just use the query system.
     def _find_pdrd(self, cb, query=None, childof=None, keytype="paramdef", record=None, vartype=None, ctx=None, txn=None, **qp):
@@ -950,9 +872,7 @@ class DB(object):
 
         allret = self._boolmode_collapse(rets, boolmode='AND')
         ret = map(ditems.get, allret)
-
         return ret
-
 
     def _make_tables(self, recdefs, rec, markup, ctx, txn):
         """(Internal) Find "out-of-band" parameters."""
@@ -964,36 +884,22 @@ class DB(object):
         par = []
         par.extend(sorted(show, key=lambda x:descs.get(x, x)))
         par.extend(sorted(public, key=lambda x:descs.get(x, x)))
-        return self._view_kv(par, markup=markup, ctx=ctx, txn=txn)
+        return self._view_kv(par)
 
-
-    def _view_kv(self, params, paramdefs={}, markup=False, ctx=None, txn=None):
+    def _view_kv(self, params):
         """(Internal) Create an HTML table for rendering.
 
         :param params: Use these ParamDef names
         :keyword paramdefs: ParamDef cache
-        :keyword markup: Use HTML Markup (default=False)
-        :return: HTML table of params
+        :return: View template
         """
-        if markup:
-            dt = ["""<table class="e2l-kv e2l-shaded">
-                    <thead><th>Parameter</th><th>Value</th></thead>
-                    <tbody>"""]
-            for count, i in enumerate(params):
-                if count%2:
-                    dt.append("\t\t<tr class=\"s\"><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
-                else:
-                    dt.append("\t\t<tr><td>$#%s</td><td>$$%s</td></tr>"%(i,i))
-
-            dt.append("\t<thead>\n</table>")
-
-        else:
-            dt = []
-            for i in params:
-                dt.append("$#%s:\t$$%s\n"%(i,i))
-
+        dt = ["""<table class="e2l-kv e2l-shaded">
+                <thead><th>Parameter</th><th>Value</th></thead>
+                <tbody>"""]
+        for i in params:
+            dt.append("\t\t<tr><td>{{%s?}}</td><td>{{%s}}</td></tr>"%(i,i))
+        dt.append("\t<thead>\n</table>")
         return "\n".join(dt)                
-
 
 
     ######################################
@@ -1014,7 +920,6 @@ class DB(object):
         t2 = emen2.db.vartypes.parse_iso8601(t2 or gettime())[0]
         return t2 - t1
         
-        
     @publicmethod()
     def time_now(self, ctx=None, txn=None):
         """Get current time.
@@ -1027,7 +932,6 @@ class DB(object):
         :return: Current time string, YYYY-MM-DDTHH:MM:SS+00:00
         """
         return gettime()
-
 
 
     ###### Version ######
@@ -1050,7 +954,6 @@ class DB(object):
         return VERSIONS.get(program)
 
 
-
     ##### Utilities #####
 
     @publicmethod()
@@ -1065,7 +968,6 @@ class DB(object):
         :return: Ping? 'pong'
         """
         return 'pong'
-
 
 
     ##### Login and Context Management #####
@@ -1114,7 +1016,6 @@ class DB(object):
 
         return newcontext.name
 
-
     # This doesn't work until DB restart (the context isn't immediately cleared)?
     @publicmethod(write=True, compat="logout")
     def auth_logout(self, ctx=None, txn=None):
@@ -1128,8 +1029,6 @@ class DB(object):
         # Remove the cached context, and delete the stored one.
         self.contexts_cache.pop(ctx.name, None)
         self.dbenv._context.delete(ctx.name, txn=txn)
-        self.sync_contexts.set()
-
 
     @publicmethod(compat="checkcontext")
     def auth_check_context(self, ctx=None, txn=None):
@@ -1144,7 +1043,6 @@ class DB(object):
         """
         return ctx.username, ctx.groups
 
-
     @publicmethod(compat="checkadmin")
     def auth_check_admin(self, ctx=None, txn=None):
         """Checks if the user has global write access.
@@ -1157,7 +1055,6 @@ class DB(object):
         :return: True if user is an admin
         """
         return ctx.checkadmin()
-
 
     @publicmethod(compat="checkreadadmin")
     def auth_check_readadmin(self, ctx=None, txn=None):
@@ -1172,7 +1069,6 @@ class DB(object):
         """
         return ctx.checkreadadmin()
 
-
     @publicmethod(compat="checkcreate")
     def auth_check_create(self, ctx=None, txn=None):
         """Check for permission to create records.
@@ -1185,7 +1081,6 @@ class DB(object):
         :return: True if the user can create records
         """
         return ctx.checkcreate()
-
 
 
     ##### Generic methods #####
@@ -1218,7 +1113,6 @@ class DB(object):
         :exception SecurityError:
         """
         return getattr(self, '%s_get'%(keytype))(names, filt=filt, ctx=ctx, txn=txn)
-
 
     @publicmethod()
     def new(self, *args, **kwargs):
@@ -1253,7 +1147,6 @@ class DB(object):
         keytype = kwargs.pop('keytype', 'record')
         return getattr(self, '%s_new'%(keytype))(*args, **kwargs)
         
-    
     @publicmethod()
     def exists(self, name, keytype='record', ctx=None, txn=None):
         """Check for the existence of an item.
@@ -1268,7 +1161,6 @@ class DB(object):
         :return: True if the item exists
         """
         return self.dbenv[keytype].exists(name, txn=txn)
-
 
     @publicmethod(write=True)
     @ol('items')
@@ -1298,24 +1190,20 @@ class DB(object):
         """
         return getattr(self, '%s_put'%(keytype))(items, ctx=ctx, txn=txn)
 
-
     @publicmethod(write=True)
     def delete(self, names, keytype='record', ctx=None, txn=None):
         keytype = kwargs.pop('keytype', 'record')
         return getattr(self, '%s_delete'%(keytype))(ctx=ctx, txn=txn)
-
 
     @publicmethod()
     def names(self, keytype='record', ctx=None, txn=None):
         keytype = kwargs.pop('keytype', 'record')
         return getattr(self, '%s_names'%(keytype))(ctx=ctx, txn=txn)
         
-    
     @publicmethod()
     def find(self, keytype='record', ctx=None, txn=None):
         keytype = kwargs.pop('keytype', 'record')
         return getattr(self, '%s_find'%(keytype))(ctx=ctx, txn=txn)
-
 
     @publicmethod()
     def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", ctx=None, txn=None, **kwargs):
@@ -1403,7 +1291,6 @@ class DB(object):
         ret['stats']['length'] = len(q.result)
         ret['stats']['time'] = q.time
         return ret
-
 
     @publicmethod()
     def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, keytype="record", view=None, ctx=None, txn=None, **kwargs):
@@ -1513,10 +1400,7 @@ class DB(object):
         ret['names'] = names
         ret['stats']['length'] = len(q.result)
         ret['stats']['time'] = q.time + (time.time()-t)
-        print ret
-
         return ret
-
 
     @publicmethod()
     def plot(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", x=None, y=None, z=None, ctx=None, txn=None, **kwargs):
@@ -1579,7 +1463,6 @@ class DB(object):
         ret['stats']['time'] = q.time
         ret['recs'] = q.cache.values()
         return ret
-
 
     @publicmethod()
     @ol('names')
@@ -1698,6 +1581,7 @@ class DB(object):
         options = options or {}
         ret = {}
         views = collections.defaultdict(set)
+        default = "{{rectype}} created by {{creator}} on {{creationtime}}"
 
         # Get Record instances from names argument.
         names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
@@ -1708,7 +1592,6 @@ class DB(object):
             rec.update(newrec)
             recs.append(rec)
 
-        
         if view:
             views[view] = recs
         else:
@@ -1719,8 +1602,10 @@ class DB(object):
             for recdef in self.dbenv['recorddef'].cgets(byrt.keys(), ctx=ctx, txn=txn):
                 if viewname == 'mainview':
                     v = recdef.mainview
+                elif viewname == 'kv':
+                    v = self._view_kv(rec.keys())
                 else:
-                    v = recdef.views.get(viewname)
+                    v = recdef.views.get(viewname) or recdef.views.get('recname') or default
                 views[v] = byrt[recdef.name]
         
         # Optional: Apply MarkDown formatting to view before inserting values.
@@ -1764,7 +1649,6 @@ class DB(object):
         """
         return self.dbenv[keytype].pclink(parent, child, ctx=ctx, txn=txn)
 
-
     @publicmethod(write=True, compat="pcunlink")
     def rel_pcunlink(self, parent, child, keytype='record', ctx=None, txn=None):
         """Remove a parent-child link
@@ -1787,7 +1671,6 @@ class DB(object):
         """
         return self.dbenv[keytype].pcunlink(parent, child, ctx=ctx, txn=txn)
 
-
     @publicmethod(write=True)
     def rel_relink(self, removerels=None, addrels=None, keytype='record', ctx=None, txn=None):
         """Add and remove a number of parent-child relationships at once.
@@ -1806,7 +1689,6 @@ class DB(object):
         :exception SecurityError:
         """
         return self.dbenv[keytype].relink(removerels, addrels, ctx=ctx, txn=txn)
-
 
     @publicmethod(compat="getsiblings")
     def rel_siblings(self, name, rectype=None, keytype="record", ctx=None, txn=None):
@@ -1834,7 +1716,6 @@ class DB(object):
         :exception SecurityError:
         """
         return self.dbenv[keytype].siblings(name, rectype=rectype, ctx=ctx, txn=txn)
-
 
     @publicmethod(compat="getparents")
     @ol('names')
@@ -1864,7 +1745,6 @@ class DB(object):
         :exception SecurityError:
         """
         return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', ctx=ctx, txn=txn)
-
 
     @publicmethod(compat="getparenttree")
     @ol('names', output=False)
@@ -1899,7 +1779,6 @@ class DB(object):
         #:exception MaxRecurseError:
         return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', tree=True, ctx=ctx, txn=txn)
 
-
     @publicmethod(compat="getchildren")
     @ol('names')
     def rel_children(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None):
@@ -1930,7 +1809,6 @@ class DB(object):
         """
         return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', ctx=ctx, txn=txn)
 
-
     @publicmethod(compat="getchildtree")
     @ol('names', output=False)
     def rel_childrentree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None):
@@ -1960,18 +1838,15 @@ class DB(object):
         """
         return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', tree=True, ctx=ctx, txn=txn)
 
-
     @publicmethod()
     @ol('names', output=False)
     def rel_tree(self, names, recurse=1, rectype=None, keytype="record", rel="children", ctx=None, txn=None):        
         return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel=rel, tree=True, ctx=ctx, txn=txn)
 
-
     @publicmethod()
     @ol('names')
     def rel_rel(self, names, keytype="record", ctx=None, txn=None):
         return self.dbenv[keytype].rel(names, ctx=ctx, txn=txn)
-
 
 
     ##### ParamDef #####
@@ -1981,22 +1856,18 @@ class DB(object):
     def paramdef_get(self, names, filt=True, ctx=None, txn=None):
         return self.dbenv["paramdef"].cgets(names, filt=filt, ctx=ctx, txn=txn)
         
-        
     @publicmethod(compat="newparamdef")
     def paramdef_new(self, vartype=None, name=None, ctx=None, txn=None):
         return self.dbenv["paramdef"].new(vartype=vartype, name=name, ctx=ctx, txn=txn)
                 
-
     @publicmethod(write=True, compat="putparamdef")
     @ol('items')
     def paramdef_put(self, items, ctx=None, txn=None):
         return self.dbenv["paramdef"].cputs(items, ctx=ctx, txn=txn)
 
-
     @publicmethod(compat="getparamdefnames")
     def paramdef_names(self, names=None, ctx=None, txn=None):
         return self.dbenv["paramdef"].names(names=names, ctx=ctx, txn=txn)
-        
         
     @publicmethod(compat="findparamdef")
     def paramdef_find(self, *args, **kwargs):
@@ -2024,7 +1895,6 @@ class DB(object):
         """
         return self._find_pdrd(self._findparamdefnames, keytype='paramdef', *args, **kwargs)
         
-    
     @publicmethod(compat="getpropertynames")
     def paramdef_properties(self, ctx=None, txn=None):
         """Get all supported physical properties.
@@ -2039,7 +1909,6 @@ class DB(object):
         :return: Set of all available properties.
         """
         return set(emen2.db.properties.Property.registered.keys())
-
 
     @publicmethod(compat="getpropertyunits")
     def paramdef_units(self, name, ctx=None, txn=None):
@@ -2064,7 +1933,6 @@ class DB(object):
         prop = emen2.db.properties.Property.get_property(name)
         return set(prop.units)
 
-
     @publicmethod(compat="getvartypenames")
     def paramdef_vartypes(self, ctx=None, txn=None):
         """Get all supported datatypes.
@@ -2083,7 +1951,6 @@ class DB(object):
         return set(emen2.db.vartypes.Vartype.registered.keys())
 
 
-
     ##### User #####
 
     @publicmethod(compat="getuser")
@@ -2091,22 +1958,18 @@ class DB(object):
     def user_get(self, names, filt=True, ctx=None, txn=None):
         return self.dbenv["user"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
-
     @publicmethod()
     def user_new(self, password=None, email=None, name=None, ctx=None, txn=None):
         raise NotImplementedError, "Use newuser.new() to create new users."
     
-
     @publicmethod(write=True, compat="putuser")
     @ol('items')
     def user_put(self, items, ctx=None, txn=None):
         return self.dbenv["user"].cputs(items, ctx=ctx, txn=txn)
 
-
     @publicmethod(compat="getusernames")
     def user_names(self, names=None, ctx=None, txn=None):
         return self.dbenv["user"].names(names=names, ctx=ctx, txn=txn)
-
 
     @publicmethod(compat="finduser")
     def user_find(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
@@ -2201,7 +2064,6 @@ class DB(object):
 
         return self.dbenv["user"].cgets(foundusers or [], ctx=ctx, txn=txn)
         
-        
     @publicmethod(write=True, admin=True, compat="disableuser")
     def user_disable(self, names, filt=True, ctx=None, txn=None):
         """(Admin Only) Disable a User.
@@ -2222,7 +2084,6 @@ class DB(object):
         """
         return self._mapput('user', names, 'disable', ctx=ctx, txn=txn)
 
-
     @publicmethod(write=True, admin=True, compat="enableuser")
     def user_enable(self, names, filt=True, ctx=None, txn=None):
         """(Admin Only) Re-enable a User.
@@ -2242,7 +2103,6 @@ class DB(object):
         :exception SecurityError:
         """
         return self._mapput('user', names, 'enable', ctx=ctx, txn=txn)
-
 
     @publicmethod(write=True, compat="setprivacy")
     def user_setprivacy(self, names, state, ctx=None, txn=None):
@@ -2266,7 +2126,6 @@ class DB(object):
         # This is a modification of _mapput to allow if names=None
         # ctx.username will be used as the default.
         return self._mapput_ol('user', names, 'setprivacy', ctx.username, ctx, txn, state)
-
 
     # These methods sometimes use put instead of cput because they need to modify
     # the user's secret auth token.
@@ -2357,7 +2216,6 @@ class DB(object):
 
         return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
-
     @publicmethod(write=True, compat="setpassword")
     def user_setpassword(self, name, oldpassword, newpassword, secret=None, ctx=None, txn=None):
         """Change password.
@@ -2399,7 +2257,6 @@ class DB(object):
         self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/password.changed'})
         return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
-
     @publicmethod(write=True, compat="resetpassword")
     def user_resetpassword(self, name, ctx=None, txn=None):
         """Reset User password.
@@ -2436,7 +2293,6 @@ class DB(object):
         return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
 
 
-
     ##### New Users #####
 
     @publicmethod(admin=True, compat="getqueueduser")
@@ -2444,11 +2300,9 @@ class DB(object):
     def newuser_get(self, names, filt=True, ctx=None, txn=None):
         return self.dbenv["newuser"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
-
     @publicmethod()
     def newuser_new(self, password=None, email=None, name=None, ctx=None, txn=None):
         return self.dbenv["newuser"].new(password=password, email=email, name=name, ctx=ctx, txn=txn)
-
 
     @publicmethod(write=True, compat="adduser")
     @ol('items')
@@ -2488,17 +2342,14 @@ class DB(object):
 
         return items
         
-
     @publicmethod(admin=True, compat="getuserqueue")
     def newuser_names(self, names=None, ctx=None, txn=None):
         return self.dbenv["newuser"].names(names=names, ctx=ctx, txn=txn)
         
-
     @publicmethod(admin=True)
     def newuser_find(self, names=None, ctx=None, txn=None):
         return self.dbenv["newuser"].names(names=names, ctx=ctx, txn=txn)
         
-
     @publicmethod(write=True, admin=True, compat="approveuser")
     @ol('names')
     def newuser_approve(self, names, secret=None, reject=None, filt=True, ctx=None, txn=None):
@@ -2585,7 +2436,6 @@ class DB(object):
 
         return self.dbenv["user"].cgets(set([user.name for user in cusers]), ctx=ctx, txn=txn)
 
-
     @publicmethod(write=True, admin=True, compat="rejectuser")
     @ol('names')
     def newuser_reject(self, names, filt=True, ctx=None, txn=None):
@@ -2621,7 +2471,6 @@ class DB(object):
         return set(emails.keys())
 
 
-
     ##### Group #####
 
     @publicmethod(compat="getgroup")
@@ -2629,22 +2478,18 @@ class DB(object):
     def group_get(self, names, filt=True, ctx=None, txn=None):
         return self.dbenv["group"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
-
     @publicmethod(compat="newgroup")
     def group_new(self, name=None, ctx=None, txn=None):
         return self.dbenv["group"].new(name=name, ctx=ctx, txn=txn)
-
 
     @publicmethod(write=True, admin=True, compat="putgroup")
     @ol('items')
     def group_put(self, items, ctx=None, txn=None):
         return self.dbenv["group"].cputs(items, ctx=ctx, txn=txn)
 
-
     @publicmethod(compat="getgroupnames")
     def group_names(self, names=None, ctx=None, txn=None):
         return self.dbenv["group"].names(names=names, ctx=ctx, txn=txn)
-
 
     @publicmethod(compat="findgroup")
     def group_find(self, query=None, record=None, count=100, ctx=None, txn=None):
@@ -2698,7 +2543,6 @@ class DB(object):
         return ret
 
 
-
     ##### RecordDef #####
 
     @publicmethod(compat="getrecorddef")
@@ -2706,22 +2550,18 @@ class DB(object):
     def recorddef_get(self, names, filt=True, ctx=None, txn=None):
         return self.dbenv["recorddef"].cgets(names, filt=filt, ctx=ctx, txn=txn)
         
-
     @publicmethod(compat="newrecorddef")
     def recorddef_new(self, mainview=None, name=None, ctx=None, txn=None):
         return self.dbenv["recorddef"].new(mainview=mainview, name=name, ctx=ctx, txn=txn)
-
 
     @publicmethod(write=True, compat="putrecorddef")
     @ol('items')
     def recorddef_put(self, items, ctx=None, txn=None):
         return self.dbenv["recorddef"].cputs(items, ctx=ctx, txn=txn)
 
-
     @publicmethod(compat="getrecorddefnames")
     def recorddef_names(self, names=None, ctx=None, txn=None):
         return self.dbenv["recorddef"].names(names=names, ctx=ctx, txn=txn)
-
 
     @publicmethod(compat="findrecorddef")
     def recorddef_find(self, *args, **kwargs):
@@ -2759,7 +2599,6 @@ class DB(object):
         return self._find_pdrd(self._findrecorddefnames, keytype='recorddef', *args, **kwargs)
 
 
-
     ##### Records #####
 
     @publicmethod(compat="getrecord")
@@ -2767,27 +2606,22 @@ class DB(object):
     def record_get(self, names, filt=True, ctx=None, txn=None):
         return self.dbenv["record"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
-
     @publicmethod(compat="newrecord")
     def record_new(self, rectype=None, **kwargs):
         return self.dbenv["record"].new(rectype=rectype, **kwargs)
-
 
     @publicmethod(write=True, compat="putrecord")
     @ol('items')
     def record_put(self, items, ctx=None, txn=None):
         return self.dbenv["record"].cputs(items, ctx=ctx, txn=txn)
 
-
     @publicmethod()
     def record_names(self, names=None, ctx=None, txn=None):
         return self.dbenv["record"].names(names=names, ctx=ctx, txn=txn)
 
-
     @publicmethod()
     def record_find(self, **kwargs):
         raise NotImplementedError
-
 
     @publicmethod(write=True, compat="hiderecord")
     @ol('names')
@@ -2827,7 +2661,6 @@ class DB(object):
 
         self.dbenv["record"].hide(names, ctx=ctx, txn=txn)
 
-
     @publicmethod(write=True, compat="putrecordvalues")
     @ol('names')
     def record_update(self, names, update, ctx=None, txn=None):
@@ -2849,7 +2682,6 @@ class DB(object):
         :exception ValidationError:
         """
         return self._mapput('record', names, 'update', ctx, txn, update)
-
 
     @publicmethod(compat="validaterecord")
     @ol('items')
@@ -2881,7 +2713,6 @@ class DB(object):
         """
         return self.dbenv["record"].validate(items, ctx=ctx, txn=txn)
 
-
     # These map to the normal Record methods
     @publicmethod(write=True, compat="addpermission")
     @ol('names')
@@ -2908,7 +2739,6 @@ class DB(object):
         """
         return self._mapput('record', names, 'adduser', ctx, txn, users)
 
-
     @publicmethod(write=True, compat="removepermission")
     @ol('names')
     def record_removeuser(self, names, users, ctx=None, txn=None):
@@ -2934,7 +2764,6 @@ class DB(object):
         :exception ValidationError:
         """
         return self._mapput('record', names, 'removeuser', ctx, txn, users)
-
 
     @publicmethod(write=True, compat="addgroup")
     @ol('names')
@@ -2965,7 +2794,6 @@ class DB(object):
         """
         return self._mapput('record', names, 'addgroup', ctx, txn, groups)
 
-
     @publicmethod(write=True, compat="removegroup")
     @ol('names')
     def record_removegroup(self, names, groups, ctx=None, txn=None):
@@ -2994,7 +2822,6 @@ class DB(object):
         :exception ValidationError:
         """
         return self._mapput('record', names, 'removegroup', ctx, txn, groups)
-
 
     # This method is for compatibility with the web interface widget..
     @publicmethod(write=True, compat="setpermissions")
@@ -3068,7 +2895,6 @@ class DB(object):
 
         return self.dbenv["record"].cputs(crecs, ctx=ctx, txn=txn)
 
-
     @publicmethod(write=True, compat="addcomment")
     @ol('names')
     def record_addcomment(self, names, comment, filt=True, ctx=None, txn=None):
@@ -3096,7 +2922,6 @@ class DB(object):
         :exception ValidationError:
         """
         return self._mapput('record', names, 'addcomment', ctx, txn, comment)
-
 
     @publicmethod(compat="findorphans")
     def record_findorphans(self, names, root=0, keytype='record', ctx=None, txn=None):
@@ -3129,7 +2954,6 @@ class DB(object):
                 orphaned.add(child)
 
         return orphaned - names
-        
         
     @publicmethod(compat="getcomments")
     @ol('names', output=False)
@@ -3168,7 +2992,6 @@ class DB(object):
 
         return sorted(ret, key=lambda x:x[2])
         
-        
     @publicmethod(compat="getindexbyrectype")
     @ol('names', output=False)
     def record_findbyrectype(self, names, ctx=None, txn=None):
@@ -3200,7 +3023,6 @@ class DB(object):
         for i in rds:
             ret |= ind.get(i.name, txn=txn)
         return ret
-
 
     @publicmethod(compat="findvalue")
     def record_findbyvalue(self, param, query='', choices=True, count=100, ctx=None, txn=None):
@@ -3257,7 +3079,6 @@ class DB(object):
 
         return ret
 
-
     @publicmethod(compat="groupbyrectype")
     @ol('names')
     def record_groupbyrectype(self, names, filt=True, ctx=None, txn=None):
@@ -3279,7 +3100,6 @@ class DB(object):
         """
         return self.dbenv["record"].groupbyrectype(names, ctx=ctx, txn=txn)
     
-
     @publicmethod(compat="renderchildtree")
     def record_renderchildren(self, name, recurse=3, rectype=None, ctx=None, txn=None):
         """(Deprecated) Convenience method used by some clients to render a bunch of
@@ -3320,7 +3140,6 @@ class DB(object):
         return rendered, c_all
 
 
-
     ##### Binaries #####
 
     @publicmethod(compat="getbinary")
@@ -3328,11 +3147,9 @@ class DB(object):
     def binary_get(self, names, filt=True, ctx=None, txn=None):
         return self.dbenv["binary"].cgets(names, filt=filt, ctx=ctx, txn=txn)
 
-
     @publicmethod()
     def binary_new(self, ctx=None, txn=None):
         return self.dbenv["binary"].new(name=None, ctx=ctx, txn=txn)
-
 
     @publicmethod(write=True, compat="putbinary")
     @ol('items')
@@ -3384,11 +3201,9 @@ class DB(object):
             
         return bdos
 
-
     @publicmethod()
     def binary_names(self, names=None, ctx=None, txn=None):
         return self.dbenv["binary"].names(names=names, ctx=ctx, txn=txn)
-
 
     # Warning: This can be SLOW!
     @publicmethod(compat="findbinary")
@@ -3446,7 +3261,6 @@ class DB(object):
             return ret[:count]
         return ret
         
-        
     @publicmethod(write=True, compat="binaryaddreference")
     def binary_addreference(self, record, param, name, ctx=None, txn=None):
         bdo = self.dbenv["binary"].cget(name, ctx=ctx, txn=txn)        
@@ -3469,7 +3283,6 @@ class DB(object):
         self.dbenv["record"].cput(rec, ctx=ctx, txn=txn)
         self.dbenv["binary"].cput(bdo, ctx=ctx, txn=txn)
     
-
     @publicmethod()
     @ol('names')    
     def binary_extract(self, names, ctx=None, txn=None):
@@ -3477,61 +3290,53 @@ class DB(object):
         pass
 
 
-        
     ##### Temporary binaries #####
-
-    @publicmethod()
-    @ol('names')
-    def upload_get(self, names, filt=True, ctx=None, txn=None):
-        return self.dbenv["upload"].cgets(names, filt=filt, ctx=ctx, txn=txn)
-
-
-    @publicmethod()
-    def upload_new(self, ctx=None, txn=None):
-        return self.dbenv["upload"].new(name=None, ctx=ctx, txn=txn)
-    
-    
-    @publicmethod(write=True)
-    @ol('items')
-    def upload_put(self, items, ctx=None, txn=None):
-        tmpdir = emen2.db.config.get('paths.tmp')        
-        bdos = []
-        rename = []
-        for bdo in items:
-            newfile = False
-            if not bdo.get('name'):
-                handler = bdo
-                bdo = self.dbenv["upload"].new(filename=handler.get('filename'), ctx=ctx, txn=txn)
-                newfile = bdo.writetmp(filedata=handler.get('filedata', None), fileobj=handler.get('fileobj', None), basepath=tmpdir)
-
-            bdo = self.dbenv["upload"].cput(bdo, ctx=ctx, txn=txn)
-            bdos.append(bdo)
-
-            if newfile:
-                dest = os.path.join(tmpdir, bdo.name)
-                rename.append([newfile, dest])
-            
-        # Rename the file at the end of the txn.
-        for newfile, filepath in rename:
-            self.dbenv.txncb(txn, 'rename', [newfile, filepath])
-
-        return bdos
-        
-        
-    @publicmethod()
-    def upload_names(self, names=None, ctx=None, txn=None):
-        return self.dbenv["upload"].names(names=names, ctx=ctx, txn=txn)
-
-
-    @publicmethod()
-    def upload_find(self, **kwargs):
-        raise NotImplementedError
+    # @publicmethod()
+    # @ol('names')
+    # def upload_get(self, names, filt=True, ctx=None, txn=None):
+    #     return self.dbenv["upload"].cgets(names, filt=filt, ctx=ctx, txn=txn)
+    # 
+    # @publicmethod()
+    # def upload_new(self, ctx=None, txn=None):
+    #     return self.dbenv["upload"].new(name=None, ctx=ctx, txn=txn)
+    # 
+    # @publicmethod(write=True)
+    # @ol('items')
+    # def upload_put(self, items, ctx=None, txn=None):
+    #     tmpdir = emen2.db.config.get('paths.tmp')        
+    #     bdos = []
+    #     rename = []
+    #     for bdo in items:
+    #         newfile = False
+    #         if not bdo.get('name'):
+    #             handler = bdo
+    #             bdo = self.dbenv["upload"].new(filename=handler.get('filename'), ctx=ctx, txn=txn)
+    #             newfile = bdo.writetmp(filedata=handler.get('filedata', None), fileobj=handler.get('fileobj', None), basepath=tmpdir)
+    # 
+    #         bdo = self.dbenv["upload"].cput(bdo, ctx=ctx, txn=txn)
+    #         bdos.append(bdo)
+    # 
+    #         if newfile:
+    #             dest = os.path.join(tmpdir, bdo.name)
+    #             rename.append([newfile, dest])
+    #         
+    #     # Rename the file at the end of the txn.
+    #     for newfile, filepath in rename:
+    #         self.dbenv.txncb(txn, 'rename', [newfile, filepath])
+    # 
+    #     return bdos
+    #             
+    # @publicmethod()
+    # def upload_names(self, names=None, ctx=None, txn=None):
+    #     return self.dbenv["upload"].names(names=names, ctx=ctx, txn=txn)
+    # 
+    # @publicmethod()
+    # def upload_find(self, **kwargs):
+    #     raise NotImplementedError
 
     ##### Workflow #####
 
     # Todo: reimplement workflows.
-
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
