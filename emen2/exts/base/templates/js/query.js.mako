@@ -249,6 +249,10 @@
             var newq = {};
             var c = [];
 
+            // Copy existing options...
+            // newq['subset'] = this.options.q['subset'];
+            // newq['keytype'] = this.options.q['keytype'];
+
             var ignorecase = $('input[name=ignorecase]', this.container).attr('checked');
             var boolmode = $('input[name=boolmode]:checked', this.container).val();
                                     
@@ -262,7 +266,6 @@
             });
 
             newq['c'] = c;
-            //newq['stats'] = true;
             
             if (ignorecase) {newq['ignorecase'] = 1}
             if (boolmode) {newq['boolmode'] = boolmode}
@@ -436,6 +439,7 @@
         },
                 
         _create: function() {
+            this.checkbox = {};
             this.build();
         },
         
@@ -460,11 +464,8 @@
             var tab = $('.e2-tab', this.element)
             var ul = $('.e2-tab ul', this.element);
             
-            // Statistics
-            ul.append('<li><span class="e2-query-length">Records</span></li>'); //'+emen2.template.caret()+'
-            ul.append('<li data-tab="controls"><span class="e2l-a">Modify query '+emen2.template.caret()+'</span></li>')
-
-            // Pages
+            // Controls
+            ul.append('<li><span class="e2-query-length">Records</span></li>');
             ul.append('<li class="e2l-float-right e2-query-pages"></li>');
 
             // Row count
@@ -495,45 +496,27 @@
                 $('input[type=button]', create).RecordControl();
             }            
 
-            // Download all attachments
-            // ul.append('<li class="e2l-float-right"><span><input type="button"  class="e2-query-download" value="Download attachments" /></span></li>')
-            // $('.e2-query-download', ul).click(function() {self.query_download()});
+            // Edit
+            // var edit = $('<li class="e2l-float-right" data-tab="edit"><span class="e2l-a"><img src="/static/images/edit.png" /></span></li>')
+            // edit.click(function() {
+            //     self.edit();
+            // });
+            // ul.append(edit);
 
-			// Edit
-            ul.append('<li class="e2l-float-right"><span class="e2l-a">Edit</li>')
+            // Modify query
+            ul.append('<li class="e2l-float-right" data-tab="controls"><span class="e2l-a"><img src="/static/images/query.png" /></span></li>')
 
             // Activity spinner
             ul.append('<li class="e2l-float-right e2-query-activity" style="display:none"><span>'+emen2.template.spinner(true)+'</span></li>');
 
-            // Init tab control
+            // Tab control
             tab.TabControl({});
-
-            // Add callbacks
-            tab.TabControl('setcb', 'stats', function(page) {
-                page.QueryStatsControl({
-                    q: self.options.q,
-                    show: true
-                })
-            });
-            
             tab.TabControl('setcb', 'controls', function(page) {
                 page.QueryControl({
                     q: self.options.q,
                     keywords: false
-                    // query: function(test, newq) {self.query(newq)} 
                 });    
-            });
-            
-            // tab.TabControl('setcb', 'plot', function(page) {
-            //     page.PlotControl({
-            //         q: self.options.q
-            //     });    
-            // });            
-            
-            if (this.options.qc) {
-                tab.TabControl('show', 'controls');
-            }
-                    
+            });                 
         },
         
         query_download: function() {
@@ -562,6 +545,13 @@
         query_bookmark: function(newq) {
         },
         
+        edit: function() {
+            var self = this;
+            this.options.q['options'] = {};
+            this.options.q['options']['output'] = 'form';
+            this.query();  
+        },
+        
         setpos: function(pos) {
             // Change the page
             if (pos == this.options.q['pos']) {return}
@@ -582,8 +572,18 @@
             // this.query_bookmark();
         },
         
+        checkbox_cache: function() {
+            var self = this;
+            $('input:checkbox.e2-query-checkbox', this.element).each(function() {
+                self.checkbox[$(this).val()] = $(this).attr('checked') || false;
+            });
+            console.log(this.checkbox);
+        },
+        
         update: function(q) {
             // Callback from a query; Update the table and all controls
+            this.checkbox_cache();
+
             this.options.q = q;
             $('.e2-query-control', this.element).QueryControl('update', this.options.q)                    
 
@@ -605,14 +605,13 @@
             }
             rtkeys.sort();
             
-            
             // Build a nice string for the title
             // This gives basic query statistics
-            title = this.options.q['stats']['length'] + ' records, ' + rtkeys.length + ' protocols';
+            title = this.options.q['stats']['length'] + ' results, ' + rtkeys.length + ' protocols';
             if (rtkeys.length == 0) {
-                title = this.options.q['stats']['length'] + ' records';                
+                title = this.options.q['stats']['length'] + ' results';                
             } else if (rtkeys.length == 1) {
-                title = this.options.q['stats']['length'] + ' ' + rtkeys[0] + ' records';
+                title = this.options.q['stats']['length'] + ' ' + rtkeys[0] + ' results';
             } else if (rtkeys.length <= 5) {
                 title = title + ": ";
                 for (var i=0;i<rtkeys.length;i++) {
@@ -676,18 +675,19 @@
             // Clear out the current header
             $('thead', t).empty();
             
-            // ian: todo: Check 'immutable' attr
-            var immutable = ["creator","creationtime","modifyuser","modifytime","history","name","rectype","keytype","parents","children"];
-            
             var tr = $('<tr />');
             var tr2 = $('<tr class="e2-query-sort"/>');
-            // Build the check boxes for selecting records
-            // tr.append('<th><input type="checkbox" /></th>');
+            
+            if (this.options.q['checkbox']) {
+                // Build the check boxes for selecting records
+                tr.append('<th><input type="checkbox" checked="checked" /></th>');
+                tr2.append('<th />');
+            }
 
             // Build the rest of the column headers
-            $.each(keys, function() {                
-                tr.append($('<th/>').text(keys_desc[this] || this));
-
+            $.each(keys, function() {
+                console.log("building..."+this);
+                tr.append($('<th/>').text(" "+(keys_desc[this] || this)));
                 // Build the sort button
                 var direction = 'able';
                 if (self.options.q['sortkey'] == this) {
@@ -700,7 +700,7 @@
                 tr2.append(iw)
             });
 
-            // Connect the sort and edit buttons
+            // Connect the sort buttons
             $('button[name=sort]', tr2).click(function(e){
                 e.preventDefault();
                 self.resort($(this).parent().attr('data-name'))
@@ -715,19 +715,27 @@
             var self = this;
             var keys = this.options.q['keys'];
             var names = this.options.q['names'];
+            var checkbox = this.options.q['checkbox'];
             var t = $('.e2-query-table', this.element);            
             var tbody = $('tbody', t);
             tbody.empty();
 
             // Empty results
             if (names.length == 0) {
-                tbody.append('<tr><td>No records found for this query.</td</tr>');
+                tbody.append('<tr><td>No results for this query.</td</tr>');
             }
 
             // Build each row
             for (var i=0;i<names.length;i++) {
                 // Slower, but safer.
                 var row = $('<tr />');
+                if (checkbox) {
+                    var cb = $('<input class="e2-query-checkbox" type="checkbox" />');
+                    cb.val(names[i]);
+                    cb.attr('checked', this.checkbox[names[i]]);
+                    row.append($('<td />').append(cb));
+                }
+                
                 for (var j=0; j < keys.length; j++) {
                     var td = $('<td />');
                     var a = $('<a href="" />');

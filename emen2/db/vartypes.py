@@ -12,10 +12,6 @@ import collections
 import urllib
 import re
 
-# Escape HTML.. This is fun.
-import markupsafe
-escape = markupsafe.escape
-
 # Working with time is even more fun.
 import time
 import calendar
@@ -27,13 +23,9 @@ import dateutil.parser
 import dateutil.tz
 import dateutil.rrule
 
-try:
-    import markdown2 as markdown
-except ImportError:
-    try:
-        import markdown
-    except ImportError:
-        markdown = None
+# Markdown and Markupsafe are required now.
+import markdown
+from markupsafe import Markup, escape
 
 # EMEN2 imports
 import emen2.db.log
@@ -285,7 +277,7 @@ class Vartype(object):
     def _html(self, value):
         if value is None:
             return ''
-        elem = """<span class="e2-edit" data-paramdef="%s">%s</span>"""%(escape(self.pd.name), escape(self._unicode(value)))
+        elem = Markup("""<span class="e2-edit" data-paramdef="%s">%s</span>""")%(self.pd.name, self._unicode(value))
         return elem
         
     def _form(self, value):
@@ -293,10 +285,10 @@ class Vartype(object):
             return self._html(value)
         if value is None:
             value = ''
-        elem = """<span class="e2-edit" data-paramdef="%s"><input type="text" name="%s" value="%s" /></span>"""%(
-            escape(self.pd.name),
-            escape(self.pd.name),
-            escape(value),
+        elem = Markup("""<span class="e2-edit" data-paramdef="%s"><input type="text" name="%s" value="%s" /></span>""")%(
+            self.pd.name,
+            self.pd.name,
+            value
         )
         return elem
 
@@ -337,13 +329,12 @@ class vt_float(Vartype):
         if value is None:
             value = ''
         units = self.pd.defaultunits or ''
-        elem = """<span class="e2-edit" data-paramdef="%s"><input type="text" name="%s" value="%s" /> %s</span>"""%(
-            escape(self.pd.name),
-            escape(self.pd.name),
-            escape(value),
-            escape(units)
+        return Markup("""<span class="e2-edit" data-paramdef="%s"><input type="text" name="%s" value="%s" /> %s</span>""")%(
+            self.pd.name,
+            self.pd.name,
+            value,
+            units
         )
-        return elem
     
 
 @Vartype.register('percent')
@@ -421,8 +412,10 @@ class vt_boolean(Vartype):
             choices.append("""<option value="" />""")
             choices.append("""<option>True</option>""")
             choices.append("""<option checked="checked" >False</option>""")
-        return """<span class="e2-edit" data-paramdef="%s"><select>%s</select></span>"""%(escape(self.pd.name), "".join(choices))
-        return elem
+        return Markup("""<span class="e2-edit" data-paramdef="%s"><select>%s</select></span>""")%(
+            self.pd.name, 
+            Markup("".join(choices))
+            )
         
 
 
@@ -453,14 +446,15 @@ class vt_choice(vt_string):
             value = ''
         for choice in ['']+self.pd.choices:
             if choice == value:
-                elem = """<option value="%s" selected="selected">%s</option>"""%(escape(choice), escape(choice))
+                elem = Markup("""<option value="%s" selected="selected">%s</option>""")%(choice, choice)
             else:
-                elem = """<option value="%s">%s</option>"""%(escape(choice), escape(choice))
+                elem = Markup("""<option value="%s">%s</option>""")%(choice, choice)
             choices.append(elem)
-        return """<span class="e2-edit" data-paramdef="%s"><select name="%s">%s</select></span>"""%(
-            escape(self.pd.name),
-            escape(self.pd.name),
-            "".join(choices)
+            
+        return Markup("""<span class="e2-edit" data-paramdef="%s"><select name="%s">%s</select></span>""")%(
+            self.pd.name,
+            self.pd.name,
+            Markup("".join(choices))
             )
         
 
@@ -520,10 +514,10 @@ class vt_text(vt_string):
     def _form(self, value):
         if value is None:
             value = ''
-        return """<div class="e2-edit" data-paramdef="%s"><textarea name="%s">%s</textarea></div>"""%(
-            escape(self.pd.name),
-            escape(self.pd.name),
-            escape(value)
+        return Markup("""<div class="e2-edit" data-paramdef="%s"><textarea name="%s">%s</textarea></div>""")%(
+            self.pd.name,
+            self.pd.name,
+            value
             )
 
 
@@ -558,15 +552,14 @@ class vt_datetime(vt_string):
         raw_time = dateutil.parser.parse(value)
         raw_utc = raw_time.astimezone(dateutil.tz.gettz())
         local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
-        elem = """<time class="e2-edit" data-paramdef="%s" datetime="%s" title="Raw value: %s \nUTC time: %s \nLocal time: %s">%s</time>"""%(
-            escape(self.pd.name),
-            escape(raw_time.isoformat()),
-            escape(value),
-            escape(raw_utc.isoformat()),
-            escape(local_time.isoformat()),
-            escape(local_time.strftime("%Y-%m-%d %H:%M"))
+        return Markup("""<time class="e2-edit" data-paramdef="%s" datetime="%s" title="Raw value: %s \nUTC time: %s \nLocal time: %s">%s</time>""")%(
+            self.pd.name,
+            raw_time.isoformat(),
+            value,
+            raw_utc.isoformat(),
+            local_time.isoformat(),
+            local_time.strftime("%Y-%m-%d %H:%M")
             )
-        return elem        
 
 @Vartype.register('date')
 class vt_date(vt_datetime):
@@ -662,13 +655,12 @@ class vt_binary(Vartype):
         multiple = ""
         if self.pd.iter:
             label = "Add attachments"
-            multiple = """multiple="multiple" """
-        elem = """%s <input type="file" name="%s" %s />"""%(
-            escape(label),
-            escape(self.pd.name),
+            multiple = "multiple"
+        return Markup("""%s <input type="file" name="%s" multiple="%s" />""")%(
+            label,
+            self.pd.name,
             multiple
             )
-        return elem
 
     def _form(self, value):
         if value is None:
@@ -678,27 +670,29 @@ class vt_binary(Vartype):
 
         src = "/download/%s/thumb.jpg?size=thumb"%(bdo.name)
         
-        elem = """
+        elem = Markup("""
             <div class="e2-infobox" data-name="%s" data-keytype="user">
                 <input type="checkbox" name="%s" value="%s" checked="checked" />
                 <img src="%s" class="e2l-thumbnail" alt="Photo" />
                 <h4>%s</h4>
                 <p class="e2l-small">%s</p>                
-            </div>
-            """%(
-                escape(value),
-                escape(self.pd.name),
-                escape(value),
-                escape(src),
-                escape(bdo.filename),
-                escape(bdo.filesize)
+            </div>""")%(
+                value,
+                self.pd.name,
+                value,
+                src,
+                bdo.filename,
+                bdo.filesize
             )
         
         # Show a 'Change' button...
         if not self.pd.iter:
             elem += self._add()
             
-        return """<div class="e2-edit" %s>%s</div>"""%(escape(self.pd.name), elem)
+        return Markup("""<div class="e2-edit" %s>%s</div>""")%(
+            self.pd.name,
+            elem
+            )
 
 
 
@@ -761,12 +755,11 @@ class vt_user(Vartype):
         if self.pd.iter:
             label = "+"
             iter_ = "true"
-        elem = """<input type="button" value="%s" class="e2-edit-add-find" data-keytype="user" data-param="%s" data-iter="%s"/>"""%(
-            escape(label),
-            escape(self.pd.name),
-            escape(iter_)
+        return Markup("""<input type="button" value="%s" class="e2-edit-add-find" data-keytype="user" data-param="%s" data-iter="%s"/>""")%(
+            label,
+            self.pd.name,
+            iter_
             )
-        return elem
 
     def _form(self, value):
         if value is None:
@@ -780,27 +773,30 @@ class vt_user(Vartype):
         if user.userrec.get('person_photo'):
             src = "/download/%s/user.jpg?size=thumb"%(user.userrec.get('person_photo'))
 
-        elem = """
+        elem = Markup("""
             <div class="e2-infobox" data-name="%s" data-keytype="user">
                 <input type="checkbox" name="%s" value="%s" checked="checked" />
                 <img src="%s" class="e2l-thumbnail" alt="Photo" />
                 <h4>%s</h4>
                 <p class="e2l-small">%s</p>                
             </div>
-            """%(
-                escape(value),
-                escape(self.pd.name),
-                escape(value),
-                escape(src),
-                escape(user.getdisplayname()),
-                escape(user.email)
+            """)%(
+                value,
+                self.pd.name,
+                value,
+                src,
+                user.getdisplayname(),
+                user.email
             )
         
         # Show a 'Change' button...
         if not self.pd.iter:
             elem += self._add()
             
-        return """<div class="e2-edit" data-paramdef="%s">%s</div>"""%(escape(self.pd.name), elem)
+        return Markup("""<div class="e2-edit" data-paramdef="%s">%s</div>""")%(
+            self.pd.name,
+            elem
+            )
         
 
 @Vartype.register('acl')
@@ -883,16 +879,15 @@ class vt_comments(Vartype):
         update_user_cache(self.cache, self.db, [user])
         key = self.cache.get_cache_key('user', user)
         hit, user = self.cache.check_cache(key)
-        elem = """%s said on <time class="e2-localize" datetime="%s">%s</time>: %s"""%(
-                escape(user.getdisplayname()),
-                escape(dt),
-                escape(dt),
-                escape(comment)
+        return Markup("""%s said on <time class="e2-localize" datetime="%s">%s</time>: %s""")%(
+                user.getdisplayname(),
+                dt,
+                dt,
+                comment
             )
-        return elem   
 
     def render_form(self, value):
-        return """<div class="e2-edit" data-paramdef="%s"><textarea placeholder="Add additional comments"></textarea></div>"""%(escape(self.pd.name))
+        return Markup("""<div class="e2-edit" data-paramdef="%s"><textarea placeholder="Add additional comments"></textarea></div>""")%(self.pd.name)
 
 
 

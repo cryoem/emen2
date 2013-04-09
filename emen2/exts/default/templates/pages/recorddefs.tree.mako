@@ -24,4 +24,4 @@
 </h1>
 </form>
 
-${childmap}
+${unicode(childmap) | n}

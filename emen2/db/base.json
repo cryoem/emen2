@@ -5,7 +5,7 @@
 
 // Parameters for DatabaseObject attributes
 {"name": "keytype", "immutable": true, "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Type", "uri":"http://ncmidb.bcm.edu"}
-{"name": "name", "immutable": true, "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "Object Name", "uri":"http://ncmidb.bcm.edu"}
+{"name": "name", "immutable": true, "keytype": "paramdef", "parents": ["core"], "indexed": false, "vartype": "string", "desc_short": "ID", "uri":"http://ncmidb.bcm.edu"}
 {"name": "creator", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "Created by", "desc_long": "The user that initially created the record", "uri":"http://ncmidb.bcm.edu"}
 {"name": "modifytime", "immutable": true, "modifyuser": "root", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Modification time", "desc_long": "The date/time the record was last modified", "uri":"http://ncmidb.bcm.edu"}
 {"name": "modifyuser", "immutable": true, "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record", "uri":"http://ncmidb.bcm.edu"}

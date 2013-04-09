@@ -39,6 +39,7 @@ class Download(View):
 
     @View.add_matcher('^/download/$', name='multi')
     @View.add_matcher('^/download/(?P<bids>[^/]*)/(?P<filename>[^/]*)/$')
+    @View.add_matcher('^/binary/(?P<bids>[^/]*/)/$', name='binary')
     def main(self, bids, filename=None, size=None, format=None, q=None, rename=None, tar=None):
         if not hasattr(bids, '__iter__'):
             bids = [bids]
@@ -92,7 +93,6 @@ class Download(View):
             else:
                 # This will trigger render_eb if the file is not found
                 raise IOError, "Could not access file"
-
 
         # Check for files that have the same name...
         seen = []

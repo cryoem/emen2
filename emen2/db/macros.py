@@ -15,6 +15,10 @@ import re
 import emen2.util.listops
 import emen2.db.exceptions
 
+# Markdown and Markupsafe are required now.
+import markdown
+from markupsafe import Markup, escape
+
 # Convenience
 ci = emen2.util.listops.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
@@ -54,7 +58,6 @@ def parse_args(args):
     return ret
 
 
-
 ##### Macro #####
 
 class Macro(object):
@@ -81,8 +84,6 @@ class Macro(object):
     def get_macro(cls, name, *args, **kwargs):
         return cls.registered[name](*args, **kwargs)
 
-
-
     ##### Macro processing #####
         
     # Pre-cache if we're going to be doing alot of records.. This can be a substantial improvement.
@@ -105,42 +106,14 @@ class Macro(object):
         return unicode("Macro")
 
 
-
-
-@Macro.register('name')
-class macro_name(Macro):
-    """name macro"""
-    keyformat = 'd'
-
-    def process(self, params, rec):
-        return rec.name
-
-
-    def macro_name(self, params):
-        return "Record Name"
-
-
-
-@Macro.register('parents')
-class macro_parents(Macro):
-
-    def process(self, params, rec):
-        rectype, _, recurse = params.partition(",")
-        recurse = int(recurse or 1)
-        return self.db.rel.parents(rec.name, rectype=rectype, recurse=recurse)
-
-
-    def macro_name(self, params):
-        return "Parents: %s"%params
-
-
-
 @Macro.register('recname')
 class macro_recname(Macro):
     """recname macro"""
 
     def process(self, params, rec):
-        return self.db.view(rec) #cache=self.cache
+        if params:
+            return self.db.view(rec.get(params))
+        return self.db.view(params or rec)
 
 
     def macro_name(self, params):
@@ -172,55 +145,8 @@ class macro_childcount(Macro):
 
         return children
 
-
     def macro_name(self, params):
         return "Childcount: %s"%(params)
-
-
-
-@Macro.register('img')
-class macro_img(Macro):
-    """image macro"""
-
-    def process(self, params, rec):
-        default = ["file_binary_image","640","640"]
-        ps = params.split(",")
-        for i,v in list(enumerate(ps))[:3]:
-            default[i] = v
-
-        param, width, height = default
-
-        pd = self.db.paramdef.get(param)
-
-        if pd.vartype=="binary":
-            if pd.iter:
-                bdos = rec[param]
-            else:
-                bdos = [rec[param]]
-
-        else:
-            return "(Invalid parameter)"
-
-        #print bdos
-        if bdos == None:
-            return "(No Image)"
-
-        ret = []
-        for i in bdos:
-            try:
-                bdoo = self.db.binary.get(i, filt=False)
-                fname = bdoo.get("filename")
-                bname = bdoo.get("filepath")
-                root = "TEST" # emen2.db.config.get('web.root')
-                ret.append('<img src="%s/download/%s/%s" style="max-height:%spx;max-width:%spx;" alt="" />'%(root,i[4:], fname, height, width))
-            except (KeyError, AttributeError, emen2.db.exceptions.SecurityError):
-                ret.append("(Error: %s)"%i)
-
-        return "".join(ret)
-
-    def macro_name(self, params):
-        return "Image Macro"
-
 
 
 @Macro.register('childvalue')
@@ -232,10 +158,8 @@ class macro_childvalue(Macro):
         children = self.db.record.get(self.db.rel.children(name))
         return [i.get(params) for i in children]
 
-
     def macro_name(self, params):
         return "Child Value: %s"%params
-
 
 
 @Macro.register('parentvalue')
@@ -256,26 +180,8 @@ class macro_parentvalue(Macro):
         parents = self.db.record.get(self.db.rel.parents(name, recurse=recurse, rectype=rectype))
         return filter(None, [i.get(param) for i in parents])
 
-
     def macro_name(self, params):
         return "Parent Value: %s"%params
-
-
-
-@Macro.register('or')
-class macro_or(Macro):
-    """parentvalue macro"""
-
-    def process(self, params, rec):
-        ret = None
-        for param in params.split(","):
-            ret = rec.get(params.strip())
-            if ret != None:
-                return ret
-
-    def macro_name(self, params):
-        return " or ".join(params.split(","))
-
 
 
 @Macro.register('thumbnail')
@@ -283,29 +189,37 @@ class macro_thumbnail(Macro):
     """tile thumb macro"""
 
     def process(self, params, rec):
-        root = "TEST" # emen2.db.config.get('web.root')
-        format = "jpg"
+        root = "" # emen2.db.config.get('web.root')
         defaults = ["file_binary_image", "thumb", "jpg"]
         params = (params or '').split(",")
-
         for i,v in enumerate(params):
             if v:
-                defaults[i]=v
+                defaults[i]=v        
+        paramdef, size, format = defaults
 
-        bdos = rec.get(defaults[0])
-        if not hasattr(bdos,"__iter__"):
-            bdos = [bdos]
-
-
-        return "".join(['<img class="e2l-thumbnail" src="%s/download/%s/%s.%s.%s?size=%s&amp;format=%s" alt="" />'%(
-                root, bid, bid, defaults[1], defaults[2], defaults[1], defaults[2]) for bid in filter(lambda x:isinstance(x,basestring), bdos
-                )])
-
+        pd = self.db.paramdef.get(paramdef)
+        # if pd.vartype != "binary":
+        #    raise Exception, "Cannot generate a thumbnail for parameter %s: data type is %s, not binary."%(pd.name, pd.vartype)
+        value = rec.get(pd.name)
+        if not value:
+            return
+        if not pd.iter:
+            value = [value]
+        bdos = self.db.binary.get(value)
+        ret = []
+        for bdo in bdos:
+            i = Markup("""<img class="e2l-thumbnail" src="%s/download/%s/%s?size=%s&format=%s" alt="" />""")%(
+                    root,
+                    bdo.name,
+                    bdo.filename,
+                    size,
+                    format
+                )
+            ret.append(i)
+        return "".join(ret)
 
     def macro_name(self, params):
         return "Thumbnail Image"
-
-
 
 
 ##### Editing macros #####
@@ -334,8 +248,6 @@ class macro_checkbox(Macro):
 
     def macro_name(self, params):
         return "Checkbox:", params
-
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

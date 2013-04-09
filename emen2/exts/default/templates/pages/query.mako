@@ -2,6 +2,8 @@
 
 <%def name="table(q, parent=None, rectype=None, qc=True, header=True, controls=True)">
     <%
+        checkbox = q.get('checkbox', False)
+        keytype = q.get('keytype', 'record')
         tname = uuid.uuid4().hex
     %>
     <script type="text/javascript">
@@ -38,6 +40,10 @@
                 % if header:
                     <thead>
                         <tr>
+                            % if checkbox:
+                                <th><input type="checkbox" checked="checked" /></th>
+                            % endif
+                            
                             % for key in q['keys']:
                                 <th><div data-name="${key}">${q['keys_desc'].get(key, key)}</div></th>
                             % endfor
@@ -52,10 +58,17 @@
                     % endif
 
                     % for name in q['names']:
-                        <tr>                                        
+                        <tr>                   
+                            
+                        % if checkbox:
+                            <td>
+                                <input class="e2-query-checkbox" type="checkbox" value="${name}" checked="checked" />
+                            </td>
+                        % endif    
+                                                 
                         % for key in q['keys']:
                             <td>
-								<a href="${ctxt.root}/record/${name}/">${q['rendered'][name].get(key)}</a>
+								<a href="${ctxt.root}/${keytype}/${name}/">${q['rendered'][name].get(key)}</a>
 							</td>
                         % endfor
                         </tr>

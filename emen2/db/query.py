@@ -261,7 +261,7 @@ class MacroConstraint(Constraint):
         regex = emen2.db.database.VIEW_REGEX
         k = regex.match(self.param)        
         # Get the macro
-        macro = emen2.db.macros.Macro.get_macro(k.group('name')) # db=ctx.db, cache=ctx.cache
+        macro = emen2.db.macros.Macro.get_macro(k.group('name'))
         # Preprocess
         macro.preprocess(k.group('args'), self.p.items)
         # Convert the term to the right type
@@ -290,7 +290,8 @@ class Query(object):
         self.subset = subset
         
         # None or set() of query result
-        self.result = None         
+        self.result = None 
+              
         # boolean AND / OR
         self.mode = mode        
 
@@ -323,7 +324,7 @@ class Query(object):
 
         if self.subset is not None:
             # print "Restricting to subset:", self.subset
-            self.result = self.btree.names(names=self.subset, ctx=self.ctx, txn=self.txn)
+            self.result = self.btree.names(names=set(self.subset), ctx=self.ctx, txn=self.txn)
         
         # Run the constraints
         for c in sorted(self.constraints, key=lambda x:x.priority):

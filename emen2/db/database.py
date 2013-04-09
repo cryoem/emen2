@@ -1293,7 +1293,7 @@ class DB(object):
         return ret
 
     @publicmethod()
-    def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, keytype="record", view=None, ctx=None, txn=None, **kwargs):
+    def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, checkbox=False, keytype="record", view=None, ctx=None, txn=None, **kwargs):
         """Query results suitable for making a table.
 
         This method extends query() to include rendered views in the results.
@@ -1314,6 +1314,10 @@ class DB(object):
         :keyparam view: View definition.
             
         """
+        
+        options = {}
+        options['lnf'] = True
+        
         # Limit tables to 1000 items per page.
         if count < 1 or count > 1000:
             count = 1000
@@ -1333,7 +1337,8 @@ class DB(object):
             ignorecase=True,
             stats={},
             keytype=keytype,
-            subset=subset
+            subset=subset,
+            checkbox=checkbox
         )
 
         # Run the query
@@ -1345,13 +1350,12 @@ class DB(object):
         t = time.time()
 
         # Build the view
-        defaultview = "$@recname() $@thumbnail() $$rectype $$name"
+        defaultview = "{{recname()}} {{thumbnail()}} {{rectype}} {{name}}"
         rectypes = set(q.cache[i].get('rectype') for i in q.result)
         rectypes -= set([None])
 
-        if not rectypes:
+        if not view and not rectypes:
             view = defaultview
-
         elif not view:
             # Check which views we need to fetch
             toget = []
@@ -1386,7 +1390,8 @@ class DB(object):
         for i in emen2.db.config.get('customization.table_add_columns'):
             view = '%s {{%s}}'%(view.replace('{{%s}}'%i, ''), i)
         keys = self._view_keys(view)
-        table = self.render(names, keys=keys, options={'lnf':True}, ctx=ctx, txn=txn)
+
+        table = self.render(names, keys=keys, options=options, keytype=keytype, ctx=ctx, txn=txn)
 
         # Header labels
         header_desc = {}
@@ -1394,6 +1399,7 @@ class DB(object):
             header_desc[pd.name] = pd.desc_short
 
         # Return format
+        ret['view'] = view
         ret['keys'] = keys
         ret['keys_desc'] = header_desc    
         ret['rendered'] = table
@@ -1586,15 +1592,15 @@ class DB(object):
         # Get Record instances from names argument.
         names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
         names.extend(other)
-        recs.extend(self.dbenv["record"].cgets(names, ctx=ctx, txn=txn))
+        recs.extend(self.dbenv[keytype].cgets(names, ctx=ctx, txn=txn))
         for newrec in newrecs:
-            rec = self.dbenv["record"].new(name=None, rectype=newrec.get('rectype'), ctx=ctx, txn=txn)
+            rec = self.dbenv[keytype].new(ctx=ctx, txn=txn, **newrec)
             rec.update(newrec)
             recs.append(rec)
 
         if view:
             views[view] = recs
-        else:
+        elif keytype == 'record':
             # Get a view by name using the item's recorddef.
             byrt = collections.defaultdict(set)
             for rec in recs:
@@ -1607,6 +1613,9 @@ class DB(object):
                 else:
                     v = recdef.views.get(viewname) or recdef.views.get('recname') or default
                 views[v] = byrt[recdef.name]
+        else:
+            views["{{name}}"] = recs
+            
         
         # Optional: Apply MarkDown formatting to view before inserting values.
         if options.get('markdown'):

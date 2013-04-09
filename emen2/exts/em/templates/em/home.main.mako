@@ -56,7 +56,7 @@ import jsonrpc.jsonutil
     <div class="e2-plot"></div>
 </div>
 
-${recent_activity_table}
+${unicode(recent_activity_table) | n}
 
 <br /><br />
 

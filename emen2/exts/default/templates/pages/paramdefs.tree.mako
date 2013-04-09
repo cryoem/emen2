@@ -28,4 +28,4 @@
 </form>
 
 
-${childmap}
+${unicode(childmap) | n}

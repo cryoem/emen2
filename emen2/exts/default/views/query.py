@@ -92,22 +92,17 @@ class Query(View):
             self.q = path_to_query(path, **kwargs)
         if c:
             self.q['c'] = c
-
         self.ctxt['parent'] = None
         self.ctxt['rectype'] = None
         self.ctxt['header'] = True
         self.ctxt['controls'] = True
         
-
     @View.add_matcher(r'^/query/$', name='main')
     @View.add_matcher(r'^/query/(?P<path>.*)/$', name='query')
     def main(self, path=None, q=None, c=None, **kwargs):
         self.initq(path, q, c, **kwargs)
-	print "Running query:", self.q
         self.q = self.db.table(**self.q)
-	print "Result:", self.q
         self.ctxt['q'] = self.q
-
 
     @View.add_matcher(r'^/query/(?P<path>.*)/embed/$')
     def embed(self, path=None, q=None, c=None, create=False, rectype=None, parent=None, controls=True, header=True, **kwargs):
@@ -120,14 +115,12 @@ class Query(View):
         self.ctxt['parent'] = parent
         self.ctxt['rectype'] = rectype
         
-
     @View.add_matcher(r'^/query/(?P<path>.*)/edit/$', name='edit')
     def edit(self, path=None, q=None, c=None, **kwargs):
         self.initq(path, q, c)
         self.template = '/pages/query.edit'
         self.q = self.db.table(**self.q)
         self.ctxt['q'] = self.q
-
 
     @View.add_matcher(r'^/plot/$', name='plot')
     @View.add_matcher(r'^/plot/(?P<path>.*)/$', name='plot_path')
@@ -141,12 +134,11 @@ class Query(View):
         # print "Plot results:", self.q
         self.ctxt['q'] = self.q
 
-
     # /download/ can't be in the path because of a emen2resource.getchild issue
     @View.add_matcher(r'^/query/(?P<path>.*)/attachments/$', name='attachments')
     def attachments(self, path=None, q=None, c=None, confirm=False, **kwargs):
         self.initq(path, q, c)
-        self.template = '/pages/query.files'
+        self.template = '/pages/query.attachments'
         self.q = self.db.query(**self.q)
         self.ctxt['q'] = self.q
 
@@ -161,6 +153,21 @@ class Query(View):
         self.ctxt['users'] = users
         self.ctxt['recnames'] = self.db.view(records)
         self.ctxt['bdos'] = bdos
+
+    # /download/ can't be in the path because of a emen2resource.getchild issue
+    @View.add_matcher(r'^/query/(?P<path>.*)/attachments2/$', name='attachments2')
+    def attachments2(self, path=None, q=None, c=None, confirm=False, **kwargs):
+        self.initq(path, q, c)
+        self.template = '/pages/query.main'
+        self.q = self.db.query(**self.q)        
+
+        # Look up all the binaries
+        bdos = self.db.binary.find(record=self.q['names'], count=0)
+        names = [i.name for i in bdos]
+        bdoq = self.db.table(subset=names, keytype="binary", checkbox=True, view="{{thumbnail(name)}} {{filename}} {{filesize}} {{recname(record)}}")
+
+        # Render the binary table instead of the record table
+        self.ctxt['q'] = bdoq
 
 
 
