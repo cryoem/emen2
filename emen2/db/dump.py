@@ -145,12 +145,13 @@ class DumpOptions(emen2.db.config.DBOptions):
 if __name__ == "__main__":
     import emen2.db
     db = emen2.db.opendb(admin=True)
-    dumper = PublicDumper(db=db)
+    dumper = Dumper(db=db) # PublicDumper(db=db)
     keys = dumper.dump() # c=[['groups','==','publish']]
     keys['paramdef'] = db.paramdef.names()
     keys['recorddef'] = db.recorddef.names()
     keys['user'] = db.user.names()
     keys['user'].remove('root')
+    keys['binary'] = []
     dumper.write(keys, uri="http://ncmidb.bcm.edu")
     
     
