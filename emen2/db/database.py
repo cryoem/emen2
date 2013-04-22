@@ -66,6 +66,18 @@ import emen2.util.listops as listops
 # EMEN2 Exceptions into local namespace
 from emen2.db.exceptions import *
 
+# Load backend
+BACKEND = "bdb"
+if BACKEND == "bdb":
+    import emen2.db.backend_bdb as backend
+elif BACKEND == "riak":
+    raise NotImplementedError, "Riak backend under development."
+elif BACKEND == "mongodb":
+    raise NotImplementedError, "MongoDB backend under development."
+else:
+    raise ImportError, "Unsupported EMEN2 backend: %s"%backend
+
+
 # EMEN2 Extensions
 emen2.db.config.load_exts()
 
@@ -95,15 +107,6 @@ VIEW_REGEX = re.compile(VIEW_REGEX)
 # basestring goes away in Python 3
 basestring = (str, unicode)
 
-# ian: todo: move this to EMEN2DBEnv
-DB_CONFIG = """\
-# Don't touch these
-set_data_dir data
-set_lg_dir journal
-set_lg_regionmax 1048576
-set_lg_max 8388608
-set_lg_bsize 2097152
-"""
 
 ##### Utility methods #####
 
@@ -334,265 +337,6 @@ def setup(db=None, rootpw=None, rootemail=None):
         db.record.put(rec)
 
 
-##### EMEN2 Database Environment #####
-
-class EMEN2DBEnv(object):
-    """EMEN2 Database Environment."""
-
-    def __init__(self, path=None, create=None, snapshot=False, dbenv=None):
-        """
-        :keyword path: Directory containing environment.
-        :keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
-        :keyword create: Create the environment if it does not already exist.
-        """
-        
-        # Database environment directory
-        self.path = path or emen2.db.config.get('EMEN2DBHOME')
-        if not self.path:
-            raise ValueError, "No EMEN2 Database Environment specified."
-
-        # Probably should just get all these from config as needed.
-        self.create = create or emen2.db.config.get('params.create')
-        self.snapshot = snapshot or emen2.db.config.get('bdb.snapshot')
-        self.cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024l
-        self.LOGPATH = emen2.db.config.get('paths.log')
-        self.JOURNAL_ARCHIVE = emen2.db.config.get('paths.journal_archive')
-        self.TMPPATH = emen2.db.config.get('paths.tmp')
-        self.SSLPATH = emen2.db.config.get('paths.ssl')
-
-        # Databases
-        self.keytypes =  {}
-
-        # Pre- and post-commit actions.
-        # These are used for things like renaming files during the commit phase.
-        # TODO: The details of this are highly likely to change,
-        #     or be moved to a different place.
-        self._txncbs = collections.defaultdict(list)
-
-        # Check that all the needed directories exist.
-        self.checkdirs()
-
-        if dbenv:
-            self.dbenv = dbenv
-        else:            
-            self.dbenv = self.open()
-
-    def add_db(self, cls, **kwargs):
-        """Add a BTree."""
-        db = cls(dbenv=self, **kwargs)
-        self.keytypes[db.keytype] = db
-
-    def open(self):
-        """Open the Database Environment."""
-        emen2.db.log.info("Opening database environment: %s"%self.path)
-        dbenv = bsddb3.db.DBEnv()
-
-        if self.snapshot:
-            dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
-        
-        txncount = (self.cachesize / 4096) * 2
-        if txncount > 1024*128:
-            txncount = 1024*128
-            
-        dbenv.set_cachesize(0, self.cachesize)
-        dbenv.set_tx_max(txncount)
-        dbenv.set_lk_max_locks(300000)
-        dbenv.set_lk_max_lockers(300000)
-        dbenv.set_lk_max_objects(300000)
-
-        flags = 0
-        flags |= bsddb3.db.DB_CREATE
-        flags |= bsddb3.db.DB_INIT_MPOOL
-        flags |= bsddb3.db.DB_INIT_TXN
-        flags |= bsddb3.db.DB_INIT_LOCK
-        flags |= bsddb3.db.DB_INIT_LOG
-        flags |= bsddb3.db.DB_THREAD
-        dbenv.open(self.path, flags)
-        return dbenv
-
-    # ian: todo: make this nicer.
-    def close(self):
-        """Close the Database Environment"""
-        for k,v in self.keytypes.items():
-            v.close()
-        self.dbenv.close()
-        self.dbenvs[self] = False
-
-    def __getitem__(self, key, default=None):
-        """Pass dictionary gets to self.keytypes."""
-        return self.keytypes.get(key, default)
-
-
-    ##### Methods to create a database environment #####
-
-    def checkdirs(self):
-        """Check that all necessary directories exist."""
-        checkpath = os.access(self.path, os.F_OK)
-        checkconfig = os.access(os.path.join(self.path, 'DB_CONFIG'), os.F_OK)
-
-        # Check if we are creating a new database environment.
-        if self.create:
-            if checkconfig:
-                self.create = False
-                # raise ValueError, "Database environment already exists in EMEN2DBHOME directory: %s"%self.path
-            if not checkpath:
-                os.makedirs(self.path)
-        else:
-            if not checkpath:
-                raise ValueError, "EMEN2DBHOME directory does not exist: %s"%self.path
-            if not checkconfig:
-                raise ValueError, "No database environment in EMEN2DBHOME directory: %s"%self.path
-            return
-
-        paths = []
-        for path in ['data', 'journal']:
-            paths.append(os.path.join(self.path, path))
-        
-        for path in [self.LOGPATH, self.JOURNAL_ARCHIVE,  self.TMPPATH, self.SSLPATH]:
-            try:
-                paths.append(path)
-            except AttributeError:
-                pass
-
-        paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
-
-        configpath = os.path.join(self.path,"DB_CONFIG")
-        if not os.path.exists(configpath):
-            emen2.db.log.info("Copying default DB_CONFIG file: %s"%configpath)
-            f = open(configpath, "w")
-            f.write(DB_CONFIG)
-            f.close()
-
-
-    ##### Log archive #####
-
-    def journal_archive(self, remove=True, checkpoint=True, txn=None):
-        """Archive completed log files.
-
-        :keyword remove: Remove the log files after moving them to the backup location
-        :keyword checkpoint: Run a checkpoint first; this will allow more files to be archived
-        """
-        outpath = self.JOURNAL_ARCHIVE
-
-        if checkpoint:
-            emen2.db.log.info("Log Archive: Checkpoint")
-            self.dbenv.txn_checkpoint()
-
-        archivefiles = self.dbenv.journal_archive(bsddb3.db.DB_ARCH_ABS)
-
-        emen2.db.log.info("Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
-
-        if not os.access(outpath, os.F_OK):
-            os.makedirs(outpath)
-
-        outpaths = []
-        for archivefile in archivefiles:
-            dest = os.path.join(outpath, os.path.basename(archivefile))
-            emen2.db.log.info('Log Archive: %s -> %s'%(archivefile, dest))
-            shutil.move(archivefile, dest)
-            outpaths.append(dest)
-
-        return outpaths
-  
-        
-    ##### Transaction management #####
-
-    def newtxn(self, write=False):
-        """Start a new transaction.
-        
-        :keyword write: Transaction will be likely to write data; turns off Berkeley DB Snapshot
-        :return: New transaction
-        """
-        flags = bsddb3.db.DB_TXN_SNAPSHOT
-        if write:
-            flags = 0
-
-        txn = self.dbenv.txn_begin(flags=flags)
-        # emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
-        return txn
-
-    def txncheck(self, txn=None, write=False):
-        """Check a transaction status, or create a new transaction.
-
-        :keyword txn: An existing open transaction
-        :keyword write: See newtxn
-        :return: Open transaction
-        """
-        if not txn:
-            txn = self.newtxn(write=write)
-        return txn
-
-    def txnabort(self, txn):
-        """Abort transaction.
-
-        :keyword txn: An existing open transaction
-        :exception: KeyError if transaction was not found
-        """
-        # emen2.db.log.msg('TXN', "TXN ABORT --> %s"%txn)
-        txnid = txn.id()
-        self._txncb(txnid, 'abort', 'before')
-        txn.abort()
-        self._txncb(txnid, 'abort', 'after')
-        self._txncbs.pop(txnid, None)
-
-    def txncommit(self, txn):
-        """Commit a transaction.
-
-        :param txn: An existing open transaction
-        :exception: KeyError if transaction was not found
-        """
-        # emen2.db.log.msg('TXN', "TXN COMMIT --> %s"%txn)
-        txnid = txn.id()
-        self._txncb(txnid, 'commit', 'before')
-        txn.commit()
-        self._txncb(txnid, 'commit', 'after')
-        self._txncbs.pop(txnid, None)
-
-    def checkpoint(self, txn=None):
-        """Checkpoint the database environment."""
-        return self.dbenv.txn_checkpoint()
-
-    def txncb(self, txn, action, args=None, kwargs=None, condition='commit', when='before'):
-        if when not in ['before', 'after']:
-            raise ValueError, "Transaction callback 'when' must be before or after"
-        if condition not in ['commit', 'abort']:
-            raise ValueError, "Transaction callback 'condition' must be commit or abort"
-        item = [condition, when, action, args or [], kwargs or {}]
-        self._txncbs[txn.id()].append(item)
-
-    # This is still being developed. Do not touch.
-    def _txncb(self, txnid, condition, when):
-        # Note: this takes txnid, not a txn. This
-        # is because txn.id() is null after commit.
-        actions = self._txncbs.get(txnid, [])
-        for c, w, action, args, kwargs in actions:
-            if w == when and c == condition:
-                if action == 'rename':
-                    self._txncb_rename(*args, **kwargs)
-                elif action == 'email':
-                    self._txncb_email(*args, **kwargs)
-                elif action == 'thumbnail':
-                    self._txncb_thumbnail(*args, **kwargs)
-    
-    def _txncb_rename(self, source, dest):
-        emen2.db.log.info("Renaming file: %s -> %s"%(source, dest))
-        try:
-            shutil.move(source, dest)
-        except Exception, e:
-            emen2.db.log.error("Couldn't rename file %s -> %s"%(source, dest))
-
-    def _txncb_email(self, *args, **kwargs):
-        try:
-            sendmail(*args, **kwargs)
-        except Exception, e:
-            emen2.db.log.error("Couldn't send email: %s"%e)
-            
-    def _txncb_thumbnail(self, bdo):
-        try:
-            emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
-        except Exception, e:
-            emen2.db.log.error("Couldn't start thumbnail builder")
-    
 
 ##### Main Database Class #####
 
@@ -602,50 +346,47 @@ class DB(object):
     This class provides access to the public API methods.
     """
 
-    def __init__(self, path=None, create=None, dbenv=None):
+    def __init__(self, path=None, dbenv=None):
         """EMEN2 Database.
 
         :keyword path: Directory containing an EMEN2 Database Environment.
         :keyword create: Create the environment if it does not already exist.
 
         """
+        
+        # Check the database environment
+        self.path = path or emen2.db.config.get('EMEN2DBHOME')
+        self.checkdirs()
+        
         # Open the database
-        self.dbenv = dbenv or EMEN2DBEnv(path=path, create=create)
+        self.dbenv = dbenv or backend.EMEN2DBEnv(path=self.path)
 
         # Cache for contexts
         self.contexts_cache = {}
-
-        # Open Databases
-        self.init()
 
         # Load DBOs from extensions.
         self._load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
         emen2.db.config.load_jsons(cb=self._load_json)
 
         # Create root account, groups, and root record if necessary
-        if self.dbenv.create:
+        if self.create:
             setup(db=self)
 
-    def init(self):
-        """Open the databases."""
-    
-        # Authentication. These are not public.
-        self.dbenv._context = emen2.db.context.ContextDB(keytype='context', dbenv=self.dbenv)
-    
-        # Main database items. These are available in the public API.
-        self.dbenv.add_db(emen2.db.paramdef.ParamDefDB, keytype='paramdef')
-        self.dbenv.add_db(emen2.db.user.UserDB, keytype='user')
-        self.dbenv.add_db(emen2.db.group.GroupDB, keytype='group')
-        self.dbenv.add_db(emen2.db.user.NewUserDB, keytype='newuser')
-        self.dbenv.add_db(emen2.db.binary.BinaryDB, keytype="binary")
-        self.dbenv.add_db(emen2.db.recorddef.RecordDefDB, keytype="recorddef")
-        self.dbenv.add_db(emen2.db.record.RecordDB, keytype="record") 
 
     def __str__(self):
         return "<DB: %s>"%(hex(id(self)))
 
 
     ##### Utility methods #####
+
+    def checkdirs(self):
+        """Check that all necessary directories exist."""
+        # This has been simplified
+        exists = os.access(self.path, os.F_OK)
+        paths = [self.path]
+        
+        paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
+        return exists
 
     def _load_json(self, infile):
         """Load and cache a JSON file containing DBOs."""
@@ -3297,51 +3038,6 @@ class DB(object):
     def binary_extract(self, names, ctx=None, txn=None):
         # todo: header extraction.
         pass
-
-
-    ##### Temporary binaries #####
-    # @publicmethod()
-    # @ol('names')
-    # def upload_get(self, names, filt=True, ctx=None, txn=None):
-    #     return self.dbenv["upload"].cgets(names, filt=filt, ctx=ctx, txn=txn)
-    # 
-    # @publicmethod()
-    # def upload_new(self, ctx=None, txn=None):
-    #     return self.dbenv["upload"].new(name=None, ctx=ctx, txn=txn)
-    # 
-    # @publicmethod(write=True)
-    # @ol('items')
-    # def upload_put(self, items, ctx=None, txn=None):
-    #     tmpdir = emen2.db.config.get('paths.tmp')        
-    #     bdos = []
-    #     rename = []
-    #     for bdo in items:
-    #         newfile = False
-    #         if not bdo.get('name'):
-    #             handler = bdo
-    #             bdo = self.dbenv["upload"].new(filename=handler.get('filename'), ctx=ctx, txn=txn)
-    #             newfile = bdo.writetmp(filedata=handler.get('filedata', None), fileobj=handler.get('fileobj', None), basepath=tmpdir)
-    # 
-    #         bdo = self.dbenv["upload"].cput(bdo, ctx=ctx, txn=txn)
-    #         bdos.append(bdo)
-    # 
-    #         if newfile:
-    #             dest = os.path.join(tmpdir, bdo.name)
-    #             rename.append([newfile, dest])
-    #         
-    #     # Rename the file at the end of the txn.
-    #     for newfile, filepath in rename:
-    #         self.dbenv.txncb(txn, 'rename', [newfile, filepath])
-    # 
-    #     return bdos
-    #             
-    # @publicmethod()
-    # def upload_names(self, names=None, ctx=None, txn=None):
-    #     return self.dbenv["upload"].names(names=names, ctx=ctx, txn=txn)
-    # 
-    # @publicmethod()
-    # def upload_find(self, **kwargs):
-    #     raise NotImplementedError
 
     ##### Workflow #####
 

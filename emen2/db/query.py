@@ -25,11 +25,6 @@ synonyms = {
     "lt": "<"
 }
 
-
-# TODO: Allow DOM selector like query syntax. E.G.
-# [vartype=string] contains wheelbarrow
-
-
 def getop(op, ignorecase=True):
     """(Internal) Get a comparison function
     :keyword ignorecase: Use case-insensitive comparison methods
@@ -37,16 +32,16 @@ def getop(op, ignorecase=True):
     """
     # y is search argument, x is the record's value
     ops = {
-        "==": lambda y,x: x == y,
-        "!=": lambda y,x: x != y,
-        ">": lambda y,x: x > y,
-        "<": lambda y,x: x < y,
-        ">=": lambda y,x: x >= y,
-        "<=": lambda y,x: x <= y,
-        'any': lambda y,x: x != None,
+        "==":   lambda y,x: x == y,
+        "!=":   lambda y,x: x != y,
+        ">":    lambda y,x: x > y,
+        "<":    lambda y,x: x < y,
+        ">=":   lambda y,x: x >= y,
+        "<=":   lambda y,x: x <= y,
+        'any':  lambda y,x: x != None,
         'none': lambda y,x: x != None,
-        'contains': lambda y,x: unicode(y) in unicode(x),
         'noop': lambda y,x: True,
+        'contains': lambda y,x: unicode(y) in unicode(x),
     }
     if ignorecase:
         ops["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
@@ -133,6 +128,7 @@ class IndexedConstraint(Constraint):
         try:
             self.paramdef = self.p.btree.dbenv['paramdef'].cget(self.param, filt=False, ctx=self.p.ctx, txn=self.p.txn)            
             self.ind = self.p.btree.getindex(self.param, txn=self.p.txn)
+            # optimize query
             nkeys = self.ind.bdb.stat(txn=self.p.txn)['ndata'] or 1 # avoid div by zero
             self.priority = 1.0 - (1.0/nkeys)
         except Exception, e:

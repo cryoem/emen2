@@ -545,7 +545,10 @@ class vt_datetime(vt_string):
         tz = self.options.get('tz')
         raw_time = dateutil.parser.parse(value)
         local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
-        return local_time.strftime("%Y-%m-%d %H:%M")
+        try:
+            return local_time.strftime("%Y-%m-%d %H:%M")
+        except:
+            return "Date out of bounds! %s"%value
     
     def _html(self, value):
         tz = self.options.get('tz')

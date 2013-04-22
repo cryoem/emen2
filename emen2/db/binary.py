@@ -282,7 +282,7 @@ class BinaryTmp(Binary):
 class BinaryTmpDB(emen2.db.btrees.DBODB):
     dataclass = BinaryTmp
 
-    def _name_generator(self, item, txn=None):
+    def _key_generator(self, item, txn=None):
         return emen2.db.database.getrandomid()
 
         
@@ -299,7 +299,7 @@ class BinaryDB(emen2.db.btrees.DBODB):
 
     dataclass = Binary
 
-    def _name_generator(self, item, txn=None):
+    def _key_generator(self, item, txn=None):
         """Assign a name based on date, and the counter for that day."""
         # Get the current date and counter.
         dkey = emen2.db.binary.Binary.parse('')

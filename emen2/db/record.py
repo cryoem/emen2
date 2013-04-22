@@ -18,7 +18,6 @@ import emen2.db.recorddef
 import emen2.util.listops as listops
 
 
-
 class Record(emen2.db.dataobject.PermissionsDBObject):
     """Database Record.
 
@@ -321,12 +320,10 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 class RecordDB(emen2.db.btrees.RelateDB):
     cfunc = False     # Do not sort the BTree keys as integers
     dataclass = Record
-    
 
-    def _name_generator(self, item, txn=None):
+    def _key_generator(self, item, txn=None):
         # Set name policy in this method.
         return unicode(self._incr_sequence(txn=txn))
-
 
     def openindex(self, param, txn=None):
         # Parents / children
@@ -346,7 +343,6 @@ class RecordDB(emen2.db.btrees.RelateDB):
         # Open the index
         ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat=tp, dataformat=self.keyformat, dbenv=self.dbenv)
         return ind
-
 
     def hide(self, names, ctx=None, txn=None):
         recs = self.cgets(names, ctx=ctx, txn=txn)
@@ -437,7 +433,6 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
         if rectype:
             ind = self.getindex('rectype', txn=txn)
-            # ian: use the context.
             rd = set()
             for i in ctx.db.recorddef.get(listops.check_iterable(rectype)):
                 rd |= ind.get(i.name, txn=txn)
@@ -446,7 +441,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
         if ctx.checkreadadmin():
             return names
 
-        # ian: indexes are now faster, generally...
+        # If less than a thousand items, get directly.
         if len(names) <= 1000:
             crecs = self.cgets(names, ctx=ctx, txn=txn)
             return set([i.name for i in crecs])
@@ -466,7 +461,6 @@ class RecordDB(emen2.db.btrees.RelateDB):
                 find -= indg.get(group, set(), txn=txn)
 
         return names - find
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

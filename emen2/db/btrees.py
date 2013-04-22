@@ -119,8 +119,6 @@ class EMEN2DB(object):
     def __str__(self):
         return "<EMEN2DB instance: %s>"%self.filename
 
-
-
     ##### load/dump methods for keys and data #####
 
     # DO NOT TOUCH THIS!!!!
@@ -201,12 +199,10 @@ class EMEN2DB(object):
 
         self.dataformat = dataformat
 
-
-
     ##### DB methods #####
 
     def open(self):
-        """Open the DB.    This is uses an implicit open transaction."""
+        """Open the DB. This is uses an implicit open transaction."""
 
         if self.bdb or self.cache:
             raise Exception, "DB already open"
@@ -238,8 +234,6 @@ class EMEN2DB(object):
         self.bdb = None
         self.cache.close()
         self.cache = None
-
-
 
     ##### Mapping methods #####
 
@@ -381,7 +375,6 @@ class EMEN2DB(object):
         :return: Found value or default
 
         """
-        
         # Check BDB
         kd = self.keydump(key)
         d = self.dataload(
@@ -840,7 +833,7 @@ class DBODB(EMEN2DB):
         for item in items:
             if not self.exists(item.name, txn=txn):
                 # Get a new name.
-                newname = self._name_generator(item, txn=txn)
+                newname = self._key_generator(item, txn=txn)
 
                 try:
                     newname = self.keyclass(newname)
@@ -857,7 +850,7 @@ class DBODB(EMEN2DB):
 
         return namemap
 
-    def _name_generator(self, item, txn=None):
+    def _key_generator(self, item, txn=None):
         # Set name policy in this method.
         return unicode(item.name or emen2.db.database.getrandomid())
 
@@ -871,19 +864,7 @@ class DBODB(EMEN2DB):
         if val == None:
             val = 0
         val = int(val)
-
-        # Protect against overwriting items that might have been manually inserted.
-        # counter = 0
-        # while True:
-        #     if counter > 100000:
-        #         raise Exception, "Problem with counter. Please contact the administrator."
-        #     if self.bdb.exists(self.keydump(val), txn=txn):
-        #         print "Found item %s! Increasing counter."%val
-        #         val += 1
-        #         counter += 1
-        #     else:
-        #         break
-
+        
         self.sequencedb.put(key, str(val+delta), txn=txn)
         emen2.db.log.commit("%s.sequence: %s"%(self.filename, val+delta))
         return val
@@ -898,8 +879,6 @@ class DBODB(EMEN2DB):
             sequence = 0
         val = int(sequence)
         return val
-
-
 
     ##### New items.. #####
 
@@ -935,8 +914,6 @@ class DBODB(EMEN2DB):
             raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%item.name
 
         return item
-
-
 
     ##### Filtered context gets.. #####
 
@@ -1311,8 +1288,6 @@ class RelateDB(DBODB):
         pcunlink        Remove a parent/child relationship
 
     """
-
-
     def update_names(self, items, txn=None):
         # Update all the record's links
         namemap = super(RelateDB, self).update_names(items, txn=txn)
@@ -1331,8 +1306,6 @@ class RelateDB(DBODB):
         else:
             ind = super(RelateDB, self).openindex(param, txn)
         return ind
-
-
 
     ##### Relationship methods #####
 
@@ -1474,7 +1447,7 @@ class RelateDB(DBODB):
         visited = {}
         t = time.time()
         for i in names:
-            result[i], visited[i] = self._dfs(i, rel=rel, recurse=recurse)
+            result[i], visited[i] = self._bfs(i, rel=rel, recurse=recurse)
 
         # Flatten the dictionary to get all touched names
         allr = set()
@@ -1680,11 +1653,9 @@ class RelateDB(DBODB):
 
         return
 
-
-
     ##### Search tree-like indexes (e.g. parents/children) #####
 
-    def _dfs(self, key, rel='children', recurse=1, ctx=None, txn=None):
+    def _bfs(self, key, rel='children', recurse=1, ctx=None, txn=None):
         # (Internal) Tree search
         # Return a dict of results as well as the nodes visited (saves time)
         
