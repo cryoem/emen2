@@ -36,4 +36,3 @@ Contents:
    proxy
    recorddef
    vartypes
-   workflow

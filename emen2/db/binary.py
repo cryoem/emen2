@@ -269,25 +269,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
             }
 
 
-
-class BinaryTmp(Binary):
-    def setContext(self, ctx):
-        """Set permissions and create reference to active database."""
-        self.__dict__['_ctx'] = ctx
-        if self.isowner():
-            return True
-
-
-
-class BinaryTmpDB(emen2.db.btrees.DBODB):
-    dataclass = BinaryTmp
-
-    def _key_generator(self, item, txn=None):
-        return emen2.db.database.getrandomid()
-
-        
-        
-
 class BinaryDB(emen2.db.btrees.DBODB):
     """DBODB for Binaries
 

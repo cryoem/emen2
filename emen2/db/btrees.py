@@ -765,7 +765,6 @@ class DBODB(EMEN2DB):
     dataclass = None
     keytype = None
 
-
     def __init__(self, keytype=None, path=None, dataclass=None, *args, **kwargs):
         # Change the filename slightly
         dataclass = dataclass or self.dataclass

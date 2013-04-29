@@ -255,9 +255,5 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
 
 
-class ParamDefDB(emen2.db.btrees.RelateDB):
-    dataclass = ParamDef
-
-
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

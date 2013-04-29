@@ -486,7 +486,6 @@ class UserDB(emen2.db.btrees.DBODB):
                 name = found.pop()
         return self.get(name, filt=filt, txn=txn)
 
-
     def expand(self, names, ctx=None, txn=None):
         """Expand names, e.g. expanding * into children, or using an email address for a user"""
         if not isinstance(names, set):
@@ -508,7 +507,6 @@ class UserDB(emen2.db.btrees.DBODB):
         names |= add
         return names
 
-
     def new(self, *args, **kwargs):
         txn = kwargs.get('txn', None)
 
@@ -522,7 +520,6 @@ class UserDB(emen2.db.btrees.DBODB):
 
         return user
 
-
     def openindex(self, param, txn=None):
         if param == 'email':
             ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat='s', dataformat='s', dbenv=self.dbenv)
@@ -531,7 +528,6 @@ class UserDB(emen2.db.btrees.DBODB):
         else:
             ind = super(UserDB, self).openindex(param, txn=txn)
         return ind
-
 
     def names(self, names=None, ctx=None, txn=None, **kwargs):
         # You need to be logged in to view this.
@@ -561,7 +557,6 @@ class NewUserDB(emen2.db.btrees.DBODB):
             raise emen2.db.exceptions.ExistingKeyError, emen2.db.exceptions.ExistingKeyError.__doc__
 
         return newuser
-
 
     def names(self, names=None, ctx=None, txn=None, **kwargs):
         # This requires admin access

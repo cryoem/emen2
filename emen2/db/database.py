@@ -58,7 +58,6 @@ import emen2.db.recorddef
 import emen2.db.user
 import emen2.db.context
 import emen2.db.group
-import emen2.db.workflow
 
 # EMEN2 Utilities
 import emen2.util.listops as listops
@@ -3038,10 +3037,6 @@ class DB(object):
     def binary_extract(self, names, ctx=None, txn=None):
         # todo: header extraction.
         pass
-
-    ##### Workflow #####
-
-    # Todo: reimplement workflows.
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

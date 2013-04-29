@@ -22,7 +22,6 @@ import emen2.db.recorddef
 import emen2.db.user
 import emen2.db.context
 import emen2.db.group
-import emen2.db.workflow
 
 # ian: todo: move this to EMEN2DBEnv
 DB_CONFIG = """\
@@ -102,14 +101,17 @@ class EMEN2DBEnv(object):
 
     def init(self):
         # Authentication. These are not public.
-        self._context = emen2.db.context.ContextDB(keytype='context', dbenv=self)
+        self._context = emen2.db.btrees.DBODB(keytype='context', dbenv=self, dataclass=emen2.db.context.Context)
+
         # Main database items. These are available in the public API.
-        self.add_db(emen2.db.paramdef.ParamDefDB, keytype='paramdef')
-        self.add_db(emen2.db.user.UserDB, keytype='user')
+        self.add_db(emen2.db.btrees.RelateDB, keytype='paramdef', dataclass=emen2.db.paramdef.ParamDef)
+        self.add_db(emen2.db.btrees.RelateDB, keytype='recorddef', dataclass=emen2.db.recorddef.RecordDef)
+
+        # Finish porting these to generic DB
         self.add_db(emen2.db.group.GroupDB, keytype='group')
+        self.add_db(emen2.db.user.UserDB, keytype='user')
         self.add_db(emen2.db.user.NewUserDB, keytype='newuser')
         self.add_db(emen2.db.binary.BinaryDB, keytype="binary")
-        self.add_db(emen2.db.recorddef.RecordDefDB, keytype="recorddef")
         self.add_db(emen2.db.record.RecordDB, keytype="record") 
 
     def add_db(self, cls, **kwargs):

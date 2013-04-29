@@ -217,9 +217,6 @@ class RecordDefHandler(object):
         return
 
 
-class RecordDefDB(emen2.db.btrees.RelateDB):
-    dataclass = RecordDef
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
