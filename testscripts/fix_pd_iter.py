@@ -50,7 +50,7 @@ with db:
     print "Committing"
     for pd in pds:
         try:
-            db._db.dbenv["paramdef"].put(pd.name, pd, txn=txn)
+            db._db.dbenv["paramdef"]._put(pd.name, pd, txn=txn)
         except Exception, e:
             print e
             pass

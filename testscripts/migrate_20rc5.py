@@ -271,7 +271,7 @@ def paramdefs_props(db):
             pd.__dict__['defaultunits'] = fixmap.get(pd.defaultunits, pd.defaultunits)    
             # if pd.defaultunits and pd.defaultunits not in prop.units:
             #     print pd.name, pd.property, pd.defaultunits, prop.units        
-            db._db.dbenv["paramdef"].put(pd.name, pd, txn=txn)
+            db._db.dbenv["paramdef"]._put(pd.name, pd, txn=txn)
     
 
 

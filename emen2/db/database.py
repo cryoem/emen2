@@ -327,13 +327,13 @@ def setup(db=None, rootpw=None, rootemail=None):
     db = opendb(db=db, admin=True)
     with db:
         root = {'name':'root','email':rootemail, 'password':rootpw}
-        db.put([root], keytype='user')
+        db._put([root], keytype='user')
         loader = emen2.db.load.Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
         loader.load()
         rec = db.record.new(rectype='folder')
         rec.addgroup('authenticated')
         rec['name_folder'] = 'Root'
-        db.record.put(rec)
+        db.record._put(rec)
 
 
 
@@ -413,7 +413,7 @@ class DB(object):
         # Find the context; check the cache first, then the bdb.
         # If no ctxid was provided, make an Anonymous Context.
         if ctxid:
-            context = self.contexts_cache.get(ctxid) or self.dbenv._context.get(ctxid, txn=txn)
+            context = self.contexts_cache.get(ctxid) or self.dbenv._context._get(ctxid, txn=txn)
         else:
             context = emen2.db.context.AnonymousContext(host=host)
 
@@ -432,7 +432,7 @@ class DB(object):
             groups = indg.get(context.username, set(), txn=txn)
             grouplevels = {}
             for group in groups:
-                group = self.dbenv["group"].get(group, txn=txn)
+                group = self.dbenv["group"]._get(group, txn=txn)
                 grouplevels[group.name] = group.getlevel(context.username)
 
         # Sets the database reference, user record, display name, groups, and updates
@@ -464,10 +464,10 @@ class DB(object):
         :param *kwargs: method kwargs
         :return: Results of commit/puts
         """
-        items = self.dbenv[keytype].cgets(names, ctx=ctx, txn=txn)
+        items = self.dbenv[keytype].gets(names, ctx=ctx, txn=txn)
         for item in items:
             getattr(item, method)(*args, **kwargs)
-        return self.dbenv[keytype].cputs(items, ctx=ctx, txn=txn)
+        return self.dbenv[keytype].puts(items, ctx=ctx, txn=txn)
 
     def _mapput_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
         """(Internal) See _mapput."""
@@ -486,7 +486,7 @@ class DB(object):
         :return: Macro keytype ('d'/'s'/'f'/None), and dict of processed Records
         """
         recs = {}
-        mrecs = self.dbenv["record"].cgets(names, ctx=ctx, txn=txn)
+        mrecs = self.dbenv["record"].gets(names, ctx=ctx, txn=txn)
         regex = VIEW_REGEX
         k = regex.match(macro)
 
@@ -523,11 +523,11 @@ class DB(object):
         recnames, recs, params = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
         params = set(params)
         if recnames:
-            recs.extend(self.dbenv["record"].cgets(recnames, ctx=ctx, txn=txn))
+            recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
         for i in recs:
             params |= set(i.keys())
             #rds = set([i.rectype for i in recs])
-            #for rd in self.dbenv["recorddef"].cgets(rds, ctx=ctx, txn=txn):
+            #for rd in self.dbenv["recorddef"].gets(rds, ctx=ctx, txn=txn):
             #    params |= set(rd.paramsK)
         return params
 
@@ -536,7 +536,7 @@ class DB(object):
         recnames, recs, values = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
         values = set(values)
         if recnames:
-            recs.extend(self.dbenv["record"].cgets(recnames, filt=False, ctx=ctx, txn=txn))
+            recs.extend(self.dbenv["record"].gets(recnames, filt=False, ctx=ctx, txn=txn))
         if not recs:
             return values
 
@@ -548,7 +548,7 @@ class DB(object):
         pds = set()
         for rec in recs:
             pds |= set(rec.keys())
-        for pd in self.dbenv["paramdef"].cgets(pds, ctx=ctx, txn=txn):
+        for pd in self.dbenv["paramdef"].gets(pds, ctx=ctx, txn=txn):
             if pd.vartype not in vartypes:
                 continue
             if pd.vartype in ['comments', 'history']:
@@ -619,7 +619,7 @@ class DB(object):
         # move built in params to end of table
         public = set() | emen2.db.record.Record.attr_public
         show = set(rec.keys()) | recdefs.get(rec.rectype).paramsK | public
-        descs = dict((i.name,i.desc_short) for i in self.dbenv['paramdef'].cgets(show, ctx=ctx, txn=txn))
+        descs = dict((i.name,i.desc_short) for i in self.dbenv['paramdef'].gets(show, ctx=ctx, txn=txn))
         show -= public
         par = []
         par.extend(sorted(show, key=lambda x:descs.get(x, x)))
@@ -750,8 +750,8 @@ class DB(object):
         # Create the Context for this user/host
         newcontext = emen2.db.context.Context(username=user.name, host=host)
 
-        # This puts directly, instead of using cput.
-        self.dbenv._context.put(newcontext.name, newcontext, txn=txn)
+        # This puts directly, instead of using put.
+        self.dbenv._context._put(newcontext.name, newcontext, txn=txn)
         emen2.db.log.security("Login succeeded: %s -> %s" % (newcontext.username, newcontext.name))
 
         return newcontext.name
@@ -1115,11 +1115,11 @@ class DB(object):
 
             # Get the view
             if len(rectypes) == 1:
-                rd = self.dbenv["recorddef"].cget(rectypes.pop(), ctx=ctx, txn=txn)
+                rd = self.dbenv["recorddef"].get(rectypes.pop(), ctx=ctx, txn=txn)
                 view = rd.views.get('tabularview', defaultview)
             else:
                 try:
-                    rd = self.dbenv["recorddef"].cget("root", filt=False, ctx=ctx, txn=txn)
+                    rd = self.dbenv["recorddef"].get("root", filt=False, ctx=ctx, txn=txn)
                 except (KeyError, SecurityError):
                     view = defaultview
                 else:
@@ -1135,7 +1135,7 @@ class DB(object):
 
         # Header labels
         header_desc = {}
-        for pd in self.dbenv['paramdef'].cgets(keys, ctx=ctx, txn=txn):
+        for pd in self.dbenv['paramdef'].gets(keys, ctx=ctx, txn=txn):
             header_desc[pd.name] = pd.desc_short
 
         # Return format
@@ -1219,11 +1219,11 @@ class DB(object):
         # Get Record instances from names argument.
         names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
         names.extend(other)
-        recs.extend(self.dbenv[keytype].cgets(names, ctx=ctx, txn=txn))
+        recs.extend(self.dbenv[keytype].gets(names, ctx=ctx, txn=txn))
 
         # Allow rendering of dictionaries
         for newrec in newrecs:
-            rec = self.dbenv[keytype].new(ctx=ctx, txn=txn, **newrec) #rectype=newrec.get('rectype'),
+            rec = self.dbenv[keytype].new(ctx=ctx, txn=txn, **newrec) 
             rec.update(newrec)
             recs.append(rec)
         
@@ -1251,7 +1251,7 @@ class DB(object):
                 params.add(m)
         
         # Process parameters and descriptions.
-        pds = listops.dictbykey(self.dbenv["paramdef"].cgets(params | descs, ctx=ctx, txn=txn), 'name')
+        pds = listops.dictbykey(self.dbenv["paramdef"].gets(params | descs, ctx=ctx, txn=txn), 'name')
         found = set(pds.keys())
         missed = (params - found) | (descs - found)
         params -= missed
@@ -1332,7 +1332,7 @@ class DB(object):
         # Get Record instances from names argument.
         names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
         names.extend(other)
-        recs.extend(self.dbenv[keytype].cgets(names, ctx=ctx, txn=txn))
+        recs.extend(self.dbenv[keytype].gets(names, ctx=ctx, txn=txn))
         for newrec in newrecs:
             rec = self.dbenv[keytype].new(ctx=ctx, txn=txn, **newrec)
             rec.update(newrec)
@@ -1345,7 +1345,7 @@ class DB(object):
             byrt = collections.defaultdict(set)
             for rec in recs:
                 byrt[rec.rectype].add(rec)
-            for recdef in self.dbenv['recorddef'].cgets(byrt.keys(), ctx=ctx, txn=txn):
+            for recdef in self.dbenv['recorddef'].gets(byrt.keys(), ctx=ctx, txn=txn):
                 if viewname == 'mainview':
                     v = recdef.mainview
                 elif viewname == 'kv':
@@ -1603,7 +1603,7 @@ class DB(object):
     @publicmethod(compat="getparamdef")
     @ol('names')
     def paramdef_get(self, names, filt=True, ctx=None, txn=None):
-        return self.dbenv["paramdef"].cgets(names, filt=filt, ctx=ctx, txn=txn)
+        return self.dbenv["paramdef"].gets(names, filt=filt, ctx=ctx, txn=txn)
         
     @publicmethod(compat="newparamdef")
     def paramdef_new(self, vartype=None, name=None, ctx=None, txn=None):
@@ -1612,7 +1612,7 @@ class DB(object):
     @publicmethod(write=True, compat="putparamdef")
     @ol('items')
     def paramdef_put(self, items, ctx=None, txn=None):
-        return self.dbenv["paramdef"].cputs(items, ctx=ctx, txn=txn)
+        return self.dbenv["paramdef"].puts(items, ctx=ctx, txn=txn)
 
     @publicmethod(compat="getparamdefnames")
     def paramdef_names(self, names=None, ctx=None, txn=None):
@@ -1705,7 +1705,7 @@ class DB(object):
     @publicmethod(compat="getuser")
     @ol('names')
     def user_get(self, names, filt=True, ctx=None, txn=None):
-        return self.dbenv["user"].cgets(names, filt=filt, ctx=ctx, txn=txn)
+        return self.dbenv["user"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod()
     def user_new(self, password=None, email=None, name=None, ctx=None, txn=None):
@@ -1714,7 +1714,7 @@ class DB(object):
     @publicmethod(write=True, compat="putuser")
     @ol('items')
     def user_put(self, items, ctx=None, txn=None):
-        return self.dbenv["user"].cputs(items, ctx=ctx, txn=txn)
+        return self.dbenv["user"].puts(items, ctx=ctx, txn=txn)
 
     @publicmethod(compat="getusernames")
     def user_names(self, names=None, ctx=None, txn=None):
@@ -1776,7 +1776,7 @@ class DB(object):
 
         # Get 'username' from the found records.
         if foundrecs:
-            recs = self.dbenv["record"].cgets(foundrecs, ctx=ctx, txn=txn)
+            recs = self.dbenv["record"].gets(foundrecs, ctx=ctx, txn=txn)
             f = set([rec.get('username') for rec in recs])
             if foundusers is None:
                 foundusers = f
@@ -1811,7 +1811,7 @@ class DB(object):
         if count:
             foundusers = foundusers[:count]
 
-        return self.dbenv["user"].cgets(foundusers or [], ctx=ctx, txn=txn)
+        return self.dbenv["user"].gets(foundusers or [], ctx=ctx, txn=txn)
         
     @publicmethod(write=True, admin=True, compat="disableuser")
     def user_disable(self, names, filt=True, ctx=None, txn=None):
@@ -1876,7 +1876,7 @@ class DB(object):
         # ctx.username will be used as the default.
         return self._mapput_ol('user', names, 'setprivacy', ctx.username, ctx, txn, state)
 
-    # These methods sometimes use put instead of cput because they need to modify
+    # These methods sometimes use put instead of put because they need to modify
     # the user's secret auth token.
     @publicmethod(write=True, compat="setemail")
     def user_setemail(self, name, email, secret=None, password=None, ctx=None, txn=None):
@@ -1925,7 +1925,7 @@ class DB(object):
             raise SecurityError, "The email address %s is already in use"%(email)
 
         # Do not use cget; it will strip out the secret.
-        user = self.dbenv["user"].get(name, filt=False, txn=txn)
+        user = self.dbenv["user"]._get(name, txn=txn)
         user_secret = getattr(user, 'secret', None)
         user.setContext(ctx)
         if user_secret:
@@ -1945,8 +1945,8 @@ class DB(object):
         if user.email == oldemail:
             # Need to verify email address change by receiving secret.
             emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, user.email))
-            # Note: cputs will always ignore the secret; write directly
-            self.dbenv["user"].put(user.name, user, txn=txn)
+            # Note: put will always ignore the secret; write directly
+            self.dbenv["user"]._put(user.name, user, txn=txn)
 
             # Send the verify email containing the auth token
             ctxt['secret'] = user_secret[2]
@@ -1957,13 +1957,13 @@ class DB(object):
             # Verified with secret.
             # user.setContext(ctx)
             emen2.db.log.security("Changing email for user %s to %s"%(user.name, user.email))
-            self.dbenv['user'].cputs([user], ctx=ctx, txn=txn)
+            self.dbenv['user'].puts([user], ctx=ctx, txn=txn)
             # Note: Since we're putting directly,
             #     have to force the index to update
             # Send the user an email to acknowledge the change
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verified', 'ctxt':ctxt})
 
-        return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
+        return self.dbenv["user"].get(user.name, ctx=ctx, txn=txn)
 
     @publicmethod(write=True, compat="setpassword")
     def user_setpassword(self, name, oldpassword, newpassword, secret=None, ctx=None, txn=None):
@@ -1993,18 +1993,18 @@ class DB(object):
 
         # Try to authenticate using either the password OR the secret!
         # Note: The password will be hidden if ctx.username != user.name
-        # user = self.dbenv["user"].cget(name or ctx.username, filt=False, ctx=ctx, txn=txn)
+        # user = self.dbenv["user"].get(name or ctx.username, filt=False, ctx=ctx, txn=txn)
         #ed: odded 'or ctx.username' to match docs
         user = self.dbenv["user"].getbyemail(name, filt=False, txn=txn)
         if not secret:
             user.setContext(ctx)
         user.setpassword(oldpassword, newpassword, secret=secret)
 
-        # ian: todo: evaluate to use put/cput..
+        # ian: todo: evaluate to use put/_put..
         emen2.db.log.security("Changing password for %s"%user.name)
-        self.dbenv["user"].put(user.name, user, txn=txn)
+        self.dbenv["user"]._put(user.name, user, txn=txn)
         self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/password.changed'})
-        return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
+        return self.dbenv["user"].get(user.name, ctx=ctx, txn=txn)
 
     @publicmethod(write=True, compat="resetpassword")
     def user_resetpassword(self, name, ctx=None, txn=None):
@@ -2030,7 +2030,7 @@ class DB(object):
         user.resetpassword()
 
         # Use direct put to preserve the secret
-        self.dbenv["user"].put(user.name, user, txn=txn)
+        self.dbenv["user"]._put(user.name, user, txn=txn)
 
         # Absolutely never reveal the secret via any mechanism
         # but email to registered address
@@ -2039,7 +2039,7 @@ class DB(object):
         ctxt['name'] = user.name
         self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/password.reset', 'ctxt':ctxt})
         emen2.db.log.security("Setting resetpassword secret for %s"%user.name)        
-        return self.dbenv["user"].cget(user.name, ctx=ctx, txn=txn)
+        return self.dbenv["user"].get(user.name, ctx=ctx, txn=txn)
 
 
     ##### New Users #####
@@ -2047,7 +2047,7 @@ class DB(object):
     @publicmethod(admin=True, compat="getqueueduser")
     @ol('names')
     def newuser_get(self, names, filt=True, ctx=None, txn=None):
-        return self.dbenv["newuser"].cgets(names, filt=filt, ctx=ctx, txn=txn)
+        return self.dbenv["newuser"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod()
     def newuser_new(self, password=None, email=None, name=None, ctx=None, txn=None):
@@ -2077,7 +2077,7 @@ class DB(object):
         :exception SecurityError:
         :exception ValidationError:
         """
-        items = self.dbenv["newuser"].cputs(items, ctx=ctx, txn=txn)
+        items = self.dbenv["newuser"].puts(items, ctx=ctx, txn=txn)
 
         autoapprove = emen2.db.config.get('users.autoapprove')
         if autoapprove:
@@ -2130,7 +2130,7 @@ class DB(object):
         autoapprove = emen2.db.config.get('users.autoapprove')
 
         # Get users from the new user approval queue
-        newusers = self.dbenv["newuser"].cgets(names, filt=filt, ctx=ctx, txn=txn)
+        newusers = self.dbenv["newuser"].gets(names, filt=filt, ctx=ctx, txn=txn)
         cusers = []
 
         # This will also check if the current username or email is in use
@@ -2142,13 +2142,13 @@ class DB(object):
 
             user = self.dbenv["user"].new(name=name, email=newuser.email, password=newuser.password, ctx=ctx, txn=txn)
             # Put the new user
-            user = self.dbenv["user"].cput(user, ctx=ctx, txn=txn)
+            user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
 
             # Update default Groups
             # for group in group_defaults:
-            #    gr = self.dbenv["group"].cget(group, ctx=ctx, txn=txn)
+            #    gr = self.dbenv["group"].get(group, ctx=ctx, txn=txn)
             #    gr.adduser(user.name)
-            #    self.dbenv["group"].cput(gr, ctx=ctx, txn=txn)
+            #    self.dbenv["group"].put(gr, ctx=ctx, txn=txn)
 
             # Create the "Record" for this user
             rec = self.dbenv["record"].new(rectype='person', ctx=ctx, txn=txn)
@@ -2161,11 +2161,11 @@ class DB(object):
             rec.update(newuser.signupinfo)
             rec.adduser(name, level=2)
             rec.addgroup("authenticated")
-            rec = self.dbenv["record"].cput(rec, ctx=ctx, txn=txn)
+            rec = self.dbenv["record"].put(rec, ctx=ctx, txn=txn)
 
             # Update the User with the Record name and put again
             user.record = rec.name
-            user = self.dbenv["user"].cput(user, ctx=ctx, txn=txn)
+            user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
             cusers.append(user)
 
             if childrec:
@@ -2173,7 +2173,7 @@ class DB(object):
                 crec.adduser(name, level=3)
                 crec.parents.add(rec.name)
                 crec.update(childrec)
-                crec = self.dbenv["record"].cput(crec, ctx=ctx, txn=txn)
+                crec = self.dbenv["record"].put(crec, ctx=ctx, txn=txn)
 
         # Send the 'account approved' emails
         for user in cusers:
@@ -2183,7 +2183,7 @@ class DB(object):
                 template = '/email/adduser.autoapproved'
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':template, 'ctxt':ctxt})
 
-        return self.dbenv["user"].cgets(set([user.name for user in cusers]), ctx=ctx, txn=txn)
+        return self.dbenv["user"].gets(set([user.name for user in cusers]), ctx=ctx, txn=txn)
 
     @publicmethod(write=True, admin=True, compat="rejectuser")
     @ol('names')
@@ -2205,7 +2205,7 @@ class DB(object):
         :exception SecurityError:
         """
         emails = {}
-        users = self.dbenv["newuser"].cgets(names, filt=filt, ctx=ctx, txn=txn)
+        users = self.dbenv["newuser"].gets(names, filt=filt, ctx=ctx, txn=txn)
         for user in users:
             emails[user.name] = user.email
 
@@ -2225,7 +2225,7 @@ class DB(object):
     @publicmethod(compat="getgroup")
     @ol('names')
     def group_get(self, names, filt=True, ctx=None, txn=None):
-        return self.dbenv["group"].cgets(names, filt=filt, ctx=ctx, txn=txn)
+        return self.dbenv["group"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod(compat="newgroup")
     def group_new(self, name=None, ctx=None, txn=None):
@@ -2234,7 +2234,7 @@ class DB(object):
     @publicmethod(write=True, admin=True, compat="putgroup")
     @ol('items')
     def group_put(self, items, ctx=None, txn=None):
-        return self.dbenv["group"].cputs(items, ctx=ctx, txn=txn)
+        return self.dbenv["group"].puts(items, ctx=ctx, txn=txn)
 
     @publicmethod(compat="getgroupnames")
     def group_names(self, names=None, ctx=None, txn=None):
@@ -2261,7 +2261,7 @@ class DB(object):
         :return: Groups
         """
         # No real indexes yet (small). Just get everything and sort directly.
-        items = self.dbenv["group"].cgets(self.dbenv["group"].names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
+        items = self.dbenv["group"].gets(self.dbenv["group"].names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
         ditems = listops.dictbykey(items, 'name')
 
         rets = []
@@ -2297,7 +2297,7 @@ class DB(object):
     @publicmethod(compat="getrecorddef")
     @ol('names')
     def recorddef_get(self, names, filt=True, ctx=None, txn=None):
-        return self.dbenv["recorddef"].cgets(names, filt=filt, ctx=ctx, txn=txn)
+        return self.dbenv["recorddef"].gets(names, filt=filt, ctx=ctx, txn=txn)
         
     @publicmethod(compat="newrecorddef")
     def recorddef_new(self, mainview=None, name=None, ctx=None, txn=None):
@@ -2306,7 +2306,7 @@ class DB(object):
     @publicmethod(write=True, compat="putrecorddef")
     @ol('items')
     def recorddef_put(self, items, ctx=None, txn=None):
-        return self.dbenv["recorddef"].cputs(items, ctx=ctx, txn=txn)
+        return self.dbenv["recorddef"].puts(items, ctx=ctx, txn=txn)
 
     @publicmethod(compat="getrecorddefnames")
     def recorddef_names(self, names=None, ctx=None, txn=None):
@@ -2353,7 +2353,7 @@ class DB(object):
     @publicmethod(compat="getrecord")
     @ol('names')
     def record_get(self, names, filt=True, ctx=None, txn=None):
-        return self.dbenv["record"].cgets(names, filt=filt, ctx=ctx, txn=txn)
+        return self.dbenv["record"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod(compat="newrecord")
     def record_new(self, rectype=None, **kwargs):
@@ -2362,7 +2362,7 @@ class DB(object):
     @publicmethod(write=True, compat="putrecord")
     @ol('items')
     def record_put(self, items, ctx=None, txn=None):
-        return self.dbenv["record"].cputs(items, ctx=ctx, txn=txn)
+        return self.dbenv["record"].puts(items, ctx=ctx, txn=txn)
 
     @publicmethod()
     def record_names(self, names=None, ctx=None, txn=None):
@@ -2607,7 +2607,7 @@ class DB(object):
         :exception SecurityError:
         :exception ValidationError:
         """
-        recs = self.dbenv["record"].cgets(names, ctx=ctx, txn=txn)
+        recs = self.dbenv["record"].gets(names, ctx=ctx, txn=txn)
         crecs = []
 
         for rec in recs:
@@ -2615,7 +2615,7 @@ class DB(object):
             children = [rec]
             if recurse:
                 c = self.dbenv["record"].rel([rec.name], recurse=recurse, ctx=ctx, txn=txn).get(rec.name, set())
-                c = self.dbenv["record"].cgets(c, ctx=ctx, txn=txn)
+                c = self.dbenv["record"].gets(c, ctx=ctx, txn=txn)
                 children.extend(c)
 
             # Apply the operations
@@ -2642,7 +2642,7 @@ class DB(object):
 
                 crecs.append(crec)
 
-        return self.dbenv["record"].cputs(crecs, ctx=ctx, txn=txn)
+        return self.dbenv["record"].puts(crecs, ctx=ctx, txn=txn)
 
     @publicmethod(write=True, compat="addcomment")
     @ol('names')
@@ -2726,7 +2726,7 @@ class DB(object):
         :exception KeyError:
         :exception SecurityError:
         """
-        recs = self.dbenv["record"].cgets(names, filt=filt, ctx=ctx, txn=txn)
+        recs = self.dbenv["record"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
         ret = []
         # This filters out a couple "history" types of comments
@@ -2766,7 +2766,7 @@ class DB(object):
         :exception KeyError: No such RecordDef
         :exception SecurityError: Unable to access RecordDef
         """
-        rds = self.dbenv["recorddef"].cgets(names, ctx=ctx, txn=txn)
+        rds = self.dbenv["recorddef"].gets(names, ctx=ctx, txn=txn)
         ind = self.dbenv["record"].getindex("rectype", txn=txn)
         ret = set()
         for i in rds:
@@ -2809,7 +2809,7 @@ class DB(object):
             inverted[rec.get(param)].add(rec.get('name'))
 
         # Include the ParamDef choices if choices=True.
-        pd = self.dbenv["paramdef"].cget(param, ctx=ctx, txn=txn)
+        pd = self.dbenv["paramdef"].get(param, ctx=ctx, txn=txn)
         if pd and choices:
             choices = pd.get('choices') or []
         else:
@@ -2894,7 +2894,7 @@ class DB(object):
     @publicmethod(compat="getbinary")
     @ol('names')
     def binary_get(self, names, filt=True, ctx=None, txn=None):
-        return self.dbenv["binary"].cgets(names, filt=filt, ctx=ctx, txn=txn)
+        return self.dbenv["binary"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod()
     def binary_new(self, ctx=None, txn=None):
@@ -2937,7 +2937,7 @@ class DB(object):
                 bdo = self.dbenv["binary"].new(filename=handler.get('filename'), ctx=ctx, txn=txn)
                 newfile = bdo.writetmp(filedata=handler.get('filedata', None), fileobj=handler.get('fileobj', None))
 
-            bdo = self.dbenv["binary"].cput(bdo, ctx=ctx, txn=txn)
+            bdo = self.dbenv["binary"].put(bdo, ctx=ctx, txn=txn)
             bdos.append(bdo)
 
             if newfile:
@@ -3005,16 +3005,16 @@ class DB(object):
             ret = self._findbyvartype(listops.check_iterable(record), ['binary'], ctx=ctx, txn=txn)
             rets.append(ret)
         allret = self._boolmode_collapse(rets, boolmode='AND')
-        ret = self.dbenv["binary"].cgets(allret, ctx=ctx, txn=txn)
+        ret = self.dbenv["binary"].gets(allret, ctx=ctx, txn=txn)
         if count:
             return ret[:count]
         return ret
         
     @publicmethod(write=True, compat="binaryaddreference")
     def binary_addreference(self, record, param, name, ctx=None, txn=None):
-        bdo = self.dbenv["binary"].cget(name, ctx=ctx, txn=txn)        
-        rec = self.dbenv["record"].cget(record, ctx=ctx, txn=txn)
-        pd = self.dbenv["paramdef"].cget(param, ctx=ctx, txn=txn)
+        bdo = self.dbenv["binary"].get(name, ctx=ctx, txn=txn)        
+        rec = self.dbenv["record"].get(record, ctx=ctx, txn=txn)
+        pd = self.dbenv["paramdef"].get(param, ctx=ctx, txn=txn)
 
         if pd.vartype != 'binary':
             raise KeyError, "ParamDef %s does not accept binary references"%pd.name
@@ -3029,8 +3029,8 @@ class DB(object):
         bdo.record = rec.name
 
         # Commit the record
-        self.dbenv["record"].cput(rec, ctx=ctx, txn=txn)
-        self.dbenv["binary"].cput(bdo, ctx=ctx, txn=txn)
+        self.dbenv["record"].put(rec, ctx=ctx, txn=txn)
+        self.dbenv["binary"].put(bdo, ctx=ctx, txn=txn)
     
     @publicmethod()
     @ol('names')    

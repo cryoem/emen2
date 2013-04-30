@@ -53,11 +53,11 @@ def getop(op, ignorecase=True):
 
 def keyformatconvert(keyformat, term):
     try:
-        if keyformat == 'd':
+        if keyformat == 'int':
             term = int(term)
-        elif keyformat == 'f':
+        elif keyformat == 'float':
             term = float(term)
-        elif keyformat == 's':
+        elif keyformat == 'str':
             term = unicode(term)
     except:
         pass
@@ -126,7 +126,7 @@ class IndexedConstraint(Constraint):
         self.priority = 1.0
         # If this is a ParamDef index, get all the details and index
         try:
-            self.paramdef = self.p.btree.dbenv['paramdef'].cget(self.param, filt=False, ctx=self.p.ctx, txn=self.p.txn)            
+            self.paramdef = self.p.btree.dbenv['paramdef'].get(self.param, filt=False, ctx=self.p.ctx, txn=self.p.txn)            
             self.ind = self.p.btree.getindex(self.param, txn=self.p.txn)
             # optimize query
             nkeys = self.ind.bdb.stat(txn=self.p.txn)['ndata'] or 1 # avoid div by zero
@@ -375,7 +375,7 @@ class Query(object):
             self._checktime()
             
         # If the param is iterable, we need to get the actual values.
-        pd = self.btree.dbenv['paramdef'].cget(sortkey, ctx=self.ctx, txn=self.txn)
+        pd = self.btree.dbenv['paramdef'].get(sortkey, ctx=self.ctx, txn=self.txn)
         if pd and pd.iter:
             self._checkitems(sortkey)
 
@@ -405,7 +405,7 @@ class Query(object):
 
             # Case-insensitive sort
             vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype)  # don't need db/cache; just checking keytype
-            if vartype.keyformat == 's':
+            if vartype.keyformat == 'str':
                 sortfunc = lambda x:sortvalues[x].lower()
         
 
@@ -481,7 +481,7 @@ class Query(object):
             raise QueryMaxItems, "This type of constraint has a limit of 100000 items; tried to get %s. Try narrowing the search by adding additional parameters."%(len(toget))
 
         if toget:
-            items = self.btree.cgets(toget, ctx=self.ctx, txn=self.txn)
+            items = self.btree.gets(toget, ctx=self.ctx, txn=self.txn)
             self.items.extend(items)
         
     def _checkitems(self, param):
@@ -491,7 +491,7 @@ class Query(object):
             return
         checkitems = set([k for k,v in self.cache.items() if (param in v)])
         items = set([i.name for i in self.items])
-        items = self.btree.cgets(checkitems - items, ctx=self.ctx, txn=self.txn)
+        items = self.btree.gets(checkitems - items, ctx=self.ctx, txn=self.txn)
         self.items.extend(items)
 
     def _keywords(self, op, term):

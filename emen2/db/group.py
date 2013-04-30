@@ -99,17 +99,5 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 
 
 
-class GroupDB(emen2.db.btrees.DBODB):
-    dataclass = Group
-
-    def openindex(self, param, txn=None):
-        if param == 'permissions':
-            ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
-        else:
-            ind = super(GroupDB, self).openindex(param, txn=txn)
-        return ind
-
-
-
 __version__ = "$Revision$".split(":")[1][:-1].strip()
 

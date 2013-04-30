@@ -273,7 +273,6 @@ class BinaryDB(emen2.db.btrees.DBODB):
     """DBODB for Binaries
 
     Extends:
-        update_names        Binaries are assigned a name based on date
         openindex            Indexed by: filename (maybe md5 in future)
 
     """
@@ -293,15 +292,6 @@ class BinaryDB(emen2.db.btrees.DBODB):
         # Return the new name.
         return newdkey['name']
 
-    def openindex(self, param, txn=None):
-        """Index on filename (and possibly MD5 in the future.)"""
-        if param == 'filename':
-            ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
-        elif param == 'md5':
-            ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
-        else:
-            ind = super(BinaryDB, self).openindex(param, txn=txn)
-        return ind
 
 
 

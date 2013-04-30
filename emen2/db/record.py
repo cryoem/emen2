@@ -318,34 +318,14 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
 
 class RecordDB(emen2.db.btrees.RelateDB):
-    cfunc = False     # Do not sort the BTree keys as integers
     dataclass = Record
 
     def _key_generator(self, item, txn=None):
         # Set name policy in this method.
         return unicode(self._incr_sequence(txn=txn))
 
-    def openindex(self, param, txn=None):
-        # Parents / children
-        ind = super(RecordDB, self).openindex(param, txn=txn)
-        if ind:
-            return ind
-
-        # Check the paramdef to see if it's indexed.
-        pd = self.dbenv["paramdef"].get(param, filt=False, txn=txn)
-        
-        # Check the key format.
-        vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd) # just checking keytype
-        tp = vartype.keyformat
-        if not pd.indexed or not tp:
-            return None
-
-        # Open the index
-        ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat=tp, dataformat=self.keyformat, dbenv=self.dbenv)
-        return ind
-
     def hide(self, names, ctx=None, txn=None):
-        recs = self.cgets(names, ctx=ctx, txn=txn)
+        recs = self.gets(names, ctx=ctx, txn=txn)
         crecs = []
         for rec in recs:
             rec.setpermissions([[],[],[],[]])
@@ -364,7 +344,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
             rec.parents = set()
             crecs.append(rec)
 
-        return self.cputs(crecs, ctx=ctx, txn=txn)
+        return self.puts(crecs, ctx=ctx, txn=txn)
 
     def groupbyrectype(self, names, ctx=None, txn=None):
         """Group Records by Rectype. Filters for permissions.
@@ -381,7 +361,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
         if len(recnames) < 1000:
             # Just get the rest of the records directly
-            recs.extend(self.cgets(recnames, ctx=ctx, txn=txn))
+            recs.extend(self.gets(recnames, ctx=ctx, txn=txn))
         else:
             # Use the index for large numbers of records
             ind = self.getindex("rectype", txn=txn)
@@ -408,7 +388,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
             return self.filter(names, rectype=kwargs.get('rectype'), ctx=ctx, txn=txn)
 
         if ctx.checkreadadmin():
-            m = self.get_max(txn=txn)
+            m = self._get_max(txn=txn)
             return set(map(unicode, range(0, m)))
             # return set(self.keys(txn=txn))
 
@@ -443,7 +423,7 @@ class RecordDB(emen2.db.btrees.RelateDB):
 
         # If less than a thousand items, get directly.
         if len(names) <= 1000:
-            crecs = self.cgets(names, ctx=ctx, txn=txn)
+            crecs = self.gets(names, ctx=ctx, txn=txn)
             return set([i.name for i in crecs])
 
         # Make a copy

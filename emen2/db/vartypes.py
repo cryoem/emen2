@@ -120,7 +120,7 @@ class Vartype(object):
     '''
 
     #: The index key type for this class
-    keyformat = 's'
+    keyformat = 'str'
 
     #: Is this vartype iterable?
     iterable = True
@@ -316,7 +316,7 @@ class vt_none(Vartype):
 class vt_float(Vartype):
     """Floating-point number."""
 
-    keyformat = 'f'
+    keyformat = 'float'
 
     def validate(self, value):
         return self._rci(map(float, ci(value)))
@@ -341,7 +341,7 @@ class vt_float(Vartype):
 class vt_percent(Vartype):
     """Percentage. 0 <= x <= 1."""
 
-    keyformat = 'f'
+    keyformat = 'float'
 
     def validate(self, value):
         value = map(float, ci(value))
@@ -361,7 +361,7 @@ class vt_percent(Vartype):
 class vt_int(Vartype):
     """Integer."""
 
-    keyformat = 'd'
+    keyformat = 'int'
 
     def validate(self, value):
         return self._rci(map(int, ci(value)))
@@ -381,7 +381,7 @@ class vt_coordinate(Vartype):
 class vt_boolean(Vartype):
     """Boolean value. Accepts 0/1, True/False, T/F, Yes/No, Y/N, None."""
 
-    keyformat = 'd'
+    keyformat = 'int'
 
     def validate(self, value):
         t = ['t', 'y', 'yes', 'true', '1']
@@ -420,7 +420,7 @@ class vt_boolean(Vartype):
 
 
 # String vartypes
-#    Indexed as keyformat 's'
+#    Indexed as keyformat 'str'
 @Vartype.register('string')
 class vt_string(Vartype):
     """String."""
@@ -523,7 +523,7 @@ class vt_text(vt_string):
 
 
 # Time vartypes (keyformat is string)
-#    Indexed as keyformat 's'
+#    Indexed as keyformat 'str'
 import dateutil.parser
 import dateutil.tz
 
@@ -590,7 +590,7 @@ class vt_time(vt_datetime):
 
 
 # Reference vartypes.
-#    Indexed as keyformat 's'
+#    Indexed as keyformat 'str'
 @Vartype.register('uri')
 class vt_uri(Vartype):
     """URI"""
@@ -700,7 +700,7 @@ class vt_binary(Vartype):
 
 
 # md5 checksum
-#    Indexed as keyformat 's'
+#    Indexed as keyformat 'str'
 @Vartype.register('md5')
 class vt_md5(Vartype):
     """String"""
@@ -717,7 +717,7 @@ class vt_record(Vartype):
     """References to other Records."""
 
     # This ma change in the future
-    keyformat = 'd'
+    keyformat = 'int'
 
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='record')
@@ -735,7 +735,7 @@ class vt_link(Vartype):
 
 
 # User, ACL, and Group vartypes
-#    Indexed as keyformat 's'
+#    Indexed as keyformat 'str'
 @Vartype.register('user')
 class vt_user(Vartype):
     """Users."""

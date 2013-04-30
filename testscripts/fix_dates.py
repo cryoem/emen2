@@ -89,7 +89,7 @@ with db:
             if rec.params.get(p):
                 rec.params[p] = parselocal(rec.params[p])
 
-        db._db.dbenv["record"].put(rec.name, rec, txn=txn)
+        db._db.dbenv["record"]._put(rec.name, rec, txn=txn)
         
         
         

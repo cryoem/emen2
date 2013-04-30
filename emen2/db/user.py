@@ -150,7 +150,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     #################################
 
     def _set_secret(self, key, value, **kwargs):
-        # Complicated.. cput/cputs will strip out secret.
+        # Complicated.. put/puts will strip out secret.
         # You have to get/put directly to get or set the secret.
         pass
 
@@ -520,14 +520,6 @@ class UserDB(emen2.db.btrees.DBODB):
 
         return user
 
-    def openindex(self, param, txn=None):
-        if param == 'email':
-            ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat='s', dataformat='s', dbenv=self.dbenv)
-        elif param == 'record':
-            ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat='d', dataformat='s', dbenv=self.dbenv)            
-        else:
-            ind = super(UserDB, self).openindex(param, txn=txn)
-        return ind
 
     def names(self, names=None, ctx=None, txn=None, **kwargs):
         # You need to be logged in to view this.
