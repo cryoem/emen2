@@ -70,10 +70,4 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
         return self._set(key, str(value or self.name), self.isowner())
         
 
-
-
-
-
-
 __version__ = "$Revision$".split(":")[1][:-1].strip()
-

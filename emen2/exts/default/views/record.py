@@ -196,7 +196,7 @@ class Record(View):
         """Create a new record."""
         self.main(name=name)
     
-        newrec = self.db.record.new(rectype, inherit=[self.rec.name])
+        newrec = self.db.record.new(rectype=rectype, inherit=[self.rec.name])
         if self.request_method not in ['post', 'put']:
             self.template = '/record/record.new'
             viewname = 'mainview'

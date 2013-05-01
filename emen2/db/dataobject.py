@@ -132,6 +132,8 @@ class BaseDBObject(object):
         p['uri'] = None
         p['children'] = set()
         p['parents'] = set()
+        # Temporary
+        p['keytype'] = _d.pop('keytype', None)
         self.__dict__.update(p)
 
         # Subclass init
@@ -595,7 +597,7 @@ class PermissionsDBObject(BaseDBObject):
             v[3] = ci(value.get('admin'))
             value = v
         permissions = [[unicode(y) for y in x] for x in value]
-        if len(permission) != 4:
+        if len(permissions) != 4:
             raise ValueError, "Invalid permissions format"
         return permissions
 

@@ -783,6 +783,7 @@ class CollectionDB(BaseDB):
         """
         txn = kwargs.pop('txn', None) # Don't pass the txn..
         ctx = kwargs.get('ctx', None)
+        kwargs['keytype'] = self.keytype
         inherit = kwargs.pop('inherit', [])
         item = self.dataclass(*args, **kwargs)
 
@@ -952,7 +953,7 @@ class CollectionDB(BaseDB):
         # Write the items "for real."
         for item in items:
             self._put_raw(item.name, item, txn=txn)
-            
+
         # Write index updates
         self._reindex_write(ind, ctx=ctx, txn=txn)
 
@@ -1071,7 +1072,6 @@ class CollectionDB(BaseDB):
         # update the indexes yet. 
         parents = ind.pop('parents', None)
         children = ind.pop('children', None)
-
         # Update the parent child relationships.
         self._reindex_relink(parents, children, ctx=ctx, txn=txn)
 
@@ -1504,18 +1504,20 @@ class CollectionDB(BaseDB):
         # Linking only requires write permissions
         # on ONE of the items.
         for name in names:
+            print 1
             try:
+                print "getting:", name
                 rec = self._get_raw(name, txn=txn)
             except:
                 print "Couldn't link to missing item:", name
                 continue
-
+            print 2
             rec.__dict__['parents'] -= p_remove[rec.name]
             rec.__dict__['parents'] |= p_add[rec.name]
             rec.__dict__['children'] -= c_remove[rec.name]
             rec.__dict__['children'] |= c_add[rec.name]
             self._put_raw(rec.name, rec, txn=txn)
-
+            print 3
         for k,v in p_remove.items():
             if v:
                 indp.removerefs(k, v, txn=txn)
@@ -1528,7 +1530,7 @@ class CollectionDB(BaseDB):
         for k,v in c_add.items():
             if v:
                 indc.addrefs(k, v, txn=txn)
-
+        print 4
         return
 
     ##### Search tree-like indexes (e.g. parents/children) #####

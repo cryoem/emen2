@@ -29,12 +29,6 @@ def publicmethod(*args, **kwargs):
     return _inner
 
 
-# class MethodUtil(object):
-#     allmethods = set(['doc'])
-#     def help(self, func, *args, **kwargs):
-#         return func.__doc__
-
-
 strht = lambda s, c: s.partition(c)[::2]
 def fb():
     return 'hi'
@@ -51,7 +45,8 @@ def help(mt):
 class MethodTree(object):
     '''Arranges the database methods into a tree so that they can be accessed as db.<a>.<b> (e.g. db.record.get)
 
-    Used by DBProxy'''
+    Used by DBProxy.
+    '''
 
     def __init__(self, func=None):
         self.func = func
@@ -61,7 +56,7 @@ class MethodTree(object):
         self.aliases = {}
 
     def alias(self, original_name, new_name):
-        '''define an alias for a certain method.
+        '''Define an alias for a certain method.
 
         :param new_name: the name to be replaced
         :param original_name: The replacement name
@@ -72,11 +67,8 @@ class MethodTree(object):
         self.aliases[original_name] = new_name
 
     def get_alias(self, name):
-        '''Check if the method sought has another name'''
+        '''Check if the method sought has another name.'''
         return self.aliases.get(name,name)
-
-    def __repr__(self):
-        return 'MethodTree: func: %r, children: %r' % (self.func, len(self.children.keys()))
 
     def __call__(self, *a, **kw):
         return self.func(*a, **kw)
@@ -100,10 +92,6 @@ class MethodTree(object):
         :param name: the name of the method
         :param func: the function to be executed
         '''
-        self._add_method(name, func)
-
-    # NOTE: a is for debugging purposes, it can be removed
-    def _add_method(self, name, func, a=1):
         head, _, tail = name.partition('.') 
         # use partition and not split since it is guaranteed to return a 3-tuple
 
@@ -112,7 +100,7 @@ class MethodTree(object):
         if tail == '':
             self.children[head].func = func
         else:
-            self.children[head]._add_method(tail, func, a+1)
+            self.children[head].add_method(tail, func)
 
     def get_method(self, name):
         '''Get a method by name, only resolves aliases once
@@ -120,9 +108,6 @@ class MethodTree(object):
         :param name: the name of the method
         '''
         name = self.get_alias(name)
-        return self._get_method(name)
-
-    def _get_method(self, name):
         head, _, tail = name.partition('.')
         child = self.children.get(head)
 
@@ -136,8 +121,6 @@ class MethodTree(object):
             result = child._get_method(tail)
 
         return result
-
-
 
 class _Method(object):
     # Taken from XML-RPC lib to support nested methods
@@ -156,20 +139,14 @@ class _Method(object):
     def __call__(self, *args):
         raise AttributeError, "No public method %s"%self._name
 
-
-
 class DBProxy(object):
     """A proxy that provides access to database public methods and handles low level details, such as Context and transactions.
 
     db = DBProxy()
     db._login(name, password)
-
     """
 
     _publicmethods = {}
-
-    #NOTE: the comments beginning like the one below are documentation
-    #: An instance of :py:class:`MethodTree` which holds the registered DB methods
     mt = MethodTree()
 
     @classmethod
@@ -200,7 +177,6 @@ class DBProxy(object):
         # print "--> ENTER"
         if self._txn:
             # raise Exception, "DBProxy: Existing open transaction."
-            # print "DBProxy: Warning: Existing open transaction: ", self._txn
             pass
         else:
             self._txn = self._db.dbenv.txncheck(txn=self._txn)
@@ -243,12 +219,7 @@ class DBProxy(object):
 
     @classmethod
     def _register_publicmethod(cls, func, apiname=None, write=False, admin=False, ext=False, compat=None):
-        # print "Registering func: %s"%apiname
-        # if set([func.apiname, func.func_name]) & cls._allmethods():
-        #     raise ValueError("""method %s already registered""" % name)
-
         apiname = apiname or func.func_name.replace('_','.')
-
         setattr(func, 'apiname', apiname)
         setattr(func, 'write', write)
         setattr(func, 'admin', admin)
@@ -266,7 +237,6 @@ class DBProxy(object):
         if compat:
             cls.mt.add_method(compat, func)
 
-
     def _checkwrite(self, method):
         return getattr(self.mt.get_method(method).func, "write", False)
 
@@ -274,7 +244,6 @@ class DBProxy(object):
 
     def _callmethod(self, method, args=(), kwargs={}):
         """Call a method by name with args and kwargs (e.g. RPC access)"""
-        #return getattr(self, method)(*args, **kwargs)
         m = self.mt.get_method(method).func
         if m is not None:
             return self._wrap(m)(*args, **kwargs)
@@ -295,11 +264,8 @@ class DBProxy(object):
         self._setContext(ctxid, host)
 
     def _wrap(self, func):
-        # print "Going into wrapper for func: %s / %s"%(func.func_name, func.apiname)
-
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            # self._db.periodic_operations.next()
             t = time.time()
 
             # Remove these from the keyword arguments
@@ -316,15 +282,10 @@ class DBProxy(object):
             # Make sure the DB is bound to the Context
             self._ctx.setdb(self)
 
-            # If extension method, pass the DB as an argument.
-            # if getattr(func, 'ext', False):
-            #     kwargs['db'] = self._db
-
             result = func(self._db, *args, **kwargs)
             # ms = (time.time()-t)*1000
             # if ms > 0:
             #    print "\n\n\n  <-- \t\t%10d ms: %s\t%s\t%s"%(ms, func.func_name, args, kwargs)
-            #    traceback.print_stack()
             return result
 
         return wrapper

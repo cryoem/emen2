@@ -50,7 +50,7 @@ class TestDB(unittest.TestCase):
         return data1.name
 
     def test_record_put_basic_invocation(self):
-        record = self.db.record.new('folder')
+        record = self.db.record.new(rectype='folder')
         name = 'The Record Name'
         record['name_folder'] = name
         name = self.put_helper(self.db.record.put, self.db.record.get, record, ['name_folder', 'rectype'])
@@ -90,7 +90,7 @@ class TestDB(unittest.TestCase):
          country='some country'
       )
 
-        user = self.db.newuser.new(un, pw, em)
+        user = self.db.newuser.new(password=pw, email=em)
         user.setsignupinfo(signup_info)
         self.db.newuser.put(user)
         self.db.newuser.approve(user.name)
@@ -120,7 +120,7 @@ class TestDB(unittest.TestCase):
         paramdef = self.db.paramdef.new(name='testparamdef', vartype='int')
         self.db.paramdef.put(paramdef)
 
-        rec = self.db.record.new('folder')
+        rec = self.db.record.new(rectype='folder')
 
         valid_value = 123
         rec['testparamdef'] = valid_value
@@ -153,7 +153,7 @@ class TestDB(unittest.TestCase):
     def test_record_render(self):
         recorddef = self.db.recorddef.new(name='testrecorddef', mainview='$$name_folder $$address_city')
         self.db.recorddef.put(recorddef)
-        rec = self.db.record.new(recorddef.name)
+        rec = self.db.record.new(rectype=recorddef.name)
         rec['name_folder'] = 'Test Folder'
         rec['address_city'] = 'Test Address'
         rec = self.db.record.put(rec)

@@ -26,15 +26,12 @@ from twisted.python.log import _safeFormat, textFromEventDict
 
 import emen2.db.config
 
-
 class PrintLogger(object):
     def emit(self, eventDict):
         print eventDict
 
-
 class SubLogger(twisted.python.log.FileLogObserver):
     pass
-
 
 class WebLogger(twisted.python.log.FileLogObserver):
     def emit(self, eventDict):
@@ -43,13 +40,10 @@ class WebLogger(twisted.python.log.FileLogObserver):
             util.untilConcludes(self.write, message+"\n")
             util.untilConcludes(self.flush)
 
-
 class ErrorLogger(twisted.python.log.FileLogObserver):
     pass
     
-
 class EMEN2Logger(object):
-
     log_levels = dict(
             DEBUG=-1,
             TXN=1,
@@ -118,8 +112,6 @@ class EMEN2Logger(object):
             pass
             print "[%s]"%level, message
 
-
-
 # Create the logger
 logger = EMEN2Logger()
 
@@ -128,7 +120,6 @@ def print_exception():
 
 def msg(msg='', level='INFO'):
     logger.log(msg, level)
-
 
 # Aliases
 info = functools.partial(msg, level='INFO')

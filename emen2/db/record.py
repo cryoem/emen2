@@ -131,10 +131,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         self.__dict__['params']['date_occurred'] = self.__dict__['creationtime']
         self.__dict__['params']['performed_by'] = self.__dict__['creator']
 
-
     def __repr__(self):
         return "<%s %s, %s at %x>" % (self.__class__.__name__, self.name, self.rectype, id(self))
-
 
     ##### Setters #####
 
@@ -144,7 +142,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         self.__dict__['rectype'] = unicode(value)
         return set(['rectype'])
         
-
     def _set_comments(self, key, value):
         """Bind record['comments'] setter"""
         return self.addcomment(value)
@@ -165,7 +162,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         # Really set the value
         self.params[key] = value
         return set([key])
-
 
     ##### Tweaks to mapping methods #####
 
@@ -190,10 +186,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         # Changes aren't logged on uncommitted records
         if self.isnew():
             return
-
         if not param:
             raise Exception, "Unable to add item to history log"
-
         self.history.append((unicode(self._ctx.username), unicode(self._ctx.utcnow), unicode(param), self.params.get(param)))
 
     def addcomment(self, value):
@@ -243,43 +237,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
         return cp
 
-    def revision(self, revision=None):
-        """Calculate the record's values to a point in the past
-
-        :param revision: the revision of the record to start
-        """
-
-        history = copy.copy(self.history)
-        comments = copy.copy(self.comments)
-        comments.append((self.get('creator'), self.get('creationtime'), 'Created'))
-        paramcopy = {}
-
-        bydate = collections.defaultdict(list)
-
-        for i in filter(lambda x:x[1]>=revision, history):
-            bydate[i[1]].append([i[0], i[2], i[3]])
-
-        for i in filter(lambda x:x[1]>=revision, comments):
-            bydate[i[1]].append([i[0], None, i[2]])
-
-        revs = sorted(bydate.keys(), reverse=True)
-
-        for rev in revs:
-            for item in bydate.get(rev, []):
-                # user, param, oldval
-                if item[1] == None:
-                    continue
-                if item[1] in paramcopy.keys():
-                    newval = paramcopy.get(item[1])
-                else:
-                    newval = self.get(item[1])
-
-                paramcopy[item[1]] = copy.copy(item[2])
-                # item[2] = newval
-
-        return bydate, paramcopy
-
-
     ##### Validation #####
 
     def validate(self):
@@ -309,7 +266,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
         # This does rely somewhat on validators returning None if empty..
         for param in rd.paramsR:
-            if self.get(param) == None:
+            if self.get(param) is None:
                 self.error("Required parameter: %s"%(param))
 
         self.__dict__['rectype'] = unicode(rd.name)

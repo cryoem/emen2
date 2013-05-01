@@ -16,7 +16,6 @@ import emen2.db.dataobject
 import emen2.db.magnitude
 
 
-
 class ParamDef(emen2.db.dataobject.BaseDBObject):
     """Parameters.
     
@@ -152,7 +151,6 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         # Widget hint
         self.__dict__['controlhint'] = None
 
-
     #################################
     # Setters
     #################################
@@ -166,28 +164,22 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         value = filter(None, [unicode(i) for i in value]) or None
         return self._set(key, value, self.isowner())
 
-
     def _set_desc_short(self, key, value):
         return self._set(key, unicode(value or self.name), self.isowner())
 
-
     def _set_desc_long(self, key, value):
         return self._set(key, unicode(value or ''), self.isowner())
-
 
     # Only admin can change defaultunits/immutable/indexed/vartype.
     # This should still generate lots of warnings.
     def _set_immutable(self, key, value):
         return self._set(key, bool(value), self._ctx.checkadmin())
 
-
     def _set_iter(self, key, value):
         return self._set(key, bool(value), self._ctx.checkadmin())
 
-
     def _set_indexed(self, key, value):
         return self._set(key, bool(value), self._ctx.checkadmin())
-
 
     def _set_controlhint(self, key, value):
         if value != None:
@@ -195,7 +187,6 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         value = value or None
         return self._set(key, value)
                 
-        
     # These can't be changed, it would disrupt the meaning of existing Records.
     def _set_vartype(self, key, value):
         if not self.isnew():
@@ -207,7 +198,6 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
             self.error("Invalid vartype: %s"%value)
 
         return self._set(key, value)
-
 
     def _set_property(self, key, value):
         if not self.isnew():
@@ -223,7 +213,6 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
         return self._set('property', value)
 
-
     def _set_defaultunits(self, key, value):
         if not self.isnew():
             self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
@@ -232,13 +221,11 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         value = emen2.db.properties.equivs.get(value, value)
         return self._set('defaultunits', value)
 
-
     def validate(self):
         if not self.vartype:
             self.error("Vartype required")
         if self.vartype not in emen2.db.vartypes.Vartype.registered:
             self.error("Vartype %r is not a valid vartype" % self.vartype)
-
     #     try:
     #         prop = emen2.db.properties.Property.get_property(self.property)
     #     except KeyError:
@@ -248,11 +235,5 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     #     if value not in prop.units:
     #         self.error("Invalid defaultunits %s for property %s. 
     #             Allowed: %s"%(value, self.property, ", ".join(prop.units)))
-
-
-
-
-
-
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

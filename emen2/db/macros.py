@@ -40,7 +40,6 @@ parser = r"""
     (?:,|$)             # Followed by a comma or the end of a string.
     """
 
-
 def parse_args(args):
     r = re.compile(parser, re.VERBOSE)
     ret = []
@@ -61,7 +60,6 @@ def parse_args(args):
 ##### Macro #####
 
 class Macro(object):
-
     keyformat = 'str'
 
     def __init__(self, cache=None, db=None):
@@ -105,7 +103,6 @@ class Macro(object):
     def macro_name(self, params):
         return unicode("Macro")
 
-
 @Macro.register('recname')
 class macro_recname(Macro):
     """recname macro"""
@@ -119,7 +116,6 @@ class macro_recname(Macro):
     def macro_name(self, params):
         return "Record ID"
 
-
 @Macro.register('childcount')
 class macro_childcount(Macro):
     """childcount macro"""
@@ -132,7 +128,6 @@ class macro_childcount(Macro):
         for rec in recs:
             key = self.cache.get_cache_key('rel.children', rec.name, *rectypes)
             self.cache.store(key, len(children.get(rec.name,[])))
-
 
     def process(self, params, rec):
         """Now even more optimized!"""
@@ -148,7 +143,6 @@ class macro_childcount(Macro):
     def macro_name(self, params):
         return "Childcount: %s"%(params)
 
-
 @Macro.register('childvalue')
 class macro_childvalue(Macro):
     """childvalue macro"""
@@ -160,7 +154,6 @@ class macro_childvalue(Macro):
 
     def macro_name(self, params):
         return "Child Value: %s"%params
-
 
 @Macro.register('parentvalue')
 class macro_parentvalue(Macro):
@@ -182,7 +175,6 @@ class macro_parentvalue(Macro):
 
     def macro_name(self, params):
         return "Parent Value: %s"%params
-
 
 @Macro.register('thumbnail')
 class macro_thumbnail(Macro):
@@ -220,7 +212,6 @@ class macro_thumbnail(Macro):
 
     def macro_name(self, params):
         return "Thumbnail Image"
-
 
 ##### Editing macros #####
 

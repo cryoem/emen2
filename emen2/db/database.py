@@ -368,8 +368,7 @@ class DB(object):
             setup(db=self)
 
 
-    def __str__(self):
-        return "<DB: %s>"%(hex(id(self)))
+    ##### Context Manager #####
 
 
     ##### Utility methods #####
@@ -1460,7 +1459,7 @@ class DB(object):
         set([u'ccd', u'micrograph', u'ddd', u'stack', u'scan'])
 
         :param names: Item name(s)
-        :keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
+        :keyword rectype: Filter by RecordDef. Can be single RecordDef or list.
         :keyword keytype: Item keytype
         :keyword filt: Ignore failures
         :return: All items that share a common parent
@@ -1541,8 +1540,8 @@ class DB(object):
         return self.dbenv["paramdef"].gets(names, filt=filt, ctx=ctx, txn=txn)
         
     @publicmethod(compat="newparamdef")
-    def paramdef_new(self, vartype=None, name=None, ctx=None, txn=None):
-        return self.dbenv["paramdef"].new(vartype=vartype, name=name, ctx=ctx, txn=txn)
+    def paramdef_new(self, *args, **kwargs):
+        return self.dbenv["paramdef"].new(*args, **kwargs)
                 
     @publicmethod(write=True, compat="putparamdef")
     @ol('items')
@@ -1642,7 +1641,7 @@ class DB(object):
         return self.dbenv["user"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod()
-    def user_new(self, password=None, email=None, name=None, ctx=None, txn=None):
+    def user_new(self, *args, **kwargs):
         raise NotImplementedError, "Use newuser.new() to create new users."
     
     @publicmethod(write=True, compat="putuser")
@@ -1933,8 +1932,6 @@ class DB(object):
         if not secret:
             user.setContext(ctx)
         user.setpassword(oldpassword, newpassword, secret=secret)
-
-        # ian: todo: evaluate to use put/_put..
         emen2.db.log.security("Changing password for %s"%user.name)
         self.dbenv["user"]._put(user.name, user, txn=txn)
         self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/password.changed'})
@@ -1975,7 +1972,6 @@ class DB(object):
         emen2.db.log.security("Setting resetpassword secret for %s"%user.name)        
         return self.dbenv["user"].get(user.name, ctx=ctx, txn=txn)
 
-
     ##### New Users #####
 
     @publicmethod(admin=True, compat="getqueueduser")
@@ -1984,8 +1980,8 @@ class DB(object):
         return self.dbenv["newuser"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod()
-    def newuser_new(self, password=None, email=None, name=None, ctx=None, txn=None):
-        return self.dbenv["newuser"].new(password=password, email=email, name=name, ctx=ctx, txn=txn)
+    def newuser_new(self, *args, **kwargs):
+        return self.dbenv["newuser"].new(*args, **kwargs)
 
     @publicmethod(write=True, compat="adduser")
     @ol('items')
@@ -2078,12 +2074,6 @@ class DB(object):
             # Put the new user
             user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
 
-            # Update default Groups
-            # for group in group_defaults:
-            #    gr = self.dbenv["group"].get(group, ctx=ctx, txn=txn)
-            #    gr.adduser(user.name)
-            #    self.dbenv["group"].put(gr, ctx=ctx, txn=txn)
-
             # Create the "Record" for this user
             rec = self.dbenv["record"].new(rectype='person', ctx=ctx, txn=txn)
 
@@ -2153,7 +2143,6 @@ class DB(object):
 
         return set(emails.keys())
 
-
     ##### Group #####
 
     @publicmethod(compat="getgroup")
@@ -2162,8 +2151,8 @@ class DB(object):
         return self.dbenv["group"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod(compat="newgroup")
-    def group_new(self, name=None, ctx=None, txn=None):
-        return self.dbenv["group"].new(name=name, ctx=ctx, txn=txn)
+    def group_new(self, *args, **kwargs):
+        return self.dbenv["group"].new(*args, **kwargs)
 
     @publicmethod(write=True, admin=True, compat="putgroup")
     @ol('items')
@@ -2225,7 +2214,6 @@ class DB(object):
             return ret[:count]
         return ret
 
-
     ##### RecordDef #####
 
     @publicmethod(compat="getrecorddef")
@@ -2234,8 +2222,8 @@ class DB(object):
         return self.dbenv["recorddef"].gets(names, filt=filt, ctx=ctx, txn=txn)
         
     @publicmethod(compat="newrecorddef")
-    def recorddef_new(self, mainview=None, name=None, ctx=None, txn=None):
-        return self.dbenv["recorddef"].new(mainview=mainview, name=name, ctx=ctx, txn=txn)
+    def recorddef_new(self, *args, **kwargs):
+        return self.dbenv["recorddef"].new(*args, **kwargs)
 
     @publicmethod(write=True, compat="putrecorddef")
     @ol('items')
@@ -2281,7 +2269,6 @@ class DB(object):
         """
         return self._find_pdrd(self._findrecorddefnames, keytype='recorddef', *args, **kwargs)
 
-
     ##### Records #####
 
     @publicmethod(compat="getrecord")
@@ -2290,8 +2277,8 @@ class DB(object):
         return self.dbenv["record"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod(compat="newrecord")
-    def record_new(self, rectype=None, **kwargs):
-        return self.dbenv["record"].new(rectype=rectype, **kwargs)
+    def record_new(self, *args, **kwargs):
+        return self.dbenv["record"].new(*args, **kwargs)
 
     @publicmethod(write=True, compat="putrecord")
     @ol('items')
@@ -2363,8 +2350,6 @@ class DB(object):
             crecs.append(rec)
 
         return self.dbenv["record"].puts(crecs, ctx=ctx, txn=txn)
-
-
 
     @publicmethod(write=True, compat="putrecordvalues")
     @ol('names')
@@ -2733,7 +2718,7 @@ class DB(object):
     def record_findbyvalue(self, param, query='', choices=True, count=100, ctx=None, txn=None):
         """Find values for a parameter.
 
-        This is mostly used for interactive UI elements: e.g. combobox.
+        This is mostly used for interactive UI elements: autocomplete.
         More detailed results can be returned by using db.query directly.
 
         Examples:
@@ -2872,7 +2857,6 @@ class DB(object):
         c_all = listops.filter_dict_zero(c_all)
 
         return rendered, c_all
-
 
     ##### Binaries #####
 
