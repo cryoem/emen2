@@ -504,6 +504,14 @@ class DB(object):
             allret = reduce(set.union, rets)
         return allret
 
+    def _user_by_email(self, name, ctx=None, txn=None):
+        """Lookup a user by name or email address."""
+        name = unicode(name or '').strip().lower()
+        found = self.dbenv["user"].getindex('email', txn=txn).get(name, txn=txn)
+        if found:
+            name = found.pop()
+        return self.dbenv["user"]._get_raw(name, filt=False, txn=txn)
+
     def _findrecorddefnames(self, names, ctx=None, txn=None):
         """(Internal) Find referenced recorddefs."""
         recnames, recs, rds = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
@@ -532,7 +540,7 @@ class DB(object):
         recnames, recs, values = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
         values = set(values)
         if recnames:
-            recs.extend(self.dbenv["record"].gets(recnames, filt=False, ctx=ctx, txn=txn))
+            recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
         if not recs:
             return values
 
@@ -637,7 +645,6 @@ class DB(object):
         dt.append("\t<thead>\n</table>")
         return "\n".join(dt)                
 
-
     ######################################
     ###### Begin Public API          #####
     ######################################
@@ -669,7 +676,6 @@ class DB(object):
         """
         return utcnow()
 
-
     ###### Version ######
 
     @publicmethod()
@@ -689,7 +695,6 @@ class DB(object):
         """
         return VERSIONS.get(program)
 
-
     ##### Utilities #####
 
     @publicmethod()
@@ -705,18 +710,8 @@ class DB(object):
         """
         return 'pong'
 
-
     ##### Login and Context Management #####
 
-    def _user_by_email(self, name, ctx=None, txn=None):
-        """Lookup a user by name or email address."""
-        name = unicode(name or '').strip().lower()
-        if not self.dbenv["user"].exists(name, txn=txn):
-            found = self.dbenv["user"].getindex('email', txn=txn).get(name, txn=txn)
-            if found:
-                name = found.pop()
-        return self.dbenv["user"]._get_raw(name, filt=False, txn=txn)
-        
     @publicmethod(write=True, compat="login")
     def auth_login(self, username, password, host=None, ctx=None, txn=None):
         """Login.
@@ -746,6 +741,9 @@ class DB(object):
             else:
                 user.checkpassword(password)
         except SecurityError, e:
+            # Both of these errors appear the same to the user,
+            # but are logged with the specific reason for
+            # login failure.
             emen2.db.log.security("Login failed, bad password: %s"%(username))                
             raise AuthenticationError
         except KeyError, e:
@@ -1500,39 +1498,6 @@ class DB(object):
         """
         return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', ctx=ctx, txn=txn)
 
-    @publicmethod(compat="getparenttree")
-    @ol('names', output=False)
-    def rel_parentstree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None):
-        """Get the parents of the object as a tree
-
-        This method is the same as as db.rel(..., rel='parents', tree=True)
-
-        Examples:
-
-        >>> db.rel.parentstree(46604, recurse=-1)
-        {136: set([0]), 46604: set([136])}
-
-        >>> db.rel.parentstree([46604, 74547], recurse=-1)
-        {136: set([0]), 74547: set([136]), 46604: set([136])}
-
-        >>> db.rel.parentstree([46604, 74547], recurse=-1, rectype='group')
-        {74547: set([136]), 46604: set([136])}
-
-        >>> db.rel.parentstree('ccd', recurse=2, keytype='recorddef')
-        {'ccd': set([u'image_capture']), u'image_capture': set([u'tem'])}
-
-        :param names: Item name(s)
-        :keyword recurse: Recursion depth
-        :keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
-        :keyword keytype: Item keytype
-        :keyword filt: Ignore failures
-        :return:
-        :exception KeyError:
-        :exception SecurityError:
-        """
-        #:exception MaxRecurseError:
-        return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', tree=True, ctx=ctx, txn=txn)
-
     @publicmethod(compat="getchildren")
     @ol('names')
     def rel_children(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None):
@@ -1563,40 +1528,10 @@ class DB(object):
         """
         return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', ctx=ctx, txn=txn)
 
-    @publicmethod(compat="getchildtree")
-    @ol('names', output=False)
-    def rel_childrentree(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None):
-        """Get the children of the object as a tree
-
-        This method is the same as as db.rel(..., rel='children', tree=True)
-
-        Examples:
-
-        >>> db.rel.childrentree(0, rectype='group')
-        {0: set([136, 358307])}
-
-        >>> db.rel.childrentree([46604, 74547], rectype='subproject')
-        {74547: set([75585, 270211, ...]), 46604: set([380432, 57474, ...])}
-
-        >>> db.rel.childrentree(136, recurse=2, rectype=['project*'])
-        {432645: set([449391]), 268295: set([268296]), 299528: set([460329, 299529]), ...}
-
-        :param names: Item name(s)
-        :keyword recurse: Recursion depth
-        :keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
-        :keyword keytype: Item keytype
-        :keyword filt: Ignore failures
-        :return:
-        :exception KeyError:
-        :exception SecurityError:
-        """
-        return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', tree=True, ctx=ctx, txn=txn)
-
     @publicmethod()
     @ol('names')
     def rel_rel(self, names, keytype="record", ctx=None, txn=None):
         return self.dbenv[keytype].rel(names, ctx=ctx, txn=txn)
-
 
     ##### ParamDef #####
 
@@ -1698,7 +1633,6 @@ class DB(object):
         :return: Set of all available datatypes.
         """
         return set(emen2.db.vartypes.Vartype.registered.keys())
-
 
     ##### User #####
 
@@ -2703,7 +2637,7 @@ class DB(object):
 
         names = set(names)
 
-        children = self.rel_childrentree(names, recurse=-1, ctx=ctx, txn=txn)
+        children = self.rel_rel(names, rel='children', tree=True, recurse=-1, ctx=ctx, txn=txn)
         allchildren = set()
         allchildren |= names
         for k,v in children.items():

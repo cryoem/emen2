@@ -25,14 +25,9 @@ import jsonrpc.jsonutil
 import emen2.util.listops
 import emen2.db.config
 
-
-
-
 def random_password(N):
     """Generate a random password of length N."""
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
-
-
 
 class BaseLoader(object):
     """Load database objects from a JSON file."""
@@ -56,24 +51,18 @@ class BaseLoader(object):
                     else:
                         yield item
 
-
-
 class Loader(BaseLoader):
     def load(self):
         dbenv = self.db._db.dbenv
         ctx = self.db._ctx
         txn = self.db._txn
         for keytype in ['paramdef', 'user', 'group', 'recorddef', 'binary', 'record']:
-            names = []
             for item in self.loadfile(keytype=keytype):
                 i = dbenv[keytype].dataclass(ctx=ctx)
                 i._load(item)
                 if dbenv[keytype].exists(i.name, txn=txn):
                     continue
                 dbenv[keytype]._put(i, ctx=ctx, txn=txn)
-                names.append(i.name)
-            
-
 
 class LoadOptions(emen2.db.config.DBOptions):
     def parseArgs(self, infile):

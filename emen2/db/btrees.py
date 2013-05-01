@@ -454,6 +454,10 @@ class BaseDB(object):
 class IndexDB(BaseDB):
     '''EMEN2DB optimized for indexes.
 
+    Security is NOT checked here, so do not expose indexes directly to 
+    untrusted clients. A user could query values they could not otherwise
+    access.
+
     IndexDB uses the Berkeley DB facility for storing multiple values for a
     single key (DB_DUPSORT). The Berkeley DB API has a method for
     quickly reading these multiple values.
