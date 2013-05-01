@@ -137,7 +137,7 @@ class Download(View):
 
     def _transfer_tar(self, files, request, cache=False):
         # Download multiple files using TarPipe
-        t = emen2.db.database.gettime()[:10]
+        t = emen2.db.database.utcnow()[:10]
         request.setHeader('Content-Disposition', 'attachment; filename=archive-%s.tar'%t)
         request.setHeader('Content-Type', 'application/x-tar')
         request.setHeader('Content-Encoding', 'application/octet-stream')

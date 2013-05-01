@@ -68,11 +68,7 @@ from emen2.db.exceptions import *
 # Load backend
 BACKEND = "bdb"
 if BACKEND == "bdb":
-    import emen2.db.backend_bdb as backend
-elif BACKEND == "riak":
-    raise NotImplementedError, "Riak backend under development."
-elif BACKEND == "mongodb":
-    raise NotImplementedError, "MongoDB backend under development."
+    import emen2.db.btrees as backend
 else:
     raise ImportError, "Unsupported EMEN2 backend: %s"%backend
 
@@ -136,7 +132,7 @@ def getctime():
     """Current database time, as float in seconds since the epoch."""
     return time.time()
 
-def gettime():
+def utcnow():
     """Returns the current database UTC time in ISO 8601 format."""
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat()+'+00:00'
 
@@ -657,7 +653,7 @@ class DB(object):
         :return: Time difference, in seconds.
         """
         t1 = emen2.db.vartypes.parse_iso8601(t1)[0]
-        t2 = emen2.db.vartypes.parse_iso8601(t2 or gettime())[0]
+        t2 = emen2.db.vartypes.parse_iso8601(t2 or utcnow())[0]
         return t2 - t1
         
     @publicmethod()
@@ -671,7 +667,7 @@ class DB(object):
 
         :return: Current time string, YYYY-MM-DDTHH:MM:SS+00:00
         """
-        return gettime()
+        return utcnow()
 
 
     ###### Version ######

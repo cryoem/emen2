@@ -19,7 +19,6 @@ import weakref
 import traceback
 
 # EMEN2 imports
-import emen2.db.btrees
 import emen2.db.exceptions
 import emen2.db.dataobject
 
@@ -467,94 +466,6 @@ class User(BaseUser):
 
         self.__dict__.update(p)
         self.__dict__['_displayname'] = self.getdisplayname()
-
-
-
-
-
-class UserDB(emen2.db.btrees.DBODB):
-    dataclass = User
-
-    def getbyemail(self, name, filt=True, ctx=None, txn=None):
-        """Lookup a user by name or email address. This is not a setContext lookup;
-        cgets will also expand email addresses to usernames.
-        """
-        name = unicode(name or '').strip()
-        if not self.exists(name, txn=txn):
-            found = self.getindex('email', txn=txn).get(name, txn=txn)
-            if found:
-                name = found.pop()
-        return self.get(name, filt=filt, txn=txn)
-
-    def expand(self, names, ctx=None, txn=None):
-        """Expand names, e.g. expanding * into children, or using an email address for a user"""
-        if not isinstance(names, set):
-            names = set(names)
-
-        # Grumble.. some things like old-style binaries may have None for a user field.
-        names -= set([None])
-
-        # ian: todo: need to benchmark this...
-        ind = self.getindex('email', txn=txn)
-        add = set()
-        remove = set()
-        for i in names:
-            if not self.exists(i, txn=txn):
-                add |= ind.get(i, txn=txn)
-                remove.add(i)
-
-        names -= remove
-        names |= add
-        return names
-
-    def new(self, *args, **kwargs):
-        txn = kwargs.get('txn', None)
-
-        # DB.new. This will check the main bdb for an existing name.
-        user = super(UserDB, self).new(*args, **kwargs)
-
-        # Check  if this email already exists
-        indemail = self.getindex('email', txn=txn)
-        if indemail.get(user.email, txn=txn):
-            raise emen2.db.exceptions.ExistingKeyError
-
-        return user
-
-
-    def names(self, names=None, ctx=None, txn=None, **kwargs):
-        # You need to be logged in to view this.
-        if not ctx or ctx.username == 'anonymous':
-            return set()
-        return super(UserDB, self).names(names=names, ctx=ctx, txn=txn)
-
-
-
-
-
-class NewUserDB(emen2.db.btrees.DBODB):
-    dataclass = NewUser
-
-    def new(self, *args, **kwargs):
-        txn = kwargs.get('txn', None)
-        newuser = super(NewUserDB, self).new(*args, **kwargs)
-
-        # Check if any pending accounts have this email address
-        for k,v in self.items(txn=txn):
-            if newuser.email == v.email:
-                raise emen2.db.exceptions.ExistingKeyError, emen2.db.exceptions.ExistingKeyError.__doc__
-
-        # Check if this email already exists
-        indemail = self.dbenv["user"].getindex('email', txn=txn)
-        if self.dbenv["user"].exists(newuser.name, txn=txn) or indemail.get(newuser.email, txn=txn):
-            raise emen2.db.exceptions.ExistingKeyError, emen2.db.exceptions.ExistingKeyError.__doc__
-
-        return newuser
-
-    def names(self, names=None, ctx=None, txn=None, **kwargs):
-        # This requires admin access
-        if not ctx or not ctx.checkadmin():
-            raise emen2.db.exceptions.SecurityError, "Admin rights needed to view user queue"
-        return super(NewUserDB, self).names(names=names, ctx=ctx, txn=txn)
 
 
 

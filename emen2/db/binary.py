@@ -1,10 +1,5 @@
 # $Id$
-"""Database support for Binary attachments.
-
-Classes:
-    Binary: Binary (attachment) DBO
-    BinaryDB: BTree for storing and access Binary instances
-"""
+"""Database support for Binary attachments."""
 
 import time
 import re
@@ -19,7 +14,6 @@ import cStringIO
 import tempfile
 
 # EMEN2 imports
-import emen2.db.btrees
 import emen2.db.dataobject
 import emen2.db.config
 import emen2.db.exceptions
@@ -46,9 +40,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
     File names are checked to prevent illegal characters, and names such as "."
     and invalid file names on some platforms ("COM", "NUL", etc.).
 
-    If the file is stored compressed on disk, the compressed attribute will
-    contain either True (gzip compressed) or the compression scheme used.
-
     Binaries are generally associated with a Record, stored in the record
     attribute. Read permission on a Binary requires either ownership of the
     item, or read permission on the associated Record. The owner of the Binary
@@ -66,7 +57,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
     And the following method is provided:
 
         parse            Parse name
-
 
     :attr filename: File name
     :attr filesize: Size of the uncompressed file
@@ -93,7 +83,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
         self.__dict__['_filepath'] = None
         self._filepath = None
 
-
     ##### DBObject interface #####
 
     def setContext(self, ctx):
@@ -103,7 +92,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
             return True
         if self.record is not None:
             rec = self._ctx.db.record.get(self.record, filt=False)
-
 
     # filepath is set during setContext, and discarded during commit (todo)
     def _set_filepath(self, key, value):
@@ -154,14 +142,8 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
     def validate(self):
         # Validate
-        # These requirements have been relaxed.
-        # if self.record is None:
-        #    raise emen2.db.exceptions.ValidationError, "Record reference is required"
-        # if self.filesize <= 0:
-        #    raise emen2.db.exceptions.ValidationError, "No file specified"
         if not all([self.filename, self.md5, self.filesize != None]):
             raise emen2.db.exceptions.ValidationError, "Filename, filesize, and MD5 checksum are required"
-
 
     ##### Utility methods #####
 
@@ -204,7 +186,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
         self.__dict__['md5'] = md5sum
         return tmpfile
 
-
     @staticmethod
     def parse(bdokey, counter=None):
         """Parse a 'bdo:2010010100001' type identifier into constituent parts
@@ -228,7 +209,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
         else:
             # Timestamps are now in ISO8601 format
             # e.g.: "2011-10-16T02:00:00+00:00"
-            bdokey = emen2.db.database.gettime()
+            bdokey = emen2.db.database.utcnow()
             year = int(bdokey[:4])
             mon = int(bdokey[5:7])
             day = int(bdokey[8:10])
@@ -267,32 +248,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
             "previewpath":previewpath,
             "name":name
             }
-
-
-class BinaryDB(emen2.db.btrees.DBODB):
-    """DBODB for Binaries
-
-    Extends:
-        openindex            Indexed by: filename (maybe md5 in future)
-
-    """
-
-    dataclass = Binary
-
-    def _key_generator(self, item, txn=None):
-        """Assign a name based on date, and the counter for that day."""
-        # Get the current date and counter.
-        dkey = emen2.db.binary.Binary.parse('')
-        # Increment the day's counter.
-        counter = self._incr_sequence(key=dkey['datekey'], txn=txn)
-        # Make the new name.
-        newdkey = emen2.db.binary.Binary.parse(dkey['name'], counter=counter)
-        # Update the item's filepath..
-        item.__dict__['_filepath'] = newdkey['filepath']
-        # Return the new name.
-        return newdkey['name']
-
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

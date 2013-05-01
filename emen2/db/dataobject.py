@@ -1,5 +1,5 @@
 # $Id$
-"""Base classes for EMEN2 DBOs
+"""Base classes for EMEN2 DatabaseObjects.
 
 Classes:
     BaseDBObject: Base EMEN2 DBO
@@ -18,9 +18,7 @@ import emen2.db.exceptions
 import emen2.db.vartypes
 
 
-# TODO: Remove UserDict, just do all the methods myself?
-# TODO: implement collections.MutableMapping instead of subclassing DictMixin
-class BaseDBObject(object, UserDict.DictMixin):
+class BaseDBObject(object):
     """Base class for EMEN2 DBOs.
 
     This class implements the mapping interface, and all the required base
@@ -63,27 +61,26 @@ class BaseDBObject(object, UserDict.DictMixin):
     In addition to implementing the mapping interface, the following methods
     are required as part of the database interface:
 
-        validate        Validate the item before committing
-        setContext        Check read permission and bind to a Context
-        isowner            Check ownership permission
+        validate         Validate the item before committing
+        setContext       Check read permission and bind to a Context
+        isowner          Check ownership permission
         isnew            Check if the item has been committed
-        writable        Check write permission
-        delete            Prepare item for deletion
-        rename            Prepare item for renaming
+        writable         Check write permission
+        delete           Prepare item for deletion
+        rename           Prepare item for renaming
 
     BaseDBObject also provides the following methods for extending/overriding:
 
-        init            Subclass init
-        validate_param    Validate a parameter
-        changedparams     Check parameters to re-index
-        commit            Commit and return the updated item
+        init             Subclass init
+        validate_param   Validate a parameter
+        changedparams    Check parameters to re-index
         error            Raise an Exception (default is ValidationError)
 
     All public methods are safe to override or extend, but be aware of any
     important default behaviors, particularly those related to security and
     validation.
 
-    Naturally, as with anything in Python, anyone with file or code-level
+    Naturally, as with anything in Python, anyone with direct
     access to the database can override security by accessing or committing
     to the database with low-level database methods. Therefore, it is generally
     necessary to restrict access using a proxy (e.g. DBProxy) over a network
@@ -101,17 +98,16 @@ class BaseDBObject(object, UserDict.DictMixin):
     :property keytype: Key type (default is lower case class name)
 
     """
-    attr_public = set(['children', 'parents', 'keytype', 'creator',
-        'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
+    
+    attr_public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
     attr_protected = set(['creator', 'creationtime', 'modifytime', 'modifyuser', 'uri'])
-
     attr_required = set()
 
     def __init__(self, _d=None, **_k):
         """Initialize a new DBO.
 
-        You may provide either a dictionary named (first argument or _d keyword,
-        or any extra keyword arguments.)
+        You may provide either a dictionary (first argument or _d keyword)
+        or extra keyword arguments.
         """
 
         # Set the uncommitted flag. This will be stripped out when committed.
@@ -194,22 +190,6 @@ class BaseDBObject(object, UserDict.DictMixin):
     def rename(self):
         self.error("No permission to rename.")
 
-
-    ##### String representation #####
-
-    def __unicode__(self):
-        ret = ["%s\n"%(self.__class__.__name__)]
-        for i,j in self.items():
-            ret.append(u"%12s:    %s\n"%(unicode(i),unicode(j)))
-        return u"".join(ret)
-
-    def __str__(self):
-        return self.__unicode__().encode('utf-8')
-
-    def __repr__(self):
-        return "<%s %s at %x>" % (self.__class__.__name__, self.name, id(self))
-
-
     ##### Required mapping interface #####
 
     def get(self, key, default=None):
@@ -247,7 +227,6 @@ class BaseDBObject(object, UserDict.DictMixin):
         
         self.update(update)
 
-    # Low level mapping methods
     # Behave like dict.get(key) instead of dict[key]
     def __getitem__(self, key, default=None):
         if key in self.attr_public:
@@ -273,7 +252,7 @@ class BaseDBObject(object, UserDict.DictMixin):
         # If a "_set_<key>" method exists, that will always be used for setting.
         # To allow editing of a public attr, there MUST be a _set_<key> method.
         # Then if no setter, and the method is part of the public attrs, then silently return.
-        # Finally, use _setoob as the setter. This can allow OOB attrs, or raise error (default).
+        # Finally, use _setoob as the setter. This can allow 'out of bounds' attrs, or raise error (default).
         cp = set()
         if self.get(key) == value:
             return cp
@@ -283,7 +262,7 @@ class BaseDBObject(object, UserDict.DictMixin):
         if setter:
             pass
         elif key in self.attr_public:
-            # These cannot be directly modified (not even by admin)
+            # These can't be modified without a setter method defined.
             # (Return quietly instead of SecurityError or KeyError)
             return cp
         else:
@@ -331,8 +310,13 @@ class BaseDBObject(object, UserDict.DictMixin):
         self.error("Cannot set parameter %s in this way"%key, warning=True)
         return set()
 
-
     ##### Update parents / children #####
+
+    def _set_children(self, key, value):
+        return self._setrel(key, value)
+
+    def _set_parents(self, key, value):
+        return self._setrel(key, value)
 
     def _setrel(self, key, value):
         """Set a relationship. Make sure we have permissions to edit the relationship."""
@@ -346,9 +330,9 @@ class BaseDBObject(object, UserDict.DictMixin):
         # (KeyErrors will be checked later, during commit..)
         access = self._ctx.db.get(changed, keytype=self.keytype)
 
-        # Check write permissions; need write permissions for at least one.
+        # Check write permissions; need write permissions for both.
         for item in access:
-            if not (self.writable() or item.writable()):
+            if not (self.writable() and item.writable()):
                 msg = 'Insufficient permissions to add or remove relationship: %s -> %s'%(self.name, item.name)
                 self.error(msg, e=emen2.db.exceptions.SecurityError)
 
@@ -357,14 +341,6 @@ class BaseDBObject(object, UserDict.DictMixin):
         #    have permission to read/edit.
         value |= changed - set(i.name for i in access)
         return self._set(key, value, True)
-
-    def _set_children(self, key, value):
-        return self._setrel(key, value)
-
-    def _set_parents(self, key, value):
-        return self._setrel(key, value)
-
-
 
     ##### Pickle methods #####
 
@@ -376,7 +352,6 @@ class BaseDBObject(object, UserDict.DictMixin):
             if key.startswith('_'):
                 odict.pop(key, None)
         return odict
-
 
     ##### Validation and error control #####
 
@@ -405,8 +380,7 @@ class BaseDBObject(object, UserDict.DictMixin):
 
         # Validate
         vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self._ctx.db, cache=self._ctx.cache)
-        v = vartype.validate(value)
-        return v
+        return vartype.validate(value)
 
 
     ##### Convenience methods #####
@@ -426,10 +400,6 @@ class BaseDBObject(object, UserDict.DictMixin):
         else:
             raise e(msg)
 
-    def commit(self):
-        """Commit the item and return the updated copy."""
-        return self._ctx.db.put([self], keytype=self.keytype)
-
 
 
 # A class for dbo's that have detailed ACL permissions.
@@ -437,7 +407,8 @@ class PermissionsDBObject(BaseDBObject):
     """DBO with additional access control.
 
     This class is used for DBOs that require finer grained control
-    over reading and writing. For instance, :py:class:`emen2.db.record.Record` and :py:class:`emen2.db.group.Group`. It is a subclass
+    over reading and writing. For instance, :py:class:`emen2.db.record.Record` 
+    and :py:class:`emen2.db.group.Group`. It is a subclass
     of :py:class:`BaseDBObject`; see that class for additional documentation.
 
     Two additional attributes are provided:
@@ -468,7 +439,6 @@ class PermissionsDBObject(BaseDBObject):
 
     Changes to permissions and groups do not trigger an update to the
     modification time and user.
-
 
     :attr permissions: Access control list
     :attr groups: Groups
@@ -501,7 +471,6 @@ class PermissionsDBObject(BaseDBObject):
         # Setup the base permissions
         p['permissions'] = [[],[],[],[]]
         p['groups'] = set()
-
         if self._ctx.username != 'root':
             p['permissions'][3].append(self._ctx.username)
 
@@ -538,19 +507,21 @@ class PermissionsDBObject(BaseDBObject):
             self.__dict__['_ptest'] = [True, True, True, True]
             return True
 
+        # Check if we're listed in each level.
         self.__dict__['_ptest'] = [self._ctx.username in level for level in self.permissions]
 
+        # If read admin, set read access.
         if self._ctx.checkreadadmin():
             self._ptest[0] = True
-
+        
+        # Apply any group permissions.
         for group in self.groups & self._ctx.groups:
             self._ptest[self._ctx.grouplevels[group]] = True
 
-        # Allow us to override readable; previously just checks "any(self._ptest)"
+        # Now, check if we can read.
         if not self.readable():
             raise emen2.db.exceptions.SecurityError, "Permission denied: %s %s"%(self.keytype, self.name)
-
-        return self._ptest[0]
+        return True
 
     def getlevel(self, user):
         """Get the user's permissions for this object
@@ -571,12 +542,10 @@ class PermissionsDBObject(BaseDBObject):
         return self._ptest[3]
 
     def readable(self):
-        """Does the user have permission to read the stored data (level 0)?
+        """Does the user have permission to read the record(level 0)?
 
         :rtype: bool
         """
-        # First check if we have any defined permission, then run
-        # checkreadadmin() as a last minute rescue
         return any(self._ptest)
 
     def commentable(self):
@@ -586,8 +555,8 @@ class PermissionsDBObject(BaseDBObject):
         """
         return any(self._ptest[1:])
 
-    def writable(self, key=None):
-        """Does the user have permission to change the stored data (level 2)?
+    def writable(self):
+        """Does the user have permission to change the record (level 2)?
 
         This method overrides :py:meth:`BaseDBObject.writable`
 
@@ -612,9 +581,7 @@ class PermissionsDBObject(BaseDBObject):
 
     def ptest(self):
         """Get a tuple with permission checks for each level"""
-        ###FIXME: should _ptest be publicly accessible?
         return self._ptest
-
 
     ##### Users #####
 
@@ -627,7 +594,10 @@ class PermissionsDBObject(BaseDBObject):
             v[2] = ci(value.get('write'))
             v[3] = ci(value.get('admin'))
             value = v
-        return [[unicode(y) for y in x] for x in value]
+        permissions = [[unicode(y) for y in x] for x in value]
+        if len(permission) != 4:
+            raise ValueError, "Invalid permissions format"
+        return permissions
 
     def adduser(self, users, level=0, reassign=False):
         """Add a user to the record's permissions
@@ -706,12 +676,7 @@ class PermissionsDBObject(BaseDBObject):
     def setpermissions(self, value):
         """Set the permissions"""
         value = self._check_permformat(value)
-
-        if len(value) != 4:
-            raise ValueError, "Invalid permissions format: %s"%value
-
         return self._set('permissions', value, self.isowner())
-
 
     ##### Groups #####
 
