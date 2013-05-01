@@ -23,8 +23,6 @@ def dfs(root, tree, recurse=1):
 
 @View.register
 class Tree(View):
-
-
     @View.add_matcher(r'^/tree/(?P<keytype>\w+)/(?P<root>[^/]*)/(?P<mode>\w+)/$', name='embed')
     def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", rectype=None, expandable=True, collapse_rectype=None, collapsed=None, id='', link=None, showroot=True):
         self.template = '/pages/tree'
@@ -45,11 +43,11 @@ class Tree(View):
 
         # add 2 to recurse to get enough info to draw the next level
         if mode == "children":
-            tree = self.db.rel.tree(root, rel="children", recurse=recurse+2, keytype=keytype, rectype=rectype)
+            tree = self.db.rel.rel(root, rel="children", recurse=recurse+2, keytype=keytype, rectype=rectype, tree=True)
             # get one level of parents as well..
             parents = self.db.rel.parents(root, keytype=keytype)
         else:
-            tree = self.db.rel.tree(root, rel="parents", recurse=recurse+2, keytype=keytype)
+            tree = self.db.rel.rel(root, rel="parents", recurse=recurse+2, keytype=keytype, tree=True)
         
         if collapse_rectype:
             collapsed |= self.db.rel.children(root, recurse=-1, rectype=collapse_rectype)

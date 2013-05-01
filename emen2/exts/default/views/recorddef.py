@@ -101,7 +101,7 @@ class RecordDefs(View):
 
     @View.add_matcher(r'^/recorddefs/$')
     def main(self, action=None, q=None):
-        recorddefnames = self.db.recorddef.names()
+        recorddefnames = self.db.recorddef.filter(None)
         
         if action == None or action not in ["tree", "name", "count"]:
             action = "tree"

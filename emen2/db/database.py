@@ -323,13 +323,13 @@ def setup(db=None, rootpw=None, rootemail=None):
     db = opendb(db=db, admin=True)
     with db:
         root = {'name':'root','email':rootemail, 'password':rootpw}
-        db._put([root], keytype='user')
+        db.put(root, keytype='user')
         loader = emen2.db.load.Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
         loader.load()
         rec = db.record.new(rectype='folder')
         rec.addgroup('authenticated')
         rec['name_folder'] = 'Root'
-        db.record._put(rec)
+        db.put(rec)
 
 
 
@@ -364,7 +364,7 @@ class DB(object):
         emen2.db.config.load_jsons(cb=self._load_json)
 
         # Create root account, groups, and root record if necessary
-        if self.create:
+        if emen2.db.config.get('params.create'):
             setup(db=self)
 
 
@@ -392,7 +392,7 @@ class DB(object):
             for item in loader.loadfile(keytype=keytype):
                 i = self.dbenv[keytype].dataclass(ctx=ctx)
                 i._load(item)
-                self.dbenv[keytype].addcache(i)
+                self.dbenv[keytype]._addcache(i)
 
     def _getcontext(self, ctxid, host, ctx=None, txn=None):
         """(Internal) Takes a ctxid key and returns a Context.
@@ -708,6 +708,15 @@ class DB(object):
 
     ##### Login and Context Management #####
 
+    def _user_by_email(self, name, ctx=None, txn=None):
+        """Lookup a user by name or email address."""
+        name = unicode(name or '').strip().lower()
+        if not self.dbenv["user"].exists(name, txn=txn):
+            found = self.dbenv["user"].getindex('email', txn=txn).get(name, txn=txn)
+            if found:
+                name = found.pop()
+        return self.dbenv["user"]._get_raw(name, filt=False, txn=txn)
+        
     @publicmethod(write=True, compat="login")
     def auth_login(self, username, password, host=None, ctx=None, txn=None):
         """Login.
@@ -730,7 +739,7 @@ class DB(object):
         """
         # Check the password; user.checkpassword will raise Exception if wrong
         try:
-            user = self.dbenv["user"].getbyemail(username, filt=False, txn=txn)
+            user = self._user_by_email(username, txn=txn)
             # Allow admins to login to other accounts.
             if ctx.checkadmin():
                 pass
@@ -738,10 +747,10 @@ class DB(object):
                 user.checkpassword(password)
         except SecurityError, e:
             emen2.db.log.security("Login failed, bad password: %s"%(username))                
-            raise AuthenticationError, str(e)
+            raise AuthenticationError
         except KeyError, e:
             emen2.db.log.security("Login failed, no such user: %s"%(username))                
-            raise AuthenticationError, AuthenticationError.__doc__
+            raise AuthenticationError
 
         # Create the Context for this user/host
         newcontext = emen2.db.context.Context(username=user.name, host=host)
@@ -1584,11 +1593,6 @@ class DB(object):
         return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', tree=True, ctx=ctx, txn=txn)
 
     @publicmethod()
-    @ol('names', output=False)
-    def rel_tree(self, names, recurse=1, rectype=None, keytype="record", rel="children", ctx=None, txn=None):        
-        return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel=rel, tree=True, ctx=ctx, txn=txn)
-
-    @publicmethod()
     @ol('names')
     def rel_rel(self, names, keytype="record", ctx=None, txn=None):
         return self.dbenv[keytype].rel(names, ctx=ctx, txn=txn)
@@ -1611,8 +1615,8 @@ class DB(object):
         return self.dbenv["paramdef"].puts(items, ctx=ctx, txn=txn)
 
     @publicmethod(compat="getparamdefnames")
-    def paramdef_names(self, names=None, ctx=None, txn=None):
-        return self.dbenv["paramdef"].names(names=names, ctx=ctx, txn=txn)
+    def paramdef_filter(self, names=None, ctx=None, txn=None):
+        return self.dbenv["paramdef"].filter(names, ctx=ctx, txn=txn)
         
     @publicmethod(compat="findparamdef")
     def paramdef_find(self, *args, **kwargs):
@@ -1713,8 +1717,8 @@ class DB(object):
         return self.dbenv["user"].puts(items, ctx=ctx, txn=txn)
 
     @publicmethod(compat="getusernames")
-    def user_names(self, names=None, ctx=None, txn=None):
-        return self.dbenv["user"].names(names=names, ctx=ctx, txn=txn)
+    def user_filter(self, names=None, ctx=None, txn=None):
+        return self.dbenv["user"].filter(names, ctx=ctx, txn=txn)
 
     @publicmethod(compat="finduser")
     def user_find(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
@@ -1750,7 +1754,7 @@ class DB(object):
 
         # If no options specified, find all users
         if not any([query, record, kwargs]):
-            foundusers = self.dbenv["user"].names(ctx=ctx, txn=txn)
+            foundusers = self.dbenv["user"].filter(None, ctx=ctx, txn=txn)
 
         cs = []
         for term in query:
@@ -1991,7 +1995,7 @@ class DB(object):
         # Note: The password will be hidden if ctx.username != user.name
         # user = self.dbenv["user"].get(name or ctx.username, filt=False, ctx=ctx, txn=txn)
         #ed: odded 'or ctx.username' to match docs
-        user = self.dbenv["user"].getbyemail(name, filt=False, txn=txn)
+        user = self._user_by_email(name, ctx=ctx, txn=txn)
         if not secret:
             user.setContext(ctx)
         user.setpassword(oldpassword, newpassword, secret=secret)
@@ -2022,7 +2026,7 @@ class DB(object):
         :exception KeyError:
         :exception SecurityError:
         """
-        user = self.dbenv["user"].getbyemail(name, filt=False, txn=txn)
+        user = self._user_by_email(name, ctx=ctx, txn=txn)
         user.resetpassword()
 
         # Use direct put to preserve the secret
@@ -2088,12 +2092,12 @@ class DB(object):
         return items
         
     @publicmethod(admin=True, compat="getuserqueue")
-    def newuser_names(self, names=None, ctx=None, txn=None):
-        return self.dbenv["newuser"].names(names=names, ctx=ctx, txn=txn)
+    def newuser_filter(self, names=None, ctx=None, txn=None):
+        return self.dbenv["newuser"].filter(names, ctx=ctx, txn=txn)
         
     @publicmethod(admin=True)
     def newuser_find(self, names=None, ctx=None, txn=None):
-        return self.dbenv["newuser"].names(names=names, ctx=ctx, txn=txn)
+        return self.dbenv["newuser"].filter(names, ctx=ctx, txn=txn)
         
     @publicmethod(write=True, admin=True, compat="approveuser")
     @ol('names')
@@ -2233,8 +2237,8 @@ class DB(object):
         return self.dbenv["group"].puts(items, ctx=ctx, txn=txn)
 
     @publicmethod(compat="getgroupnames")
-    def group_names(self, names=None, ctx=None, txn=None):
-        return self.dbenv["group"].names(names=names, ctx=ctx, txn=txn)
+    def group_filter(self, names=None, ctx=None, txn=None):
+        return self.dbenv["group"].filter(names, ctx=ctx, txn=txn)
 
     @publicmethod(compat="findgroup")
     def group_find(self, query=None, record=None, count=100, ctx=None, txn=None):
@@ -2257,7 +2261,7 @@ class DB(object):
         :return: Groups
         """
         # No real indexes yet (small). Just get everything and sort directly.
-        items = self.dbenv["group"].gets(self.dbenv["group"].names(ctx=ctx, txn=txn), ctx=ctx, txn=txn)
+        items = self.dbenv["group"].gets(self.dbenv["group"].filter(None, ctx=ctx, txn=txn), ctx=ctx, txn=txn)
         ditems = listops.dictbykey(items, 'name')
 
         rets = []
@@ -2305,8 +2309,8 @@ class DB(object):
         return self.dbenv["recorddef"].puts(items, ctx=ctx, txn=txn)
 
     @publicmethod(compat="getrecorddefnames")
-    def recorddef_names(self, names=None, ctx=None, txn=None):
-        return self.dbenv["recorddef"].names(names=names, ctx=ctx, txn=txn)
+    def recorddef_filter(self, names=None, ctx=None, txn=None):
+        return self.dbenv["recorddef"].filter(names, ctx=ctx, txn=txn)
 
     @publicmethod(compat="findrecorddef")
     def recorddef_find(self, *args, **kwargs):
@@ -2361,8 +2365,8 @@ class DB(object):
         return self.dbenv["record"].puts(items, ctx=ctx, txn=txn)
 
     @publicmethod()
-    def record_names(self, names=None, ctx=None, txn=None):
-        return self.dbenv["record"].names(names=names, ctx=ctx, txn=txn)
+    def record_filter(self, names=None, ctx=None, txn=None):
+        return self.dbenv["record"].filter(names, ctx=ctx, txn=txn)
 
     @publicmethod()
     def record_find(self, **kwargs):
@@ -2404,7 +2408,29 @@ class DB(object):
                 names |= v
                 names.add(k)
 
-        self.dbenv["record"].hide(names, ctx=ctx, txn=txn)
+        # self.dbenv["record"].hide(names, ctx=ctx, txn=txn)
+        recs = self.dbenv["record"].gets(names, ctx=ctx, txn=txn)
+        crecs = []
+        for rec in recs:
+            rec.setpermissions([[],[],[],[]])
+            rec.setgroups([])
+            if rec.parents and rec.children:
+                rec["comments"] = "Record hidden by unlinking from parents %s and children %s"%(", ".join([unicode(x) for x in rec.parents]), ", ".join([unicode(x) for x in rec.children]))
+            elif rec.parents:
+                rec["comments"] = "Record hidden by unlinking from parents %s"%", ".join([unicode(x) for x in rec.parents])
+            elif rec.children:
+                rec["comments"] = "Record hidden by unlinking from children %s"%", ".join([unicode(x) for x in rec.children])
+            else:
+                rec["comments"] = "Record hidden"
+
+            rec['deleted'] = True
+            rec.children = set()
+            rec.parents = set()
+            crecs.append(rec)
+
+        return self.dbenv["record"].puts(crecs, ctx=ctx, txn=txn)
+
+
 
     @publicmethod(write=True, compat="putrecordvalues")
     @ol('names')
@@ -2684,7 +2710,7 @@ class DB(object):
             allchildren.add(k)
             allchildren |= v
 
-        parents = self.rel_tree(allchildren, rel="parents", ctx=ctx, txn=txn)
+        parents = self.rel_rel(allchildren, rel="parents", tree=True, ctx=ctx, txn=txn)
 
         # Find a path back to root for each child
         orphaned = set()
@@ -2843,8 +2869,37 @@ class DB(object):
         :exception KeyError:
         :exception SecurityError:
         """
-        return self.dbenv["record"].groupbyrectype(names, ctx=ctx, txn=txn)
-    
+        if not names:
+            return {}
+
+        # Allow either Record(s) or Record name(s) as input
+        ret = collections.defaultdict(set)
+        recnames, recs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
+
+        if len(recnames) < 1000:
+            # Just get the rest of the records directly
+            recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
+        else:
+            # Use the index for large numbers of records
+            ind = self.dbenv["record"].getindex("rectype", txn=txn)
+            # Filter permissions
+            names = self.dbenv["record"].filter(recnames, ctx=ctx, txn=txn)
+            while names:
+                # get a random record's rectype
+                rid = names.pop()
+                rec = self.dbenv["record"].get(rid, txn=txn)
+                # get the set of all records with this recorddef
+                ret[rec.rectype] = ind.get(rec.rectype, txn=txn) & names
+                # remove the results from our list since we have now classified them
+                names -= ret[rec.rectype]
+                # add back the initial record to the set
+                ret[rec.rectype].add(rid)
+
+        for i in recs:
+            ret[i.rectype].add(i.name)
+
+        return ret
+
     @publicmethod(compat="renderchildtree")
     def record_renderchildren(self, name, recurse=3, rectype=None, ctx=None, txn=None):
         """(Deprecated) Convenience method used by some clients to render a bunch of
@@ -2947,8 +3002,8 @@ class DB(object):
         return bdos
 
     @publicmethod()
-    def binary_names(self, names=None, ctx=None, txn=None):
-        return self.dbenv["binary"].names(names=names, ctx=ctx, txn=txn)
+    def binary_filter(self, names=None, ctx=None, txn=None):
+        return self.dbenv["binary"].filter(names, ctx=ctx, txn=txn)
 
     # Warning: This can be SLOW!
     @publicmethod(compat="findbinary")
@@ -2986,7 +3041,7 @@ class DB(object):
         rets = []
         # This would probably work better if we used the sequencedb keys as a first step
         if query or kwargs.get('name'):
-            names = self.dbenv["binary"].names(ctx=ctx, txn=txn)
+            names = self.dbenv["binary"].filter(None, ctx=ctx, txn=txn)
 
         query = unicode(query or '').split()
         for q in query:

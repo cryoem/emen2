@@ -70,20 +70,9 @@ class Loader(BaseLoader):
                 i._load(item)
                 if dbenv[keytype].exists(i.name, txn=txn):
                     continue
-                dbenv[keytype]._put(i.name, i, txn=txn)
+                dbenv[keytype]._put(i, ctx=ctx, txn=txn)
                 names.append(i.name)
             
-            for chunk in emen2.util.listops.chunk(names):
-                # Get the written items for this chunk.
-                items = dbenv[keytype].gets(chunk, ctx=ctx, txn=txn)
-
-                # Rebuild the indexes for these items.
-                # 1. Calculate
-                ind = dbenv[keytype]._reindex(items, ctx=ctx, txn=txn, reindex=True)
-                # 2. Write the index changes
-                dbenv[keytype]._reindex_write(ind, ctx=ctx, txn=txn)
-                
-
 
 
 class LoadOptions(emen2.db.config.DBOptions):

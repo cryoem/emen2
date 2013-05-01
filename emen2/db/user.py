@@ -183,7 +183,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # After a long discussion in #python, it is impossible to validate
         #     emails other than checking for '@'
         # Note: Forcing emails to be stored as lower case.
-        email = unicode(email or '').lower().strip()
+        email = unicode(email or '').strip().lower()
         if not email or '@' not in email:
             self.error("Invalid email format '%s'"%email)
         return email

@@ -75,7 +75,7 @@ class ParamDefs(View):
 
     @View.add_matcher(r'^/paramdefs/$')
     def main(self, action=None, q=None):
-        paramdefnames = self.db.paramdef.names()
+        paramdefnames = self.db.paramdef.filter(None)
 
         if action == None or action not in ["vartype", "name", "tree", "property"]:
             action = "tree"

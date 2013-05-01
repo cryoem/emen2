@@ -147,9 +147,9 @@ if __name__ == "__main__":
     db = emen2.db.opendb(admin=True)
     dumper = Dumper(db=db) # PublicDumper(db=db)
     keys = dumper.dump(c=[['groups','==','publish']])
-    keys['paramdef'] = db.paramdef.names()
-    keys['recorddef'] = db.recorddef.names()
-    keys['user'] = db.user.names()
+    keys['paramdef'] = db.paramdef.filter(None)
+    keys['recorddef'] = db.recorddef.filter(None)
+    keys['user'] = db.user.filter()
     keys['user'].remove('root')
     dumper.write(keys, outfile="dump-publicdata.json", uri="http://ncmidb.bcm.edu")
     

@@ -213,8 +213,8 @@ class BaseDBObject(object):
         if not self.isnew():
             self.error('Cannot update previously committed items this way.')
 
-        # Skip validation for protected keys.
-        keys = self.attr_protected & set(update.keys())
+        # Skip validation for defined keys?
+        keys = self.attr_public & set(update.keys())
         keys.add('name')
         for key in keys:
             value = update.pop(key, None)

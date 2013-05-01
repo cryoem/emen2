@@ -108,8 +108,8 @@ class EMEN2Logger(object):
     def log(self, message, level='INFO'):
         """Print or write the log message."""
         priority = self.log_levels.get(level, 0)        
-        if priority < self.log_level:
-            return
+        # if priority < self.log_level:
+        #    return
 
         # If we're using twisted logging, pass through...
         if self.started: 
@@ -137,6 +137,6 @@ error = functools.partial(msg, level='ERROR')
 warn = functools.partial(msg, level='WARN')
 debug = functools.partial(msg, level='DEBUG')
 security = functools.partial(msg, level='SECURITY')
-index = functools.partial(msg, level='INFO')
+index = functools.partial(msg, level='INDEX')
 commit = functools.partial(msg, level='COMMIT')
 web = functools.partial(msg, level='WEB')

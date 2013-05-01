@@ -68,7 +68,7 @@ class Users(View):
     def main(self, q=None):
         self.template = "/pages/users"
         self.title = "User directory"
-        usernames = self.db.user.names()
+        usernames = self.db.user.filter(None)
 
         if q:
             users = self.db.user.find(q)
@@ -91,7 +91,7 @@ class Users(View):
         if q:
             users = self.db.user.find(q)
         else:
-            users = self.db.user.get(self.db.user.names())
+            users = self.db.user.get(self.db.user.filter(None))
 
         self.ctxt['args'] = kwargs
         self.ctxt['q'] = q
@@ -178,10 +178,10 @@ class NewUser(View):
                     group.adduser(user.name)
                     self.db.group.put(group)
 
-        queue = self.db.newuser.get(self.db.newuser.names())
+        queue = self.db.newuser.get(self.db.newuser.filter(None))
         self.ctxt['queue'] = queue
 
-        groupnames = self.db.group.names()
+        groupnames = self.db.group.filter(None)
         groupnames -= set(['anon', 'authenticated'])
         self.ctxt['groups'] = self.db.group.get(groupnames)
         self.ctxt['groups_default'] = set(['create'])

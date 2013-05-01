@@ -12,7 +12,7 @@ class Groups(View):
         self.template="/pages/groups"
         self.title = "User group directory"
         self.ctxt["q"] = ""
-        groupnames = self.db.group.names()
+        groupnames = self.db.group.filter(None)
         groups = self.db.group.get(groupnames)
         admin = self.db.auth.check.admin()
         self.ctxt["admin"] = admin

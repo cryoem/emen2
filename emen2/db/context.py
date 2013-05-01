@@ -52,7 +52,7 @@ class Context(object):
 
     attr_user = set()
 
-    def __init__(self, db=None, username=None, user=None, groups=None, host=None, maxidle=604800):
+    def __init__(self, db=None, username=None, user=None, groups=None, grouplevels=None, host=None, maxidle=604800):
         self.db = None
         self.setdb(db)
 

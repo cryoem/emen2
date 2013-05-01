@@ -39,7 +39,7 @@ ParamDef = emen2.db.paramdef.ParamDef
 RecordDef = emen2.db.recorddef.RecordDef
 User = emen2.db.user.User
 NewUser = emen2.db.user.NewUser
-group = emen2.db.group.Group
+Group = emen2.db.group.Group
 Context = emen2.db.context.Context
 
 try:
@@ -64,7 +64,7 @@ set_lg_bsize 2097152
 ##### EMEN2 Database Environment #####
 
 class EMEN2DBEnv(object):
-    """EMEN2 Database Environment."""
+    """BerkeleyDB Database Environment."""
 
     def __init__(self, path=None, snapshot=False):
         """
@@ -76,6 +76,15 @@ class EMEN2DBEnv(object):
         self.path = path
         self.snapshot = snapshot or emen2.db.config.get('bdb.snapshot')
         self.cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024l
+
+        # Make sure the data directory exists.
+        paths = [
+            os.path.join(self.path, 'data'),
+            os.path.join(self.path, 'journal')
+        ]
+        for p in paths:
+            if not os.path.exists(p):
+                os.makedirs(p)
 
         # Make sure the DB_CONFIG is present.
         configpath = os.path.join(self.path, "DB_CONFIG")
@@ -133,10 +142,10 @@ class EMEN2DBEnv(object):
         # These are public dbs.
         self.keytypes['paramdef']  = CollectionDB(dataclass=ParamDef, dbenv=self)
         self.keytypes['recorddef'] = CollectionDB(dataclass=RecordDef, dbenv=self)
+        self.keytypes['group']     = CollectionDB(dataclass=Group, dbenv=self)
         self.keytypes['record']    = RecordDB(dataclass=Record, dbenv=self)
         self.keytypes['user']      = UserDB(dataclass=User, dbenv=self)
         self.keytypes['newuser']   = NewUserDB(dataclass=NewUser, dbenv=self)
-        self.keytypes['group']     = GroupDB(dataclass=Group, dbenv=self)
         self.keytypes['binary']    = BinaryDB(dataclass=Binary, dbenv=self)
 
     # ian: todo: make this nicer.
@@ -203,9 +212,7 @@ class EMEN2DBEnv(object):
         self._txncb(txnid, 'commit', 'after')
         self._txncbs.pop(txnid, None)
 
-    def checkpoint(self, txn=None):
-        """Checkpoint the database environment."""
-        return self.dbenv.txn_checkpoint()
+    ##### Pre- and post-commit hooks. #####
 
     def txncb(self, txn, action, args=None, kwargs=None, condition='commit', when='before'):
         # Add a pre- or post-commit hook.
@@ -249,8 +256,11 @@ class EMEN2DBEnv(object):
         except Exception, e:
             emen2.db.log.error("Couldn't start thumbnail builder")
     
-
     ##### Log archive #####
+
+    def checkpoint(self, txn=None):
+        """Checkpoint the database environment."""
+        return self.dbenv.txn_checkpoint()
 
     def journal_archive(self, remove=True, checkpoint=True, txn=None):
         """Archive completed log files.
@@ -278,18 +288,15 @@ class EMEN2DBEnv(object):
             shutil.move(archivefile, dest)
             outpaths.append(dest)
 
-        return outpaths
-  
-        
+        return outpaths     
 
 
 # Berkeley DB wrapper classes
 class BaseDB(object):
-    """BerkeleyDB Btree Wrapper.
-
-    This class uses BerkeleyDB to create an object much like a persistent
-    Python Dictionary.
-
+    """BerkeleyDB B-tree based DB.
+    
+    Note this class does not define access methods. It just create, opens, and closes the DB.
+    
     :attr filename: Filename of BDB on disk
     :attr dbenv: EMEN2 Database Environment
     :attr bdb: Berkeley DB instance
@@ -300,15 +307,11 @@ class BaseDB(object):
     :attr DBSETFLAGS: Additional flags
     """
 
-    extension = 'bdb'
-
-    def __init__(self, filename, keyformat='str', dataformat='str', dataclass=None, dbenv=None, autoopen=True):
-        """Main BDB DB wrapper
-
+    def __init__(self, filename, keyformat='str', dataformat='str', dataclass=None, dbenv=None, extension='bdb'):
+        """Create and open the DB.
+        
         :param filename: Base filename to use
         :keyword dbenv: Database environment
-        :keyword autoopen: Automatically open DB
-
         """
         # Filename
         self.filename = filename
@@ -318,22 +321,23 @@ class BaseDB(object):
         self.dbenv = dbenv
 
         # What are we storing?
+        # This sets formatters and types for keys and data.
         self._setkeyformat(keyformat)
         self._setdataformat(dataformat, dataclass)
 
-        # BDB handle and open flags
+        # BDB handle and open flags.
         self.bdb = None
         self.DBOPENFLAGS = bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE
         self.DBSETFLAGS = []
 
-        # Cached items
+        # Cached items. This might go away.
         self.cache = None
         self.cache_parents =  collections.defaultdict(set) # temporary patch
         self.cache_children = collections.defaultdict(set) # temporary patch
 
+        # Init and open.
         self.init()
-        if autoopen:
-            self.open()
+        self.open()
 
     def init(self):
         """Subclass init hook."""
@@ -360,7 +364,7 @@ class BaseDB(object):
         # Open the DB with the correct flags.
         fn = '%s.%s'%(self.filename, self.extension)
         self.bdb.open(filename=fn, dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
-        self.cache.open(filename=None, dbtype=bsddb3.db.DB_BTREE, flags=bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE)
+        self.cache.open(filename=None, dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
 
     def close(self):
         """Close the DB."""
@@ -419,6 +423,8 @@ class BaseDB(object):
     def _setdataformat(self, dataformat, dataclass=None):
         # Set the DB data type. This will bind the correct
         # dataclass attribute, and datadump and dataload methods.
+        if dataclass:
+            dataformat = 'pickle'
         if dataformat == 'str':
             # String dataformat; use UTF-8 encoded strings.
             self.dataclass = unicode
@@ -432,13 +438,13 @@ class BaseDB(object):
         elif dataformat == 'float':
             # Float dataformat; these do not sort natively, so pickle them.
             self.dataclass = float
-            self.datadump = lambda x:pickle.dumps(data)
-            self.dataload = lambda x:pickle.loads(data or 'N.')
+            self.datadump = lambda x:pickle.dumps(x)
+            self.dataload = lambda x:pickle.loads(x or 'N.')
         elif dataformat == 'pickle':
             # This DB stores a DBO as a pickle.
             self.dataclass = dataclass
-            self.datadump = lambda x:pickle.dumps(data)
-            self.dataload = lambda x:pickle.loads(data or 'N.')
+            self.datadump = lambda x:pickle.dumps(x)
+            self.dataload = lambda x:pickle.loads(x or 'N.')
         else:
             # Unknown dataformat.
             raise Exception, "Invalid data format: %s. Supported: str, int, float, pickle"%dataformat
@@ -476,9 +482,6 @@ class IndexDB(BaseDB):
         removerefs    Remove (key, [values]) references from the index
 
     '''
-
-    #: The filename extension
-    extension = 'index'
 
     def init(self):
         """Open DB with support for duplicate keys."""
@@ -670,60 +673,59 @@ class CollectionDB(BaseDB):
     '''Database for items supporting the DBO interface (mapping
     interface, setContext, writable, etc. See BaseDBObject.)
 
+    You may consider terms collection, bucket, keytype, and table to be
+    interchangeable.
+
     Most methods require a transaction. Additionally, because
     this class manages DBOs, most methods also require a Context.
 
-    Adds a "keytype" attribute that is used as the DB name.
-
     Extends the following methods:
-        __init__         Changes the filename slightly
+        __init__         Opens DBs in a specific directory
         open             Also opens sequencedb
         close            Also cloes sequencdb and indexes
 
     And adds the following methods that require a context:
-        new              New item factory
+        new              New item
         get              Get a single item
         gets             Get items
         put              Put a single item
         puts             Put items
-        expand           Process '*' operators in names to parents/children
-        names            Context-aware keys
-        items            Context-aware items
+        filter           Context-aware keys
         query            Query
         validate         Validate an item
         exists           Check if an item exists already
 
-    May be deprecated, since they can be slow:
+    May be deprecated, since they're unbounded:
         keys
         values
         items
 
     Some internal methods:
-        _get
-        _gets
+        _get_raw
         _put
         _puts
         _put_raw
-        _get_max         Return the current maximum item in the sequence
+        _exists
+
+    Sequence methods:
         _update_names    Update items with new names from sequence
+        _key_generator
+        _incr_sequence
+        _get_max
 
     Index methods:
-        openindex        Open an index, and store the handle in self.index
-        getindex         Get an already open index, or open if necessary
-        closeindex       Close an index
+        getindex         Open an index
         _reindex         Calculate index updates
         _reindex_*       Write index updates
     
     Relationship methods:
-        tree             Returns relationships, one recurse level per key
-        parents          Returns parents, multiple recurse levels per key
-        children         Returns children, multiple recurse levels per key
+        parents          Returns parents
+        children         Returns children
         siblings         Item siblings
-        rel              General purpose relationship method
+        rel              General relationship method
         pclink           Add a parent/child relationship
         pcunlink         Remove a parent/child relationship
-        relink           Add and remove relationships at once
-
+        relink           Add and remove several relationships
     '''
     
     def __init__(self, *args, **kwargs):
@@ -736,7 +738,7 @@ class CollectionDB(BaseDB):
         self.sequencedb = None
         
         # Indexes
-        self.index = {}
+        self.indexes = {}
         self._truncate_index = False
 
         filename = os.path.join(self.keytype, self.keytype)
@@ -758,8 +760,10 @@ class CollectionDB(BaseDB):
         super(CollectionDB, self).close()
         self.sequencedb.close()
         self.sequencedb = None
-        for k in self.index:
-            self.closeindex(k)
+        for k,v in self.indexes.items():
+            if v:
+                ind.close()
+        self.indexes = {}
 
     ##### New items.. #####
 
@@ -796,7 +800,7 @@ class CollectionDB(BaseDB):
     ##### Exists #####
     
     def exists(self, key, ctx=None, txn=None, flags=0):
-        # Check if a key exists.
+        """Check if a key exists."""
         # Names that are None or a negative int will be automatically assigned.
         # In this case, return immediately and don't acquire any locks.
         if key < 0 or key is None:
@@ -804,12 +808,12 @@ class CollectionDB(BaseDB):
         return self._exists(key, txn=txn, flags=flags)
 
     def _exists(self, key, txn=None, flags=0):
-        return self.bdb.exists(self.keydump(key), txn=txn, flags=flags) or self.cache.exists(self.keydump(key), flags=flags)
+        return self.bdb.exists(self.keydump(key), txn=txn, flags=flags) or self.cache.exists(self.keydump(key), txn=txn, flags=flags)
         
     ##### Keys, values, items #####
     
-    def names(self, names=None, ctx=None, txn=None, **kwargs):
-        """Context-aware keys(). Requires ctx and txn.
+    def filter(self, names=None, ctx=None, txn=None, **kwargs):
+        """Filter a set of keys for read permission.
 
         :keyword names: Subset of items to check
         :keyword ctx: Context
@@ -818,31 +822,20 @@ class CollectionDB(BaseDB):
 
         """
         if names is not None:
-            if ctx.checkadmin():
+            if ctx.checkreadadmin():
                 return names
             items = self.gets(names, ctx=ctx, txn=txn)
             return set([i.name for i in items])
         return set(self.keys(txn=txn))
+    
+    def keys(self):
+        raise NotImplementedError
+    
+    def items(self):
+        raise NotImplementedError
         
-    # def _keys()...
-    
-    # def _iterkeys()...
-
-    # def items(self, ctx=None, txn=None):
-    #     """Context-aware items. Requires ctx and txn.
-    # 
-    #     :keyword ctx: Context
-    #     :keyword txn: Transaction
-    #     :return: (key, value) items that are accessible by the Context
-    #     """
-    #     ret = []
-    #     for k,v in self.bdb.items(txn)+self.cache.items():
-    #         i = self.dataload(v)
-    #         i.setContext(ctx)
-    #         ret.append((self.keyload(k), i))
-    #     return ret
-    
-    # def iteritems(self, ctx=None, txn=None):
+    def values(self):
+        raise NotImplementedError
 
     ##### Filtered context gets.. #####
 
@@ -872,16 +865,16 @@ class CollectionDB(BaseDB):
             filt = (emen2.db.exceptions.SecurityError, KeyError)
 
         ret = []
-        for key in self.expand(keys, ctx=ctx, txn=txn):
+        for key in keys:
             try:
-                d = self._get(key, txn=txn, flags=flags)
+                d = self._get_raw(key, txn=txn, flags=flags)
                 d.setContext(ctx)
                 ret.append(d)
             except filt, e:
                 pass
         return ret
         
-    def _get(self, key, txn=None, flags=0):
+    def _get_raw(self, key, txn=None, flags=0):
         kd = self.keydump(key)
         d = self.dataload(
             self.cache.get(kd, flags=flags)
@@ -947,25 +940,77 @@ class CollectionDB(BaseDB):
     def _puts(self, items, ctx=None, txn=None):
         # Assign names for new items.
         # This will also update any relationships to uncommitted records.
-        self._update_names(crecs, txn=txn)
+        self._update_names(items, txn=txn)
 
         # Now that names are assigned, calculate the index updates.
-        ind = self._reindex(crecs, ctx=ctx, txn=txn)
+        ind = self._reindex(items, ctx=ctx, txn=txn)
 
         # Write the items "for real."
-        for crec in crecs:
-            self._put_raw(crec.name, crec, txn=txn)
+        for item in items:
+            self._put_raw(item.name, item, txn=txn)
             
         # Write index updates
         self._reindex_write(ind, ctx=ctx, txn=txn)
 
-        emen2.db.log.info("Committed %s items"%(len(crecs)))
-        return crecs
+        emen2.db.log.info("Committed %s items"%(len(items)))
+        return items
 
     def _put_raw(self, name, item, txn=None, flags=0):
         self.bdb.put(self.keydump(name), self.datadump(item), txn=txn)
-        emen2.db.log.commit("%s.put: %s"%(self.filename, crec.name))        
+        emen2.db.log.commit("%s.put: %s"%(self.filename, item.name))        
     
+    # Grumble. Maybe this will go away
+    def _addcache(self, item, txn=None):
+        """Add an item to the cache; used for loading from JSON.
+
+        These items will work normally (get, put, relationships, items, etc.)
+        but exist in memory only, not in the DB.
+
+        Requires the DB to be open and requires a txn.
+
+        :keyword txn: Transaction
+        :param item: Item to cache. Should be an instantiated DBObject.
+
+        """
+        # Update parent/child relationships
+        # print "Checking parents/children for %s"%item.name
+        ADDRELS = False
+        if ADDRELS:
+            p = self.getindex('parents', txn=txn)
+            c = self.getindex('children', txn=txn)
+            if p and c:
+                item.parents |= p.get(item.name)
+                item.children |= c.get(item.name)
+        
+                for child in item.children:
+                    if self.cache.get(self.keydump(child)):
+                        i = self.dataload(self.cache.get(self.keydump(child)))
+                        i.parents.add(item.name)
+                        self.cache.put(self.keydump(i.name), self.datadump(i)) 
+        
+                for parent in item.parents:
+                    if self.cache.get(self.keydump(parent)):
+                        i = self.dataload(self.cache.get(self.keydump(parent)))
+                        i.children.add(item.name)
+                        self.cache.put(self.keydump(i.name), self.datadump(i)) 
+        
+                # Also update the other side of the relationship, using cache_parents
+                # and cache_children
+                self.cache_parents[item.name] |= item.parents
+                self.cache_children[item.name] |= item.children
+                for parent in item.parents:
+                    self.cache_children[parent].add(item.name)
+                for child in item.children:
+                    self.cache_parents[child].add(item.name)
+        
+                # Final check
+                item.parents |= self.cache_parents[item.name]
+                item.children |= self.cache_children[item.name]
+
+        # Store the item pickled, so it works with get, and
+        # returns new instances instead of globally shared ones...
+        self.cache.put(self.keydump(item.name), self.datadump(item)) #, txn=txn 
+            
     ##### Query #####
 
     def query(self, c=None, mode='AND', subset=None, ctx=None, txn=None):
@@ -997,22 +1042,22 @@ class CollectionDB(BaseDB):
         ind = collections.defaultdict(list)
 
         # Get changes as param:([name, newvalue, oldvalue], ...)
-        for crec in items:
+        for item in items:
             # Get the current record for comparison of updated values.
             # Use an empty dict for new records so all keys
             # will seen as new (or if reindexing)
-            if crec.isnew() or reindex:
+            if item.isnew() or reindex:
                 orec = {}
             else:
-                orec = self._get(crec.name, txn=txn) or {}
+                orec = self._get_raw(item.name, txn=txn) or {}
 
-            for param in crec.changedparams(orec):
-                ind[param].append((crec.name, crec.get(param), orec.get(param)))
+            for param in item.changedparams(orec):
+                ind[param].append((item.name, item.get(param), orec.get(param)))
 
         # Return the index changes.
         return ind
 
-    # .... the actual items need to be written ^^^ between these two vvv steps.
+    # .... the actual items need to be written ^^^ between these two vvv steps for relationships to be updated ....
 
     def _reindex_write(self, ind, ctx=None, txn=None):
         """(Internal) Write index updates."""
@@ -1059,15 +1104,13 @@ class CollectionDB(BaseDB):
         for newval,recs in addrefs.items():
             ind.addrefs(newval, recs, txn=txn)
 
-    ##### Open, close, and rebuild indexes. #####
+    ##### Manage indexes. #####
 
-    def openindex(self, param, txn=None):
+    def getindex(self, param, txn=None):
         """Open a parameter index. Requires txn.
 
-        The base CollectionDB class provides no indexes. The subclass must implement
-        this method if it wants to provide any indexes. This can be either
-        one or two attributes that are indexed, such as filename/md5 in
-        BinaryDB, or a complete and general index system as in RecordDB.
+        A successfully opened IndexDB will be cached in self.indexes[param] and
+        reused on subsequent calls.
 
         If an index for a parameter isn't returned by this method, the reindex
         method will just skip it.
@@ -1077,98 +1120,40 @@ class CollectionDB(BaseDB):
         :return: IndexDB
 
         """
-        if param in ['children', 'parents']:
-            filename = os.path.join(self.keytype, 'index', param)
-            ind = IndexDB(filename=filename, keyformat=self.keyformat, dataformat=self.keyformat, dbenv=self.dbenv, autoopen=False)
-            ind._setbulkmode(False)
-            ind.open()
-        return ind
+        if param in self.indexes:
+            return self.indexes.get(param)
 
-    # def openindex(self, param, txn=None):
-    #     # Parents / children
-    #     ind = super(RecordDB, self).openindex(param, txn=txn)
-    #     if ind:
-    #         return ind
-    # 
-    #     # Check the paramdef to see if it's indexed.
-    #     pd = self.dbenv["paramdef"]._get(param, txn=txn)
-    #     
-    #     # Check the key format.
-    #     vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd)
-    #     tp = vartype.keyformat
-    #     if not pd.indexed or not tp:
-    #         return None
-    # 
-    #     # Open the index
-    #     ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat=tp, dataformat=self.keyformat, dbenv=self.dbenv)
-    #     return ind
+        # Check the paramdef to see if it's indexed.
+        try:
+            pd = self.dbenv["paramdef"]._get_raw(param, txn=txn)
+        except KeyError:
+            return None
+        
+        # Check the key format.
+        vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd)
+        tp = vartype.keyformat
+        if not pd.indexed or not tp:
+            return None
+            
+        # Open the index
+        indname = os.path.join(self.keytype, 'index', param)
+        ind = emen2.db.btrees.IndexDB(filename=indname, keyformat=tp, dataformat=self.keyformat, dbenv=self.dbenv)
 
-    # def openindex(self, param, txn=None):
-    #     """Index on filename (and possibly MD5 in the future.)"""
-    #     if param == 'filename':
-    #         ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
-    #     elif param == 'md5':
-    #         ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
-    #     else:
-    #         ind = super(BinaryDB, self).openindex(param, txn=txn)
-    #     return ind
-
-    # def openindex(self, param, txn=None):
-    #     if param == 'permissions':
-    #         ind = emen2.db.btrees.IndexDB(filename=self._indname(param), dbenv=self.dbenv)
-    #     else:
-    #         ind = super(GroupDB, self).openindex(param, txn=txn)
-    #     return ind
-
-    # def openindex(self, param, txn=None):
-    #     if param == 'email':
-    #         ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat='str', dataformat='str', dbenv=self.dbenv)
-    #     elif param == 'record':
-    #         ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat='int', dataformat='str', dbenv=self.dbenv)            
-    #     else:
-    #         ind = super(UserDB, self).openindex(param, txn=txn)
-    #     return ind
-
-    def _indname(self, param):
-        # (Internal) Get the index filename
-        return os.path.join(self.keytype, 'index', param)
-
-    def getindex(self, param, txn=None):
-        """Return an open index, or open if necessary. Requires txn.
-
-        A successfully opened IndexDB will be cached in self.index[param] and
-        reused on subsequent calls.
-
-        :param param: Parameter
-        :keyword txn: Transaction
-        :return: IndexDB
-
-        """
-        if param in self.index:
-            return self.index.get(param)
-
-        ind = self.openindex(param, txn=txn)
-        self.index[param] = ind
+        # Cache the open index.
+        self.indexes[param] = ind
+        
+        # Careful; truncate all indexes if this is set. Used for rebuilding all indexes.
         if self._truncate_index and ind:
-            ind.truncate(txn=txn)
+           ind.truncate(txn=txn) 
+
         return ind
 
-    def closeindex(self, param):
-        """Close an index. Uses an implicit transaction for close.
-
-        :param param: Parameter
-        """
-        ind = self.index.get(param)
-        if ind:
-            ind.close()
-            self.index[param] = None
-
-    def rebuild_indexes(self, ctx=None, txn=None):
+    def _rebuild_indexes(self, ctx=None, txn=None):
         emen2.db.log.info("Rebuilding indexes: Start")
         # ugly hack..
         self._truncate_index = True
-        for k in self.index:
-            self.index[k].truncate(txn=txn)
+        for k in self.indexes:
+            self.indexes[k].truncate(txn=txn)
 
         # Do this in chunks of 1,000 items
         # Get all the keys -- do not include cached items
@@ -1188,6 +1173,7 @@ class CollectionDB(BaseDB):
 
     ##### Sequences #####
 
+    # Todo: Simplify this. Maybe move it somewhere else.
     def _update_names(self, items, txn=None):
         """Update items with new names. Requires txn.
 
@@ -1249,51 +1235,6 @@ class CollectionDB(BaseDB):
         return val
 
     ##### Relationship methods #####
-
-    def expand(self, names, ctx=None, txn=None):
-        """Expand names.
-
-        This allows 'name*' to serve as shorthand for "name, and all
-        children recursively." This is useful for specifying items in queries.
-
-        :param names: DBO names, with optional '*' to include children.
-        :keyword ctx: Context
-        :keyword txn: Transaction
-        :return: Expanded DBO names.
-
-        """
-
-        if not isinstance(names, set):
-            names = set(names)
-        # Expand *'s
-        remove = set()
-        add = set()
-        for key in (i for i in names if isinstance(i, basestring)):
-            try:
-                newkey = self.keyclass(key.replace('*', ''))
-            except:
-                raise KeyError, "Invalid key: %s"%key
-
-            if key.endswith('*'):
-                add |= self.children([newkey], recurse=-1, ctx=ctx, txn=txn).get(newkey, set())
-            remove.add(key)
-            add.add(newkey)
-        names -= remove
-        names |= add
-        return names
-
-    # Commonly used rel() variants
-    def tree(self, names, recurse=1, rel='children', ctx=None, txn=None, **kwargs):
-        """See rel(), tree=True. Requires ctx and txn.
-
-        Returns a tree structure of relationships. This will be a dict, with DBO
-        names as keys, and one level of relationship for the value. It will
-        recurse to the level specified by the recurse keyword.
-
-        :return: Tree structure of relationships
-
-        """
-        return self.rel(names, recurse=recurse, rel=rel, tree=True, ctx=ctx, txn=txn, **kwargs)
 
     def parents(self, names, recurse=1, ctx=None, txn=None, **kwargs):
         """See rel(), with rel='parents", tree=False. Requires ctx and txn.
@@ -1394,7 +1335,7 @@ class CollectionDB(BaseDB):
             allr |= v
 
         # Filter by permissions (pass rectype= for optional Record filtering)
-        allr = self.names(allr, ctx=ctx, txn=txn, **kwargs)
+        allr = self.filter(allr, ctx=ctx, txn=txn, **kwargs)
 
         # If Tree=True, we're returning the tree... Filter for permissions.
         if tree:
@@ -1508,11 +1449,8 @@ class CollectionDB(BaseDB):
         # (Internal) Relink relationships
         # This method will grab both items, and add or remove the rels from
         # each item, and then update the parents/children IndexDBs.
-
         indc = self.getindex('children', txn=txn)
         indp = self.getindex('parents', txn=txn)
-        if not indc or not indp:
-            raise KeyError, "Relationships not supported"
 
         # The names of new items.
         names = []
@@ -1555,26 +1493,24 @@ class CollectionDB(BaseDB):
         # print "c_add", c_add
         # print "c_remove", c_remove
         
-        #if not indexonly:
-        if True:
-            # Go and fetch other items that we need to update
-            names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
-            # print "All affected items:", names
-            # Get and modify the item directly w/o Context:
-            # Linking only requires write permissions
-            # on ONE of the items.
-            for name in names:
-                try:
-                    rec = self.get(name, filt=False, txn=txn)
-                except:
-                    # print "Couldn't link to missing item:", name
-                    continue
+        # Go and fetch other items that we need to update
+        names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
+        # print "All affected items:", names
+        # Get and modify the item directly w/o Context:
+        # Linking only requires write permissions
+        # on ONE of the items.
+        for name in names:
+            try:
+                rec = self._get_raw(name, txn=txn)
+            except:
+                print "Couldn't link to missing item:", name
+                continue
 
-                rec.__dict__['parents'] -= p_remove[rec.name]
-                rec.__dict__['parents'] |= p_add[rec.name]
-                rec.__dict__['children'] -= c_remove[rec.name]
-                rec.__dict__['children'] |= c_add[rec.name]
-                self.put(rec.name, rec, txn=txn)
+            rec.__dict__['parents'] -= p_remove[rec.name]
+            rec.__dict__['parents'] |= p_add[rec.name]
+            rec.__dict__['children'] -= c_remove[rec.name]
+            rec.__dict__['children'] |= c_add[rec.name]
+            self._put_raw(rec.name, rec, txn=txn)
 
         for k,v in p_remove.items():
             if v:
@@ -1647,15 +1583,7 @@ class CollectionDB(BaseDB):
 
 
 class BinaryDB(CollectionDB):
-    """CollectionDB for Binaries
-
-    Extends:
-        openindex            Indexed by: filename (maybe md5 in future)
-
-    """
-
-    dataclass = Binary
-
+    """CollectionDB for Binaries"""
     def _key_generator(self, item, txn=None):
         """Assign a name based on date, and the counter for that day."""
         # Get the current date and counter.
@@ -1671,113 +1599,41 @@ class BinaryDB(CollectionDB):
 
 
 class RecordDB(CollectionDB):
-    dataclass = Record
-
     def _key_generator(self, item, txn=None):
         # Set name policy in this method.
         return unicode(self._incr_sequence(txn=txn))
 
-    def hide(self, names, ctx=None, txn=None):
-        recs = self.gets(names, ctx=ctx, txn=txn)
-        crecs = []
-        for rec in recs:
-            rec.setpermissions([[],[],[],[]])
-            rec.setgroups([])
-            if rec.parents and rec.children:
-                rec["comments"] = "Record hidden by unlinking from parents %s and children %s"%(", ".join([unicode(x) for x in rec.parents]), ", ".join([unicode(x) for x in rec.children]))
-            elif rec.parents:
-                rec["comments"] = "Record hidden by unlinking from parents %s"%", ".join([unicode(x) for x in rec.parents])
-            elif rec.children:
-                rec["comments"] = "Record hidden by unlinking from children %s"%", ".join([unicode(x) for x in rec.children])
-            else:
-                rec["comments"] = "Record hidden"
-
-            rec['deleted'] = True
-            rec.children = set()
-            rec.parents = set()
-            crecs.append(rec)
-
-        return self.puts(crecs, ctx=ctx, txn=txn)
-
-    def groupbyrectype(self, names, ctx=None, txn=None):
-        """Group Records by Rectype. Filters for permissions.
-
-        :param names: Record(s) or Record name(s)
-        :returns: {rectype:set(record names)}
-        """
-        if not names:
-            return {}
-
-        # Allow either Record(s) or Record name(s) as input
-        ret = collections.defaultdict(set)
-        recnames, recs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
-
-        if len(recnames) < 1000:
-            # Just get the rest of the records directly
-            recs.extend(self.gets(recnames, ctx=ctx, txn=txn))
-        else:
-            # Use the index for large numbers of records
-            ind = self.getindex("rectype", txn=txn)
-            # Filter permissions
-            names = self.filter(recnames, ctx=ctx, txn=txn)
-            while names:
-                # get a random record's rectype
-                rid = names.pop()
-                rec = self.get(rid, txn=txn)
-                # get the set of all records with this recorddef
-                ret[rec.rectype] = ind.get(rec.rectype, txn=txn) & names
-                # remove the results from our list since we have now classified them
-                names -= ret[rec.rectype]
-                # add back the initial record to the set
-                ret[rec.rectype].add(rid)
-
-        for i in recs:
-            ret[i.rectype].add(i.name)
-
-        return ret
-
-    def names(self, names=None, ctx=None, txn=None, **kwargs):
-        if names is not None:
-            return self.filter(names, rectype=kwargs.get('rectype'), ctx=ctx, txn=txn)
-
-        if ctx.checkreadadmin():
-            m = self._get_max(txn=txn)
-            return set(map(unicode, range(0, m)))
-            # return set(self.keys(txn=txn))
-
-        ind = self.getindex("permissions", txn=txn)
-        indc = self.getindex('creator', txn=txn)
-        indg = self.getindex("groups", txn=txn)
-        ret = ind.get(ctx.username, set(), txn=txn)
-        ret |= indc.get(ctx.username, set(), txn=txn)
-        for group in sorted(ctx.groups, reverse=True):
-            ret |= indg.get(group, set(), txn=txn)
-
-        return ret
-
-    def filter(self, names, rectype=None, ctx=None, txn=None):
+    # Todo: integrate with main filter method, since this works
+    # for all permission-defined items.
+    def filter(self, names, ctx=None, txn=None):
         """Filter for permissions.
 
         :param names: Record name(s).
         :returns: Readable Record names.
         """
+        if names is None:
+            if ctx.checkreadadmin():
+                m = self._get_max(txn=txn)
+                return set(map(unicode, range(0, m)))
+                # return set(self.keys(txn=txn))
+            ind = self.getindex("permissions", txn=txn)
+            indc = self.getindex('creator', txn=txn)
+            indg = self.getindex("groups", txn=txn)
+            ret = ind.get(ctx.username, set(), txn=txn)
+            ret |= indc.get(ctx.username, set(), txn=txn)
+            for group in sorted(ctx.groups, reverse=True):
+                ret |= indg.get(group, set(), txn=txn)
+            return ret            
 
-        names = self.expand(names, ctx=ctx, txn=txn)
-
-        if rectype:
-            ind = self.getindex('rectype', txn=txn)
-            rd = set()
-            for i in ctx.db.recorddef.get(listops.check_iterable(rectype)):
-                rd |= ind.get(i.name, txn=txn)
-            names &= rd
+        names = set(names)
 
         if ctx.checkreadadmin():
             return names
 
         # If less than a thousand items, get directly.
         if len(names) <= 1000:
-            crecs = self.gets(names, ctx=ctx, txn=txn)
-            return set([i.name for i in crecs])
+            items = self.gets(names, ctx=ctx, txn=txn)
+            return set([i.name for i in items])
 
         # Make a copy
         find = copy.copy(names)
@@ -1797,40 +1653,6 @@ class RecordDB(CollectionDB):
 
 
 class UserDB(CollectionDB):
-    dataclass = User
-
-    def getbyemail(self, name, filt=True, ctx=None, txn=None):
-        """Lookup a user by name or email address. This is not a setContext lookup;
-        cgets will also expand email addresses to usernames.
-        """
-        name = unicode(name or '').strip()
-        if not self.exists(name, txn=txn):
-            found = self.getindex('email', txn=txn).get(name, txn=txn)
-            if found:
-                name = found.pop()
-        return self.get(name, filt=filt, txn=txn)
-
-    def expand(self, names, ctx=None, txn=None):
-        """Expand names, e.g. expanding * into children, or using an email address for a user"""
-        if not isinstance(names, set):
-            names = set(names)
-
-        # Grumble.. some things like old-style binaries may have None for a user field.
-        names -= set([None])
-
-        # ian: todo: need to benchmark this...
-        ind = self.getindex('email', txn=txn)
-        add = set()
-        remove = set()
-        for i in names:
-            if not self.exists(i, txn=txn):
-                add |= ind.get(i, txn=txn)
-                remove.add(i)
-
-        names -= remove
-        names |= add
-        return names
-
     def new(self, *args, **kwargs):
         txn = kwargs.get('txn', None)
 
@@ -1844,37 +1666,35 @@ class UserDB(CollectionDB):
 
         return user
 
-    def names(self, names=None, ctx=None, txn=None, **kwargs):
+    def filter(self, names=None, ctx=None, txn=None, **kwargs):
         # You need to be logged in to view this.
         if not ctx or ctx.username == 'anonymous':
             return set()
-        return super(UserDB, self).names(names=names, ctx=ctx, txn=txn)
+        return super(UserDB, self).filter(names, ctx=ctx, txn=txn)
 
 
 class NewUserDB(CollectionDB):
-    dataclass = NewUser
-
     def new(self, *args, **kwargs):
         txn = kwargs.get('txn', None)
         newuser = super(NewUserDB, self).new(*args, **kwargs)
 
         # Check if any pending accounts have this email address
-        for k,v in self.items(txn=txn):
+        for k,v in self._items(txn=txn):
             if newuser.email == v.email:
-                raise emen2.db.exceptions.ExistingKeyError, emen2.db.exceptions.ExistingKeyError.__doc__
+                raise emen2.db.exceptions.ExistingKeyError
 
         # Check if this email already exists
         indemail = self.dbenv["user"].getindex('email', txn=txn)
         if self.dbenv["user"].exists(newuser.name, txn=txn) or indemail.get(newuser.email, txn=txn):
-            raise emen2.db.exceptions.ExistingKeyError, emen2.db.exceptions.ExistingKeyError.__doc__
+            raise emen2.db.exceptions.ExistingKeyError
 
         return newuser
 
-    def names(self, names=None, ctx=None, txn=None, **kwargs):
+    def filter(self, names=None, ctx=None, txn=None, **kwargs):
         # This requires admin access
         if not ctx or not ctx.checkadmin():
             raise emen2.db.exceptions.SecurityError, "Admin rights needed to view user queue"
-        return super(NewUserDB, self).names(names=names, ctx=ctx, txn=txn)
+        return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
