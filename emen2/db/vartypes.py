@@ -49,16 +49,14 @@ def update_user_cache(cache, db, values):
     # Check cache
     to_cache = []
     for v in values:
-        key = cache.get_cache_key('user', v)
-        hit, dn = cache.check_cache(key)
+        hit, dn = cache.check(('user', v))
         if not hit:
             to_cache.append(v)
 
     if to_cache:
         users = db.user.get(to_cache)
         for user in users:
-            key = cache.get_cache_key('user', user.name)
-            cache.store(key, user)
+            cache.store(('user', user.name), user)
 
 
 
@@ -171,8 +169,8 @@ class Vartype(object):
         ret = []
         changed = False
         keytype = keytype or self.vartype
-        key = self.cache.get_cache_key('%s.names'%keytype)
-        hit, found = self.cache.check_cache(key)
+        key = ('%s.names'%keytype,)
+        hit, found = self.cache.check(key)
         if not hit:
             found = set()
             changed = True
@@ -746,8 +744,8 @@ class vt_user(Vartype):
 
     def _unicode(self, value):
         update_user_cache(self.cache, self.db, [value])
-        key = self.cache.get_cache_key('user', value)
-        hit, user = self.cache.check_cache(key)
+        key = ('user', value)
+        hit, user = self.cache.check(key)
         if user:
             return user.getdisplayname(lnf=self.options.get('lnf'))
         return value
@@ -769,8 +767,8 @@ class vt_user(Vartype):
             return ""
 
         update_user_cache(self.cache, self.db, [value])
-        key = self.cache.get_cache_key('user', value)
-        hit, user = self.cache.check_cache(key)
+        key = ('user', value)
+        hit, user = self.cache.check(key)
 
         src = "/static/images/user.png"
         if user.userrec.get('person_photo'):
@@ -880,8 +878,8 @@ class vt_comments(Vartype):
     def _html(self, value):
         user, dt, comment = value
         update_user_cache(self.cache, self.db, [user])
-        key = self.cache.get_cache_key('user', user)
-        hit, user = self.cache.check_cache(key)
+        key = ('user', user)
+        hit, user = self.cache.check(key)
         return Markup("""%s said on <time class="e2-localize" datetime="%s">%s</time>: %s""")%(
                 user.getdisplayname(),
                 dt,

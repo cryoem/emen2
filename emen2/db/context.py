@@ -33,16 +33,18 @@ class Cacher(object):
     def reset_cache(self):
         self.cache = {}
 
-    def get_cache_key(self, *args, **kwargs):
-        return (args, tuple(kwargs.items()))
-
     def store(self, key, result):
         self.cache[key] = result
 
-    def check_cache(self, key):
-        if self.cache.has_key(key):
+    def check(self, key):
+        # key = tuple(args)
+        # print "cache check:", key
+        if key in self.cache:
+            # print '\tfound:', self.cache[key]
             return True, self.cache[key]
+        # print '\tnot found'
         return False, None
+        
     
 
 # Contexts do not use BaseDBObject since they are completely internal to the DB

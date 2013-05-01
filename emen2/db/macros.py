@@ -126,14 +126,14 @@ class macro_childcount(Macro):
         # ian: todo: recurse = -1..
         children = self.db.rel.children([rec.name for rec in recs], rectype=rectypes, recurse=3)
         for rec in recs:
-            key = self.cache.get_cache_key('rel.children', rec.name, *rectypes)
+            key = ('rel.children', rec.name, rectypes)
             self.cache.store(key, len(children.get(rec.name,[])))
 
     def process(self, params, rec):
         """Now even more optimized!"""
         rectypes = params.split(",")
-        key = self.cache.get_cache_key('rel.children', rec.name, *rectypes)
-        hit, children = self.cache.check_cache(key)
+        key = ('rel.children', rec.name, rectypes)
+        hit, children = self.cache.check(key)
         if not hit:
             children = len(self.db.rel.children(rec.name, rectype=rectypes, recurse=3))
             self.cache.store(key, children)

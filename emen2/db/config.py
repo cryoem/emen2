@@ -304,11 +304,11 @@ class UsageParser(object):
         # Set default log levels
         log_level = self.config.globalns.getattr('log_level', 'INFO')
         if self.options['quiet']:
-            loglevel = 'ERROR'
+            log_level = 'ERROR'
         elif self.options['debug']:
-            loglevel = 'DEBUG'
+            log_level = 'DEBUG'
         elif self.options['loglevel']:
-            loglevel = self.options['loglevel']
+            log_level = self.options['loglevel']
         self.config.load_data(log_level=log_level)
 
         # Make sure paths to log files exist

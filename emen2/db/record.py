@@ -251,8 +251,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
         # Check the rectype and any required parameters
         # (Check the cache for the recorddef)
-        cachekey = self._ctx.cache.get_cache_key('recorddef', self.rectype)
-        hit, rd = self._ctx.cache.check_cache(cachekey)
+        cachekey = ('recorddef', self.rectype)
+        hit, rd = self._ctx.cache.check(cachekey)
 
         if not self.rectype:
             self.error('Protocol required')

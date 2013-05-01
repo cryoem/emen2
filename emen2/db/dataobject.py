@@ -361,14 +361,13 @@ class BaseDBObject(object):
     def validate_param(self, key, value):
         """Validate a single parameter value."""
         # Check the cache for the param
-        cachekey = self._ctx.cache.get_cache_key('paramdef', key)
-        hit, pd = self._ctx.cache.check_cache(cachekey)
+        hit, pd = self._ctx.cache.check(('paramdef', key))
 
         # ... otherwise, raise an Exception if the param isn't found.
         if not hit:
             try:
                 pd = self._ctx.db.paramdef.get(key, filt=False)
-                self._ctx.cache.store(cachekey, pd)
+                self._ctx.cache.store(('paramdef', key), pd)
             except KeyError:
                 # This helps when ParamDefs are first being imported.
                 if key in self.attr_public:

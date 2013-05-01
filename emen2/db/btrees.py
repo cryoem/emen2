@@ -89,7 +89,7 @@ class EMEN2DBEnv(object):
         # Make sure the DB_CONFIG is present.
         configpath = os.path.join(self.path, "DB_CONFIG")
         if not os.path.exists(configpath):
-            emen2.db.log.info("Copying default DB_CONFIG file: %s"%configpath)
+            emen2.db.log.debug("Copying default DB_CONFIG file: %s"%configpath)
             f = open(configpath, "w")
             f.write(DB_CONFIG)
             f.close()
@@ -362,12 +362,14 @@ class BaseDB(object):
             self.cache.set_flags(flag)
 
         # Open the DB with the correct flags.
+        emen2.db.log.debug("%s.open"%self.filename)
         fn = '%s.%s'%(self.filename, self.extension)
         self.bdb.open(filename=fn, dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
         self.cache.open(filename=None, dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
 
     def close(self):
         """Close the DB."""
+        emen2.db.log.debug("%s.close"%self.filename)
         self.bdb.close()
         self.bdb = None
         self.cache.close()
@@ -379,11 +381,11 @@ class BaseDB(object):
         :keyword txn: Transaction
         """
         # todo: Do more checking before performing a dangerous operation.
+        emen2.db.log.debug("%s.truncate"%self.filename)
         self.bdb.truncate(txn=txn)
         self.cache.truncate()
         self.cache_children = {}
         self.cache_parents = {}
-        emen2.db.log.commit("%s.truncate"%self.filename)
     
     ##### load/dump methods for keys and data #####
 
@@ -400,6 +402,18 @@ class BaseDB(object):
         else:
             k2 = self.keyload(k2)
         return cmp(k1, k2)
+
+    # def _get_json(self, key, txn=None, flags=0):
+    #     pass
+    #     
+    # def _get_data(self, key, txn=None, flags=0):
+    #     pass
+    #     
+    # def _put_json(self, key, value, txn=None, flags=0):
+    #     pass
+    # 
+    # def _put_pickle(self, key, value, txn=None, flags=0):
+    #     pass
 
     def _setkeyformat(self, keyformat):
         # Set the DB key type. This will bind the correct
@@ -529,6 +543,7 @@ class IndexDB(BaseDB):
         :return: Values for key
 
         """
+        emen2.db.log.debug("%s.get: %s"%(self.filename, key))        
         if cursor:
             r = self._get_method(cursor, self.keydump(key), self.dataformat)
         else:
@@ -608,7 +623,7 @@ class IndexDB(BaseDB):
 
         '''
         if not items: return []
-
+        emen2.db.log.debug("%s.removerefs: %s -> %s"%(self.filename, key, items))
         delindexitems = []
 
         cursor = self.bdb.cursor(txn=txn)
@@ -627,7 +642,6 @@ class IndexDB(BaseDB):
             delindexitems.append(key)
 
         cursor.close()
-        emen2.db.log.index("%s.removerefs: %s -> %s"%(self.filename, key, len(items)))
         return delindexitems
 
     def addrefs(self, key, items, txn=None):
@@ -643,7 +657,7 @@ class IndexDB(BaseDB):
 
         """
         if not items: return []
-
+        emen2.db.log.debug("%s.addrefs: %s -> %s"%(self.filename, key, items))
         addindexitems = []
 
         key = self.keyclass(key)
@@ -665,7 +679,6 @@ class IndexDB(BaseDB):
 
         cursor.close()
 
-        emen2.db.log.index("%s.addrefs: %s -> %s"%(self.filename, key, len(items)))
         return addindexitems
 
 
@@ -705,10 +718,10 @@ class CollectionDB(BaseDB):
         items
 
     Some internal methods:
-        _get_raw
+        _get_data
         _put
         _puts
-        _put_raw
+        _put_data
         _exists
 
     Sequence methods:
@@ -808,11 +821,11 @@ class CollectionDB(BaseDB):
         """Check if a key exists."""
         # Names that are None or a negative int will be automatically assigned.
         # In this case, return immediately and don't acquire any locks.
+        # Note: this method does not check permissions; you could use it to check
+        #     if a key exists or not, even if you can't read the value.
+        emen2.db.log.debug("%s.exists: %s"%(self.filename, key))        
         if key < 0 or key is None:
             return False
-        return self._exists(key, txn=txn, flags=flags)
-
-    def _exists(self, key, txn=None, flags=0):
         return self.bdb.exists(self.keydump(key), txn=txn, flags=flags) or self.cache.exists(self.keydump(key), txn=txn, flags=flags)
         
     ##### Keys, values, items #####
@@ -872,17 +885,18 @@ class CollectionDB(BaseDB):
         ret = []
         for key in keys:
             try:
-                d = self._get_raw(key, txn=txn, flags=flags)
+                d = self._get_data(key, txn=txn, flags=flags)
                 d.setContext(ctx)
                 ret.append(d)
             except filt, e:
                 pass
         return ret
         
-    def _get_raw(self, key, txn=None, flags=0):
+    def _get_data(self, key, txn=None, flags=0):
+        emen2.db.log.debug("%s.get: %s"%(self.filename, key))        
         kd = self.keydump(key)
         d = self.dataload(
-            self.cache.get(kd, flags=flags)
+            self.cache.get(kd, txn=txn, flags=flags)
             or
             self.bdb.get(kd, txn=txn, flags=flags) 
             )
@@ -923,7 +937,8 @@ class CollectionDB(BaseDB):
             # Get the existing item or create a new one.
             if self.exists(name, txn=txn, flags=bsddb3.db.DB_RMW):
                 # Get the existing item.
-                orec = self.get(name, txn=txn, flags=bsddb3.db.DB_RMW)
+                orec = self._get_data(name, txn=txn, flags=bsddb3.db.DB_RMW)
+                # May raise a SecurityError if you can't read it.
                 orec.setContext(ctx)
                 orec.update(updrec)
             else:
@@ -943,26 +958,27 @@ class CollectionDB(BaseDB):
         return self._puts([item], ctx=ctx, txn=txn)[0]
 
     def _puts(self, items, ctx=None, txn=None):
+        # TODO: ctx used only for cache.
         # Assign names for new items.
         # This will also update any relationships to uncommitted records.
         self._update_names(items, txn=txn)
 
         # Now that names are assigned, calculate the index updates.
-        ind = self._reindex(items, ctx=ctx, txn=txn)
+        ind = self._reindex(items, txn=txn)
 
         # Write the items "for real."
         for item in items:
-            self._put_raw(item.name, item, txn=txn)
+            self._put_data(item.name, item, txn=txn)
 
         # Write index updates
         self._reindex_write(ind, ctx=ctx, txn=txn)
 
-        emen2.db.log.info("Committed %s items"%(len(items)))
+        emen2.db.log.debug("Committed %s items"%(len(items)))
         return items
 
-    def _put_raw(self, name, item, txn=None, flags=0):
+    def _put_data(self, name, item, txn=None, flags=0):
+        emen2.db.log.debug("%s.put: %s"%(self.filename, item.name))        
         self.bdb.put(self.keydump(name), self.datadump(item), txn=txn)
-        emen2.db.log.commit("%s.put: %s"%(self.filename, item.name))        
     
     # Grumble. Maybe this will go away
     def _addcache(self, item, txn=None):
@@ -988,16 +1004,16 @@ class CollectionDB(BaseDB):
                 item.children |= c.get(item.name)
         
                 for child in item.children:
-                    if self.cache.get(self.keydump(child)):
-                        i = self.dataload(self.cache.get(self.keydump(child)))
+                    if self.cache.get(self.keydump(child), txn=txn):
+                        i = self.dataload(self.cache.get(self.keydump(child), txn=txn))
                         i.parents.add(item.name)
-                        self.cache.put(self.keydump(i.name), self.datadump(i)) 
+                        self.cache.put(self.keydump(i.name), self.datadump(i), txn=txn) 
         
                 for parent in item.parents:
-                    if self.cache.get(self.keydump(parent)):
-                        i = self.dataload(self.cache.get(self.keydump(parent)))
+                    if self.cache.get(self.keydump(parent), txn=txn):
+                        i = self.dataload(self.cache.get(self.keydump(parent), txn=txn))
                         i.children.add(item.name)
-                        self.cache.put(self.keydump(i.name), self.datadump(i)) 
+                        self.cache.put(self.keydump(i.name), self.datadump(i), txn=txn) 
         
                 # Also update the other side of the relationship, using cache_parents
                 # and cache_children
@@ -1014,7 +1030,7 @@ class CollectionDB(BaseDB):
 
         # Store the item pickled, so it works with get, and
         # returns new instances instead of globally shared ones...
-        self.cache.put(self.keydump(item.name), self.datadump(item)) #, txn=txn 
+        self.cache.put(self.keydump(item.name), self.datadump(item), txn=txn)
             
     ##### Query #####
 
@@ -1028,7 +1044,7 @@ class CollectionDB(BaseDB):
 
     ##### Changes to indexes #####
     
-    def _reindex(self, items, reindex=False, ctx=None, txn=None):
+    def _reindex(self, items, reindex=False, txn=None):
         """Update indexes.
 
         The original items will be retrieved and compared to the updated
@@ -1054,7 +1070,7 @@ class CollectionDB(BaseDB):
             if item.isnew() or reindex:
                 orec = {}
             else:
-                orec = self._get_raw(item.name, txn=txn) or {}
+                orec = self._get_data(item.name, txn=txn) or {}
 
             for param in item.changedparams(orec):
                 ind[param].append((item.name, item.get(param), orec.get(param)))
@@ -1073,7 +1089,7 @@ class CollectionDB(BaseDB):
         parents = ind.pop('parents', None)
         children = ind.pop('children', None)
         # Update the parent child relationships.
-        self._reindex_relink(parents, children, ctx=ctx, txn=txn)
+        self._reindex_relink(parents, children, txn=txn)
 
         # Now, Update indexes.
         for k,v in ind.items():
@@ -1081,6 +1097,7 @@ class CollectionDB(BaseDB):
 
     def _reindex_param(self, param, changes, ctx=None, txn=None):
         """(Internal) Reindex changes to a single parameter."""
+        # TODO: ctx used only for cache...
         # If nothing changed, skip.
         if not changes:
             return
@@ -1091,7 +1108,11 @@ class CollectionDB(BaseDB):
             return
 
         # Check that this key is currently marked as indexed
-        pd = self.dbenv['paramdef'].get(param, filt=False, ctx=ctx, txn=txn)
+        # Check the cache for the param
+        hit, pd = ctx.cache.check(('paramdef', param))
+        if not hit:
+            pd = self.dbenv['paramdef']._get_data(param, txn=txn)
+            ctx.cache.store(('paramdef', param), pd)
         vt = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=ctx.db, cache=ctx.cache)
 
         # Process the changes into index addrefs / removerefs
@@ -1129,14 +1150,16 @@ class CollectionDB(BaseDB):
 
         # Check the paramdef to see if it's indexed.
         try:
-            pd = self.dbenv["paramdef"]._get_raw(param, txn=txn)
+            pd = self.dbenv["paramdef"]._get_data(param, txn=txn)
         except KeyError:
+            self.indexes[param] = None
             return None
         
         # Check the key format.
         vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd)
         tp = vartype.keyformat
         if not pd.indexed or not tp:
+            self.indexes[param] = None
             return None
             
         # Open the index
@@ -1152,7 +1175,7 @@ class CollectionDB(BaseDB):
 
         return ind
 
-    def _rebuild_indexes(self, ctx=None, txn=None):
+    def _rebuild_indexes(self, txn=None):
         emen2.db.log.info("Rebuilding indexes: Start")
         # ugly hack..
         self._truncate_index = True
@@ -1165,12 +1188,12 @@ class CollectionDB(BaseDB):
         for chunk in emen2.util.listops.chunk(keys, 1000):
             if chunk:
                 emen2.db.log.info("Rebuilding indexes: %s ... %s"%(chunk[0], chunk[-1]))
-            items = self.gets(chunk, ctx=ctx, txn=txn)
+            items = self._gets(chunk, txn=txn)
             # Use self.reindex() instead of self.puts() -- the data should
             # already be validated, so we can skip that step.
-            # self.puts(items, ctx=ctx, txn=txn)
-            ind = self.reindex(items, reindex=True, ctx=ctx, txn=txn)
-            self._reindex_write(ind, ctx=ctx, txn=txn)
+            # self.puts(items, txn=txn)
+            ind = self._reindex(items, reindex=True, txn=txn)
+            self._reindex_write(ind, txn=txn)
 
         self._truncate_index = False
         emen2.db.log.info("Rebuilding indexes: Done")
@@ -1224,7 +1247,7 @@ class CollectionDB(BaseDB):
         val = int(val)
         
         self.sequencedb.put(key, str(val+delta), txn=txn)
-        emen2.db.log.commit("%s.sequence: %s"%(self.filename, val+delta))
+        emen2.db.log.debug("%s.sequence: %s -> %s"%(self.filename, val, val+delta))
         return val
 
     def _get_max(self, key="sequence", txn=None):
@@ -1411,14 +1434,14 @@ class CollectionDB(BaseDB):
 
         return self.puts(items, ctx=ctx, txn=txn)
 
-    def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
+    def _putrel(self, parent, child, mode='addrefs', txn=None):
         # (Internal) Add or remove a relationship.
         # Mode is addrefs or removerefs; it maps to the IndexDB method.
 
         # Check that we have enough permissions to write to one item
         # Use raw get; manually setContext. Allow KeyErrors to raise.
-        p = self.get(parent, filt=False, txn=txn, flags=bsddb3.db.DB_RMW)
-        c = self.get(child, filt=False, txn=txn, flags=bsddb3.db.DB_RMW)
+        p = self._get_data(parent, txn=txn, flags=bsddb3.db.DB_RMW)
+        c = self._get_data(child, txn=txn, flags=bsddb3.db.DB_RMW)
         perm = []
 
         # Both items must exist, and we need to be able to write to one
@@ -1446,10 +1469,10 @@ class CollectionDB(BaseDB):
 
         # The values will actually be set on the records
         #  during the relinking method..
-        self._reindex_relink([], [[p.name, newvalue, p.children]], ctx=ctx, txn=txn)
+        self._reindex_relink([], [[p.name, newvalue, p.children]], txn=txn)
 
     # Handle the reindexing...
-    def _reindex_relink(self, parents, children, ctx=None, txn=None):
+    def _reindex_relink(self, parents, children, txn=None):
         # (Internal) Relink relationships
         # This method will grab both items, and add or remove the rels from
         # each item, and then update the parents/children IndexDBs.
@@ -1492,11 +1515,6 @@ class CollectionDB(BaseDB):
             p_remove[c].add(p)
             c_remove[p].add(c)
 
-        # print "p_add", p_add
-        # print "p_remove", p_remove
-        # print "c_add", c_add
-        # print "c_remove", c_remove
-        
         # Go and fetch other items that we need to update
         names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
         # print "All affected items:", names
@@ -1504,20 +1522,15 @@ class CollectionDB(BaseDB):
         # Linking only requires write permissions
         # on ONE of the items.
         for name in names:
-            print 1
             try:
-                print "getting:", name
-                rec = self._get_raw(name, txn=txn)
+                rec = self._get_data(name, txn=txn)
             except:
-                print "Couldn't link to missing item:", name
                 continue
-            print 2
             rec.__dict__['parents'] -= p_remove[rec.name]
             rec.__dict__['parents'] |= p_add[rec.name]
             rec.__dict__['children'] -= c_remove[rec.name]
             rec.__dict__['children'] |= c_add[rec.name]
-            self._put_raw(rec.name, rec, txn=txn)
-            print 3
+            self._put_data(rec.name, rec, txn=txn)
         for k,v in p_remove.items():
             if v:
                 indp.removerefs(k, v, txn=txn)
@@ -1530,7 +1543,6 @@ class CollectionDB(BaseDB):
         for k,v in c_add.items():
             if v:
                 indc.addrefs(k, v, txn=txn)
-        print 4
         return
 
     ##### Search tree-like indexes (e.g. parents/children) #####
@@ -1557,7 +1569,7 @@ class CollectionDB(BaseDB):
 
         # Starting items
 
-        # NOTE: I am using this ugly direct call 'rel._get_method' to the C module because it saves 10-20% time.
+        # NOTE: I am using this ugly direct call because it saves 10-20% time.
         new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) #
         if key in cache:
             new |= cache.get(key, set())
@@ -1573,7 +1585,8 @@ class CollectionDB(BaseDB):
 
             stack.append(set())
             for key in stack[x] - visited:
-                new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) # rel.get(key, cursor=cursor)
+                new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) 
+                # rel.get(key, cursor=cursor)
                 if key in cache:
                     new |= cache.get(key, set())
 

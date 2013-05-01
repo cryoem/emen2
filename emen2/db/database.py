@@ -1499,7 +1499,7 @@ class DB(object):
 
     @publicmethod(compat="getchildren")
     @ol('names')
-    def rel_children(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None):
+    def rel_children(self, names, recurse=1, keytype='record', ctx=None, txn=None):
         """Get the children of an object.
 
         This method is the same as db.rel(..., rel='children', tree=False)
@@ -1510,22 +1510,18 @@ class DB(object):
         >>> db.rel.children(0, recurse=2)
         set([2, 4, 268295, 260104, ...])
 
-        >>> db.rel.children(0, recurse=2, rectype=["project*"])
-        set([344513, 432645, 237313, 260104, ...])
-
         >>> db.rel.children('root', keytype='paramdef')
         set([u'core', u'descriptive_information', ...])
 
         :param names: Item name(s)
         :keyword recurse: Recursion depth
-        :keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
         :keyword keytype: Item keytype
         :keyword filt: Ignore failures
         :return:
         :exception KeyError:
         :exception SecurityError:
         """
-        return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='children', ctx=ctx, txn=txn)
+        return self.dbenv[keytype].rel(names, recurse=recurse, rel='children', ctx=ctx, txn=txn)
 
     @publicmethod()
     @ol('names')
