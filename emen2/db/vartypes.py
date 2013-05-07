@@ -168,14 +168,13 @@ class Vartype(object):
     def _validate_reference(self, value, keytype=None):
         ret = []
         changed = False
-        keytype = keytype or self.vartype
         key = ('%s.names'%keytype,)
         hit, found = self.cache.check(key)
         if not hit:
             found = set()
             changed = True
 
-        for i in value:        
+        for i in value:       
             i = self.db._db.dbenv[keytype].keyclass(i) # ugly hack :(
             if i in found:
                 ret.append(i)
@@ -184,10 +183,10 @@ class Vartype(object):
                 found.add(i)
                 changed = True
             elif ALLOW_MISSING:
-                emen2.db.log.warn("Validation: Could not find, but allowing: %s %s (parameter %s)"%(self.vartype, i, self.pd.name))
+                emen2.db.log.warn("Validation: Could not find, but allowing: %s (parameter %s)"%(i, self.pd.name))
                 ret.append(i)
             else:
-                raise ValidationError, "Could not find: %s %s (parameter %s)"%(self.vartype, i, self.pd.name)
+                raise ValidationError, "Could not find: %s (parameter %s)"%(i, self.pd.name)
         
         if changed:
             self.cache.store(key, found)    
@@ -648,7 +647,7 @@ class vt_binary(Vartype):
         try:
             v = self.db.binary.get(value)
             return v.filename or value
-        except (ValueError, TypeError), e:
+        except (ValueError, TypeError, AttributeError, KeyError), e:
             return 'Error getting binary: %s'%value
 
     def _add(self):
@@ -715,7 +714,7 @@ class vt_record(Vartype):
     """References to other Records."""
 
     # This ma change in the future
-    keyformat = 'int'
+    keyformat = 'str'
 
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='record')
@@ -725,7 +724,6 @@ class vt_record(Vartype):
 @Vartype.register('link')
 class vt_link(Vartype):
     """Reference."""
-
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='record') # Ugly hack :(
         return self._rci(value)

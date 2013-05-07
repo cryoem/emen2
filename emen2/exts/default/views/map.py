@@ -3,7 +3,7 @@ from emen2.web.view import View
 import emen2.db.config
 
 
-def dfs(root, tree, recurse=1):
+def bfs(root, tree, recurse=1):
     maxrecurse = emen2.db.config.get('params.maxrecurse')
     def inner(stack, children, depth=0):
         if depth >= maxrecurse:
@@ -43,20 +43,19 @@ class Tree(View):
 
         # add 2 to recurse to get enough info to draw the next level
         if mode == "children":
-            tree = self.db.rel.rel(root, rel="children", recurse=recurse+2, keytype=keytype, rectype=rectype, tree=True)
+            tree = self.db.rel.rel([root], rel="children", recurse=recurse+2, keytype=keytype, tree=True)
             # get one level of parents as well..
             parents = self.db.rel.parents(root, keytype=keytype)
         else:
-            tree = self.db.rel.rel(root, rel="parents", recurse=recurse+2, keytype=keytype, tree=True)
-        
-        if collapse_rectype:
-            collapsed |= self.db.rel.children(root, recurse=-1, rectype=collapse_rectype)
+            tree = self.db.rel.rel([root], rel="parents", recurse=recurse+2, keytype=keytype, tree=True)
+        # if collapse_rectype:
+        #    collapsed |= self.db.rel.children(root, recurse=-1, rectype=collapse_rectype)
 
         # connect the root to "None" to simplify drawing..
         tree[None] = [root]
         
         # Get all the names we need to render
-        stack = dfs(root, tree, recurse=recurse)
+        stack = bfs(root, tree, recurse=recurse)
         stack.add(root)
         stack |= parents
 

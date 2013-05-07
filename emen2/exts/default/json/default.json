@@ -1,0 +1,45 @@
+// ParamDefs
+{"name": "file_binary_image", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "desc_short": "Image file", "desc_long": "A single image file attachment, e.g. a ccd frame."}
+{"name": "observed_by", "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Observed by"}
+{"name": "owner", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Owner", "desc_long": "The user who is the current owner of the record."}
+{"name": "address_email", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Contact Email", "desc_long": "An administrative contact for this Record"}
+{"name": "name_folder", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Folder name"}
+{"name": "folder_description", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Description"}
+{"name": "name_last", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Last name"}
+{"name": "name_group", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Group", "desc_long": "Group name"}
+{"name": "performed_by", "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Performed by", "desc_long": "Person who performed experiment"}
+{"name": "contact", "keytype": "paramdef", "parents": ["core"], "vartype": "none", "desc_short": "Contact Information"}
+{"name": "date_occurred", "keytype": "paramdef", "parents": ["core"], "vartype": "datetime", "desc_short": "Date occurred", "desc_long": "The date the experiment is carried out"}
+{"name": "deleted", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Deleted Record"}
+{"name": "date_start", "keytype": "paramdef", "parents": ["core"], "vartype": "datetime", "desc_short": "Start"}
+{"name": "date_end", "keytype": "paramdef", "parents": ["core"], "vartype": "datetime", "desc_short": "End"}
+
+// Common User Profile parameters
+{"name": "name_first", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "First name"}
+{"name": "name_middle", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Middle name"}
+{"name": "address_street", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Address", "desc_long": "Street address"}
+{"name": "address_street2", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Address (cont.)", "desc_long": "Street address (cont.)"}
+{"name": "phone_fax", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Fax #", "desc_long": "Fax number"}
+{"name": "academic_degrees", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "iter": true, "desc_short": "Degrees", "desc_long": "List of academic degrees"}
+{"name": "name_contact", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Contact name", "desc_long": "Contact name for this item or piece of equipment"}
+{"name": "country", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Country"}
+{"name": "support", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Financial support", "desc_long": "Source of financial support"}
+{"name": "website", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Website"}
+{"name": "phone_voice", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Phone #", "desc_long": "Phone number"}
+{"name": "affiliations", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Affiliations"}
+{"name": "phone_fax_international", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "International fax"}
+{"name": "address_state", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "State"}
+{"name": "person_photo", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "desc_short": "Photo"}
+{"name": "department", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Department"}
+{"name": "address_zipcode", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Zip", "desc_long": "Zipcode"}
+{"name": "institution", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Institution", "desc_long": "Institution where the group belongs to"}
+{"name": "address_city", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "City"}
+{"name": "address_international", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "International address"}
+{"name": "phone_voice_international", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "International phone"}
+
+// Core RecordDefs
+{"name": "root", "mainview": "Root Protocol", "keytype": "recorddef", "parents": [], "desc_short": "Root Protocol"}
+{"name": "core", "mainview": "Do not use", "keytype": "recorddef", "parents": ["root"], "desc_short": "Core"}
+{"name": "folder", "views": {"recname": "$$name_folder", "tabularview": "$$name_folder\n$$name_contact\n$$creator\n$$creationtime", "banner": "$$folder_description"}, "mainview": "Folder: $$name_folder\n\n$#folder_description:\n\n$$folder_description", "keytype": "recorddef", "parents": ["core"], "desc_short": "Folder", "desc_long": "A folder. This is a general purpose organizational device. You will want to use more specific protocols such as project/subproject where appropriate."}
+{"name": "person", "mainview": "Person", "keytype": "recorddef", "parents": ["core"], "desc_long": "Contact details for a person. These are usually associated with User accounts, but can also be used to store contact details in other places, e.g. a project or report."}
+

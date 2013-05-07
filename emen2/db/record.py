@@ -176,6 +176,9 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         """All retrievable keys for this record"""
         return self.params.keys() + list(self.attr_public)
 
+    def items(self):
+        return [(k,self[k]) for k in self.keys()]
+
     def paramkeys(self):
         return self.params.keys()
 

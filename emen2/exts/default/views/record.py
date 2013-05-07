@@ -77,7 +77,7 @@ class Record(View):
         # Siblings
         if sibling == None:
             sibling = self.rec.name
-        siblings = self.db.rel.siblings(sibling, rectype=self.rec.rectype)
+        siblings = self.db.rel.siblings(sibling) # , rectype=self.rec.rectype
 
         # Get RecordDefs
         recdef = self.db.recorddef.get(self.rec.rectype)

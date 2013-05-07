@@ -24,10 +24,6 @@ import uuid
 import email
 import email.mime.text
 
-# Berkeley DB
-# Note: the 'bsddb' module is not sufficient.
-import bsddb3
-
 # Markdown processing
 try:
     import markdown
@@ -308,6 +304,7 @@ def opendb(name=None, password=None, admin=False, db=None):
 
     return proxy
 
+
 def setup(db=None, rootpw=None, rootemail=None):
     """Initialize a new database environment.
 
@@ -315,23 +312,39 @@ def setup(db=None, rootpw=None, rootemail=None):
     @keyparam rootemail Root Account email
 
     """
-    defaultemail = 'root@localhost'
-    print "\n=== Setup Admin (root) account ==="
-    rootemail = rootemail or defaultemail # raw_input("Admin (root) email (default %s): "%defaultemail) or defaultemail
-    rootpw = getpw(pw=rootpw)
-
     db = opendb(db=db, admin=True)
     with db:
-        root = {'name':'root','email':rootemail, 'password':rootpw}
-        db.put(root, keytype='user')
-        loader = emen2.db.load.Loader(db=db, infile=emen2.db.config.get_filename('emen2', 'db/skeleton.json'))
-        loader.load()
-        rec = db.record.new(rectype='folder')
-        rec.addgroup('authenticated')
-        rec['name_folder'] = 'Root'
-        db.put(rec)
+        # Create a root user
+        # if db.user.get('root'):
+        #    print "Admin account already exists!"
+        #    return
+
+        defaultemail = 'root@localhost'
+        print "\n=== Setup Admin (root) account ==="
+        rootemail = rootemail or defaultemail
+        rootpw = getpw(pw=rootpw)
+        root = {'name':'root', 'email':rootemail, 'password':rootpw}
+        db.user.put(root)
+
+        # Create default groups
+        groups = {}
+        groups['admin'] = {'displayname':'Administrators', 'permissions':[[],[],[],['root']]}
+        groups['readadmin'] = {'displayname':'Read-only'}
+        groups['create'] = {'displayname':'Creation privileges'}
+        groups['authenticated'] = {'displayname':'Authenticated users'}
+        groups['anon'] = {'displayname':'Anonymous users'}
+        for k,v in groups.items():
+            v['name'] = k
+            db.group.put(v)
+
+        # Create an initial record
+        rec = {'rectype':'folder', 'name_folder':'Root'}
+        db.record.put(rec)
+
+        
 
 
+        
 
 ##### Main Database Class #####
 
@@ -352,24 +365,16 @@ class DB(object):
         # Check the database environment
         self.path = path or emen2.db.config.get('EMEN2DBHOME')
         self.checkdirs()
+
+        # Cache for contexts
+        self.contexts_cache = {}
         
         # Open the database
         self.dbenv = dbenv or backend.EMEN2DBEnv(path=self.path)
 
-        # Cache for contexts
-        self.contexts_cache = {}
-
-        # Load DBOs from extensions.
-        self._load_json(os.path.join(emen2.db.config.get_filename('emen2', 'db'), 'base.json'))
-        emen2.db.config.load_jsons(cb=self._load_json)
-
-        # Create root account, groups, and root record if necessary
+        # Create the database if necessary.
         if emen2.db.config.get('params.create'):
-            setup(db=self)
-
-
-    ##### Context Manager #####
-
+            self.dbenv.create()
 
     ##### Utility methods #####
 
@@ -381,17 +386,6 @@ class DB(object):
         
         paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
         return exists
-
-    def _load_json(self, infile):
-        """Load and cache a JSON file containing DBOs."""
-        # Create a special root context to load the items
-        ctx = emen2.db.context.SpecialRootContext(db=self)
-        loader = emen2.db.load.BaseLoader(infile=infile)
-        for keytype in ['paramdef', 'user', 'group', 'recorddef', 'binary', 'record']:
-            for item in loader.loadfile(keytype=keytype):
-                i = self.dbenv[keytype].dataclass(ctx=ctx)
-                i._load(item)
-                self.dbenv[keytype]._addcache(i)
 
     def _getcontext(self, ctxid, host, ctx=None, txn=None):
         """(Internal) Takes a ctxid key and returns a Context.
@@ -405,10 +399,9 @@ class DB(object):
         :return: Context
         :exception: SessionError
         """
-        # Find the context; check the cache first, then the bdb.
         # If no ctxid was provided, make an Anonymous Context.
         if ctxid:
-            context = self.contexts_cache.get(ctxid) or self.dbenv._context._get(ctxid, txn=txn)
+            context = self.contexts_cache.get(ctxid) or self.dbenv._context._get_data(ctxid, txn=txn)
         else:
             context = emen2.db.context.AnonymousContext(host=host)
 
@@ -427,7 +420,7 @@ class DB(object):
             groups = indg.get(context.username, set(), txn=txn)
             grouplevels = {}
             for group in groups:
-                group = self.dbenv["group"]._get(group, txn=txn)
+                group = self.dbenv["group"]._get_data(group, txn=txn)
                 grouplevels[group.name] = group.getlevel(context.username)
 
         # Sets the database reference, user record, display name, groups, and updates
@@ -509,7 +502,7 @@ class DB(object):
         found = self.dbenv["user"].getindex('email', txn=txn).get(name, txn=txn)
         if found:
             name = found.pop()
-        return self.dbenv["user"]._get_raw(name, filt=False, txn=txn)
+        return self.dbenv["user"]._get_data(name, txn=txn)
 
     def _findrecorddefnames(self, names, ctx=None, txn=None):
         """(Internal) Find referenced recorddefs."""
@@ -753,7 +746,7 @@ class DB(object):
         newcontext = emen2.db.context.Context(username=user.name, host=host)
 
         # This puts directly, instead of using put.
-        self.dbenv._context._put(newcontext.name, newcontext, txn=txn)
+        self.dbenv._context._put_data(newcontext.name, newcontext, txn=txn)
         emen2.db.log.security("Login succeeded: %s -> %s" % (newcontext.username, newcontext.name))
 
         return newcontext.name
@@ -822,7 +815,7 @@ class DB(object):
 
         :return: True if the user can create records
         """
-        return ctx.checkcreate()
+        return ctx.checkcreate
 
 
     ##### Generic methods #####
@@ -1442,7 +1435,7 @@ class DB(object):
         return self.dbenv[keytype].relink(removerels, addrels, ctx=ctx, txn=txn)
 
     @publicmethod(compat="getsiblings")
-    def rel_siblings(self, name, rectype=None, keytype="record", ctx=None, txn=None):
+    def rel_siblings(self, name, keytype="record", ctx=None, txn=None):
         """Get the siblings of the object as a tree.
 
         Siblings are any items that share a common parent.
@@ -1460,17 +1453,16 @@ class DB(object):
 
         :param names: Item name(s)
         :keyword rectype: Filter by RecordDef. Can be single RecordDef or list.
-        :keyword keytype: Item keytype
         :keyword filt: Ignore failures
         :return: All items that share a common parent
         :exception KeyError:
         :exception SecurityError:
         """
-        return self.dbenv[keytype].siblings(name, rectype=rectype, ctx=ctx, txn=txn)
+        return self.dbenv[keytype].siblings(name, ctx=ctx, txn=txn)
 
     @publicmethod(compat="getparents")
     @ol('names')
-    def rel_parents(self, names, recurse=1, rectype=None, keytype='record', ctx=None, txn=None):
+    def rel_parents(self, names, recurse=1, keytype='record', ctx=None, txn=None):
         """Get the parents of an object
 
         This method is the same as as db.rel(..., rel='parents', tree=False)
@@ -1495,7 +1487,7 @@ class DB(object):
         :exception KeyError:
         :exception SecurityError:
         """
-        return self.dbenv[keytype].rel(names, recurse=recurse, rectype=rectype, rel='parents', ctx=ctx, txn=txn)
+        return self.dbenv[keytype].rel(names, recurse=recurse, rel='parents', ctx=ctx, txn=txn)
 
     @publicmethod(compat="getchildren")
     @ol('names')
@@ -1525,8 +1517,8 @@ class DB(object):
 
     @publicmethod()
     @ol('names')
-    def rel_rel(self, names, keytype="record", ctx=None, txn=None):
-        return self.dbenv[keytype].rel(names, ctx=ctx, txn=txn)
+    def rel_rel(self, names, recurse=1, tree=False, rel='children', keytype="record", ctx=None, txn=None):
+        return self.dbenv[keytype].rel(names, recurse=recurse, tree=tree, rel=rel, ctx=ctx, txn=txn)
 
     ##### ParamDef #####
 
@@ -1854,7 +1846,7 @@ class DB(object):
             raise SecurityError, "The email address %s is already in use"%(email)
 
         # Do not use cget; it will strip out the secret.
-        user = self.dbenv["user"]._get(name, txn=txn)
+        user = self.dbenv["user"]._get_data(name, txn=txn)
         user_secret = getattr(user, 'secret', None)
         user.setContext(ctx)
         if user_secret:
@@ -1875,7 +1867,7 @@ class DB(object):
             # Need to verify email address change by receiving secret.
             emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, user.email))
             # Note: put will always ignore the secret; write directly
-            self.dbenv["user"]._put(user.name, user, txn=txn)
+            self.dbenv["user"]._put_data(user.name, user, txn=txn)
 
             # Send the verify email containing the auth token
             ctxt['secret'] = user_secret[2]
@@ -1929,7 +1921,7 @@ class DB(object):
             user.setContext(ctx)
         user.setpassword(oldpassword, newpassword, secret=secret)
         emen2.db.log.security("Changing password for %s"%user.name)
-        self.dbenv["user"]._put(user.name, user, txn=txn)
+        self.dbenv["user"]._put_data(user.name, user, txn=txn)
         self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/password.changed'})
         return self.dbenv["user"].get(user.name, ctx=ctx, txn=txn)
 
@@ -1957,7 +1949,7 @@ class DB(object):
         user.resetpassword()
 
         # Use direct put to preserve the secret
-        self.dbenv["user"]._put(user.name, user, txn=txn)
+        self.dbenv["user"]._put_data(user.name, user, txn=txn)
 
         # Absolutely never reveal the secret via any mechanism
         # but email to registered address

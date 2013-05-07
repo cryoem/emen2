@@ -72,7 +72,7 @@
         "uri": "",
 
         // Number of web server threads to run
-        "threads": 4,
+        "threads": 1,
 
         // Regular HTTP port
         "port": 8080,

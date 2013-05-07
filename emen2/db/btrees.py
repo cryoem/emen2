@@ -74,7 +74,7 @@ class EMEN2DBEnv(object):
         
         # Database environment directory
         self.path = path
-        self.snapshot = snapshot or emen2.db.config.get('bdb.snapshot')
+        self.snapshot = snapshot or (not emen2.db.config.get('params.snapshot'))
         self.cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024l
 
         # Make sure the data directory exists.
@@ -88,8 +88,9 @@ class EMEN2DBEnv(object):
 
         # Make sure the DB_CONFIG is present.
         configpath = os.path.join(self.path, "DB_CONFIG")
-        if not os.path.exists(configpath):
-            emen2.db.log.debug("Copying default DB_CONFIG file: %s"%configpath)
+        exists = os.path.exists(configpath)
+        if not exists:
+            emen2.db.log.debug("BDB: Copying default DB_CONFIG file: %s"%configpath)
             f = open(configpath, "w")
             f.write(DB_CONFIG)
             f.close()
@@ -106,10 +107,44 @@ class EMEN2DBEnv(object):
         # Open DBEnv and main tables.
         self.dbenv = self.open()
         self.init()
+        
+    def _load_json(self, infile, keytypes=None, ctx=None, txn=None):
+        """Load a JSON file containing DBOs."""
+        # Create a special root context to load the items
+        loader = emen2.db.load.BaseLoader(infile=infile)
+        keytypes = keytypes or ['paramdef', 'user', 'group', 'recorddef', 'binary', 'record']
+        for keytype in keytypes:
+            for item in loader.loadfile(keytype=keytype):
+                i = self[keytype].dataclass(ctx=ctx)
+                i._load(item)
+                self[keytype]._put_data(i.name, i, txn=txn)
 
+    def create(self):
+        emen2.db.log.info("BDB: Loading from JSON")
+
+        # Start txn
+        ctx = emen2.db.context.SpecialRootContext()
+        txn = self.newtxn(write=True)
+        keytypes = ['paramdef', 'recorddef']
+        
+        # Load core ParamDefs... Items defined in base.json are required.
+        infile = emen2.db.config.get_filename('emen2', 'db/base.json')
+        self._load_json(infile, keytypes=keytypes, ctx=ctx, txn=txn)
+
+        # Load DBOs from extensions.
+        emen2.db.config.load_jsons(cb=self._load_json, keytypes=keytypes, ctx=ctx, txn=txn)
+        
+        # Rebuild indexes
+        self['paramdef']._rebuild_indexes(ctx=ctx, txn=txn)
+        self['recorddef']._rebuild_indexes(ctx=ctx, txn=txn)
+
+        # Commit txn
+        self.txncommit(txn=txn)
+
+    
     def open(self):
         """Open the Database Environment."""
-        emen2.db.log.info("Opening database environment: %s"%self.path)
+        emen2.db.log.info("BDB: Opening database environment: %s"%self.path)
         dbenv = bsddb3.db.DBEnv()
 
         if self.snapshot:
@@ -138,7 +173,6 @@ class EMEN2DBEnv(object):
     def init(self):
         # Authentication. These are not public.
         self._context = CollectionDB(dataclass=Context, dbenv=self)
-
         # These are public dbs.
         self.keytypes['paramdef']  = CollectionDB(dataclass=ParamDef, dbenv=self)
         self.keytypes['recorddef'] = CollectionDB(dataclass=RecordDef, dbenv=self)
@@ -172,7 +206,7 @@ class EMEN2DBEnv(object):
             flags = 0
 
         txn = self.dbenv.txn_begin(flags=flags)
-        # emen2.db.log.msg('TXN', "NEW TXN, flags: %s --> %s"%(flags, txn))
+        emen2.db.log.debug("TXN: start: %s flags %s"%(txn, flags))
         return txn
 
     def txncheck(self, txn=None, write=False):
@@ -192,7 +226,7 @@ class EMEN2DBEnv(object):
         :keyword txn: An existing open transaction
         :exception: KeyError if transaction was not found
         """
-        # emen2.db.log.msg('TXN', "TXN ABORT --> %s"%txn)
+        emen2.db.log.debug("TXN: abort: %s"%txn)
         txnid = txn.id()
         self._txncb(txnid, 'abort', 'before')
         txn.abort()
@@ -205,7 +239,7 @@ class EMEN2DBEnv(object):
         :param txn: An existing open transaction
         :exception: KeyError if transaction was not found
         """
-        # emen2.db.log.msg('TXN', "TXN COMMIT --> %s"%txn)
+        emen2.db.log.debug("TXN: commit: %s"%txn)
         txnid = txn.id()
         self._txncb(txnid, 'commit', 'before')
         txn.commit()
@@ -271,12 +305,12 @@ class EMEN2DBEnv(object):
         outpath = emen2.db.config.get('paths.journal_archive')
 
         if checkpoint:
-            emen2.db.log.info("Log Archive: Checkpoint")
+            emen2.db.log.info("BDB: Log Archive: Checkpoint")
             self.dbenv.txn_checkpoint()
 
         archivefiles = self.dbenv.journal_archive(bsddb3.db.DB_ARCH_ABS)
 
-        emen2.db.log.info("Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
+        emen2.db.log.info("BDB: Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
 
         if not os.access(outpath, os.F_OK):
             os.makedirs(outpath)
@@ -284,7 +318,7 @@ class EMEN2DBEnv(object):
         outpaths = []
         for archivefile in archivefiles:
             dest = os.path.join(outpath, os.path.basename(archivefile))
-            emen2.db.log.info('Log Archive: %s -> %s'%(archivefile, dest))
+            emen2.db.log.info('BDB: Log Archive: %s -> %s'%(archivefile, dest))
             shutil.move(archivefile, dest)
             outpaths.append(dest)
 
@@ -300,9 +334,6 @@ class BaseDB(object):
     :attr filename: Filename of BDB on disk
     :attr dbenv: EMEN2 Database Environment
     :attr bdb: Berkeley DB instance
-    :attr cache: In memory DB
-    :attr cache_parents: Relationships of cached items
-    :attr cache_children: Relationships of cached items
     :attr DBOPENFLAGS: Berkeley DB flags for opening database
     :attr DBSETFLAGS: Additional flags
     """
@@ -330,11 +361,6 @@ class BaseDB(object):
         self.DBOPENFLAGS = bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE
         self.DBSETFLAGS = []
 
-        # Cached items. This might go away.
-        self.cache = None
-        self.cache_parents =  collections.defaultdict(set) # temporary patch
-        self.cache_children = collections.defaultdict(set) # temporary patch
-
         # Init and open.
         self.init()
         self.open()
@@ -347,33 +373,26 @@ class BaseDB(object):
 
     def open(self):
         """Open the DB. This uses an implicit open transaction."""
-        if self.bdb or self.cache:
+        if self.bdb:
             raise Exception, "DB already open"
 
         # Create the DB handle and set flags
         self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
 
-        # Create a memory only DB
-        self.cache = bsddb3.db.DB(self.dbenv.dbenv)
-
         # Set DB flags, e.g. duplicate keys allowed
         for flag in self.DBSETFLAGS:
             self.bdb.set_flags(flag)
-            self.cache.set_flags(flag)
 
         # Open the DB with the correct flags.
-        emen2.db.log.debug("%s.open"%self.filename)
+        emen2.db.log.debug("BDB: %s open"%self.filename)
         fn = '%s.%s'%(self.filename, self.extension)
         self.bdb.open(filename=fn, dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
-        self.cache.open(filename=None, dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
 
     def close(self):
         """Close the DB."""
-        emen2.db.log.debug("%s.close"%self.filename)
+        emen2.db.log.debug("BDB: %s close"%self.filename)
         self.bdb.close()
         self.bdb = None
-        self.cache.close()
-        self.cache = None
 
     # Dangerous!
     def truncate(self, txn=None, flags=0):
@@ -381,11 +400,8 @@ class BaseDB(object):
         :keyword txn: Transaction
         """
         # todo: Do more checking before performing a dangerous operation.
-        emen2.db.log.debug("%s.truncate"%self.filename)
+        emen2.db.log.debug("BDB: %s truncate"%self.filename)
         self.bdb.truncate(txn=txn)
-        self.cache.truncate()
-        self.cache_children = {}
-        self.cache_parents = {}
     
     ##### load/dump methods for keys and data #####
 
@@ -428,8 +444,8 @@ class BaseDB(object):
             self.keyload = int
         elif keyformat == 'float':
             self.keyclass = float
-            self.keydump = lambda x:pickle.dumps(data)
-            self.keyload = lambda x:pickle.loads(data or 'N.')
+            self.keydump = lambda x:pickle.dumps(x)
+            self.keyload = lambda x:pickle.loads(x or 'N.')
         else:
             raise ValueError, "Invalid key format: %s. Supported: str, int, float"%keyformat
         self.keyformat = keyformat
@@ -543,7 +559,7 @@ class IndexDB(BaseDB):
         :return: Values for key
 
         """
-        emen2.db.log.debug("%s.get: %s"%(self.filename, key))        
+        emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
         if cursor:
             r = self._get_method(cursor, self.keydump(key), self.dataformat)
         else:
@@ -623,7 +639,7 @@ class IndexDB(BaseDB):
 
         '''
         if not items: return []
-        emen2.db.log.debug("%s.removerefs: %s -> %s"%(self.filename, key, items))
+        emen2.db.log.debug("BDB: %s removerefs: %s -> %s"%(self.filename, key, items))
         delindexitems = []
 
         cursor = self.bdb.cursor(txn=txn)
@@ -657,7 +673,7 @@ class IndexDB(BaseDB):
 
         """
         if not items: return []
-        emen2.db.log.debug("%s.addrefs: %s -> %s"%(self.filename, key, items))
+        emen2.db.log.debug("BDB: %s addrefs: %s -> %s"%(self.filename, key, items))
         addindexitems = []
 
         key = self.keyclass(key)
@@ -823,14 +839,14 @@ class CollectionDB(BaseDB):
         # In this case, return immediately and don't acquire any locks.
         # Note: this method does not check permissions; you could use it to check
         #     if a key exists or not, even if you can't read the value.
-        emen2.db.log.debug("%s.exists: %s"%(self.filename, key))        
+        emen2.db.log.debug("BDB: %s exists: %s"%(self.filename, key))        
         if key < 0 or key is None:
             return False
-        return self.bdb.exists(self.keydump(key), txn=txn, flags=flags) or self.cache.exists(self.keydump(key), txn=txn, flags=flags)
+        return self.bdb.exists(self.keydump(key), txn=txn, flags=flags)
         
     ##### Keys, values, items #####
     
-    def filter(self, names=None, ctx=None, txn=None, **kwargs):
+    def filter(self, names=None, ctx=None, txn=None):
         """Filter a set of keys for read permission.
 
         :keyword names: Subset of items to check
@@ -846,13 +862,20 @@ class CollectionDB(BaseDB):
             return set([i.name for i in items])
         return set(self.keys(txn=txn))
     
-    def keys(self):
-        raise NotImplementedError
+    def keys(self, ctx=None, txn=None):
+        emen2.db.log.warn("BDB: %s keys: Deprecated method!"%self.filename)
+        return map(self.keyload, self.bdb.keys(txn))
     
-    def items(self):
-        raise NotImplementedError
+    def items(self, ctx=None, txn=None):
+        emen2.db.log.warn("BDB: %s items: Deprecated method!"%self.filename)
+        ret = []
+        for k,v in self.bdb.items(txn):
+            i = self.dataload(v)
+            i.setContext(ctx)
+            ret.append((self.keyload(k), i))
+        return ret
         
-    def values(self):
+    def values(self, ctx=None, txn=None):
         raise NotImplementedError
 
     ##### Filtered context gets.. #####
@@ -893,13 +916,9 @@ class CollectionDB(BaseDB):
         return ret
         
     def _get_data(self, key, txn=None, flags=0):
-        emen2.db.log.debug("%s.get: %s"%(self.filename, key))        
+        emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
         kd = self.keydump(key)
-        d = self.dataload(
-            self.cache.get(kd, txn=txn, flags=flags)
-            or
-            self.bdb.get(kd, txn=txn, flags=flags) 
-            )
+        d = self.dataload(self.bdb.get(kd, txn=txn, flags=flags))
         if d:
             return d
         raise KeyError, "No such key %s"%(key)    
@@ -909,9 +928,9 @@ class CollectionDB(BaseDB):
     def validate(self, items, ctx=None, txn=None):
         return self.puts(items, commit=False, ctx=ctx, txn=txn)
 
-    def put(self, item, *args, **kwargs):
+    def put(self, item, commit=True, ctx=None, txn=None):
         """See puts(). This works the same, but for a single DBO."""
-        ret = self.puts([item], *args, **kwargs)
+        ret = self.puts([item], commit=commit, ctx=ctx, txn=txn)
         if not ret:
             return None
         return ret[0]
@@ -972,66 +991,65 @@ class CollectionDB(BaseDB):
 
         # Write index updates
         self._reindex_write(ind, ctx=ctx, txn=txn)
-
-        emen2.db.log.debug("Committed %s items"%(len(items)))
+        emen2.db.log.debug("BDB: Committed %s items"%(len(items)))
         return items
 
     def _put_data(self, name, item, txn=None, flags=0):
-        emen2.db.log.debug("%s.put: %s"%(self.filename, item.name))        
+        emen2.db.log.debug("BDB: %s put: %s"%(self.filename, item.name))        
         self.bdb.put(self.keydump(name), self.datadump(item), txn=txn)
     
     # Grumble. Maybe this will go away
-    def _addcache(self, item, txn=None):
-        """Add an item to the cache; used for loading from JSON.
-
-        These items will work normally (get, put, relationships, items, etc.)
-        but exist in memory only, not in the DB.
-
-        Requires the DB to be open and requires a txn.
-
-        :keyword txn: Transaction
-        :param item: Item to cache. Should be an instantiated DBObject.
-
-        """
-        # Update parent/child relationships
-        # print "Checking parents/children for %s"%item.name
-        ADDRELS = False
-        if ADDRELS:
-            p = self.getindex('parents', txn=txn)
-            c = self.getindex('children', txn=txn)
-            if p and c:
-                item.parents |= p.get(item.name)
-                item.children |= c.get(item.name)
-        
-                for child in item.children:
-                    if self.cache.get(self.keydump(child), txn=txn):
-                        i = self.dataload(self.cache.get(self.keydump(child), txn=txn))
-                        i.parents.add(item.name)
-                        self.cache.put(self.keydump(i.name), self.datadump(i), txn=txn) 
-        
-                for parent in item.parents:
-                    if self.cache.get(self.keydump(parent), txn=txn):
-                        i = self.dataload(self.cache.get(self.keydump(parent), txn=txn))
-                        i.children.add(item.name)
-                        self.cache.put(self.keydump(i.name), self.datadump(i), txn=txn) 
-        
-                # Also update the other side of the relationship, using cache_parents
-                # and cache_children
-                self.cache_parents[item.name] |= item.parents
-                self.cache_children[item.name] |= item.children
-                for parent in item.parents:
-                    self.cache_children[parent].add(item.name)
-                for child in item.children:
-                    self.cache_parents[child].add(item.name)
-        
-                # Final check
-                item.parents |= self.cache_parents[item.name]
-                item.children |= self.cache_children[item.name]
-
-        # Store the item pickled, so it works with get, and
-        # returns new instances instead of globally shared ones...
-        self.cache.put(self.keydump(item.name), self.datadump(item), txn=txn)
-            
+    # def _addcache(self, item, txn=None):
+    #     """Add an item to the cache; used for loading from JSON.
+    # 
+    #     These items will work normally (get, put, relationships, items, etc.)
+    #     but exist in memory only, not in the DB.
+    # 
+    #     Requires the DB to be open and requires a txn.
+    # 
+    #     :keyword txn: Transaction
+    #     :param item: Item to cache. Should be an instantiated DBObject.
+    # 
+    #     """
+    #     # Update parent/child relationships
+    #     # print "Checking parents/children for %s"%item.name
+    #     ADDRELS = False
+    #     if ADDRELS:
+    #         p = self.getindex('parents', txn=txn)
+    #         c = self.getindex('children', txn=txn)
+    #         if p and c:
+    #             item.parents |= p.get(item.name)
+    #             item.children |= c.get(item.name)
+    #     
+    #             for child in item.children:
+    #                 if self.cache.get(self.keydump(child), txn=txn):
+    #                     i = self.dataload(self.cache.get(self.keydump(child), txn=txn))
+    #                     i.parents.add(item.name)
+    #                     self.cache.put(self.keydump(i.name), self.datadump(i), txn=txn) 
+    #     
+    #             for parent in item.parents:
+    #                 if self.cache.get(self.keydump(parent), txn=txn):
+    #                     i = self.dataload(self.cache.get(self.keydump(parent), txn=txn))
+    #                     i.children.add(item.name)
+    #                     self.cache.put(self.keydump(i.name), self.datadump(i), txn=txn) 
+    #     
+    #             # Also update the other side of the relationship, using cache_parents
+    #             # and cache_children
+    #             self.cache_parents[item.name] |= item.parents
+    #             self.cache_children[item.name] |= item.children
+    #             for parent in item.parents:
+    #                 self.cache_children[parent].add(item.name)
+    #             for child in item.children:
+    #                 self.cache_parents[child].add(item.name)
+    #     
+    #             # Final check
+    #             item.parents |= self.cache_parents[item.name]
+    #             item.children |= self.cache_children[item.name]
+    # 
+    #     # Store the item pickled, so it works with get, and
+    #     # returns new instances instead of globally shared ones...
+    #     self.cache.put(self.keydump(item.name), self.datadump(item), txn=txn)
+    #         
     ##### Query #####
 
     def query(self, c=None, mode='AND', subset=None, ctx=None, txn=None):
@@ -1086,9 +1104,10 @@ class CollectionDB(BaseDB):
         # The other side of the relationship needs to be updated. 
         # Calculate the correct changes here, but do not
         # update the indexes yet. 
+        # Update the parent child relationships.
+        
         parents = ind.pop('parents', None)
         children = ind.pop('children', None)
-        # Update the parent child relationships.
         self._reindex_relink(parents, children, txn=txn)
 
         # Now, Update indexes.
@@ -1175,8 +1194,8 @@ class CollectionDB(BaseDB):
 
         return ind
 
-    def _rebuild_indexes(self, txn=None):
-        emen2.db.log.info("Rebuilding indexes: Start")
+    def _rebuild_indexes(self, ctx=None, txn=None):
+        emen2.db.log.info("BDB: Rebuilding indexes: Start")
         # ugly hack..
         self._truncate_index = True
         for k in self.indexes:
@@ -1187,16 +1206,16 @@ class CollectionDB(BaseDB):
         keys = sorted(map(self.keyload, self.bdb.keys(txn)), reverse=True)
         for chunk in emen2.util.listops.chunk(keys, 1000):
             if chunk:
-                emen2.db.log.info("Rebuilding indexes: %s ... %s"%(chunk[0], chunk[-1]))
-            items = self._gets(chunk, txn=txn)
+                emen2.db.log.info("BDB: Rebuilding indexes: %s ... %s"%(chunk[0], chunk[-1]))
+            items = [self._get_data(i, txn=txn) for i in chunk]
             # Use self.reindex() instead of self.puts() -- the data should
             # already be validated, so we can skip that step.
             # self.puts(items, txn=txn)
             ind = self._reindex(items, reindex=True, txn=txn)
-            self._reindex_write(ind, txn=txn)
+            self._reindex_write(ind, ctx=ctx, txn=txn)
 
         self._truncate_index = False
-        emen2.db.log.info("Rebuilding indexes: Done")
+        emen2.db.log.info("BDB: Rebuilding indexes: Done")
 
     ##### Sequences #####
 
@@ -1247,7 +1266,7 @@ class CollectionDB(BaseDB):
         val = int(val)
         
         self.sequencedb.put(key, str(val+delta), txn=txn)
-        emen2.db.log.debug("%s.sequence: %s -> %s"%(self.filename, val, val+delta))
+        emen2.db.log.debug("BDB: %s sequence: %s -> %s"%(self.filename, val, val+delta))
         return val
 
     def _get_max(self, key="sequence", txn=None):
@@ -1263,7 +1282,7 @@ class CollectionDB(BaseDB):
 
     ##### Relationship methods #####
 
-    def parents(self, names, recurse=1, ctx=None, txn=None, **kwargs):
+    def parents(self, names, recurse=1, ctx=None, txn=None):
         """See rel(), with rel='parents", tree=False. Requires ctx and txn.
 
         This will return a dict of parents to the specified recursion depth.
@@ -1271,9 +1290,9 @@ class CollectionDB(BaseDB):
         :return: Dict with names as keys, and their parents as values
 
         """
-        return self.rel(names, recurse=recurse, rel='parents', ctx=ctx, txn=txn, **kwargs)
+        return self.rel(names, recurse=recurse, rel='parents', ctx=ctx, txn=txn)
 
-    def children(self, names, recurse=1, ctx=None, txn=None, **kwargs):
+    def children(self, names, recurse=1, ctx=None, txn=None):
         """See rel(), with rel="children", tree=False. Requires ctx and txn.
 
         This will return a dict of children to the specified recursion depth.
@@ -1281,10 +1300,10 @@ class CollectionDB(BaseDB):
         :return: Dict with names as keys, and their children as values
 
         """
-        return self.rel(names, recurse=recurse, rel='children', ctx=ctx, txn=txn, **kwargs)
+        return self.rel(names, recurse=recurse, rel='children', ctx=ctx, txn=txn)
 
     # Siblings
-    def siblings(self, name, ctx=None, txn=None, **kwargs):
+    def siblings(self, name, ctx=None, txn=None):
         """Siblings. Note this only takes a single name. Requries ctx and txn.
 
         :keyword name: DBO name
@@ -1298,13 +1317,13 @@ class CollectionDB(BaseDB):
         for k,v in parents.items():
             allparents |= v
         siblings = set()
-        children = self.rel(allparents, ctx=ctx, txn=txn, **kwargs)
+        children = self.rel(allparents, ctx=ctx, txn=txn)
         for k,v in children.items():
             siblings |= v
         return siblings
 
     # Checks permissions, return formats, etc..
-    def rel(self, names, recurse=1, rel='children', tree=False, ctx=None, txn=None, **kwargs):
+    def rel(self, names, recurse=1, rel='children', tree=False, ctx=None, txn=None):
         """Find relationships. Requires context and transaction.
 
         Find relationships to a specified recusion depth. This supports any
@@ -1361,8 +1380,8 @@ class CollectionDB(BaseDB):
         for v in visited.values():
             allr |= v
 
-        # Filter by permissions (pass rectype= for optional Record filtering)
-        allr = self.filter(allr, ctx=ctx, txn=txn, **kwargs)
+        # Filter by permissions
+        allr = self.filter(allr, ctx=ctx, txn=txn)
 
         # If Tree=True, we're returning the tree... Filter for permissions.
         if tree:
@@ -1555,14 +1574,6 @@ class CollectionDB(BaseDB):
         if recurse == -1:
             recurse = emen2.db.config.get('params.maxrecurse')
 
-        # Cached items..
-        if rel == 'children':
-            cache = self.cache_children
-        elif rel == 'parents':
-            cache = self.cache_parents
-        else:
-            cache = {}
-
         # Get the index, and create a cursor (slightly faster)
         rel = self.getindex(rel, txn=txn)
         cursor = rel.bdb.cursor(txn=txn)
@@ -1571,8 +1582,6 @@ class CollectionDB(BaseDB):
 
         # NOTE: I am using this ugly direct call because it saves 10-20% time.
         new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) #
-        if key in cache:
-            new |= cache.get(key, set())
 
         stack = [new]
         result = {key: new}
@@ -1586,10 +1595,6 @@ class CollectionDB(BaseDB):
             stack.append(set())
             for key in stack[x] - visited:
                 new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) 
-                # rel.get(key, cursor=cursor)
-                if key in cache:
-                    new |= cache.get(key, set())
-
                 if new:
                     stack[x+1] |= new #.extend(new)
                     result[key] = new
@@ -1685,7 +1690,7 @@ class UserDB(CollectionDB):
 
         return user
 
-    def filter(self, names=None, ctx=None, txn=None, **kwargs):
+    def filter(self, names=None, ctx=None, txn=None):
         # You need to be logged in to view this.
         if not ctx or ctx.username == 'anonymous':
             return set()
@@ -1709,7 +1714,7 @@ class NewUserDB(CollectionDB):
 
         return newuser
 
-    def filter(self, names=None, ctx=None, txn=None, **kwargs):
+    def filter(self, names=None, ctx=None, txn=None):
         # This requires admin access
         if not ctx or not ctx.checkadmin():
             raise emen2.db.exceptions.SecurityError, "Admin rights needed to view user queue"

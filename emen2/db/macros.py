@@ -124,15 +124,16 @@ class macro_childcount(Macro):
     def preprocess(self, params, recs):
         rectypes = params.split(",")
         # ian: todo: recurse = -1..
-        children = self.db.rel.children([rec.name for rec in recs], rectype=rectypes, recurse=3)
+        # TODO urgent: Fix this
+        children = self.db.rel.children([rec.name for rec in recs], recurse=3) #rectype=rectypes, 
         for rec in recs:
-            key = ('rel.children', rec.name, rectypes)
+            key = ('rel.children', rec.name, tuple(rectypes))
             self.cache.store(key, len(children.get(rec.name,[])))
 
     def process(self, params, rec):
         """Now even more optimized!"""
         rectypes = params.split(",")
-        key = ('rel.children', rec.name, rectypes)
+        key = ('rel.children', rec.name, tuple(rectypes))
         hit, children = self.cache.check(key)
         if not hit:
             children = len(self.db.rel.children(rec.name, rectype=rectypes, recurse=3))
@@ -170,7 +171,8 @@ class macro_parentvalue(Macro):
 
         recurse = int(recurse or 1)
         name = rec.name
-        parents = self.db.record.get(self.db.rel.parents(name, recurse=recurse, rectype=rectype))
+        parents = self.db.record.get(self.db.rel.parents(name, recurse=recurse))
+        parents = [i for i in parents if i.rectype == rectype]
         return filter(None, [i.get(param) for i in parents])
 
     def macro_name(self, params):

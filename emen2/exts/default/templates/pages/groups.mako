@@ -15,6 +15,8 @@ for group in groups:
     d[lastname].append(group)
 
 for k,v in d.items():
+    print "!", k, v
+    for i in v: print i, i.name, i.get('displayname')
     d[k] = sorted(v, key=lambda x:x.get('displayname', group.name).lower())
 
 %>

@@ -16,6 +16,7 @@ import inspect
 
 # EMEN2 imports
 from emen2.util import listops
+import emen2.db.log
 
 ##### Warning: This module is very sensitive to changes. #####
 ##### Please test thoroughly before committing!!         #####
@@ -118,7 +119,7 @@ class MethodTree(object):
                 if name == 'help':
                     result = MethodTree(help(self))
         else:
-            result = child._get_method(tail)
+            result = child.get_method(tail)
 
         return result
 
@@ -276,6 +277,14 @@ class DBProxy(object):
             kwargs['ctx'] = self._ctx
             kwargs['txn'] = self._txn
 
+            print
+            emen2.db.log.debug("API: start: %s"%(func.func_name))
+            kwcopy = {}
+            for k,v in kwargs.items():
+                if k not in ['ctx', 'txn']:
+                    kwcopy[k]=v
+            print "\t<-", args, kwcopy
+
             if getattr(func, 'admin', False) and not self._ctx.checkadmin():
                 raise Exception, "This method requires administrator level access."
 
@@ -283,9 +292,10 @@ class DBProxy(object):
             self._ctx.setdb(self)
 
             result = func(self._db, *args, **kwargs)
-            # ms = (time.time()-t)*1000
-            # if ms > 0:
-            #    print "\n\n\n  <-- \t\t%10d ms: %s\t%s\t%s"%(ms, func.func_name, args, kwargs)
+            ms = (time.time()-t)*1000
+            
+            emen2.db.log.debug("API: finished: %s in %0.2f ms"%(func.func_name, ms))
+            print "\t->", result
             return result
 
         return wrapper

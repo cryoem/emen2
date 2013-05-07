@@ -125,15 +125,14 @@ class BaseDBObject(object):
         # Basic attributes
         p = {}
         p['name'] = _d.pop('name', None)
+        p['uri'] = _d.pop('uri', None)
+        p['keytype'] = _d.pop('keytype', None)
         p['creator'] = ctx.username
         p['creationtime'] = ctx.utcnow
         p['modifyuser'] = ctx.username
         p['modifytime'] = ctx.utcnow
-        p['uri'] = None
         p['children'] = set()
         p['parents'] = set()
-        # Temporary
-        p['keytype'] = _d.pop('keytype', None)
         self.__dict__.update(p)
 
         # Subclass init
@@ -162,7 +161,6 @@ class BaseDBObject(object):
         """Differences between two instances."""
         allkeys = set(self.keys() + item.keys())
         return set(filter(lambda k:self.get(k) != item.get(k), allkeys))
-
 
     ##### Permissions
     # Two basic permissions are defined: owner and writable
@@ -203,6 +201,9 @@ class BaseDBObject(object):
     def keys(self):
         return list(self.attr_public)
 
+    def items(self):
+        return [(k,self[k]) for k in self.keys()]
+
     def update(self, update):
         """Dict-like update. Returns a set of keys that were updated."""
         cp = set()
@@ -215,19 +216,23 @@ class BaseDBObject(object):
         if not self.isnew():
             self.error('Cannot update previously committed items this way.')
 
+        # Skip validation for relationships.
+        # This will assume they are the correct data format.
+        # Note: has to convert to set() here.
+        for key in ['parents', 'children']:
+           self.__dict__[unicode(key)] = set(update.pop(key, None) or [])
+
         # Skip validation for defined keys?
         keys = self.attr_public & set(update.keys())
         keys.add('name')
         for key in keys:
             value = update.pop(key, None)
             self.__dict__[unicode(key)] = value
-        
-        # Skip validation for relationships.
-        # This will assume they are the correct data format.
-        for key in ['parents', 'children']:
-            self.__dict__[unicode(key)] = set(update.pop(key, None) or [])
-        
-        self.update(update)
+
+        # Update others...
+        # if update:
+        #   print "remaining:", update
+        #   self.update(update)
 
     # Behave like dict.get(key) instead of dict[key]
     def __getitem__(self, key, default=None):
@@ -331,7 +336,7 @@ class BaseDBObject(object):
         # Get all of the changed items that we can access
         # (KeyErrors will be checked later, during commit..)
         access = self._ctx.db.get(changed, keytype=self.keytype)
-
+        
         # Check write permissions; need write permissions for both.
         for item in access:
             if not (self.writable() and item.writable()):
@@ -369,11 +374,7 @@ class BaseDBObject(object):
                 pd = self._ctx.db.paramdef.get(key, filt=False)
                 self._ctx.cache.store(('paramdef', key), pd)
             except KeyError:
-                # This helps when ParamDefs are first being imported.
-                if key in self.attr_public:
-                    return value
-                else:
-                    self.error('Parameter %s does not exist' % key)
+                self.error('Parameter %s does not exist' % key)
 
         # Is it an immutable param?
         if pd.get('immutable') and not self.isnew():
@@ -482,7 +483,7 @@ class PermissionsDBObject(BaseDBObject):
 
     def _set_permissions(self, key, value):
         self.setpermissions(value)
-        return set(['permissions'])
+        return set(['_set_groups'])
 
     def _set_groups(self, key, value):
         self.setgroups(value)

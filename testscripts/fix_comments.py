@@ -15,7 +15,7 @@ ctx = db._getctx()
 txn = db._gettxn()
 b = []
 for i in range(count, count+block):
-    rec = db._db.dbenv["record"]._get(i, txn=txn)
+    rec = db._db.dbenv["record"]._get_data(i, txn=txn)
     if not rec:
         break
 

@@ -4,7 +4,7 @@
 <%include file="/record/rectypes/_default" />
 
 <%
-children = DB.rel.children(rec.name, recurse=-1, rectype=['image_capture*'])
+children = DB.rel.children(rec.name, recurse=-1)
 bdos = DB.binary.find(record=children, count=0)
 children_recnames = DB.view(children)
 %>

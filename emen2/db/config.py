@@ -113,9 +113,9 @@ def load_views():
     for ext in Config.globalns.extensions.exts:
         load_view(ext)
 
-def load_jsons(cb=None):
+def load_jsons(cb=None, *args, **kwargs):
     for ext in Config.globalns.extensions.exts:
-        load_json(ext, cb=cb)
+        load_json(ext, cb=cb, *args, **kwargs)
 
 def load_ext(ext):
     modulename = 'emen2.exts.%s'%ext
@@ -149,14 +149,12 @@ def load_view(ext):
         imp.load_module(modulename, *viewmodule)
 
 
-def load_json(ext, cb=None):
-    modulename = 'emen2.exts.%s.json'%ext
-    # print "Loading json...", modulename
+def load_json(ext, cb=None, *args, **kwargs):
     path = resolve_ext(ext)
     if not cb:
         return
     for j in sorted(glob.glob(os.path.join(path, 'json', '*.json'))):
-        cb(j)
+        cb(j, *args, **kwargs)
 
 def resolve_ext(ext):
     paths = list(Config.globalns.paths.exts)
@@ -340,9 +338,6 @@ class UsageParser(object):
                 exts.insert(0,'base')
             exts.extend(self.config.globalns.extensions.exts)
             self.config.globalns.extensions.exts = exts
-
-        # Enable/disable snapshot
-        self.config.globalns.bdb.snapshot = (not self.options['nosnapshot'])
 
         # Create new database?
         self.config.globalns.params.create = self.options['create']

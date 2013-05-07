@@ -349,13 +349,13 @@ class Query(object):
         reverse = bool(reverse)
         if sortkey == 'name':
             # Shortcut.
-            if self.btree.keytype == 'record':
-                # Records are created as increasing integers. However,
-                # they are now stored as strings -- so cast to int,
-                # then sort.
-                result = sorted(self.result, reverse=reverse, key=lambda x:int(x))
-            else:
-                result = sorted(self.result, reverse=reverse)                
+            # Records are created as increasing integers. However,
+            # they are now stored as strings -- so cast to int,
+            # then sort.
+            # if self.btree.keytype == 'record':
+            #     result = sorted(self.result, reverse=reverse, key=lambda x:int(x))
+            # else:
+            result = sorted(self.result, reverse=reverse)                
                 
             if count > 0:
                 result = result[pos:pos+count]

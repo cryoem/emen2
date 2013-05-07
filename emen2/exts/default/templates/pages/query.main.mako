@@ -3,13 +3,11 @@
 <%namespace name="query"  file="/pages/query"  />
 
 <%
-projects = DB.view(DB.record.findbyrectype("project"))
-microscopes = DB.view(DB.record.findbyrectype("microscope"))
-recorddefs = DB.recorddef.get(DB.recorddef.names())
-users = DB.user.get(DB.user.names())
-
+projects = {} # DB.view(DB.record.findbyrectype("project"))
+microscopes = {} # DB.view(DB.record.findbyrectype("microscope"))
+recorddefs = {} # DB.recorddef.get(DB.recorddef.filter())
+users = [] # DB.user.get(DB.user.filter())
 worksheets = {} # DB.view(DB.record.findbyrectype("grid_imaging"))
-
 %>
 
 <h1>Query</h1>

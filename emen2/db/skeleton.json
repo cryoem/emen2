@@ -1,6 +1,0 @@
-// Groups
-{"keytype":"group", "displayname": "Administrators", "name": "admin", "permissions": [[], [], [], ["root"]]}
-{"keytype":"group", "displayname": "Read-only administrators", "name": "readadmin"}
-{"keytype":"group", "displayname": "Record creation priveleges", "name": "create"}
-{"keytype":"group", "displayname": "Anonymous access", "name": "anon"}
-{"keytype":"group", "displayname": "Authenticated users", "name": "authenticated"}

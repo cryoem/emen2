@@ -286,7 +286,6 @@ def main(db):
 
 
 def rename():
-    import bsddb3
     import emen2.db.config
     import emen2.db.database
     
