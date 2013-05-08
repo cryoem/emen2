@@ -46,7 +46,7 @@
 {"name": "privacy", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "desc_short": "User privacy"}
 {"name": "disabled", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Disabled account"}
 {"name": "displayname", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Display name"}
-// This just exists for validation; passwords are hashed in the user.
+// This just exists for validation.
 {"name": "password", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Password"}
 
 // Record
@@ -61,3 +61,14 @@
 {"name": "md5_compress", "keytype": "paramdef", "parents": ["core"], "vartype": "md5", "desc_short": "MD5 Checksum (compressed)"}
 {"name": "file_binary", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "iter": true, "desc_short": "Attachments"}
 {"name": "compress", "keytype": "paramdef", "parents":["core"], "vartype": "string", "desc_short": "Compressed format"}
+
+// Root RecordDef
+{"name":"root", "keytype":"recorddef", "mainview":"Root record", "desc_short":"Root protocol"}
+
+// Root user?
+
+// Root groups?
+
+// Root record?
+
+

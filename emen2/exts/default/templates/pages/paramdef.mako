@@ -2,7 +2,6 @@
 <%namespace name="buttons" file="/buttons"  /> 
 <%namespace name="forms" file="/forms"  /> 
 
-
 <%block name="js_ready">
     ${parent.js_ready()}
     ${buttons.tocache(paramdef)}
@@ -24,7 +23,7 @@
 
 <%block name="precontent">
     ${parent.precontent()}
-    <div class="e2-tree-main" style="overflow:hidden">${parentmap}</div>
+    <div class="e2-tree-main" style="overflow:hidden">${parentmap | n,unicode}</div>
 </%block>
 
 

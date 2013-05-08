@@ -32,7 +32,7 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
         </thead>
     
         <tbody>
-        % for bdo in bdos:
+        % for bdo in sorted(bdos, key=lambda x:x.filename.lower()):
             <tr>
                 <td><input type="checkbox" checked="checked" name="bids" value="${bdo.name}" data-filesize="${bdo.get('filesize',0)}" /></td>
                 <td>

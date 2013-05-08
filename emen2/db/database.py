@@ -306,13 +306,13 @@ def opendb(name=None, password=None, admin=False, db=None):
 
 
 def setup(db=None, rootpw=None, rootemail=None):
-    """Initialize a new database environment.
+    """Create root user, basic groups, and root record.
 
     @keyparam rootpw Root Account Password
     @keyparam rootemail Root Account email
 
     """
-    db = opendb(db=db, admin=True)
+    db = db or opendb(db=db, admin=True)
     with db:
         # Create a root user
         # if db.user.get('root'):
@@ -338,14 +338,10 @@ def setup(db=None, rootpw=None, rootemail=None):
             db.group.put(v)
 
         # Create an initial record
-        rec = {'rectype':'folder', 'name_folder':'Root'}
+        rec = {'rectype':'root'}
         db.record.put(rec)
 
         
-
-
-        
-
 ##### Main Database Class #####
 
 class DB(object):
@@ -371,10 +367,6 @@ class DB(object):
         
         # Open the database
         self.dbenv = dbenv or backend.EMEN2DBEnv(path=self.path)
-
-        # Create the database if necessary.
-        if emen2.db.config.get('params.create'):
-            self.dbenv.create()
 
     ##### Utility methods #####
 
@@ -763,7 +755,9 @@ class DB(object):
         """
         # Remove the cached context, and delete the stored one.
         self.contexts_cache.pop(ctx.name, None)
-        self.dbenv._context.delete(ctx.name, txn=txn)
+        # Fix deletion in Collections.
+        self.dbenv._context.bdb.delete(ctx.name, txn=txn)
+        # self.dbenv._context.delete(ctx.name, txn=txn)
 
     @publicmethod(compat="checkcontext")
     def auth_check_context(self, ctx=None, txn=None):
@@ -1361,7 +1355,8 @@ class DB(object):
         
         # Render.
         for view, recs in views.items():
-            view = self._view_convert(view or '{{name}}')
+            view = view or '{{name}}'
+            view = self._view_convert(view)
             keys = self._view_keys(view)
             recs = self.render(recs, keys=keys, ctx=ctx, txn=txn, options=options)
             ret.update(self._view_render(view, recs))

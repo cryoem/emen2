@@ -124,11 +124,16 @@ class EMAN2Convert(View):
     return_file = None
     
     @View.add_matcher(r'^/eman2/(?P<name>.+)/convert/(?P<format>\w+)/$', r'^/eman2/(?P<name>.+)/convert/$')
-    def convert(self, name, format, normalize=False):
+    def convert(self, name, format, depth=8, normalize=False):
         import EMAN2
 
         if format not in ['tif', 'tiff', 'mrc', 'hdf', 'jpg', 'jpeg', 'png']:
             raise ValueError, "Invalid format: %s"%format
+
+        try:
+            depth = int(depth)
+        except:
+            raise ValueError, "Invalid bit depth: %s"%depth
 
         bdo = self.db.binary.get(name)
         img = EMAN2.EMData()

@@ -99,6 +99,7 @@
 		},
 		
 		_build_binary: function(item) {
+            console.log(item);
             var title = item.filename;
             if (item.filesize) {
                 title = title+' ('+emen2.template.prettybytes(item.filesize)+')';
@@ -135,7 +136,7 @@
 			// Are we linking?
             if (this.options.link) {
 				img = $('<a href="'+this.options.link+'" />').append(img)
-                this.options.title = '<a href="'+this.link+'">'+this.options.title+'</a>';
+                this.options.title = '<a href="'+this.options.link+'">'+this.options.title+'</a>';
 			}
 
             // Box title

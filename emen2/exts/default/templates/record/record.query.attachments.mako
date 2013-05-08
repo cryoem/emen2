@@ -1,5 +1,5 @@
 <%inherit file="/record/record" />
-<%namespace name="query_files" file="/pages/query.files"  /> 
+<%namespace name="query_files" file="/pages/query.attachments"  /> 
 
 <%block name="js_ready">
     ${parent.js_ready()}

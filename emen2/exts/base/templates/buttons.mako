@@ -89,14 +89,14 @@
     body = ''
     
     if item.get('keytype') == 'user':
-        title = title or item.get('displayname') or item.get('name')
+        title = item.get('displayname') or item.get('name')
         body = body or item.get('email')
         photo = item.get('userrec', dict()).get('person_photo')
         if photo:
             src = "%s/download/%s/user.jpg?size=thumb"%(ROOT, photo)
 
     elif item.get('keytype') == 'group':
-        title = title or item.get('displayname') or item.get('name')
+        title = item.get('displayname') or item.get('name')
         body = body or '%s members'%sum([len(i) for i in item.get('permissions',[])])
         if item.get('name') == 'authenticated':
             body = "All logged in users"

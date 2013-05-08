@@ -108,7 +108,6 @@
         // These words will not be indexed
         "unindexed_words": ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"],
 
-        // "date_occurred", "performed_by", 
         "table_add_columns": ["creationtime", "creator"]
     },
 

@@ -223,8 +223,6 @@ class DBOptions(usage.Options):
         ['ext', 'e', None, 'Add extension; can be comma-separated.'],
         ['loglevel', 'l', None, '']
     ]
-    # ['repmgr_host', None, None, 'Replication manager host'],
-    # ['repmgr_port', None, None, 'Replication manager port']        
 
     def opt_configfile(self, file_):
         self.setdefault('configfile', []).append(file_)

@@ -149,6 +149,7 @@
                     <h4>Options</h4> \
                     <ul class="e2l-nonlist"> \
                         <li><input type="checkbox" name="normalize" id="options-normalize" checked="checked"><label for="options-normalize"> Normalize</label></li> \
+                        <li><input type="checkbox" name="depth" value="8" id="options-depth" checked="checked"><label for="options-depth"> 8-bit</label></li> \
                     </ul> \
                 </form> \
             </div>');

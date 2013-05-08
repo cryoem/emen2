@@ -996,61 +996,12 @@ class CollectionDB(BaseDB):
 
     def _put_data(self, name, item, txn=None, flags=0):
         emen2.db.log.debug("BDB: %s put: %s"%(self.filename, item.name))        
-        self.bdb.put(self.keydump(name), self.datadump(item), txn=txn)
+        self.bdb.put(self.keydump(name), self.datadump(item), txn=txn, flags=flags)
     
-    # Grumble. Maybe this will go away
-    # def _addcache(self, item, txn=None):
-    #     """Add an item to the cache; used for loading from JSON.
-    # 
-    #     These items will work normally (get, put, relationships, items, etc.)
-    #     but exist in memory only, not in the DB.
-    # 
-    #     Requires the DB to be open and requires a txn.
-    # 
-    #     :keyword txn: Transaction
-    #     :param item: Item to cache. Should be an instantiated DBObject.
-    # 
-    #     """
-    #     # Update parent/child relationships
-    #     # print "Checking parents/children for %s"%item.name
-    #     ADDRELS = False
-    #     if ADDRELS:
-    #         p = self.getindex('parents', txn=txn)
-    #         c = self.getindex('children', txn=txn)
-    #         if p and c:
-    #             item.parents |= p.get(item.name)
-    #             item.children |= c.get(item.name)
-    #     
-    #             for child in item.children:
-    #                 if self.cache.get(self.keydump(child), txn=txn):
-    #                     i = self.dataload(self.cache.get(self.keydump(child), txn=txn))
-    #                     i.parents.add(item.name)
-    #                     self.cache.put(self.keydump(i.name), self.datadump(i), txn=txn) 
-    #     
-    #             for parent in item.parents:
-    #                 if self.cache.get(self.keydump(parent), txn=txn):
-    #                     i = self.dataload(self.cache.get(self.keydump(parent), txn=txn))
-    #                     i.children.add(item.name)
-    #                     self.cache.put(self.keydump(i.name), self.datadump(i), txn=txn) 
-    #     
-    #             # Also update the other side of the relationship, using cache_parents
-    #             # and cache_children
-    #             self.cache_parents[item.name] |= item.parents
-    #             self.cache_children[item.name] |= item.children
-    #             for parent in item.parents:
-    #                 self.cache_children[parent].add(item.name)
-    #             for child in item.children:
-    #                 self.cache_parents[child].add(item.name)
-    #     
-    #             # Final check
-    #             item.parents |= self.cache_parents[item.name]
-    #             item.children |= self.cache_children[item.name]
-    # 
-    #     # Store the item pickled, so it works with get, and
-    #     # returns new instances instead of globally shared ones...
-    #     self.cache.put(self.keydump(item.name), self.datadump(item), txn=txn)
-    #         
-    ##### Query #####
+    # def delete(self, name, ctx=None, txn=None, flags=0):
+    #     emen2.db.log.debug("BDB: %s put: %s"%(self.filename, item.name))        
+    #     self.bdb.delete(self.keydump(name), txn=txn, flags=flags)
+
 
     def query(self, c=None, mode='AND', subset=None, ctx=None, txn=None):
         """Return a Query Constraint Group.
@@ -1622,10 +1573,14 @@ class BinaryDB(CollectionDB):
         return newdkey['name']
 
 
+ALLOW_RECORD_NAMES = True
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
         # Set name policy in this method.
+        if ALLOW_RECORD_NAMES:
+            return unicode(item.name or emen2.db.database.getrandomid())
         return unicode(self._incr_sequence(txn=txn))
+            
 
     # Todo: integrate with main filter method, since this works
     # for all permission-defined items.
