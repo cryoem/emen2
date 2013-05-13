@@ -12,6 +12,10 @@ window.log = function(){
 // Plot...
 var d3 = null;
 
+// Escape
+$.escape = encodeURIComponent; 
+//function(i){return encodeURIComponent(i)};
+
 // Time localize format
 $.localize.format = 'mm/dd/yyyy';
 
@@ -188,7 +192,7 @@ emen2.template.caret = function(state, elem) {
         var caret = $('.e2l-caret', elem);
     }
     if (!elem || !caret.length) {
-        caret = $(emen2.template.image('caret.up.png', '^', 'e2l-caret'));
+        caret = emen2.template.image('caret.up.png', '^', 'e2l-caret');
     }
     state = state || 'down';
     if (state == 'toggle') {
@@ -201,13 +205,18 @@ emen2.template.caret = function(state, elem) {
 };
 
 emen2.template.static = function(name) {
-    return ROOT+'/static-'+VERSION+'/'+name
+    return ROOT+'/static-'+escape(VERSION)+'/'+escape(name)
 };
 
 emen2.template.image = function(name, alt, cls) {
     alt = alt || '';
     cls = cls || '';
-    return '<img src="'+emen2.template.static('images/'+name)+'" class="'+cls+'" alt="'+alt+'" />'        
+    var src = ROOT+'/static-'+$.escape(VERSION)+'/images/'+$.escape(name);
+    var img = $('<img />');
+    img.attr('alt', alt);
+    img.attr('src', src);
+    img.addClass(cls);
+    return img
 };
 
 emen2.template.spinner = function(show) {
@@ -217,7 +226,7 @@ emen2.template.spinner = function(show) {
 };
 
 emen2.template.notify = function(msg, error, fade) {
-    var msg=$('<li>'+msg+'</li>');
+    var msg = $('<li>'+escape(msg)+'</li>');
     if (error!=null) {
         msg.addClass("e2l-error");
     }
@@ -228,7 +237,7 @@ emen2.template.notify = function(msg, error, fade) {
         });        
     });
     msg.append(killbutton);
-    $("#container .e2-alert").append(msg); //.fadeIn();    
+    $('#container .e2-alert').append(msg); //.fadeIn();    
 };
 
 emen2.template.poll_notifications = function(freq) {
@@ -245,11 +254,11 @@ emen2.template.poll_notifications = function(freq) {
 // Default error message dialog.
 // This gives the user some feedback if an RPC request fails.
 emen2.template.error = function(title, text, method, data) {
-    var error = $('<div title="'+title+'" />');
-    error.append('<p>'+text+'</p>');
+    var error = $('<div title="'+escape(title)+'" />');
+    error.append('<p>'+escape(text)+'</p>');
     var debug = $('<div class="e2-error-debug e2l-hide"/>');
-    debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+method+'</p>');
-    debug.append('<p><strong>Data:</strong></p><p>'+data+'</p>');
+    debug.append('<p><strong>JSON-RPC Method:</strong></p><p>'+escape(method)+'</p>');
+    debug.append('<p><strong>Data:</strong></p><p>'+escape(data)+'</p>');
     error.append(debug);
     error.dialog({
         width: 400,
@@ -407,7 +416,7 @@ emen2.util.set_remove = function(i, l) {
             emen2.caches['record'][rec.name] = rec;
             var name = rec.name;
         }
-        $.rebuild_views('.e2-view[data-name="'+name+'"]');
+        $.rebuild_views('.e2-view[data-name="'+escape(name)+'"]');
         $('.e2-comments').CommentsControl('rebuild');
         $('.e2-attachments').AttachmentControl('rebuild');    
     }
@@ -489,7 +498,7 @@ emen2.util.set_remove = function(i, l) {
             var selected = $(this.options.selected, this.options.root);
             var all = $(this.options.all, this.options.root);
             var txt = '('+selected.length+' of '+all.length+' selected)';
-            $('.e2-select-count', this.element).html(txt);
+            $('.e2-select-count', this.element).text(txt);
         }
     });
 
@@ -509,8 +518,8 @@ emen2.util.set_remove = function(i, l) {
 			emen2.util.checkopts(this, ['tabgroup']);
             this.tablist = this.element.children('ul');
             this.tabpanel = this.element;
-            var tablist = $('[data-tabgroup='+this.options.tabgroup+'][role=tablist]');
-            var tabpanel = $('[data-tabgroup='+this.options.tabgroup+'][role=tabpanel]');
+            var tablist = $('[data-tabgroup='+escape(this.options.tabgroup)+'][role=tablist]');
+            var tabpanel = $('[data-tabgroup='+escape(this.options.tabgroup)+'][role=tabpanel]');
             if (tablist.length) {this.tablist = tablist}
             if (tabpanel.length) {this.tabpanel = tabpanel}
             this.build();
@@ -554,12 +563,12 @@ emen2.util.set_remove = function(i, l) {
         
         hide: function(tab) {
             var self = this;
-            this.tablist.children('[data-tab!='+tab+']').removeClass(this.options.active);
-            this.tabpanel.children('[data-tab!='+tab+']').removeClass(this.options.active);
+            this.tablist.children('[data-tab!='+escape(tab)+']').removeClass(this.options.active);
+            this.tabpanel.children('[data-tab!='+escape(tab)+']').removeClass(this.options.active);
             // $('[data-tab]', this.tablist).removeClass(this.options.active);
             // $('[data-tab]', this.tabpanel).removeClass(this.options.active);
             var cb = this.options.hidecbs[tab];
-            var t = $('[data-tab="'+tab+'"]', this.tabpanel);
+            var t = $('[data-tab="'+escape(tab)+'"]', this.tabpanel);
             if (cb) {cb(t)}
             // var active = window.location.hash.replace("#","")
             // if (tab==active) {
@@ -572,13 +581,13 @@ emen2.util.set_remove = function(i, l) {
         },
         
         show: function(tab) {
-            var t = $('[data-tab='+tab+']', this.tablist);
+            var t = $('[data-tab='+escape(tab)+']', this.tablist);
             if (!t.length) {
                 return
             }
-            var p = $('[data-tab='+tab+']', this.tabpanel);
+            var p = $('[data-tab='+escape(tab)+']', this.tabpanel);
             if (!p.length) {
-                var p = $('<div data-tab="'+tab+'"></div>');
+                var p = $('<div data-tab="'+escape(tab)+'"></div>');
                 this.tabpanel.append(p);
             }
             
@@ -666,7 +675,7 @@ emen2.util.set_remove = function(i, l) {
                 ul.append('<li><a href="">No bookmarks</a></li>');
             }
             $.each(bookmarks, function() {
-                var li = $('<li><a href="'+ROOT+'/record/'+this+'/">'+emen2.caches['recnames'][this]+'</a></li>');
+                var li = $('<li><a href="'+ROOT+'/record/'+escape(this)+'/">'+escape(emen2.caches['recnames'][this])+'</a></li>');
                 ul.append(li);
             });            
             this.element.append(ul);
@@ -726,9 +735,9 @@ emen2.util.set_remove = function(i, l) {
                     var pos = $.inArray(name, bookmarks);
                     emen2.db('record.put', [rec], function(updrec) {
                         if (pos == -1) {
-                            var star = $(emen2.template.image('star.open.png', 'Add Bookmark'))
+                            var star = emen2.template.image('star.open.png', 'Add Bookmark');
                         } else {
-                            var star = $(emen2.template.image('star.closed.png', 'Bookmarked'))
+                            var star = emen2.template.image('star.closed.png', 'Bookmarked');
                         }
                         self.element.empty();
                         self.element.append(star);
@@ -778,10 +787,10 @@ emen2.util.set_remove = function(i, l) {
 
             var prevnext = $('<h4 class="e2l-cf" style="text-align:center">Siblings</h4>');
             if (this.options.prev) {
-                prevnext.append('<div class="e2l-float-left"><a href="'+ROOT+'/record/'+this.options.prev+'/#siblings">&laquo; Previous</a></div>');
+                prevnext.append('<div class="e2l-float-left"><a href="'+ROOT+'/record/'+escape(this.options.prev)+'/#siblings">&laquo; Previous</a></div>');
             }
             if (this.options.next) {
-                prevnext.append('<div class="e2l-float-right"><a href="'+ROOT+'/record/'+this.options.next+'/#siblings">Next &raquo;</a></div>');
+                prevnext.append('<div class="e2l-float-right"><a href="'+ROOT+'/record/'+escape(this.options.next)+'/#siblings">Next &raquo;</a></div>');
             }                    
             this.element.append(prevnext);
             
@@ -789,9 +798,9 @@ emen2.util.set_remove = function(i, l) {
             $.each(siblings, function(i,k) {
                 var rn = emen2.cache.get(k, 'recnames') || k;
                 if (k != rec.name) {
-                    ul.append('<li><a href="'+ROOT+'/record/'+k+'/?sibling='+self.options.name+'">'+rn+'</a></li>');
+                    ul.append('<li><a href="'+ROOT+'/record/'+escape(k)+'/?sibling='+escape(self.options.name)+'">'+escape(rn)+'</a></li>');
                 } else {
-                    ul.append('<li class="e2-siblings-active">'+rn+'</li>');
+                    ul.append('<li class="e2-siblings-active">'+escape(rn)+'</li>');
                 }
             });
             this.element.append(ul);
@@ -821,7 +830,7 @@ emen2.util.set_remove = function(i, l) {
             var wc = jQuery.trim(this.element.val()).split(' ').length;
             var t = wc+' Words';
             if (this.options.max) {
-                t = t + ' (Maximum: '+this.options.max+')';
+                t = t+' (Maximum: '+this.options.max+')';
             }
             var fault = false;
             if (wc > this.options.max) {fault=true}

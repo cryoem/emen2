@@ -7,7 +7,6 @@
             time: null,
             title: '',
             body: '',
-            autolink: false,
             selectable: false,
             retry: true,
             input: ['checkbox', '', true],
@@ -35,40 +34,92 @@
             if (this.built) {return}
             this.built = 1;
 
+            // Check if we have the item.
             var item = emen2.caches[this.options.keytype][this.options.name];
-            if (!item) {
-                // Can't build for items that don't exist
-                if (this.options.name == null) {
-                    return
-                }
-                // We aren't going to try, or hit retry limit..
-                if (!this.options.retry || this.retry > 1) {
-                    // console.log("not going to retry:", this.options.name, "attempt:", this.retry);
-                    return
-                }
-                // console.log("Retry to get:", this.options.name, "attempt:", this.retry);
-                this.retry += 1;
-                // console.log("Trying to get:", this.options.keytype, this.options.name);
-                emen2.db('get', {
-                		keytype: this.options.keytype,
-						names: this.options.name
-              	  	}, 
-					function(item) {
-						if (!item) {return}
-						emen2.caches[item.keytype][item.name] = item;
-						self._build();
-					}
-				);
-                return
+            if (item) {
+                return this._build();
             }
-            this._build();
+
+            // Get and cache the item.
+            emen2.db('get', {
+            		keytype: this.options.keytype,
+					names: this.options.name
+          	  	}, 
+				function(item) {
+					emen2.caches[item.keytype][item.name] = item;
+					self._build();
+				}
+			);
         }, 
 		
+        _build: function() {
+            var self = this;
+			var item = emen2.caches[this.options.keytype][this.options.name];
+            if (!item) {
+                return
+            }
+
+			// Run the builder.
+			this['_build_'+this.options.keytype](item);
+            
+            // Set the box properties.
+            this.element.addClass('e2-infobox');
+            this.element.attr('data-name', this.options.name);
+            this.element.attr('data-keytype', this.options.keytype);
+
+            // Widget!! Refactor this.
+            if (this.options.selectable && this.options.input) {
+                var type = this.options.input[0];
+                var name = this.options.input[1];
+                var state = this.options.input[2];
+                // Todo: Only checkbox is supported right now...
+                $('<input type="checkbox" class="e2-infobox-input" />')
+                    .attr('name', name)
+                    .attr('checked', state)
+                    .val(this.options.name)
+                    .appendTo(this.element);
+            }
+
+			// Default thumbnail.
+            var img = emen2.template.image(this.options.keytype+'.png', '', 'e2l-thumbnail');
+			img.appendTo(this.element);
+            if (this.options.thumbnail) {
+				img.attr('src', this.options.thumbnail);
+			}
+
+            // Box title.
+            var title = $('<h4 />');
+            title.text(this.options.title);
+			title.appendTo(this.element);
+            
+			// Time
+            if (this.options.time) {
+                $('<time class="e2-localize e2l-float-right" />')
+                    .attr('datetime', this.options.time)
+                    .text(this.options.time)
+                    .localize()
+                    .appendTo(title);
+            }
+
+			// Are we linking?
+            if (this.options.link) {
+                img.wrap($('<a />').attr('href', this.options.link));
+                title.wrapInner($('<a />').attr('href', this.options.link));
+			}
+
+            // The body
+            // Todo: Build the body as an element in _build...
+            $('<p />').text(this.options.body).appendTo(this.element);
+
+            // Put it all together..
+            this.options.built();
+        },        
+        
 		_build_user: function(item) {
             this.options.title = this.options.title || item.displayname || item.name;
             this.options.body = this.options.body || item.email;
             if (item['person_photo']) {
-				this.options.thumbnail = ROOT+'/download/'+item.userrec['person_photo']+'/user.jpg?size=thumb';
+				this.options.thumbnail = ROOT+'/download/'+$.escape(item.userrec['person_photo'])+'/user.jpg?size=thumb';
 			}
 		},
 		
@@ -99,74 +150,15 @@
 		},
 		
 		_build_binary: function(item) {
-            console.log(item);
             var title = item.filename;
             if (item.filesize) {
                 title = title+' ('+emen2.template.prettybytes(item.filesize)+')';
             }
 			this.options.title = title;
 			this.options.body = 'Uploaded on '+$.localize(new Date(item.creationtime));
-            this.options.thumbnail = ROOT+'/download/'+item.name+'/user.jpg?size=thumb';
-			this.options.link = ROOT+'/download/'+item.name+'/'+item.filename;
+            this.options.thumbnail = ROOT+'/download/'+$.escape(item.name)+'/user.jpg?size=thumb';
+			this.options.link = ROOT+'/download/'+$.escape(item.name)+'/'+$.escape(item.filename);
 		},
-
-        _build: function() {
-            var self = this;
-			var item = emen2.caches[this.options.keytype][this.options.name];
-
-			// Run the builder
-			this['_build_'+this.options.keytype](item);
-            
-            // Set the box properties
-            this.element.addClass('e2-infobox');
-            this.element.attr('data-name', this.options.name);
-            this.element.attr('data-keytype', this.options.keytype);
-
-            // Default link
-            if (this.options.autolink) {
-                this.options.link = ROOT+'/'+this.options.keytype+'/'+this.options.name+'/';
-            }
-			
-			// Default thumbnail
-            var img = $(emen2.template.image(this.options.keytype+'.png', '', 'e2l-thumbnail'));            
-			if (this.options.thumbnail) {
-				img.attr('src', this.options.thumbnail);
-			}
-
-			// Are we linking?
-            if (this.options.link) {
-				img = $('<a href="'+this.options.link+'" />').append(img)
-                this.options.title = '<a href="'+this.options.link+'">'+this.options.title+'</a>';
-			}
-
-            // Box title
-            var h4 = $('<h4 />');
-            h4.append(this.options.title);
-			
-			// Time
-            if (this.options.time) {
-                var t = $('<time class="e2-localize e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
-                t.localize();
-                h4.append(t);
-            }
-            
-            // Widget!! Refactor this.
-            var input = '';
-            if (this.options.selectable && this.options.input) {
-                var type = this.options.input[0];
-                var name = this.options.input[1];
-                var state = this.options.input[2];
-                var input = $('<input class="e2-infobox-input" type="'+type+'" name="'+name+'" />');
-                input.val(this.options.name);
-                input.attr('checked', state);
-            }
-
-			var bdy = $('<p/>').html(this.options.body);
-			
-            // Put it all together..
-            this.element.append(input, img, h4, bdy);
-            this.options.built();
-        },
         
         toggle: function(e) {
             var input = $('input', this.element);
@@ -192,14 +184,6 @@
             selected: function(self, value){self.selected(self, value)}
         },
         
-        selected: function(self, value) {
-            // Hacked together. Clean this up later.
-            if (this.options.target) {
-                $('#'+this.options.target).val(value);
-            }            
-            this.element.val(value);
-        },
-                
         _create: function() {
             this.built = 0;
             var self=this;
@@ -216,43 +200,46 @@
 
             var self = this;
             this.dialog = $('<div class="e2-find" />');
-            if (this.options.keytype == 'user'){
-                this.dialog.attr('title', 'Find User');
-            } else if (this.options.keytype == 'group') {
-                this.dialog.attr('title', 'Find Group');            
-            } else if (this.options.keytype == 'paramdef') {
-                this.dialog.attr('title', 'Find Parameter');
-            } else if (this.options.keytype == 'recorddef') {
-                this.dialog.attr('title', 'Find Protocol');
-            } else {
-                this.dialog.attr('title', 'Find '+this.options.keytype);
+            // Todo: Find a smarter way of doing this.
+            var titles = {
+                'user':'Find User',
+                'group':'Find Group',
+                'paramdef':'Find Parameter',
+                'recorddef':'Find Protocol',
+                'record':'Find Record',
+                'binary':'Find Binary'
             }
-        
-            this.searchinput = $('<input type="text" />');
-            this.searchinput.val(this.options.value);
+            this.dialog.attr('title', titles[this.options.keytype]);
 
+            // Top part of dialog.
+            var searchbox = $('<div class="e2-find-searchbox">Search: </div>')
+                .appendTo(this.dialog);
+            
             // Run a search for every key press
-            // ian: todo: event queue so long-running 
-            //    searches don't write over short ones
-            this.searchinput.keyup(function(e) {
-                var v = self.searchinput.val();
-                // Enter should check for an exact match and return
-                if (e.keyCode == '13') { 
-                    e.preventDefault();
-                    var check = $('[data-name="'+v+'"]');
-                    if (check.length) {
-                        self.select(v);
-                    }
-                }
-                self.search(v);
-            });
+            // Todo: cancel searches properly on add'l input
+            this.searchinput = $('<input class="e2-find-input" type="text" />')
+                .val(this.options.value)
+                .keyup(function(e) {
+                    var v = self.searchinput.val();
+                    // // Enter should check for an exact match and return
+                    // if (e.keyCode == '13') { 
+                    //     e.preventDefault();
+                    //     var check = $('[data-name="'+$.escape(v)+'"]');
+                    //     if (check.length) {
+                    //         self.select(v);
+                    //     }
+                    // }
+                    self.search(v);
+                })
+                .appendTo(searchbox);
 
-            this.statusmsg = $('<span class="e2l-float-right">No Results</span>');
-            var searchbox = $('<div class="e2-find-searchbox">Search: </div>');
-            searchbox.append(this.searchinput, this.statusmsg); //,this.searchbutton
-            this.resultsarea = $('<div>Results</div>');
-        
-            this.dialog.append(searchbox, this.resultsarea);
+            this.statusmsg = $('<span class="e2-find-count e2l-float-right">No Results</span>')
+                .appendTo(searchbox);
+
+            // Bottom part of dialog
+            this.resultsarea = $('<div class="e2-find-result">Results</div>').appendTo(this.dialog);
+
+            // Show the dialog.
             this.dialog.dialog({
                 modal: this.options.modal,
                 autoOpen: false,
@@ -262,14 +249,15 @@
                 resizable: false,                
             });
             
-            $('.ui-dialog-titlebar', this.dialog.dialog('widget')).append(emen2.template.spinner());        
+            // Show activity wheel.
+            // $('.ui-dialog-titlebar', this.dialog.dialog('widget')).append(emen2.template.spinner());        
         },
     
         show: function(e) {
             this.build();        
             if (this.element.val() != "+") {
-                // this.searchinput.val(this.element.val());
-                // this.options.value = this.searchinput.val();
+                this.searchinput.val(this.element.val());
+                this.options.value = this.element.val();
             }
             this.dialog.dialog('open');
             this.search(this.options.value);        
@@ -282,30 +270,56 @@
                 this.dialog.dialog('close');                
             }
         },
-    
+        
+        selected: function(self, value) {
+            // Hacked together. Clean this up later.
+            if (this.options.target) {
+                $('#'+$.escape(this.options.target)).val(value);
+            }            
+            this.element.val(value);
+        },
+                
         add: function(item) {
             var self = this;
-            emen2.caches[item.keytype][item.name] = item;
-            var d = $('<div />');
-            d.InfoBox({
-                keytype: this.options.keytype,
-                name: item.name
-            });
-            d.click(function(e){
-                self.select(item.name);
-                });
-            this.resultsarea.append(d);
+            $('<div />')
+                .InfoBox({
+                    keytype: this.options.keytype,
+                    name: item.name
+                })
+                .click(function(e){
+                    self.select(item.name);
+                })
+                .appendTo(this.resultsarea);    
+        },
+        
+        cb: function(items) {
+            var self = this;
+            // $('.e2l-spinner', this.dialog.dialog('widget')).hide();
+            this.resultsarea.empty();
+            var l = items.length;
+            if (l==0) {
+                self.statusmsg.text('No results');
+                return
+            }
+            if (l>=100) {
+                self.statusmsg.text('More than 100 results; showing 1-100');
+            } else {
+                self.statusmsg.text(items.length+' results');                
+            }
+            items = items.slice(0,100);
+            $.each(items, function() {
+                emen2.caches[this.keytype][this.name] = this;
+                self.add(this)            
+            });            
         },
     
         search: function(q) {
-            var self=this;
+            var self = this;
             if (q.length < this.options.minimum) {
                 self.resultsarea.empty();
-                self.statusmsg.text('Minimum '+this.options.minimum+' characters');
+                self.statusmsg.text('Minimum '+escape(this.options.minimum)+' characters');
                 return
             }
-            
-            $('.e2l-spinner', this.dialog.dialog('widget')).show();
             
             var query = {}
             query['query'] = q;
@@ -320,26 +334,8 @@
                     this.request = null;
                 }
             }
-            
-            // New request
-            this.request = emen2.db(this.options.keytype+'.find', query, function(items) {
-                $('.e2l-spinner', self.dialog.dialog('widget')).hide();                
-                self.resultsarea.empty();
-                var l = items.length;
-                if (l==0) {
-                    self.statusmsg.text('No results');
-                    return
-                }
-                if (l>=100) {
-                    self.statusmsg.text('More than 100 results; showing 1-100');
-                } else {
-                    self.statusmsg.text(items.length + ' results');                
-                }
-                items = items.slice(0,100);
-                $.each(items, function() {
-                    self.add(this)            
-                });
-            })
+            // $('.e2l-spinner', this.dialog.dialog('widget')).show();
+            this.request = emen2.db(this.options.keytype+'.find', query, function(items) {self.cb(items)});
         }
     });
     

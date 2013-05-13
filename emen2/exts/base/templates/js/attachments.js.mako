@@ -1,5 +1,4 @@
 (function($) {
-    
     $.widget("emen2.DownloadControl", {
         options: {
         },
@@ -71,10 +70,8 @@
         },
         
         build: function() {
-            this.dialog = $('<div></div>');
-            this.dialog.attr('title','Upload Progress');
-            
-            //style="table-layout:fixed" 
+            this.dialog = $('<div />');
+            this.dialog.attr('title', 'Upload Progress');
             var table = $(' \
                 <table class="e2l-shaded e2-upload-table"> \
                     <thead> \
@@ -88,11 +85,11 @@
                     <tbody> \
                     </tbody> \
                 </table>');
-
             this.dialog.append(table);
             
-            var ok = $('<form method="post" action="'+this.options.action+'"></form>');
-            this.dialog.append(ok);
+            var ok = $('<form method="post" />');
+            ok.attr('action', this.options.action);
+            ok.appendTo(this.dialog);
             
             if (this.options.modal) {
                 this.dialog.dialog({
@@ -130,7 +127,7 @@
             
             // Show completion button
             $('.e2-dialog-no-close button').attr('disabled','disabled');
-            $('.e2-dialog-no-close button .ui-button-text').html("Uploading...");
+            $('.e2-dialog-no-close button .ui-button-text').text("Uploading...");
             
 
             // Get the files and parameter name
@@ -151,16 +148,13 @@
         add: function(index, file) {
             // Add to the file queue
             this.files.push([index, file]);
-            
-            // Add a row for the file
-            var row = $(' \
-                <tr data-index="'+index+'"> \
-                    <td>'+file.name+'</td> \
-                    <td>'+emen2.template.prettybytes(file.size)+'</td> \
-                    <td><div style="height:16px" class="e2-upload-progress"></div></td> \
-                    <td class="e2-upload-action"></td> \
-                </tr>');
             var tbody = $('.e2-upload-table tbody', this.dialog);
+            var row = $('<tr />');
+            row.attr('data-index', index);
+            $('<td />').text(file.name).appendTo(row);
+            $('<td />').text(emen2.template.prettybytes(file.size)).appendTo(row);
+            $('<td><div style="height:16px" class="e2-upload-progress"></div></td>').appendTo(row);
+            $('<td class="e2-upload-action"/>').appendTo(row);
             tbody.append(row);
         },
         
@@ -171,7 +165,7 @@
             // Upload is done.
             if (!this.files.length) {
                 $('.e2-dialog-no-close button').attr('disabled',null);
-                $('.e2-dialog-no-close button .ui-button-text').html("Upload complete!");
+                $('.e2-dialog-no-close button .ui-button-text').text("Upload complete!");
                 return
             }
 
@@ -192,8 +186,8 @@
             var self = this;
 
             // This row
-            var elem = $('tr[data-index='+index+'] .e2-upload-progress');
-            var action = $('tr[data-index='+index+'] .e2-upload-action');
+            var elem = $('tr[data-index='+$.escape(index)+'] .e2-upload-progress');
+            var action = $('tr[data-index='+$.escape(index)+'] .e2-upload-action');
             elem.empty();
             action.empty();
             
@@ -216,14 +210,13 @@
                 if (this.status == 500) {
                     // Server error
                     clr(elem, action);
-                    elem.html('Error');
-                    var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});
-                    action.append(retry);
+                    elem.text('Error');
+                    emen2.template.image('retry.png','Retry').click(function(){self.retry(index, file)}).appendTo(action);
                 } else if (this.status == 200) {
                     // Successful upload
                     clr(elem, action);
-                    elem.html('Completed');
-                    action.append(emen2.template.image('ok.png','Success'));                    
+                    elem.text('Completed');
+                    emen2.template.image('ok.png','Success').appendTo(action);
                 }
                 // Always go ahead and try the next item
                 self.next()
@@ -232,29 +225,26 @@
                 // Show a cancel action
                 clr(elem, action);
                 elem.progressbar({});
-                var cancel = $(emen2.template.image('cancel.png','Cancel')).click(function(){xhr.abort()});
+                emen2.template.image('cancel.png','Cancel').click(function(){xhr.abort()}).appendTo(action);
                 action.append(cancel);                
             }
             xhr.onabort = function(e) {
                 // Retry an aborted upload
                 clr(elem, action);
-                elem.html('Aborted');
-                var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});
-                action.append(retry);
+                elem.text('Aborted');
+                emen2.template.image('retry.png','Retry').click(function(){self.retry(index, file)}).appendTo(action);
             }
             xhr.onerror = function(e) {
                 // Retry an upload that failed
                 clr(elem, action);
-                elem.html('Error');
-                var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});
-                action.append(retry);
+                elem.text('Error');
+                emen2.template.image('retry.png','Retry').click(function(){self.retry(index, file)}).appendTo(action);
             }
             xhr.ontimeout = function(e) {
                 // Retry after time out
                 clr(elem, action);
-                elem.html('Timed out');
-                var retry = $(emen2.template.image('retry.png','Retry')).click(function(){self.retry(index, file)});
-                action.append(retry);                
+                elem.text('Timed out');
+                emen2.template.image('retry.png','Retry').click(function(){self.retry(index, file)}).appendTo(action);
             }
             // Start the request
             xhr.open('PUT', uri, true);            
@@ -324,7 +314,7 @@
             this.built = 1;
             
             var self = this;
-            var dialog = $('<div></div>');    
+            var dialog = $('<div />');    
             
             // Key the binaries by parameter
             this.bdomap = this.makebdomap(this.bdos);
@@ -370,10 +360,14 @@
             
             if (this.options.summary) {
                 var summary = $('<div />');
-                var sum2 = $('<p>This record has '+this.bdos.length+' attachments.</p>');
+                var sum2 = $('<p />').text('This record has '+this.bdos.length+' attachments.');
                 var rec = emen2.cache.get(this.options.name);
                 if (rec['children'].length) {
-                    sum2.append(' There may be additional attachments in child records: <a href="'+ROOT+'/record/'+this.options.name+'/query/attachments/">view all attachments in child records</a>.');
+                    sum2.append(' There may be additional attachments in child records: ');
+                    var a = $('<a />')
+                    a.attr('href', ROOT+'/record/'+$.escape(this.options.name)+'/query/attachments/');
+                    a.text('view all attachments in child records.');
+                    a.appendTo(sum2);
                 }
                 summary.append(sum2);
                 this.element.append(summary);
@@ -401,8 +395,8 @@
 
             // Update the select count when built or checked..
             var cb = function() {$('.e2-select', self.options.controls).SelectControl('update')}            
-            var header = $('<h4>'+label+'</h4>');
-            var d = $('<div class="e2l-cf e2l-fw"></div>');
+            var header = $('<h4 />').text(label);
+            var d = $('<div class="e2l-cf e2l-fw" />');
             $.each(items, function() {
                 // Like other InfoBoxes, don't show until appended to DOM
                 var infobox = $('<div class="e2-attachments-infobox" />').InfoBox({
@@ -416,8 +410,7 @@
                 });
                 d.append(infobox);
             });
-            d.append('<input type="hidden" name="'+level+'" value="" />');
-            
+            $('<input type="hidden" value="" />').attr('name', level).appendTo(d);            
             return $('<div>').append(header, d)
         },
 
@@ -430,10 +423,8 @@
                     <li>Add attachments: <input type="file" class="e2-attachments-fileinput" name="file_binary" multiple /></li> \
                 </ul> \
                 <ul class="e2l-controls"> \
-                    <li>'+emen2.template.spinner()+'<input type="submit" class="e2l-save" value="Save attachments" /></li> \
+                    <li><input type="submit" class="e2l-save" value="Save attachments" /></li> \
                 </ul>');
-
-            //    <li><span class="e2l-a e2l-label e2-attachments-param">Regular Attachment</span></li>
 
             // Selection control
             $('.e2-select', controls).SelectControl({root: this.element});

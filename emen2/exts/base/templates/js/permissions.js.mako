@@ -145,7 +145,7 @@
             var permissions = emen2.caches[this.options.keytype][this.options.name]['permissions'] || [];
             var groups = emen2.caches[this.options.keytype][this.options.name]['groups'] || [];
             var total = permissions[0].length + permissions[1].length + permissions[2].length + permissions[3].length;
-            var ret = '<p>This record is accessible by '+groups.length+' groups and '+total+' users.</p>';
+            var ret = '<p>This record is accessible by '+escape(groups.length)+' groups and '+escape(total)+' users.</p>';
             return ret
         },
         
@@ -205,9 +205,9 @@
             var param = (level == 'groups') ? 'groups' : 'permissions.'+level;
 
             var ret = $('<div></div>')            
-            var header = $('<h4 class="e2l-cf">'+lab+'</h4>');
+            var header = $('<h4 class="e2l-cf">'+escape(lab)+'</h4>');
             if (this.options.edit) {
-                var add = $('<input type="button" data-level="'+level+'" data-keytype="'+keytype+'" value="+" /> ');
+                var add = $('<input type="button" data-level="'+escape(level)+'" data-keytype="'+escape(keytype)+'" value="+" /> ');
                 // Find control. Callback adds item to the correct box.
                 // var minimum = 0;
                 // if (keytype=='group'){minimum=0}
@@ -231,7 +231,7 @@
             }
 
             // We have to put in one last empty element
-            div.append('<input type="hidden" name="'+param+'" value="" class="e2-permissions-hidden" />');
+            div.append('<input type="hidden" name="'+escape(param)+'" value="" class="e2-permissions-hidden" />');
             ret.append(header, div);
             return ret
         },
@@ -263,8 +263,8 @@
         
         add: function(level, name) {
             var self = this;
-            var lvl = $('div[data-level='+level+']');
-            if ($('div[data-name="'+name+'"]', lvl).length) {
+            var lvl = $('div[data-level='+escape(level)+']');
+            if ($('div[data-name="'+escape(name)+'"]', lvl).length) {
                 return
             }
             var item = this.build_item(level, name);
@@ -280,8 +280,8 @@
                 $('.e2-permissions-copied', this.element).remove();
                 var copied = $('<div class="e2-permissions-copied e2l-hide"></div>');
                 var filt = $('input[name=filt]:checked', this.options.controls).val();
-                copied.append('<input type="hidden" name="action" value="'+action+'" />');
-                copied.append('<input type="hidden" name="filt" value="'+filt+'" />');
+                copied.append('<input type="hidden" name="action" value="'+escape(action)+'" />');
+                copied.append('<input type="hidden" name="filt" value="'+escape(filt)+'" />');
                 this.element.append(copied);
             }
             

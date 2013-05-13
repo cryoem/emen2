@@ -25,6 +25,7 @@ import jsonrpc.jsonutil
 import emen2.util.listops
 import emen2.db.config
 
+
 def random_password(N):
     """Generate a random password of length N."""
     return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
@@ -88,12 +89,9 @@ class Loader(BaseLoader):
         print "total time: %s, %s put/sec"%(t, s)
 
 
-
-
 class LoadOptions(emen2.db.config.DBOptions):
     def parseArgs(self, infile):
         self['infile'] = infile
-
 
 if __name__ == "__main__":
     import emen2.db
@@ -102,5 +100,3 @@ if __name__ == "__main__":
         loader = Loader(db=db, infile=cmd.options['infile'])
         loader.load()
             
-
-

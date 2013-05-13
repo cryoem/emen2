@@ -1573,20 +1573,18 @@ class BinaryDB(CollectionDB):
         return newdkey['name']
 
 
-ALLOW_RECORD_NAMES = True
+ALLOW_RECORD_NAMES = False
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
         # Set name policy in this method.
         if ALLOW_RECORD_NAMES:
             return unicode(item.name or emen2.db.database.getrandomid())
         return unicode(self._incr_sequence(txn=txn))
-            
 
     # Todo: integrate with main filter method, since this works
     # for all permission-defined items.
     def filter(self, names, ctx=None, txn=None):
         """Filter for permissions.
-
         :param names: Record name(s).
         :returns: Readable Record names.
         """

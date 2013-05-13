@@ -223,8 +223,8 @@
 
             var controls = $('<li></li>');
 
-            controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
-            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+this.options.name+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+this.options.name+'" src="'+ROOT+'/static/images/query.png" /></div>')
+            controls.append('<h4>'+escape(this.options.name.toUpperCase())+'</h4>');
+            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+escape(this.options.name)+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+escape(this.options.name)+'" src="'+ROOT+'/static/images/query.png" /></div>')
             controls.append('<div><span class="e2-plot-label">Range:</span><input class="e2-plot-bounds" type="text" name="min" /> - <input class="e2-plot-bounds" type="text" name="max" /></div>');
             
             if (this.options.binnable) {
@@ -245,7 +245,7 @@
             bin.append('<option value=""></option>');
             var keys = [1, 5, 10, 20, 50, 100, 'year', 'month', 'day', 'hour'];
             keys.map(function(i) {
-                bin.append('<option value="'+i+'">'+i+'</option>');
+                bin.append('<option value="'+escape(i)+'">'+escape(i)+'</option>');
             })
             return bin
         },
@@ -278,7 +278,7 @@
             opts['stacked'] = Boolean($('input[name=stacked]', this.controls).attr('checked'));
 
             // Hide these series
-            opts['hide'] = $("input[name=hide]:not(:checked)", this.controls).map(function(){return $(this).val()});
+            opts['hide'] = $('input[name=hide]:not(:checked)', this.controls).map(function(){return $(this).val()});
             return opts
         },
         
@@ -393,7 +393,7 @@
 
             var ul = $('<ul></ul>');
             this.keys.map(function(key, i) {
-                var item = $('<li><span class="e2-plot-color" style="background:'+self.scale(i)+'">&nbsp;</span>'+self.format_key(vt, key)+' ('+self.counted[key]+')</li>');
+                var item = $('<li><span class="e2-plot-color" style="background:'+escape(self.scale(i))+'">&nbsp;</span>'+escape(self.format_key(vt, key))+' ('+escape(self.counted[key])+')</li>');
                 ul.append(item);
             });
             elem.append(ul);
@@ -404,26 +404,26 @@
             var vt = this.get_vartype();
             var self = this;
             var controls = $('<li></li>');
-            controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
-            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+this.options.name+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+this.options.name+'" src="'+ROOT+'/static/images/query.png" /></div>')
+            controls.append('<h4>'+escape(this.options.name.toUpperCase())+'</h4>');
+            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+escape(this.options.name)+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+escape(this.options.name)+'" src="'+ROOT+'/static/images/query.png" /></div>')
             var total = 0;
             var table = $('<table><tbody></tbody></table>');
             var tb = $('tbody', table);
             this.keys.map(function(key, i) {
                 var row = $('<tr></tr>');
                 // Show/hide series
-                var cbox = $('<input type="checkbox" name="hide" value="'+key+'" />');
+                var cbox = $('<input type="checkbox" name="hide" value="'+escape(key)+'" />');
                 if ($.inArray(key, self.options.hide)==-1) {cbox.attr('checked', true)}
                 row.append($('<td></td>').append(cbox));
                 // Name
-                row.append('<td>'+self.format_key(vt, key)+'</td>')
-                row.append('<td>'+self.counted[key]+'</td>');
+                row.append('<td>'+escape(self.format_key(vt, key))+'</td>')
+                row.append('<td>'+escape(self.counted[key])+'</td>');
                 total += self.counted[key];
                 // Colors
-                row.append('<td><span class="e2-plot-color" style="background:'+self.scale(i)+'">&nbsp;</span></td>');
+                row.append('<td><span class="e2-plot-color" style="background:'+escape(self.scale(i))+'">&nbsp;</span></td>');
                 tb.append(row);
             });
-            tb.append('<tr class="e2-plot-totals"><td></td><td>Total: </td><td>'+total+'</td><td></td></tr>');
+            tb.append('<tr class="e2-plot-totals"><td></td><td>Total: </td><td>'+escape(total)+'</td><td></td></tr>');
             controls.append(table);
             this.controls.append(controls);
             this.controls = controls;
@@ -509,13 +509,13 @@
             // Add the x-axis.
             this.svg.append("svg:g")
                 .attr("class", "x axis")
-                .attr("transform", "translate(0," + this.height + ")")
+                .attr("transform", 'translate(0,'+this.height+")")
                 .call(this.x.ax);
 
             // Add the y-axis.
             this.svg.append("svg:g")
                 .attr("class", "y axis")
-                .attr("transform", "translate(" + this.width + ",0)")
+                .attr("transform", 'translate('+this.width+",0)")
                 .call(this.y.ax);
 
             // Plot background and plot area
@@ -843,7 +843,7 @@
         build_controls: function() {
             if (!this.controls.length) {return}
             var controls = $('<li></li>');
-            controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
+            controls.append('<h4>'+escape(this.options.name.toUpperCase())+'</h4>');
             controls.append('<div><span class="e2-plot-label">Totals</span><input class="e2-plot-bounds" type="text" name="key" value="name" /></div>')
             controls.append('<div><span class="e2-plot-label">Range:</span><input class="e2-plot-bounds" type="text" name="min" /> - <input class="e2-plot-bounds" type="text" name="max" /></div>');
             controls.append('<div><input type="checkbox" name="cumulative" id="e2-plot-y-cumulative" /><label for="e2-plot-y-cumulative">Cumulative</label></div>');

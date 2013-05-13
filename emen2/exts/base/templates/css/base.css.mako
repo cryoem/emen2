@@ -101,8 +101,6 @@ a:hover,
 .e2l-unselect,
 .e2-infobox h4
 {
-    -webkit-user-select: none;
-    -moz-user-select: none;    
 }
 
 /* I often show actions along 
@@ -426,13 +424,6 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 
 /***** e2-infobox: Display Infobox *****/
 .e2-infobox {
-	/*
-	float:left;
-    position:relative;
-    width:280px;
-    margin-right:50px;
-    border-bottom:solid 1px #ddd;
-	*/
 	clear:both;
 	padding:5px;
 	padding-left:0px;
@@ -441,6 +432,7 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 .e2-infobox > h4 {
 	border:none;
 	margin:0px;
+    margin-left:35px;
 	padding:0px;
     font-weight:normal;
     font-size:12pt;
@@ -448,6 +440,7 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 .e2-infobox > p {
 	font-size:9pt;
     margin:0px;
+    margin-left:35px;
 	padding:0px;
 }
 .e2-infobox > input {

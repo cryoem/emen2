@@ -19,7 +19,7 @@
         delete q['c'];
         delete q['ignorecase'];
         delete q['boolmode'];
-        return ROOT + '/query/' + output.join("/") + '/?' + $.param(q);
+        return ROOT+'/query/'+output.join("/")+'/?'+$.param(q);
     }
 
     $.widget('emen2.QueryStatsControl', {
@@ -187,7 +187,7 @@
                 selected: function(ui, name) {
                     // Hacked: fix
                     //console.log("added:", ui, name)
-                    $("#e2-query-find-record").val(name);
+                    $('#e2-query-find-record').val(name);
                 }
             })
             // $('.e2-find-group', this.container).FindControl({keytype: 'group'});
@@ -291,9 +291,9 @@
             }    
 
             var controls = $('<strong class="e2-query-label"></strong>');
-            var addimg = $(emen2.template.image('add.png', 'Add'))
+            var addimg = emen2.template.image('add.png', 'Add');
             addimg.click(function() {self.addconstraint()});
-            var removeimg = $(emen2.template.image('cancel.png', 'Remove', 'e2-query-clear'))
+            var removeimg = emen2.template.image('cancel.png', 'Remove', 'e2-query-clear');
             removeimg.click(function(e) {
                 self.event_clear(e);
             });
@@ -307,8 +307,8 @@
                 .append(' <img class="e2-query-find" data-keytype="paramdef" src="" /> ')
                 .append(cmpi)
                 .append(' <input type="text" name="value" size="12" value="" placeholder="value" />');                
-            $('input[name=param]', newconstraint).attr('id', 'e2-query-find-'+this.count).val(param);
-            $('img.e2-query-find', newconstraint).attr('id', 'e2-query-find-'+this.count).attr('src', ROOT+'/static/images/query.png');
+            $('input[name=param]', newconstraint).attr('id', 'e2-query-find-'+escape(this.count)).val(param);
+            $('img.e2-query-find', newconstraint).attr('id', 'e2-query-find-'+escape(this.count)).attr('src', ROOT+'/static/images/query.png');
             $('input[name=value]', newconstraint).val(value);
 
             if (recurse) {$('input[name=recurse_p]', newconstraint).attr('checked', 'checked')}
@@ -487,11 +487,11 @@
                     <li class="e2l-float-right"> \
                         <span> \
                         <form action="" method="get"> \
-                            <input type="button" data-rectype="'+this.options.rectype+'" data-parent="'+this.options.parent+'" value="New '+this.options.rectype+'" /> \
+                            <input type="button" data-rectype="'+escape(this.options.rectype)+'" data-parent="'+escape(this.options.parent)+'" value="New '+escape(this.options.rectype)+'" /> \
                         </form> \
                         </span> \
                     </li>');             
-                $('form', create).attr('action', ROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/')
+                $('form', create).attr('action', ROOT+'/record/'+escape(this.options.parent)+'/new/'+escape(this.options.rectype)+'/')
                 ul.append(create);
                 $('input[type=button]', create).RecordControl();
             }            
@@ -507,7 +507,7 @@
             ul.append('<li class="e2l-float-right" data-tab="controls"><span class="e2l-a"><img src="/static/images/query.png" /></span></li>')
 
             // Activity spinner
-            ul.append('<li class="e2l-float-right e2-query-activity" style="display:none"><span>'+emen2.template.spinner(true)+'</span></li>');
+            ul.append('<li class="e2l-float-right e2-query-activity" style="display:none"><span>'+escape(emen2.template.spinner(true))+'</span></li>');
 
             // Tab control
             tab.TabControl({});
@@ -577,7 +577,6 @@
             $('input:checkbox.e2-query-checkbox', this.element).each(function() {
                 self.checkbox[$(this).val()] = $(this).attr('checked') || false;
             });
-            console.log(this.checkbox);
         },
         
         update: function(q) {
@@ -607,24 +606,24 @@
             
             // Build a nice string for the title
             // This gives basic query statistics
-            title = this.options.q['stats']['length'] + ' results, ' + rtkeys.length + ' protocols';
+            title = this.options.q['stats']['length']+' results, '+rtkeys.length+' protocols';
             if (rtkeys.length == 0) {
-                title = this.options.q['stats']['length'] + ' results';                
+                title = this.options.q['stats']['length']+' results';                
             } else if (rtkeys.length == 1) {
-                title = this.options.q['stats']['length'] + ' ' + rtkeys[0] + ' results';
+                title = this.options.q['stats']['length']+' '+rtkeys[0]+' results';
             } else if (rtkeys.length <= 5) {
-                title = title + ": ";
+                title = title+": ";
                 for (var i=0;i<rtkeys.length;i++) {
-                    title = title + self.options.q['stats']['rectypes'][rtkeys[i]] + ' ' + rtkeys[i];
+                    title = title + self.options.q['stats']['rectypes'][rtkeys[i]]+' '+rtkeys[i];
                     if (i+1<rtkeys.length) {
-                        title = title + ', ';
+                        title = title+', ';
                     }
                 }
             }
             if (this.options.q['stats']['time']) {
-                title = title + ' ('+this.options.q['stats']['time'].toFixed(2)+'s)';
+                title = title+' ('+this.options.q['stats']['time'].toFixed(2)+'s)';
             }
-            $('.e2-query-header .e2-query-length').html(title);
+            $('.e2-query-header .e2-query-length').text(title);
 
             // Update the page count
             var pages = $('li.e2-query-pages', this.element);
@@ -642,10 +641,10 @@
                 var setpos = function() {self.setpos(parseInt($(this).attr('data-pos')))}            
 
                 var p1 = $('<span class="e2l-a" data-pos="0">&laquo;</span>').click(setpos);
-                var p2 = $('<span class="e2l-a" data-pos="'+(this.options.q['pos'] - this.options.q['count'])+'">&lsaquo;</span>').click(setpos);
-                var p  = $('<span> '+(current+1)+' / '+(pagecount+1)+' </span>');
-                var p3 = $('<span class="e2l-a" data-pos="'+(this.options.q['pos'] + this.options.q['count'])+'">&rsaquo;</span>').click(setpos);
-                var p4 = $('<span class="e2l-a" data-pos="'+(pagecount*this.options.q['count'])+'">&raquo;</span>').click(setpos);
+                var p2 = $('<span class="e2l-a" data-pos="'+escape(this.options.q['pos'] - this.options.q['count'])+'">&lsaquo;</span>').click(setpos);
+                var p  = $('<span> '+escape(current+1)+' / '+escape(pagecount+1)+' </span>');
+                var p3 = $('<span class="e2l-a" data-pos="'+escape(this.options.q['pos'] + this.options.q['count'])+'">&rsaquo;</span>').click(setpos);
+                var p4 = $('<span class="e2l-a" data-pos="'+escape(pagecount*this.options.q['count'])+'">&raquo;</span>').click(setpos);
 
                 if (current > 0) {pc.prepend(p2)}
                 if (current > 1) {pc.prepend(p1, '')}
@@ -686,7 +685,6 @@
 
             // Build the rest of the column headers
             $.each(keys, function() {
-                console.log("building..."+this);
                 tr.append($('<th/>').text(" "+(keys_desc[this] || this)));
                 // Build the sort button
                 var direction = 'able';
@@ -694,7 +692,7 @@
                     var direction = 1;
                     if (self.options.q['reverse']) {direction = 0}
                 }                
-                var sortable = $('<button name="sort" class="e2l-float-right" />').append(emen2.template.image('sort.'+direction+'.png', 'Sort'));
+                var sortable = $('<button name="sort" class="e2l-float-right" />').append(emen2.template.image('sort.'+escape(direction)+'.png', 'Sort'));
                 var iw = $('<th data-name="" />').attr('data-name', this);         
                 iw.append(sortable);
                 tr2.append(iw)
@@ -740,7 +738,7 @@
                     var td = $('<td />');
                     var a = $('<a href="" />');
                     a.text(self.options.q['rendered'][names[i]][keys[j]]);
-                    a.attr('href', ROOT+'/record/'+names[i]+'/');
+                    a.attr('href', ROOT+'/record/'+escape(names[i])+'/');
                     td.append(a);
                     row.append(td);
                 }

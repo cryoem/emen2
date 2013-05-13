@@ -31,7 +31,7 @@
             // Get the details about this image
             $.ajax({
                 type: 'POST',
-                url: ROOT+'/preview/'+this.options.bdo+'/header/',
+                url: ROOT+'/preview/'+escape(this.options.bdo)+'/header/',
                 dataType: 'json',
                 success: function(d) {
                     self.element.empty();
@@ -79,7 +79,7 @@
             //     parentpos = self.inner.position();
             //     var x = (e.clientX - parentpos.left) * self.options.scale;
             //     var y = (e.clientY - parentpos.top) * self.options.scale;
-            //     $('div[data-bdo='+self.options.bdo+']').Boxer('addbox', x, y); // callback to the Boxer controller
+            //     $('div[data-bdo='+escape(self.options.bdo)+']').Boxer('addbox', x, y); // callback to the Boxer controller
             // });
             
             this.build_controls();
@@ -99,14 +99,14 @@
                 <input type="button" name="zoomout" value="-" /> \
                 <input type="button" name="zoomin" value="+" /><br /> \
                 <input type="button" name="autocenter" value="Center" /><br /> \
-                <a class="e2-button" href="'+ROOT+'/download/'+self.options.bdo+'/'+self.options.filename+'">Download</a><br /> \
+                <a class="e2-button" href="'+ROOT+'/download/'+escape(self.options.bdo)+'/'+escape(self.options.filename)+'">Download</a><br /> \
                 <button name="convert">Convert</button> \
                 <h4 class="e2l-label">Mode</h4> \
                 <div style="text-align:left"> \
                 <input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /><label for="displaymode_image"> Image</label><br /> \
                 <input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /><label for="displaymode_pspec"> FFT</label><br /> \
                 <input type="radio" name="displaymode" value="1d" id="displaymode_1d" /><label for="displaymode_1d"> 1D</label> <br />\
-                <input type="text" name="apix" value="'+apix+'" size="1" /> \
+                <input type="text" name="apix" value="'+escape(apix)+'" size="1" /> \
                 <span class="e2l-small">A/px</span><br /> \
                 </div> \
             </div>');
@@ -139,7 +139,7 @@
             var self = this;
             var dialog = $(' \
                 <div> \
-                <form method="post" action="'+ROOT+'/eman2/'+self.options.bdo+'/convert/"> \
+                <form method="post" action="'+ROOT+'/eman2/'+escape(self.options.bdo)+'/convert/"> \
                     <h4>Format</h4> \
                     <ul class="e2l-nonlist"> \
                         <li><input type="radio" name="format" value="tif" id="format-tif" checked="checked"  /><label for="format-tif"> TIFF</label></li> \
@@ -187,7 +187,7 @@
                 this.autocenter();
             } else if (mode == "pspec") {
                 // Draw 2D FFT
-                var modeimg = $('<img class="e2-tile-pspec" src="'+ROOT+'/preview/'+this.options.bdo+'/pspec/" alt="pspec" />');
+                var modeimg = $('<img class="e2-tile-pspec" src="'+ROOT+'/preview/'+escape(this.options.bdo)+'/pspec/" alt="pspec" />');
                 var w = this.element.width() / 2;
                 modeimg.css('margin-left', w-256);
                 this.element.append(modeimg);            
@@ -195,7 +195,7 @@
                 var apix = $('input[name=apix]', this.element).val();
                 $.ajax({
                     type: 'POST',
-                    url: ROOT+'/preview/'+this.options.bdo+'/pspec1d/',
+                    url: ROOT+'/preview/'+escape(this.options.bdo)+'/pspec1d/',
                     dataType: 'json',
                     success: function(d) {
                         self.plot1d(d, apix);
@@ -222,7 +222,7 @@
             var w = this.element.width() / 2;
             plot.css('margin-left', w-256);
             
-            plot.append('<strong class="e2-tile-pspec1d">Spatial freq. (1/A) vs. Log Intensity (10^x). A/pix set to '+apix+'</strong>');            
+            plot.append('<strong class="e2-tile-pspec1d">Spatial freq. (1/A) vs. Log Intensity (10^x). A/pix set to '+escape(apix)+'</strong>');            
             var plotelem = $('<div class="e2-plot"></div>');
             plot.append(plotelem);
             this.element.append(plot);
@@ -312,7 +312,7 @@
         },
 
         get_tile: function(x, y) {
-            return ROOT+'/preview/'+this.options.bdo+'/tiles/?x='+x+'&y='+y+'&scale='+this.options.scale
+            return ROOT+'/preview/'+escape(this.options.bdo)+'/tiles/?x='+escape(x)+'&y='+escape(y)+'&scale='+escape(this.options.scale);
         },
         
         recalc: function() {
@@ -351,7 +351,7 @@
                     if (!img) {
                         // console.log("Building:", x, y);
                         var src = this.get_tile(x,y);
-                        var img = $('<img src="'+src+'" id="'+id+'" alt="Tile x:'+x+' y:'+y+'" />');
+                        var img = $('<img src="'+escape(src)+'" id="'+escape(id)+'" alt="Tile x:'+escape(x)+' y:'+escape(y)+'" />');
                         // Coordinate system inverted
                         var top = (this.options.ny - y*this.options.size*this.options.scale) / this.options.scale - this.options.size;
                         // img.css('border', 'solid red 1px');

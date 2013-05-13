@@ -1,5 +1,4 @@
 (function($) {
-
     // Create a new record in a dialog box
     $.widget('emen2.RecordControl', {
         options: {
@@ -40,8 +39,9 @@
             this.built = 1;
             
             var self = this;
-            this.dialog = $('<div>Loading...</div>');
-            this.dialog.attr('title','Loading...');
+            this.dialog = $('<div />');
+            this.dialog.attr('title', 'Loading...');
+            this.dialog.text('Loading...');
             
             if (this.options.modal) {
                 // grumble... get the viewport dimensions..
@@ -106,37 +106,38 @@
         },
                 
         _build: function(rendered) {
+            // Clear the dialog.
             this.dialog.empty();
 
-            // Create the form
-            var form = $('<form enctype="multipart/form-data"  action="" method="post" data-name="'+this.options.name+'" />');
-
-            // Set the form action
-            var action_alt = ROOT+'/record/'+this.options.parent+'/new/'+this.options.rectype+'/';
+            // Create the form.
+            var form = $('<form enctype="multipart/form-data" action="" method="post" />');
+            form.attr('data-name', this.options.name);
+            
+            // Set the form action.
+            var action_alt = ROOT+'/record/'+$.escape(this.options.parent)+'/new/'+$.escape(this.options.rectype)+'/';
             if (this.options.mode == 'edit') {
-                var action_alt = ROOT+'/record/'+this.options.name+'/edit/';
+                var action_alt = ROOT+'/record/'+$.escape(this.options.name)+'/edit/';
             }
             var action = this.options.action || this.element.attr('data-action') || action_alt;
-            form.attr('action',action);
-
-            // ...redirect after submission
+            form.attr('action', action);
+            
+            // ...redirect after submission.
             if (this.options.redirect) {
-                form.append('<input type="hidden" name="_redirect" value="'+this.options.redirect+'"/>');
+                $('<input type="hidden" name="_redirect" />').val(this.options.redirect).appendTo(form);
             }
 
-            // Show the recorddef long description
             var rd = emen2.caches['recorddef'][this.options.rectype];
             if (this.options.mode == 'new') {
-                var desc = $.trim(rd.desc_long).replace('\n','<br /><br />'); // hacked in line breaks
-                var desc = $('<p class="e2l-shadow-drop">'+desc+'</p>');
-                this.dialog.append(desc);
+                // RecordDef description
+                $('<p class="e2l-shadow-drop" />').text(rd.desc_long).appendTo(this.dialog);
                 // Add the parent for a new record
                 form.attr('data-name', 'None');
+                $('<input type="hidden" name="parents" />').val(this.options.parent).appendTo(form);
                 // Add the rectype
-                form.append('<input type="hidden" name="parents" value="'+this.options.parent+'" /><input type="hidden" name="rectype" value="'+this.options.rectype+'" />')                
+                $('<input type="hidden" name="rectype" />').val(this.options.rectype).appendTo(form);
             }
             
-            // ...content
+            // Todo: this should done as a mustache-style template and dictionary to render it safely client side.
             form.append(rendered);
 
             // Set the dialog title to show the record type and parent recname
@@ -144,7 +145,7 @@
                 this.dialog.dialog('option', 'title', this.options.mode+' '+rd.desc_short);
             }
 
-            // Show a submit button. In dialogs, this is drawn by the dialog itself.
+            // Show a submit button.
             if (!this.options.modal) {
                 form.append('<ul class="e2l-controls"><li><input type="submit" value="Save" /></li></ul>');
             }
@@ -212,24 +213,21 @@
             this.element.empty();
 
             if (this.options.help || this.options.summary) {
-                var header = $('<h2 class="e2l-cf">New record</h2>');                
-                this.element.append(header);
+                $('<h2 class="e2l-cf">New record</h2>').appendTo(this.element);
             }
+            
             if (this.options.help) {
-                var help = $(' \
-                    <div class="e2l-help" role="help"><p> \
+                $('<div class="e2l-help" role="help"><p> \
                         Records can have an arbitrary number of child records. \
                     </p><p>To <strong>create a new child record</strong>, select a <strong>protocol</strong> from the list below, or search for a different protocol. \
                         When you select a protocol, a form will be displayed where you can fill in the details for the new record. Click <strong>save</strong> to save the new record. \
                     </p><p> \
                         Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/NewRecord">EMEN2 wiki</a>. \
-                    </p></div>');
-                this.element.append(help);
+                    </p></div>').appendTo(this.element);
             }            
+
             if (this.options.summary) {
-                var summary = $('<p></p>');
-                summary.append('To create a new record select one of the protocols below, or <span class="e2l-a e2-newrecord-other">search for a different protocol</span>.');
-                this.element.append(summary);
+                $('<p>To create a new record select one of the protocols below, or <span class="e2l-a e2-newrecord-other">search for a different protocol</span>.</p>').appendTo(this.element);
             }
             
             // Children suggested by RecordDef.typicalchld
@@ -253,9 +251,7 @@
             if (!rectype) {
                 return
             }            
-            var asd = $('<input type="hidden" />');
-            self.element.append(asd);
-            asd.RecordControl({
+            $('<input type="hidden" />').appendTo(this.element).RecordControl({
                 parent: self.options.parent,
                 rectype: rectype,
                 show: true
@@ -264,19 +260,16 @@
         
         build_level: function(label, level, items) {
             var self = this;
-            var header = $('<h4>'+label+'</h4>')
-            var boxes = $('<div class="e2l-cf"></div>');
-            boxes.attr('data-level', level);
+            var level = $('<div class="e2l-cf" />').attr('data-level', level);
+            $('<h4 />').text(label).appendTo(level);
             $.each(items, function() {
-                var box = $('<div/>').InfoBox({
+                $('<div/>').click(function(){self.build_dialog($(this).attr('data-name'))}).InfoBox({
                     keytype: 'recorddef',
                     name: this,
                     selected: function(self, e) {}
-                });
-                box.click(function(){self.build_dialog($(this).attr('data-name'))});
-                boxes.append(box);
+                }).appendTo(level);
             });
-            return $('<div/>').append(header, boxes);
+            return level
         }
     });
 	
@@ -302,7 +295,9 @@
 		
 		bind: function(elem) {
 			var self = this;
-			$(".e2-edit-add", elem).click(function() {
+            
+            // Add new items.
+			$('.e2-edit-add', elem).click(function() {
 				var parent = $(this).parent()
 				var clone = parent.siblings('.e2-edit-template');
 				var b = clone.clone();
@@ -312,14 +307,14 @@
 				self.bind(b);
 			});
 
-			$(".e2-edit-add-find", elem).FindControl({
+            // Find items.
+			$('.e2-edit-add-find', elem).FindControl({
 			    minimum: 0,
 			    selected: function(self, name){
 					var parent = self.element.parent();
 					var param = self.element.attr('data-param');
 					var iter = self.element.attr('data-iter');
-			        var d = $('<div/>');
-			        d.InfoBox({
+			        var d = $('<div/>').InfoBox({
 			            keytype: 'user',
 			            name: name,
 						selectable: true,
@@ -419,9 +414,8 @@
             var all = [];
             $.each(this.comments, function(){all.push(this)})
             $.each(this.history, function(){all.push(this)})
-
-            this.element.append("<h2>Comments and history</h2>");
-
+            $('<h2>Comments and history</h2>').appendTo(this.element);
+            
             // Break each log event out by date
             var bydate = {};
             $.each(all, function() {
@@ -437,19 +431,15 @@
             var keys = [];
             $.each(bydate, function(k,v){keys.push(k)})
             keys.sort();
-            // keys.reverse();
-            
+
             $.each(keys, function(i, date) {
                 $.each(bydate[date], function(user, events) {
-                    var d = $('<div />');
-                    // put the text as 'body' so it is rendered after the callback to get the user info
-                    d.InfoBox({
+                    $('<div />').InfoBox({
                         'keytype':'user',
                         'name': user,
                         'time': date,
-                        'body': self.makebody(events) || ' '
-                    });
-                    self.element.append(d);
+                        'body': self.makebody(events)
+                    }).appendTo(self.element);
                 });
             });
 
@@ -465,23 +455,29 @@
         },
         
         makebody: function(events) {
-            var comments = [];
-            var rows = [];
+            var comments = $('<div />');
             $.each(events, function(i, e) {
+                var row = $('<div />');
                 if (e.length == 3) {
-                    comments.push('<div>'+emen2.template.image('comment.closed.png')+' '+e[2]+'</div>');
+                    row.text(e[2]);
+                    row.prepend(emen2.template.image('comment.closed.png'));
+                    row.appendTo(comments);
                 } else if (e.length == 4) {
                     var pdname = e[2];
                     if (emen2.caches['paramdef'][pdname]){pdname=emen2.caches['paramdef'][pdname].desc_short}
-                    var row = '<div>'+emen2.template.image('edit.png')+' edited <a href="'+ROOT+'/paramdef/'+e[2]+'/">'+pdname+'</a>. Previous value was:</div><div style="margin-left:50px">'+e[3]+'</div>';
-                    comments.push(row);
+                    emen2.template.image('edit.png').appendTo(row);
+                    row.append('Edited ' );
+                    $('<a />').attr('href', ROOT+'/paramdef/'+$.escape(e[2])).text(pdname).appendTo(row)
+                    row.append('. Previous value was: ');
+                    $('<span />').text(e[3]).appendTo(row);
                 }
+                row.appendTo(comments);
             });
-            comments = comments.join('');
             return comments
         },
         
-        save: function(e) {    
+        save: function(e) {
+            // Should probably just make this a POST form.
             var self = this;
             emen2.db('record.addcomment', [this.options.name, $('textarea[name=comment]', this.options.controls).val()], function(rec) {
                 $.record_update(rec)

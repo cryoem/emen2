@@ -8,7 +8,6 @@
             show: true,
             summary: false,
             help: false,
-            // events: saved
         },
 
         _create: function() {
@@ -17,20 +16,14 @@
 			emen2.util.checkopts(this, ['name', 'keytype', 'edit', 'summary']);
             if (this.options.show) {this.show()}            
         },
-        
-        rebuild: function() {
-            // Clear out and rebuild
-            this.built = 0;
-            this.build();
-        },
-        
+                
         show: function() {
             this.build();
         },
         
         build: function() {
-            // Cache items before real build..
             if (this.built) {return}
+            this.built = 1;
             var self = this;
 
             // Always empty the element before a rebuild, and place a spinner
@@ -63,8 +56,6 @@
         }, 
         
         _build: function() {
-            // Real build method
-            this.built = 1;
             var self = this;
 
             // Remove the spinner
@@ -76,11 +67,10 @@
             var children = rec.children;
             
             if (this.options.summary || this.options.help) {
-                this.element.append('<h2 class="e2l-cf">Relationships</h2>');
+                $('<h2 class="e2l-cf">Relationships</h2>').appendTo(this.element);
             }
             if (this.options.help) {
-                var help = $(' \
-                <div class="e2l-help" role="help"><p> \
+                $('<div class="e2l-help" role="help"><p> \
                     Records can have an arbitrary number of parent and child relationships. \
                 </p><p>To <strong>add parent or child relationships</strong>, click one of the <strong>+</strong> buttons below. \
                     This will show a record chooser. You can either navigate to the record you want to add, or type \
@@ -89,59 +79,33 @@
                 </p><p>To <strong>remove parent or child relationships</strong>, uncheck the relationships you want to remove and click <strong>save relationships</strong>. \
                 </p><p> \
                     Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Relationships">EMEN2 Wiki</a>. \
-                </p></div>');
-                this.element.append(help);
-                // var helper = $('<span class="e2-button e2l-float-right">Help</span>');
-                // helper.click(function(e){$('[role=help]', self.element).toggle()})
-                // $('h2', this.element).append(helper);
+                </p></div>').appendTo(this.element);
             }
-            // Build a textual summary
             if (this.options.summary && this.options.keytype == 'record') {
-                this.element.append(this.build_summary(parents, children));
+                this.build_summary(parents, children).appendTo(this.element);
             }
             
             // Add the items
-            this.element.append(this.build_level('Parents', 'parents', parents));
-            this.element.append(this.build_level('Children', 'children', children));
+            this.build_level('Parents', 'parents', parents).appendTo(this.element);
+            this.build_level('Children', 'children', children).appendTo(this.element);
             
             if (this.options.controls && this.options.edit) {
-                this.build_controls();
+                this.build_controls().appendTo(this.options.controls);
             }
-
-            // Show all the infoboxes...
-            $('.e2-relationships-infobox', this.element).InfoBox('show');
         },
         
         build_summary: function(parents, children) {
             // Make a descriptive summary of the parent and child relationships
-            var summary = $('<div class="e2-relationships-summary"></div>')
-            var p = this.build_summary_label(parents);
-            var c = this.build_summary_label(children);
-            var label = 'parent';
-            if (parents.length > 1) {label = 'parents'}        
-
-            summary.append('<p>This record has '+
-                this.build_summary_label(parents, 'parents')+
-                ' and '+
-                this.build_summary_label(children, 'children')+
-                '. Click to <a href="'+ROOT+'/records/?root='+this.options.name+'">view the record tree starting at this record</a>.</p>');
-            // '. Select <span class="e2l-a e2-permissions-all">all</span>
-            //    or <span class="e2l-a e2-permissions-none">none</span>.
-
-            // Select by rectype
-            $('.e2-relationships-rectype', summary).click(function() {
-                var state = $(this).attr('data-checked');
-                if (state=='checked') {
-                    $(this).attr('data-checked', '');
-                    state = true;
-                } else {
-                    $(this).attr('data-checked', 'checked');
-                    state = false
-                }
-                var rectype = $(this).attr('data-rectype');
-                var reltype = $(this).attr('data-reltype');
-                $('.e2-infobox[data-rectype='+rectype+'] input', self.element).attr('checked', state);
-            });
+            var summary = $('<div />');
+            $('<span />').text('This record has ').appendTo(summary);
+            this.build_summary_label(parents, 'parents').appendTo(summary);
+            $('<span />').text(' and ').appendTo(summary);
+            this.build_summary_label(children, 'children').appendTo(summary);
+            $('<span />').text('. Click to ').appendTo(summary);
+            $('<a />')
+                .attr('href', ROOT+'/records/?root='+$.escape(this.options.name))
+                .text('view the record tree.')
+                .appendTo(summary);
             return summary        
         },
         
@@ -154,112 +118,106 @@
                 ct[r.rectype].push(this);
             });                
 
-            var ce = [];
+            var elem = $('<span />');
+            if (value.length == 0) {
+                $('<span />').text('no '+label).appendTo(elem);
+            } else {
+                $('<span />').text(value.length+' '+label+', including: ').appendTo(elem);
+            }
+
             $.each(ct, function(k,v) {
                 var rd = emen2.caches['recorddef'][k] || {};
                 var rddesc = rd['desc_short'] || k;
-                var adds = '';
-                if (v.length > 1) {adds='s'}
-                ce.push(v.length+' '+rddesc+
-                    ' <span data-checked="checked" data-reltype="'+label+
-                    '" data-rectype="'+k+
-                    '" class="e2l-small e2l-a e2-relationships-rectype">(toggle)</span>');
+                $('<span />')
+                    .text(v.length+' '+rddesc)
+                    .appendTo(elem);
+                // $('<span />')
+                //     .text(' (toggle)')
+                //     .attr('data-checked', 'checked')
+                //     .attr('data-reltype', label)
+                //     .attr('data-rectype', k)
+                //     .addClass('e2l-a')
+                //     .appendTo(elem)
+                //     .click(function() {
+                //         var state = $(this).attr('data-checked');
+                //         if (state=='checked') {
+                //             $(this).attr('data-checked', '');
+                //             state = true;
+                //         } else {
+                //             $(this).attr('data-checked', 'checked');
+                //             state = false
+                //         }
+                //         var rectype = $(this).attr('data-rectype');
+                //         var reltype = $(this).attr('data-reltype');
+                //         $('.e2-infobox[data-rectype='+$.escape(rectype)+'] input', self.element).attr('checked', state);
+                //     });
             });
-
-            var pstr = '';
-            if (ce.length == 0) {
-                pstr = '<span>no '+label+'</span>';
-            } else if (ce.length == 1) {
-                pstr = '<span>'+ce.join(', ')+' '+label+'</span>';
-            } else {
-                pstr = '<span>'+value.length+' '+label+'</span>, including '+ce.join(', ')
-            }    
-            return pstr
+            return elem
         },
         
         build_level: function(label, level, items) {
             var self = this;
-            var header = $('<h4 class="e2l-cf">'+label+'</h4>');
+            var boxes = $('<div />')
+                .attr('data-level', level);
+            $('<input type="hidden" />')
+                .attr('name', level)
+                .appendTo(boxes);
+                
+            var header = $('<h4 />')
+                .addClass('e2l-cf')
+                .text(label)
+                .appendTo(boxes);
             if (this.options.edit) {
-                header.prepend('<input data-level="'+level+'" type="button" value="+" /> ');
+                $('<input type="button" />')
+                    .attr('data-level', level)
+                    .val('+')
+                    .TreeBrowseControl({
+                        root: this.options.name,
+                        selectable: this.options.edit,
+                        keytype: this.options.keytype,
+                        selected: function(browse, name) {
+                            self.add(level, name);
+                        }})
+                    .click(function(){
+                        $(this).TreeBrowseControl('show')})
+                    .prependTo(header)
             }
-
-            $('input:button', header).TreeBrowseControl({
-                root: this.options.name,
-                selectable: this.options.edit,
-                keytype: this.options.keytype,
-                selected: function(browse, name) {
-                    self.add(level, name);
-                }
-            }).click(function(){
-                $(this).TreeBrowseControl('show');
-            })
-
-            var d = $('<div data-level="'+level+'"></div>');
+            
             for (var i=0;i<items.length;i++) {
-                d.append(this.build_item(level, items[i], false))
+                this.build_item(level, items[i], false).appendTo(boxes);
             }
-            
-            d.append('<input type="hidden" name="'+level+'" value="" class="e2-relationships-hidden" />');
-            
-            return $('<div></div>').append(header, d);
+            return boxes
         },
         
         build_item: function(level, name, retry) {
             var self = this;
-            // Retry parameter indiciates try again to find item if not in cache.            
-            // Do not show immediately -- need to be in DOM for built() callback
-
-            // Update the select count when built or checked..
-            var cb = function() {$('.e2-select', self.options.controls).SelectControl('update')}
-
-            return $('<div class="e2-relationships-infobox"></div>').InfoBox({
-                show: false,
-                keytype: this.options.keytype,
-                name: name,
-                selectable: this.options.edit,
-                retry: retry,
-                input: ['checkbox', level, true],
-                selected: cb,
-                built: cb
-            });
+            return $('<div />')
+                .InfoBox({
+                    show: true,
+                    keytype: this.options.keytype,
+                    name: name,
+                    selectable: this.options.edit,
+                    retry: retry,
+                    input: ['checkbox', level, true]
+                });
         },
         
         build_controls: function() {
             var self = this;
-            // ian: todo: move "Select all or none" to a template function (utils.js)
             var controls = $(' \
-                <ul class="e2l-options"> \
-                    <li class="e2-select" /> \
-                </ul> \
                 <ul class="e2l-controls"> \
                     <li><input type="submit" value="Save relationships" /></li> \
                 </ul>');
-
-            // Selection control
-            $('.e2-select', controls).SelectControl({root: this.element});
-
-            // Save form
             $('input:submit', controls).click(function(e){self.save(e)});
-
-            // Show/hide advanced options
-            $('.e2-relationships-advanced', controls).click(function(){
-                emen2.template.caret('toggle', self.options.controls);
-                $('.e2l-controls', self.options.controls).toggle();
-                $('.e2l-advanced', self.options.controls).toggle();
-            });
-            
-            this.options.controls.append(controls);
+            return controls
         },
         
         add: function(level, name) {
-            var boxes = $('div[data-level='+level+']', this.element);
-            if ($('.e2-infobox[data-name="'+name+'"]', boxes).length) {
+            var boxes = $('div[data-level='+$.escape(level)+']', this.element);
+            if ($('.e2-infobox[data-name="'+$.escape(name)+'"]', boxes).length) {
                 return
             }
-            var box = this.build_item(level, name, true);
-            boxes.prepend(box);
-            box.InfoBox('show');
+            this.build_item(level, name, true).appendTo(boxes);
         },
         
         save: function(e) {
@@ -267,14 +225,10 @@
             var parents = $('input[type=checkbox][name=parents]', this.element);
             var checkedparents = $('input[type=checkbox][name=parents]:checked', this.element);            
             if (parents.length && !checkedparents.length) {
-                var ok = confirm("You are attempting to remove all parents of this record. This will not delete the record, but might make it difficult to find. Continue?");
+                var ok = confirm("You are attempting to remove all parents of this record. Continue?");
                 if (!ok) {return false}
             }
             this.element.submit();
-        },
-        
-        cache: function() {
-            return emen2.caches[this.options.keytype][this.options.name];
         }
     });
     
@@ -285,8 +239,6 @@
         options: {
             root: null,
             keytype: 'record',
-            embed: false,
-            // events
             selected: function(self, name) {},
             moved: function() {},
         },
@@ -295,7 +247,6 @@
             var self = this;
             this.built = 0;
 			emen2.util.checkopts(this, ['mode', 'root', 'keytype']);
-    
             this.element.click(function(e){self.show(e)});
             if (this.options.show) {
                 this.show();
@@ -304,17 +255,13 @@
         
         show: function(e) {
             this.build();
-            if (this.options.embed) {
-                // pass
-            } else {
-                this.dialog.dialog('open');
-            }
+            this.dialog.dialog('open');
         },
 
         build: function() {
+            var self = this;
             if (this.built) {return}
             this.built = 1;
-            var self = this;
 
             // Build the dialog
             this.dialog = $('<div class="e2-browse" />');
@@ -333,20 +280,15 @@
             // Build the browser controls
             this.build_browse();
 
-            // Embed or show the dialog
-            if (this.options.embed) {
-                this.element.append(this.dialog);
-            } else {
-                // Show the dialog
-                this.dialog.attr("title", "Relationship Browser");
-                this.dialog.dialog({
-                    modal: true,
-                    width: 1000,
-                    height: 600,
-                    draggable: false,
-                    resizable: false,                    
-                });            
-            }
+            // Show the dialog
+            this.dialog.attr("title", "Relationship Browser");
+            this.dialog.dialog({
+                modal: true,
+                width: 1000,
+                height: 600,
+                draggable: false,
+                resizable: false,                    
+            });            
         },
 
         build_browse: function() {
@@ -379,34 +321,34 @@
             var self = this;
             this.options.root = name;
             $('input[name=value]', this.dialog).val(name);
-            
-            // Selected callback is an "outer callback" to pass off to this.mapselect
-            var cb = function(w, elem, name) {self.reroot(name)}
-            
-            var parents = $('<div class="e2-tree e2l-float-left" style="position:absolute;left:0px;width:300px;">&nbsp;</span>');
-            parents.TreeControl({
-                root: name, 
-                keytype: this.options.keytype, 
-                mode: 'parents',
-                skiproot: true,
-                show: true,
-                selected: cb
-            });            
-            
-            // The parents needs a spinner -- the TreeControl one doesn't work right
-            parents.append(emen2.template.spinner(true));
 
-            var children = $('<div class="e2-tree e2l-float-left" style="position:absolute;left:300px;" />');
-            children.TreeControl({
-                root: name, 
-                keytype: this.options.keytype, 
-                mode: 'children',
-                show: true,
-                selected: cb
-            });
+            // Clear the tree.
+            var tree = $('.e2-browse-tree', this.dialog);
+            tree.empty();
             
-            $('.e2-browse-tree', this.dialog).empty();
-            $('.e2-browse-tree', this.dialog).append(parents, children);
+            // Callback
+            var cb = function(w, elem, name) {self.reroot(name)}
+            $('<div class="e2-tree e2l-float-left" style="position:absolute;left:0px;width:300px;">&nbsp;</span>')
+                .TreeControl({
+                    root: name, 
+                    keytype: this.options.keytype, 
+                    mode: 'parents',
+                    skiproot: true,
+                    show: true,
+                    selected: cb
+                })
+                .append(emen2.template.spinner(true))
+                .appendTo(tree);
+            
+            $('<div class="e2-tree e2l-float-left" style="position:absolute;left:300px;" />')
+                .TreeControl({
+                    root: name, 
+                    keytype: this.options.keytype, 
+                    mode: 'children',
+                    show: true,
+                    selected: cb
+                })
+                .appendTo(tree);
         }        
     });
     
@@ -438,7 +380,7 @@
             // Get options from data- attributes
 			emen2.util.checkopts(this, ['children', 'root', 'keytype']);
 
-            this.element.addClass('e2-tree-'+this.options.mode);            
+            this.element.addClass('e2-tree-'+escape(this.options.mode));
             if (this.options.attach) {
                 this.bind(this.element);
             } else if (this.options.show) {
@@ -469,16 +411,28 @@
             var self = this;
             var name = (name == null) ? elem.attr('data-name') : name;
             if (!emen2.caches[this.options.keytype][name]) {
-                // make a pass through this.getnames if we don't have this cached already
                 this.getviews([name], function(){self.build_root(elem, name)});
                 return
             }
+            
+            var li = $('<li />');
+            $('<a />')
+                .attr('href','#')
+                .text(this.getname(this.options.root))
+                .appendTo(li);
+            emen2.template.image('bg.open.'+escape(this.options.mode)+'.png', '+', 'e2-tree-expand')
+                .appendTo(li);
+            li.wrap('<ul />');
+            li.appendTo(this.element);
+            this.bind(li);
+            this.expand(li);
+            return
 
             var root = $('<ul></ul>');
             root.append(' \
-                <li data-name="'+name+'"> \
-                    <a href="#">'+this.getname(this.options.root)+'</a>'+
-                    emen2.template.image('bg.open.'+this.options.mode+'.png', '+', 'e2-tree-expand')+
+                <li data-name="'+escape(name)+'"> \
+                    <a href="#">'+escape(this.getname(this.options.root))+'</a>'+
+                    emen2.template.image('bg.open.'+escape(this.options.mode)+'.png', '+', 'e2-tree-expand')+
                 '</li>');
             this.element.append(root);
             this.bind(root);
@@ -498,10 +452,10 @@
             // Set the image to expanded
             var img = elem.find('img.e2-tree-expand');
             img.addClass('e2-tree-expanded');
-            img.attr('src', ROOT+'/static-'+VERSION+'/images/bg.close.'+this.options.mode+'.png');
+            img.attr('src', ROOT+'/static-'+escape(VERSION)+'/images/bg.close.'+escape(this.options.mode)+'.png');
             
             // The new ul
-            var ul = $('<ul data-name="'+name+'"></ul>');
+            var ul = $('<ul data-name="'+escape(name)+'"></ul>');
 
             // Lower-case alpha sort...
             var sortby = {};
@@ -519,13 +473,13 @@
             // Build each child item
             $.each(sortkeys, function() {
                 var li = $(' \
-                    <li data-name="'+this+'"> \
-                        <a href="'+ROOT+'/'+self.options.keytype+'/'+this+'/">'
+                    <li data-name="'+escape(this)+'"> \
+                        <a href="'+ROOT+'/'+escape(self.options.keytype)+'/'+escape(this)+'/">'
                             +self.getname(this)+
                         '</a> \
                     </li>');
                 if (emen2.caches[self.options.mode][this] && self.options.expandable) {
-                    var expand = $(emen2.template.image('bg.open.'+self.options.mode+'.png', emen2.caches[self.options.mode][this].length, 'e2-tree-expand'))
+                    var expand = emen2.template.image('bg.open.'+escape(self.options.mode)+'.png', emen2.caches[self.options.mode][this].length, 'e2-tree-expand');
                     li.append(expand);
                 }
                 ul.append(li);
@@ -550,7 +504,7 @@
 
             // Show activity indicator
             var img = elem.children('img');
-            img.attr('src', ROOT+'/static-'+VERSION+'/images/spinner.gif'); 
+            img.attr('src', ROOT+'/static-'+escape(VERSION)+'/images/spinner.gif'); 
             
             // Remove any current children
             elem.find('ul').remove();
@@ -580,7 +534,7 @@
                 // Contract this branch
                 elem.removeClass('e2-tree-expanded');
                 elem.siblings('ul').remove();
-                elem.attr('src', ROOT+'/static-'+VERSION+'/images/bg.open.'+this.options.mode+'.png');
+                elem.attr('src', ROOT+'/static-'+escape(VERSION)+'/images/bg.open.'+escape(this.options.mode)+'.png');
             } else {
                 // Expand this branch
                 this.expand(elem.parent());
@@ -677,7 +631,7 @@
             $.each(this.state, function(k,v) {
                 if (v) {
                     // console.log('adding', k);
-                    self.element.append('<input type="hidden" name="state" value="'+k+'" />');
+                    self.element.append('<input type="hidden" name="state" value="'+escape(k)+'" />');
                 }
             });
         },
@@ -707,7 +661,7 @@
             for (var i=0;i<items.length;i++) {
                 var name = items[i];
                 this.state[name] = true;
-                $('li[data-name="'+name+'"] > a').addClass('e2-browse-selected');
+                $('li[data-name="'+escape(name)+'"] > a').addClass('e2-browse-selected');
             }
             this.count_selected();        
         },
@@ -716,7 +670,7 @@
             for (var i=0;i<items.length;i++) {
                 var name = items[i];
                 this.state[name] = false;
-                $('li[data-name="'+name+'"] > a').removeClass('e2-browse-selected');
+                $('li[data-name="'+escape(name)+'"] > a').removeClass('e2-browse-selected');
             }
             this.count_selected();        
         },
@@ -726,7 +680,7 @@
             $.each(this.state, function(k,v) {
                 if (v) {count++}
             });
-            $(this.options.display_count).html(count);
+            $(this.options.display_count).text(count);
             return count
         },
         
@@ -769,7 +723,7 @@
             $('a', root).draggable({
                 helper: function() {
                     var count = $('.e2-browse-selected', self.element).length;
-                    return '<div class="ui-widget-header" style="z-index:500">Moving '+count+' items</div>';
+                    return '<div class="ui-widget-header" style="z-index:500">Moving '+escape(count)+' items</div>';
                 }
             });
 
@@ -800,13 +754,13 @@
             dialog.append('<h4>Remove</h4>');
             var ulr = $('<ul class="e2l-nonlist" />');
             $.each(removerels, function() {
-                ulr.append('<li>'+(emen2.caches['recnames'][this[0]]||this[0]) + ', ' + (emen2.caches['recnames'][this[1]]||this[1])+'</li>');
+                ulr.append('<li>'+escape(emen2.caches['recnames'][this[0]]||this[0])+', '+escape(emen2.caches['recnames'][this[1]]||this[1])+'</li>');
             });
             dialog.append(ulr);
             dialog.append('<h4>Add</h4>');
             var ula = $('<ul class="e2l-nonlist" />');
             $.each(addrels, function() {
-                ula.append('<li>'+(emen2.caches['recnames'][this[0]]||this[0]) + ', ' + (emen2.caches['recnames'][this[1]]||this[1])+'</li>');
+                ula.append('<li>'+escape(emen2.caches['recnames'][this[0]]||this[0])+', '+escape(emen2.caches['recnames'][this[1]]||this[1])+'</li>');
             });
             dialog.append(ula);
 
@@ -817,7 +771,7 @@
                 modal: true,
                 buttons: {
                     "Confirm": function(e) {
-                        $('.ui-button-text', e.target).html("Saving...");
+                        $('.ui-button-text', e.target).text("Saving...");
                         self.relink(removerels, addrels);
                     },
                     Cancel: function() {
@@ -830,10 +784,10 @@
         relink: function(removerels, addrels) {
             var form = $('<div class="e2-browse-relinkform"></div>');
             removerels.map(function(i) {
-                form.append('<input type="hidden" name="removerels.'+i[0]+'" value="'+i[1]+'" />');
+                form.append('<input type="hidden" name="removerels.'+escape(i[0])+'" value="'+escape(i[1])+'" />');
             });
             addrels.map(function(i) {
-                form.append('<input type="hidden" name="addrels.'+i[0]+'" value="'+i[1]+'" />');
+                form.append('<input type="hidden" name="addrels.'+escape(i[0])+'" value="'+escape(i[1])+'" />');
             });
             $('.e2-browse-relinkform', this.element).remove();
             this.element.append(form);

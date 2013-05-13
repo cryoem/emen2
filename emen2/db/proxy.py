@@ -277,13 +277,12 @@ class DBProxy(object):
             kwargs['ctx'] = self._ctx
             kwargs['txn'] = self._txn
 
-            print
             emen2.db.log.debug("API: start: %s"%(func.func_name))
-            kwcopy = {}
-            for k,v in kwargs.items():
-                if k not in ['ctx', 'txn']:
-                    kwcopy[k]=v
-            print "\t<-", args, kwcopy
+            # kwcopy = {}
+            # for k,v in kwargs.items():
+            #    if k not in ['ctx', 'txn']:
+            #        kwcopy[k]=v
+            # print "\t<-", args, kwcopy
 
             if getattr(func, 'admin', False) and not self._ctx.checkadmin():
                 raise Exception, "This method requires administrator level access."
@@ -295,7 +294,7 @@ class DBProxy(object):
             ms = (time.time()-t)*1000
             
             emen2.db.log.debug("API: finished: %s in %0.2f ms"%(func.func_name, ms))
-            print "\t->", result
+            # print "\t->", result
             return result
 
         return wrapper

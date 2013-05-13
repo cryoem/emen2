@@ -517,7 +517,7 @@ class PermissionsDBObject(BaseDBObject):
             self._ptest[0] = True
         
         # Apply any group permissions.
-        for group in set(self.groups)? & self._ctx.groups:
+        for group in set(self.groups) & self._ctx.groups:
             self._ptest[self._ctx.grouplevels[group]] = True
 
         # Now, check if we can read.
