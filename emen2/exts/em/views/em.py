@@ -120,12 +120,16 @@ class EMAN2Convert(View):
     return_file = None
     
     @View.add_matcher(r'^/eman2/(?P<name>.+)/convert/(?P<format>\w+)/$', r'^/eman2/(?P<name>.+)/convert/$')
-    def convert(self, name, format, depth=None, normalize=False):
+    def convert(self, name, format, normalize=False):
         import EMAN2
 
-        if format not in ['tif', 'tiff', 'mrc', 'hdf', 'jpg', 'jpeg', 'png']:
+        if format not in ['tif', 'tiff', 'tif8', 'mrc', 'hdf', 'jpg', 'jpeg', 'png']:
             raise ValueError, "Invalid format: %s"%format
 
+        depth = None
+        if format in ['tif8']:
+            depth = 8
+            format = 'tif'
 
         bdo = self.db.binary.get(name)
         img = EMAN2.EMData()
@@ -137,7 +141,7 @@ class EMAN2Convert(View):
         outfile = tempfile.NamedTemporaryFile(delete=False, suffix='.%s'%format)
 
         # Handle as a string for now...
-        if depth == '8':
+        if depth == 8:
             img['render_min'] = -1
             img['render_max'] = 256
             img.write_image(str(outfile.name), -1, EMAN2.EMUtil.ImageType.IMAGE_UNKNOWN, False, None, EMAN2.EMUtil.EMDataType.EM_UCHAR, False)
