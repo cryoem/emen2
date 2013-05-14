@@ -160,8 +160,6 @@ class EMEN2BaseServer(object):
     def attach_to_service(self, service):
         emen2_service = internet.TCPServer(self.port, self.site)
         emen2_service.setServiceParent(service)
-        # if self.https and ssl:
-        #    pass
 
     def attach_standalone(self):
         reactor = twisted.internet.reactor
