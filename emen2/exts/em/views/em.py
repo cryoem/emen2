@@ -140,7 +140,6 @@ class EMAN2Convert(View):
         
         outfile = tempfile.NamedTemporaryFile(delete=False, suffix='.%s'%format)
 
-        # Handle as a string for now...
         if depth == 8:
             img['render_min'] = -1
             img['render_max'] = 256

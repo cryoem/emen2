@@ -214,14 +214,14 @@
                     <form method="post" action=""> \
                         <h4>Format</h4> \
                         <ul class="e2l-nonlist"> \
-                            <li><input type="radio" name="format" value="tif" id="format-tif" checked="checked"  /><label for="format-tif"> TIFF</label></li> \
+                            <li><input type="radio" name="format" value="tif8" id="format-tif8" checked="checked" /><label for="format-tif8"> TIFF (8-bit)</label></li> \
+                            <li><input type="radio" name="format" value="tif" id="format-tif" /><label for="format-tif"> TIFF </label></li> \
                             <li><input type="radio" name="format" value="png" id="format-png"  /><label for="format-png"> PNG</label></li> \
                             <li><input type="radio" name="format" value="jpg" id="format-jpg" /><label for="format-jpg"> JPEG</label></li> \
                         </ul> \
                         <h4>Options</h4> \
                         <ul class="e2l-nonlist"> \
                             <li><input type="checkbox" name="normalize" id="options-normalize" checked="checked"><label for="options-normalize"> Normalize</label></li> \
-                            <li><input type="checkbox" name="depth" value="8" id="options-depth" checked="checked"><label for="options-depth"> 8-bit</label></li> \
                         </ul> \
                     </form> \
                 </div>')
