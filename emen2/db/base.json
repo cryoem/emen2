@@ -5,7 +5,6 @@
 // Links
 {"name": "record", "keytype": "paramdef", "parents": ["core"], "vartype": "record", "desc_short": "Record"}
 {"name": "paramdef", "keytype": "paramdef", "parents": ["core"], "vartype": "paramdef", "desc_short": "ParamDef"}
-{"name": "rectype", "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol"}
 {"name": "user", "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "User"}
 {"name": "group", "keytype": "paramdef","parents": ["core"], "vartype": "group", "desc_short": "Group"}
 {"name": "groups", "keytype": "paramdef","parents": ["core"], "vartype": "group", "iter": true, "desc_short": "Groups"}
@@ -51,6 +50,7 @@
 {"name": "signupinfo", "keytype": "paramdef", "parents": ["core"], "vartype": "dict", "desc_short": "Signup Info"}
 
 // Record
+{"name": "rectype", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol"}
 {"name": "history", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "history", "desc_short": "History"}
 {"name": "comments", "keytype": "paramdef","parents": ["core"], "vartype": "comments", "desc_short": "Comments", "iter": true}
 

@@ -115,6 +115,8 @@ class EMEN2DBEnv(object):
         keytypes = keytypes or ['paramdef', 'user', 'group', 'recorddef', 'binary', 'record']
         for keytype in keytypes:
             for item in loader.loadfile(keytype=keytype):
+                emen2.db.log.debug("CREATE: %s %s"%(keytype, item.get('name')))
+                print item
                 i = self[keytype].dataclass(ctx=ctx)
                 i._load(item)
                 self[keytype]._put_data(i.name, i, txn=txn)

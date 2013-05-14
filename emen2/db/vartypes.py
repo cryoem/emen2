@@ -258,6 +258,8 @@ class Vartype(object):
         return self._html(value)
 
     def render_form(self, value):
+        if self.pd.immutable:
+            return self._html(value)
         if self.pd.iter:
             elem = self._li_wrap(
                 [self._form(i) for i in (value or [])],
@@ -278,8 +280,6 @@ class Vartype(object):
         return elem
         
     def _form(self, value):
-        if self.pd.immutable:
-            return self._html(value)
         if value is None:
             value = ''
         elem = Markup("""<span class="e2-edit" data-paramdef="%s"><input type="text" name="%s" value="%s" /></span>""")%(
