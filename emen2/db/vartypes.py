@@ -663,27 +663,24 @@ class vt_binary(Vartype):
             )
 
     def _form(self, value):
-        if value is None:
-            return ""
-
-        bdo = self.db.binary.get(value)
-
-        src = "/download/%s/thumb.jpg?size=thumb"%(bdo.name)
-        
-        elem = Markup("""
-            <div class="e2-infobox" data-name="%s" data-keytype="user">
-                <input type="checkbox" name="%s" value="%s" checked="checked" />
-                <img src="%s" class="e2l-thumbnail" alt="Photo" />
-                <h4>%s</h4>
-                <p class="e2l-small">%s</p>                
-            </div>""")%(
-                value,
-                self.pd.name,
-                value,
-                src,
-                bdo.filename,
-                bdo.filesize
-            )
+        elem = ""
+        if value:
+            bdo = self.db.binary.get(value)
+            src = "/download/%s/thumb.jpg?size=thumb"%(bdo.name)        
+            elem = Markup("""
+                <div class="e2-infobox" data-name="%s" data-keytype="user">
+                    <input type="checkbox" name="%s" value="%s" checked="checked" />
+                    <img src="%s" class="e2l-thumbnail" alt="Photo" />
+                    <h4>%s</h4>
+                    <p class="e2l-small">%s</p>                
+                </div>""")%(
+                    value,
+                    self.pd.name,
+                    value,
+                    src,
+                    bdo.filename,
+                    bdo.filesize
+                )
         
         # Show a 'Change' button...
         if not self.pd.iter:

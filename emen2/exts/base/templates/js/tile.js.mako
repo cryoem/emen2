@@ -136,7 +136,7 @@
             // Download and convert    
             $('<a />')
                 .addClass('e2-button')
-                .attr('href', emen2.template.uri(['download', this.options.body, this.options.filename]))
+                .attr('href', emen2.template.uri(['download', this.options.bdo, this.options.filename]))
                 .text('Download')
                 .appendTo(controls);
             $('<br />').appendTo(controls);
@@ -286,7 +286,7 @@
             var w = this.element.width() / 2;
             $('<img />')
                 .addClass('e2-tile-pspec')
-                .attr('src', emen2.tempalte.uri(['preview', this.options.bdo, 'pspec']))
+                .attr('src', emen2.template.uri(['preview', this.options.bdo, 'pspec']))
                 .css('margin-left', w-256)
                 .appendTo(this.element);
         },
@@ -403,7 +403,7 @@
 
         get_tile: function(x, y) {            
             var q = {'x':x, 'y':y, 'scale':this.options.scale}
-            return emen2.templates.uri(['preview', this.options.bdo, 'tiles'], q);
+            return emen2.template.uri(['preview', this.options.bdo, 'tiles'], q);
         },
         
         recalc: function() {

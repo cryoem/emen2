@@ -15,7 +15,7 @@ for i in check:
 %>
 % if found:
     <div class="e2-tile-outer">
-        <div class="e2-tile" style="height:1024px;overflow:hidden" data-bdo="${found}" data-mode="cached"></div>
+        <div class="e2-tile" style="height:512px;overflow:hidden" data-bdo="${found}" data-mode="cached"></div>
     </div>
 % endif
 

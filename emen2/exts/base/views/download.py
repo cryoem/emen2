@@ -144,8 +144,6 @@ class Download(View):
         a = twisted.web.static.NoRangeStaticProducer(request, TarPipe(files))
         a.start()
         
-        
-        
 
 class TarPipe(object):
     def __init__(self, files={}):

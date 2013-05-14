@@ -16,7 +16,6 @@ from emen2.web.view import View
 
 @View.register
 class EMEquipment(View):
-
     @View.add_matcher(r'^/em/equipment/(?P<name>[^/]*)/$')
     def main(self, name, **kwargs):
         self.title = 'Equipment'
@@ -111,29 +110,22 @@ class EMHome(View):
         
 @View.register
 class EMAN2Convert(View):
-    
     contentTypes = twisted.web.static.loadMimeTypes()
-
     contentEncodings = {
             ".gz" : "gzip",
             ".bz2": "bzip2"
             }
 
     defaultType = 'application/octet-stream'    
-
     return_file = None
     
     @View.add_matcher(r'^/eman2/(?P<name>.+)/convert/(?P<format>\w+)/$', r'^/eman2/(?P<name>.+)/convert/$')
-    def convert(self, name, format, depth=8, normalize=False):
+    def convert(self, name, format, depth=None, normalize=False):
         import EMAN2
 
         if format not in ['tif', 'tiff', 'mrc', 'hdf', 'jpg', 'jpeg', 'png']:
             raise ValueError, "Invalid format: %s"%format
 
-        try:
-            depth = int(depth)
-        except:
-            raise ValueError, "Invalid bit depth: %s"%depth
 
         bdo = self.db.binary.get(name)
         img = EMAN2.EMData()
@@ -143,7 +135,14 @@ class EMAN2Convert(View):
             img.process_inplace("normalize")            
         
         outfile = tempfile.NamedTemporaryFile(delete=False, suffix='.%s'%format)
-        img.write_image(str(outfile.name))
+
+        # Handle as a string for now...
+        if depth == '8':
+            img['render_min'] = -1
+            img['render_max'] = 256
+            img.write_image(str(outfile.name), -1, EMAN2.EMUtil.ImageType.IMAGE_UNKNOWN, False, None, EMAN2.EMUtil.EMDataType.EM_UCHAR, False)
+        else:            
+            img.write_image(str(outfile.name))
 
         filename = os.path.splitext(bdo.filename)[0]
         filename = '%s.%s'%(filename, format)
