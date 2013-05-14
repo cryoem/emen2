@@ -141,7 +141,6 @@ class Download(View):
         request.setHeader('Content-Disposition', 'attachment; filename=archive-%s.tar'%t)
         request.setHeader('Content-Type', 'application/x-tar')
         request.setHeader('Content-Encoding', 'application/octet-stream')
-
         a = twisted.web.static.NoRangeStaticProducer(request, TarPipe(files))
         a.start()
         
@@ -171,7 +170,6 @@ class TarPipe(object):
         
         # print "Adding %s: %s... %s files left"%(key, filename, len(self.files))
         self.tarfile.add(key, arcname=filename)
-
         self.buffer.seek(0)
 
     def read(self, size=256**2):

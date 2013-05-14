@@ -70,6 +70,7 @@
         },
         
         build: function() {
+            // Todo: less ugly markup.
             this.dialog = $('<div />');
             this.dialog.attr('title', 'Upload Progress');
             var table = $(' \
@@ -318,10 +319,6 @@
             // Key the binaries by parameter
             this.bdomap = this.makebdomap(this.bdos);
 
-            //if (this.bdos.length==0) {
-            //    this.element.append('<h4>There are currently no attachments</h4>');
-            //} else 
-            
             if (this.options.summary || this.options.help) {
                 this.element.append('<h2 class="e2l-cf">Attachments</h2>');
             }
@@ -349,7 +346,6 @@
                 //     "Regular attachment" (file_binary_image), allows multiple attachments
                 //     and is fine for most purposes. Some parameters have special behaviors attached,
                 //     such as Image (file_binary_image), which will show an interactive image preview.
-                // </p><p>
 
                 this.element.append(help);
                 var helper = $('<span class="e2-button e2l-float-right">Help</span>');
