@@ -25,7 +25,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(['email', 'password'])
     attr_protected = emen2.db.dataobject.BaseDBObject.attr_protected | set(['email', 'password'])
     attr_required = set(['email', 'password'])
-    username = property(lambda s:s.name)
 
     def init(self, d):
         super(BaseUser, self).init(d)

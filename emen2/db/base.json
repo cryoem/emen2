@@ -45,9 +45,10 @@
 {"name": "email", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Email"}
 {"name": "privacy", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "desc_short": "User privacy"}
 {"name": "disabled", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Disabled account"}
+// These just exists for validation.
 {"name": "displayname", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Display name"}
-// This just exists for validation.
 {"name": "password", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Password"}
+{"name": "signupinfo", "keytype": "paramdef", "parents": ["core"], "vartype": "dict", "desc_short": "Signup Info"}
 
 // Record
 {"name": "history", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "history", "desc_short": "History"}

@@ -141,10 +141,7 @@ class NewUser(View):
         except Exception, e:
             self.notify('There was a problem creating your account: %s'%e, error=True)
         else:
-            self.simple(content='''
-                <p>Your request for a new account is being processed. You will be notified via email when it is approved.</p>
-                <p>Email: %s</p>
-                '''%(user.email))
+            self.simple(content='''Your request for a new account (%s) is being processed. You will be notified via email when it is approved.'''%(user.email))
 
     @View.add_matcher(r'^/users/queue/$', view='Users', name='queue')    
     def queue(self, action=None, name=None, **kwargs):

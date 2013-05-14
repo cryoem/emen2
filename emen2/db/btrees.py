@@ -923,6 +923,13 @@ class CollectionDB(BaseDB):
             return d
         raise KeyError, "No such key %s"%(key)    
 
+    def _get_data_items(self, txn=None, flags=0):
+        # items() without ctx.
+        for k,v in self.bdb.items(txn=txn, flags=flags):
+            k = self.keyload(key)
+            v = self.dataload(v)
+            yield k,v
+
     ##### Write methods #####
 
     def validate(self, items, ctx=None, txn=None):
@@ -1651,14 +1658,24 @@ class UserDB(CollectionDB):
 
 
 class NewUserDB(CollectionDB):
+    def delete(self, key, ctx=None, txn=None, flags=0):
+        if not ctx.checkadmin():
+            raise emen2.db.exceptions.SecurityError, "Only admin can delete keys."
+        self.bdb.delete(self.keydump(key), txn=txn, flags=flags)
+
     def new(self, *args, **kwargs):
         txn = kwargs.get('txn', None)
         newuser = super(NewUserDB, self).new(*args, **kwargs)
 
         # Check if any pending accounts have this email address
-        for k,v in self._items(txn=txn):
-            if newuser.email == v.email:
-                raise emen2.db.exceptions.ExistingKeyError
+        # for k,v in self._get_data_items(txn=txn):
+        #    if newuser.email == v.email:
+        #        raise emen2.db.exceptions.ExistingKeyError
+
+        # Check  if this email already exists
+        indemail = self.getindex('email', txn=txn)
+        if indemail.get(newuser.email, txn=txn):
+            raise emen2.db.exceptions.ExistingKeyError
 
         # Check if this email already exists
         indemail = self.dbenv["user"].getindex('email', txn=txn)

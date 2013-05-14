@@ -393,7 +393,13 @@ class DB(object):
         """
         # If no ctxid was provided, make an Anonymous Context.
         if ctxid:
-            context = self.contexts_cache.get(ctxid) or self.dbenv._context._get_data(ctxid, txn=txn)
+            if ctxid in self.contexts_cache:
+                context = self.contexts_cache.get(ctxid)
+            try:
+                context = self.dbenv._context._get_data(ctxid, txn=txn)
+            except:
+                # raise SessionError below.
+                pass
         else:
             context = emen2.db.context.AnonymousContext(host=host)
 
@@ -2056,7 +2062,7 @@ class DB(object):
             name = newuser.name
 
             # Delete the pending user
-            self.dbenv["newuser"].delete(name, txn=txn)
+            self.dbenv["newuser"].delete(name, ctx=ctx, txn=txn)
 
             user = self.dbenv["user"].new(name=name, email=newuser.email, password=newuser.password, ctx=ctx, txn=txn)
             # Put the new user
@@ -2069,7 +2075,7 @@ class DB(object):
             childrec = newuser.signupinfo.pop('child', None)
 
             # This gets updated with the user's signup info
-            rec['username'] = name
+            # rec['username'] = name
             rec.update(newuser.signupinfo)
             rec.adduser(name, level=2)
             rec.addgroup("authenticated")
