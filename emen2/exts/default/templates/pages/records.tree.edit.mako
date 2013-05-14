@@ -34,5 +34,5 @@
 
 <form id="sitemaptest" method="post" action="">
     <input type="hidden" name="root" value="${root}" />
-    ${childmap}
+    ${childmap | n,unicode}
 </form>

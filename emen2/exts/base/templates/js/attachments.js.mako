@@ -226,7 +226,6 @@
                 clr(elem, action);
                 elem.progressbar({});
                 emen2.template.image('cancel.png','Cancel').click(function(){xhr.abort()}).appendTo(action);
-                action.append(cancel);                
             }
             xhr.onabort = function(e) {
                 // Retry an aborted upload

@@ -80,11 +80,10 @@
 
 <%def name="infobox(item=None, title=None, body=None, time=None, link=None, autolink=False)">
     <%
-    ROOT = ''
     item = item or dict()    
     if autolink:
-        link = '%s/%s/%s/'%(ROOT, item.get('keytype'), item.get('name'))
-    src = "%s/static/images/%s.png"%(ROOT, item.get('keytype'))
+        link = '%s/%s/%s/'%(ctxt.root, item.get('keytype'), item.get('name'))
+    src = "%s/static/images/%s.png"%(ctxt.root, item.get('keytype'))
     title = title or item.get('desc_short') or item.get('name')
     body = ''
     
@@ -93,7 +92,7 @@
         body = body or item.get('email')
         photo = item.get('userrec', dict()).get('person_photo')
         if photo:
-            src = "%s/download/%s/user.jpg?size=thumb"%(ROOT, photo)
+            src = "%s/download/%s/user.jpg?size=thumb"%(ctxt.root, photo)
 
     elif item.get('keytype') == 'group':
         title = item.get('displayname') or item.get('name')

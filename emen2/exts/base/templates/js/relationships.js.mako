@@ -420,9 +420,9 @@
         build: function() {
             var self = this;
             this.element.empty();
-            if (mode=='parents') {
+            if (this.options.mode == 'parents') {
                 this.element.addClass('e2-tree-parents');
-            } else if (mode == 'children') {
+            } else if (this.options.mode == 'children') {
                 this.element.addClass('e2-tree-children');
             }
             
@@ -445,7 +445,8 @@
                 return
             }
             
-            var li = $('<li />');
+            var li = $('<li />')
+                .attr('data-name', name);
             $('<a />')
                 .attr('href','#')
                 .text(this.getname(this.options.root))

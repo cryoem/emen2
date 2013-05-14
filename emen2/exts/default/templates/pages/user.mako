@@ -130,7 +130,7 @@
     % else:
     
         % if user.userrec.get('person_photo'):
-            <% pf_url = ROOT + "/download/" + user.userrec.get('person_photo') + "/user.jpg" %>
+            <% pf_url = ctxt.root + "/download/" + user.userrec.get('person_photo') + "/user.jpg" %>
             <a class="e2l-float-right" href="${pf_url}"><img src="${pf_url}?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" /></a>
         % endif
     

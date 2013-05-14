@@ -1511,6 +1511,11 @@ class DB(object):
         return self.dbenv[keytype].rel(names, recurse=recurse, rel='children', ctx=ctx, txn=txn)
 
     @publicmethod()
+    @ol('names', output=False)
+    def rel_tree(self, names, recurse=1, keytype="record", rel="children", ctx=None, txn=None):        
+        return self.dbenv[keytype].rel(names, recurse=recurse, rel=rel, tree=True, ctx=ctx, txn=txn)
+
+    @publicmethod()
     @ol('names')
     def rel_rel(self, names, recurse=1, tree=False, rel='children', keytype="record", ctx=None, txn=None):
         return self.dbenv[keytype].rel(names, recurse=recurse, tree=tree, rel=rel, ctx=ctx, txn=txn)

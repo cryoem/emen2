@@ -423,9 +423,7 @@ class Records(View):
             return
             
         self.db.rel.relink(removerels=removerels, addrels=addrels)
-        self.redirect('%s/records/edit/relationships/?root=%s'%(self.ctxt['ROOT'], root), title=self.title, content="Your changes were saved.")
-
-
+        self.redirect('%s/records/edit/relationships/?root=%s'%(self.ctxt.root, root), title=self.title, content="Your changes were saved.")
 
     @View.add_matcher("^/records/edit/$", write=True)
     def edit(self, *args, **kwargs):

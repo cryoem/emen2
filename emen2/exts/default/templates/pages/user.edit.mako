@@ -21,7 +21,7 @@
                         <td>
 
                             % if user.userrec.get('person_photo'):
-                                <% pf_url = ROOT + "/download/" + user.userrec.get('person_photo') + "/user.jpg" %>
+                                <% pf_url = ctxt.root + "/download/" + user.userrec.get('person_photo') + "/user.jpg" %>
                                 <a href="${pf_url}"><img src="${pf_url}?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" /></a>
                                 <input type="hidden" name="person_photo" value="${user.userrec.get('person_photo')}" />
                             % else:
