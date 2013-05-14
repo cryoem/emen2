@@ -57,8 +57,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 		page.EditControl({});
 	});
 
-
-
     // Permissions editor
     tab.TabControl('setcb','permissions', function(page) {
         $('#e2-permissions', page).PermissionsControl({

@@ -365,7 +365,7 @@
                 if (rec['children'].length) {
                     sum2.append(' There may be additional attachments in child records: ');
                     var a = $('<a />')
-                    a.attr('href', ROOT+'/record/'+$.escape(this.options.name)+'/query/attachments/');
+                    a.attr('href', emen2.template.uri(['record', this.options.name, 'query', 'attachments']))
                     a.text('view all attachments in child records.');
                     a.appendTo(sum2);
                 }

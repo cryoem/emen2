@@ -13,10 +13,8 @@
     $('#e2-relationships').RelationshipControl({
         edit: ${edit | n,jsonencode}
     });
-
     $('.e2-tree').TreeControl({'attach':true});
     $('#recorddef-views').TabControl();
-
 </%block>
 
 <%block name="precontent">

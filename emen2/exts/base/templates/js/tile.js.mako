@@ -19,23 +19,34 @@
                 this.options.bdo = this.element.attr('data-bdo');
             }
             this.element.attr('data-bdo', this.options.bdo);            
-            
             if (this.options.show) {
                 this.show();
             }
         },
         
-        show: function() {
+        show: function(retry) {
             var self = this;
-            this.element.append(emen2.template.spinner());
+            this.element.empty();
+            
+            if (retry==null) {retry = 0}
+            if (retry > 5) {
+                $('<p />')
+                    .text('Error getting tiles!')
+                    .appendTo(this.element);
+                return
+            }
+
+            emen2.template.spinner().appendTo(this.element);
+            
             // Get the details about this image
+            // TODO: Give a different HTTP response code for generating tiles
+            // vs. actual error.
             $.ajax({
                 type: 'POST',
-                url: ROOT+'/preview/'+escape(this.options.bdo)+'/header/',
+                url: emen2.template.uri(['preview', this.options.bdo, 'header']),
                 dataType: 'json',
                 success: function(d) {
                     self.element.empty();
-                    // $('.e2l-spinner', self.element).remove();
                     self.options.nx = d['nx'];
                     self.options.ny = d['ny'];
                     self.options.filename = d['filename'];
@@ -43,26 +54,24 @@
                     self.build();
                 },
                 error: function(x,y,z) {
-                    $('.e2l-spinner', self.element).remove();
                     self.element.empty();
-                    self.element.append('<p style="text-align:center">'+emen2.template.spinner(true)+' Waiting for tiles...</p>');
-                    setTimeout(function(){self.show()}, 2000);
-
+                    $('<p />')
+                        .text('Waiting for tiles...')
+                        .prepend(emen2.template.spinner(true))
+                        .appendTo(self.element);
+                    setTimeout(function(){self.show(retry+1)}, 5000);
                 }
             });
         },
 
-        
         build: function() {
             var self = this;
-            this.inner = $('<div style="position:relative;top:0px;left:0px" />');
-            this.element.append(this.inner);
+            this.inner = $('<div />')
+                .css('position', 'relative')
+                .css('top', 0)
+                .css('left', 0)
+                .appendTo(this.element);
 
-            this.element.attr('data-bdo', this.options.bdo);            
-
-            // Set the display mode
-            this.setdisplaymode(this.options.displaymode);
-            
             // Drag handler
             this.inner.draggable({
                 drag:function(){
@@ -72,6 +81,9 @@
                     self.recalc();
                 }
             });
+
+            // Set the display mode
+            this.setdisplaymode(this.options.displaymode);
             
             // Click handler
             // this.inner.click(function(e) {
@@ -79,95 +91,156 @@
             //     parentpos = self.inner.position();
             //     var x = (e.clientX - parentpos.left) * self.options.scale;
             //     var y = (e.clientY - parentpos.top) * self.options.scale;
-            //     $('div[data-bdo='+escape(self.options.bdo)+']').Boxer('addbox', x, y); // callback to the Boxer controller
+            //     $('div[data-bdo='+$.escape(self.options.bdo)+']').Boxer('addbox', x, y); // callback to the Boxer controller
             // });
             
-            this.build_controls();
+            this.build_controls().appendTo(this.element);
             
         },
         
         build_controls: function() {                
             // Controls
             var self = this;            
-            var apix = null; //emen2.caches['record'][this.options.name]['angstroms_per_pixel'];
-            if (!apix) {
-                apix = 1.0;
+            try {
+                var apix = emen2.caches['record'][this.options.name]['angstroms_per_pixel'];                
+            } catch(error) {
+                var apix = 1.0; 
             }
 
-            var controls = $('<div class="e2-tile-controls"> \
-                <h4 class="e2l-label">Image</h4> \
-                <input type="button" name="zoomout" value="-" /> \
-                <input type="button" name="zoomin" value="+" /><br /> \
-                <input type="button" name="autocenter" value="Center" /><br /> \
-                <a class="e2-button" href="'+ROOT+'/download/'+escape(self.options.bdo)+'/'+escape(self.options.filename)+'">Download</a><br /> \
-                <button name="convert">Convert</button> \
-                <h4 class="e2l-label">Mode</h4> \
-                <div style="text-align:left"> \
-                <input type="radio" name="displaymode" value="image" id="displaymode_image" checked="checked" /><label for="displaymode_image"> Image</label><br /> \
-                <input type="radio" name="displaymode" value="pspec" id="displaymode_pspec" /><label for="displaymode_pspec"> FFT</label><br /> \
-                <input type="radio" name="displaymode" value="1d" id="displaymode_1d" /><label for="displaymode_1d"> 1D</label> <br />\
-                <input type="text" name="apix" value="'+escape(apix)+'" size="1" /> \
-                <span class="e2l-small">A/px</span><br /> \
-                </div> \
-            </div>');
+            var controls = $('<div />')
+                .addClass('e2-tile-controls');
+                    
+            // Zoom in, zoom out, recenter
+            $('<h4 />')
+                .addClass('e2l-label')
+                .text('Image')
+                .appendTo(controls);
+            
+            $('<input type="button" />')
+                .val('-')
+                .click(function() {self.zoomout()})
+                .appendTo(controls);
 
-            this.element.append(controls);            
+            $('<input type="button" />')
+                .val('+')
+                .click(function() {self.zoomin()})
+                .appendTo(controls);
+            $('<br />').appendTo(controls);
 
-            controls.find("input[name=displaymode]").click(function() {
-                self.setdisplaymode($(this).val());
-            });
-            controls.find("input[name=zoomin]").click(function() {
-                self.zoomin();
-            });
-            controls.find("input[name=zoomout]").click(function() {
-                self.zoomout();
-            });            
-            controls.find("input[name=autocenter]").click(function() {
-                self.autocenter();
-            });            
-            controls.find("input[name=apix]").change(function() {
-                if (self.options.displaymode == '1d') {
-                    self.setdisplaymode('1d')
-                }
-            });
-            controls.find('button[name=convert]').click(function() {
-                self.convertdialog();
-            })
+            $('<input type="button" />')
+                .val('Center')
+                .click(function() {self.autocenter()})
+                .appendTo(controls);
+            $('<br />').appendTo(controls);
+            
+            // Download and convert    
+            $('<a />')
+                .addClass('e2-button')
+                .attr('href', emen2.template.uri(['download', this.options.body, this.options.filename]))
+                .text('Download')
+                .appendTo(controls);
+            $('<br />').appendTo(controls);
+            
+            $('<input type="button" />')
+                .val('Convert')
+                .click(function() {self.convertdialog()})                
+                .appendTo(controls);
+            $('<br />').appendTo(controls);
+
+            // Mode select
+            $('<h4 />')
+                .addClass('e2l-label')
+                .text('Mode')
+                .appendTo(controls);
+
+            $('<input type="radio" />')
+                .attr('id', 'e2-tile-display-image')
+                .attr('name', 'displaymode')
+                .val('image')
+                .click(function() {self.setdisplaymode($(this).val())})
+                .appendTo(controls);
+            $('<label />')
+                .attr('for', 'e2-tile-display-image')
+                .text('Image')
+                .appendTo(controls);
+            $('<br />').appendTo(controls);
+
+            $('<input type="radio" />')
+                .attr('id', 'e2-tile-display-pspec')
+                .attr('name', 'displaymode')
+                .val('pspec')
+                .click(function() {self.setdisplaymode($(this).val())})
+                .appendTo(controls);
+            $('<label />')
+                .attr('for', 'e2-tile-display-pspec')
+                .text('FFT')
+                .appendTo(controls);
+            $('<br />').appendTo(controls);
+
+            $('<input type="radio" />')
+                .attr('id', 'e2-tile-display-1d')
+                .attr('name', 'displaymode')
+                .val('1d')
+                .click(function() {self.setdisplaymode($(this).val())})
+                .appendTo(controls);
+            $('<label />')
+                .attr('for', 'e2-tile-display-1d')
+                .text('1D')
+                .appendTo(controls);
+            $('<br />').appendTo(controls);
+
+            // Apix
+            $('<input type="text" />')
+                .attr('name', 'apix')
+                .attr('size', 1)
+                .val(apix)
+                .change(function() {
+                    if (self.options.displaymode == '1d') {
+                        self.setdisplaymode('1d')
+                    }
+                })
+                .appendTo(controls);
+            $('<span />')
+                .addClass('e2l-small')
+                .text('A/px')
+                .appendTo(controls);
+            return controls
         },
         
         convertdialog: function() {
             var self = this;
             var dialog = $(' \
                 <div> \
-                <form method="post" action="'+ROOT+'/eman2/'+escape(self.options.bdo)+'/convert/"> \
-                    <h4>Format</h4> \
-                    <ul class="e2l-nonlist"> \
-                        <li><input type="radio" name="format" value="tif" id="format-tif" checked="checked"  /><label for="format-tif"> TIFF</label></li> \
-                        <li><input type="radio" name="format" value="png" id="format-png"  /><label for="format-png"> PNG</label></li> \
-                        <li><input type="radio" name="format" value="jpg" id="format-jpg" /><label for="format-jpg"> JPEG</label></li> \
-                    </ul> \
-                    <h4>Options</h4> \
-                    <ul class="e2l-nonlist"> \
-                        <li><input type="checkbox" name="normalize" id="options-normalize" checked="checked"><label for="options-normalize"> Normalize</label></li> \
-                        <li><input type="checkbox" name="depth" value="8" id="options-depth" checked="checked"><label for="options-depth"> 8-bit</label></li> \
-                    </ul> \
-                </form> \
-            </div>');
-            dialog.dialog({
-                autoOpen: true,
-                modal: true,
-                resizable: false,
-                draggable: false,
-                width: 400,
-                height: 400,
-                title: 'Convert '+this.options.filename,
-                buttons: {
-                    'Download': function() {
-                        $('form', this).submit();
-                        //$(this).dialog('close');
+                    <form method="post" action=""> \
+                        <h4>Format</h4> \
+                        <ul class="e2l-nonlist"> \
+                            <li><input type="radio" name="format" value="tif" id="format-tif" checked="checked"  /><label for="format-tif"> TIFF</label></li> \
+                            <li><input type="radio" name="format" value="png" id="format-png"  /><label for="format-png"> PNG</label></li> \
+                            <li><input type="radio" name="format" value="jpg" id="format-jpg" /><label for="format-jpg"> JPEG</label></li> \
+                        </ul> \
+                        <h4>Options</h4> \
+                        <ul class="e2l-nonlist"> \
+                            <li><input type="checkbox" name="normalize" id="options-normalize" checked="checked"><label for="options-normalize"> Normalize</label></li> \
+                            <li><input type="checkbox" name="depth" value="8" id="options-depth" checked="checked"><label for="options-depth"> 8-bit</label></li> \
+                        </ul> \
+                    </form> \
+                </div>')
+                .dialog({
+                    autoOpen: true,
+                    modal: true,
+                    resizable: false,
+                    draggable: false,
+                    width: 400,
+                    height: 400,
+                    title: 'Convert '+this.options.filename,
+                    buttons: {
+                        'Download': function() {
+                            $('form', this).submit();
+                        }
                     }
-                }
-            });    
+                });    
+            
+            $('form', dialog).attr('action', emen2.template.uri(['eman2', this.options.bdo, 'convert']))
         },
         
         setdisplaymode: function(mode) {
@@ -180,22 +253,17 @@
             $('.e2-tile-pspec1d', this.element).remove();
 
             if (mode=="image") {
-                // Tiled image
-                this.inner.show();
-                this.options.scale = this.autoscale();
-                this.setscale(this.options.scale);
-                this.autocenter();
+                // Tiles
+                this.plotimage();
             } else if (mode == "pspec") {
-                // Draw 2D FFT
-                var modeimg = $('<img class="e2-tile-pspec" src="'+ROOT+'/preview/'+escape(this.options.bdo)+'/pspec/" alt="pspec" />');
-                var w = this.element.width() / 2;
-                modeimg.css('margin-left', w-256);
-                this.element.append(modeimg);            
+                // 2D FFT
+                this.plot2d();
             } else if (mode == "1d") {
+                // 1D avg FFT
                 var apix = $('input[name=apix]', this.element).val();
                 $.ajax({
                     type: 'POST',
-                    url: ROOT+'/preview/'+escape(this.options.bdo)+'/pspec1d/',
+                    url: emen2.template.uri(['preview', this.options.bdo, 'pspec1d']),
                     dataType: 'json',
                     success: function(d) {
                         self.plot1d(d, apix);
@@ -203,6 +271,24 @@
                 });
 
             }
+        },
+        
+        plotimage: function() {
+            // Tiled image
+            this.inner.show();
+            this.options.scale = this.autoscale();
+            this.setscale(this.options.scale);
+            this.autocenter();
+        },
+        
+        plot2d: function() {
+            // Draw 2D FFT
+            var w = this.element.width() / 2;
+            $('<img />')
+                .addClass('e2-tile-pspec')
+                .attr('src', emen2.tempalte.uri(['preview', this.options.bdo, 'pspec']))
+                .css('margin-left', w-256)
+                .appendTo(this.element);
         },
 
         plot1d: function(d, apix) {
@@ -215,26 +301,30 @@
             }
 
             // Plot.
-            var plot = $('<div class="e2-tile-pspec1d"></div>')
-            plot.css('width', 512);
-            plot.css('height', 512);
-            
             var w = this.element.width() / 2;
-            plot.css('margin-left', w-256);
-            
-            plot.append('<strong class="e2-tile-pspec1d">Spatial freq. (1/A) vs. Log Intensity (10^x). A/pix set to '+escape(apix)+'</strong>');            
-            var plotelem = $('<div class="e2-plot"></div>');
-            plot.append(plotelem);
-            this.element.append(plot);
 
-            plotelem.PlotLine({
-                height: 512,
-                q: {
-                    recs:recs,
-                    x: {key: 'x'},
-                    y:  {key: 'y'}
-                }
-            });            
+            var plot = $('<div />')
+                .addClass('e2-tile-pspec1d')
+                .css('width', 512)
+                .css('height', 512)
+                .css('margin-left', w-256)
+                .appendTo(this.element);
+            
+            $('<strong />')
+                .text('Spatial freq. (1/A) vs. Log Intensity (10^x). A/pix set to '+apix)
+                .appendTo(plot);
+            
+            $('<div />')
+                .addClass('e2-plot')
+                .appendTo(plot)
+                .PlotLine({
+                    height: 512,
+                    q: {
+                        recs:recs,
+                        x: {key: 'x'},
+                        y:  {key: 'y'}
+                    }
+                });            
         },
 
         autoscale: function(refresh) {
@@ -311,8 +401,9 @@
             return [(this.element.width() / 2) * this.options.scale, (this.element.height() / 2) * this.options.scale]
         },
 
-        get_tile: function(x, y) {
-            return ROOT+'/preview/'+escape(this.options.bdo)+'/tiles/?x='+escape(x)+'&y='+escape(y)+'&scale='+escape(this.options.scale);
+        get_tile: function(x, y) {            
+            var q = {'x':x, 'y':y, 'scale':this.options.scale}
+            return emen2.templates.uri(['preview', this.options.bdo, 'tiles'], q);
         },
         
         recalc: function() {
@@ -346,28 +437,26 @@
                 for (var y = bounds[1]; y <= bounds[3]; y++) {
                     // Check if the tile exits; if not, add it.
                     // console.log("tile:", x, y);
+                    // Coordinate system inverted
+                    var top = (this.options.ny - y*this.options.size*this.options.scale) / this.options.scale - this.options.size;
                     var id = 'tile-'+this.options.scale+'-'+x+'-'+y;
                     var img = document.getElementById(id);
                     if (!img) {
-                        // console.log("Building:", x, y);
-                        var src = this.get_tile(x,y);
-                        var img = $('<img src="'+escape(src)+'" id="'+escape(id)+'" alt="Tile x:'+escape(x)+' y:'+escape(y)+'" />');
-                        // Coordinate system inverted
-                        var top = (this.options.ny - y*this.options.size*this.options.scale) / this.options.scale - this.options.size;
-                        // img.css('border', 'solid red 1px');
-                        img.css('position', 'absolute');
-                        img.css('width', this.options.size);
-                        img.css('height', this.options.size);                    
-                        img.css('left', x * this.options.size);
-                        img.css('top', top);
-                        this.inner.append(img);                            
+                        $('<img />')
+                            .attr('src', this.get_tile(x,y))
+                            .attr('id', id)
+                            .attr('alt', 'x:'+x+' y:'+y)                        
+                            .css('position', 'absolute')
+                            .css('width', this.options.size)
+                            .css('height', this.options.size)                   
+                            .css('left', x * this.options.size)
+                            .css('top', top)
+                            .appendTo(this.inner);
                     }                    
                 }
             }
-        },
-
-    });
-    
+        }
+    });    
 })(jQuery);
 
 

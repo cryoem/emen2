@@ -930,7 +930,7 @@
             $('<input type="checkbox" />')
                 .attr('id', 'e2-plot-y-cumulative')
                 .attr('name', 'cumulative')
-                .attr('checked', this.options.cumulative);
+                .attr('checked', this.options.cumulative)
                 .appendTo(o);
             $('<label />')
                 .attr('for', 'e2-plot-y-cumulative')

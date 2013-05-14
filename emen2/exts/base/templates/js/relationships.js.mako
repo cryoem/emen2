@@ -103,7 +103,7 @@
             this.build_summary_label(children, 'children').appendTo(summary);
             $('<span />').text('. Click to ').appendTo(summary);
             $('<a />')
-                .attr('href', ROOT+'/records/?root='+$.escape(this.options.name))
+                .attr('href', emen2.template.uri(['records'], {'root':this.options.name}))
                 .text('view the record tree.')
                 .appendTo(summary);
             return summary        
@@ -451,7 +451,7 @@
                 .text(this.getname(this.options.root))
                 .appendTo(li);
 
-            var src = 'bg.open.'+$.escape(this.options.mode)+'.png'
+            var src = 'bg.open.'+this.options.mode+'.png'
             emen2.template.image(src, '+', 'e2-tree-expand')
                 .appendTo(li);
             li.wrap('<ul />');
@@ -483,7 +483,7 @@
             sortkeys.reverse();            
 
             // Set the image to expanded
-            var src = ROOT+'/static-'+$.escape(VERSION)+'/images/bg.close.'+$.escape(this.options.mode)+'.png';
+            var src = emen2.template.static(['images', 'bg.close.'+this.options.mode+'.png']);
             var img = elem.find('img.e2-tree-expand');
             img.addClass('e2-tree-expanded');
             img.attr('src', src);
@@ -504,12 +504,12 @@
                     .appendTo(ul);
 
                 $('<a />')
-                    .attr('href', ROOT+'/'+$.escape(self.options.keytype)+'/'+$.escape(this)+'/')
+                    .attr('href', emen2.template.uri([self.options.keytype, this]))
                     .text(self.getname(this)) // make sure to use .text()!
                     .appendTo(li);
                 
                 if (emen2.caches[self.options.mode][this] && self.options.expandable) {
-                    emen2.template.image('bg.open.'+$.escape(self.options.mode)+'.png')
+                    emen2.template.image('bg.open.'+self.options.mode+'.png')
                         .addClass('e2-tree-expand')
                         .appendTo(li);
                 }
@@ -531,7 +531,7 @@
             var name = (name == null) ? elem.attr('data-name') : name; 
 
             // Show activity indicator
-            var src = ROOT+'/static-'+$.escape(VERSION)+'/images/spinner.gif'
+            var src = emen2.template.static(['images', 'spinner.gif']);
             var img = elem.children('img.e2-tree-expand');
             img.attr('src', src); 
             
@@ -558,7 +558,7 @@
             var elem = $(elem);            
             if (elem.hasClass('e2-tree-expanded')) {
                 // Contract this branch
-                var src = ROOT+'/static-'+$.escape(VERSION)+'/images/bg.open.'+$.escape(this.options.mode)+'.png';
+                var src = emen2.template.static(['images', 'bg.open.'+this.options.mode+'.png']);
                 elem.removeClass('e2-tree-expanded');
                 elem.siblings('ul').remove();
                 elem.attr('src', src);

@@ -114,9 +114,9 @@
             form.attr('data-name', this.options.name);
             
             // Set the form action.
-            var action_alt = ROOT+'/record/'+$.escape(this.options.parent)+'/new/'+$.escape(this.options.rectype)+'/';
+            var action_alt = emen2.template.uri(['record', this.options.parent, 'new', this.options.rectype]);
             if (this.options.mode == 'edit') {
-                var action_alt = ROOT+'/record/'+$.escape(this.options.name)+'/edit/';
+                var action_alt = emen2.template.uri(['record', this.options.name, 'edit']);
             }
             var action = this.options.action || this.element.attr('data-action') || action_alt;
             form.attr('action', action);
@@ -457,21 +457,27 @@
         makebody: function(events) {
             var comments = $('<div />');
             $.each(events, function(i, e) {
-                var row = $('<div />');
+                var row = $('<div />').appendTo(comments);
                 if (e.length == 3) {
-                    row.text(e[2]);
                     row.prepend(emen2.template.image('comment.closed.png'));
+                    row.text(e[2]);
                     row.appendTo(comments);
                 } else if (e.length == 4) {
                     var pdname = e[2];
-                    if (emen2.caches['paramdef'][pdname]){pdname=emen2.caches['paramdef'][pdname].desc_short}
+                    if (emen2.caches['paramdef'][pdname]){
+                        pdname=emen2.caches['paramdef'][pdname].desc_short
+                    }
                     emen2.template.image('edit.png').appendTo(row);
                     row.append('Edited ' );
-                    $('<a />').attr('href', ROOT+'/paramdef/'+$.escape(e[2])).text(pdname).appendTo(row)
+                    $('<a />')
+                        .attr('href', emen2.template.uri(['paramdef', e[2]]))
+                        .text(pdname)
+                        .appendTo(row);
                     row.append('. Previous value was: ');
-                    $('<span />').text(e[3]).appendTo(row);
+                    $('<span />')
+                        .text(e[3] || "None")
+                        .appendTo(row);
                 }
-                row.appendTo(comments);
             });
             return comments
         },
@@ -480,7 +486,8 @@
             // Should probably just make this a POST form.
             var self = this;
             emen2.db('record.addcomment', [this.options.name, $('textarea[name=comment]', this.options.controls).val()], function(rec) {
-                $.record_update(rec)
+                emen2.caches['record'][rec.name] = rec;
+                self.rebuild();
             });
         }
     });    	

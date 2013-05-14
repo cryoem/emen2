@@ -152,7 +152,6 @@
             // <li class="e2-permissions-advanced e2l-hide"><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label></li> \
             // Show/hide advanced options
             // $('.e2-permissions-caret', controls).click(function(){
-            //     emen2.template.caret('toggle', self.options.controls);
             //     $('.e2-permissions-advanced', self.options.controls).toggle();
             // });
             // $('input[name=add]', controls).click(function(){self.save('add')})

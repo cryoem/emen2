@@ -12,9 +12,10 @@
     // Add choices
     $('.e2-paramdef-addchoices').click(function(){
         var elem = $(this);
-        elem.parent().before('<li><input type="text" name="choices" value="" /></li>');
-        elem.parent().before('<li><input type="text" name="choices" value="" /></li>');
-        elem.parent().before('<li><input type="text" name="choices" value="" /></li>');
+        for (var i=0;i<3;i++) {
+            var j = $('<input type="text" />').attr('name', 'choices');
+            $('<li />').append(j).insertBefore(elem.parent());
+        }
     })
     
     $('.e2-tree').TreeControl({'attach':true});

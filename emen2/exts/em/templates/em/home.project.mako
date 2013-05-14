@@ -16,10 +16,7 @@ import collections
         height:200,
     }, $('#recent_activity'));
     plot.z.build_legend($("#e2l-sidebar-activity-users"));
-    
-    
     $('#e2l-sidebar-project-children').TabControl();
-
 </%block>
 
 <%block name="css_inline">

@@ -9,7 +9,6 @@ import jsonrpc.jsonutil
 
 <%block name="js_ready">
     ${parent.js_ready()}
-
     ## Recent activity viewer
     var q = ${recent_activity | n,jsonencode};
     $('#recent_activity').PlotHistogram({

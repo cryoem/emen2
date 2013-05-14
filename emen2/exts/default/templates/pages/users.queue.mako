@@ -4,9 +4,8 @@
 
 <%block name="js_ready">
     ${parent.js_ready()}
-    
     $('input[name=all]').click(function(){
-        $('input[value='+$(this).val()+']').attr('checked', true);
+        $('input[value='+$.escape((this).val())+']').attr('checked', true);
     });
 </%block>
 

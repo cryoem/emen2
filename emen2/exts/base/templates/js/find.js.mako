@@ -108,8 +108,14 @@
 			}
 
             // The body
-            // Todo: Build the body as an element in _build...
-            $('<p />').text(this.options.body).appendTo(this.element);
+            // this is kindof hacky...
+            if (typeof(this.options.body) == "object") {
+                this.element.append(this.options.body);
+            } else {
+                $('<p />')
+                    .text(this.options.body || '')
+                    .appendTo(this.element);
+            }
 
             // Put it all together..
             this.options.built();
@@ -119,11 +125,15 @@
             this.options.title = this.options.title || item.displayname || item.name;
             this.options.body = this.options.body || item.email;
             if (item['person_photo']) {
-				this.options.thumbnail = ROOT+'/download/'+$.escape(item.userrec['person_photo'])+'/user.jpg?size=thumb';
+                this.options.thumbnail = emen2.template.uri(['download', item.userrec['person_photo'], 'user.jpg'], {'size':'thumb'});
 			}
 		},
 		
 		_build_recorddef: function(item) {
+			this.options.title = this.options.title || item.desc_short;
+		},
+
+		_build_paramdef: function(item) {
 			this.options.title = this.options.title || item.desc_short;
 		},
         
@@ -156,8 +166,8 @@
             }
 			this.options.title = title;
 			this.options.body = 'Uploaded on '+$.localize(new Date(item.creationtime));
-            this.options.thumbnail = ROOT+'/download/'+$.escape(item.name)+'/user.jpg?size=thumb';
-			this.options.link = ROOT+'/download/'+$.escape(item.name)+'/'+$.escape(item.filename);
+            this.options.thumbnail = emen2.template.uri(['download', item.name, 'thumb.jpg'], {'size':'thumb'});
+            this.options.link = emen2.template.uri(['download', item.name, item.filename]);
 		},
         
         toggle: function(e) {
@@ -317,7 +327,7 @@
             var self = this;
             if (q.length < this.options.minimum) {
                 self.resultsarea.empty();
-                self.statusmsg.text('Minimum '+escape(this.options.minimum)+' characters');
+                self.statusmsg.text('Minimum '+this.options.minimum+' characters');
                 return
             }
             

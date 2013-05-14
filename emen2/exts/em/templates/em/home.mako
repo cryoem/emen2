@@ -11,9 +11,7 @@ import collections
 <%block name="js_ready">
     ${parent.js_ready()}
 
-    $('.e2-record-new').RecordControl({
-    //    redirect:window.location.pathname
-    });
+    $('.e2-record-new').RecordControl({});
 
     $('.e2-record-edit').RecordControl({
         redirect:window.location.pathname
