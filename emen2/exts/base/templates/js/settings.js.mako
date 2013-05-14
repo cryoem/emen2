@@ -16,7 +16,7 @@ for k,v in emen2.db.properties.Property.registered.items():
     properties[k] = [v.defaultunits, v.units]
 %>
 
-## Don't forget to disable escaping with | n
+## These might need stronger escaping.
 var ROOT = ${ctxt.root | n,jsonencode};
 var VERSION = ${ctxt.version | n,jsonencode};
 var valid_properties = ${properties | n,jsonencode};
