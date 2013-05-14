@@ -151,7 +151,6 @@ class EMAN2Convert(View):
         filename = '%s.%s'%(filename, format)
         return filename, outfile.name
 
-
     def render_result(self, result, request, t=0, **_):
         filename, filepath = result
         mimetype, encoding = twisted.web.static.getTypeAndEncoding(filename, self.contentTypes, self.contentEncodings, self.defaultType)
