@@ -1,5 +1,5 @@
 # $Id$
-"""EMEN2: An object-oriented scientific database."""
+"""EMEN2: An extesible electronic lab notebook and database."""
 
 def opendb(**kwargs):
     """Open a database."""

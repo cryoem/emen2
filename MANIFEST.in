@@ -1,1 +1,3 @@
 graft twisted
+include LICENSE.txt
+include README.txt

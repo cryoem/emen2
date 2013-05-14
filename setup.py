@@ -10,14 +10,12 @@ if __name__ == "__main__":
         'emen2',
         'emen2.db',
         'emen2.web',
-        'emen2.util',
-        # 'twisted'
+        'emen2.util'
         ]
         
-    package_data = {            
+    package_data = {        
         'emen2.db': ['config.base.json', 'skeleton.json', 'base.json', 'bulk.c'],
-        'emen2.web': ['static/*.*', 'static/*/*.*', 'static/*/*/*.*', 'static/*/*/*/*.*'],
-        # 'twisted': ['plugins/emen2_plugin.py'] #emen2_plugin.py
+        'emen2.web': ['static/*.*', 'static/*/*.*', 'static/*/*/*.*', 'static/*/*/*/*.*']
     }
     
     scripts = ['scripts/emen2ctl']
@@ -31,7 +29,7 @@ if __name__ == "__main__":
     setup(
         name='emen2',
         version=emen2.__version__,
-        description='EMEN2 Object-Oriented Scientific Database',
+        description='EMEN2: An extesible electronic lab notebook and database.',
         author='Ian Rees',
         author_email='ian.rees@bcm.edu',
         url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',

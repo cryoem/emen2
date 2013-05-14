@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # $Id$
-
 import traceback
 import thread
 import os.path
@@ -93,7 +92,6 @@ class WebServerOptions(emen2.db.config.DBOptions):
         ['https', None, 'Use HTTPS']
     ]
 
-
 class EMEN2Site(twisted.web.server.Site):
     def log(self, request):
         # rfc identd used for client supplied session ID
@@ -116,8 +114,6 @@ class EMEN2Site(twisted.web.server.Site):
             self._escape(request.getHeader("user-agent") or "-"))
 
         emen2.db.log.web(line)
-
-
 
 class EMEN2BaseServer(object):
 
@@ -166,7 +162,6 @@ class EMEN2BaseServer(object):
         reactor.listenTCP(self.port, self.site)
         reactor.run()
 
-
 class EMEN2RPCServer(EMEN2BaseServer):
     """Only start the RPC server."""
     def attach_resources(self, root):
@@ -174,7 +169,6 @@ class EMEN2RPCServer(EMEN2BaseServer):
         from emen2.web.resource import JSONRPCServerEvents
         root.putChild('jsonrpc', jsonrpc.server.JSON_RPC().customize(JSONRPCServerEvents))
     
-
 class EMEN2WebServer(EMEN2BaseServer):
     """Start the full web server."""
     def attach_resources(self, root):
@@ -194,23 +188,17 @@ class EMEN2WebServer(EMEN2BaseServer):
         root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
         root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
     
-    
-
 def start_standalone():
     opt = emen2.db.config.UsageParser(WebServerOptions)
     server = EMEN2WebServer(opt.options)
     server.start()
-    
     
 def start_rpc():
     opt = emen2.db.config.UsageParser(WebServerOptions)
     server = EMEN2RPCServer(opt.options)
     server.start()
 
-
 if __name__ == "__main__":
     start_standalone()
-
-
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()
