@@ -17,8 +17,6 @@ import jsonrpc.jsonutil
 import emen2.util.listops
 import emen2.db.config
 
-
-
 class CreateOptions(emen2.db.config.DBOptions):
     def parseArgs(self):
         pass

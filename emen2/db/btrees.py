@@ -1204,8 +1204,8 @@ class CollectionDB(BaseDB):
 
         # Update all the record's links
         for item in items:
-            item.__dict__['parents'] = set([namemap.get(i,i) for i in item.parents])
-            item.__dict__['children'] = set([namemap.get(i,i) for i in item.children])
+            item.__dict__['parents'] = set([namemap.get(i,i) for i in item.get('parents', [])])
+            item.__dict__['children'] = set([namemap.get(i,i) for i in item.get('children', [])])
 
         return namemap
 

@@ -34,8 +34,6 @@ class BaseDBObject(object):
     source; presence of the uri attribute will generally mark an item as
     read-only, even to admin users.
 
-    The keytype attribute is set by the BTree storage container.
-
     The parents and children attributes are valid for classes that allow
     relationships (RelateDB). These are treated specially when an item is
     committed: both the parent and the child will be updated.
@@ -522,7 +520,7 @@ class PermissionsDBObject(BaseDBObject):
 
         # Now, check if we can read.
         if not self.readable():
-            raise emen2.db.exceptions.SecurityError, "Permission denied: %s %s"%(self.keytype, self.name)
+            raise emen2.db.exceptions.SecurityError, "Permission denied: %s"%(self.name)
         return True
 
     def getlevel(self, user):

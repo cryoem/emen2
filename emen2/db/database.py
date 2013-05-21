@@ -315,9 +315,9 @@ def setup(db=None, rootpw=None, rootemail=None):
     db = db or opendb(db=db, admin=True)
     with db:
         # Create a root user
-        # if db.user.get('root'):
-        #    print "Admin account already exists!"
-        #    return
+        if db.user.get('root'):
+           print "Admin account and default groups already exist."
+           return
 
         defaultemail = 'root@localhost'
         print "\n=== Setup Admin (root) account ==="
@@ -355,9 +355,7 @@ class DB(object):
 
         :keyword path: Directory containing an EMEN2 Database Environment.
         :keyword create: Create the environment if it does not already exist.
-
         """
-        
         # Check the database environment
         self.path = path or emen2.db.config.get('EMEN2DBHOME')
         self.checkdirs()
@@ -380,39 +378,34 @@ class DB(object):
         return exists
 
     def _getcontext(self, ctxid, host, ctx=None, txn=None):
-        """(Internal) Takes a ctxid key and returns a Context.
+        """(Internal) Get and update user Context.
 
-        This is the only place you should load a Context.
-
-        Note: The host provided must match the host in the Context
+        This is the only place you should load a Context. The host
+        must match the host in the Context
 
         :param ctxid: ctxid
         :param host: host
         :return: Context
         :exception: SessionError
         """
-        # If no ctxid was provided, make an Anonymous Context.
+        context = None
         if ctxid:
             if ctxid in self.contexts_cache:
                 context = self.contexts_cache.get(ctxid)
             try:
                 context = self.dbenv._context._get_data(ctxid, txn=txn)
-            except:
-                # raise SessionError below.
-                pass
+            except KeyError:
+                raise SessionError, "Session expired"
         else:
+            # If no ctxid was provided, make an Anonymous Context.
             context = emen2.db.context.AnonymousContext(host=host)
-
-        # If no ctxid was found, it's an expired context and has already been cleaned out.
+            
+        # If no ctxid was found, it's an invalid or expired Context.
         if not context:
-            emen2.db.log.security("Session expired for %s"%ctxid)
             raise SessionError, "Session expired"
 
-        # ian: todo: check referenced groups, referenced records... (complicated.): #groups
-        user = None
+        # Fetch group memberships.
         grouplevels = {}
-
-        # Fetch the user record and group memberships
         if context.username != 'anonymous':
             indg = self.dbenv["group"].getindex('permissions', txn=txn)
             groups = indg.get(context.username, set(), txn=txn)
@@ -421,18 +414,17 @@ class DB(object):
                 group = self.dbenv["group"]._get_data(group, txn=txn)
                 grouplevels[group.name] = group.getlevel(context.username)
 
-        # Sets the database reference, user record, display name, groups, and updates
-        #    context access time.
+        # Sets the database reference, user record, display name, groups, and updates context access time. This might raise a SessionError if the host has changed.
         context.refresh(grouplevels=grouplevels, host=host, db=self)
-
-        # Keep contexts cached.
+        
+        # Cache Context.
         self.contexts_cache[ctxid] = context
 
         return context
 
     def _sudo(self, username=None, ctx=None, txn=None):
         """(Internal) Create an admin context for performing actions that require admin privileges."""
-        emen2.db.log.security("Temporarily granting user %s administrative privileges"%username)
+        emen2.db.log.security("Created special root context for %s."%username)
         ctx = emen2.db.context.SpecialRootContext()
         ctx.refresh(db=self, username=username)
         return ctx
@@ -722,14 +714,11 @@ class DB(object):
         :return: Auth token (ctxid)
         :exception AuthenticationError: Invalid user username, email, or password
         """
-        # Check the password; user.checkpassword will raise Exception if wrong
+        
+        # Check password; user.checkpassword will raise SecurityError if wrong
         try:
             user = self._user_by_email(username, txn=txn)
-            # Allow admins to login to other accounts.
-            if ctx.checkadmin():
-                pass
-            else:
-                user.checkpassword(password)
+            user.checkpassword(password)
         except SecurityError, e:
             # Both of these errors appear the same to the user,
             # but are logged with the specific reason for
@@ -743,13 +732,11 @@ class DB(object):
         # Create the Context for this user/host
         newcontext = emen2.db.context.Context(username=user.name, host=host)
 
-        # This puts directly, instead of using put.
+        # Put the Context.
         self.dbenv._context._put_data(newcontext.name, newcontext, txn=txn)
         emen2.db.log.security("Login succeeded: %s -> %s" % (newcontext.username, newcontext.name))
-
         return newcontext.name
 
-    # This doesn't work until DB restart (the context isn't immediately cleared)?
     @publicmethod(write=True, compat="logout")
     def auth_logout(self, ctx=None, txn=None):
         """Delete context and logout.
@@ -759,11 +746,8 @@ class DB(object):
         >>> db.auth.logout()
         None
         """
-        # Remove the cached context, and delete the stored one.
         self.contexts_cache.pop(ctx.name, None)
-        # Fix deletion in Collections.
         self.dbenv._context.bdb.delete(ctx.name, txn=txn)
-        # self.dbenv._context.delete(ctx.name, txn=txn)
 
     @publicmethod(compat="checkcontext")
     def auth_check_context(self, ctx=None, txn=None):
@@ -1216,7 +1200,7 @@ class DB(object):
         names.extend(other)
         recs.extend(self.dbenv[keytype].gets(names, ctx=ctx, txn=txn))
 
-        # Allow rendering of dictionaries
+        # If input is a dict, make DBO.
         for newrec in newrecs:
             rec = self.dbenv[keytype].new(ctx=ctx, txn=txn, **newrec) 
             rec.update(newrec)
@@ -2868,12 +2852,12 @@ class DB(object):
     def binary_put(self, items, ctx=None, txn=None):
         """Add or update a Binary (file attachment).
 
-        For new items, data must be supplied using with either
-        bdo.get('filedata') or bdo.get('fileobj').
+        For new items, data may be supplied using with either
+        bdo['filedata'] or bdo['fileobj']
 
         The contents of a Binary cannot be changed after uploading. The file
-        size and md5 checksum will be calculated as the file is written to
-        binary storage. Any attempt to change the contents raise a
+        size and md5 checksum will be calculated as the file is written. 
+        Any attempt to change the contents raise a
         SecurityError. Not even admin users may override this.
 
         Examples:
@@ -2940,8 +2924,6 @@ class DB(object):
         :keyword boolmode: AND / OR for each search constraint (default: AND)
         :return: Binaries
         """
-        # @keyword min_filesize
-        # @keyword max_filesize
         def searchfilenames(filename, txn):
             ind = self.dbenv["binary"].getindex('filename', txn=txn)
             ret = set()

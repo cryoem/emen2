@@ -36,6 +36,7 @@
                 return
             }
 
+            // Loading animation.
             emen2.template.spinner().appendTo(this.element);
             
             // Get the details about this image
