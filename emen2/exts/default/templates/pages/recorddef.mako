@@ -187,12 +187,12 @@
         <table class="e2l-kv">
             <tr>
                 <td>Created:</td>
-                <td><a href="${ctxt.root}/user/${recorddef.creator}">${recorddef.creator}</a> @ <time class="e2-localize" datetime="${recorddef.creationtime}">${recorddef.creationtime}</time></td>
+                <td><a href="${ctxt.root}/user/${recorddef.creator}">${displaynames.get(recorddef.creator, recorddef.creator)}</a> @ <time class="e2-localize" datetime="${recorddef.creationtime}">${recorddef.creationtime}</time></td>
             </tr>
 
             <tr>
                 <td>Modified:</td>
-                <td><a href="${ctxt.root}/user/${recorddef.modifyuser}">${recorddef.modifyuser}</a> @ <time class="e2-localize" datetime="${recorddef.modifytime}">${recorddef.modifytime}</time></td>
+                <td><a href="${ctxt.root}/user/${recorddef.modifyuser}">${displaynames.get(recorddef.modifyuser, recorddef.modifyuser)}</a> @ <time class="e2-localize" datetime="${recorddef.modifytime}">${recorddef.modifytime}</time></td>
             </tr>
         </table>
     </%buttons:singlepage>

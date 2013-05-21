@@ -70,11 +70,17 @@ class RecordDef(View):
 
         parentmap = self.routing.execute('Tree/embed', db=self.db, keytype='recorddef', root=self.recorddef.name, mode='parents', recurse=3)
 
+        users = set()
+        users.add(self.recorddef.creator)
+        users.add(self.recorddef.modifyuser)
+        displaynames = dict((i.name, i.displayname) for i in self.db.user.get(users))
+
         self.ctxt.update(dict(
             parentmap = parentmap,
             editable = self.recorddef.writable(),
             create = self.db.auth.check.create(),
             recorddef = self.recorddef,
+            displaynames = displaynames,
             edit = False,
             new = False,
         ))
