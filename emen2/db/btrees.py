@@ -64,10 +64,9 @@ set_lg_bsize 2097152
 ##### EMEN2 Database Environment #####
 
 class EMEN2DBEnv(object):
-    """BerkeleyDB Database Environment."""
-
     def __init__(self, path=None, snapshot=False):
-        """
+        """BerkeleyDB Database Environment.
+        
         :keyword path: Directory containing environment.
         :keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
         """
@@ -77,7 +76,7 @@ class EMEN2DBEnv(object):
         self.snapshot = snapshot or (not emen2.db.config.get('params.snapshot'))
         self.cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024l
 
-        # Make sure the data directory exists.
+        # Make sure the data and journal directories exists.
         paths = [
             os.path.join(self.path, 'data'),
             os.path.join(self.path, 'journal')
@@ -121,8 +120,7 @@ class EMEN2DBEnv(object):
                 self[keytype]._put_data(i.name, i, txn=txn)
 
     def create(self):
-        emen2.db.log.info("BDB: Loading from JSON")
-
+        """Load database parameters and protocols from JSON."""
         # Start txn
         ctx = emen2.db.context.SpecialRootContext()
         txn = self.newtxn(write=True)
@@ -135,13 +133,12 @@ class EMEN2DBEnv(object):
         # Load DBOs from extensions.
         emen2.db.config.load_jsons(cb=self._load_json, keytypes=keytypes, ctx=ctx, txn=txn)
         
-        # Rebuild indexes
-        self['paramdef']._rebuild_indexes(ctx=ctx, txn=txn)
-        self['recorddef']._rebuild_indexes(ctx=ctx, txn=txn)
+        # self._load_json does not update indexes; do this manually.
+        self['paramdef'].rebuild_indexes(ctx=ctx, txn=txn)
+        self['recorddef'].rebuild_indexes(ctx=ctx, txn=txn)
 
         # Commit txn
         self.txncommit(txn=txn)
-
     
     def open(self):
         """Open the Database Environment."""
@@ -325,13 +322,17 @@ class EMEN2DBEnv(object):
 
         return outpaths     
 
+    ##### Rebuild indexes #####
+    
+    def rebuild_indexes(self, ctx=None, txn=None):
+        for k,v in self.keytypes.items():
+            v.rebuild_indexes(ctx=ctx, txn=txn)
+        
 
 # Berkeley DB wrapper classes
 class BaseDB(object):
-    """BerkeleyDB B-tree based DB.
-    
-    Note this class does not define access methods. It just create, opens, and closes the DB.
-    
+    """BerkeleyDB base class.
+        
     :attr filename: Filename of BDB on disk
     :attr dbenv: EMEN2 Database Environment
     :attr bdb: Berkeley DB instance
@@ -420,18 +421,6 @@ class BaseDB(object):
             k2 = self.keyload(k2)
         return cmp(k1, k2)
 
-    # def _get_json(self, key, txn=None, flags=0):
-    #     pass
-    #     
-    # def _get_data(self, key, txn=None, flags=0):
-    #     pass
-    #     
-    # def _put_json(self, key, value, txn=None, flags=0):
-    #     pass
-    # 
-    # def _put_pickle(self, key, value, txn=None, flags=0):
-    #     pass
-
     def _setkeyformat(self, keyformat):
         # Set the DB key type. This will bind the correct
         # keyclass, keydump, keyload methods.
@@ -485,11 +474,11 @@ class BaseDB(object):
 class IndexDB(BaseDB):
     '''EMEN2DB optimized for indexes.
 
-    Security is NOT checked here, so do not expose indexes directly to 
+    Security is not checked here, so do not expose indexes directly to 
     untrusted clients. A user could query values they could not otherwise
     access.
 
-    IndexDB uses the Berkeley DB facility for storing multiple values for a
+    IndexDB uses the Berkeley DB mechanism for storing multiple values for a
     single key (DB_DUPSORT). The Berkeley DB API has a method for
     quickly reading these multiple values.
 
@@ -499,8 +488,6 @@ class IndexDB(BaseDB):
     reading in a single function call, greatly speeding up performance, and
     returns the correct native Python type. The C module is totally optional
     and is transparent; the only change is read speed.
-
-    In the DBEnv directory, IndexDBs will have a ".index" extension.
 
     Index references are added using addrefs() and removerefs(). These both
     take a single key, and a list of references to add or remove.
@@ -515,7 +502,6 @@ class IndexDB(BaseDB):
     Adds the following indexing methods:
         addrefs        Add (key, [values]) references to the index
         removerefs    Remove (key, [values]) references from the index
-
     '''
 
     def init(self):
@@ -558,7 +544,6 @@ class IndexDB(BaseDB):
         :keyword cursor: Use this cursor
         :keyword txn: Transaction
         :return: Values for key
-
         """
         emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
         if cursor:
@@ -576,7 +561,6 @@ class IndexDB(BaseDB):
         """Keys. Transaction required.
 
         :keyword txn: Transaction
-
         """
         keys = set(map(self.keyload, self.bdb.keys(txn)))
         return list(keys)
@@ -586,7 +570,6 @@ class IndexDB(BaseDB):
         """Accelerated items. Transaction required.
 
         :keyword txn: Transaction
-
         """
         ret = []
         cursor = self.bdb.cursor(txn=txn)
@@ -607,7 +590,6 @@ class IndexDB(BaseDB):
         :keyword maxkey: Maximum key
         :keyword txn: Transaction
         :yield: (key, value)
-
         """
         ret = []
         cursor = self.bdb.cursor(txn=txn)
@@ -637,20 +619,22 @@ class IndexDB(BaseDB):
         :param items: References to remove
         :keyword txn: Transaction
         :return: Keys that no longer have any references
-
         '''
         if not items: return []
         emen2.db.log.debug("BDB: %s removerefs: %s -> %s"%(self.filename, key, items))
         delindexitems = []
 
+        try:
+            key = self.keyclass(key)
+            dkey = self.keydump(key)
+            ditems = [self.datadump(self.dataclass(i)) for i in items]
+        except:
+            emen2.db.log.debug("BDB: Could not reindex due to encoding errors!!")
+            print key
+            return []
+
         cursor = self.bdb.cursor(txn=txn)
-
-        key = self.keyclass(key)
-        items = map(self.dataclass, items)
-
-        dkey = self.keydump(key)
-        ditems = map(self.datadump, items)
-
+        
         for ditem in ditems:
             if cursor.set_both(dkey, ditem):
                 cursor.delete()
@@ -673,15 +657,19 @@ class IndexDB(BaseDB):
         :return: Keys that are new to this index
 
         """
-        if not items: return []
+        if not items:
+            return []
         emen2.db.log.debug("BDB: %s addrefs: %s -> %s"%(self.filename, key, items))
         addindexitems = []
 
-        key = self.keyclass(key)
-        items = map(self.dataclass, items)
-        
-        dkey = self.keydump(key)
-        ditems = map(self.datadump, items)
+        try:
+            key = self.keyclass(key)
+            dkey = self.keydump(key)
+            ditems = [self.datadump(self.dataclass(i)) for i in items]
+        except:
+            emen2.db.log.debug("BDB: Could not reindex due to encoding errors!!")
+            print key
+            return []
         
         cursor = self.bdb.cursor(txn=txn)
 
@@ -1142,7 +1130,7 @@ class CollectionDB(BaseDB):
             
         # Open the index
         indname = os.path.join(self.keytype, 'index', param)
-        ind = emen2.db.btrees.IndexDB(filename=indname, keyformat=tp, dataformat=self.keyformat, dbenv=self.dbenv)
+        ind = emen2.db.btrees.IndexDB(filename=indname, extension='index', keyformat=tp, dataformat=self.keyformat, dbenv=self.dbenv)
 
         # Cache the open index.
         self.indexes[param] = ind
@@ -1153,7 +1141,7 @@ class CollectionDB(BaseDB):
 
         return ind
 
-    def _rebuild_indexes(self, ctx=None, txn=None):
+    def rebuild_indexes(self, ctx=None, txn=None):
         emen2.db.log.info("BDB: Rebuilding indexes: Start")
         # ugly hack..
         self._truncate_index = True
@@ -1161,15 +1149,11 @@ class CollectionDB(BaseDB):
             self.indexes[k].truncate(txn=txn)
 
         # Do this in chunks of 1,000 items
-        # Get all the keys -- do not include cached items
         keys = sorted(map(self.keyload, self.bdb.keys(txn)), reverse=True)
         for chunk in emen2.util.listops.chunk(keys, 1000):
             if chunk:
                 emen2.db.log.info("BDB: Rebuilding indexes: %s ... %s"%(chunk[0], chunk[-1]))
             items = [self._get_data(i, txn=txn) for i in chunk]
-            # Use self.reindex() instead of self.puts() -- the data should
-            # already be validated, so we can skip that step.
-            # self.puts(items, txn=txn)
             ind = self._reindex(items, reindex=True, txn=txn)
             self._reindex_write(ind, ctx=ctx, txn=txn)
 

@@ -36,7 +36,7 @@
 
 // RecordDef
 {"name": "views", "keytype": "paramdef", "parents": ["core"], "vartype": "dict", "desc_short": "Views"}
-{"name": "mainview", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Main view"}
+{"name": "mainview", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Main view"}
 {"name": "private", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Private"}
 {"name": "typicalchld", "iter": true, "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Typical children"}
 

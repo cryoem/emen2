@@ -110,8 +110,11 @@ class EMEN2Logger(object):
             twisted.python.log.msg(message, system=level)
         else:
             pass
-            print "[%s]"%level, unicode(message).encode('utf-8')
-
+            try:
+                print "[%s]"%level, unicode(message).encode('utf-8')
+            except UnicodeDecodeError:
+                print message
+            
 # Create the logger
 logger = EMEN2Logger()
 

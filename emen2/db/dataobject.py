@@ -100,6 +100,7 @@ class BaseDBObject(object):
     attr_public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
     attr_protected = set(['creator', 'creationtime', 'modifytime', 'modifyuser', 'uri'])
     attr_required = set()
+    keytype = property(lambda x:x.__class__.__name__.lower())
 
     def __init__(self, _d=None, **_k):
         """Initialize a new DBO.

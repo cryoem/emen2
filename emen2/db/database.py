@@ -380,9 +380,6 @@ class DB(object):
     def _getcontext(self, ctxid, host, ctx=None, txn=None):
         """(Internal) Get and update user Context.
 
-        This is the only place you should load a Context. The host
-        must match the host in the Context
-
         :param ctxid: ctxid
         :param host: host
         :return: Context

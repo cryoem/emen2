@@ -42,10 +42,6 @@ class DBPool(object):
         self.reactor = twisted.internet.reactor
         self.threadpool = twisted.python.threadpool.ThreadPool(self.min, self.max)
 
-    def start(self):
-        """Start a database connection on startup to run recovery, setup, etc."""
-        self.connect()
-
     def connect(self):
         """Create a new database connection."""
         import emen2.db.database
@@ -126,9 +122,6 @@ class EMEN2BaseServer(object):
     #@contextlib.contextmanager
     def start(self, service=None):
         '''Run the server main loop'''
-
-        pool.start()
-
         # Routing resource. This will look up request.uri in the routing table
         # and return View resources.
         root = emen2.web.routing.Router()

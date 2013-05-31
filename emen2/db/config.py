@@ -31,7 +31,6 @@ import emen2.db.globalns
 
 basestring = (str, unicode)
 
-
 ##### Mako template lookup #####
 
 import mako
@@ -311,13 +310,6 @@ class UsageParser(object):
         if not os.path.exists(self.config.globalns.paths.log):
             os.makedirs(self.config.globalns.paths.log)
 
-        # Extend the python module path
-        # if getattr(self.config.globalns.paths, 'PYTHONPATH', []):
-        #    pp = self.config.globalns.paths.PYTHONPATH
-        #    if not hasattr(pp, '__iter__'):
-        #        pp = [pp]
-        #    sys.path.extend(pp)
-
         # EXTPATHS points to directories containing emen2 ext modules.
         # This will be used with imp.find_module(ext, self.config.globalns.paths.exts)
         self.config.globalns.paths.exts.append(get_filename('emen2', 'exts'))
@@ -326,7 +318,6 @@ class UsageParser(object):
                 self.config.globalns.paths.exts.append(path)
 
         self.config.globalns.paths.exts.append(os.path.join(h, 'exts'))
-
 
         # Add the extensions, including the 'base' extension
         exts = self.options.get('ext')
