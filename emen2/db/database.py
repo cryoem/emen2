@@ -1,26 +1,18 @@
 # $Id$
 """Main database module."""
 
-import datetime
-import threading
-import atexit
-import collections
-import copy
-import functools
-import getpass
-import imp
-import inspect
 import os
 import re
 import sys
 import time
+import datetime
+import collections
+import functools
+import getpass
+import inspect
 import traceback
-import weakref
-import shutil
-import glob
-import random
-import smtplib
 import uuid
+import smtplib
 import email
 import email.mime.text
 
@@ -101,25 +93,6 @@ basestring = (str, unicode)
 
 ##### Utility methods #####
 
-def clock(times, key=0, t=0, limit=180):
-    """A clock to keep track of time.
-    
-    On operations that might take a long time, call this at each step.
-
-    :param times: Keep track of multiple times, e.g. debugging
-    :keyword key: Use this key in the times dictionary
-    :keyword t: Time at start of operation
-    :keyword limit: Maximum amount of time allowed in this timing dict
-    :return: Time elapsed since start of operation (float)
-    """
-    t2 = time.time()
-    if not times.get(key):
-        times[key] = 0
-    times[key] += t2-t
-    if sum(times.values()) >= limit:
-        raise TimeError, "Exceeded maximum time of %s seconds."%(limit)
-    return t2
-
 def getrandomid():
     """Generate a random ID."""
     return uuid.uuid4().hex
@@ -146,11 +119,8 @@ def getpw(pw=None):
     return pw
 
 def ol(name, output=True):
-    """Convert a function argument to a list.
-    
-    Use method argument introspection to convert an argument value to a list.
-    If the value was originally a list, return a list. If it was not, return
-    a single value.
+    """Decorator function to return a list if function arg 'name' was a list, 
+    or return the first element if function arg 'name' was not a list.
 
     :param name: Argument name to transform to list.
     :keyword output: Transform output.
@@ -180,7 +150,7 @@ def ol(name, output=True):
     return wrap
 
 def limit_result_length(default=None):
-    """Limit the number of items returned by a query result."""
+    """Limit the number of items returned."""
     ns = dict(func = None)
     def _inner(*a, **kw):
         func = ns.get('func')
@@ -200,23 +170,6 @@ def limit_result_length(default=None):
         result = functools.wraps(default)(_inner)
 
     return result
-
-# Error handler
-def error(e=None, msg='', warning=False):
-    """Raise an Exception or Warning.
-
-    :keyword msg: Error message; default is Exception's docstring
-    :keyword e: Exception class; default is ValidationError
-    """
-    if e == None:
-        e = SecurityError
-    if not msg:
-        msg = e.__doc__
-    if warning:
-        emen2.db.log.warn(msg)
-    else:
-        raise e(msg)
-
 
 
 ##### Email #####
@@ -252,7 +205,7 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
         try:
             msg = emen2.db.config.templates.render_template(template, ctxt)
         except Exception, e:
-            emen2.db.log.warn('Could not render template %s: %s'%(template, e))
+            emen2.db.log.warn('Could not render mail template %s: %s'%(template, e))
             return
     else:
         raise ValueError, "No message to send!"
@@ -260,10 +213,10 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
     # print "Sending mail:"
     # print msg
     if not from_addr:
-        emen2.db.log.warn("Couldn't get mail config: No admin email set")
+        emen2.db.log.warn("Mail config: No admin email set")
         return
     if not smtphost:
-        emen2.db.log.warn("Couldn't get mail config: No SMTP Server")
+        emen2.db.log.warn("Mail config: No SMTP Server")
         return
 
     # Actually send the message
@@ -279,9 +232,8 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
 def opendb(name=None, password=None, admin=False, db=None):
     """Open database.
 
-    Returns a DBProxy, with either a
-    user context (name and password specified), an administrative context
-    (admin is True), or no context.
+    Returns a DBProxy, with either a user context (name and password
+    specified), an administrative context (admin is True), or no context.
 
     :keyparam name: Username
     :keyparam password: Password
@@ -345,37 +297,20 @@ def setup(db=None, rootpw=None, rootemail=None):
 ##### Main Database Class #####
 
 class DB(object):
-    """EMEN2 Database
-
-    This class provides access to the public API methods.
-    """
+    """EMEN2 Database."""
 
     def __init__(self, path=None, dbenv=None):
-        """EMEN2 Database.
-
-        :keyword path: Directory containing an EMEN2 Database Environment.
-        :keyword create: Create the environment if it does not already exist.
         """
-        # Check the database environment
-        self.path = path or emen2.db.config.get('EMEN2DBHOME')
-        self.checkdirs()
-
+        :keyword path: Directory containing an EMEN2 Database Environment.
+        :keyword dbenv: Pass an existing EMEN2DBEnv.
+        """
         # Cache for contexts
         self.contexts_cache = {}
-        
         # Open the database
-        self.dbenv = dbenv or backend.EMEN2DBEnv(path=self.path)
+        path = path or emen2.db.config.get('EMEN2DBHOME')
+        self.dbenv = dbenv or backend.EMEN2DBEnv(path=path)
 
     ##### Utility methods #####
-
-    def checkdirs(self):
-        """Check that all necessary directories exist."""
-        # This has been simplified
-        exists = os.access(self.path, os.F_OK)
-        paths = [self.path]
-        
-        paths = [os.makedirs(path) for path in paths if not os.path.exists(path)]
-        return exists
 
     def _getcontext(self, ctxid, host, ctx=None, txn=None):
         """(Internal) Get and update user Context.
@@ -427,7 +362,7 @@ class DB(object):
         return ctx
 
     def _mapput(self, keytype, names, method, ctx=None, txn=None, *args, **kwargs):
-        """(Internal) Get keytype items, run a method with *args **kwargs, and put.
+        """(Internal) Get keytype items, run a method with *args **kwargs, and put updated items.
 
         This method is used to get a bunch of DBOs, run each instance's
         specified method and commit.
@@ -443,15 +378,6 @@ class DB(object):
         for item in items:
             getattr(item, method)(*args, **kwargs)
         return self.dbenv[keytype].puts(items, ctx=ctx, txn=txn)
-
-    def _mapput_ol(self, keytype, names, method, default, ctx=None, txn=None, *args, **kwargs):
-        """(Internal) See _mapput."""
-        if names is None:
-            names = default
-        ol, names = listops.oltolist(names)
-        ret = self._mapput(keytype, names, method, ctx, txn, *args, **kwargs)
-        if ol: return listops.first_or_none(ret)
-        return ret
 
     def _run_macro(self, macro, names, ctx=None, txn=None):
         """(Internal) Run a macro over a set of Records.
@@ -470,7 +396,6 @@ class DB(object):
         macro.preprocess(k.group('args'), mrecs)
         for rec in mrecs:
             recs[rec.name] = macro.process(k.group('args'), rec)
-
         return keyformat, recs
 
     def _boolmode_collapse(self, rets, boolmode):
@@ -712,7 +637,7 @@ class DB(object):
         :exception AuthenticationError: Invalid user username, email, or password
         """
         
-        # Check password; user.checkpassword will raise SecurityError if wrong
+        # Check password; user.checkpassword will raise SecurityError if wrong.
         try:
             user = self._user_by_email(username, txn=txn)
             user.checkpassword(password)
@@ -720,10 +645,10 @@ class DB(object):
             # Both of these errors appear the same to the user,
             # but are logged with the specific reason for
             # login failure.
-            emen2.db.log.security("Login failed, bad password: %s"%(username))                
+            emen2.db.log.security("Login failed: Bad password: %s"%(username))                
             raise AuthenticationError
         except KeyError, e:
-            emen2.db.log.security("Login failed, no such user: %s"%(username))                
+            emen2.db.log.security("Login failed: No such user: %s"%(username))                
             raise AuthenticationError
 
         # Create the Context for this user/host
@@ -743,8 +668,13 @@ class DB(object):
         >>> db.auth.logout()
         None
         """
-        self.contexts_cache.pop(ctx.name, None)
-        self.dbenv._context.bdb.delete(ctx.name, txn=txn)
+        if ctx.name in self.contexts_cache:
+            self.contexts_cache.pop(ctx.name, None)
+        if self.dbenv._context.bdb.exists(ctx.name, txn=txn):
+            self.dbenv._context.bdb.delete(ctx.name, txn=txn)
+        else:
+            raise SessionError, "Cannot logout: Unknown Context"
+        emen2.db.log.security("Logout succeeded: %s" % (ctx.name))
 
     @publicmethod(compat="checkcontext")
     def auth_check_context(self, ctx=None, txn=None):
@@ -1208,7 +1138,7 @@ class DB(object):
             keys = set()
             for i in recs:
                 keys |= set(i.keys())
-            # Skip some items
+            # Except these keys...
             keys -= set(['permissions', 'history', 'comments', 'parents', 'children'])
         
         # Process keys.
@@ -1238,7 +1168,7 @@ class DB(object):
             macro = emen2.db.macros.Macro.get_macro(macro, db=ctx.db, cache=ctx.cache)
             macro.preprocess(args, recs)
 
-        # Process view.
+        # Render.
         ret = {}
         for rec in recs:
             r = {}
@@ -1424,7 +1354,7 @@ class DB(object):
 
         Examples:
 
-        >>> db.rel.siblings(136, rectype='group')
+        >>> db.rel.siblings(136)
         set([136, 358307])
 
         >>> db.rel.siblings('creationtime', keytype='paramdef')
@@ -1780,9 +1710,7 @@ class DB(object):
         :exception SecurityError:
         :exception ValidationError:
         """
-        # This is a modification of _mapput to allow if names=None
-        # ctx.username will be used as the default.
-        return self._mapput_ol('user', names, 'setprivacy', ctx.username, ctx, txn, state)
+        return self._mapput('user', names, 'setprivacy', ctx.username, ctx, txn, state)
 
     # These methods sometimes use put instead of put because they need to modify
     # the user's secret auth token.
@@ -1993,7 +1921,6 @@ class DB(object):
             # Send account request email
             for user in items:
                 self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/adduser.signup'})
-
         return items
         
     @publicmethod(admin=True, compat="getuserqueue")
@@ -2974,11 +2901,5 @@ class DB(object):
         self.dbenv["record"].put(rec, ctx=ctx, txn=txn)
         self.dbenv["binary"].put(bdo, ctx=ctx, txn=txn)
     
-    @publicmethod()
-    @ol('names')    
-    def binary_extract(self, names, ctx=None, txn=None):
-        # todo: header extraction.
-        pass
-
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -6,10 +6,8 @@ import copy
 import functools
 import os
 import shutil
-import sys
 import time
 import traceback
-import weakref
 import cPickle as pickle
 
 # Berkeley DB
