@@ -2,7 +2,7 @@
 
 import collections
 import time
-
+import re
 import emen2.db.vartypes
 import emen2.util.listops
 
@@ -240,10 +240,8 @@ class RelConstraint(IndexedConstraint):
         term = keyformatconvert(self.p.btree.keyformat, term)
         rel = self.p.btree.rel([term], recurse=recurse, ctx=self.p.ctx, txn=self.p.txn)
         return rel.get(term, set())
+        
 
-
-
-    
 class MacroConstraint(Constraint):
     """Macro constraints"""
     
@@ -251,14 +249,13 @@ class MacroConstraint(Constraint):
         # Execute a macro
         f = set()
         # Fetch the items we need in the parent group.
-        self.p._cacheitems()        
+        self.p._cacheitems()
         # Parse the macro and get the Macro class
-        regex = emen2.db.database.VIEW_REGEX
-        k = regex.match(self.param)        
-        # Get the macro
-        macro = emen2.db.macros.Macro.get_macro(k.group('name'))
+        regex_k = re.compile(emen2.db.database.VIEW_REGEX_P, re.VERBOSE)
+        k = regex_k.search(self.param)
+        macro = emen2.db.macros.Macro.get_macro(k.group('name'), db=self.p.ctx.db, cache=self.p.ctx.cache)
         # Preprocess
-        macro.preprocess(k.group('args'), self.p.items)
+        macro.preprocess(k.group('args') or '', self.p.items)
         # Convert the term to the right type
         keyformat = macro.keyformat
         term = keyformatconvert(keyformat, self.term)
@@ -266,14 +263,12 @@ class MacroConstraint(Constraint):
         cfunc = getop(self.op)
         for item in self.p.items:
             # Run the macro
-            value = macro.process(k.group('args'), item)
+            value = macro.process(k.group('args') or '', item)
             if cfunc(term, value):
                 f.add(item.name)
                 self.p.cache[item.name][self.param] = value
         return f
         
-        
-
 
 class Query(object):
     def __init__(self, constraints, mode='AND', subset=None, ctx=None, txn=None, btree=None):
@@ -352,11 +347,10 @@ class Query(object):
             # Records are created as increasing integers. However,
             # they are now stored as strings -- so cast to int,
             # then sort.
-            # if self.btree.keytype == 'record':
-            #     result = sorted(self.result, reverse=reverse, key=lambda x:int(x))
-            # else:
-            result = sorted(self.result, reverse=reverse)                
-                
+            if self.btree.keytype == 'record':
+                result = sorted(self.result, reverse=reverse, key=lambda x:int(x))
+            else:
+                result = sorted(self.result, reverse=reverse)                
             if count > 0:
                 result = result[pos:pos+count]
             return result
@@ -396,17 +390,16 @@ class Query(object):
         # Get the data type of the paramdef..
         if rendered and pd:
             # Users need to be rendered... ugly hack.
-            if pd.vartype == 'user':
-                for i in result:
-                    vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self.ctx.db, cache=self.ctx.cache, options={'lnf':1})
-                    sortvalues[i] = vartype.render(sortvalues[i])
-                    self._checktime()
-
+            # if pd.vartype == 'user':
+            for i in result:
+                vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self.ctx.db, cache=self.ctx.cache, options={'lnf':1})
+                sortvalues[i] = vartype.render(sortvalues[i])
+                self._checktime()
+                    
             # Case-insensitive sort
             vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype)  # don't need db/cache; just checking keytype
             if vartype.keyformat == 'str':
                 sortfunc = lambda x:sortvalues[x].lower()
-        
 
         # Todo: Sort by the rendered value or the raw actual value?
         result = sorted(result, key=sortfunc, reverse=reverse)        
@@ -492,54 +485,20 @@ class Query(object):
         items = set([i.name for i in self.items])
         items = self.btree.gets(checkitems - items, ctx=self.ctx, txn=self.txn)
         self.items.extend(items)
-
-    def _keywords(self, op, term):
-        # print "Using keywords..", op, term
-        vartypes = ['string', 'choice', 'rectype', 'text']
-        c = []
-        pds = set()
-        for n,pd in self.btree.dbenv['paramdef'].items(ctx=self.ctx, txn=self.txn):
-            if pd.indexed and pd.vartype in vartypes:
-                pds.add(pd.name)
-
-        pds -= set(['recname', 'id_ccd_frame']) # these are too slow and cause problems :(
-        for pd in pds:
-            c.append([pd, op, term])
-            
-        return Query(c, mode='OR', ctx=self.ctx, txn=self.txn, btree=self.btree)
-
-            
+        
     def _makeconstraint(self, param, op='noop', term=''):
         op = synonyms.get(op, op)
-        
-        # Automatically construct the best type of constraint
         constraint = None
-        if param.startswith('$@'):
+        # if param.startswith('$@'):
+        if param.endswith(')'): # hacky
             # Macros
             constraint = MacroConstraint(param, op, term)
-        elif param == '*':
-            constraint = self._keywords(op, term)
-            constraint.cache = self.cache            
         elif param in ['parents', 'children']:
             constraint = RelConstraint(param, op, term)
         elif param == 'rectype':
             constraint = RectypeConstraint(param, op, term)
         else:
             constraint = ParamConstraint(param, op, term)
-
-        # elif param.endswith('*'):
-        #     # Turn expanded params into a new constraint group
-        #     params = self.btree.dbenv['paramdef'].expand([param], ctx=self.ctx, txn=self.txn)
-        #     constraint = Query(
-        #         [[i, op, term] for i in params],
-        #         mode='OR', 
-        #         ctx=self.ctx, 
-        #         txn=self.txn,
-        #         btree=self.btree)
-        #     # Share the same cache
-        #     constraint.cache = self.cache
-
-        
         constraint.init(self)
         return constraint
 

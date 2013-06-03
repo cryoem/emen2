@@ -79,13 +79,12 @@ VERSIONS = {
 VIEW_REGEX_P = '''
         (?P<name>[\w\-\?]+)
         (?:="(?P<default>.+)")?
-        (?:\((?P<args>[^\)]+)?\))?
+        (?P<emptyargs>\(\))?
+        (?:\((?P<args>[^\)]+)\))?
 '''
+
 VIEW_REGEX_CLASSIC = '''(\$[\$\@\#\!]%s(?P<sep>[\W])?)'''%VIEW_REGEX_P
 VIEW_REGEX_M = '''(\{\{[\#\^\/]?%s\}\})'''%VIEW_REGEX_P
-# Old style
-VIEW_REGEX = '(\$(?P<type>.)(?P<name>[\w\-]+)(?:="(?P<def>.+)")?(?:\((?P<args>[^$]+)?\))?(?P<sep>[^$])?)|((?P<text>[^\$]+))'
-VIEW_REGEX = re.compile(VIEW_REGEX)
 
 # basestring goes away in Python 3
 basestring = (str, unicode)
@@ -210,8 +209,6 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
     else:
         raise ValueError, "No message to send!"
 
-    # print "Sending mail:"
-    # print msg
     if not from_addr:
         emen2.db.log.warn("Mail config: No admin email set")
         return
@@ -378,25 +375,6 @@ class DB(object):
         for item in items:
             getattr(item, method)(*args, **kwargs)
         return self.dbenv[keytype].puts(items, ctx=ctx, txn=txn)
-
-    def _run_macro(self, macro, names, ctx=None, txn=None):
-        """(Internal) Run a macro over a set of Records.
-
-        :param macro: Macro in view format: $@macro(args)
-        :param names: Record names
-        :return: Macro keytype ('d'/'s'/'f'/None), and dict of processed Records
-        """
-        recs = {}
-        mrecs = self.dbenv["record"].gets(names, ctx=ctx, txn=txn)
-        regex = VIEW_REGEX
-        k = regex.match(macro)
-
-        macro = emen2.db.macros.Macro.get_macro(k.group('name'), db=ctx.db, cache=ctx.cache)
-        keyformat = macro.keyformat
-        macro.preprocess(k.group('args'), mrecs)
-        for rec in mrecs:
-            recs[rec.name] = macro.process(k.group('args'), rec)
-        return keyformat, recs
 
     def _boolmode_collapse(self, rets, boolmode):
         """(Internal) Perform bool operation on results."""
@@ -878,7 +856,7 @@ class DB(object):
             [name, '==', 136]
             ['creator', '==', 'ian']
             ['rectype', 'is', 'image_capture*']
-            ['$@recname()', 'noop']
+            ['recname()', 'noop']
             [['modifytime', '>=', '2011'], ['name_pi', 'contains', 'steve']]
 
         For record names, parameter names, and protocol names, a '*' can be used to also match children, e.g:
@@ -963,6 +941,7 @@ class DB(object):
         
         options = {}
         options['lnf'] = True
+        options['time_precision'] = 3
         
         # Limit tables to 1000 items per page.
         if count < 1 or count > 1000:
@@ -1151,11 +1130,11 @@ class DB(object):
             m = match.group('name')
             if m.endswith('?'):
                 descs.add(m[:-1])
-            elif match.group('args'):
-                macros.add((key, m, match.group('args')))
+            elif match.group('args') or match.group('emptyargs'):
+                macros.add((key, m, match.group('args') or ''))
             else:
                 params.add(m)
-        
+                
         # Process parameters and descriptions.
         pds = listops.dictbykey(self.dbenv["paramdef"].gets(params | descs, ctx=ctx, txn=txn), 'name')
         found = set(pds.keys())
@@ -1179,7 +1158,7 @@ class DB(object):
             for key in descs:
                 r[key+'?'] = pds[key].desc_short
             for key,macro,args in macros:
-                macro = emen2.db.macros.Macro.get_macro(macro, db=ctx.db, cache=ctx.cache) # options=options
+                macro = emen2.db.macros.Macro.get_macro(macro, db=ctx.db, cache=ctx.cache)
                 r[key] = macro.render(args, rec)
             ret[rec.name] = r
         return ret
@@ -1191,8 +1170,8 @@ class DB(object):
         for match in regex_classic.finditer(view):
             m = match.groups()[0]
             key = match.group('name')
-            if match.group('args'):
-                key = '%s(%s)'%(match.group('name'), match.group('args'))
+            if match.group('args') or match.group('emptyargs'):
+                key = '%s(%s)'%(match.group('name'), match.group('args') or '')
             if m.startswith('$#'):
                 key = '%s?'%key
             ret = ret.replace(m, '{{%s}}%s'%(key, match.group('sep') or ''))
@@ -1204,8 +1183,8 @@ class DB(object):
         keys = [] # needs to be ordered, not a set
         for match in regex_m.finditer(view):
             key = match.group('name')
-            if match.group('args'):
-                key = '%s(%s)'%(match.group('name'), match.group('args'))
+            if match.group('args') or match.group('emptyargs'):
+                key = '%s(%s)'%(match.group('name'), match.group('args') or '')
             keys.append(key)
         return keys
     
@@ -1221,7 +1200,7 @@ class DB(object):
         for match in regex_m.finditer(view):
             key = match.group('name')
             if match.group('args'):
-                key = '%s(%s)'%(match.group('name'), match.group('args'))
+                key = '%s(%s)'%(match.group('name'), match.group('args') or '')
             # Replace the values.
             for name, rec in recs.items():
                 ret[name] = ret[name].replace(match.groups()[0], rec.get(key, ''))
@@ -1234,6 +1213,12 @@ class DB(object):
         ret = {}
         views = collections.defaultdict(set)
         default = "{{rectype}} created by {{creator}} on {{creationtime}}"
+        
+        # Just show date for most views.
+        if view or viewname != 'recname':
+            options['time_precision'] = 0
+        else:
+            options['time_precision'] = 3
 
         # Get Record instances from names argument.
         names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
@@ -1269,7 +1254,7 @@ class DB(object):
             for k,v in views.items():
                 views2[markdown.markdown(k)] = v
             views = views2
-        
+            
         # Render.
         for view, recs in views.items():
             view = view or '{{name}}'

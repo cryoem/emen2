@@ -80,6 +80,8 @@ class Macro(object):
 
     @classmethod
     def get_macro(cls, name, *args, **kwargs):
+        if name not in cls.registered:
+            raise KeyError, "Unknown macro: %s"%name
         return cls.registered[name](*args, **kwargs)
 
     ##### Macro processing #####
@@ -123,22 +125,18 @@ class macro_childcount(Macro):
 
     def preprocess(self, params, recs):
         rectypes = params.split(",")
-        # ian: todo: recurse = -1..
-        # TODO urgent: Fix this
-        children = self.db.rel.children([rec.name for rec in recs], recurse=3) #rectype=rectypes, 
+        children = self.db.rel.children([rec.name for rec in recs], recurse=-1)
         for rec in recs:
             key = ('rel.children', rec.name, tuple(rectypes))
             self.cache.store(key, len(children.get(rec.name,[])))
 
     def process(self, params, rec):
-        """Now even more optimized!"""
         rectypes = params.split(",")
         key = ('rel.children', rec.name, tuple(rectypes))
         hit, children = self.cache.check(key)
         if not hit:
-            children = len(self.db.rel.children(rec.name, rectype=rectypes, recurse=3))
-            self.cache.store(key, children)
-
+            children = self.db.rel.children(rec.name, recurse=-1)
+            self.cache.store(key, len(children))
         return children
 
     def macro_name(self, params):

@@ -37,7 +37,7 @@ import jsonrpc.jsonutil
         % endif
     </h1>
     <div class="e2l-cf">
-        ${render_banner}
+        ${render_banner | n,unicode}
     </div>
     <br /><br />
 % endif

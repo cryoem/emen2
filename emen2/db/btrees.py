@@ -112,7 +112,7 @@ class EMEN2DBEnv(object):
         keytypes = keytypes or ['paramdef', 'user', 'group', 'recorddef', 'binary', 'record']
         for keytype in keytypes:
             for item in loader.loadfile(keytype=keytype):
-                emen2.db.log.debug("CREATE: %s %s"%(keytype, item.get('name')))
+                emen2.db.log.debug("BDB: Load %s %s"%(keytype, item.get('name')))
                 i = self[keytype].dataclass(ctx=ctx)
                 i._load(item)
                 self[keytype]._put_data(i.name, i, txn=txn)
@@ -268,23 +268,23 @@ class EMEN2DBEnv(object):
                     self._txncb_thumbnail(*args, **kwargs)
     
     def _txncb_rename(self, source, dest):
-        emen2.db.log.info("Renaming file: %s -> %s"%(source, dest))
+        emen2.db.log.info("TXN CB: Renaming file: %s -> %s"%(source, dest))
         try:
             shutil.move(source, dest)
         except Exception, e:
-            emen2.db.log.error("Couldn't rename file %s -> %s"%(source, dest))
+            emen2.db.log.error("TXN CB: Couldn't rename file %s -> %s"%(source, dest))
 
     def _txncb_email(self, *args, **kwargs):
         try:
             sendmail(*args, **kwargs)
         except Exception, e:
-            emen2.db.log.error("Couldn't send email: %s"%e)
+            emen2.db.log.error("TXN CB: Couldn't send email: %s"%e)
             
     def _txncb_thumbnail(self, bdo):
         try:
             emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
         except Exception, e:
-            emen2.db.log.error("Couldn't start thumbnail builder")
+            emen2.db.log.error("TXN CB: Couldn't start thumbnail builder")
     
     ##### Log archive #####
 

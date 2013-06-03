@@ -1,5 +1,4 @@
 import sys
-import emen2.db.load
 import emen2.db.dump
 
 paramdefs =  [
@@ -9584,10 +9583,7 @@ Use the alignment protocol for the particular microscope to:
   'private': 0,
   'typicalchld': ['grid_imaging'],
   'views': { 'recname': """Microscopy: $@parentvalue(tem_name) by $$performed_by on $$date_start: $$description_purpose""",
-             'tabularview': """$@parentvalue(tem_name) $$aperture_condenser $$tem_spot_size $$aperture_objective $$tem_lowdose_method $$assess_ice_thick $@childcount(grid_imaging) $@childcount(ccd) $@childcount(micrograph)"""}},
-
-
-
+             'tabularview': """$@parentvalue(tem_name) $$aperture_condenser $$tem_spot_size $$aperture_objective $$tem_lowdose_method $$assess_ice_thick $@childcount(image_capture*)"""}},
 
  {'children': ['workshop',
                 'subproject',
@@ -9652,7 +9648,7 @@ $#sequence_protein: $$sequence_protein
                    'manuscript',
                    'progress_report'],
   'views': { 'recname': """Project: $$name_project ($$name_pi)""",
-             'tabularview': """$$name_project $$name_pi $$project_investigators $$project_status $$project_block $@childcount(publication*)"""}},
+             'tabularview': """$$name_project $$name_pi $$project_investigators $$project_status $$project_block $@childcount()"""}},
 
 
 
@@ -10905,7 +10901,7 @@ $#sequence_protein: $$sequence_protein
                  'manuscript',
                  'progress_report'],
   'views': { 'recname': """Subproject: $$name_project""",
-             'tabularview': """$$name_project $$name_specimen $$name_pi $$project_investigators $$project_status $$project_block $@childcount(publication*) $@childcount(grid_imaging)"""}},
+             'tabularview': """$$name_project $$name_pi $$project_investigators $$project_status $$project_block $@childcount()"""}},
 
 
 
@@ -11377,7 +11373,7 @@ $#status_energy_filter: $$status_energy_filter
   'private': 0,
   'typicalchld': ['ccd', 'stack', 'micrograph', 'ddd'],
   'views': { 'recname': """Imaging: $@parentvalue(title_grid) on $@parentvalue(tem_name,2) by $$performed_by on $$date_occurred: $@childcount(image_capture*) images""",
-             'tabularview': """$$tem_magnification_set $$temperature_specimen $$description_purpose $@parentvalue(title_freezing) $@childcount(ccd) $@childcount(ddd) $@childcount(micrograph) $@childcount(scan)"""}},
+             'tabularview': """$$tem_magnification_set $$temperature_specimen $$description_purpose $@parentvalue(title_freezing) $@childcount(image_capture*)"""}},
 
 
 

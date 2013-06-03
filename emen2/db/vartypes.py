@@ -508,6 +508,13 @@ class vt_text(vt_string):
         value = unicode(value).lower()
         return set((x[0] or x[1]) for x in self._reindex_getindexwords_m.findall(value))
 
+    def _html(self, value):
+        if value is None:
+            return ''
+        value = Markup(markdown.markdown(unicode(value), safe_mode='escape'))
+        elem = Markup("""<div class="e2-edit" data-paramdef="%s">%s</div>""")%(self.pd.name, value)
+        return elem
+
     def _form(self, value):
         if value is None:
             value = ''
@@ -528,6 +535,16 @@ import dateutil.tz
 class vt_datetime(vt_string):
     """ISO 8601 Date time."""
 
+    fmt = [
+        '%Y-%m-%d %H:%M:%S.%f',
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%d %H:%M',
+        '%Y-%m-%d',
+        '%Y-%m-%d',
+        '%Y-%m',
+        '%Y'
+    ]
+
     def validate(self, value):
         ret = []
         for i in ci(value):
@@ -537,11 +554,26 @@ class vt_datetime(vt_string):
                     raise ValidationError, "No UTC offset: %s"%i
                 ret.append(t.isoformat())
         return self._rci(ret)
+        
+    def _strip(self, t, time_precision=None):
+        limit = time_precision or self.options.get('time_precision') or 0
+        for prec, i in enumerate((t.microsecond, t.second, t.minute, t.hour, t.day, t.month, t.year)):
+            if i == 0:
+                prec += 1
+            else:
+                break
+        if prec < limit:
+            prec = limit
+        try:
+            return t.strftime(self.fmt[prec])
+        except:
+            return "Date out of bounds! %s"%value
     
     def _unicode(self, value):
         tz = self.options.get('tz')
         raw_time = dateutil.parser.parse(value)
         local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
+        return self._strip(local_time)
         try:
             return local_time.strftime("%Y-%m-%d %H:%M")
         except:
@@ -558,7 +590,7 @@ class vt_datetime(vt_string):
             value,
             raw_utc.isoformat(),
             local_time.isoformat(),
-            local_time.strftime("%Y-%m-%d %H:%M")
+            self._strip(local_time)
             )
 
 @Vartype.register('date')

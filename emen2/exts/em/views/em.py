@@ -44,7 +44,7 @@ class EMHome(View):
             self.template = '/em/home.noauth'
             try:
                 banner = self.db.record.get(emen2.db.config.get('bookmarks.banner_noauth'))
-                render_banner = self.db.view(banner, viewname="banner")
+                render_banner = self.db.view(banner, viewname="banner", options={'output':'html'})
             except:
                 pass
             self.ctxt['banner'] = banner
@@ -53,7 +53,7 @@ class EMHome(View):
 
         try:
             banner = self.db.record.get(emen2.db.config.get('bookmarks.banner'))
-            render_banner = self.db.view(banner, viewname="banner")
+            render_banner = self.db.view(banner, viewname="banner", options={'output':'html'})
         except:
             pass
             
