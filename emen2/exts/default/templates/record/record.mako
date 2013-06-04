@@ -150,7 +150,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 
         ## New Record
-        % if create:
+        % if create and rec.writable():
             <li role="tab" data-tab="new" ${istab(tab, "new")}><a href="#new">${buttons.image('new.png')}New</a></li>
         % endif
 

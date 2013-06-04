@@ -55,7 +55,7 @@ import jsonrpc.jsonutil
     <div class="e2-plot"></div>
 </div>
 
-${unicode(recent_activity_table) | n}
+## ${unicode(recent_activity_table) | n}
 
 <br /><br />
 
@@ -67,11 +67,16 @@ ${unicode(recent_activity_table) | n}
         <a href="${ctxt.root}/record/${group.name}/" id="groups-${group.name}">
         	${recnames.get(group.name, group.name)}
 		</a>
-        	<a class="e2l-hact e2-button e2-record-new" href="${ctxt.root}/record/${group.name}/new/project/" data-parent="${group.name}" data-rectype="project">${buttons.image('new.png')} New project</a>
-            <a class="e2l-hact e2-button" href="${ctxt.root}/record/${group.name}/children/project/">View projects in table</a>
+            % if group.writable():
+                <a class="e2l-hact e2-button e2-record-new" href="${ctxt.root}/record/${group.name}/new/project/" data-parent="${group.name}" data-rectype="project">${buttons.image('new.png')} New</a>
+            % endif
+            ## <a class="e2l-hact e2-button" href="${ctxt.root}/record/${group.name}/children/project/">View projects in table</a>
     </h1>
     
     <ul class="e2l-sidebar-projectlist">
+        % if not groups_children.get(group.name):
+            <li>No projects</li>
+        % endif
         % for project in sorted(groups_children.get(group.name, []), key=lambda x:recnames.get(x, '').lower()):
             <li>
                 <a href="${ctxt.root}/record/${project}/">
