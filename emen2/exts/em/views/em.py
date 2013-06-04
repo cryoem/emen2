@@ -3,6 +3,7 @@ import datetime
 import time
 import tempfile
 import os
+import collections
 
 import twisted.web.static
 
@@ -74,8 +75,7 @@ class EMHome(View):
         # Table
         q_table = self.routing.execute('Query/embed', db=self.db, q={'count':20, 'subset':q['names']}, controls=False)
         self.ctxt['recent_activity_table'] = q_table
-        
-        
+            
         # Groups and projects
         torender = set()
         def nodeleted(items):
@@ -85,6 +85,13 @@ class EMHome(View):
         groups = nodeleted(self.db.record.get(self.db.record.findbyrectype('group')))
         groupnames = set([i.name for i in groups])
         torender |= groupnames
+        
+        # Ok, hold on for a sec. Group "groups" by parent records.
+        groups_group = collections.defaultdict(set)
+        for k,v in self.db.rel.parents(groupnames).items():
+            for v2 in v:
+                groups_group[v2].add(k)
+        torender |= set(groups_group.keys())
 
         # Top-level children of groups (any rectype)
         groups_children = self.db.rel.children(groupnames)
@@ -105,7 +112,7 @@ class EMHome(View):
         self.ctxt['groups'] = groups
         self.ctxt['groups_children'] = groups_children
         self.ctxt['projects_children'] = {}
-        
+        self.ctxt['groups_group'] = groups_group
                 
         
 @View.register

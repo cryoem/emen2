@@ -213,6 +213,10 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 }
 
 
+.e2l-underline {
+    border-bottom:solid 1px #ccc;
+}
+
 
 /***** These should go in style.css *****/
 
@@ -359,7 +363,7 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     width: 50px;
 }
 .e2-edit input[type=text] {
-	width:300px;
+	width:400px;
 }
 .e2-edit textarea {
 	width:100%;

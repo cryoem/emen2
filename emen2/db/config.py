@@ -102,6 +102,14 @@ def set(key, value):
     raise NotImplementedError, "Soon."
 
 
+##### Email config helper #####
+
+def mailconfig():
+    from_addr = get('mail.from')
+    smtphost = get('mail.smtphost') 
+    return from_addr, smtphost
+
+
 ##### Extensions #####
 
 def load_exts():

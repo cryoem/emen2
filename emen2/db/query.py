@@ -200,15 +200,13 @@ class ParamConstraint(IndexedConstraint):
 
 
 class RectypeConstraint(ParamConstraint):
-    """Rectype constraints, allows '*' notation in constraint term"""
+    """Rectype constraints."""
 
     def _run(self):
-        # Expand the rectype children and run for each term
-        # This is essentially a sub-Query, but without creating a new cache/items/etc.
         f = None
-        # if self.term.endswith('*'):
-        # terms = self.p.btree.dbenv['recorddef'].expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
         terms = [self.term]
+        if self.term.endswith('*'):
+            terms = self.p.btree.dbenv['recorddef'].expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
 
         for i in terms:
             self.term = i # ugly; pass as argument in the future
@@ -217,13 +215,11 @@ class RectypeConstraint(ParamConstraint):
                 f = list(f2)
             elif f2:
                 f.extend(f2)
-
-        # ian: todo: Doesn't work for "not param*"
         return set(f or [])
 
 
 class RelConstraint(IndexedConstraint):
-    """Relationship constraints, allows '*' notation in constraint term"""
+    """Relationship constraints."""
     
     def init(self, p):
         super(RelConstraint, self).init(p)

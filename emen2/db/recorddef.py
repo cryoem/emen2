@@ -15,8 +15,7 @@ import emen2.db.dataobject
 
 
 def parseparmvalues(text):
-    regex = emen2.db.database.VIEW_REGEX_M
-
+    regex = re.compile(emen2.db.database.VIEW_REGEX_M)
     params = set()
     required = set()
     defaults = {}

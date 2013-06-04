@@ -276,7 +276,7 @@ class EMEN2DBEnv(object):
 
     def _txncb_email(self, *args, **kwargs):
         try:
-            sendmail(*args, **kwargs)
+            emen2.db.database.sendmail(*args, **kwargs)
         except Exception, e:
             emen2.db.log.error("TXN CB: Couldn't send email: %s"%e)
             
@@ -1222,6 +1222,38 @@ class CollectionDB(BaseDB):
         return val
 
     ##### Relationship methods #####
+
+    def expand(self, names, ctx=None, txn=None):
+        """Expand names.
+
+        This allows 'name*' to serve as shorthand for "name, and all
+        children recursively." This is useful for specifying items in queries.
+
+        :param names: DBO names, with optional '*' to include children.
+        :keyword ctx: Context
+        :keyword txn: Transaction
+        :return: Expanded DBO names.
+        """
+        if not isinstance(names, set):
+            names = set(names)
+
+        # Expand *'s
+        remove = set()
+        add = set()
+        for key in (i for i in names if isinstance(i, basestring)):
+            try:
+                newkey = self.keyclass(key.replace('*', ''))
+            except:
+                raise KeyError, "Invalid key: %s"%key
+
+            if key.endswith('*'):
+                add |= self.rel([newkey], rel='children', recurse=-1, ctx=ctx, txn=txn).get(newkey, set())
+            remove.add(key)
+            add.add(newkey)
+
+        names -= remove
+        names |= add
+        return names
 
     def parents(self, names, recurse=1, ctx=None, txn=None):
         """See rel(), with rel='parents", tree=False. Requires ctx and txn.

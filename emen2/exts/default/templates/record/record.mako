@@ -230,18 +230,31 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             %>
             <table>
                 <tr>
-                    <td></td>
+                    <td />
                     <td>
-                    
-                        ## C: ${users_d.get(cu, dict()).get('displayname', cu)}<br /> 
-                        ## <time class="e2-localize" datetime="${rec.get("creationtime")}">${rec.get("creationtime")[:10]}</time>
-                        ## <br />
-                        ## % if rec.creationtime != rec.modifytime:
-                            ${users_d.get(mu, dict()).get('displayname', mu)}<br /> 
-                            <time class="e2-localize e2l-tiny" datetime="${rec.get("modifytime")}">${rec.get("modifytime")[:10]}</time>
-                        ## % endif
+                        <p class="e2l-tiny e2l-underline">Created</p>
+                        ${users_d.get(rec.get('creator'), dict()).get('displayname', rec.get('creator'))}<br /> 
+                        <time class="e2-localize e2l-tiny" datetime="${rec.get("creationtime")}">${rec.get("creationtime")[:10]}</time>
                     </td>
-                    <td></td>
+                    </td>
+                </tr>
+
+                % if rec.get('creationtime') != rec.get('modifytime'):
+                    <tr>
+                        <td />
+                        <td>                
+                                <p class="e2l-tiny e2l-underline" style="margin-top:10px">Modified</p>
+                                ${users_d.get(rec.get('modifyuser'), dict()).get('displayname', rec.get('modifyuser'))}<br /> 
+                                <time class="e2-localize e2l-tiny" datetime="${rec.get("modifytime")}">${rec.get("modifytime")[:10]}</time>
+                        </td>
+                        <td />
+                    </tr>
+                % endif
+
+                <tr>
+                    <td />
+                    <td><p class="e2l-tiny e2l-underline" style="margin-top:10px;">Siblings</p></td>
+                    <td />
                 </tr>
 
 
@@ -252,13 +265,9 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                         % endif
                     </td>
                     <td>
-                        ## <a href="${ctxt.root}/recorddef/${rec.rectype}">
-                        ${recdefs_d.get(rec.rectype, dict()).get('desc_short', rec.rectype)}
-                        ## </a>
-                        
+                        ${recdefs_d.get(rec.rectype, dict()).get('desc_short', rec.rectype)}                        
                         % if len(siblings) > 1:
-                            <br />
-                            ${siblings_index+1} of ${len(siblings_sort)}                        
+                            <p class="e2l-tiny">${siblings_index+1} of ${len(siblings_sort)}</p>
                         % endif
                     </td>
                     <td style="width:15px">
@@ -279,7 +288,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         </li>
 
         % if not children_groups:
-            ## <li data-tab="new"><a href="#new">No children</a></li>
             <li role="tab"><a href="">No children</a></li>
         % endif
 

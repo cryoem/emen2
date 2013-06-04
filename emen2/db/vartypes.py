@@ -282,8 +282,9 @@ class Vartype(object):
     def _form(self, value):
         if value is None:
             value = ''
-        elem = Markup("""<span class="e2-edit" data-paramdef="%s"><input type="text" name="%s" value="%s" /></span>""")%(
+        elem = Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><input type="text" name="%s" value="%s" /></span>""")%(
             self.pd.name,
+            self.pd.vartype,
             self.pd.name,
             value
         )
@@ -326,8 +327,9 @@ class vt_float(Vartype):
         if value is None:
             value = ''
         units = self.pd.defaultunits or ''
-        return Markup("""<span class="e2-edit" data-paramdef="%s"><input type="text" name="%s" value="%s" /> %s</span>""")%(
+        return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><input type="text" name="%s" value="%s" /> %s</span>""")%(
             self.pd.name,
+            self.pd.vartype,
             self.pd.name,
             value,
             units
@@ -409,8 +411,9 @@ class vt_boolean(Vartype):
             choices.append("""<option value="" />""")
             choices.append("""<option>True</option>""")
             choices.append("""<option checked="checked" >False</option>""")
-        return Markup("""<span class="e2-edit" data-paramdef="%s"><select>%s</select></span>""")%(
+        return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><select>%s</select></span>""")%(
             self.pd.name, 
+            self.pd.vartype,
             Markup("".join(choices))
             )
         
@@ -448,8 +451,9 @@ class vt_choice(vt_string):
                 elem = Markup("""<option value="%s">%s</option>""")%(choice, choice)
             choices.append(elem)
             
-        return Markup("""<span class="e2-edit" data-paramdef="%s"><select name="%s">%s</select></span>""")%(
+        return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><select name="%s">%s</select></span>""")%(
             self.pd.name,
+            self.pd.vartype,
             self.pd.name,
             Markup("".join(choices))
             )
@@ -518,8 +522,9 @@ class vt_text(vt_string):
     def _form(self, value):
         if value is None:
             value = ''
-        return Markup("""<div class="e2-edit" data-paramdef="%s"><textarea name="%s">%s</textarea></div>""")%(
+        return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s"><textarea name="%s">%s</textarea></div>""")%(
             self.pd.name,
+            self.pd.vartype,
             self.pd.name,
             value
             )
@@ -574,10 +579,6 @@ class vt_datetime(vt_string):
         raw_time = dateutil.parser.parse(value)
         local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
         return self._strip(local_time)
-        try:
-            return local_time.strftime("%Y-%m-%d %H:%M")
-        except:
-            return "Date out of bounds! %s"%value
     
     def _html(self, value):
         tz = self.options.get('tz')
@@ -592,6 +593,11 @@ class vt_datetime(vt_string):
             local_time.isoformat(),
             self._strip(local_time)
             )
+            
+    # def _form(self, value):
+    #     value = self._unicode(value)
+    #     return super(vt_datetime, self)._form(value)
+
 
 @Vartype.register('date')
 class vt_date(vt_datetime):
@@ -821,8 +827,9 @@ class vt_user(Vartype):
         if not self.pd.iter:
             elem += self._add()
             
-        return Markup("""<div class="e2-edit" data-paramdef="%s">%s</div>""")%(
+        return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s">%s</div>""")%(
             self.pd.name,
+            self.pd.vartype,
             elem
             )
         
@@ -915,7 +922,7 @@ class vt_comments(Vartype):
             )
 
     def render_form(self, value):
-        return Markup("""<div class="e2-edit" data-paramdef="%s"><textarea placeholder="Add additional comments"></textarea></div>""")%(self.pd.name)
+        return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s"><textarea placeholder="Add additional comments"></textarea></div>""")%(self.pd.name, self.pd.vartype)
 
 
 

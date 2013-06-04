@@ -256,7 +256,6 @@ class BaseDBObject(object):
         """Validate and set an attribute or key."""
         # This will validate the parameter, look for a setter, and then call the setter.
         # If a "_set_<key>" method exists, that will always be used for setting.
-        # To allow editing of a public attr, there MUST be a _set_<key> method.
         # Then if no setter, and the method is part of the public attrs, then silently return.
         # Finally, use _setoob as the setter. This can allow 'out of bounds' attrs, or raise error (default).
         cp = set()
@@ -336,7 +335,7 @@ class BaseDBObject(object):
         # (KeyErrors will be checked later, during commit..)
         access = self._ctx.db.get(changed, keytype=self.keytype)
         
-        # Check write permissions; need write permissions for both.
+        # Check write permissions; need write permission on both.
         for item in access:
             if not (self.writable() and item.writable()):
                 msg = 'Insufficient permissions to add or remove relationship: %s -> %s'%(self.name, item.name)

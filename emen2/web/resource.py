@@ -505,11 +505,9 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
     def render_error_security(self, location, e):
         return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
-        # return mako.exceptions.html_error_template().render()
 
     def render_error_response(self, location, e):
         return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
-        # return mako.exceptions.html_error_template().render()
 
     def _request_broken(self, failure, request, deferred):
         # Cancel the deferred.

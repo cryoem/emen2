@@ -5,7 +5,7 @@ from emen2.web.view import View
 class Auth(View):
 
     @View.add_matcher(r'^/auth/login/$')
-    def login(self, username=None, password=None, msg='', errmsg='', **kwargs):
+    def login(self, username=None, password=None, msg='', errmsg='', redirect=None, **kwargs):
         self.template = '/auth/login'
         self.title = 'Login'
         self.ctxt["username"] = username
@@ -13,7 +13,7 @@ class Auth(View):
             ctxid = self.db.auth.login(username, password, host=self.request_host)
             self.notify('Successfully logged in.')
             self.set_header('X-Ctxid', ctxid)
-            self.redirect('/')
+            self.redirect(redirect or '/')
 
     @View.add_matcher(r'^/auth/logout/$')
     def logout(self, msg='', **kwargs):

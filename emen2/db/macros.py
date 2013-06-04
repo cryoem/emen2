@@ -105,6 +105,13 @@ class Macro(object):
     def macro_name(self, params):
         return unicode("Macro")
 
+
+# Dummy
+@Macro.register('em_number')
+class macro_em_number(Macro):
+    pass
+
+
 @Macro.register('recname')
 class macro_recname(Macro):
     """recname macro"""

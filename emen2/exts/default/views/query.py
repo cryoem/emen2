@@ -164,7 +164,7 @@ class Query(View):
         # Look up all the binaries
         bdos = self.db.binary.find(record=self.q['names'], count=0)
         names = [i.name for i in bdos]
-        bdoq = self.db.table(subset=names, keytype="binary", checkbox=True, view="{{thumbnail(name)}} {{filename}} {{filesize}} {{recname(record)}}")
+        bdoq = self.db.table(subset=names, keytype="binary", checkbox=True, view="{{filename}} {{filesize}} {{recname(record)}}")
 
         # Render the binary table instead of the record table
         self.ctxt['q'] = bdoq

@@ -4,7 +4,7 @@
 <%def name="login(redirect='')">
     <form action="${ctxt.root}/auth/login/" method="post">
 
-        <input type="hidden" name="_redirect" value="${redirect}" />
+        <input type="hidden" name="redirect" value="${redirect}" />
         <table class="login">
             <tr>
                 <td>Email:</td>

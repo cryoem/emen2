@@ -25,12 +25,12 @@ import collections
 <div class="e2l-sidebar-sidebar">
     
     <ul class="e2l-cf e2l-sidebar-projectlist">
-        ## <li><h2 class="e2l-gradient">Home</h2></li>
-        ## <li><a href="#activity">Activity</a></li>
-
-        <li><h2 class="e2l-gradient">Lab Groups</h2></li>
-        % for group in groups:
-            <li><a href="#groups-${group.name}">${recnames.get(group.name,group.name)}</a></li>
+        % for k,v in sorted(groups_group.items(), key=lambda x:recnames.get(x[0],'').lower()):
+        <li><h2 class="e2l-gradient">${recnames.get(k,k)}</h2></li>
+            % for group in sorted(v, key=lambda x:recnames.get(x,'').lower()):
+                <li><a href="#groups-${group}">${recnames.get(group,group)}</a></li>
+            % endfor
+        <li style="margin-bottom:20px;"></li>
         % endfor
     </ul>
 

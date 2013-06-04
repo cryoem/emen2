@@ -273,7 +273,8 @@
         }
     });
 	
-	
+    
+	//////
     $.widget("emen2.EditControl", {        
         options: {
             name: null,
@@ -307,6 +308,21 @@
 				self.bind(b);
 			});
 
+            // Date picker
+            $('.e2-edit[data-vartype="datetime"] input', elem).datetimepicker({
+                showButtonPanel: true,
+                changeMonth: true,
+                changeYear: true,
+                showSecond: true,
+                showAnim: '',
+                yearRange: 'c-100:c+100',
+                dateFormat: 'yy-mm-dd',
+                timeFormat: 'hh:mm:ssz',
+                separator: 'T',
+                timezone: '+0500',
+                showTimezone: true
+            });
+            
             // Find items.
 			$('.e2-edit-add-find', elem).FindControl({
 			    minimum: 0,

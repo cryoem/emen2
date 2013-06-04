@@ -183,10 +183,13 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
     :keyword ctxt: ... Dictionary to pass to template  
     :return: Email recipient, or None if no message was sent  
 
-    """    
-    from_addr = emen2.db.config.get('mail.from')
-    smtphost = emen2.db.config.get('mail.smtphost')
-
+    """
+    
+    from_addr, smtphost = emen2.db.config.mailconfig()
+    if not (from_addr and smtphost):
+        emen2.db.log.warn("EMAIL: No mail configuration!")
+        return
+    
     ctxt = ctxt or {}
     ctxt["to_addr"] = to_addr
     ctxt["from_addr"] = from_addr
@@ -204,23 +207,16 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
         try:
             msg = emen2.db.config.templates.render_template(template, ctxt)
         except Exception, e:
-            emen2.db.log.warn('Could not render mail template %s: %s'%(template, e))
+            emen2.db.log.warn('EMAIL: Could not render mail template %s: %s'%(template, e))
             return
     else:
         raise ValueError, "No message to send!"
-
-    if not from_addr:
-        emen2.db.log.warn("Mail config: No admin email set")
-        return
-    if not smtphost:
-        emen2.db.log.warn("Mail config: No SMTP Server")
-        return
 
     # Actually send the message
     s = smtplib.SMTP(smtphost)
     s.set_debuglevel(1)
     s.sendmail(from_addr, [from_addr, to_addr], msg)
-    emen2.db.log.info('Mail sent: %s -> %s'%(from_addr, to_addr))
+    emen2.db.log.info('EMAIL: Mail sent: %s -> %s'%(from_addr, to_addr))
     return to_addr
     
 
@@ -615,6 +611,9 @@ class DB(object):
         :exception AuthenticationError: Invalid user username, email, or password
         """
         
+        # Strip the username
+        username = unicode(username).lower().strip()
+        
         # Check password; user.checkpassword will raise SecurityError if wrong.
         try:
             user = self._user_by_email(username, txn=txn)
@@ -975,7 +974,7 @@ class DB(object):
         t = time.time()
 
         # Build the view
-        defaultview = "{{recname()}} {{thumbnail()}} {{rectype}} {{name}}"
+        defaultview = "{{recname()}} {{rectype}} {{name}}"
         rectypes = set(q.cache[i].get('rectype') for i in q.result)
         rectypes -= set([None])
 
@@ -1703,11 +1702,11 @@ class DB(object):
     def user_setemail(self, name, email, secret=None, password=None, ctx=None, txn=None):
         """Change a User's email address.
 
-        This will require you to verify that you own the account by
-        responding with an auth token sent to the new email address.
-        Use the received auth token to sign the call using the
+        If a mail server is configured, this will require you to verify that
+        you own the account by responding with an auth token sent to the new
+        email address. Use the received auth token to sign the call using the
         'secret' keyword.
-
+    
         Note: This method only takes a single User name.
 
         Note: An Admin can change a user's email without the user's password or auth token.
@@ -1745,18 +1744,23 @@ class DB(object):
             time.sleep(2)
             raise SecurityError, "The email address %s is already in use"%(email)
 
-        # Do not use cget; it will strip out the secret.
+        # Do not use get; it will strip out the secret.
         user = self.dbenv["user"]._get_data(name, txn=txn)
         user_secret = getattr(user, 'secret', None)
         user.setContext(ctx)
         if user_secret:
             user.__dict__['secret'] = user_secret
         
-        # Actually change user email.
+        # Try and change user email.
         oldemail = user.email
         user.setemail(email, secret=secret, password=password)
         user_secret = getattr(user, 'secret', None)
 
+        # If there is no mail server configured, go ahead and set email.
+        from_addr, smtphost = emen2.db.config.mailconfig()
+        if user_secret and not (from_addr and smtphost):
+            user.setemail(email, secret=user_secret[2], password=password)
+        
         ctxt = {}
         ctxt['name'] = user.name
         ctxt['email'] = email
@@ -1765,8 +1769,7 @@ class DB(object):
         # Send out confirmation or verification email.
         if user.email == oldemail:
             # Need to verify email address change by receiving secret.
-            emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, user.email))
-            # Note: put will always ignore the secret; write directly
+            emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, email))
             self.dbenv["user"]._put_data(user.name, user, txn=txn)
 
             # Send the verify email containing the auth token
@@ -1774,15 +1777,11 @@ class DB(object):
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verify', 'ctxt':ctxt})
 
         else:
-            # raise Exception, "There is a known issue with this form. I am working on it."
             # Verified with secret.
-            # user.setContext(ctx)
             emen2.db.log.security("Changing email for user %s to %s"%(user.name, user.email))
-            self.dbenv['user'].puts([user], ctx=ctx, txn=txn)
-            # Note: Since we're putting directly,
-            #     have to force the index to update
+            self.dbenv['user']._put(user, ctx=ctx, txn=txn)
             # Send the user an email to acknowledge the change
-            self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/email.verified', 'ctxt':ctxt})
+            self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/email.verified', 'ctxt':ctxt})
 
         return self.dbenv["user"].get(user.name, ctx=ctx, txn=txn)
 
@@ -1845,6 +1844,11 @@ class DB(object):
         :exception KeyError:
         :exception SecurityError:
         """
+        
+        from_addr, smtphost = emen2.db.config.mailconfig()
+        if not (from_addr and smtphost):
+            raise Exception, "Mail server is not configured; contact the administrator for help resetting a password."
+        
         user = self._user_by_email(name, ctx=ctx, txn=txn)
         user.resetpassword()
 

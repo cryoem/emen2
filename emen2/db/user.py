@@ -14,6 +14,8 @@ import random
 import re
 import weakref
 import traceback
+import random
+import string
 
 # EMEN2 imports
 import emen2.db.exceptions
@@ -120,7 +122,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # Note: the auth token is bound both to the method (setemail) and the
         #     specific requested email address.
         # Note: email can be changed before first commit.
-        
         if self.isnew():
             self._set('email', email, self.isowner())
         elif self._checksecret('setemail', email, secret):
@@ -130,17 +131,17 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             self._setsecret('setemail', email)
         else:
             self.error(e=emen2.db.exceptions.AuthenticationError)
-
         return self.email
 
     #################################
     # Secrets for account password resets
     #################################
 
-    def _set_secret(self, key, value, **kwargs):
-        # Complicated.. put/puts will strip out secret.
-        # You have to get/put directly to get or set the secret.
-        pass
+    def _makesecret(self, length=32):
+        l = length / 2
+        rg = random.SystemRandom()
+        r = range(255)
+        return ''.join(['%02x'%rg.choice(r) for i in range(l)])
 
     def _checksecret(self, action, args, secret):
         # I only want this to work on certain subclasses. See: User
@@ -155,8 +156,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             if action == self.secret[0] and args == self.secret[1]:
                 return
 
-        import emen2.db.database
-        secret = emen2.db.database.getrandomid()
+        # Generate random secret.
+        secret = self._makesecret()
         self.__dict__['secret'] = (action, args, secret, time.time())
 
     def _delsecret(self):
@@ -247,8 +248,7 @@ class User(BaseUser):
     @property userrec Copy of profile record; set by database when accessed
     @property displayname User "display name"; set by database when accessed
     """
-
-    # displayname, userrec, and groups are unset when committing, so they can skip validation.
+    
     attr_public = BaseUser.attr_public | set(['privacy', 'disabled', 'displayname', 'userrec', 'groups', 'record'])
 
     # These get set during setContext and cleared before commit
@@ -266,21 +266,6 @@ class User(BaseUser):
     #################################
     # Setters
     #################################
-
-    # These are unvalidated parameters because they cleared when committing
-    # They return an empty set because they don't really modify the User.
-
-    def _set_groups(self, key, value):
-        self._set('_groups', value, True)
-        return set()
-
-    def _set_displayname(self, key, value):
-        self._set('_displayname', value, True)
-        return set()
-
-    def _set_userrec(self, key, value):
-        self._set('_userrec', value, True)
-        return set()
 
     # Users can set their own privacy level
     def _set_privacy(self, key, value):
