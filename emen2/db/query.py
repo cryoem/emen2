@@ -45,7 +45,6 @@ def getop(op, ignorecase=True):
     }
     if ignorecase:
         ops["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
-        ops['contains_w_empty'] = lambda y,x:unicode(y or '').lower() in unicode(x).lower()
 
     operator = synonyms.get(op, op)
     return ops[operator]

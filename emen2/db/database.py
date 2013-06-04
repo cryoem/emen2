@@ -829,6 +829,17 @@ class DB(object):
         return getattr(self, '%s_find'%(keytype))(ctx=ctx, txn=txn)
 
     @publicmethod()
+    def query2(self, *c, **kwargs):
+        """Experimental."""
+        keytype = kwargs.pop('keytype','record')
+        ctx = kwargs.pop('ctx')
+        txn = kwargs.pop('txn')
+        c = list(c)
+        for k,v in kwargs.items():
+            c.append([k, 'is', v])
+        return self.query(c, keytype=keytype, ctx=ctx, txn=txn)['names']
+
+    @publicmethod()
     def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", ctx=None, txn=None, **kwargs):
         """General query.
 
@@ -838,16 +849,15 @@ class DB(object):
         Operation and value are optional. An arbitrary number of constraints may be given.
 
         Operators:
-            is            or        ==
+            is             or        ==
             not            or        !=
-            gt            or        >
-            lt            or        <
+            gt             or        >
+            lt             or        <
             gte            or        >=
             lte            or        <=
             any
             none
             contains
-            contains_w_empty
             noop
             name
 

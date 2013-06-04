@@ -36,7 +36,6 @@
                 "is": "is",
                 "not": "is not",
                 "contains": "contains",
-                "contains_w_empty": "contains, or is empty",
                 "gt": "is greater than",
                 "lt": "is less than",
                 "gte": "is greater or equal than",
