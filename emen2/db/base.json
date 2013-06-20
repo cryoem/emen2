@@ -1,6 +1,6 @@
 // Core ParamDefs
 {"name": "root", "keytype": "paramdef", "parents": [], "vartype": "none", "desc_short": "Root Parameter"}
-{"name": "core", "keytype": "paramdef", "parents": ["root"], "vartype": "string", "desc_short": "Core Parameters"}
+{"name": "core", "keytype": "paramdef", "parents": ["root"], "vartype": "none", "desc_short": "Core Parameters"}
 
 // Links
 {"name": "record", "keytype": "paramdef", "parents": ["core"], "vartype": "record", "desc_short": "Record"}
@@ -17,18 +17,19 @@
 {"name": "creationtime", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Creation time", "desc_long": "Timestamp of original record creation"}
 {"name": "modifytime", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Modification time", "desc_long": "Timestamp of last modification"}
 {"name": "modifyuser", "immutable": true, "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record"}
-{"name": "uri", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Resource location", "desc_long": "Resource location of an imported object"}
+{"name": "uri", "immutable": true, "keytype": "paramdef","parents": ["core"], "vartype": "uri", "desc_short": "Resource location", "desc_long": "Resource location of an imported object"}
 {"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "link", "iter": true, "desc_short": "Parents"}
 {"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "link", "iter": true, "desc_short": "Children"}
 {"name": "permissions", "keytype": "paramdef","parents": ["core"], "vartype": "acl", "desc_short": "Permissions"}
+{"name": "keywords", "keytype": "paramdef","parents": ["core"], "vartype": "keywords", "desc_short": "Keywords"}
 
 // ParamDef
 {"name": "vartype", "immutable": true, "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Value type"}
-{"name": "immutable", "immutable": true, "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Default units"}
+{"name": "immutable", "immutable": true, "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Default units"}
 {"name": "iter", "immutable": true, "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Iterable"}
 {"name": "controlhint", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Control hint"}
 {"name": "desc_short", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Short description"}
-{"name": "desc_long", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Long description"}
+{"name": "desc_long", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Long description"}
 {"name": "property", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Physical property"}
 {"name": "defaultunits", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Default units"}
 {"name": "indexed", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Indexed"}

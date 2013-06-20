@@ -132,7 +132,7 @@ class macro_childcount(Macro):
 
     def preprocess(self, params, recs):
         rectypes = params.split(",")
-        children = self.db.rel.children([rec.name for rec in recs], recurse=-1)
+        children = self.db.rel.children([rec.name for rec in recs], recurse=-1, rectypes=rectypes)
         for rec in recs:
             key = ('rel.children', rec.name, tuple(rectypes))
             self.cache.store(key, len(children.get(rec.name,[])))
@@ -142,7 +142,7 @@ class macro_childcount(Macro):
         key = ('rel.children', rec.name, tuple(rectypes))
         hit, children = self.cache.check(key)
         if not hit:
-            children = self.db.rel.children(rec.name, recurse=-1)
+            children = self.db.rel.children(rec.name, recurse=-1, rectypes=rectypes)
             self.cache.store(key, len(children))
         return children
 

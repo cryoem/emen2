@@ -110,12 +110,7 @@ def iso8601duration(d):
 ##### Vartypes #####
 
 class Vartype(object):
-    '''Base class for vartypes
-    
-    render
-    validate
-    reindex
-    '''
+    '''Base class for Vartypes.'''
 
     #: The index key type for this class
     keyformat = 'str'
@@ -131,7 +126,6 @@ class Vartype(object):
         self.cache = cache
         self.db = db
         self.options = options or {}
-
 
     ##### Extensions #####
 
@@ -198,8 +192,11 @@ class Vartype(object):
             return value.pop()
         return value or None
 
-
+    
     ##### Indexing #####
+
+    def reindex_keywords(self, items):
+        return {}, {}
 
     def reindex(self, items):
         addrefs = collections.defaultdict(set)
@@ -207,7 +204,6 @@ class Vartype(object):
         for name, new, old in items:
             if new == old:
                 continue
-
             if not self.pd.iter:
                 new=[new]
                 old=[old]
@@ -307,7 +303,7 @@ class Vartype(object):
 class vt_none(Vartype):
     pass
     
-    
+
 # Float vartypes
 #    Indexed as 'f'
 @Vartype.register('float')
@@ -418,12 +414,47 @@ class vt_boolean(Vartype):
             )
         
 
+@Vartype.register('keywords')
+class vt_keywords(Vartype):
+    pass
+
 
 # String vartypes
 #    Indexed as keyformat 'str'
 @Vartype.register('string')
 class vt_string(Vartype):
     """String."""
+    
+    _indexwords = re.compile('[a-zA-Z0-9-]{3,}')
+
+    def _getindexwords(self, value):
+        """(Internal) Split up a text param into components"""
+        # print "-> reindex", self.pd.name, self.pd.vartype, self._indexwords.findall(value)
+        if value == None: return set()
+        value = unicode(value).lower()
+        return set(x for x in self._indexwords.findall(value))
+
+    def reindex_keywords(self, items):
+        addrefs = collections.defaultdict(list)
+        delrefs = collections.defaultdict(list)
+        for item in items:
+            if item[1]==item[2]:
+                continue
+            for i in self._getindexwords(item[1]):
+                addrefs[i].append(item[0])
+            for i in self._getindexwords(item[2]):
+                delrefs[i].append(item[0])
+
+        allwords = set(addrefs.keys() + delrefs.keys())
+        addrefs2 = {}
+        delrefs2 = {}
+        for i in allwords:
+            addrefs2[i] = set(addrefs.get(i,[]))
+            delrefs2[i] = set(delrefs.get(i,[]))
+            u = addrefs2[i] & delrefs2[i]
+            addrefs2[i] -= u
+            delrefs2[i] -= u
+        return addrefs2, delrefs2
 
     def validate(self, value):
         return self._rci([unicode(x).strip() for x in ci(value)])
@@ -459,58 +490,14 @@ class vt_choice(vt_string):
             )
         
 
-
-@Vartype.register('recorddef')
-class vt_recorddef(vt_string):
-    """RecordDef name."""
-
-    def validate(self, value):
-        value = self._validate_reference(ci(value), keytype='recorddef')
-        return self._rci(value)
-
-
-
 @Vartype.register('text')
 class vt_text(vt_string):
     """Freeform text, with word indexing."""
 
     elem = 'div'
-    unindexed_words = set(["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"])
 
     def reindex(self, items):
-        """(Internal) calculate param index updates for vartype == text"""
-        addrefs = collections.defaultdict(list)
-        delrefs = collections.defaultdict(list)
-        for item in items:
-            if item[1]==item[2]:
-                continue
-
-            for i in self._reindex_getindexwords(item[1]):
-                addrefs[i].append(item[0])
-
-            for i in self._reindex_getindexwords(item[2]):
-                delrefs[i].append(item[0])
-
-        allwords = set(addrefs.keys() + delrefs.keys()) - set(self.unindexed_words)
-        addrefs2 = {}
-        delrefs2 = {}
-
-        for i in allwords:
-            # make set, remove unchanged items
-            addrefs2[i] = set(addrefs.get(i,[]))
-            delrefs2[i] = set(delrefs.get(i,[]))
-            u = addrefs2[i] & delrefs2[i]
-            addrefs2[i] -= u
-            delrefs2[i] -= u
-
-        return addrefs2, delrefs2
-
-    _reindex_getindexwords_m = re.compile('([a-zA-Z]+)|([0-9][.0-9]+)')
-    def _reindex_getindexwords(self, value, ctx=None, txn=None):
-        """(Internal) Split up a text param into components"""
-        if value == None: return []
-        value = unicode(value).lower()
-        return set((x[0] or x[1]) for x in self._reindex_getindexwords_m.findall(value))
+        return self.reindex_keywords(items)
 
     def _html(self, value):
         if value is None:
@@ -537,7 +524,7 @@ import dateutil.parser
 import dateutil.tz
 
 @Vartype.register('datetime')
-class vt_datetime(vt_string):
+class vt_datetime(Vartype):
     """ISO 8601 Date time."""
 
     fmt = [
@@ -594,10 +581,6 @@ class vt_datetime(vt_string):
             self._strip(local_time)
             )
             
-    # def _form(self, value):
-    #     value = self._unicode(value)
-    #     return super(vt_datetime, self)._form(value)
-
 
 @Vartype.register('date')
 class vt_date(vt_datetime):
@@ -766,6 +749,13 @@ class vt_link(Vartype):
         return self._rci(value)
 
 
+@Vartype.register('recorddef')
+class vt_recorddef(Vartype):
+    """RecordDef name."""
+
+    def validate(self, value):
+        value = self._validate_reference(ci(value), keytype='recorddef')
+        return self._rci(value)
 
 # User, ACL, and Group vartypes
 #    Indexed as keyformat 'str'
@@ -866,8 +856,6 @@ class vt_acl(Vartype):
         return value
 
     def reindex(self, items):
-        """(Internal) Calculate secrindex updates"""
-        # Calculating security updates...
         addrefs = collections.defaultdict(list)
         delrefs = collections.defaultdict(list)
         for name, new, old in items:

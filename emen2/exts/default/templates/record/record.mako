@@ -250,13 +250,27 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                         <td />
                     </tr>
                 % endif
+                
+                % if accesstags:
+                    <tr>
+                        <td />
+                        <td>
+                            <p class="e2l-tiny e2l-underline" style="margin-top:10px">Access</p>
+                            <ul class="e2l-nonlist">
+                            % for i in accesstags:
+                                <li>${i}</li>
+                            % endfor
+                            </ul>
+                        </td>
+                        <td />
+                    </tr>
+                % endif
 
                 <tr>
                     <td />
                     <td><p class="e2l-tiny e2l-underline" style="margin-top:10px;">Siblings</p></td>
                     <td />
                 </tr>
-
 
                 <tr>
                     <td style="width:15px">
@@ -276,6 +290,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                         % endif
                     </td>
                 </tr>
+                
             </table>
         </li>
         
@@ -317,9 +332,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     </ul>
 
 </div>
-
-
-
 
 
 <div class="e2-tab e2-tab-editbar2 e2l-sidebar-main" data-tabgroup="record" role="tabpanel">

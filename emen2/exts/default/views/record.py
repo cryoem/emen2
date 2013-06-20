@@ -38,16 +38,18 @@ class Record(View):
         # Render main view
         rendered = self.db.view(name, viewname=viewname, options={'output':'html', 'markdown':True})
         rendered_edit = self.db.view(name, viewname=viewname, options={'output':'form', 'markdown':True, 'name': self.rec.name})
-
-        # Some warnings/alerts
+        
+        # Access tags
+        accesstags = []
         if self.rec.get('deleted'):
-            self.notify('Hidden record', error=True)
+            accesstags.append('Hidden record')
         if 'publish' in self.rec.get('groups',[]):
-            self.notify('Record marked as published data')
+            accesstags.append('Published data')
         if 'authenticated' in self.rec.get('groups',[]):
-            self.notify('Any authenticated user can read this record')
+            accesstags.append('All users')
         if 'anon' in self.rec.get('groups', []):
-            self.notify('Anyone may access this record anonymously')
+            accesstags.append('Anonymous access')
+        self.ctxt['accesstags'] = accesstags
 
         # Find if this record is in the user's bookmarks
         bookmarks = []

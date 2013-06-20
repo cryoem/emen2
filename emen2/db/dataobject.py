@@ -217,11 +217,10 @@ class BaseDBObject(object):
 
         # Skip validation for relationships.
         # This will assume they are the correct data format.
-        # Note: has to convert to set() here.
         for key in ['parents', 'children']:
            self.__dict__[unicode(key)] = set(update.pop(key, None) or [])
 
-        # Skip validation for defined keys?
+        # Skip validation?
         keys = self.attr_public & set(update.keys())
         keys.add('name')
         for key in keys:

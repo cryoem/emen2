@@ -1061,17 +1061,16 @@ class CollectionDB(BaseDB):
 
     def _reindex_param(self, param, changes, ctx=None, txn=None):
         """(Internal) Reindex changes to a single parameter."""
-        # TODO: ctx used only for cache...
         # If nothing changed, skip.
         if not changes:
             return
 
         # If we can't access the index, skip. (Raise Exception?)
         ind = self.getindex(param, txn=txn)
+        indkeywords = self.getindex('keywords', txn=txn)
         if ind == None:
             return
 
-        # Check that this key is currently marked as indexed
         # Check the cache for the param
         hit, pd = ctx.cache.check(('paramdef', param))
         if not hit:
@@ -1082,16 +1081,22 @@ class CollectionDB(BaseDB):
         # Process the changes into index addrefs / removerefs
         try:
             addrefs, removerefs = vt.reindex(changes)
+            addkeywords, removekeywords = vt.reindex_keywords(changes)
         except Exception, e:
-            # print "Could not reindex param %s: %s"%(pd.name, e)
-            # print changes
-            return
+           print "Could not reindex param %s: %s"%(pd.name, e)
+           return
 
         # Write!
         for oldval, recs in removerefs.items():
             ind.removerefs(oldval, recs, txn=txn)
         for newval,recs in addrefs.items():
             ind.addrefs(newval, recs, txn=txn)
+        for oldval, recs in removekeywords.items():
+            indkeywords.removerefs(oldval, recs, txn=txn)
+        for newval,recs in addkeywords.items():
+            indkeywords.addrefs(newval, recs, txn=txn)
+
+
 
     ##### Manage indexes. #####
 
@@ -1140,20 +1145,26 @@ class CollectionDB(BaseDB):
         return ind
 
     def rebuild_indexes(self, ctx=None, txn=None):
+        # Use our own txn
+        txn2 = self.dbenv.newtxn(write=True)
+
         emen2.db.log.info("BDB: Rebuilding indexes: Start")
         # ugly hack..
         self._truncate_index = True
         for k in self.indexes:
-            self.indexes[k].truncate(txn=txn)
+            self.indexes[k].truncate(txn=txn2)
 
-        # Do this in chunks of 1,000 items
-        keys = sorted(map(self.keyload, self.bdb.keys(txn)), reverse=True)
+        keys = sorted(map(self.keyload, self.bdb.keys(txn2)), reverse=True)
+        self.dbenv.txncommit(txn2)
+
         for chunk in emen2.util.listops.chunk(keys, 1000):
+            txn3 = self.dbenv.newtxn(write=True)
             if chunk:
                 emen2.db.log.info("BDB: Rebuilding indexes: %s ... %s"%(chunk[0], chunk[-1]))
-            items = [self._get_data(i, txn=txn) for i in chunk]
-            ind = self._reindex(items, reindex=True, txn=txn)
-            self._reindex_write(ind, ctx=ctx, txn=txn)
+            items = [self._get_data(i, txn=txn3) for i in chunk]
+            ind = self._reindex(items, reindex=True, txn=txn3)
+            self._reindex_write(ind, ctx=ctx, txn=txn3)
+            self.dbenv.txncommit(txn3)
 
         self._truncate_index = False
         emen2.db.log.info("BDB: Rebuilding indexes: Done")
