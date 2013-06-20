@@ -682,9 +682,30 @@ class vt_binary(Vartype):
             self.pd.name,
             multiple
             )
+            
+    def _html(self, value):
+        if value is None:
+            return ''
+        bdo = self.db.binary.get(value)
+        elem = Markup("""
+            <span class="e2-edit" data-paramdef="%s">
+                <a href="/download/%s/%s">
+                    <img class="e2l-thumbnail" src="/download/%s/%s?size=thumb&format=jpg" alt="Thumb" />
+                    %s
+                </a>
+            </span>
+            """)%(
+                self.pd.name,
+                bdo.name,
+                bdo.filename,
+                bdo.name,
+                bdo.filename,
+                bdo.filename
+            )
+        return elem
 
     def _form(self, value):
-        elem = ""            
+        elem = ""       
         if value:
             bdo = self.db.binary.get(value)
             if not bdo:
@@ -697,9 +718,9 @@ class vt_binary(Vartype):
                     <h4>%s</h4>
                     <p class="e2l-small">%s</p>                
                 </div>""")%(
-                    value,
+                    bdo.name,
                     self.pd.name,
-                    value,
+                    bdo.name,
                     src,
                     bdo.filename,
                     bdo.filesize

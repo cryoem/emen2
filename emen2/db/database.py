@@ -275,7 +275,7 @@ def setup(db=None, rootpw=None, rootemail=None):
         groups = {}
         groups['admin'] = {'displayname':'Administrators', 'permissions':[[],[],[],['root']]}
         groups['readadmin'] = {'displayname':'Read-only'}
-        groups['create'] = {'displayname':'Creation privileges'}
+        groups['create'] = {'displayname':'Create records'}
         groups['authenticated'] = {'displayname':'Authenticated users'}
         groups['anon'] = {'displayname':'Anonymous users'}
         for k,v in groups.items():
@@ -283,7 +283,7 @@ def setup(db=None, rootpw=None, rootemail=None):
             db.group.put(v)
 
         # Create an initial record
-        rec = {'rectype':'root'}
+        rec = {'rectype':'root', 'groups':['authenticated']}
         db.record.put(rec)
 
         
@@ -2731,44 +2731,48 @@ class DB(object):
 
         return ret
 
-    # @publicmethod(compat="renderchildtree")
-    # def record_renderchildren(self, name, recurse=3, rectypes=None, ctx=None, txn=None):
-    #     """(Deprecated) Convenience method used by some clients to render a bunch of
-    #     records and simple relationships.
-    # 
-    #     Examples:
-    # 
-    #     >>> db.record.renderchildren(0, recurse=1, rectypes=["group"])
-    #     (
-    #         {0: u'EMEN2', 136: u'NCMI', 358307: u'Visitors'},
-    #         {0: set([136, 358307])}
-    #     )
-    # 
-    #     :param name: Record name
-    #     :keyword recurse: Recursion depth
-    #     :keyword rectypes: Filter by RecordDef. Can be single RecordDef or list, and use '*'
-    #     :keyword filt: Ignore failures
-    #     :return: (Dictionary of rendered views {Record.name:view}, Child tree dictionary)
-    #     :exception SecurityError:
-    #     :exception KeyError:
-    #     """
-    #     def find_leaves(tree):
-    #         return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
-    # 
-    #     c_all = self.dbenv["record"].rel([name], recurse=recurse, tree=True, ctx=ctx, txn=txn)
-    #     c_rectype = self.dbenv["record"].rel([name], recurse=recurse, ctx=ctx, txn=txn).get(name, set())
-    # 
-    #     endpoints = find_leaves(c_all) - c_rectype
-    #     while endpoints:
-    #         for k,v in c_all.items():
-    #             c_all[k] -= endpoints
-    #         endpoints = find_leaves(c_all) - c_rectype
-    # 
-    #     rendered = self.view(listops.flatten(c_all), ctx=ctx, txn=txn)
-    # 
-    #     c_all = listops.filter_dict_zero(c_all)
-    # 
-    #     return rendered, c_all
+    @publicmethod()
+    def record_renderchildren(self, name, recurse=3, rectypes=None, ctx=None, txn=None):
+        """(Deprecated) Convenience method used by some clients to render a bunch of
+        records and simple relationships.
+    
+        Examples:
+    
+        >>> db.record.renderchildren(0, recurse=1, rectypes=["group"])
+        (
+            {0: u'EMEN2', 136: u'NCMI', 358307: u'Visitors'},
+            {0: set([136, 358307])}
+        )
+    
+        :param name: Record name
+        :keyword recurse: Recursion depth
+        :keyword rectypes: Filter by RecordDef. Can be single RecordDef or list, and use '*'
+        :keyword filt: Ignore failures
+        :return: (Dictionary of rendered views {Record.name:view}, Child tree dictionary)
+        :exception SecurityError:
+        :exception KeyError:
+        """
+
+        children = self.dbenv['record'].rel.children(name, recurse=recurse, ctx=ctx, txn=txn)
+        allowed_leaf = None
+        if rectypes:
+            allowed_leaf = self.dbenv['paramdef'].expand(rectypes, ctx=ctx, txn=txn)
+        
+        
+        
+        
+        # def find_leaves(tree):
+        #     return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
+        # c_all = self.dbenv["record"].rel([name], recurse=recurse, tree=True, ctx=ctx, txn=txn)
+        # c_rectype = self.dbenv["record"].rel([name], recurse=recurse, ctx=ctx, txn=txn).get(name, set())
+        # endpoints = find_leaves(c_all) - c_rectype
+        # while endpoints:
+        #     for k,v in c_all.items():
+        #         c_all[k] -= endpoints
+        #     endpoints = find_leaves(c_all) - c_rectype
+        # rendered = self.view(listops.flatten(c_all), ctx=ctx, txn=txn)
+        # c_all = listops.filter_dict_zero(c_all)
+        # return rendered, c_all
 
     ##### Binaries #####
 

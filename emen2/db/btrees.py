@@ -130,13 +130,14 @@ class EMEN2DBEnv(object):
 
         # Load DBOs from extensions.
         emen2.db.config.load_jsons(cb=self._load_json, keytypes=keytypes, ctx=ctx, txn=txn)
+
+        # Commit txn
+        self.txncommit(txn=txn)
         
         # self._load_json does not update indexes; do this manually.
         self['paramdef'].rebuild_indexes(ctx=ctx, txn=txn)
         self['recorddef'].rebuild_indexes(ctx=ctx, txn=txn)
 
-        # Commit txn
-        self.txncommit(txn=txn)
     
     def open(self):
         """Open the Database Environment."""
