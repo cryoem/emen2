@@ -46,8 +46,7 @@ def getop(op, ignorecase=True):
     if ignorecase:
         ops["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
 
-    operator = synonyms.get(op, op)
-    return ops[operator]
+    return ops[synonyms.get(op, op)]
 
 
 def keyformatconvert(keyformat, term):
@@ -71,7 +70,6 @@ class QuerySyntaxError(Exception):
 
 class QueryMaxItems(Exception):
     pass
-
 
 class Constraint(object):
     """Base Constraint"""
@@ -160,7 +158,6 @@ class ParamConstraint(IndexedConstraint):
     
     def _run_index(self):
         # Use the parameter index
-        # list seems to be faster than set
         f = []
 
         # Convert the term to the right type
@@ -315,7 +312,6 @@ class Query(object):
         for c in sorted(self.constraints, key=lambda x:x.priority):
             f = c.run()            
             self._join(f)
-            self._checktime()
 
         # Filter by permissions
         if self.subset is None and not self.constraints:
@@ -323,25 +319,18 @@ class Query(object):
         else:
             self.result = self.btree.filter(self.result or set(), ctx=self.ctx, txn=self.txn)
 
-        self._checktime()
-
         # After all constraints have run, tidy up cache/items
         self._prunecache()
         self._pruneitems()        
 
         # Update the approx. running time.
-        self.time += time.time() - t
-        self._checktime()
-        
+        self.time += time.time() - t    
         return self.result
 
     def sort(self, sortkey='name', reverse=False, pos=0, count=0, rendered=False):
         reverse = bool(reverse)
         if sortkey == 'name':
             # Shortcut.
-            # Records are created as increasing integers. However,
-            # they are now stored as strings -- so cast to int,
-            # then sort.
             if self.btree.keytype == 'record':
                 result = sorted(self.result, reverse=reverse, key=lambda x:int(x))
             else:
@@ -360,14 +349,11 @@ class Query(object):
             # This does not change the constraint, just gets values.
             c = self._makeconstraint(sortkey, op='noop')
             c.run()
-            self._checktime()
             
         # If the param is iterable, we need to get the actual values.
         pd = self.btree.dbenv['paramdef'].get(sortkey, ctx=self.ctx, txn=self.txn)
         if pd and pd.iter:
             self._checkitems(sortkey)
-
-        self._checktime()
 
         # Make a copy of the results
         result = set() | (self.result or set())
@@ -384,18 +370,14 @@ class Query(object):
 
         # Get the data type of the paramdef..
         if rendered and pd:
-            # Users need to be rendered... ugly hack.
-            # if pd.vartype == 'user':
-            for i in result:
-                vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self.ctx.db, cache=self.ctx.cache, options={'lnf':1})
-                sortvalues[i] = vartype.render(sortvalues[i])
-                self._checktime()
-                    
             # Case-insensitive sort
             vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype)  # don't need db/cache; just checking keytype
             if vartype.keyformat == 'str':
+                for i in result:
+                    vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self.ctx.db, cache=self.ctx.cache, options={'lnf':1})
+                    sortvalues[i] = vartype.render(sortvalues[i])
                 sortfunc = lambda x:sortvalues[x].lower()
-
+                    
         # Todo: Sort by the rendered value or the raw actual value?
         result = sorted(result, key=sortfunc, reverse=reverse)        
         
@@ -411,16 +393,7 @@ class Query(object):
             result = result[pos:pos+count]
 
         self.time += time.time() - t
-        self._checktime()
-
         return result
-
-
-    def _checktime(self):
-        t = time.time() - self.starttime
-        if t > self.maxtime:
-            raise QueryTimeOut, "Max allowed query time exceeded: %5.2f seconds"%t
-            
 
     ##### Results/Cache methods #####
     

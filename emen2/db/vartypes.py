@@ -733,9 +733,6 @@ class vt_md5(Vartype):
 class vt_record(Vartype):
     """References to other Records."""
 
-    # This ma change in the future
-    keyformat = 'str'
-
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='record')
         return self._rci(value)

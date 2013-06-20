@@ -229,6 +229,22 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                     siblings_index = 0
             %>
             <table>
+                
+                % if accesstags:
+                    <tr>
+                        <td />
+                        <td>
+                            <ul class="e2l-nonlist e2-alert">
+                            % for i in accesstags:
+                                <li>${i}</li>
+                            % endfor
+                            </ul>
+                        </td>
+                        <td />
+                    </tr>
+                % endif
+                
+                
                 <tr>
                     <td />
                     <td>
@@ -251,21 +267,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                     </tr>
                 % endif
                 
-                % if accesstags:
-                    <tr>
-                        <td />
-                        <td>
-                            <p class="e2l-tiny e2l-underline" style="margin-top:10px">Access</p>
-                            <ul class="e2l-nonlist">
-                            % for i in accesstags:
-                                <li>${i}</li>
-                            % endfor
-                            </ul>
-                        </td>
-                        <td />
-                    </tr>
-                % endif
-
                 <tr>
                     <td />
                     <td><p class="e2l-tiny e2l-underline" style="margin-top:10px;">Siblings</p></td>

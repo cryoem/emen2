@@ -50,20 +50,6 @@ print "Found %s children with recurse=2"%len(children)
 # Or get a dictionary containing the children of each item.
 childtree = db.getchildtree(ROOT, recurse=2)
 # Key is the record ID, value is the direct children for that record.
-# You can also filter this with rectype=
-# print childtree
-
-# Get the children, filter by rectype
-children = db.getchildren(ROOT, recurse=2, rectype="project")
-print "Found %s project children"%len(children)
-
-# Use an expanded rectype (project* is "project" and its child protocols: subproject, software_project, etc.)
-children = db.getchildren(ROOT, recurse=2, rectype="project*")
-print "Found %s project* children"%(len(children))
-
-# .... or a list of rectypes
-children = db.getchildren(ROOT, recurse=2, rectype=['project', 'subproject'])
-print "Found %s project and subproject children"%(len(children))
 
 # Use recurse=-1 to find all children
 children = db.getchildren(PROJECT, recurse=-1)

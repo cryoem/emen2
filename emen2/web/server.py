@@ -184,11 +184,13 @@ class EMEN2WebServer(EMEN2BaseServer):
 def start_standalone():
     opt = emen2.db.config.UsageParser(WebServerOptions)
     server = EMEN2WebServer(opt.options)
+    emen2.db.log.info("Web server started")
     server.start()
     
 def start_rpc():
     opt = emen2.db.config.UsageParser(WebServerOptions)
     server = EMEN2RPCServer(opt.options)
+    emen2.db.log.info("RPC server started")
     server.start()
 
 if __name__ == "__main__":

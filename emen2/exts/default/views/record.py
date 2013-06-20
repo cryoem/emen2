@@ -51,19 +51,6 @@ class Record(View):
             accesstags.append('Anonymous access')
         self.ctxt['accesstags'] = accesstags
 
-        # Find if this record is in the user's bookmarks
-        bookmarks = []
-        user = None
-        try:
-            t = time.time()
-            user = self.ctxt['USER']
-            brec = self.db.record.get(sorted(self.db.rel.children(user.record, rectype='bookmarks')))
-            if brec:
-                bookmarks = brec[-1].get('bookmarks', [])
-        except Exception, e:
-            pass
-        self.ctxt['bookmarks'] = bookmarks
-
         # User display names
         users = self.db.user.get([self.rec.get('creator'), self.rec.get('modifyuser')])
 
@@ -79,7 +66,7 @@ class Record(View):
         # Siblings
         if sibling == None:
             sibling = self.rec.name
-        siblings = self.db.rel.siblings(sibling) # , rectype=self.rec.rectype
+        siblings = self.db.rel.siblings(sibling)
 
         # Get RecordDefs
         recdef = self.db.recorddef.get(self.rec.rectype)
@@ -258,7 +245,7 @@ class Record(View):
     def children_map(self, name=None):
         self.main(name=name)
         self.template = '/record/record.tree'
-        childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, expandable=True, collapse_rectype=["grid_imaging"])
+        childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, expandable=True)
         self.ctxt['childmap'] = childmap
 
 
@@ -375,7 +362,7 @@ class Record(View):
         
         if self.request_method != 'post':
             self.template = '/record/record.publish'
-            childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, collapse_rectype='grid_imaging')
+            childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2)
             self.ctxt['childmap'] = childmap
             # self.ctxt['tab'] = 'publish'
             return

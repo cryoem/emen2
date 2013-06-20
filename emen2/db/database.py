@@ -1385,7 +1385,6 @@ class DB(object):
 
         :param names: Item name(s)
         :keyword recurse: Recursion depth
-        :keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
         :keyword param keytype: Item keytype
         :keyword filt: Ignore failures
         :return:
@@ -2671,7 +2670,7 @@ class DB(object):
 
     @publicmethod(compat="groupbyrectype")
     @ol('names')
-    def record_groupbyrectype(self, names, filt=True, ctx=None, txn=None):
+    def record_groupbyrectype(self, names, filt=True, rectypes=None, ctx=None, txn=None):
         """Group Record(s) by RecordDef.
 
         Examples:
@@ -2684,29 +2683,39 @@ class DB(object):
 
         :param names: Record name(s) or Record(s)
         :keyword filt: Ignore failures
+        :keyword rectype: Filter by a list of RecordDefs (incl., recorddef*)
         :return: Dictionary of Record names by RecordDef
         :exception KeyError:
         :exception SecurityError:
         """
         if not names:
             return {}
+        names = set(names)
 
+        # Enable filtering on rectypes
+        if rectypes:
+            rectypes = self.dbenv['recorddef'].expand(rectypes, ctx=ctx, txn=txn)
+            
         # Allow either Record(s) or Record name(s) as input
         ret = collections.defaultdict(set)
         recnames, recs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
 
         if len(recnames) < 1000:
-            # Just get the rest of the records directly
+            # Get the records directly
             recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
+        elif rectypes:
+            ind = self.dbenv['record'].getindex('rectype', txn=txn)
+            for i in rectypes:
+                ret[i] = ind.get(i, txn=txn) & names
         else:
-            # Use the index for large numbers of records
+            # Use the index for larger sets
             ind = self.dbenv["record"].getindex("rectype", txn=txn)
             # Filter permissions
             names = self.dbenv["record"].filter(recnames, ctx=ctx, txn=txn)
             while names:
                 # get a random record's rectype
                 rid = names.pop()
-                rec = self.dbenv["record"].get(rid, txn=txn)
+                rec = self.dbenv["record"]._get_data(rid, txn=txn)
                 # get the set of all records with this recorddef
                 ret[rec.rectype] = ind.get(rec.rectype, txn=txn) & names
                 # remove the results from our list since we have now classified them
@@ -2714,49 +2723,52 @@ class DB(object):
                 # add back the initial record to the set
                 ret[rec.rectype].add(rid)
 
+        # Filter recs by rectype
+        if rectypes:
+            recs = [i for i in recs if i.rectype in rectypes]
         for i in recs:
             ret[i.rectype].add(i.name)
 
         return ret
 
-    @publicmethod(compat="renderchildtree")
-    def record_renderchildren(self, name, recurse=3, rectype=None, ctx=None, txn=None):
-        """(Deprecated) Convenience method used by some clients to render a bunch of
-        records and simple relationships.
-
-        Examples:
-
-        >>> db.record.renderchildren(0, recurse=1, rectype=["group"])
-        (
-            {0: u'EMEN2', 136: u'NCMI', 358307: u'Visitors'},
-            {0: set([136, 358307])}
-        )
-
-        :param name: Record name
-        :keyword recurse: Recursion depth
-        :keyword rectype: Filter by RecordDef. Can be single RecordDef or list. Recurse with '*'
-        :keyword filt: Ignore failures
-        :return: (Dictionary of rendered views {Record.name:view}, Child tree dictionary)
-        :exception SecurityError:
-        :exception KeyError:
-        """
-        def find_endpoints(tree):
-            return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
-
-        c_all = self.dbenv["record"].rel([name], recurse=recurse, tree=True, ctx=ctx, txn=txn)
-        c_rectype = self.dbenv["record"].rel([name], recurse=recurse, rectype=rectype, ctx=ctx, txn=txn).get(name, set())
-
-        endpoints = find_endpoints(c_all) - c_rectype
-        while endpoints:
-            for k,v in c_all.items():
-                c_all[k] -= endpoints
-            endpoints = find_endpoints(c_all) - c_rectype
-
-        rendered = self.view(listops.flatten(c_all), ctx=ctx, txn=txn)
-
-        c_all = listops.filter_dict_zero(c_all)
-
-        return rendered, c_all
+    # @publicmethod(compat="renderchildtree")
+    # def record_renderchildren(self, name, recurse=3, rectypes=None, ctx=None, txn=None):
+    #     """(Deprecated) Convenience method used by some clients to render a bunch of
+    #     records and simple relationships.
+    # 
+    #     Examples:
+    # 
+    #     >>> db.record.renderchildren(0, recurse=1, rectypes=["group"])
+    #     (
+    #         {0: u'EMEN2', 136: u'NCMI', 358307: u'Visitors'},
+    #         {0: set([136, 358307])}
+    #     )
+    # 
+    #     :param name: Record name
+    #     :keyword recurse: Recursion depth
+    #     :keyword rectypes: Filter by RecordDef. Can be single RecordDef or list, and use '*'
+    #     :keyword filt: Ignore failures
+    #     :return: (Dictionary of rendered views {Record.name:view}, Child tree dictionary)
+    #     :exception SecurityError:
+    #     :exception KeyError:
+    #     """
+    #     def find_leaves(tree):
+    #         return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
+    # 
+    #     c_all = self.dbenv["record"].rel([name], recurse=recurse, tree=True, ctx=ctx, txn=txn)
+    #     c_rectype = self.dbenv["record"].rel([name], recurse=recurse, ctx=ctx, txn=txn).get(name, set())
+    # 
+    #     endpoints = find_leaves(c_all) - c_rectype
+    #     while endpoints:
+    #         for k,v in c_all.items():
+    #             c_all[k] -= endpoints
+    #         endpoints = find_leaves(c_all) - c_rectype
+    # 
+    #     rendered = self.view(listops.flatten(c_all), ctx=ctx, txn=txn)
+    # 
+    #     c_all = listops.filter_dict_zero(c_all)
+    # 
+    #     return rendered, c_all
 
     ##### Binaries #####
 

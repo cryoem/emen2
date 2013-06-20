@@ -131,19 +131,36 @@ class macro_childcount(Macro):
     keyformat = 'int'
 
     def preprocess(self, params, recs):
-        rectypes = params.split(",")
-        children = self.db.rel.children([rec.name for rec in recs], recurse=-1, rectypes=rectypes)
+        rectypes = filter(None, params.split(","))
+        children = self.db.rel.children([rec.name for rec in recs], recurse=-1)
+        # Filter by rectype... somewhat ugly.
+        if rectypes:
+            allchildren = set()
+            for k,v in children.items():
+                allchildren |= v
+            allg = set()
+            for k,v in self.db.record.groupbyrectype(allchildren, rectypes=rectypes).items():
+                allg |= v
+            for k,v in children.items():
+                v &= allg
+        
         for rec in recs:
             key = ('rel.children', rec.name, tuple(rectypes))
             self.cache.store(key, len(children.get(rec.name,[])))
 
     def process(self, params, rec):
-        rectypes = params.split(",")
+        rectypes = filter(None, params.split(","))
         key = ('rel.children', rec.name, tuple(rectypes))
         hit, children = self.cache.check(key)
         if not hit:
-            children = self.db.rel.children(rec.name, recurse=-1, rectypes=rectypes)
+            children = self.db.rel.children(rec.name, recurse=-1)
+            if rectypes:
+                allg = set()
+                for k,v in self.db.record.groupbyrectype(children, rectypes=rectypes).items():
+                    allg |= v
+                children = allg
             self.cache.store(key, len(children))
+            return len(children)
         return children
 
     def macro_name(self, params):
@@ -167,17 +184,20 @@ class macro_parentvalue(Macro):
 
     def process(self, params, rec):
         p = params.split(",")
-        param, recurse, rectype = p[0], 1, None
-
+        param, recurse, rectypes = p[0], 1, None
         if len(p) == 3:
-            param, recurse, rectype = p
+            param, recurse, rectypes = p
         elif len(p) == 2:
             param, recurse = p
 
         recurse = int(recurse or 1)
-        name = rec.name
-        parents = self.db.record.get(self.db.rel.parents(name, recurse=recurse))
-        parents = [i for i in parents if i.rectype == rectype]
+        parents = self.db.rel.parents(rec.name, recurse=recurse)
+        if rectypes:
+            p = set()
+            for k,v in self.db.record.groupbyrectype(parents, rectypes=rectypes).items():
+                p |= v
+            parents = p            
+        parents = self.db.record.get(parents)
         return filter(None, [i.get(param) for i in parents])
 
     def macro_name(self, params):
@@ -206,15 +226,15 @@ class macro_thumbnail(Macro):
         for bdo in self.db.binary.get(value):
             if not bdo:
                 return Markup("Error getting binary: %s"%value)
-            i = Markup("""<img class="e2l-thumbnail" src="%s/download/%s/%s?size=%s&format=%s" alt="" />""")%(
-                    root,
+            i = Markup("""download/%s/%s?size=%s&format=%s""")%(
                     bdo.name,
                     bdo.filename,
                     size,
                     format
                 )
             ret.append(i)
-        return "".join(ret)
+        return ret
+        # return "".join(ret)
 
     def macro_name(self, params):
         return "Thumbnail Image"

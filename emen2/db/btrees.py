@@ -628,7 +628,6 @@ class IndexDB(BaseDB):
             ditems = [self.datadump(self.dataclass(i)) for i in items]
         except:
             emen2.db.log.debug("BDB: Could not reindex due to encoding errors!!")
-            print key
             return []
 
         cursor = self.bdb.cursor(txn=txn)
@@ -666,7 +665,6 @@ class IndexDB(BaseDB):
             ditems = [self.datadump(self.dataclass(i)) for i in items]
         except:
             emen2.db.log.debug("BDB: Could not reindex due to encoding errors!!")
-            print key
             return []
         
         cursor = self.bdb.cursor(txn=txn)

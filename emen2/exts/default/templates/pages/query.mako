@@ -68,9 +68,15 @@
                                                  
                         % for key in q['keys']:
                             <td>
-								<a href="${ctxt.root}/${keytype}/${name}/">${q['rendered'][name].get(key)}</a>
+                                ## Inelegant, but will do for now...
+                                % if key == 'thumbnail()':
+                                    <a href="${ctxt.root}/${keytype}/${name}/"><img class="e2l-thumbnail" src="${ctxt.root}/${q['rendered'][name].get(key)}" alt="Thumb" /></a>
+                                % else:
+                                    <a href="${ctxt.root}/${keytype}/${name}/">${q['rendered'][name].get(key)}</a>
+                                % endif
 							</td>
                         % endfor
+                        
                         </tr>
                     % endfor            
 
