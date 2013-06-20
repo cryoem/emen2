@@ -81,7 +81,7 @@ class Macro(object):
     @classmethod
     def get_macro(cls, name, *args, **kwargs):
         if name not in cls.registered:
-            raise KeyError, "Unknown macro: %s"%name
+            return macro_dummy(*args, **kwargs)
         return cls.registered[name](*args, **kwargs)
 
     ##### Macro processing #####
@@ -107,8 +107,8 @@ class Macro(object):
 
 
 # Dummy
-@Macro.register('em_number')
-class macro_em_number(Macro):
+@Macro.register('dummy')
+class macro_dummy(Macro):
     pass
 
 
@@ -195,18 +195,17 @@ class macro_thumbnail(Macro):
             if v:
                 defaults[i]=v        
         paramdef, size, format = defaults
-
+        
         pd = self.db.paramdef.get(paramdef)
-        # if pd.vartype != "binary":
-        #    raise Exception, "Cannot generate a thumbnail for parameter %s: data type is %s, not binary."%(pd.name, pd.vartype)
         value = rec.get(pd.name)
         if not value:
             return
         if not pd.iter:
             value = [value]
-        bdos = self.db.binary.get(value)
         ret = []
-        for bdo in bdos:
+        for bdo in self.db.binary.get(value):
+            if not bdo:
+                return Markup("Error getting binary: %s"%value)
             i = Markup("""<img class="e2l-thumbnail" src="%s/download/%s/%s?size=%s&format=%s" alt="" />""")%(
                     root,
                     bdo.name,

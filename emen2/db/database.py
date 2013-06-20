@@ -820,7 +820,6 @@ class DB(object):
 
     @publicmethod()
     def names(self, keytype='record', ctx=None, txn=None):
-        keytype = kwargs.pop('keytype', 'record')
         return getattr(self, '%s_names'%(keytype))(ctx=ctx, txn=txn)
         
     @publicmethod()

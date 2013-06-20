@@ -686,7 +686,7 @@ class vt_binary(Vartype):
             v = self.db.binary.get(value)
             return v.filename or value
         except (ValueError, TypeError, AttributeError, KeyError), e:
-            return 'Error getting binary: %s'%value
+            return "Error getting binary: %s"%value
 
     def _add(self):
         label = "Change"
@@ -701,9 +701,11 @@ class vt_binary(Vartype):
             )
 
     def _form(self, value):
-        elem = ""
+        elem = ""            
         if value:
             bdo = self.db.binary.get(value)
+            if not bdo:
+                return Markup("Error getting binary: %s"%value)
             src = "/download/%s/thumb.jpg?size=thumb"%(bdo.name)        
             elem = Markup("""
                 <div class="e2-infobox" data-name="%s" data-keytype="user">

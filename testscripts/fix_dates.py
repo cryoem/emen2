@@ -39,32 +39,19 @@ def parselocal(d):
     # return t.isoformat()
 
 
-def updatebt(btree, txn, ctx):
+def updatebt(btree, ctx, txn):
     for name, item in btree.items(txn=txn, ctx=ctx):
         # print name
         ct = item.__dict__.get('creationtime') or '2001/01/01'
         item.__dict__['creationtime'] = parseutc(ct)
         item.__dict__['modifytime'] = parseutc(item.get('modifytime') or ct)
-        try:
-            btree.put(str(name), item, txn=txn)
-        except Exception, e:
-            print "Skipped...", e
-
-        
-with db:    
-    pds = set(db.query([['vartype','==','datetime']], keytype='paramdef', count=0)['names'])
-    pds -= set(['creationtime', 'modifytime'])
-    print "Converting timestamps for:", pds
+        btree._put_data(item.name, item, txn=txn)
+    btree.rebuild_indexes(ctx=ctx, txn=txn)
     
-    ctx = db._ctx
-    txn = db._txn
-    
-    for i in ['user', 'group', 'paramdef', 'recorddef', 'binary']:
-        updatebt(db._db.dbenv[i], txn=txn, ctx=ctx)
-    
-    #for name in db._db.dbenv["record"].keys(txn=txn): 
-    for name in range(550000):
-        if name % 1000 == 0:
+def updaterecs(ctx, txn):
+    # for name in range(550000):
+    for count, name in enumerate(db._db.dbenv["record"].keys(txn=txn)):
+        if count % 1000 == 0:
             print name
 
         rec = db.getrecord(name)
@@ -89,7 +76,21 @@ with db:
             if rec.params.get(p):
                 rec.params[p] = parselocal(rec.params[p])
 
-        db._db.dbenv["record"]._put(rec.name, rec, txn=txn)
+        db._db.dbenv["record"]._put_data(rec.name, rec, txn=txn)
+    db._db.dbenv['record'].rebuild_indexes(ctx=ctx, txn=txn)
+    
+    
+with db:    
+    pds = set(db.query([['vartype','==','datetime']], keytype='paramdef', count=0)['names'])
+    pds -= set(['creationtime', 'modifytime'])
+    print "Converting timestamps for:", pds
         
+    ctx = db._ctx
+    txn = db._txn
+    for i in ['user', 'group', 'paramdef', 'recorddef', 'binary']:
+        updatebt(db._db.dbenv[i], ctx=ctx, txn=txn)
+    
+    updaterecs(ctx=ctx, txn=txn)
+    
         
         

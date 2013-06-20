@@ -15,8 +15,6 @@ def other_setstate(self, d):
     print d    
     return self.__dict__.update(d)
 
-
-
 def user_setstate(self, d):
     print "Updating user"
     
