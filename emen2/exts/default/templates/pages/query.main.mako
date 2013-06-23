@@ -2,68 +2,56 @@
 <%inherit file="/page" />
 <%namespace name="query"  file="/pages/query"  />
 
-<%
-projects = {} # DB.view(DB.record.findbyrectype("project"))
-microscopes = {} # DB.view(DB.record.findbyrectype("microscope"))
-recorddefs = {} # DB.recorddef.get(DB.recorddef.filter())
-users = [] # DB.user.get(DB.user.filter())
-worksheets = {} # DB.view(DB.record.findbyrectype("grid_imaging"))
-%>
-
 <h1>Query</h1>
 
-<table class="e2l-kv">
+<form method="post" action="${ctxt.root}/query">
+    <ul class="e2l-nonlist e2-query-base e2-query-constraints"> 
+        <li class="e2-query-constraint"> 
+            <strong class="e2-query-label">Protocol:</strong> 
+            <input type="hidden" name="param" value="rectype" /> 
+            <input type="hidden" name="cmp" value="is" /> 
+            <input type="text" name="value" id="e2-query-find-protocol" placeholder="Select protocol" /> 
+            <img class="e2-query-find" data-keytype="recorddef" data-target="e2-query-find-protocol" src="" /> 
+            <input type="checkbox" name="recurse_v" id="e2-query-id-rectype"/><label for="e2-query-id-rectype">Include child protocols</label> 
+        </li> 
+        <li class="e2-query-constraint"> 
+            <strong class="e2-query-label">Creator:</strong> 
+            <input type="hidden" name="param" value="creator" /> 
+            <input type="hidden" name="cmp" value="is" /> 
+            <input type="text" name="value" id="e2-query-find-user" placeholder="Select user" /> 
+            <img class="e2-query-find" data-keytype="user" data-target="e2-query-find-user" src="" /> 
+        </li> 
+        <li class="e2-query-constraint"> 
+            <strong class="e2-query-label">Child of:</strong> 
+            <input type="hidden" name="param" value="children" /> 
+            <input type="hidden" name="cmp" value="name" /> 
+            <input type="text" name="value" id="e2-query-find-record" placeholder="Select record"/> 
+            <img class="e2-query-tree" data-keytype="record" data-target="e2-query-find-record" src="" /> 
+            <input type="checkbox" name="recurse_v" id="e2-query-paramid-children" /><label for="e2-query-paramid-children">Recursive</label> 
+        </li> 
+        <li> 
+            <strong class="e2-query-label">Created:</strong> 
+            <span class="e2-query-constraint"> 
+                <input type="hidden" name="param" value="creationtime" /> 
+                <input type="hidden" name="cmp" value=">=" /> 
+                <input type="text" name="value" placeholder="Start date" /> 
+                </span>&nbsp;&nbsp;&nbsp;to&nbsp;&nbsp;&nbsp;<span class="e2-query-constraint"> 
+                <input type="hidden" name="param" value="creationtime" /> 
+                <input type="hidden" name="cmp" value="<=" /> 
+                <input type="text" name="value" placeholder="end date" /> 
+            </span> 
+        </li> 
+    </ul> 
 
-	<p>Project:
-		<select>
-			<option></option>
-			% for k,v in sorted(projects.items(), key=lambda x:x[1].lower()):
-				<option value="${k}">${v}</option>
-			% endfor
-		</select>
-	</p>
-	
-	<p>Instrument:
-		<select>
-			<option></option>
-			% for k,v in sorted(microscopes.items(), key=lambda x:x[1].lower()):
-				<option value="${k}">${v}</option>
-			% endfor
-		</select>	
-	</p>
-	
-	<p>Record type:
-		<select>
-			<option></option>
-			% for k in sorted(recorddefs, key=lambda x:x.desc_short.lower()):
-				<option value="${k.name}">${k.desc_short}</option>
-			% endfor
-		</select>
-	</p>
-	
-	<p>NanoPEAS Worksheet:
-		<select>
-			<option></option>
-			% for k,v in sorted(worksheets.items(), key=lambda x:x[1].lower()):
-			<option value="${k}">${v}</option>
-			% endfor
-		</select>
-	</p>
-	
-	<p>Created by:
-		<select>
-			<option></option>
-			% for k in sorted(users, key=lambda x:x.getdisplayname(lnf=True).lower()):
-				<option value="${k.name}">${k.getdisplayname(lnf=True)}</option>
-			% endfor
-		</select>		
-	</p>
-	
-	<p>Date: <input type="text" /> to <input type="text" /></p>
+    <ul class="e2l-nonlist e2-query-param e2-query-constraints"></ul>
 
-</table>
+    <ul class="e2l-controls">
+        <li><input type="submit" value="Query" /><li>
+    </ul>
+</form>
 
-<br /><br />
+<br /><br /><br /><br />
+
 
 ${query.table(q)}
 

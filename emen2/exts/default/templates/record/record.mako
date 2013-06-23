@@ -49,7 +49,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     var ptest = ${rec.ptest() | n,jsonencode}
 
     // Intialize the Tab controller
-    var tab = $("#e2-tab-editbar2");        
+    var tab = $("#e2-tab-record");        
     tab.TabControl({});
 
     // Editor
@@ -133,7 +133,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 <div class="e2l-sidebar-sidebar">
 
-    <ul id="e2-tab-editbar2" class="e2l-cf e2l-sidebar-projectlist" role="tablist" data-tabgroup="record">
+    <ul id="e2-tab-record" class="e2l-cf e2l-sidebar-projectlist" role="tablist" data-tabgroup="record">
 
         ## Title
         <li role="tab">
@@ -335,7 +335,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 </div>
 
 
-<div class="e2-tab e2-tab-editbar2 e2l-sidebar-main" data-tabgroup="record" role="tabpanel">
+<div class="e2-tab e2-tab-record e2l-sidebar-main" data-tabgroup="record" role="tabpanel">
 
     % for k,v in children_groups.items():
         % if k == childtype:

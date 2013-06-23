@@ -89,7 +89,6 @@ VIEW_REGEX_M = '''(\{\{[\#\^\/]?%s\}\})'''%VIEW_REGEX_P
 # basestring goes away in Python 3
 basestring = (str, unicode)
 
-
 ##### Utility methods #####
 
 def getrandomid():
@@ -105,6 +104,7 @@ def utcnow():
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat()+'+00:00'
 
 def getpw(pw=None):
+    """Prompt for a password."""
     minlength = 8
     pw = pw or getpass.getpass("Password: ")
     while len(pw) < minlength:
@@ -175,16 +175,15 @@ def limit_result_length(default=None):
 
 # ian: TODO: put this in a separate module
 def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
-    """(Semi-internal) Send an email. You can provide either a template or a message subject and body.
+    """(Internal) Send an email. You can provide either a template or a message subject and body.
 
     :param to_addr: Email recipient
+    :keyword subject: Subject
     :keyword msg: Message text, or
     :keyword template: ... Template name  
     :keyword ctxt: ... Dictionary to pass to template  
-    :return: Email recipient, or None if no message was sent  
-
+    :return: Email recipient, or None if no message was sent
     """
-    
     from_addr, smtphost = emen2.db.config.mailconfig()
     if not (from_addr and smtphost):
         emen2.db.log.warn("EMAIL: No mail configuration!")
@@ -232,7 +231,6 @@ def opendb(name=None, password=None, admin=False, db=None):
     :keyparam password: Password
     :keyparam admin: Open DBProxy with an administrative context
     :keyparam db: Use an existing DB instance.
-
     """
     # Import here to avoid issues with publicmethod.
     import emen2.db.proxy
@@ -246,7 +244,6 @@ def opendb(name=None, password=None, admin=False, db=None):
         ctx = emen2.db.context.SpecialRootContext()
         ctx.refresh(db=proxy)
         proxy._ctx = ctx
-
     return proxy
 
 
@@ -255,7 +252,6 @@ def setup(db=None, rootpw=None, rootemail=None):
 
     @keyparam rootpw Root Account Password
     @keyparam rootemail Root Account email
-
     """
     db = db or opendb(db=db, admin=True)
     with db:
@@ -339,7 +335,9 @@ class DB(object):
                 group = self.dbenv["group"]._get_data(group, txn=txn)
                 grouplevels[group.name] = group.getlevel(context.username)
 
-        # Sets the database reference, user record, display name, groups, and updates context access time. This might raise a SessionError if the host has changed.
+        # Sets the database reference, user record, display name, 
+        # groups, and updates context access time. 
+        # This will raise a SessionError if the host has changed.
         context.refresh(grouplevels=grouplevels, host=host, db=self)
         
         # Cache Context.
@@ -383,7 +381,7 @@ class DB(object):
         return allret
 
     def _user_by_email(self, name, ctx=None, txn=None):
-        """Lookup a user by name or email address."""
+        """(Internal) Lookup a user by name or email address."""
         name = unicode(name or '').strip().lower()
         found = self.dbenv["user"].getindex('email', txn=txn).get(name, txn=txn)
         if found:
@@ -496,18 +494,6 @@ class DB(object):
         ret = map(ditems.get, allret)
         return ret
 
-    def _make_tables(self, recdefs, rec, markup, ctx, txn):
-        """(Internal) Find "out-of-band" parameters."""
-        # move built in params to end of table
-        public = set() | emen2.db.record.Record.attr_public
-        show = set(rec.keys()) | recdefs.get(rec.rectype).paramsK | public
-        descs = dict((i.name,i.desc_short) for i in self.dbenv['paramdef'].gets(show, ctx=ctx, txn=txn))
-        show -= public
-        par = []
-        par.extend(sorted(show, key=lambda x:descs.get(x, x)))
-        par.extend(sorted(public, key=lambda x:descs.get(x, x)))
-        return self._view_kv(par)
-
     def _view_kv(self, params):
         """(Internal) Create an HTML table for rendering.
 
@@ -531,7 +517,7 @@ class DB(object):
 
     @publicmethod()
     def time_difference(self, t1, t2=None, ctx=None, txn=None):
-        """Returns the difference between two times in seconds.
+        """Returns the difference between two ISO8601 format timestamps in seconds.
         
         :param t1: The first time.
         :keyword t2: The second time; defaults to now.
@@ -543,14 +529,14 @@ class DB(object):
         
     @publicmethod()
     def time_now(self, ctx=None, txn=None):
-        """Get current time.
+        """Return current UTC time in ISO8601 format.
 
         Examples:
 
         >>> db.time()
         2011-10-10T14:23:11+00:00
 
-        :return: Current time string, YYYY-MM-DDTHH:MM:SS+00:00
+        :return: Current UTC time in ISO8601 format.
         """
         return utcnow()
 
@@ -577,7 +563,7 @@ class DB(object):
 
     @publicmethod()
     def ping(self, ctx=None, txn=None):
-        """Utility method to ensure the server is up
+        """Simple ping response.
 
         Examples:
 
@@ -606,7 +592,7 @@ class DB(object):
 
         :keyword username: Account name or email address
         :keyword password: Account password
-        :keyword host: Bind auth token to this host. This is set by the proxy.
+        :keyword host: Bind auth token to this host. This is set by the proxy class.
         :return: Auth token (ctxid)
         :exception AuthenticationError: Invalid user username, email, or password
         """
@@ -675,7 +661,7 @@ class DB(object):
         >>> db.auth.check.admin()
         True
 
-        :return: True if user is an admin
+        :return: True if user is an administrator.
         """
         return ctx.checkadmin()
 
@@ -688,7 +674,7 @@ class DB(object):
         >>> db.auth.check.readadmin()
         True
 
-        :return: True if user is a read admin
+        :return: True if user is a read administrator.
         """
         return ctx.checkreadadmin()
 
@@ -701,25 +687,40 @@ class DB(object):
         >>> db.auth.check.create()
         True
 
-        :return: True if the user can create records
+        :return: True if the user can create records.
         """
         return ctx.checkcreate
 
 
     ##### Generic methods #####
+        
+    @publicmethod()
+    def exists(self, name, keytype='record', ctx=None, txn=None):
+        """Check for the existence of an item.
+        
+        Examples:
+        
+        >>> db.exists("root", keytype="user")
+        True
+        
+        :param name: Item name
+        :keyword keytype: Item keytype
+        :return: True if the item exists
+        """
+        return self.dbenv[keytype].exists(name, txn=txn)
 
     @publicmethod()
     @ol('names')
     def get(self, names, keytype='record', filt=True, ctx=None, txn=None):
         """Get item(s).
 
-        This method is effectively the same as:
+        This method is the same as:
             db.<keytype>.get(items)
 
-        >>> db.get(0)
+        >>> db.get('0')
         <Record 0, folder>
 
-        >>> db.get([0, 136])
+        >>> db.get(['0', '136'])
         [<Record 0, folder>, <Record 136, group>]
 
         >>> db.get('creator', keytype='paramdef')
@@ -741,24 +742,21 @@ class DB(object):
     def new(self, *args, **kwargs):
         """Create a new item.
 
-        This method is effectively the same as:
+        This method is the same as:
             db.<keytype>.new(*args, **kwargs)
-
-        The keytype keyword is required. See the db.<keytype>.new methods for
-        other arguments and keywords.
 
         Examples:
 
-        >>> db.new(name='sillier_name', vartype='string', keytype='paramdef')
-        <ParamDef sillier_name>
+        >>> db.new(rectype='folder', keytype='record')
+        <Record None, folder>
 
-        >>> db.new(name='sillier_name', vartype='string', keytype='paramdef')
-        SecurityError, "No permission to create ParamDefs"
+        >>> db.new(name='new_item', vartype='string', keytype='paramdef')
+        <ParamDef new_item>
 
-        >>> db.new(name='sillier_name', vartype='unknown_vartype', keytype='paramdef')
+        >>> db.new(name='new_item', vartype='unknown_vartype', keytype='paramdef')
         ValidationError: "Unknown vartype unknown_vartype"
 
-        >>> db.new(rectype='folder', keytype='record')
+        >>> db.new(rectype='folder', keytype='recorddef')
         ExistingKeyError, "RecordDef folder already exists."
 
         :keyword keytype: Item keytype
@@ -769,40 +767,25 @@ class DB(object):
         """
         keytype = kwargs.pop('keytype', 'record')
         return getattr(self, '%s_new'%(keytype))(*args, **kwargs)
-        
-    @publicmethod()
-    def exists(self, name, keytype='record', ctx=None, txn=None):
-        """Check for the existence of an item.
-        
-        Examples:
-        
-        >>> db.exists("root", keytype="user")
-        True
-        
-        :param name: Item name
-        :keyword keytype: Item keytype
-        :return: True if the item exists
-        """
-        return self.dbenv[keytype].exists(name, txn=txn)
 
     @publicmethod(write=True)
     @ol('items')
     def put(self, items, keytype='record', ctx=None, txn=None):
         """Put item(s).
 
-        This method is effectively the same as:
+        This method is the same as:
             db.<keytype>.put(items)
 
         Examples:
 
-        >>> db.put({'rectype':'folder', 'name_folder':'Test', 'parents':[0]})
+        >>> db.put({'rectype':'folder', 'name_folder':'Test', 'parents':['0']})
         <Record 499203, folder>
 
         >>> db.put([<Record 0, folder>, <Record 136, group])
-        [<Record 0, folder>]
+        [<Record 0, folder>, <Record 136, group>]
 
-        >>> db.put({'name': 'silly_name', 'vartype':'string', 'desc_short':'Silly name'}, keytype='paramdef')
-        <ParamDef silly_name>
+        >>> db.put({'name': 'test_name', 'vartype':'string', 'desc_short':'Test parameter'}, keytype='paramdef')
+        <ParamDef test_name>
 
         :param items: Item(s) to commit
         :keyword keytype: Item keytype
@@ -813,19 +796,22 @@ class DB(object):
         """
         return getattr(self, '%s_put'%(keytype))(items, ctx=ctx, txn=txn)
 
-    @publicmethod(write=True)
-    def delete(self, names, keytype='record', ctx=None, txn=None):
-        keytype = kwargs.pop('keytype', 'record')
-        return getattr(self, '%s_delete'%(keytype))(ctx=ctx, txn=txn)
+    # @publicmethod(write=True)
+    # def delete(self, names, keytype='record', ctx=None, txn=None):
+    #     """Delete item(s)."""
+    #     keytype = kwargs.pop('keytype', 'record')
+    #     return getattr(self, '%s_delete'%(keytype))(ctx=ctx, txn=txn)
 
-    @publicmethod()
-    def names(self, keytype='record', ctx=None, txn=None):
-        return getattr(self, '%s_names'%(keytype))(ctx=ctx, txn=txn)
-        
-    @publicmethod()
-    def find(self, keytype='record', ctx=None, txn=None):
-        keytype = kwargs.pop('keytype', 'record')
-        return getattr(self, '%s_find'%(keytype))(ctx=ctx, txn=txn)
+    # @publicmethod()
+    # def names(self, keytype='record', ctx=None, txn=None):
+    #     """Keys."""
+    #     return getattr(self, '%s_names'%(keytype))(ctx=ctx, txn=txn)
+
+    # @publicmethod()
+    # def find(self, keytype='record', ctx=None, txn=None):
+    #     """A simple query."""
+    #     keytype = kwargs.pop('keytype', 'record')
+    #     return getattr(self, '%s_find'%(keytype))(ctx=ctx, txn=txn)
 
     @publicmethod()
     def query2(self, *c, **kwargs):
@@ -848,12 +834,12 @@ class DB(object):
         Operation and value are optional. An arbitrary number of constraints may be given.
 
         Operators:
-            is             or        ==
-            not            or        !=
-            gt             or        >
-            lt             or        <
-            gte            or        >=
-            lte            or        <=
+            is        or  ==
+            not       or  !=
+            gt        or  >
+            lt        or  <
+            gte       or  >=
+            lte       or  <=
             any
             none
             contains
@@ -874,33 +860,32 @@ class DB(object):
         The result will be a dictionary containing all the original query arguments, plus:
             names:    Names of records found
             stats:    Query statistics
-                length        Number of records found
-                time        Execution time
+                length   Number of records found
+                time     Execution time
 
         Examples:
 
         >>> db.query()
-        {'names':[1,2, ...], 'stats': {'time': 0.001, 'length':1234}, 'c': [], ...}
+        {'names':['1','2', ...], 'stats': {'time': 0.001, 'length':1234}, 'c': [], ...}
 
         >>> db.query([['creator', 'is', 'ian']])
-        {'names':[1,2,3], 'stats': {'time': 0.002, 'length':3}, 'c': [['creator', 'is', 'ian]], ...}
+        {'names':['1','2','3'], 'stats': {'time': 0.002, 'length':3}, 'c': [['creator', 'is', 'ian]], ...}
 
         >>> db.query([['creator', 'is', 'ian']], sortkey='creationtime', reverse=True)
-        {'names':[3,2,1], 'stats': {'time': 0.002, 'length':3}, 'c': [['creator', 'is', 'ian]], 'sortkey': 'creationtime' ...}
+        {'names':['3','2','1'], 'stats': {'time': 0.002, 'length':3}, 'c': [['creator', 'is', 'ian]], 'sortkey': 'creationtime' ...}
 
         :keyparam c: Constraints
-        :keyparam mode: Boolean mode for constraints
-        :keyparam sortkey: Sort returned records by this param. Default is creationtime.
-        :keyparam pos: Return results starting from (sorted record name) position
+        :keyparam mode: AND / OR on constraints
+        :keyparam sortkey: Sort returned records by this param
+        :keyparam pos: Return results starting from position
         :keyparam count: Return a limited number of results
-        :keyparam reverse: Reverse results
+        :keyparam reverse: Reverse sorting
         :keyparam subset: Restrict to names
         :keyparam keytype: Key type
         :return: A dictionary containing the original query arguments, and the result in the 'names' key
         :exception KeyError:
         :exception ValidationError:
         :exception SecurityError:
-
         """
         c = c or []
         ret = dict(
@@ -910,12 +895,10 @@ class DB(object):
             pos=pos,
             count=count,
             reverse=reverse,
-            ignorecase=True,
             stats={},
             keytype=keytype,
             subset=subset
         )
-
         # Run the query
         q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
         q.run()
@@ -936,17 +919,15 @@ class DB(object):
         The maximum number of items returned in the table is 1000.
         
         :keyparam c: Constraints
-        :keyparam mode: Boolean mode for constraints
-        :keyparam sortkey: Sort returned records by this param. Default is creationtime.
-        :keyparam pos: Return results starting from (sorted record name) position
+        :keyparam mode: AND / OR on constraints
+        :keyparam sortkey: Sort returned records by param
+        :keyparam pos: Return results starting from position
         :keyparam count: Return a limited number of results
-        :keyparam reverse: Reverse results
+        :keyparam reverse: Reverse sorting
         :keyparam subset: Restrict to names
         :keyparam keytype: Key type
-        :keyparam view: View definition.
-            
+        :keyparam view: View template
         """
-        
         options = {}
         options['lnf'] = True
         options['time_precision'] = 3
@@ -967,7 +948,6 @@ class DB(object):
             pos=pos,
             count=count,
             reverse=reverse,
-            ignorecase=True,
             stats={},
             keytype=keytype,
             subset=subset,
@@ -1056,14 +1036,14 @@ class DB(object):
             min:    Minimum
             max:    Maximum
 
-        Currently only the 'key' from each x, y, z attribute is used to make
+        Currently only the 'key' from x, y, z argument is used to make
         sure it is part of the query that runs.
 
         The matching values for each constraint are available in the "items"
         key in the return value. This is a list of stub items.
 
         :keyparam c: Constraints
-        :keyparam mode: Boolean mode for constraints
+        :keyparam mode: AND / OR on constraints
         :keyparam x: X arguments
         :keyparam y: Y arguments
         :keyparam z: Z arguments
@@ -1082,7 +1062,6 @@ class DB(object):
             z=z,
             mode=mode,
             stats={},
-            ignorecase=True,
             keytype=keytype,
             subset=subset
         )
@@ -1105,7 +1084,30 @@ class DB(object):
 
     @publicmethod()
     @ol('names')
-    def render(self, names, keys=None, keytype='record', output='unicode', options=None, ctx=None, txn=None):
+    def render(self, names, keys=None, keytype='record', options=None, ctx=None, txn=None):
+        """Render keys.
+
+        >>> db.render('0')
+        {'name': u'0', 'creator': u'Admin', u'name_folder': u'EMEN2', ...}
+
+        >>> db.render(['0', '1'])
+        {
+            u'0': {'name': u'0', 'creator': u'Admin', u'name_folder': u'EMEN2', ...}
+            u'1': {'name': u'1', 'creator': u'Admin', 'recname': u'Microscopes', ...}
+        }
+
+        >>> db.render('0', keys=['name_folder'], options={'output':'form'})
+        {u'name_folder': Markup(u'<span class="e2-edit" data-paramdef="name_folder" 
+            data-vartype="string"><input type="text" name="name_folder" value="EMEN2" /></span>'), ...}
+
+        Example:
+
+        :param names:
+        :keyword keys: Render these keys; otherwise, render most keys.
+        :keyword keytype: Key type
+        :keyword options: Dictionary of options to control rendering, may include keys 'output', 'tz', 'lnf', etc.
+        :return: Either the single rendered view, or a dictionary of names and rendered views.
+        """
         # Some rendering options
         options = options or {}
 
@@ -1172,7 +1174,7 @@ class DB(object):
         return ret
         
     def _view_convert(self, view):
-        # Convert old view to {{newstyle}}.
+        """(Internal) Convert old view to {{newstyle}}."""
         regex_classic = re.compile(VIEW_REGEX_CLASSIC, re.VERBOSE)
         ret = view
         for match in regex_classic.finditer(view):
@@ -1186,7 +1188,7 @@ class DB(object):
         return ret
         
     def _view_keys(self, view):
-        # Parse {{newstyle}} for keys.
+        """(Internal) Parse {{newstyle}} for keys."""
         regex_m = re.compile(VIEW_REGEX_M, re.VERBOSE)
         keys = [] # needs to be ordered, not a set
         for match in regex_m.finditer(view):
@@ -1197,8 +1199,10 @@ class DB(object):
         return keys
     
     def _view_render(self, view, recs):
-        # View is a {{newstyle}} view; recs is the result of self.render(), 
-        #   a dict containing rendered record dicts
+        """(Internal) Render view. 
+        View is a {{newstyle}} view
+        recs is the result of self.render(), a dict containing rendered record dicts.
+        """
         # Copy the view
         ret = {}
         for name in recs:
@@ -1217,6 +1221,28 @@ class DB(object):
     @publicmethod()
     @ol('names')
     def view(self, names, view=None, viewname='recname', keytype='record', options=None, ctx=None, txn=None):
+        """Render a view template.
+        
+        Examples:
+        
+        >>> db.view('136')
+        'NCMI Group'
+    
+        >>> db.view('136', view='{{name_group}} created by {{creator}}')
+        'NCMI Group created by Administrator'
+    
+        >>> db.view(['0', '1'])
+        {'0':'Record 0 view', '1': 'Record 1 view'}
+    
+        >>> db.view('0', options={'output':'form'})
+        '<span class="e2-edit"><input type="text" name="name_folder" />.....'
+            
+        :param names: Item(s) to render
+        :keyparam view: A view template
+        :keyparam viewname: A view template from the item's RecordDef views.
+        :keyparam keytype: Key type
+        :keyparam options: A dictionay containing rendering options, may include 'output', 'tz', 'lnf', etc., keys.    
+        """
         options = options or {}
         ret = {}
         views = collections.defaultdict(set)
@@ -1281,7 +1307,7 @@ class DB(object):
 
         Examples:
 
-        >>> db.rel.pclink(0, 46604)
+        >>> db.rel.pclink('0', '46604')
         None
 
         >>> db.rel.pclink('physical_property', 'temperature', keytype='paramdef')
@@ -1294,7 +1320,6 @@ class DB(object):
         :return:
         :exception KeyError:
         :exception SecurityError:
-        
         """
         return self.dbenv[keytype].pclink(parent, child, ctx=ctx, txn=txn)
 
@@ -1304,7 +1329,7 @@ class DB(object):
 
         Examples:
 
-        >>> db.rel.pcunlink(0, 46604)
+        >>> db.rel.pcunlink('0', '46604')
         None
 
         >>> db.rel.pcunlink('physical_property', 'temperature', keytype='paramdef')
@@ -1347,8 +1372,8 @@ class DB(object):
 
         Examples:
 
-        >>> db.rel.siblings(136)
-        set([136, 358307])
+        >>> db.rel.siblings('136')
+        set(['136', '358307'])
 
         >>> db.rel.siblings('creationtime', keytype='paramdef')
         set([u'website', u'date_start', u'name_first', u'observed_by', ...])
@@ -1374,11 +1399,11 @@ class DB(object):
 
         Examples:
 
-        >>> db.rel.parents(0)
+        >>> db.rel.parents('0')
         set([])
 
-        >>> db.rel.parents(46604, recurse=-1)
-        set([136, 0])
+        >>> db.rel.parents('46604', recurse=-1)
+        set(['136', '0'])
 
         >>> db.rel.parents('ccd', recurse=-1, keytype='recorddef')
         set([u'image_capture', u'experiments', u'root', u'tem'])
@@ -1400,11 +1425,11 @@ class DB(object):
 
         This method is the same as db.rel(..., rel='children', tree=False)
 
-        >>> db.rel.children(0)
-        set([136, 358307, 270940])
+        >>> db.rel.children('0')
+        set(['136', '358307', '270940'])
 
-        >>> db.rel.children(0, recurse=2)
-        set([2, 4, 268295, 260104, ...])
+        >>> db.rel.children('0', recurse=2)
+        set(['2', '4', '268295', '260104', ...])
 
         >>> db.rel.children('root', keytype='paramdef')
         set([u'core', u'descriptive_information', ...])
@@ -1452,8 +1477,6 @@ class DB(object):
     @publicmethod(compat="findparamdef")
     def paramdef_find(self, *args, **kwargs):
         """Find a ParamDef, by general search string, or by searching attributes.
-
-        Keywords can be combined.
 
         Examples:
 
@@ -1561,7 +1584,7 @@ class DB(object):
         >>> db.user.find(name_last='rees')
         [<User ian>, <User kay>, ...]
 
-        >>> db.user.find(record=136)
+        >>> db.user.find(record='136')
         [<User ian>, <User steve>, ...]
 
         >>> db.user.find(email='bcm.edu', record='137*')
@@ -1577,7 +1600,6 @@ class DB(object):
         :keyword count: Limit number of results
         :return: Users
         """
-
         foundusers = None
         foundrecs = None
         query = filter(None, [i.strip() for i in unicode(query or '').split()])
@@ -1736,8 +1758,6 @@ class DB(object):
         :exception: :py:class:`SecurityError <SecurityError>` if the password and/or auth token are wrong
         :exception ValidationError:
         """
-        # :exception InvalidEmail:
-
         # Verify the email address is owned by the user requesting change.
         # 1. User authenticates they *really* own the account
         #     by providing the acct password
@@ -1745,7 +1765,7 @@ class DB(object):
         #     containing an auth token
         # 3. The user comes back and calls the method with this token
         # 4. Email address is updated and reindexed
-
+        
         # Check that no other user is currently using this email.
         ind = self.dbenv["user"].getindex('email', txn=txn)
         if ind.get(email, txn=txn):
@@ -1818,7 +1838,6 @@ class DB(object):
         :exception SecurityError:
         :exception ValidationError:
         """
-
         # Try to authenticate using either the password OR the secret!
         # Note: The password will be hidden if ctx.username != user.name
         # user = self.dbenv["user"].get(name or ctx.username, filt=False, ctx=ctx, txn=txn)
@@ -2066,14 +2085,12 @@ class DB(object):
     def group_find(self, query=None, record=None, count=100, ctx=None, txn=None):
         """Find a group.
 
-        Keywords can be combined.
-
         Examples:
 
         >>> db.group.find('admin')
         [<Group admin>, <Group readonlyadmin>]
 
-        >>> db.group.find(record=136)
+        >>> db.group.find(record='136')
         [<Group authenticated>, <Group ncmiusers>]
 
         :keyword query: Find in Group's name or displayname
@@ -2082,7 +2099,8 @@ class DB(object):
         :keyword boolmode: AND / OR for each search constraint
         :return: Groups
         """
-        # No real indexes yet (small). Just get everything and sort directly.
+        # Todo: Use general query system.
+        # Just get everything and sort directly.
         items = self.dbenv["group"].gets(self.dbenv["group"].filter(None, ctx=ctx, txn=txn), ctx=ctx, txn=txn)
         ditems = listops.dictbykey(items, 'name')
 
@@ -2137,8 +2155,6 @@ class DB(object):
     def recorddef_find(self, *args, **kwargs):
         """Find a RecordDef, by general search string, or by searching attributes.
 
-        Keywords can be combined.
-
         Examples:
 
         >>> db.recorddef.find(query='CCD')
@@ -2150,7 +2166,7 @@ class DB(object):
         >>> db.recorddef.find(mainview='freezing apparatus')
         [<RecordDef freezing], <RecordDef vitrobot>, <RecordDef gatan_cp3>, ...]
 
-        >>> db.recorddef.find(record=[1,2,3])
+        >>> db.recorddef.find(record=['1','2','3'])
         [<RecordDef folder>, <RecordDef project>]
 
         >>> db.recorddef.find(name='project*', record='136*')
@@ -2200,16 +2216,16 @@ class DB(object):
 
         Examples:
 
-        >>> db.record.hide(136)
-        <Record 136 group>
+        >>> db.record.hide('136')
+        <Record 136, group>
 
-        >>> db.record.hide([136, 137])
-        [<Record 136 group>]
+        >>> db.record.hide(['136', '137'])
+        [<Record 136, group>]
 
-        >>> db.record.hide([136, 137], filt=False)
+        >>> db.record.hide(['136', '137'], filt=False)
         SecurityError
 
-        >>> db.record.hide(12345, filt=False)
+        >>> db.record.hide('12345', filt=False)
         KeyError
 
         :param name: Record name(s) to delete
@@ -2257,10 +2273,10 @@ class DB(object):
 
         Examples:
 
-        >>> db.record.update([0,136], {'performed_by':'ian'})
+        >>> db.record.update(['0','136'], {'performed_by':'ian'})
         [<Record 0, folder>, <Record 136, group>]
 
-        >>> db.record.update([0,136, 137], {'performed_by':'ian'}, filt=False)
+        >>> db.record.update(['0','136', '137'], {'performed_by':'ian'}, filt=False)
         SecurityError
 
         :param names: Record name(s)
@@ -2288,10 +2304,10 @@ class DB(object):
         >>> db.record.validate({'rectype':'folder', 'performed_by':'unknown_user'})
         ValidationError
 
-        >>> db.record.validate({'name':136, 'name_folder':'No permission to edit..'})
+        >>> db.record.validate({'name':'136', 'name_folder':'No permission to edit..'})
         SecurityError
 
-        >>> db.record.validate({'name':12345, 'name_folder':'Unknown record'})
+        >>> db.record.validate({'name':'12345', 'name_folder':'Unknown record'})
         KeyError
 
         :param items: Record(s)
@@ -2311,10 +2327,10 @@ class DB(object):
         >>> db.record.adduser(0, 'ian')
         <Record 0, folder>
 
-        >>> db.record.adduser([0, 136], ['ian', 'steve'])
+        >>> db.record.adduser(['0', '136'], ['ian', 'steve'])
         [<Record 0, folder>, <Record 136, group>]
 
-        >>> db.record.adduser([0, 136], ['ian', 'steve'], filt=False)
+        >>> db.record.adduser(['0', '136'], ['ian', 'steve'], filt=False)
         SecurityError
 
         :param names: Record name(s)
@@ -2335,13 +2351,13 @@ class DB(object):
 
         Examples:
 
-        >>> db.record.removeuser(0, 'ian')
+        >>> db.record.removeuser('0', 'ian')
         <Record 0, folder>
 
-        >>> db.record.removeuser([0, 136], ['ian', 'steve'])
+        >>> db.record.removeuser(['0', '136'], ['ian', 'steve'])
         [<Record 0, folder>, <Record 136, group>]
 
-        >>> db.record.removeuser([0, 136], ['ian', 'steve'], filt=False)
+        >>> db.record.removeuser(['0', '136'], ['ian', 'steve'], filt=False)
         SecurityError
 
         :param names: Record name(s)
@@ -2361,16 +2377,16 @@ class DB(object):
 
         Examples:
 
-        >>> db.record.addgroup(0, 'authenticated')
+        >>> db.record.addgroup('0', 'authenticated')
         <Record 0, folder>
 
-        >>> db.record.addgroup([0, 136], 'authenticated')
+        >>> db.record.addgroup(['0', '136'], 'authenticated')
         [<Record 0, folder>, <Record 136, group>]
 
-        >>> db.record.addgroup([0, 136], ['anon', 'authenticated'])
+        >>> db.record.addgroup(['0', '136'], ['anon', 'authenticated'])
         [<Record 0, folder>, <Record 136, group>]
 
-        >>> db.record.addgroup([0, 136], 'authenticated', filt=False)
+        >>> db.record.addgroup(['0', '136'], 'authenticated', filt=False)
         SecurityError
 
         :param names: Record name(s)
@@ -2390,16 +2406,16 @@ class DB(object):
 
         Examples:
 
-        >>> db.user.removegroup(0, 'authenticated')
+        >>> db.user.removegroup('0', 'authenticated')
         <Record 0, folder>
 
-        >>> db.user.removegroup([0, 136], 'authenticated')
+        >>> db.user.removegroup(['0', '136'], 'authenticated')
         [<Record 0, folder>, <Record 136, group>]
 
-        >>> db.user.removegroup([0, 136], ['anon', 'authenticated'])
+        >>> db.user.removegroup(['0', '136'], ['anon', 'authenticated'])
         [<Record 0, folder>, <Record 136, group>]
 
-        >>> db.user.removegroup([0, 136], 'authenticated', filt=False)
+        >>> db.user.removegroup(['0', '136'], 'authenticated', filt=False)
         SecurityError
 
         :param names: Record name(s)
@@ -2416,21 +2432,19 @@ class DB(object):
     @publicmethod(write=True, compat="setpermissions")
     @ol('names')
     def record_setpermissionscompat(self, names, addumask=None, addgroups=None, removeusers=None, removegroups=None, recurse=None, overwrite_users=False, overwrite_groups=False, filt=True, ctx=None, txn=None):
-        """Update a Record's permissions.
-
-        This method is mostly for convenience and backwards compatibility.
+        """Update a Record's permissions. This method is for backwards compatibility.
 
         Examples:
 
-        >>> db.record.setpermissionscompat(names=[137, 138], addumask=[['ian'], [], [], []])
+        >>> db.record.setpermissionscompat(names=['137', '138'], addumask=[['ian'], [], [], []])
 
-        >>> db.record.setpermissionscompat(names=[137], recurse=-1, addumask=[['ian', 'steve'], [], [], ['wah']])
+        >>> db.record.setpermissionscompat(names=['137'], recurse=-1, addumask=[['ian', 'steve'], [], [], ['wah']])
 
-        >>> db.record.setpermissionscompat(names=[137], recurse=-1, removegroups=['anon'], addgroups=['authenticated])
+        >>> db.record.setpermissionscompat(names=['137'], recurse=-1, removegroups=['anon'], addgroups=['authenticated])
 
-        >>> db.record.setpermissionscompat(names=[137], recurse=-1, addgroups=['authenticated'], overwrite_groups=True)
+        >>> db.record.setpermissionscompat(names=['137'], recurse=-1, addgroups=['authenticated'], overwrite_groups=True)
 
-        >>> db.record.setpermissionscompat(names=[137], recurse=-1, addgroups=['authenticated'], overwrite_groups=True, filt=False)
+        >>> db.record.setpermissionscompat(names=['137'], recurse=-1, addgroups=['authenticated'], overwrite_groups=True, filt=False)
         SecurityError
 
         :param names: Record name(s)
@@ -2493,13 +2507,13 @@ class DB(object):
 
         Examples:
 
-        >>> db.record.addcomment(136, 'Test comment')
+        >>> db.record.addcomment('136', 'Test comment')
         <Record 136, group>
 
-        >>> db.record.addcomment(137, 'No comment permissions!?')
+        >>> db.record.addcomment('137', 'No comment permissions!?')
         SecurityError
 
-        >>> db.record.addcomment(12345, 'Record does not exist')
+        >>> db.record.addcomment('12345', 'Record does not exist')
         KeyError
 
         :param name: Record name(s)
@@ -2515,10 +2529,10 @@ class DB(object):
     @publicmethod(compat="findorphans")
     def record_findorphans(self, names, root=0, keytype='record', ctx=None, txn=None):
         """Find orphaned items that would occur if names were hidden.
+        
         @param name Return orphans that would result from deletion of these items
         @return Orphaned items
         """
-
         names = set(names)
 
         children = self.rel_rel(names, rel='children', tree=True, recurse=-1, ctx=ctx, txn=txn)
@@ -2554,11 +2568,11 @@ class DB(object):
 
         Examples:
 
-        >>> db.record.findcomments(1)
-        [[1, u'root', u'2010/07/19 14:43:03', u'Record marked for deletion and unlinked from parents: 270940']]
+        >>> db.record.findcomments('1')
+        [['1', u'root', u'2010/07/19 14:43:03', u'Record marked for deletion and unlinked from parents: 270940']]
 
-        >>> db.record.findcomments([1, 138])
-        [[1, u'root', u'2010/07/19 14:43:03', u'Record marked...'], [138, u'ianrees', u'2011/10/01 02:28:51', u'New comment']]
+        >>> db.record.findcomments(['1', '138'])
+        [['1', u'root', u'2010/07/19 14:43:03', u'Record marked...'], ['138', u'ianrees', u'2011/10/01 02:28:51', u'New comment']]
 
         :param names: Record name(s)
         :keyword filt: Ignore failures
@@ -2592,13 +2606,13 @@ class DB(object):
         Examples:
 
         >>> db.record.findbyrectype('ccd')
-        set([4180, 4513, 4514, ...])
+        set(['4180', '4513', '4514', ...])
 
         >>> db.record.findbyrectype('image_capture*')
-        set([141, 142, 4180, ...])
+        set(['141', '142', '4180', ...])
 
         >>> db.record.findbyrectype(['scan','micrograph'])
-        set([141, 142, 262153, ...])
+        set(['141', '142', '262153', ...])
 
         :param names: RecordDef name(s)
         :keyword filt: Ignore failures
@@ -2606,11 +2620,11 @@ class DB(object):
         :exception KeyError: No such RecordDef
         :exception SecurityError: Unable to access RecordDef
         """
-        rds = self.dbenv["recorddef"].gets(names, ctx=ctx, txn=txn)
+        rds = self.dbenv['recorddef'].expand(names, ctx=ctx, txn=txn)
         ind = self.dbenv["record"].getindex("rectype", txn=txn)
         ret = set()
         for i in rds:
-            ret |= ind.get(i.name, txn=txn)
+            ret |= ind.get(i, txn=txn)
         return ret
 
     @publicmethod(compat="findvalue")
@@ -2625,10 +2639,10 @@ class DB(object):
         >>> db.record.findbyvalue('name_pi')
         [['wah', 124], ['steve', 89], ['ian', 43]], ...]
 
-        >>> db.record.findbyvalue('ccd_id', limit=2)
+        >>> db.record.findbyvalue('ccd_id', count=2)
         [['Gatan 4k', 182845], ['Gatan 10k', 48181]]
 
-        >>> db.record.findbyvalue('tem_magnification', choices=True, limit=10)
+        >>> db.record.findbyvalue('tem_magnification', choices=True, count=10)
         [[10, ...], [20, ...], [60, ...], [100, ...], ...]
 
         :param param: Parameter to search
@@ -2675,11 +2689,11 @@ class DB(object):
 
         Examples:
 
-        >>> db.record.groupbyrectype([136,137,138])
-        {u'project': set([137]), u'subproject': set([138]), u'group': set([136])}
+        >>> db.record.groupbyrectype(['136','137','138'])
+        {u'project': set(['137']), u'subproject': set(['138']), u'group': set(['136'])}
 
         >>> db.record.groupbyrectype([<Record instance 1>, <Record instance 2>])
-        {u'all_microscopes': set([1]), u'folder': set([2])}
+        {u'all_microscopes': set(['1']), u'folder': set(['2'])}
 
         :param names: Record name(s) or Record(s)
         :keyword filt: Ignore failures
@@ -2733,15 +2747,14 @@ class DB(object):
 
     @publicmethod()
     def record_renderchildren(self, name, recurse=3, rectypes=None, ctx=None, txn=None):
-        """(Deprecated) Convenience method used by some clients to render a bunch of
-        records and simple relationships.
+        """(Deprecated) Convenience method used by some clients to render trees.
     
         Examples:
     
-        >>> db.record.renderchildren(0, recurse=1, rectypes=["group"])
+        >>> db.record.renderchildren('0', recurse=1, rectypes=["group"])
         (
-            {0: u'EMEN2', 136: u'NCMI', 358307: u'Visitors'},
-            {0: set([136, 358307])}
+            {'0': u'EMEN2', '136': u'NCMI', '358307': u'Visitors'},
+            {'0': set(['136', '358307'])}
         )
     
         :param name: Record name
@@ -2752,27 +2765,72 @@ class DB(object):
         :exception SecurityError:
         :exception KeyError:
         """
+        recnames, paths, roots = self.record_findpaths([], root_rectypes=['group'], leaf_rectypes=['project*'], ctx=ctx, txn=txn)
+        paths[name] = roots
+        return recnames, paths
+    
+    @publicmethod()
+    def record_findpaths(self, names=None, root_rectypes=None, leaf_rectypes=None, ctx=None, txn=None):
+        """Find paths from names (or root_rectypes) to leaf nodes leaf_rectypes.
 
-        children = self.dbenv['record'].rel.children(name, recurse=recurse, ctx=ctx, txn=txn)
-        allowed_leaf = None
-        if rectypes:
-            allowed_leaf = self.dbenv['paramdef'].expand(rectypes, ctx=ctx, txn=txn)
+        This is a replacement for record_renderchildren.
         
+        Examples:
+        >>> db.record_findpaths([], root_rectypes=['group'], leaf_rectypes=['project'])
         
-        
-        
-        # def find_leaves(tree):
-        #     return set(filter(lambda x:len(tree.get(x,()))==0, set().union(*tree.values())))
-        # c_all = self.dbenv["record"].rel([name], recurse=recurse, tree=True, ctx=ctx, txn=txn)
-        # c_rectype = self.dbenv["record"].rel([name], recurse=recurse, ctx=ctx, txn=txn).get(name, set())
-        # endpoints = find_leaves(c_all) - c_rectype
-        # while endpoints:
-        #     for k,v in c_all.items():
-        #         c_all[k] -= endpoints
-        #     endpoints = find_leaves(c_all) - c_rectype
-        # rendered = self.view(listops.flatten(c_all), ctx=ctx, txn=txn)
-        # c_all = listops.filter_dict_zero(c_all)
-        # return rendered, c_all
+        :keyword names: Root nodes, or ...
+        :keyword root_rectypes: RecordDefs to use as root nodes
+        :keyword leaf_rectypes: RecordDefs to use as leaves
+        :return: recnames, paths between root nodes and leaves, root nodes
+        """
+        # This isn't the most efficient method, but it fulfills a needed function.
+        root_rectypes = root_rectypes or ['root']
+        leaf_rectypes = leaf_rectypes or []
+        names = names or set()
+        all_leaves = set()
+        all_nodes = set()
+        paths = collections.defaultdict(set)
+        recnames = {}        
+
+        if root_rectypes:
+            names |= self.record_findbyrectype(root_rectypes, ctx=ctx, txn=txn)
+            # filter by permissions
+            names = self.dbenv['record'].filter(names, ctx=ctx, txn=txn)
+
+        if leaf_rectypes:
+            all_leaves = self.record_findbyrectype(leaf_rectypes, ctx=ctx, txn=txn)
+            parents = self.dbenv['record'].rel(all_leaves, rel='parents', recurse=-1, ctx=ctx, txn=txn)
+            parents_paths = collections.defaultdict(set)
+            for k,v in parents.items():
+                for i in v & names:
+                    parents_paths[i].add(k)
+
+            # All the leaves that have allowed roots
+            all_leaves_found = set()
+            for k,v in parents_paths.items():
+                all_leaves_found |= v
+
+            # filter by permissions
+            all_leaves_found = self.dbenv['record'].filter(all_leaves_found, ctx=ctx, txn=txn)
+
+            # Now, reverse.
+            parents2 = self.dbenv['record'].rel(all_leaves_found, rel='parents', recurse=-1, tree=True, ctx=ctx, txn=txn)
+            for k,v in parents2.items():
+                for v2 in v:
+                    paths[v2].add(k)
+
+        else:
+            paths = self.dbenv['record'].rel(names, rel='children', recurse=-1, tree=True, ctx=ctx, txn=txn)
+
+        for k,v in paths.items():
+            all_nodes.add(k)
+            all_nodes |= v                
+        recnames = self.view(all_nodes, ctx=ctx, txn=txn)            
+
+        return recnames, paths, names
+            
+            
+
 
     ##### Binaries #####
 
@@ -2800,7 +2858,7 @@ class DB(object):
 
         Examples:
 
-        >>> db.binary.put({filename='hello.txt', filedata='Hello, world', record=0})
+        >>> db.binary.put({filename='hello.txt', filedata='Hello, world', record='0'})
         <Binary bdo:2011101000000>
 
         >>> db.binary.put({'name':'bdo:2011101000000', 'filename':'newfilename.txt'})
@@ -2851,7 +2909,7 @@ class DB(object):
         >>> db.binary.find(filename='dm3')
         [<Binary 2011... test.dm3.gz>, <Binary 2011... test2.dm3.gz>]
 
-        >>> db.binary.find(record=136)
+        >>> db.binary.find(record='136')
         [<Binary 2011... presentation.ppt>, <Binary 2011... retreat_photo.jpg>, ...]
 
         :keyword query: Contained in any item below

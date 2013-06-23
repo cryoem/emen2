@@ -107,7 +107,7 @@
 
             // Copy the query
             var newq = {};
-            var c = ['c', 'ignorecase', 'x', 'y', 'z'];
+            var c = ['c', 'x', 'y', 'z'];
             c.map(function(key){
                 newq[key] = self.options.q[key];
             });

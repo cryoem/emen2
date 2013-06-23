@@ -25,11 +25,11 @@
     <div class="e2-query" id="${tname}">
         
         % if controls:
-            <div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tablist">
+            <div class="e2-tab e2-tab-query" data-tabgroup="query" role="tablist">
                 <ul class="e2-query-header e2l-cf" role="tab"></ul>
             </div>
 
-            <div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tabpanel"></div>
+            <div class="e2-tab e2-tab-query" data-tabgroup="query" role="tabpanel"></div>
         % endif
 
         ## This form is used for editing table cells

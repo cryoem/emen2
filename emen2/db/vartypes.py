@@ -58,6 +58,19 @@ def update_user_cache(cache, db, values):
         for user in users:
             cache.store(('user', user.name), user)
 
+def update_recorddef_cache(cache, db, values):
+    to_cache = []
+    for v in values:
+        hit, dn = cache.check(('recorddef', v))
+        if not hit:
+            to_cache.append(v)
+
+    if to_cache:
+        rds = db.recorddef.get(to_cache)
+        for rd in rds:
+            cache.store(('recorddef', rd.name), rd)
+    
+
 
 
 def iso8601duration(d):
@@ -774,6 +787,16 @@ class vt_recorddef(Vartype):
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='recorddef')
         return self._rci(value)
+
+    def _unicode(self, value):
+        update_recorddef_cache(self.cache, self.db, [value])
+        key = ('recorddef', value)
+        hit, rd = self.cache.check(key)
+        if rd:
+            return rd.desc_short
+        return value
+
+
 
 # User, ACL, and Group vartypes
 #    Indexed as keyformat 'str'

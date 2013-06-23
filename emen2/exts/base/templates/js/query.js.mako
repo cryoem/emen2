@@ -18,7 +18,6 @@
             output.push(postpend);
         }
         delete q['c'];
-        delete q['ignorecase'];
         delete q['boolmode'];
         return emen2.template.uri(output, q);
     }
@@ -41,7 +40,6 @@
                 "gte": "is greater or equal than",
                 "lte": "is less or equal than",
                 "any": "is any value",
-                'none': "is empty",
                 'noop': "no constraint"
             }
 
@@ -107,7 +105,7 @@
                         </li> \
                         <li> \
                             <strong class="e2-query-label">Created:</strong> \
-                            <span  class="e2-query-constraint"> \
+                            <span class="e2-query-constraint"> \
                                 <input type="hidden" name="param" value="creationtime" /> \
                                 <input type="hidden" name="cmp" value=">=" /> \
                                 <input type="text" name="value" placeholder="Start date" /> \
@@ -187,7 +185,6 @@
             // newq['subset'] = this.options.q['subset'];
             // newq['keytype'] = this.options.q['keytype'];
 
-            var ignorecase = $('input[name=ignorecase]', this.container).attr('checked');
             var boolmode = $('input[name=boolmode]:checked', this.container).val();
                                     
             $('.e2-query-base .e2-query-constraint', this.container).each(function() {
@@ -201,7 +198,6 @@
 
             newq['c'] = c;
             
-            if (ignorecase) {newq['ignorecase'] = 1}
             if (boolmode) {newq['boolmode'] = boolmode}
             return newq
         },
@@ -387,32 +383,33 @@
             var ul = $('.e2-tab ul', this.element);
             
             ul.empty();
+
             // Record count
-            $('<span />')
+            $('<li />')
                 .addClass('e2-query-length')
+                .addClass('e2l-float-left')
                 .text('Records')
-                .wrap('<li />')
-                .appendTo(ul);
+                .appendTo(ul)
+                // needs to come after append...
+                
             // Pagination
             $('<li />')
                 .addClass('e2-query-pages')
                 .addClass('e2l-float-right')
+                .addClass('e2-query-extraspacing')
                 .appendTo(ul);
             
             // Row count
             var count = $('<select />')
                 .attr('name', 'count')
-                .addClass('e2l-small')
                 .change(function() {
                     self.options.q['pos'] = 0;
                     self.query();
                 });
-
             $('<option />')
                 .attr('value', '100')
                 .text('Rows')
                 .appendTo(count);
-
             $.each([1, 10,100,1000], function() {
                 $('<option />')
                     .val(this)
@@ -420,24 +417,52 @@
                     .appendTo(count);
             });
 
-            $('<li />').addClass('e2l-float-right').append(
-                $('<span />').addClass('e2l-a').append(count)
-            ).appendTo(ul);
+            $('<li />')
+                .addClass('e2l-float-right')
+                .append(count)
+                .appendTo(ul);
             
             // Create new record
             if (this.options.rectype != null && this.options.parent != null) {
                 var form = $('<form />')
                     .attr('method','get')
-                    .attr('action', emen2.template.uri(['record', this.options.parent, 'new', this.options.rectype]));
+                    .attr('action', emen2.template.uri(['record', this.options.parent, 'new', this.options.rectype]))
                 $('<input type="button" />')
-                    .attr('data-rectype', this.options.rectype)
-                    .attr('data-parent', this.options.parent)
                     .val('New '+this.options.rectype)
                     .appendTo(form)
-                $('<li />').addClass('e2l-float-right').append(form).appendTo(ul);    
+                    .RecordControl({
+                        'rectype':this.options.rectype,
+                        'parent':this.options.parent
+                    });
+                $('<li />')
+                    .addClass('e2l-float-right')
+                    .append(form)
+                    .appendTo(ul);    
             }            
 
-            $('<li />').addClass('e2l-float-right').append(emen2.template.spinner().addClass('e2-query-activity')).appendTo(ul);
+            // Query control
+            $('<li />')
+                .addClass('e2l-float-right')
+                .appendTo(ul)
+                .append(
+                    $('<input type="button" />')
+                    .val('Modify query')
+                );                                                            
+
+            $('<li />')
+            .addClass('e2l-float-right')
+            .append(
+                $('<input type="text" />')
+                    .attr('name', 'keywords')
+                    .attr('placeholder', 'Keywords')
+                    .attr('size', 6)
+                )
+            .appendTo(ul);
+                                        
+            $('<li />')
+                .addClass('e2l-float-right')
+                .append(emen2.template.spinner().addClass('e2-query-activity'))
+                .appendTo(ul);
         },
         
         query_download: function() {
@@ -445,7 +470,6 @@
             var newq = {};
             newq['c'] = this.options.q['c'];
             newq['boolmode'] = this.options.q['boolmode'];
-            newq['ignorecase'] = this.options.q['ignorecase'];
             window.location = $.query_build_path(newq, 'attachments');
         },
                 
@@ -549,7 +573,6 @@
             var pages = $('li.e2-query-pages', this.element);
             pages.empty();
             
-            
             // ... build the pagination controls
             var count = this.options.q['count'];
             var l = this.options.q['stats']['length'];
@@ -583,12 +606,11 @@
                     .html('&raquo;')
                     .click(setpos);
 
-                var pc = $('<span />').addClass('e2-query-extraspacing').appendTo(pages);
-                if (current > 0) {pc.prepend(p2)}
-                if (current > 1) {pc.prepend(p1, '')}
-                pc.append(p);
-                if (current < pagecount) {pc.append(p3)}
-                if (current < pagecount - 1) {pc.append('', p4)}
+                if (current > 0) {pages.prepend(p2)}
+                if (current > 1) {pages.prepend(p1, '')}
+                pages.append(p);
+                if (current < pagecount) {pages.append(p3)}
+                if (current < pagecount - 1) {pages.append('', p4)}
             }
         },
                 

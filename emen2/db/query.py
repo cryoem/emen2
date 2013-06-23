@@ -25,9 +25,8 @@ synonyms = {
     "lt": "<"
 }
 
-def getop(op, ignorecase=True):
+def getop(op):
     """(Internal) Get a comparison function
-    :keyword ignorecase: Use case-insensitive comparison methods
     :return: Comparison function
     """
     # y is search argument, x is the record's value
@@ -39,13 +38,9 @@ def getop(op, ignorecase=True):
         ">=":   lambda y,x: x >= y,
         "<=":   lambda y,x: x <= y,
         'any':  lambda y,x: x != None,
-        'none': lambda y,x: x != None,
         'noop': lambda y,x: True,
-        'contains': lambda y,x: unicode(y) in unicode(x),
+        'contains': lambda y,x: unicode(y).lower() in unicode(x).lower(),
     }
-    if ignorecase:
-        ops["contains"] = lambda y,x:unicode(y).lower() in unicode(x).lower()
-
     return ops[synonyms.get(op, op)]
 
 
@@ -104,11 +99,10 @@ class Constraint(object):
         if self.op == 'noop':
             # If op is 'noop', return None (no constraint)
             return None
-        elif self.op == 'none':
-            # If op is 'none', return all records that don't have a value
-            names = self.p.btree.filter(None, ctx=self.p.ctx, txn=self.p.txn)
-            f = names - (f or set())
-        
+        # This is too expensive.
+        # elif self.op == 'none':
+        #     names = self.p.btree.filter(None, ctx=self.p.ctx, txn=self.p.txn)
+        #     f = names - (f or set())
         return f
 
     def _run(self):
@@ -121,11 +115,9 @@ class IndexedConstraint(Constraint):
     def init(self, p):
         super(IndexedConstraint, self).init(p)
         self.priority = 1.0
-        # If this is a ParamDef index, get all the details and index
         try:
             self.paramdef = self.p.btree.dbenv['paramdef'].get(self.param, filt=False, ctx=self.p.ctx, txn=self.p.txn)            
             self.index = self.p.btree.getindex(self.param, txn=self.p.txn)
-            # optimize query
             nkeys = self.index.bdb.stat(txn=self.p.txn)['ndata'] or 1 # avoid div by zero
             self.priority = 1.0 - (1.0/nkeys)
         except Exception, e:
@@ -137,10 +129,8 @@ class ParamConstraint(IndexedConstraint):
     """Constraint based on a ParamDef"""
     
     def _run(self):
-        # Use either the items-based search or the index-based search.
         r = self.p.result
         m = self.p.mode
-        # (make sure mode is AND if we're going to a more restrictive mode)
         if (m == 'AND' and r and len(r) < INDEXMIN) or not self.index:
             return self._run_items()
         return self._run_index()
@@ -157,9 +147,7 @@ class ParamConstraint(IndexedConstraint):
         return f
     
     def _run_index(self):
-        # Use the parameter index
         f = []
-
         # Convert the term to the right type
         term = keyformatconvert(self.index.keyformat, self.term)
         

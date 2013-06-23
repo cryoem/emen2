@@ -30,8 +30,6 @@ h3, h4 {
     font-size: 12pt;
 }
 
-
-
 /* body and top level containers */
 html,
 body
@@ -48,7 +46,6 @@ textarea {
     font-family: arial, Verdana, Helvetica, sans-serif;
 }
 
-
 a, .e2l-a {
     color: #2C2C94;
 }
@@ -59,8 +56,6 @@ img {
 
 h4 {
 }
-
-
 
 th,
 td
@@ -90,9 +85,7 @@ ul {
 #precontent > .e2-tree-main,
 #precontent > .e2-alert-main,
 #precontent > .e2-tab-main,
-#content,
-.e2-tab-editbar > ul,
-.e2-tab-editbar > div
+#content
 {
     padding-left: 30px;
     padding-right: 30px;
@@ -105,10 +98,6 @@ ul {
     overflow: hidden;
 }
 
-
-.e2-tab-editbar[data-tabgroup=query] > div {
-    width: auto;
-}
 .e2-tree-main > .e2-tree {
     background: white;
     padding-top:4px;
@@ -173,13 +162,11 @@ ul {
 }
 
 
-/***** Editbar -- Deprecated ******/
+/***** Editbar ******/
 /* Linear gradient... */
-/* e2-tab-editbar: Editing Bar */
 .e2l-gradient,
-.e2-tab-editbar[role=tablist] {
+.e2-tab-query[role=tablist] {
     border-bottom: solid 1px #ccc;
-    /* background-image: -moz-linear-gradient(#fff, #fff, #eee); */
     background: -moz-linear-gradient(top, rgba(255,255,255,0) 0%, rgba(0,0,0,0.1) 100%);
     background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(255,255,255,0)), color-stop(100%,rgba(0,0,0,0.1)));
     background: -webkit-linear-gradient(top, rgba(255,255,255,0) 0%,rgba(0,0,0,0.1) 100%);
@@ -187,19 +174,30 @@ ul {
     background: -ms-linear-gradient(top, rgba(255,255,255,0) 0%,rgba(0,0,0,0.1) 100%);
     background: linear-gradient(top, rgba(255,255,255,0) 0%,rgba(0,0,0,0.1) 100%);
 }
-.e2-tab-editbar > ul > li {
+.e2-tab-query > ul > li {
+    padding:10px;
+}
+.e2-tab-query > ul > li > input,
+.e2-tab-query > ul > li > form > input,
+.e2-tab-query > ul > li > select {
+    font-size:12pt;
+    padding:2px;
+    margin:0px;
+    margin-top:-4px;
+    margin-bottom:-4px;
+}
+
+/*.e2-tab-query > ul > li {
     border-right: solid 1px #ccc;
     margin-bottom:-1px;
 }
-.e2-tab-editbar > ul > li.e2l-float-right {
+.e2-tab-query > ul > li.e2l-float-right {
     border-left: solid 1px #ccc;
     border-right: none;
 }
-.e2-tab-editbar > ul input,
-.e2-tab-editbar > ul select {
+.e2-tab-query > ul input,
+.e2-tab-query > ul select {
     font-size: 10pt;
-/*    vertical-align: top;*/
-/*    margin-top: -2px; */    
     margin: 0px;
     padding-top: 1px;
     padding-bottom: 1px;
@@ -207,7 +205,7 @@ ul {
     padding-right: 3px;
     
 }
-.e2-tab-editbar > div {
+.e2-tab-query > * {
     padding:10px;
     border: solid 1px #ccc;
     border-top: none;
@@ -219,7 +217,7 @@ ul {
     display: block;
     background: #f4f4f4;
 }
-
+*/
 
 /***** Main tabs ********/
 
@@ -229,19 +227,13 @@ ul {
 }
 
 .e2-tab-main > ul > li {
-    padding:4px;
+    padding:8px;
     border:none;
     -moz-border-radius-topright: 8px;
     -moz-border-radius-topleft: 8px; 
     -webkit-border-top-right-radius: 8px;
     -webkit-border-top-left-radius: 8px;
     border-radius: 8px 8px 0px 0px;
-}
-
-.e2-tab-editbar div.e2-tab-active {
-    -moz-box-shadow: 3px 3px 3px #eee;
-    -webkit-box-shadow: 3px 3px 3px #eee;
-    box-shadow: 3px 3px 3px #eee;
 }
 
 /***** Input control Styling ********/

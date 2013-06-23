@@ -291,17 +291,9 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 .e2-tab > ul > li img {
     vertical-align:middle;
 }
-.e2-tab > ul > li > a,
-.e2-tab > ul > li > span
-{
-    display:inline-block;
-    padding:5px;
-}
 .e2-tab > div {
     display:none;
     z-index: 1000;
-}
-.e2-tab > li.e2-tab-active {    
 }
 .e2-tab > div.e2-tab-active {
     display:block;
