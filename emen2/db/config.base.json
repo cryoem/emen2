@@ -38,7 +38,7 @@
     },
 
     "extensions":{
-        "exts": []
+        "exts": ["base", "default"]
     },
 
     // You probably don't want to change any of these.

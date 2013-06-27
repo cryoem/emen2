@@ -8,12 +8,14 @@ import emen2.db.config
 import emen2.util.listops
 
 
-def dump_json(outfile, items):
+def dump_json(outfile, items, uri=None):
     if os.path.exists(outfile):
         print "Warning: File %s exists"%outfile
     print "Saving output to %s"%outfile
     with open(outfile,'w') as f:
         for item in items:
+            if uri:
+                item['uri'] = '%s/%s/%s/'%(uri, item.get('keytype'), item.get('name'))
             f.write(json.dumps(item)+"\n")
 
 

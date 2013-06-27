@@ -77,7 +77,7 @@ VERSIONS = {
 # Regular expression to parse Protocol views.
 # New style
 VIEW_REGEX_P = '''
-        (?P<name>[\w\-\?]+)
+        (?P<name>[\w\-\?\*]+)
         (?:="(?P<default>.+)")?
         (?P<emptyargs>\(\))?
         (?:\((?P<args>[^\)]+)\))?
@@ -406,9 +406,6 @@ class DB(object):
             recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
         for i in recs:
             params |= set(i.keys())
-            #rds = set([i.rectype for i in recs])
-            #for rd in self.dbenv["recorddef"].gets(rds, ctx=ctx, txn=txn):
-            #    params |= set(rd.paramsK)
         return params
 
     def _findbyvartype(self, names, vartypes, ctx=None, txn=None):

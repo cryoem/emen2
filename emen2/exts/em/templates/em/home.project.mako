@@ -3,7 +3,7 @@ import jsonrpc.jsonutil
 import collections
 %>
 
-<%inherit file="/em/home" />
+<%inherit file="/pages/home" />
 <%namespace name="buttons" file="/buttons"  /> 
 
 <%block name="js_ready">
@@ -105,7 +105,7 @@ if project['permissions'][0] or project['permissions'][1] or set(project['permis
                 <strong>Note:</strong> this will overwrite the permissions in all child records, including any subprojects.
         
                 <br />
-                <form action="${ctxt.root}/em/home/project/${project.name}/resetpermissions/" method="post">
+                <form action="${ctxt.root}/home/project/${project.name}/resetpermissions/" method="post">
                 <ul class="e2l-actions">
                     <li><input type="submit" value="Set permissions to match investigators" /></li>
                 </ul>        

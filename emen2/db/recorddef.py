@@ -22,16 +22,19 @@ def parseparmvalues(text):
 
     for match in regex.finditer(text):
         n = match.group('name')
-        t = match.group('type')
-
         if not n:
             continue
-        if t == '$' or t == '*':
-            params.add(match.group('name'))
-            if match.group('def'):
-                defaults[n] = match.group('def')
-        if t == '*':
-            required.add(n)
+        if n.endswith('?'):
+            pass
+        elif n.endswith(')'):
+            pass
+        elif n.endswith('*'):
+            required.add(n[:-1])
+        else:
+            params.add(n)
+
+        #     if match.group('def'):
+        #         defaults[n] = match.group('def')
 
     return params, defaults, required
 
