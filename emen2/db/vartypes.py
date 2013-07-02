@@ -438,7 +438,7 @@ class vt_keywords(Vartype):
 class vt_string(Vartype):
     """String."""
     
-    _indexwords = re.compile('[a-zA-Z0-9-]{3,}')
+    _indexwords = re.compile('[a-zA-Z0-9]{3,}')
 
     def _getindexwords(self, value):
         """(Internal) Split up a text param into components"""

@@ -240,6 +240,14 @@ class Record(View):
         self.ctxt['recnames'].update(self.db.view(records))
         self.ctxt['bdos'] = bdos
     
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/attachments2/$')
+    def query_attachments2(self, name=None, path=None, q=None, c=None, **kwargs):
+        self.main(name=name)
+        self.template = '/record/record.query.attachments2'
+        # Look up all the binaries
+        children = self.db.rel.children(self.rec.name, recurse=-1)
+        bdos = self.db.binary.find(record=children, count=0)
+        self.ctxt['q'] = self.db.table(subset=[i.name for i in bdos], keytype='binary', view="{{checkbox()}} {{thumbnail()}} {{filename}} {{filesize}}")
     
     @View.add_matcher('^/record/(?P<name>[^/]*)/children/$')
     def children_map(self, name=None):

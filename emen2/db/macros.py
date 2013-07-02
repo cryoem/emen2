@@ -121,7 +121,6 @@ class macro_recname(Macro):
             return self.db.view(rec.get(params))
         return self.db.view(params or rec)
 
-
     def macro_name(self, params):
         return "Record ID"
 
@@ -216,14 +215,21 @@ class macro_thumbnail(Macro):
                 defaults[i]=v        
         paramdef, size, format = defaults
         
-        pd = self.db.paramdef.get(paramdef)
-        value = rec.get(pd.name)
-        if not value:
-            return
-        if not pd.iter:
-            value = [value]
+
+        # Argh..
+        if rec.get('keytype') == 'record':
+            pd = self.db.paramdef.get(paramdef)
+            value = rec.get(pd.name)
+            if not value:
+                return
+            if not pd.iter:
+                value = [value]
+            bdos = self.db.binary.get(value)
+        elif rec.get('keytype') == 'binary':
+            bdos = [rec]
+
         ret = []
-        for bdo in self.db.binary.get(value):
+        for bdo in bdos:
             if not bdo:
                 return Markup("Error getting binary: %s"%value)
             i = Markup("""download/%s/%s?size=%s&format=%s""")%(
@@ -241,30 +247,30 @@ class macro_thumbnail(Macro):
 
 ##### Editing macros #####
 
-@Macro.register('checkbox')
-class macro_checkbox(Macro):
-    """draw a checkbox for editing values"""
-
-    def process(self, params, rec):
-        args = parse_args(params)
-        return self._process(rec, *args)
-
-    def _process(self, rec, param, value, label=None, *args, **kwargs):
-        checked = ''
-        if value in ci(rec.get(param)):
-            checked = 'checked="checked"'
-
-        # grumble..
-        labelid = 'e2-edit-checkbox-%032x'%random.getrandbits(128)
-
-        # Need to put in a hidden input element so that empty sets will still be submitted.
-        return """
-            <input id="%s" type="checkbox" name="%s" data-param="%s" value="%s" %s />
-            <label for="%s">%s</label>
-            <input type="hidden" name="%s" value="" />"""%(labelid, param, param, value, checked, labelid, label or value, param)
-
-    def macro_name(self, params):
-        return "Checkbox:", params
+# @Macro.register('checkbox')
+# class macro_checkbox(Macro):
+#     """draw a checkbox for editing values"""
+# 
+#     def process(self, params, rec):
+#         args = parse_args(params)
+#         return self._process(rec, *args)
+# 
+#     def _process(self, rec, param, value, label=None, *args, **kwargs):
+#         checked = ''
+#         if value in ci(rec.get(param)):
+#             checked = 'checked="checked"'
+# 
+#         # grumble..
+#         labelid = 'e2-edit-checkbox-%032x'%random.getrandbits(128)
+# 
+#         # Need to put in a hidden input element so that empty sets will still be submitted.
+#         return """
+#             <input id="%s" type="checkbox" name="%s" data-param="%s" value="%s" %s />
+#             <label for="%s">%s</label>
+#             <input type="hidden" name="%s" value="" />"""%(labelid, param, param, value, checked, labelid, label or value, param)
+# 
+#     def macro_name(self, params):
+#         return "Checkbox:", params
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

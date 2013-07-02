@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import twisted.python.log
 import twisted.application
 

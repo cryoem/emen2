@@ -124,7 +124,6 @@ class IndexedConstraint(Constraint):
             # print "Error opening %s index:"%self.param, e
             pass
             
-
 class ParamConstraint(IndexedConstraint):
     """Constraint based on a ParamDef"""
     
@@ -181,6 +180,11 @@ class ParamConstraint(IndexedConstraint):
         if f is None:
             return f
         return set(f or [])
+
+
+class KeywordsConstraint(ParamConstraint):
+    def _run(self):
+        return self._run_index()    
 
 
 class RectypeConstraint(ParamConstraint):
@@ -251,13 +255,16 @@ class MacroConstraint(Constraint):
         
 
 class Query(object):
-    def __init__(self, constraints, mode='AND', subset=None, ctx=None, txn=None, btree=None):
+    def __init__(self, constraints, mode='AND', subset=None, keywords=None, ctx=None, txn=None, btree=None):
         self.time = 0.0
         self.maxtime = MAXTIME
         self.starttime = time.time()
         
         # Subset
         self.subset = subset
+        
+        # Keywords
+        self.keywords = keywords
         
         # None or set() of query result
         self.result = None 
@@ -282,6 +289,10 @@ class Query(object):
 
         # Make constraints
         self.constraints = []
+        if self.keywords:
+            for keyword in self.keywords.split(" "):
+                self.constraints.append(self._makeconstraint('keywords','==',keyword.lower()))
+        
         for c in constraints:
             self.constraints.append(self._makeconstraint(*c))
             
@@ -295,11 +306,11 @@ class Query(object):
         if self.subset is not None:
             # print "Restricting to subset:", self.subset
             self.result = self.btree.filter(set(self.subset), ctx=self.ctx, txn=self.txn)
-        
+                    
         # Run the constraints
         for c in sorted(self.constraints, key=lambda x:x.priority):
             f = c.run()            
-            self._join(f)
+            self._bool(f)
 
         # Filter by permissions
         if self.subset is None and not self.constraints:
@@ -385,7 +396,7 @@ class Query(object):
 
     ##### Results/Cache methods #####
     
-    def _join(self, f):
+    def _bool(self, f):
         # Add/remove items from results 
         if f is None:
             pass
@@ -453,6 +464,8 @@ class Query(object):
             constraint = RelConstraint(param, op, term)
         elif param == 'rectype':
             constraint = RectypeConstraint(param, op, term)
+        elif param == 'keywords':
+            constraint = KeywordsConstraint(param, '==', term)
         else:
             constraint = ParamConstraint(param, op, term)
         constraint.init(self)

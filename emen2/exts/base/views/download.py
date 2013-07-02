@@ -38,17 +38,20 @@ class Download(View):
     defaultType = 'application/octet-stream'
 
     @View.add_matcher('^/download/$', name='multi')
-    @View.add_matcher('^/download/(?P<bids>[^/]*)/(?P<filename>[^/]*)/$')
-    @View.add_matcher('^/binary/(?P<bids>[^/]*/)/$', name='binary')
-    def main(self, bids, filename=None, size=None, format=None, q=None, rename=None, tar=None):
-        if not hasattr(bids, '__iter__'):
-            bids = [bids]
-
+    @View.add_matcher('^/download/(?P<name>[^/]*)/(?P<filename>[^/]*)/$')
+    @View.add_matcher('^/binary/(?P<name>[^/]*/)/$', name='binary')
+    def main(self, name, filename=None, size=None, format=None, q=None, rename=None, tar=None):
+        # Compatibility...
+        if hasattr(name, '__iter__'):
+            names = name
+        else:
+            names = [name]
+            
         # Query for BDOs
         if q:
             bdos = self.db.binary.get(q=q)
         else:
-            bdos = self.db.binary.get(bids)
+            bdos = self.db.binary.get(names)
 
         # Found what we needed; close the transaction
         return bdos
@@ -100,7 +103,7 @@ class Download(View):
             if v in seen:
                 files[k] = renamefile(v, count=seen.count(v)+1)
             seen.append(v)
-            
+        
         if tar or len(files) > 1:
             return self._transfer_tar(files, request)
         

@@ -164,8 +164,8 @@ ul {
 
 /***** Editbar ******/
 /* Linear gradient... */
-.e2l-gradient,
-.e2-tab-query[role=tablist] {
+.e2l-gradient
+{
     border-bottom: solid 1px #ccc;
     background: -moz-linear-gradient(top, rgba(255,255,255,0) 0%, rgba(0,0,0,0.1) 100%);
     background: -webkit-gradient(linear, left top, left bottom, color-stop(0%,rgba(255,255,255,0)), color-stop(100%,rgba(0,0,0,0.1)));
@@ -174,8 +174,14 @@ ul {
     background: -ms-linear-gradient(top, rgba(255,255,255,0) 0%,rgba(0,0,0,0.1) 100%);
     background: linear-gradient(top, rgba(255,255,255,0) 0%,rgba(0,0,0,0.1) 100%);
 }
+
+.e2-tab-query[role=tablist] {
+    font-size:14pt;
+    font-weight:bold;
+}
 .e2-tab-query > ul > li {
     padding:10px;
+    padding-left:0px;
 }
 .e2-tab-query > ul > li > input,
 .e2-tab-query > ul > li > form > input,
@@ -187,37 +193,7 @@ ul {
     margin-bottom:-4px;
 }
 
-/*.e2-tab-query > ul > li {
-    border-right: solid 1px #ccc;
-    margin-bottom:-1px;
-}
-.e2-tab-query > ul > li.e2l-float-right {
-    border-left: solid 1px #ccc;
-    border-right: none;
-}
-.e2-tab-query > ul input,
-.e2-tab-query > ul select {
-    font-size: 10pt;
-    margin: 0px;
-    padding-top: 1px;
-    padding-bottom: 1px;
-    padding-left: 3px;
-    padding-right: 3px;
-    
-}
-.e2-tab-query > * {
-    padding:10px;
-    border: solid 1px #ccc;
-    border-top: none;
-}
-.e2-tab-editbar li.e2-tab-active {
-    background: #f4f4f4;
-}
-.e2-tab-editbar div.e2-tab-active {
-    display: block;
-    background: #f4f4f4;
-}
-*/
+
 
 /***** Main tabs ********/
 
@@ -321,25 +297,17 @@ input.e2l-cancel {
     display: block; 
     clear: both; 
 }
-
-.e2-query-table th {
-    border-right:solid 1px #eee;
-}
-
-.e2l-shaded th {
+.e2l-shaded thead {
+    border-top:solid 2px #eee;
     border-bottom:none;
-    border-right:solid 1px #999;
 }
-.e2l-shaded tr:last-child th {
-    border-bottom:solid 1px #999;
-    border-right:solid 1px #999;
+.e2l-shaded th {
+    border-right:dashed 2px #eee;
 }
 .e2l-shaded th:last-child {
     border-right:none;
 }
-.e2l-shaded .e2l-gradient {
-    border-top:10px solid white;
-}
+
 
 <%!
 public = True

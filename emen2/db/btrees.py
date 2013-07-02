@@ -996,13 +996,13 @@ class CollectionDB(BaseDB):
     #     self.bdb.delete(self.keydump(name), txn=txn, flags=flags)
 
 
-    def query(self, c=None, mode='AND', subset=None, ctx=None, txn=None):
+    def query(self, c=None, mode='AND', subset=None, keywords=None, ctx=None, txn=None):
         """Return a Query Constraint Group.
 
         You will need to call constraint.run() to execute the query,
         and constraint.sort() to sort the values.
         """
-        return emen2.db.query.Query(constraints=c, mode=mode, subset=subset, ctx=ctx, txn=txn, btree=self)
+        return emen2.db.query.Query(constraints=c, mode=mode, subset=subset, keywords=keywords, ctx=ctx, txn=txn, btree=self)
 
     ##### Changes to indexes #####
     

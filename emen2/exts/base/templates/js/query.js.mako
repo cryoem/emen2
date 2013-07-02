@@ -440,22 +440,38 @@
                     .appendTo(ul);    
             }            
 
-            // Query control
-            $('<li />')
+            // Awful hack!!
+            if (this.options.q['keytype'] == 'binary') {
+                $('<li />')
                 .addClass('e2l-float-right')
                 .appendTo(ul)
                 .append(
-                    $('<input type="button" />')
-                    .val('Modify query')
-                );                                                            
+                    $('<input type="button" class="e2-query-download" />')
+                    .val('Download selected')
+                    .click(function(){self.download()})
+                );
+            }
+
+            // Query control
+            // $('<li />')
+            //    .addClass('e2l-float-right')
+            //    .appendTo(ul)
+            //    .append(
+            //        $('<input type="button" />')
+            //        .val('Modify query')
+            //    );                                                            
 
             $('<li />')
             .addClass('e2l-float-right')
             .append(
-                $('<input type="text" />')
+                $('<input class="e2-query-keywords" type="text" />')
                     .attr('name', 'keywords')
-                    .attr('placeholder', 'Keywords')
+                    .attr('placeholder', 'Filter')
                     .attr('size', 6)
+                )
+            .append(
+                $('<input type="button" value="Go" />')
+                    .click(function(){self.keywords()})
                 )
             .appendTo(ul);
                                         
@@ -465,14 +481,53 @@
                 .appendTo(ul);
         },
         
-        query_download: function() {
-            // Get all the binaries in this table, and prepare a download link.
-            var newq = {};
-            newq['c'] = this.options.q['c'];
-            newq['boolmode'] = this.options.q['boolmode'];
-            window.location = $.query_build_path(newq, 'attachments');
+        keywords: function() {
+            var keywords = $('.e2-query-keywords', this.element).val();
+            console.log("Filtering:", keywords);
+            this.options.q['keywords'] = keywords;
+            this.query();
         },
-                
+        
+        download: function() {
+            var dialog = $('<div />')
+                .attr('title', 'Confirm')
+            
+                var form = $('<form method="post" />')
+                .attr('action', emen2.template.uri(['download']))
+                .appendTo(dialog);
+            
+            var bdos = [];
+            var size = 0;
+            $('input.e2-query-checkbox:checked', this.element).each(function(){
+                bdos.push($(this).val())
+                $('<input type="hidden" />')
+                    .attr('name', 'name')
+                    .val($(this).val())
+                    .appendTo(form);
+            });
+            
+
+            var count = $('<p />')
+                .text('Download '+$.escape(bdos.length)+' files?') 
+                //', '+emen2.template.prettybytes(size))
+                .appendTo(dialog);
+
+            dialog.dialog({
+                    resizable: false,
+                    draggable: false,
+                    modal: true,
+                    buttons: {
+                        "Confirm": function(e) {
+                            $('form', this).submit();
+                            $(this).dialog('close');
+                        },
+                        "Cancel": function() {
+                            $(this).dialog("close");
+                        }
+                    }
+                }); 
+        },
+        
         query: function(newq) {
             $('.e2-query-activity', this.element).show();
             // Update the query from the current settings
@@ -637,12 +692,6 @@
             var tr = $('<tr />').appendTo(thead);
             var tr2 = $('<tr />').addClass('e2-query-sort').appendTo(thead);
             
-            if (this.options.q['checkbox']) {
-                // Build the check boxes for selecting records
-                $('<input type="checkbox" />').attr('checked', 'checked').wrap('<th />').appendTo(tr);
-                $('<th />').appendTo(tr2);
-            }
-
             // Build the rest of the column headers
             $.each(keys, function() {
                 $('<th />').text(" "+(keys_desc[this] || this)).appendTo(tr);
@@ -670,11 +719,10 @@
             var self = this;
             var keys = this.options.q['keys'];
             var names = this.options.q['names'];
-            var checkbox = this.options.q['checkbox'];
             var t = $('.e2-query-table', this.element);            
             var tbody = $('tbody', t);
             tbody.empty();
-
+            
             // Empty results
             if (names.length == 0) {
                 $('<td />').text('No results.').wrap('<tr />').appendTo(tbody);
@@ -684,20 +732,22 @@
             for (var i=0;i<names.length;i++) {
                 // Slower, but safer.
                 var row = $('<tr />').appendTo(tbody);
-                
-                if (checkbox) {
-                    $('<input class="e2-query-checkbox" type="checkbox" />')
-                        .addClass('e2-query-checkbox')
-                        .val(names[i])
-                        .attr('checked', this.checkbox[names[i]])
-                        .wrap('<td />')
-                        .appendTo(row);
-                }
-                
                 for (var j=0; j < keys.length; j++) {
-                    var a = $('<a />')
-                        .attr('href', emen2.template.uri(['record', names[i]]))
-                        .text(self.options.q['rendered'][names[i]][keys[j]]);
+                    var rendered = self.options.q['rendered'][names[i]][keys[j]];
+                    if (keys[j] == "checkbox()") {
+                        var a = $('<input type="checkbox" />')
+                            .addClass('e2-query-checkbox')
+                            .val(names[i])
+                            .attr('checked', this.checkbox[names[i]]);
+                    } else if (keys[j] == "thumbnail()") {
+                        var a = $('<img />')
+                            .addClass('e2l-thumbnail')
+                            .attr('src', '/'+rendered);
+                    } else {
+                        var a = $('<a />')
+                            .attr('href', emen2.template.uri(['record', names[i]]))
+                            .text(rendered);
+                    }
                     $('<td />').append(a).appendTo(row);
                 }
             }

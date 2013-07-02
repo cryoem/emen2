@@ -12,9 +12,6 @@ import emen2.db.config
 import emen2.db.log
 from emen2.web.view import View
 
-
-
-
 @View.register
 class EMEquipment(View):
     @View.add_matcher(r'^/em/equipment/(?P<name>[^/]*)/$')
@@ -26,8 +23,6 @@ class EMEquipment(View):
     def new(self, rectype, **kwargs):
         self.title = 'New Equipment'
         self.template = '/em/project.new'
-        
-      
         
 @View.register
 class EMAN2Convert(View):

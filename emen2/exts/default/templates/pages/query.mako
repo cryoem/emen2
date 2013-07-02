@@ -40,10 +40,6 @@
                 % if header:
                     <thead>
                         <tr>
-                            % if checkbox:
-                                <th><input type="checkbox" checked="checked" /></th>
-                            % endif
-                            
                             % for key in q['keys']:
                                 <th><div data-name="${key}">${q['keys_desc'].get(key, key)}</div></th>
                             % endfor
@@ -59,18 +55,14 @@
 
                     % for name in q['names']:
                         <tr>                   
-                            
-                        % if checkbox:
-                            <td>
-                                <input class="e2-query-checkbox" type="checkbox" value="${name}" checked="checked" />
-                            </td>
-                        % endif    
-                                                 
+                                                                             
                         % for key in q['keys']:
                             <td>
                                 ## Inelegant, but will do for now...
                                 % if key == 'thumbnail()':
                                     <a href="${ctxt.root}/${keytype}/${name}/"><img class="e2l-thumbnail" src="${ctxt.root}/${q['rendered'][name].get(key)}" alt="Thumb" /></a>
+                                % elif key == 'checkbox()':
+                                    <input class="e2-query-checkbox" type="checkbox" checked="checked" name="name" value="${name}" data-name="${name}" />
                                 % else:
                                     <a href="${ctxt.root}/${keytype}/${name}/">${q['rendered'][name].get(key)}</a>
                                 % endif
