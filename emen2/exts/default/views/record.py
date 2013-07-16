@@ -222,26 +222,26 @@ class Record(View):
     
 
     # @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/(?P<path>.*)/attachments/$')
+    # @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/attachments/$')
+    # def query_attachments(self, name=None, path=None, q=None, c=None, **kwargs):
+    #     self.main(name=name)
+    #     self.template = '/record/record.query.attachments'
+    #     # Look up all the binaries
+    #     children = self.db.rel.children(self.rec.name, recurse=-1)
+    #     bdos = self.db.binary.find(record=children, count=0)
+    #     if len(bdos) > 100000 and not confirm:
+    #         raise Exception, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
+    # 
+    #     records = set([i.record for i in bdos])
+    #     users = set([bdo.get('creator') for bdo in bdos])
+    #     users = self.db.user.get(users)
+    #     # self.ctxt['tab'] = 'attachments'
+    #     self.ctxt['users'].extend(users)
+    #     self.ctxt['recnames'].update(self.db.view(records))
+    #     self.ctxt['bdos'] = bdos
+    
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/attachments/$')
     def query_attachments(self, name=None, path=None, q=None, c=None, **kwargs):
-        self.main(name=name)
-        self.template = '/record/record.query.attachments'
-        # Look up all the binaries
-        children = self.db.rel.children(self.rec.name, recurse=-1)
-        bdos = self.db.binary.find(record=children, count=0)
-        if len(bdos) > 100000 and not confirm:
-            raise Exception, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
-
-        records = set([i.record for i in bdos])
-        users = set([bdo.get('creator') for bdo in bdos])
-        users = self.db.user.get(users)
-        # self.ctxt['tab'] = 'attachments'
-        self.ctxt['users'].extend(users)
-        self.ctxt['recnames'].update(self.db.view(records))
-        self.ctxt['bdos'] = bdos
-    
-    @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/attachments2/$')
-    def query_attachments2(self, name=None, path=None, q=None, c=None, **kwargs):
         self.main(name=name)
         self.template = '/record/record.query.attachments2'
         # Look up all the binaries

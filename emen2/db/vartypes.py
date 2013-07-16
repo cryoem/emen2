@@ -573,7 +573,7 @@ class vt_datetime(Vartype):
             return t.strftime(self.fmt[prec])
         except:
             return "Date out of bounds! %s"%value
-    
+        
     def _unicode(self, value):
         tz = self.options.get('tz')
         raw_time = dateutil.parser.parse(value)
@@ -582,16 +582,22 @@ class vt_datetime(Vartype):
     
     def _html(self, value):
         tz = self.options.get('tz')
-        raw_time = dateutil.parser.parse(value)
-        raw_utc = raw_time.astimezone(dateutil.tz.gettz())
-        local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
+        try:
+            raw_time = dateutil.parser.parse(value)
+            raw_utc = raw_time.astimezone(dateutil.tz.gettz())
+            local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
+        except ValueError:
+            raw_time = dateutil.parser.parse(value)
+            raw_utc = raw_time
+            local_time = raw_time
+            
         return Markup("""<time class="e2-edit" data-paramdef="%s" datetime="%s" title="Raw value: %s \nUTC time: %s \nLocal time: %s">%s</time>""")%(
             self.pd.name,
             raw_time.isoformat(),
             value,
             raw_utc.isoformat(),
             local_time.isoformat(),
-            self._strip(local_time)
+            self._strip(local_time) 
             )
             
 
@@ -601,8 +607,8 @@ class vt_date(vt_datetime):
     def validate(self, value):
         ret = []
         for i in ci(value):
-            i = parse_iso8601(i, result='date')
             if i:
+                dateutil.parser.parse(i).strftime("%Y-%m-%d")
                 ret.append(i)
         return self._rci(ret)
 
@@ -613,8 +619,8 @@ class vt_time(vt_datetime):
     def validate(self, value):
         ret = []
         for i in ci(value):
-            i = parse_iso8601(i, result='time')
             if i:
+                dateutil.parser.parse(i).strftime("%H:%M:%S")
                 ret.append(i)
         return self._rci(ret)
 

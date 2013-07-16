@@ -1,7 +1,7 @@
 import sys
 import emen2.db.dump
 
-paramdefs =  [
+paramdefs = [
  {'desc_long': 'Aliquot ID',
   'desc_short': 'Aliquot ID',
   'keytype': 'paramdef',
@@ -7752,4 +7752,4 @@ Remember to deintensify the beam once the ice has been meltedAt this point addit
 
 
 if __name__ == "__main__":
-    emen2.db.dump.dump_json(sys.argv[1], items=paramdefs+paramdefs+recorddefs, uri="http://ncmidb.bcm.edu")
+    emen2.db.dump.dump_json(sys.argv[1], items=paramdefs+paramdefs+recorddefs+EMAN2paramdefs, uri="http://ncmidb.bcm.edu")

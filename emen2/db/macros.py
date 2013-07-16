@@ -215,7 +215,6 @@ class macro_thumbnail(Macro):
                 defaults[i]=v        
         paramdef, size, format = defaults
         
-
         # Argh..
         if rec.get('keytype') == 'record':
             pd = self.db.paramdef.get(paramdef)

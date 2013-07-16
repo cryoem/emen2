@@ -111,11 +111,34 @@ class EMEN2DBEnv(object):
         loader = emen2.db.load.BaseLoader(infile=infile)
         keytypes = keytypes or ['paramdef', 'user', 'group', 'recorddef', 'binary', 'record']
         for keytype in keytypes:
+            children = collections.defaultdict(set)
+            parents = collections.defaultdict(set)
             for item in loader.loadfile(keytype=keytype):
                 emen2.db.log.debug("BDB: Load %s %s"%(keytype, item.get('name')))
+                name = item.get('name')
+                
+                orig = None
+                try:
+                    orig = self[keytype]._get_data(name, txn=txn)
+                except KeyError, e:
+                    pass
+                if orig and not orig.get('uri'):
+                    print "SKIPPING", name
+                    continue
+                
+                # children[name] = set(item.pop('children', []))
+                # parents[name] = set(item.pop('parents', []))
                 i = self[keytype].dataclass(ctx=ctx)
                 i._load(item)
                 self[keytype]._put_data(i.name, i, txn=txn)
+
+            for k,v in children.items():
+                for v2 in v:
+                    self[keytype].pclink(k, v2, ctx=ctx, txn=txn)
+            for k,v in parents.items():
+                for v2 in v:
+                    self[keytype].pclink(v2, k, ctx=ctx, txn=txn)
+
 
     def create(self):
         """Load database parameters and protocols from JSON."""
@@ -991,11 +1014,16 @@ class CollectionDB(BaseDB):
         emen2.db.log.debug("BDB: %s put: %s"%(self.filename, item.name))        
         self.bdb.put(self.keydump(name), self.datadump(item), txn=txn, flags=flags)
     
-    # def delete(self, name, ctx=None, txn=None, flags=0):
-    #     emen2.db.log.debug("BDB: %s put: %s"%(self.filename, item.name))        
-    #     self.bdb.delete(self.keydump(name), txn=txn, flags=flags)
-
-
+    def delete(self, name, ctx=None, txn=None, flags=0):
+        return
+        # emen2.db.log.debug("BDB: %s put: %s"%(self.filename, name))  
+        # item = self._get_data(name)
+        # for i in item.get('parents', []):
+        #     self.pcunlink(i, item.name, ctx=ctx, txn=txn)
+        # for i in item.get('children', []):
+        #     self.pcunlink(item.name, i, ctx=ctx, txn=txn)            
+        # self.bdb.delete(self.keydump(name), txn=txn, flags=flags)
+        
     def query(self, c=None, mode='AND', subset=None, keywords=None, ctx=None, txn=None):
         """Return a Query Constraint Group.
 
@@ -1327,9 +1355,9 @@ class CollectionDB(BaseDB):
         children as values. These children will in turn have their own keys,
         and their own children as values, up to the specified recursion depth.
 
-        If tree keyword is False, the returned value will be a dictionary
-        with DBO names as keys, and their children (up to the specified
-        recursion depth) as values.
+        If tree keyword is False, the returned value will be an adjacency list
+        with dictionary with DBO names as keys, and their children (up to the
+        specified recursion depth) as values.
 
         Example edges:
             1: 2, 3
@@ -1346,10 +1374,10 @@ class CollectionDB(BaseDB):
         :keyword names: DBO names
         :keyword recurse: Recursion depth (default is 1)
         :keyword rel: Relationship type (default is children)
-        :keyword tree: Set return type to tree or set
+        :keyword tree: Set return type to adjacency list or set
         :keyword ctx: Context
         :keyword txn: Transaction
-        :return: Return a tree structure if tree=True, otherwise a set
+        :return: Return an adjacency list if tree=True, otherwise a set
 
         """
         result = {}
@@ -1366,7 +1394,7 @@ class CollectionDB(BaseDB):
         # Filter by permissions
         allr = self.filter(allr, ctx=ctx, txn=txn)
 
-        # If Tree=True, we're returning the tree... Filter for permissions.
+        # If Tree=True, we're returning the adjacency list... Filter for permissions.
         if tree:
             outret = {}
             for k, v in result.iteritems():
@@ -1415,12 +1443,11 @@ class CollectionDB(BaseDB):
 
     def relink(self, removerels=None, addrels=None, ctx=None, txn=None):
         """Add and remove a number of parent-child relationships at once."""
-        removerels = removerels or []
-        addrels = addrels or []
+        removerels = removerels or {}
+        addrels = addrels or {}
         remove = collections.defaultdict(set)
         add = collections.defaultdict(set)
         ci = emen2.util.listops.check_iterable
-
         for k,v in removerels.items():
             for v2 in ci(v):
                 remove[self.keyclass(k)].add(self.keyclass(v2))
@@ -1436,7 +1463,7 @@ class CollectionDB(BaseDB):
 
         return self.puts(items, ctx=ctx, txn=txn)
 
-    def _putrel(self, parent, child, mode='addrefs', txn=None):
+    def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
         # (Internal) Add or remove a relationship.
         # Mode is addrefs or removerefs; it maps to the IndexDB method.
 
@@ -1547,44 +1574,44 @@ class CollectionDB(BaseDB):
                 indc.addrefs(k, v, txn=txn)
         return
 
-    ##### Search tree-like indexes (e.g. parents/children) #####
+    ##### Search relationship indexes (e.g. parents/children) #####
 
     def _bfs(self, key, rel='children', recurse=1, ctx=None, txn=None):
-        # (Internal) Tree search
-        # Return a dict of results as well as the nodes visited (saves time)
+        # (Internal) Relationships
         
         # Check max recursion depth
-        if recurse == -1:
-            recurse = emen2.db.config.get('params.maxrecurse')
+        maxrecurse = emen2.db.config.get('params.maxrecurse')
+        if recurse < 0:
+            recurse = maxrecurse
+        if recurse > maxrecurse:
+            recurse = maxrecurse
 
-        # Get the index, and create a cursor (slightly faster)
+        # Get the index, and create a cursor here (slightly faster)
         rel = self.getindex(rel, txn=txn)
         cursor = rel.bdb.cursor(txn=txn)
 
         # Starting items
-
-        # NOTE: I am using this ugly direct call because it saves 10-20% time.
         new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) #
 
-        stack = [new]
+        tovisit = [new]
         result = {key: new}
         visited = set()
         lookups = []
 
         for x in xrange(recurse-1):
-            if not stack[x]:
+            if not tovisit[x]:
                 break
 
-            stack.append(set())
-            for key in stack[x] - visited:
+            tovisit.append(set())
+            for key in tovisit[x] - visited:
                 new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) 
                 if new:
-                    stack[x+1] |= new #.extend(new)
+                    tovisit[x+1] |= new
                     result[key] = new
 
-            visited |= stack[x]
+            visited |= tovisit[x]
 
-        visited |= stack[-1]
+        visited |= tovisit[-1]
         cursor.close()
         return result, visited
 
@@ -1691,11 +1718,6 @@ class NewUserDB(CollectionDB):
     def new(self, *args, **kwargs):
         txn = kwargs.get('txn', None)
         newuser = super(NewUserDB, self).new(*args, **kwargs)
-
-        # Check if any pending accounts have this email address
-        # for k,v in self._get_data_items(txn=txn):
-        #    if newuser.email == v.email:
-        #        raise emen2.db.exceptions.ExistingKeyError
 
         # Check  if this email already exists
         indemail = self.getindex('email', txn=txn)

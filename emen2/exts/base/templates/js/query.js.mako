@@ -733,22 +733,26 @@
                 // Slower, but safer.
                 var row = $('<tr />').appendTo(tbody);
                 for (var j=0; j < keys.length; j++) {
-                    var rendered = self.options.q['rendered'][names[i]][keys[j]];
-                    if (keys[j] == "checkbox()") {
-                        var a = $('<input type="checkbox" />')
-                            .addClass('e2-query-checkbox')
-                            .val(names[i])
-                            .attr('checked', this.checkbox[names[i]]);
-                    } else if (keys[j] == "thumbnail()") {
-                        var a = $('<img />')
-                            .addClass('e2l-thumbnail')
-                            .attr('src', '/'+rendered);
+                    if (self.options.q['rendered'][names[i]] == null) {
+                        $('<td>-</td>').appendTo(row);
                     } else {
-                        var a = $('<a />')
-                            .attr('href', emen2.template.uri(['record', names[i]]))
-                            .text(rendered);
+                        var rendered = self.options.q['rendered'][names[i]][keys[j]];
+                        if (keys[j] == "checkbox()") {
+                            var a = $('<input type="checkbox" />')
+                                .addClass('e2-query-checkbox')
+                                .val(names[i])
+                                .attr('checked', this.checkbox[names[i]]);
+                        } else if (keys[j] == "thumbnail()") {
+                            var a = $('<img />')
+                                .addClass('e2l-thumbnail')
+                                .attr('src', '/'+rendered);
+                        } else {
+                            var a = $('<a />')
+                                .attr('href', emen2.template.uri(['record', names[i]]))
+                                .text(rendered);
+                        }
+                        $('<td />').append(a).appendTo(row);
                     }
-                    $('<td />').append(a).appendTo(row);
                 }
             }
             // This needs to rebind several things...

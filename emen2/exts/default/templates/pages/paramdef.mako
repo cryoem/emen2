@@ -42,6 +42,13 @@
             </td>
         </tr>
 
+        <tr>    
+            <td>Source:</td>
+            <td>
+                ${paramdef.uri or ''}
+            </td>
+        </tr>
+
         <tr>
             <td>Short description:</td>
             <td>

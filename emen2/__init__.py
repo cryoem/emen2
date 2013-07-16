@@ -1,3 +1,3 @@
 # $Id$
 # EMEN2 version
-__version__ = '2.2b7'
+__version__ = '2.2b8'

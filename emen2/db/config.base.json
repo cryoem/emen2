@@ -115,6 +115,14 @@
     "bookmarks":{
         "banner": "0",
         "banner_noauth": "0",
-        "bookmarks": []
+        "bookmarks": [
+            ["Query", "/query/"],
+            ["-",""],
+            ["Projects", "/query/rectype.is.project/"],
+            ["Grid imaging sessions", "/query/rectype.is.grid_imaging/"],
+            ["Images", "/query/rectype.is.image_capture*"],
+            ["Lab notebooks", "/query/rectype.is.labnotebook/"],
+            ["Publications", "/query/rectype.is.publication*"]
+        ]
     }
 }

@@ -520,8 +520,8 @@ class DB(object):
         :keyword t2: The second time; defaults to now.
         :return: Time difference, in seconds.
         """
-        t1 = emen2.db.vartypes.parse_iso8601(t1)[0]
-        t2 = emen2.db.vartypes.parse_iso8601(t2 or utcnow())[0]
+        t1 = dateutil.parser.parse(t1)[0]
+        t2 = dateutil.parser.parse(t2 or utcnow())[0]
         return t2 - t1
         
     @publicmethod()
@@ -1081,6 +1081,24 @@ class DB(object):
         ret['stats']['time'] = q.time
         ret['recs'] = q.cache.values()
         return ret
+        
+    @publicmethod()
+    def groupby(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keywords=None, keytype="record", ctx=None, txn=None, **kwargs):
+        # Run the query
+        ret = {}
+        q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
+        q.run()
+
+        q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)        
+        grouped = collections.defaultdict(set)
+        print q.cache
+        # for k,v in q.cache.items():
+        #     grouped[v].add(k)
+        # print grouped
+        # print recs
+        
+        
+        
 
     @publicmethod()
     @ol('names')

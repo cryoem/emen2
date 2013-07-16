@@ -331,9 +331,6 @@ class UsageParser(object):
         exts = self.options.get('ext')
         if exts:
             exts = exts.split(',')
-            if 'base' not in exts:
-                exts.insert(0,'base')
-            exts.extend(self.config.globalns.extensions.exts)
             self.config.globalns.extensions.exts = exts
 
         # Create new database?

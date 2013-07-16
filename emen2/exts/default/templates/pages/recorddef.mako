@@ -55,6 +55,13 @@
                 % endif
             </td>
         </tr>
+        
+        <tr>    
+            <td>Source:</td>
+            <td>
+                ${recorddef.uri or ''}
+            </td>
+        </tr>
 
         <tr>
             <td>Short description:</td>

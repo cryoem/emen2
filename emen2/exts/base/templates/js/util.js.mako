@@ -551,7 +551,7 @@ emen2.util.set_remove = function(i, l) {
                     .attr('data-tab', tab)
                     .appendTo(this.tabpanel);
             }            
-            p.addClass('e2l-cf');
+            // p.addClass('e2l-cf');
 
             // Menu-style -- float above content
             // if (this.options.absolute) {
