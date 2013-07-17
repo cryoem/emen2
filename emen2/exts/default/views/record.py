@@ -243,7 +243,7 @@ class Record(View):
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/attachments/$')
     def query_attachments(self, name=None, path=None, q=None, c=None, **kwargs):
         self.main(name=name)
-        self.template = '/record/record.query.attachments2'
+        self.template = '/record/record.query.attachments'
         # Look up all the binaries
         children = self.db.rel.children(self.rec.name, recurse=-1)
         bdos = self.db.binary.find(record=children, count=0)

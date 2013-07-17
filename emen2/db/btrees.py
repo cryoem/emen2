@@ -1621,11 +1621,11 @@ class BinaryDB(CollectionDB):
     def _key_generator(self, item, txn=None):
         """Assign a name based on date, and the counter for that day."""
         # Get the current date and counter.
-        dkey = emen2.db.binary.Binary.parse('')
+        dkey = emen2.db.binary.parse('')
         # Increment the day's counter.
         counter = self._incr_sequence(key=dkey['datekey'], txn=txn)
         # Make the new name.
-        newdkey = emen2.db.binary.Binary.parse(dkey['name'], counter=counter)
+        newdkey = emen2.db.binary.parse(dkey['name'], counter=counter)
         # Update the item's filepath..
         item.__dict__['_filepath'] = newdkey['filepath']
         # Return the new name.

@@ -39,7 +39,7 @@ def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
     import emen2.db.queues
     
     # Paths and filenames
-    previewpath = emen2.db.binary.Binary.parse(bdo.get('name')).get('previewpath')
+    previewpath = emen2.db.binary.parse(bdo.get('name')).get('previewpath')
     filepath = bdo.get('filepath')
     filename = bdo.get('filename')
 

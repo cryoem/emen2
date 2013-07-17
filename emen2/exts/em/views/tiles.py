@@ -32,7 +32,7 @@ class Preview(View):
         y = int(kwargs.get('y', 0))
 
         # get_data(self)
-        previewpath = emen2.db.binary.Binary.parse(bid).get('previewpath')
+        previewpath = emen2.db.binary.parse(bid).get('previewpath')
         previewpath = '%s.eman2'%(previewpath)
 
         if not os.path.exists(previewpath):

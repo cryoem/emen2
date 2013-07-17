@@ -135,28 +135,28 @@ class Query(View):
         self.ctxt['q'] = self.q
 
     # /download/ can't be in the path because of a emen2resource.getchild issue
-    @View.add_matcher(r'^/query/(?P<path>.*)/attachments/$', name='attachments')
-    def attachments(self, path=None, q=None, c=None, confirm=False, **kwargs):
-        self.initq(path, q, c)
-        self.template = '/pages/query.attachments'
-        self.q = self.db.query(**self.q)
-        self.ctxt['q'] = self.q
-
-        # Look up all the binaries
-        bdos = self.db.binary.find(record=self.q['names'], count=0)
-        if len(bdos) > 100000 and not confirm:
-            raise TooManyFiles, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
-
-        records = set([i.record for i in bdos])
-        users = set([bdo.get('creator') for bdo in bdos])
-        users = self.db.user.get(users)
-        self.ctxt['users'] = users
-        self.ctxt['recnames'] = self.db.view(records)
-        self.ctxt['bdos'] = bdos
+    # @View.add_matcher(r'^/query/(?P<path>.*)/attachments/$', name='attachments')
+   #  def attachments(self, path=None, q=None, c=None, confirm=False, **kwargs):
+   #      self.initq(path, q, c)
+   #      self.template = '/pages/query.attachments'
+   #      self.q = self.db.query(**self.q)
+   #      self.ctxt['q'] = self.q
+   # 
+   #      # Look up all the binaries
+   #      bdos = self.db.binary.find(record=self.q['names'], count=0)
+   #      if len(bdos) > 100000 and not confirm:
+   #          raise TooManyFiles, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
+   # 
+   #      records = set([i.record for i in bdos])
+   #      users = set([bdo.get('creator') for bdo in bdos])
+   #      users = self.db.user.get(users)
+   #      self.ctxt['users'] = users
+   #      self.ctxt['recnames'] = self.db.view(records)
+   #      self.ctxt['bdos'] = bdos
 
     # /download/ can't be in the path because of a emen2resource.getchild issue
-    @View.add_matcher(r'^/query/(?P<path>.*)/attachments2/$', name='attachments2')
-    def attachments2(self, path=None, q=None, c=None, confirm=False, **kwargs):
+    @View.add_matcher(r'^/query/(?P<path>.*)/attachments/$', name='attachments')
+    def attachments(self, path=None, q=None, c=None, confirm=False, **kwargs):
         self.initq(path, q, c)
         self.template = '/pages/query.main'
         self.q = self.db.query(**self.q)        

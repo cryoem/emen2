@@ -112,7 +112,7 @@
         
         "recorddef_defaults": {
             "group": "group",
-            "project": "protocol_nctr"
+            "project": "project"
         }
         
     },

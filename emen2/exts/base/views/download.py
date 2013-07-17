@@ -70,7 +70,7 @@ class Download(View):
             record = bdo.get('record', 'none')
             filename = bdo.get("filename")
             filepath = bdo.get("filepath")
-            previewpath = emen2.db.binary.Binary.parse(bdo.get('name')).get('previewpath')
+            previewpath = emen2.db.binary.parse(bdo.get('name')).get('previewpath')
             
             if size:
                 # Thumbnail requested
