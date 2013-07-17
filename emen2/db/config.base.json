@@ -45,7 +45,7 @@
     "params":{
         "blocklength": 100000,
         "maxrecurse": 50,
-        "maxidle": 604800
+        "maxidle": 86400
     },
     
     // Berkeley DB cachesize (in megabytes), and MVCC (snapshot transaction) support.
