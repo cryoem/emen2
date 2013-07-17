@@ -1,11 +1,5 @@
 # $Id$
-"""Vartypes (data types)
-
-Classes:
-    Vartype
-    vt_*: A number of built-in data types
-
-"""
+"""Vartypes (data types)."""
 
 import operator
 import collections
@@ -755,16 +749,13 @@ class vt_binary(Vartype):
             )
 
 
-
 # md5 checksum
 #    Indexed as keyformat 'str'
 @Vartype.register('md5')
 class vt_md5(Vartype):
     """String"""
-
     def validate(self, value):
         return self._rci([unicode(x).strip() for x in ci(value)])
-
 
 
 # References to other database objects
@@ -772,7 +763,6 @@ class vt_md5(Vartype):
 @Vartype.register('record')
 class vt_record(Vartype):
     """References to other Records."""
-
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='record')
         return self._rci(value)
@@ -789,7 +779,6 @@ class vt_link(Vartype):
 @Vartype.register('recorddef')
 class vt_recorddef(Vartype):
     """RecordDef name."""
-
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='recorddef')
         return self._rci(value)
@@ -876,7 +865,7 @@ class vt_user(Vartype):
 @Vartype.register('acl')
 class vt_acl(Vartype):
     """Permissions access control list; nested lists of users."""
-    
+
     def validate(self, value):
         if not hasattr(value, '__iter__'):
             value = [[value],[],[],[]]
@@ -928,7 +917,6 @@ class vt_acl(Vartype):
 @Vartype.register('group')
 class vt_group(Vartype):
     """Group."""
-    
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='group')
         return self._rci(value)
@@ -939,7 +927,6 @@ class vt_group(Vartype):
 @Vartype.register('comments')
 class vt_comments(Vartype):
     """Comments."""
-    
     keyformat = None
 
     # ian: todo... sort this out.
@@ -965,11 +952,8 @@ class vt_comments(Vartype):
 
 @Vartype.register('history')
 class vt_history(Vartype):
-    """History."""
-    
+    """History."""    
     keyformat = None
-
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

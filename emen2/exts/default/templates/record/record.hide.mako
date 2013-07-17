@@ -31,7 +31,7 @@
         
         % if children:
             <p>
-                Please note that this record has ${len(orphans)} child records that will no longer be connected to the main record tree after hiding.
+                Please note that this record has ${len(orphans)} child records that will no longer be connected to the main record hierarchy after hiding.
                 These "orphaned" records will not be marked as hidden, but they may become difficult to find.
             </p>
                     

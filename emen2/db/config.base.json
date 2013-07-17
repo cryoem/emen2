@@ -63,8 +63,8 @@
     // Mail settings. If the smtphost is configured, and from address is set,
     //    emails will be sent during certain events.
     "mail":{
-        //"from": "ian@ianrees.net",
-        //"smtphost": "localhost"
+        // "from": "root@localhost",
+        // "smtphost": "localhost"
     },
 
     // Web-server related settings
@@ -108,7 +108,13 @@
         // These words will not be indexed
         "unindexed_words": ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"],
 
-        "table_add_columns": ["creationtime", "creator"]
+        "table_add_columns": ["creationtime", "creator"],
+        
+        "recorddef_defaults": {
+            "group": "group",
+            "project": "protocol_nctr"
+        }
+        
     },
 
     // Bookmarks to some key records.

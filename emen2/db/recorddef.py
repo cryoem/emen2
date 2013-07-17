@@ -1,18 +1,11 @@
 # $Id$
-"""RecordDef (Protocol) classes
-
-Classes:
-    RecordDef
-    RecordDefDB
-
-"""
+"""RecordDef (Protocol) classes."""
 
 import re
 import textwrap
 
 # EMEN2 imports
 import emen2.db.dataobject
-
 
 def parseparmvalues(text):
     regex = re.compile(emen2.db.database.VIEW_REGEX_M)
@@ -32,50 +25,67 @@ def parseparmvalues(text):
             required.add(n[:-1])
         else:
             params.add(n)
-
-        #     if match.group('def'):
-        #         defaults[n] = match.group('def')
+        # if match.group('def'):
+        #   defaults[n] = match.group('def')
 
     return params, defaults, required
 
 
-
 class RecordDef(emen2.db.dataobject.BaseDBObject):
-    """RecordDefs, aka Protocols.
+    """RecordDefs, aka Experimental Protocols.
 
-    RecordDefs, aka Protocols, function as templates for Records. Each Record must be an instance of a defined RecordDef.
-    The RecordDef defines the default parameters that make up a record, and a set of presentation formats ('views'). The 'mainview'
-    is parsed for parameters and becomes the default view. Other important views that are used by the web interface are:
+    RecordDefs, aka Experimental Protocols, function as templates for Records.
+    Each Record has an associated RecordDef. The RecordDef defines the default
+    parameters that make up a record, and a set of presentation formats (views).
+    
+    The 'mainview' is parsed for parameters and becomes the default view. This
+    should be an expanded form, similar to a lab notebook or experimental
+    protocol. This should be immutable, as it may describe a particular
+    experiment. However, admins are allowed to edit the mainview if it is
+    absolutely necessary.
+    
+    Additional views are in the 'views' dictionary:
 
         recname            A simple title for each record built from record values
         tabularview        Columns to use in table views
 
+    Some details from the mainview are cached in 'params' (default values) and
+    'paramsR' (required params).
+
     RecordDefs may have parent/child relationships, similar to Records.
 
-    @attr desc_short Short description. Shown in many places in the interface as the label for this RecordDef.
-    @attr desc_long Long description. Shown as help in new record page.
-    @attr mainview Default protocol view. This should be an expanded form, similar to a lab notebook or experimental protocol. This should be IMMUTABLE, as it may describe a particular experiment. However, admins are allowed to edit the mainview if it is absolutely necessary.
-    @attr views Dictionary of additional views. Usually recname/tabularview will be defined, as well as defaultview
-    @attr private Mark this RecordDef as private. False for public access, True for private. If private, you must be admin or able to read a record of this type to access the RecordDef
-    @attr typicalchld A list of RecordDefs that are generally seen as children of this RecordDef. This refers to Records, not the RecordDef ontology, which describes relationships between RecordDefs themselves. e.g., "grid_imaging" Records are often children of "subprojects."
-    @attr params Dictionary of all params found in all views (keys), with any default values specified (as value) (read-only attribute).
-    @attr paramsK List of all params found in all views (read-only attribute).
-    @attr paramsR Parameters that are required for a Record of this RecordDef to validate (read-only attribute).
-    @attr owner Current owner of RecordDef. May be different than creator. Gives permission to edit views.
+    RecordDefs can be marked as private by setting the 'private' attribute. If
+    private, you must be admin or able to read a record of this type to access
+    the RecordDef
+    
+    RecordDefs can suggest values for child records using the 'typicalchld'
+    attribute, e.g., "grid_imaging" Records are often children of "project"
+    Records.
+
+    These BaseDBObject methods are overridden:
+
+        init            Set attributes
+        setContext      Check read permissions and bind Context
+        validate        Check required attributes
+
+    :attr desc_short: Short description.
+    :attr desc_long: Long description. Shown as help in new record page.
+    :attr mainview: Default protocol view.
+    :attr views: Dictionary of additional views.
+    :attr private: Mark this RecordDef as private.
+    :attr typicalchld: A list of RecordDefs that are generally seen as children.
+    :attr params: Dictionary of all params found in all views (keys), with any default values specified (as value) (read-only attribute).
+    :attr paramsR: Parameters that are required for a Record of this RecordDef to validate (read-only attribute).
+    :attr owner: Current owner of RecordDef. May be different than creator. Gives permission to edit views.
     """
 
     attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short"])
-    attr_required = set(['mainview'])
-
-    # Add custom validators
-    _handlers = {}
 
     def init(self, d):
         super(RecordDef, self).init(d)
 
         # A string defining the experiment with embedded params
         # this is the primary definition of the contents of the record
-        # Required parameter..
         self.__dict__['mainview'] = ''
 
         # Dictionary of additional (named) views for the record
@@ -102,12 +112,25 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         # is NOT REQUIRED to have a valid Record
         self.__dict__['params'] = {}
 
-        # keys from params()
-        self.__dict__['paramsK'] = set()
-
-        # required parameters (will throw exception on record commit if empty)
+        # Required parameters (will throw exception on record commit if empty)
         self.__dict__['paramsR'] = set()
 
+    # ian: todo: Important!! If we can access a record with the recorddef...
+    def setContext(self, ctx):
+        if not self.private:
+            return True
+        # Private RecordDef...
+        if self._ctx.username == self.owner:
+            return True
+        elif self._ctx.checkreadadmin():
+            return True
+        raise SecurityError, "Private RecordDef"
+
+    def validate(self):
+        # Run findparams one last time before we commit...
+        if not self.mainview:
+            self.error("Main protocol (mainview) required")
+        self._findparams()
 
     ##### Setters #####
 
@@ -118,7 +141,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
         value = unicode(textwrap.dedent(value))
         ret = self._set('mainview', value, self.isowner())
-        self.findparams()
+        self._findparams()
         return ret
 
     # These require normal record ownership
@@ -129,7 +152,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
             views[k] = unicode(textwrap.dedent(v))
 
         ret = self._set('views', views, self.isowner())
-        self.findparams()
+        self._findparams()
         return ret
 
     def _set_private(self, key, value):
@@ -147,26 +170,11 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
     def _set_desc_long(self, key, value):
         return self._set('desc_long', unicode(value or ''), self.isowner())
 
-
     ##### RecordDef Methods #####
 
-    # ian: todo: important!! setContext for RecordDef
-    # def setContext(self, ctx):
-        # def accessible(self):
-        #     """Does current Context allow access to this RecordDef?"""
-        #     result = False
-        #     if not self.private:
-        #         result = True
-        #     elif self._ctx.username == self.owner:
-        #         result = True
-        #     elif self._ctx.checkreadadmin():
-        #         result = True
-        #     return result
-
-    def findparams(self):
+    def _findparams(self):
         """This will update the list of params by parsing the views"""
         t, d, r = parseparmvalues(self.mainview)
-
         for i in self.views.values():
             t2, d2, r2 = parseparmvalues(i)
             t |= t2
@@ -174,50 +182,10 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
             for j in t2:
                 # ian: fix for: empty default value in a view unsets default value specified in mainview
                 d.setdefault(j, d2.get(j))
-
         p = {}
         p['params'] = d
-        p['paramsK'] = t
         p['paramsR'] = r
         self.__dict__.update(p)
-
-    def validate(self):
-        # Run findparams one last time before we commit...
-        if not self.mainview:
-            self.error("Main protocol (mainview) required")
-        self.findparams()
-
-    # This handler implementation is not finalized.
-    @classmethod
-    def register(cls, names):
-        def f(o):
-            # print "Registering RecordDef handler:", o
-            for name in names:
-                if name in cls._handlers:
-                    raise ValueError("""RecordDef handler %s already registered""" % name)
-                cls._handlers[name] = o
-            return o
-        return f
-
-    @classmethod
-    def get_handler(cls, rec=None):
-        handler = None
-        if rec:
-            handler = rec.get('rectype')
-        handler = cls._handlers.get(handler, RecordDefHandler)
-        return handler(rec)
-
-
-# This is not finalized. Subject to change. 
-class RecordDefHandler(object):
-    def __init__(self, rec):
-        self.rec = rec
-
-    def validate(self):
-        # print "Base validator...", self.rec
-        return
-
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

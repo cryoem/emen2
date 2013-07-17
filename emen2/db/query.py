@@ -1,4 +1,5 @@
 # $Id$
+"""Query system."""
 
 import collections
 import time
@@ -472,8 +473,4 @@ class Query(object):
         return constraint
 
 
-
-
-
-
-
+__version__ = "$Revision$".split(":")[1][:-1].strip()

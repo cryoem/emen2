@@ -1,13 +1,5 @@
 # $Id$
-"""Security and authentication
-
-Classes:
-    Context: DBO for storing a login
-    AnonymousContext: Special Context for anonymous users
-    SpecialRootContext: Special Context for root
-    ContextDB: BTree subclass for storing Contexts
-
-"""
+"""Sessions / Contexts."""
 
 import time
 import operator

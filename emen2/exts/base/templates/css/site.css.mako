@@ -287,8 +287,6 @@ input.e2l-cancel {
     color: red;
 }
 
-
-
 /* tweaks */
 .e2l-help {
     display:block;
@@ -297,17 +295,6 @@ input.e2l-cancel {
     display: block; 
     clear: both; 
 }
-.e2l-shaded thead {
-    border-top:solid 2px #eee;
-    border-bottom:none;
-}
-.e2l-shaded th {
-    border-right:dashed 2px #eee;
-}
-.e2l-shaded th:last-child {
-    border-right:none;
-}
-
 
 <%!
 public = True

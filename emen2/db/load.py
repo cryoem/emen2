@@ -56,21 +56,6 @@ class BaseLoader(object):
 
 
 class Loader(BaseLoader):
-    # Speeds:
-
-    # Single txn:
-    #   Reading: 25000/s
-    #   Instantiating: 10500/s
-    #   Loading/validating: 1900/s
-    #   Writing: 200/s
-
-    # Separate txns:
-    #   Reading file: 25000/s
-    #   Opening txn: 8500/s
-    #   Instantiating: 6000/s
-    #   Loading/validating: 1600/s
-    #   Writing: 83/s
-
     def load(self):
         t = time.time()
         count = 0

@@ -329,6 +329,8 @@ class DB(object):
         grouplevels = {}
         if context.username != 'anonymous':
             indg = self.dbenv["group"].getindex('permissions', txn=txn)
+            if not indg:
+                raise Exception, "Could not access group index!"
             groups = indg.get(context.username, set(), txn=txn)
             grouplevels = {}
             for group in groups:
@@ -601,15 +603,18 @@ class DB(object):
         try:
             user = self._user_by_email(username, txn=txn)
             user.checkpassword(password)
+        except DisabledUserError, e:
+            emen2.db.log.security("Login failed: Disabled user: %s"%(username))                
+            raise DisabledUserError, DisabledUserError.__doc__
         except SecurityError, e:
             # Both of these errors appear the same to the user,
             # but are logged with the specific reason for
             # login failure.
             emen2.db.log.security("Login failed: Bad password: %s"%(username))                
-            raise AuthenticationError
+            raise AuthenticationError, AuthenticationError.__doc__
         except KeyError, e:
             emen2.db.log.security("Login failed: No such user: %s"%(username))                
-            raise AuthenticationError
+            raise AuthenticationError, AuthenticationError.__doc__
 
         # Create the Context for this user/host
         newcontext = emen2.db.context.Context(username=user.name, host=host)
@@ -1304,6 +1309,7 @@ class DB(object):
         if options.get('markdown'):
             views2 = {}
             for k,v in views.items():
+                k = k.replace('\n','  \n') # test..
                 views2[markdown.markdown(k)] = v
             views = views2
             
@@ -2894,9 +2900,8 @@ class DB(object):
         for bdo in items:
             newfile = False
             if not bdo.get('name'):
-                handler = bdo
-                bdo = self.dbenv["binary"].new(filename=handler.get('filename'), ctx=ctx, txn=txn)
-                newfile = bdo.writetmp(filedata=handler.get('filedata', None), fileobj=handler.get('fileobj', None))
+                filesize, md5sum, newfile = emen2.db.binary.writetmp(filedata=bdo.get('filedata', None), fileobj=bdo.get('fileobj', None))
+                bdo = self.dbenv["binary"].new(filename=handler.get('filename'), filesize=filesize, md5=md5, ctx=ctx, txn=txn)
 
             bdo = self.dbenv["binary"].put(bdo, ctx=ctx, txn=txn)
             bdos.append(bdo)

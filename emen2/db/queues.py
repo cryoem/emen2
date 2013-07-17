@@ -1,6 +1,5 @@
 # $Id$
-"""EMEN2 process and message queues
-"""
+"""EMEN2 process and message queues."""
 
 import time
 import random

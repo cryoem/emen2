@@ -65,14 +65,11 @@
 {"name": "name_contact", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_contact/", "vartype": "string", "parents": ["base"], "desc_short": "Contact person"}
 {"name": "phone", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/phone/", "vartype": "string", "parents": ["base"], "desc_short": "Phone"}
 {"name": "website", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/website/", "vartype": "string", "parents": ["base"], "desc_short": "Website"}
-
 {"name": "name_folder", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_folder/", "vartype": "string", "parents": ["base"], "desc_short": "Folder name"}
 {"name": "folder_description", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/folder_description/", "vartype": "string", "parents": ["base"], "desc_short": "Description"}
 {"name": "deleted", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/deleted/", "vartype": "boolean", "parents": ["base"], "desc_short": "Deleted"}
 {"name": "date_occurred", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/date_occurred/", "vartype": "datetime", "parents": ["base"], "desc_short": "Date occurred"}
 {"name": "performed_by", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/performed_by/", "vartype": "user", "parents": ["base"], "desc_short": "Performed by"}
-
-
 {"name": "root", "views": {"recname": "Root: {{desc_short}}", "banner": "{{desc_long}}"}, "mainview": "# {{desc_short}}  \n{{desc_long}} \n", "keytype": "recorddef", "uri": "http://ncmidb.bcm.edu/recorddef/root/", "desc_short": "Root protocol"}
 {"name": "base", "mainview": "Core protocols.", "keytype": "recorddef", "uri": "http://ncmidb.bcm.edu/recorddef/base/", "parents": ["root"], "desc_short": "Core protocols"}
 {"name": "experiments", "mainview": "Experimental protocols.", "keytype": "recorddef", "uri": "http://ncmidb.bcm.edu/recorddef/experiments/", "parents": ["root"], "desc_short": "Experimental protocols"}

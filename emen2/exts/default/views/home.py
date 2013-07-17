@@ -20,7 +20,7 @@ class Home(View):
     @View.add_matcher(r'^/home/$', r'^/db/home/$')
     def main(self, hideinactive=False, sortkey='name', reverse=False):
         self.title = 'Home'
-        self.template = '/pages/home.main'
+        self.template = '/pages/home'
 
         banner = None
         render_banner = ''
@@ -90,6 +90,13 @@ class Home(View):
 
         # Get all the recent records we want to display
         recnames = self.db.view(torender)
+
+        # Default group and project recorddefs
+        recorddef_defaults = emen2.db.config.get('customization.recorddef_defaults')
+        self.ctxt['default_project'] = self.db.recorddef.get(recorddef_defaults.get('project', 'project'))
+        self.ctxt['default_group'] = self.db.recorddef.get(recorddef_defaults.get('group','group'))
+        
+
 
         # Update context
         self.ctxt['recnames'] = recnames

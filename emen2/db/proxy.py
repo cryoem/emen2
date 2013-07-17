@@ -1,9 +1,5 @@
 # $Id$
-"""Proxy for accessing EMEN2 API methods
-
-Classes:
-    DBProxy
-"""
+"""Proxy for accessing EMEN2 API methods."""
 
 import os
 import sys
@@ -18,8 +14,12 @@ import inspect
 from emen2.util import listops
 import emen2.db.log
 
+##############################################################
+##############################################################
 ##### Warning: This module is very sensitive to changes. #####
 ##### Please test thoroughly before committing!!         #####
+##############################################################
+##############################################################
 
 def publicmethod(*args, **kwargs):
     """Decorator for public admin API database method"""

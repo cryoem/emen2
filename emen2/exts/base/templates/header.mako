@@ -41,8 +41,9 @@ bookmarks = emen2.db.config.get('bookmarks.bookmarks')
         % if ADMIN:
             <li><a href="${ctxt.root}/">Admin ${buttons.caret()}</a>
                 <ul>
-                    <li><a href="${ctxt.root}/paramdefs/">Params</a></li>
-                    <li><a href="${ctxt.root}/recorddefs/">Protocols</a></li>
+                    <li><a href="${ctxt.root}/records/">Record relationships</a></li>
+                    <li><a href="${ctxt.root}/query/">Record query</a></li>
+                    <li class="e2l-menu-divider"><a href="${ctxt.root}/recorddefs/">Protocols</a></li>
                     <li class="e2l-menu-divider"><a href="${ctxt.root}/users/">Users</a></li>
                     <li><a href="${ctxt.root}/groups/">User groups</a></li>
                     <li class="e2l-menu-divider"><a href="${ctxt.reverse('Users/queue')}">Account requests</a></li>

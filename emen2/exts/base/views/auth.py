@@ -9,6 +9,8 @@ class Auth(View):
         self.template = '/auth/login'
         self.title = 'Login'
         self.ctxt["username"] = username
+        if 'auth/login' in redirect:
+            redirect = '/'
         if username != None:
             ctxid = self.db.auth.login(username, password, host=self.request_host)
             self.notify('Successfully logged in.')

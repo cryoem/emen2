@@ -104,7 +104,7 @@
             $('<span />').text('. Click to ').appendTo(summary);
             $('<a />')
                 .attr('href', emen2.template.uri(['records'], {'root':this.options.name}))
-                .text('view the record tree.')
+                .text('view the record relationships.')
                 .appendTo(summary);
             return summary        
         },

@@ -5,7 +5,12 @@ from UserDict import DictMixin
 from functools import partial
 
 
-
+# Temporary fix --
+import jsonrpc.jsonutil
+def jsonencode(*args, **kwargs):
+    return jsonrpc.jsonutil.encode(*args, **kwargs).replace('/', r'\/')
+    
+    
 def filter_dict_zero(d):
     """@return Filter dict for items with values > 0"""
     return dict(filter(lambda x:len(x[1])>0, d.items()))

@@ -1,16 +1,5 @@
 # $Id$
-"""This module manages EMEN2 configurations and options.
-
-Methods:
-    get_filename(package, resource)
-    defaults()
-    get(key, default=None)
-    set(key, value)
-
-Classes:
-    DBOptions
-
-"""
+"""This module manages EMEN2 configurations and options."""
 
 import os
 import sys
@@ -60,7 +49,7 @@ class AddExtLookup(mako.lookup.TemplateLookup):
 
 templates = AddExtLookup(
     input_encoding='utf-8', 
-    imports=['from emen2.db.util import jsonencode'],
+    imports=['from emen2.util.listops import jsonencode'],
     default_filters=['h'],
     )
 

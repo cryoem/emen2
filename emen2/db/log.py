@@ -20,7 +20,6 @@ import os.path
 import sys
 
 import twisted.python.log
-
 from twisted.python import util
 from twisted.python.log import _safeFormat, textFromEventDict
 
@@ -134,3 +133,6 @@ security = functools.partial(msg, level='SECURITY')
 index = functools.partial(msg, level='INDEX')
 commit = functools.partial(msg, level='COMMIT')
 web = functools.partial(msg, level='WEB')
+
+
+__version__ = "$Revision$".split(":")[1][:-1].strip()

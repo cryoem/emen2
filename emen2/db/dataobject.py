@@ -1,11 +1,5 @@
 # $Id$
-"""Base classes for EMEN2 DatabaseObjects.
-
-Classes:
-    BaseDBObject: Base EMEN2 DBO
-    PermissionsDBObject: DBO with additional access controls
-
-"""
+"""Base classes for EMEN2 DatabaseObjects."""
 
 import re
 import collections
@@ -17,7 +11,6 @@ import emen2.util.listops
 import emen2.db.exceptions
 import emen2.db.vartypes
 
-
 class BaseDBObject(object):
     """Base class for EMEN2 DBOs.
 
@@ -26,38 +19,35 @@ class BaseDBObject(object):
 
         name, keytype, creator, creationtime, modifytime, modifyuser, uri
 
-    The name attribute is usually specified by the user when a new item is created,
-    but the rest are set by the database when an item is committed. The creator
-    and creationtime attributes are set on initial commit, and modifyuser and
-    modifytime attributes are usually updated on subsequent commits. The uri
-    attribute can be set to indicate an item was imported from an external
-    source; presence of the uri attribute will generally mark an item as
-    read-only, even to admin users.
+    The 'name' attribute is usually specified by the user when a new item is
+    created, but the rest are set by the database when an item is committed.
+    The 'creator' and 'creationtime' attributes are set on initial commit, and
+    'modifyuser' and 'modifytime' attributes are usually updated on subsequent
+    commits. The 'uri' attribute can be set to indicate an item was imported
+    from an external source; presence of the uri attribute will generally mark
+    an item as read-only, even to admin users.
 
-    The parents and children attributes are valid for classes that allow
-    relationships (RelateDB). These are treated specially when an item is
-    committed: both the parent and the child will be updated.
+    The 'parents' and 'children' attributes are valid for classes that allow
+    relationships. These are treated specially when an item is committed: both
+    the parent and the child will be updated.
 
     All attributes should also be valid EMEN2 parameters. The default behavior
     for BaseDBObject and subclasses is to validate the attributes as parameters
-    when they are set or updated. When a DBO is exported (JSON, XML, etc.) 
-    only the attributes listed in cls.attr_public are
-    exported. Private attributes may be used by using an underscore
-    prefix -- but these WILL NOT BE SAVED, and discarded before committing. An
-    example of this behavior is the User._displayname attribute, which
-    is recalculated whenever the user is retreived from the database. However,
-    the _displayname attribute is still exported by creating a
-    displayname class property, and listing that in cls.attr_public. In this way
-    it is part of the public interface, even though it is a generated, read-only
-    attribute. Another example is the params attribute of Record. This is a
-    normal attribute, and read/set from within the class's methods, but is not
-    exported directly (it is instead copied into the regular export dictionary.)
-
-    Required attributes can be specified using cls.attr_required. If any of
-    these are None, a ValidationError will be raised during commit.
+    when they are set or updated. When a DBO is exported (JSON, XML, etc.) only
+    the attributes listed in cls.attr_public are exported. Private attributes
+    may be used by using an underscore prefix -- but these WILL NOT BE SAVED,
+    and discarded before committing. An example of this behavior is the
+    User._displayname attribute, which is recalculated whenever the user is
+    retreived from the database. However, the _displayname attribute is still
+    exported by creating a displayname class property, and listing that in
+    cls.attr_public. In this way it is part of the public interface, even
+    though it is a generated, read-only attribute. Another example is the
+    params attribute of Record. This is a normal attribute, and read/set from
+    within the class's methods, but is not exported directly (it is instead
+    copied into the regular export dictionary.)
 
     In addition to implementing the mapping interface, the following methods
-    are required as part of the database interface:
+    are required as part of the database object interface:
 
         validate         Validate the item before committing
         setContext       Check read permission and bind to a Context
@@ -90,16 +80,14 @@ class BaseDBObject(object):
     :attr modifyuser: Last user to modify item
     :attr modifytime: Time of last modification, ISO 8601 format
     :attr uri: Reference to original item if imported
+    :attr parents: Parents set
+    :attr children: Children set
 
     :classattr attr_public: Public (exported) attributes
-    :classattr attr_required: Required attributes
     :property keytype: Key type (default is lower case class name)
-
     """
     
     attr_public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
-    attr_protected = set(['creator', 'creationtime', 'modifytime', 'modifyuser', 'uri'])
-    attr_required = set()
     keytype = property(lambda x:x.__class__.__name__.lower())
 
     def __init__(self, _d=None, **_k):
@@ -143,7 +131,6 @@ class BaseDBObject(object):
         # Update with the remaining params
         self.update(_d)
 
-
     def init(self, d):
         """Subclass init."""
         pass
@@ -179,7 +166,6 @@ class BaseDBObject(object):
 
     def isnew(self):
         return getattr(self, '_new', False) == True
-
 
     ##### Delete and rename. #####
 
@@ -411,10 +397,9 @@ class PermissionsDBObject(BaseDBObject):
     of :py:class:`BaseDBObject`; see that class for additional documentation.
 
     Two additional attributes are provided:
-    -    permissions
-    -    groups
+        permissions, groups
 
-    The permissions attribute is of the "acl" vartype. It is a list comprised of four
+    The 'permissions' attribute is of the "acl" vartype. It is a list comprised of four
     lists or user names, denoting the following levels of permissions:
 
     Level 0 - Read
@@ -429,7 +414,7 @@ class PermissionsDBObject(BaseDBObject):
     Level 3 - Owner
         Permission to change the item's permissions and groups
 
-    The groups attribute is a set of group names. The permissions attribute of
+    The 'groups' attribute is a set of group names. The permissions attribute of
     each group will be overlaid on top of the item's permissions. For instance,
     a user who has comment permissions in a listed group will have comment
     permissions on this item. There are a few built-in groups: administrators,
@@ -441,8 +426,8 @@ class PermissionsDBObject(BaseDBObject):
 
     :attr permissions: Access control list
     :attr groups: Groups
-
     """
+    
     #These methods are overridden from BaseDBObject:
     #    init, setContext, isowner, writable,
     #The following methods are added to BaseDBObject:
@@ -475,7 +460,6 @@ class PermissionsDBObject(BaseDBObject):
 
         self.__dict__.update(p)
 
-
     ##### Setters #####
 
     def _set_permissions(self, key, value):
@@ -485,7 +469,6 @@ class PermissionsDBObject(BaseDBObject):
     def _set_groups(self, key, value):
         self.setgroups(value)
         return set(['groups'])
-
 
     ##### Permissions checking #####
 
@@ -697,7 +680,6 @@ class PermissionsDBObject(BaseDBObject):
         """Set the object's groups"""
         groups = emen2.util.listops.check_iterable(groups)
         return self._set('groups', set(groups), self.isowner())
-
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

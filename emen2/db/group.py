@@ -5,7 +5,6 @@
 import emen2.db.dataobject
 import emen2.db.exceptions
 
-
 class Group(emen2.db.dataobject.PermissionsDBObject):
     """Groups of users.
 
@@ -28,11 +27,10 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
     Like a Record, you must have administrative rights in a group to edit that
     groups permissions list.
 
-    The displayname attribute serves a similar purpose to the User displayname
-    attribute; it provides a human-formatted description of the group (in some
-    cases, groups may have random, arbitrary, or cryptic names.)
+    The 'displayname' attribute serves a similar purpose to the User displayname
+    attribute; it provides a human-formatted description of the group.
 
-    The disabled attribute will disable the Group: it will not be active, and
+    The 'disabled' attribute will disable the Group: it will not be active, and
     Records will not inherit its permissions.
 
     The following methods are overridden:

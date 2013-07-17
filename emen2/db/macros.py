@@ -1,11 +1,5 @@
 # $Id$
-"""EMEN2 Macros
-
-Classes:
-    Macro: Base Macro
-    macro_*: A number of macros included by default
-
-"""
+"""EMEN2 Macros."""
 
 import random
 import operator

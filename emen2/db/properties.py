@@ -1,12 +1,6 @@
 # $Id$
 # This Python file is encoding:UTF-8 Encoded
-"""Properties -- types of physical properties (units)
-
-Classes:
-    Property
-    prop_*: A number of included Properties
-
-"""
+"""Properties -- types of physical properties (units)."""
 
 import sys
 import math
@@ -16,7 +10,6 @@ import re
 import emen2.util.listops
 import emen2.db.exceptions
 import emen2.db.magnitude as mg
-
 
 # Convenience
 ci = emen2.util.listops.check_iterable

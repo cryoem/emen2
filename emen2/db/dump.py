@@ -156,4 +156,4 @@ if __name__ == "__main__":
     dumper.write(keys, outfile="dump-publicdata.json", uri="http://ncmidb.bcm.edu")
     
     
-    
+    __version__ = "$Revision$".split(":")[1][:-1].strip()

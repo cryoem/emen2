@@ -122,7 +122,7 @@ class EMEN2DBEnv(object):
                     orig = self[keytype]._get_data(name, txn=txn)
                 except KeyError, e:
                     pass
-                if orig and not orig.get('uri'):
+                if orig and orig.get('uri') != item.get('uri'):
                     print "SKIPPING", name
                     continue
                 

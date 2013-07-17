@@ -130,7 +130,7 @@
     % if new or (edit and ADMIN):
         <textarea name="mainview" rows="10" required="required">${recorddef.mainview}</textarea>
     % else:
-        ${markdown.markdown(recorddef.mainview, safe_mode='escape') | n,unicode}
+        ${markdown.markdown(recorddef.mainview.replace('\n','  \n'), safe_mode='escape') | n,unicode}
     % endif
 </%buttons:singlepage>
 
@@ -175,7 +175,7 @@
             <strong>&nbsp;View name:</strong> <input type="text" name="view_name" value="${key}" /><br />
             <textarea rows="10" name="view_view">${view}</textarea>
         % else:            
-            ${markdown.markdown(view, safe_mode='escape') | n,unicode}
+            ${markdown.markdown(view.replace('\n', '  \n'), safe_mode='escape') | n,unicode}
         % endif
         </div>
     % endfor
