@@ -19,17 +19,17 @@ import hashlib
 # EMEN2 imports
 import emen2.db.exceptions
 import emen2.db.dataobject
+import emen2.db.config
 
 MINLENGTH = 8
 
 # DBO that contains a password and email address
 class BaseUser(emen2.db.dataobject.BaseDBObject):
-    """Base User DBO.
-
-    Allows an email address and a password.
+    """Base User DBO. Allows an email address and a password.
     
-    The password is never exposed via the API; you have to directly retreive
-    the item from the DB without going through get/setContext.
+    Passwords are currently hashed with bcrypt. The password is never exposed
+    via the API; you have to directly retreive the item from the DB without
+    going through get/setContext.
     
     Users also contain a 'secret'. This is used to keep track of password reset
     tokens, approval tokens, etc. Like password, this is never exposed via the API.
@@ -44,9 +44,27 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     sends it via email to the registered email address, and is provided again
     to setemail() to verify the owner requested the change.
     
-    Note: the actual email is currently handled in the public API methods. See
-    database.py.
+    There are many schools of thought on email validation. Technically, the
+    only rule is that '@' must be present, and the only foolproof way to
+    check an email is to send a message and see if it is received. However,
+    modern emails are fairly uniform, and we will use Python's
+    email.utils.parseaddr() to validate the input. The result is stored
+    lower-case.
     
+    The configuration settings security.email_blacklist and
+    security.email_whitelist are also applied. These are lists of
+    regular expressions checked against the email. Any hit in the
+    blacklist will raise an error. If a whitelist is specified, at least
+    one hit in the whitelist is required. See also: _validate_email()
+
+    Note: the actual verification email is currently handled in the public API
+    methods. See database.py.
+
+    Note: Previously, MD5 hashes were used. These accounts are allowed to
+    continue operating. In the future, I may add a configuration setting to
+    force these passwords to expire, or to provide a migration process to
+    bcrypt when a user logs in.
+        
     These BaseDBObject methods are overridden:
 
         init            Set attributes
@@ -81,9 +99,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     def validate(self):
         super(BaseUser, self).validate()
         if not self.password: 
-            self.error('No password set.')
+            raise self.error('No password set.')
         if not self.email:
-            self.error('No email set.')
+            raise self.error('No email set.')
         self._validate_email(self.email)
 
     ##### Setters #####
@@ -109,12 +127,39 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         password = unicode(salt or '') + unicode(password or '')
         return hashlib.sha1(unicode(password)).hexdigest()
 
-    def _validate_password(self, password):
+    def _validate_password(self, password, history=None):
         # All accounts must have a password.
+        history = history or []
         password = unicode(password or '')
+
+        # Check against email, username.
+        if self.name and self.name in password:
+            raise self.error("User name cannot be in password")
+        if self.email and self.email in password:
+            raise self.error("Email cannot be in password")
+
+        # Check category strength first; 
+        #   gives the user feedback before checking length.
+        categories = [
+            '[a-z]',
+            '[A-Z]',
+            '[0-9]',
+            '[\!\@\#\$\%\^\&\*\(\)\[\]\/\?\<\>\,\.\~\`\=]'
+        ]
+        if not all([re.match(i, password) for i in categories]):
+            raise self.error("Password needs more complexity. One each from: a-z, A-Z, 0-9, and a special character such as @, #, !, %, ^, etc.")
+
+        # Check the minimum length.
         if len(password) < MINLENGTH:
-            self.error("Password too short; minimum %s characters required"%MINLENGTH)
-        # ... add additional strength checking here ...
+            raise self.error("Password too short; minimum %s characters required"%MINLENGTH)
+
+        # Check the password history.
+        for i in history:
+            if self._hashpassword(password, i) == i:
+                raise self.error("Cannot re-use previous password.")
+        
+        # bcrypt hash the password with a random salt.
+        password = self._hashpassword(password)
         return password
 
     def checkpassword(self, password):
@@ -122,7 +167,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # Disabled users cannot login.
         # This needs to work even if there is no Context set.
         if self.get('disabled'):
-            self.error(e=emen2.db.exceptions.DisabledUserError)
+            raise self.error(e=emen2.db.exceptions.DisabledUserError)
 
         # Also check legacy MD5 based password hashes..
         # TODO: Convert the password to bcrypt hashed pw when found.
@@ -135,7 +180,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         if self._hashpassword(password, salt=self.password) == self.password:
             return True
             
-        self.error(e=emen2.db.exceptions.AuthenticationError)
+        raise self.error(e=emen2.db.exceptions.AuthenticationError)
 
     def setpassword(self, oldpassword, newpassword, secret=None):
         """Set the user password.
@@ -147,7 +192,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         #   or we know an authentication secret
         #   or we know the existing password, 
         # checkpassword will raise exception for failed attempt
-        newpassword = self._hashpassword(self._validate_password(newpassword))
+        newpassword = self._validate_password(newpassword)
         if self.isnew():
             self._set('password', newpassword, self.isowner())
         elif self._checksecret('resetpassword', None, secret):
@@ -156,7 +201,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         elif self.checkpassword(oldpassword):
             self._set('password', newpassword, self.isowner())
         else:
-            self.error(e=emen2.db.exceptions.AuthenticationError)
+            raise self.error(e=emen2.db.exceptions.AuthenticationError)
 
     def resetpassword(self):
         """Reset the user password. 
@@ -174,19 +219,23 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     def _validate_email(self, value):
         # After a long discussion in #python, it is impossible to validate
         #     emails other than checking for '@'
-        # However, in the modern world, I don't think I need to worry about
-        # things like UUCP. So, I think I'll just use Python's
-        # email.utils.parse_addr.
         # Note: Forcing emails to be stored as lower case.
         _, value = email.utils.parseaddr(value)
         value = value.strip().lower()
         if '@' not in value:
-            self.error("Invalid email: %s"%value)
+            raise self.error("Invalid email: %s"%value)
+        
+        blacklist = emen2.db.config.get('security.email_blacklist')
+        if blacklist and any([re.search(i, value) for i in blacklist]):
+            raise self.error("Disallowed email: %s"%value)
+        whitelist = emen2.db.config.get('security.email_whitelist')
+        if whitelist and not any([re.search(i, value) for i in whitelist]):
+            raise self.error("Disallowed email: %s"%value)            
         return value
 
     def setemail(self, value, password=None, secret=None):
-        """Set email address.
-        
+        """Email address must contain '@' and a host. Stored lower-case.
+
         You must provide either a password, or an authentication secret.
         """
         # Check that:
@@ -205,7 +254,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         elif self.checkpassword(password):
             self._setsecret('setemail', value)
         else:
-            self.error(e=emen2.db.exceptions.AuthenticationError)
+            raise self.error(e=emen2.db.exceptions.AuthenticationError)
         return self.email
 
     ##### Secrets for account password resets #####
@@ -361,13 +410,13 @@ class User(BaseUser):
         p['_groups'] = set()
 
         # If the user has requested privacy, we return only basic info
-        hide = self.privacy or self._ctx.username == 'anonymous'
-        if admin or ctxuser == self.name:
-            hide = False
-        # Hide basic details from anonymous users
-        if hide:
+        if self._ctx.username == 'anonymous':
             p['email'] = None
-            p['record'] = None
+        if not admin and self.name != ctxuser:
+            if self.privacy == 2:
+                p['record'] = None
+            if self.privacy > 0:
+                p['email'] = None
 
         self.__dict__.update(p)
         self.__dict__['_displayname'] = self.getdisplayname()
@@ -376,14 +425,14 @@ class User(BaseUser):
     def _set_privacy(self, key, value):
         value = int(value)
         if value not in [0,1,2]:
-            self.error("User privacy setting may be 0, 1, or 2.")
+            raise self.error("User privacy setting may be 0, 1, or 2.")
         return self._set(key, value, self.isowner())
 
     # Only admin can change enabled/disabled or record reference
     def _set_disabled(self, key, value):
         value = bool(value)
         if self.name == self._ctx.username and value:
-            self.error("Cannot disable self!")
+            raise self.error("Cannot disable self!")
         return self._set(key, value, self._ctx.checkadmin())
 
     def _set_record(self, key, value):
@@ -409,6 +458,8 @@ class User(BaseUser):
     def getdisplayname(self, lnf=False, record=None):
         """Get the user profile record and return the display name."""
         if self.record is None:
+            if self.privacy:
+                return "(private)"
             return unicode(self.name)
 
         if not self._userrec:
@@ -416,7 +467,6 @@ class User(BaseUser):
                 record = self._ctx.db.record.get(self.record) or {}
             self._set('_userrec', record, True)
 
-        # self._set('_displayname', d, True)
         return self._formatusername(lnf=lnf)
 
     def _formatusername(self, lnf=False):

@@ -86,6 +86,25 @@
         // The EMEN2 URI root -- e.g., "/testserver" or "http://ncmidb.bcm.edu/challenge". Useful for running behind a reverse proxy.
         "root": ""
     },
+    
+    "security": {
+        // A set of regular expressions for disallowed filenames.
+        // Basically, keep users from uploading easily executable files, or dot files.
+        "filename_blacklist": [
+            "^\\.",
+            "\\.exe$",
+            "\\.bat$",
+            "\\.com$",
+            "\\.vbs$"
+        ],
+        
+        // If this is set, only files matching the whitelist will be allowed.
+        "filename_whitelist": [],
+
+        // Allowed and disallowed email addresses.
+        "email_blacklist": [],
+        "email_whitelist": []
+    },
 
     // User settings
     "users":{

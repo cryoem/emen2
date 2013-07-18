@@ -152,7 +152,6 @@ except ImportError:
     except ImportError:
         json = False
 
-from emen2.db import debug
 import jsonrpc.jsonutil
 
 inst = lambda x:x()

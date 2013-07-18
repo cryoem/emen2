@@ -19,10 +19,6 @@ bookmarks = emen2.db.config.get('bookmarks.bookmarks')
                 <a href="${ctxt.root}/">Home ${buttons.caret()}</a>
             </li>
 
-            ## <li>
-            ##    <a href="${ctxt.root}/query/">Query ${buttons.caret()}</a>
-            ## </li>
-            
             <li id="bookmarks" data-parent="${USER.record}">
                 <a href="">Bookmarks ${buttons.caret()}</a>
                 <ul id="bookmarks_system">
@@ -35,7 +31,6 @@ bookmarks = emen2.db.config.get('bookmarks.bookmarks')
                     % endfor
                 </ul>
             </li>
-    
         % endif
 
         % if ADMIN:
@@ -44,8 +39,9 @@ bookmarks = emen2.db.config.get('bookmarks.bookmarks')
                     <li><a href="${ctxt.root}/records/">Record relationships</a></li>
                     <li><a href="${ctxt.root}/query/">Record query</a></li>
                     <li class="e2l-menu-divider"><a href="${ctxt.root}/recorddefs/">Protocols</a></li>
+                    <li><a href="${ctxt.root}/paramdefs/">Parameters</a></li>
                     <li class="e2l-menu-divider"><a href="${ctxt.root}/users/">Users</a></li>
-                    <li><a href="${ctxt.root}/groups/">User groups</a></li>
+                    <li><a href="${ctxt.root}/groups/">Groups</a></li>
                     <li class="e2l-menu-divider"><a href="${ctxt.reverse('Users/queue')}">Account requests</a></li>
                 </ul>
             </li>

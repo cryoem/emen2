@@ -20,7 +20,7 @@ if __name__ == "__main__":
     
     scripts = ['scripts/emen2ctl']
     
-    exts = ['base', 'default', 'em', 'site', 'publicdata']
+    exts = ['base', 'default', 'em', 'site', 'example']
     for ext in exts:
         packages.append('emen2.exts.%s'%ext)
         packages.append('emen2.exts.%s.views'%ext)

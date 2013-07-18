@@ -2795,9 +2795,7 @@ class DB(object):
     
     @publicmethod()
     def record_findpaths(self, names=None, root_rectypes=None, leaf_rectypes=None, ctx=None, txn=None):
-        """Find paths from names (or root_rectypes) to leaf nodes leaf_rectypes.
-
-        This is a replacement for record_renderchildren.
+        """This is a replacement for record_renderchildren. It's still under development.
         
         Examples:
         >>> db.record_findpaths([], root_rectypes=['group'], leaf_rectypes=['project'])
@@ -2822,6 +2820,7 @@ class DB(object):
             names = self.dbenv['record'].filter(names, ctx=ctx, txn=txn)
 
         if leaf_rectypes:
+            # Find all the leaf rectypes, and find all their parents.
             all_leaves = self.record_findbyrectype(leaf_rectypes, ctx=ctx, txn=txn)
             parents = self.dbenv['record'].rel(all_leaves, rel='parents', recurse=-1, ctx=ctx, txn=txn)
             parents_paths = collections.defaultdict(set)
@@ -2833,8 +2832,7 @@ class DB(object):
             all_leaves_found = set()
             for k,v in parents_paths.items():
                 all_leaves_found |= v
-
-            # filter by permissions
+            # Filter by permissions
             all_leaves_found = self.dbenv['record'].filter(all_leaves_found, ctx=ctx, txn=txn)
 
             # Now, reverse.
@@ -2900,8 +2898,9 @@ class DB(object):
         for bdo in items:
             newfile = False
             if not bdo.get('name'):
+                handler = bdo
                 filesize, md5sum, newfile = emen2.db.binary.writetmp(filedata=bdo.get('filedata', None), fileobj=bdo.get('fileobj', None))
-                bdo = self.dbenv["binary"].new(filename=handler.get('filename'), filesize=filesize, md5=md5, ctx=ctx, txn=txn)
+                bdo = self.dbenv["binary"].new(filename=handler.get('filename'), filesize=filesize, md5=md5sum, ctx=ctx, txn=txn)
 
             bdo = self.dbenv["binary"].put(bdo, ctx=ctx, txn=txn)
             bdos.append(bdo)

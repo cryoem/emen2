@@ -29,9 +29,9 @@
             this.element.empty();
             
             if (retry==null) {retry = 0}
-            if (retry > 5) {
+            if (retry > 3) {
                 $('<p />')
-                    .text('Error getting tiles!')
+                    .text('Could not access tiles.')
                     .appendTo(this.element);
                 return
             }
@@ -52,6 +52,7 @@
                     self.options.ny = d['ny'];
                     self.options.filename = d['filename'];
                     self.options.maxscale = d['maxscale'];
+                    console.log("Got response:", self.options);
                     self.build();
                 },
                 error: function(x,y,z) {

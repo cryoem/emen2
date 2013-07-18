@@ -155,6 +155,8 @@ class BaseDBObject(object):
 
     def isowner(self):
         """Check ownership privileges on item."""
+        if not getattr(self, '_ctx', None):
+            return False
         if self._ctx.checkadmin():
             return True
         if self._ctx.username == getattr(self, 'creator', None):
@@ -170,10 +172,10 @@ class BaseDBObject(object):
     ##### Delete and rename. #####
 
     def delete(self):
-        self.error("No permission to delete.")
+        raise self.error("No permission to delete.")
 
     def rename(self):
-        self.error("No permission to rename.")
+        raise self.error("No permission to rename.")
 
     ##### Required mapping interface #####
 
@@ -199,7 +201,7 @@ class BaseDBObject(object):
     def _load(self, update):
         """Load from a JSON file; this skips validation on a few keys."""
         if not self.isnew():
-            self.error('Cannot update previously committed items this way.')
+            raise self.error('Cannot update previously committed items this way.')
 
         # Skip validation for relationships.
         # This will assume they are the correct data format.
@@ -288,10 +290,10 @@ class BaseDBObject(object):
         # is write permissions. Additionally, the default
         # for write permissions is owners only.
         if check == None:
-            check = self.writable()
+            check = self.isowner()
         if not check:
             msg = "Insufficient permissions to change parameter %s"%key
-            self.error(msg, e=emen2.db.exceptions.SecurityError)
+            raise self.error(msg, e=emen2.db.exceptions.SecurityError)
         self.__dict__[key] = value
         return set([key])
 
@@ -324,7 +326,7 @@ class BaseDBObject(object):
         for item in access:
             if not (self.writable() and item.writable()):
                 msg = 'Insufficient permissions to add or remove relationship: %s -> %s'%(self.name, item.name)
-                self.error(msg, e=emen2.db.exceptions.SecurityError)
+                raise self.error(msg, e=emen2.db.exceptions.SecurityError)
 
         # Keep items that we can't access..
         #    they might be new items, or items we won't
@@ -357,11 +359,11 @@ class BaseDBObject(object):
                 pd = self._ctx.db.paramdef.get(key, filt=False)
                 self._ctx.cache.store(('paramdef', key), pd)
             except KeyError:
-                self.error('Parameter %s does not exist' % key)
+                raise self.error('Parameter %s does not exist'%key)
 
         # Is it an immutable param?
         if pd.get('immutable') and not self.isnew():
-            self.error('Cannot change immutable parameter %s'%pd.name)
+            raise self.error('Cannot change immutable parameter %s'%pd.name)
 
         # Validate
         vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self._ctx.db, cache=self._ctx.cache)
@@ -382,8 +384,7 @@ class BaseDBObject(object):
         if warning:
             # emen2.db.log.warn("Warning: %s"%e(msg))
             pass
-        else:
-            raise e(msg)
+        return e(msg)
 
 
 

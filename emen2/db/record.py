@@ -123,19 +123,19 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         hit, rd = self._ctx.cache.check(cachekey)
 
         if not self.rectype:
-            self.error('Protocol required')
+            raise self.error('Protocol required')
 
         if not hit:
             try:
                 rd = self._ctx.db.recorddef.get(self.rectype, filt=False)
             except KeyError:
-                self.error('No such protocol: %s' % self.rectype)
+                raise self.error('No such protocol: %s'%self.rectype)
             self._ctx.cache.store(cachekey, rd)
 
         # This does rely somewhat on validators returning None if empty..
         # for param in rd.paramsR:
         #     if self.get(param) is None:
-        #         self.error("Required parameter: %s"%(param))
+        #         raise self.error("Required parameter: %s"%(param))
 
         self.__dict__['rectype'] = unicode(rd.name)
 
@@ -143,7 +143,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
     def _set_rectype(self, key, value):
         if not self.isnew():
-            self.error("Cannot change rectype")
+            raise self.error("Cannot change rectype")
         self.__dict__['rectype'] = unicode(value)
         return set(['rectype'])
         
@@ -157,7 +157,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         # Check write permission
         if not self.writable():
             msg = "Insufficient permissions to change param %s"%key
-            self.error(msg, e=emen2.db.exceptions.SecurityError)
+            raise self.error(msg, e=emen2.db.exceptions.SecurityError)
 
         # No change
         if self.params.get(key) == value:
@@ -204,7 +204,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         :param value: The comment to be added
         """
         if not self.commentable():
-            self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.SecurityError)
+            raise self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.SecurityError)
 
         if not value:
             return set()
@@ -233,7 +233,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
             if d.has_key("comments"):
                 # Always abort
-                self.error("Cannot set comments inside a comment", warning=False)
+                raise self.error("Cannot set comments inside a comment", warning=False)
 
             # Now update the values of any embedded params
             for i,j in d.items():

@@ -316,11 +316,11 @@ class Property(object):
             
         # Check for dimensionless conversions...
         if v.dimensionless():
-            self.error(units, target, msg='dimensionless property')        
+            raise self.error(units, target, msg='dimensionless property')        
         return v.toval()
 
     def error(self, units, target, msg=None):
-        raise ValueError, "Couldn't convert %s to %s: %s"%(units, target, msg or '')        
+        return ValueError("Couldn't convert %s to %s: %s"%(units, target, msg or ''))
 
     def unknown(self, units, target):
         raise ValueError, "Don't know how to convert %s to %s"%(units, target)

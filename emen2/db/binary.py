@@ -18,6 +18,17 @@ import emen2.db.dataobject
 import emen2.db.config
 import emen2.db.exceptions
 
+# These filenames are not allowed on Windows.
+# Additional filename checking is done by the 
+# security.filename_blacklist and security.filename_whitelist.
+WINDOWS_DEVICE_FILENAMES = ['CON', 'PRN', 'AUX', 'NUL',
+    'COM1', 'COM2', 'COM3', 'COM4', 'COM5',
+    'COM6', 'COM7', 'COM8', 'COM9', 'LPT1',
+    'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6',
+    'LPT7', 'LPT8', 'LPT9']
+                    
+                    
+
 def parse(bdokey, counter=None):
     """Parse a 'bdo:2010010100001' type identifier into parts and
     find location in the filesystem."""
@@ -130,8 +141,13 @@ class Binary(emen2.db.dataobject.BaseDBObject):
     If the file is compressed, compress will be set to the compression format
     (gz, bz2).
     
-    File names are checked to prevent illegal characters, and names such as "."
-    and invalid file names on some platforms ("COM", "NUL", etc.).
+    Filenames must be alphanumeric or . ( ) - = _. Certain illegal filenames
+    are not allowed (COM, NUL, etc), and filenames cannot begin with a dot. The
+    configuration settings security.filename_blacklist and
+    security.filename_whitelist are also applied. These are lists of regular
+    expressions checked against the filename. Any hit in the blacklist will
+    raise an error. If a whitelist is specified, at least one hit in the
+    whitelist is required. See also: _validate_filename()
 
     Binaries are generally associated with a Record, stored in the record
     attribute. Read permission on a Binary requires either ownership of the
@@ -220,17 +236,31 @@ class Binary(emen2.db.dataobject.BaseDBObject):
         # Sanitize filename.. This will allow unicode characters,
         #    and check for reserved filenames on linux/windows
         value = unicode(value)
-        value = "".join([i for i in value if i.isalpha() or i.isdigit() or i in '.()-=_'])
-        if value.upper() in ['..', '.', 'CON', 'PRN', 'AUX', 'NUL',
-                                    'COM1', 'COM2', 'COM3', 'COM4', 'COM5',
-                                    'COM6', 'COM7', 'COM8', 'COM9', 'LPT1',
-                                    'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6',
-                                    'LPT7', 'LPT8', 'LPT9']:
-            value = u"renamed."+value
+        value = self._validate_filename(value)
         return self._set(key, value, self.isowner())
 
     def _set_record(self, key, value):
         return self._set(key, value, self.isowner())
+        
+    def _validate_filename(self, value):
+        """
+        """
+        # ... make this a regex.
+        value = "".join([i for i in value if i.isalpha() or i.isdigit() or i in '.()-=_'])
+
+        # Check for illegal Windows filenames.
+        if value.upper() in WINDOWS_DEVICE_FILENAMES:
+            raise self.error("Disallowed filename: %s"%value)
+
+        # Check the filename whitelist / blacklist settings.
+        blacklist = emen2.db.config.get('security.filename_blacklist')
+        if blacklist and any([re.search(i, value) for i in blacklist]):
+            raise self.error("Disallowed filename: %s"%value)
+        whitelist = emen2.db.config.get('security.filename_whitelist')
+        if whitelist and not any([re.search(i, value) for i in whitelist]):
+            raise self.error("Disallowed filename: %s"%value)            
+        return value
+        
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

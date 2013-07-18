@@ -405,6 +405,61 @@ emen2.util.set_remove = function(i, l) {
     //  fit in any other files..
     ///////////////////////////////////////////////////
  
+    $.widget('emen2.AutoCompleteControl', {
+        options: {
+            param: null
+        }, 
+        
+        _create: function() {
+            var self = this;
+			emen2.util.checkopts(this, ['param']);
+            this.element.autocomplete({
+                minLength: 0,
+                source: function(request, response) {
+                    emen2.db("record.findbyvalue", [self.options.param, request.term], function(ret) {
+                        var r = $.map(ret, function(item) {
+                            return {
+                                label: item[0] + " (" + item[1] + " records)",
+                                value: item[0]
+                            }
+                        });
+                        response(r);            
+                    });
+                }
+            });
+        }
+    }),
+    
+    $.widget('emen2.DatePickerControl', {
+        // Basically, just keep all the options for the date picker together.
+       options: {           
+           showtime: true,
+           showtz: true
+       },
+       _create: function() {
+           opts = {
+              showButtonPanel: true,
+              changeMonth: true,
+              changeYear: true,
+              showAnim: '',
+              yearRange: 'c-100:c+100',
+              dateFormat: 'yy-mm-dd',
+          }
+          if (this.options.showtz && this.options.showtime) {
+              opts['showTimezone'] = true;              
+              opts['timezone'] = '+0500';
+              this.element.datetimepicker(opts);               
+          } else if (this.options.showtime) {
+              opts['separator'] = 'T';
+              opts['timeFormat'] = 'hh:mm:ssz';
+              opts['showSecond'] = true;              
+              this.element.datetimepicker(opts);           
+          } else {
+              this.element.datepicker(opts);                         
+          }
+       }
+    }),
+ 
     // Select utility
     $.widget('emen2.SelectControl', {
         options: {

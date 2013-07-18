@@ -117,6 +117,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
     # ian: todo: Important!! If we can access a record with the recorddef...
     def setContext(self, ctx):
+        super(RecordDef, self).setContext(ctx=ctx)
         if not self.private:
             return True
         # Private RecordDef...
@@ -129,7 +130,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
     def validate(self):
         # Run findparams one last time before we commit...
         if not self.mainview:
-            self.error("Main protocol (mainview) required")
+            raise self.error("Main protocol (mainview) required")
         self._findparams()
 
     ##### Setters #####
@@ -137,7 +138,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
     def _set_mainview(self, key, value):
         """Only an admin may change the mainview"""
         if not self.isnew() and not self._ctx.checkadmin():
-            self.error("Cannot change mainview")
+            raise self.error("Cannot change mainview")
 
         value = unicode(textwrap.dedent(value))
         ret = self._set('mainview', value, self.isowner())

@@ -143,17 +143,17 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
     def validate(self):
         if not self.vartype:
-            self.error("Vartype required")
+            raise self.error("Vartype required")
         if self.vartype not in emen2.db.vartypes.Vartype.registered:
-            self.error("Vartype %s is not a valid vartype"%self.vartype)
+            raise self.error("Vartype %s is not a valid vartype"%self.vartype)
     #     try:
     #         prop = emen2.db.properties.Property.get_property(self.property)
     #     except KeyError:
-    #         self.error("Cannot set defaultunits without a property!")
+    #         raise self.error("Cannot set defaultunits without a property!")
     #    m = emen2.db.magnitude.mg(0, value)
-    #    # self.error("Invalid units: %s"%value)
+    #    # raise self.error("Invalid units: %s"%value)
     #     if value not in prop.units:
-    #         self.error("Invalid defaultunits %s for property %s. 
+    #         raise self.error("Invalid defaultunits %s for property %s. 
     #             Allowed: %s"%(value, self.property, ", ".join(prop.units)))
 
     ##### Setters #####
@@ -175,35 +175,41 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     # Only admin can change defaultunits/immutable/indexed/vartype.
     # This should still generate lots of warnings.
     def _set_immutable(self, key, value):
-        return self._set(key, bool(value), self._ctx.checkadmin())
+        if not self.isnew():
+            raise self.error("Cannot change immutable from %s to %s."%(self.immutable, value))
+        return self._set(key, bool(value), self.isowner())
 
     def _set_iter(self, key, value):
-        return self._set(key, bool(value), self._ctx.checkadmin())
+        if not self.isnew():
+            raise self.error("Cannot change iter from %s to %s."%(self.iter, value))
+        return self._set(key, bool(value), self.isowner())
 
     def _set_indexed(self, key, value):
-        return self._set(key, bool(value), self._ctx.checkadmin())
+        if not self.isnew():
+            raise self.error("Cannot change indexed from %s to %s."%(self.indexed, value))
+        return self._set(key, bool(value), self.isowner())
 
     def _set_controlhint(self, key, value):
         if value != None:
             value = unicode(value)
         value = value or None
-        return self._set(key, value)
+        return self._set(key, value, self.isowner())
                 
     # These can't be changed, it would disrupt the meaning of existing Records.
     def _set_vartype(self, key, value):
         if not self.isnew():
-            self.error("Cannot change vartype from %s to %s."%(self.vartype, value))
+            raise self.error("Cannot change vartype from %s to %s."%(self.vartype, value))
 
         value = unicode(value or '') or None
 
         if value not in emen2.db.vartypes.Vartype.registered:
-            self.error("Invalid vartype: %s"%value)
+            raise self.error("Invalid vartype: %s"%value)
 
-        return self._set(key, value)
+        return self._set(key, value, self.isowner())
 
     def _set_property(self, key, value):
         if not self.isnew():
-            self.error("Cannot change property from %s to %s."%(self.property, value))
+            raise self.error("Cannot change property from %s to %s."%(self.property, value))
 
         value = unicode(value or '')
         if value in ['None', None, '']:
@@ -211,17 +217,17 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
         # Allow for unsetting
         if value != None and value not in emen2.db.properties.Property.registered:
-            self.error("Invalid property: %s"%value)
+            raise self.error("Invalid property: %s"%value)
 
-        return self._set('property', value)
+        return self._set('property', value, self.isowner())
 
     def _set_defaultunits(self, key, value):
         if not self.isnew():
-            self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
+            raise self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
 
         value = unicode(value or '') or None
         value = emen2.db.properties.equivs.get(value, value)
-        return self._set('defaultunits', value)
+        return self._set('defaultunits', value, self.isowner())
 
 
 __version__ = "$Revision$".split(":")[1][:-1].strip()

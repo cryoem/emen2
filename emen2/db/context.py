@@ -37,7 +37,6 @@ class Cacher(object):
         # print '\tnot found'
         return False, None
         
-    
 
 # Contexts do not use BaseDBObject since they are completely internal to the DB
 class Context(object):
@@ -58,7 +57,6 @@ class Context(object):
         self.username = username
         self.groups = groups or set()
         self.grouplevels = grouplevels or {}
-
 
         # Client IP
         self.host = host

@@ -58,7 +58,7 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
     def _set_privacy(self, key, value):
         value = int(value)
         if value not in [0,1,2]:
-            self.error("Group privacy setting may be 0, 1, or 2.")
+            raise self.error("Group privacy setting may be 0, 1, or 2.")
         return self._set(key, value, self.isowner())
 
     def _set_disabled(self, key, value):
