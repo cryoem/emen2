@@ -121,6 +121,10 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     ##### Password methods #####
 
     def _hashpassword(self, password, salt=None):
+        # Check that we've been given a valid salt. 
+        # bcrypt.hashpw will raise ValueError otherwise.
+        if salt and not salt.startswith('$'):
+            return False
         return bcrypt.hashpw(unicode(password or ''), salt or bcrypt.gensalt())
 
     def _hashpassword_old(self, password, salt=None):
@@ -141,10 +145,10 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # Check category strength first; 
         #   gives the user feedback before checking length.
         categories = [
-            '[a-z]',
-            '[A-Z]',
-            '[0-9]',
-            '[\!\@\#\$\%\^\&\*\(\)\[\]\/\?\<\>\,\.\~\`\=]'
+            '.*([a-z]).*',
+            '.*([A-Z]).*',
+            '.*([0-9]).*',
+            '.*([\!\@\#\$\%\^\&\*\(\)\[\]\/\?\<\>\,\.\~\`\=]).*'
         ]
         if not all([re.match(i, password) for i in categories]):
             raise self.error("Password needs more complexity. One each from: a-z, A-Z, 0-9, and a special character such as @, #, !, %, ^, etc.")

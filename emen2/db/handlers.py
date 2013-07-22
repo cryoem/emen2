@@ -86,11 +86,11 @@ def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
     args.append(handler.__class__.__name__)
     args.append(filepath)
     
-    if wait:
-        # Run directly and wait.
-        a = subprocess.Popen(args)
-        a.wait()
-        return "complete"
+    # if wait:
+    #    # Run directly and wait.
+    #    a = subprocess.Popen(args)
+    #    a.wait()
+    #    return "complete"
     
     # Otherwise, add to the task queue.
     emen2.db.queues.processqueue.add_task(args, name=filepath, priority=priority)

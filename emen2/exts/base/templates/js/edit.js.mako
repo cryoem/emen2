@@ -307,16 +307,13 @@
 				parent.before(b);
 				self.bind(b);
 			});
-
-            // Date picker
-            $('.e2-edit[data-vartype="datetime"] input', elem).DatePickerControl();
-                        
+                                    
             // Find items.
 			$('.e2-edit-add-find', elem).FindControl({
 			    minimum: 0,
 			    selected: function(self, name){
 					var parent = self.element.parent();
-					var param = self.element.attr('data-param');
+					var param = self.element.attr('data-paramdef');
 					var iter = self.element.attr('data-iter');
 			        var d = $('<div/>').InfoBox({
 			            keytype: 'user',
@@ -332,6 +329,19 @@
 					}
 				}
 			});
+            
+            var parent = $(elem).parent();
+
+            // Autocomplete
+            $('.e2-edit[data-vartype="string"] input', parent).AutoCompleteControl();
+            
+            // Date picker
+            $('.e2-edit[data-vartype="datetime"] input', parent).DatePickerControl();
+            $('.e2-edit[data-vartype="date"] input', parent).DatePickerControl({
+                showtime: false,
+                showtz:false
+            });            
+            
         }    
     });
 	

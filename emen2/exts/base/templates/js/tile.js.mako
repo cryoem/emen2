@@ -29,7 +29,7 @@
             this.element.empty();
             
             if (retry==null) {retry = 0}
-            if (retry > 3) {
+            if (retry > 10) {
                 $('<p />')
                     .text('Could not access tiles.')
                     .appendTo(this.element);

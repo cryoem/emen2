@@ -141,7 +141,7 @@
         "banner": "0",
         "banner_noauth": "0",
         "bookmarks": [
-            ["Query", "/query/"],
+            ["Query", "/query/form/"],
             ["-",""],
             ["Projects", "/query/rectype.is.project/"],
             ["Grid imaging sessions", "/query/rectype.is.grid_imaging/"],

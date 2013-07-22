@@ -28,11 +28,8 @@ cmp_order = [
     '.name.',
 ]
 
-
 def query_to_path(q):
     pass
-
-
 
 def path_to_query(path, **kwargs):
     q = {}
@@ -74,15 +71,11 @@ def path_to_query(path, **kwargs):
     q.update(kwargs)
     return q
 
-
-
 class TooManyFiles(Exception):
     pass
 
-
 @View.register
 class Query(View):
-
     def initq(self, path=None, q=None, c=None, **kwargs):
         self.template = '/pages/query.main'
         self.title = "Query"
@@ -98,13 +91,13 @@ class Query(View):
         self.ctxt['controls'] = True
         
     @View.add_matcher(r'^/query/$', name='main')
-    @View.add_matcher(r'^/query/(?P<path>.*)/$', name='query')
+    @View.add_matcher(r'^/query/(?P<path>.+)/$', name='query')
     def main(self, path=None, q=None, c=None, **kwargs):
         self.initq(path, q, c, **kwargs)
         self.q = self.db.table(**self.q)
         self.ctxt['q'] = self.q
 
-    @View.add_matcher(r'^/query/(?P<path>.*)/embed/$')
+    @View.add_matcher(r'^/query/(?P<path>.+)/embed/$', name='embed')
     def embed(self, path=None, q=None, c=None, create=False, rectype=None, parent=None, controls=True, header=True, **kwargs):
         # create/rectype/parent for convenience.
         self.main(path, q, c)
@@ -114,16 +107,24 @@ class Query(View):
         self.ctxt['header'] = header
         self.ctxt['parent'] = parent
         self.ctxt['rectype'] = rectype
-        
-    @View.add_matcher(r'^/query/(?P<path>.*)/edit/$', name='edit')
+
+    @View.add_matcher(r'^/query/(?P<path>.+)/edit/$', name='edit')
     def edit(self, path=None, q=None, c=None, **kwargs):
         self.initq(path, q, c)
         self.template = '/pages/query.edit'
         self.q = self.db.table(**self.q)
         self.ctxt['q'] = self.q
 
+    @View.add_matcher(r'^/query/form/$', name='form')
+    @View.add_matcher(r'^/query/(?P<path>.+)/form/$', name='form_query')
+    def form(self, path=None, q=None, c=None, **kwargs):
+        self.initq(path, q, c)
+        self.template = '/pages/query.form'
+        # self.q = self.db.table(**self.q)
+        self.ctxt['q'] = self.q
+        
     @View.add_matcher(r'^/plot/$', name='plot')
-    @View.add_matcher(r'^/plot/(?P<path>.*)/$', name='plot_path')
+    @View.add_matcher(r'^/plot/(?P<path>.+)/$', name='plot_path')
     def plot(self, path=None, q=None, c=None, x=None, y=None, z=None, **kwargs):
         self.initq(path, q, c)
         self.q['x'] = x
@@ -135,30 +136,10 @@ class Query(View):
         self.ctxt['q'] = self.q
 
     # /download/ can't be in the path because of a emen2resource.getchild issue
-    # @View.add_matcher(r'^/query/(?P<path>.*)/attachments/$', name='attachments')
-   #  def attachments(self, path=None, q=None, c=None, confirm=False, **kwargs):
-   #      self.initq(path, q, c)
-   #      self.template = '/pages/query.attachments'
-   #      self.q = self.db.query(**self.q)
-   #      self.ctxt['q'] = self.q
-   # 
-   #      # Look up all the binaries
-   #      bdos = self.db.binary.find(record=self.q['names'], count=0)
-   #      if len(bdos) > 100000 and not confirm:
-   #          raise TooManyFiles, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
-   # 
-   #      records = set([i.record for i in bdos])
-   #      users = set([bdo.get('creator') for bdo in bdos])
-   #      users = self.db.user.get(users)
-   #      self.ctxt['users'] = users
-   #      self.ctxt['recnames'] = self.db.view(records)
-   #      self.ctxt['bdos'] = bdos
-
-    # /download/ can't be in the path because of a emen2resource.getchild issue
-    @View.add_matcher(r'^/query/(?P<path>.*)/attachments/$', name='attachments')
+    @View.add_matcher(r'^/query/(?P<path>.+)/attachments/$', name='attachments')
     def attachments(self, path=None, q=None, c=None, confirm=False, **kwargs):
         self.initq(path, q, c)
-        self.template = '/pages/query.main'
+        self.q['count'] = 1000 # Show the maximum number of files by default...
         self.q = self.db.query(**self.q)        
 
         # Look up all the binaries

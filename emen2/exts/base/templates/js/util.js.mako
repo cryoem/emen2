@@ -412,11 +412,11 @@ emen2.util.set_remove = function(i, l) {
         
         _create: function() {
             var self = this;
-			emen2.util.checkopts(this, ['param']);
+			emen2.util.checkopts(this, ['paramdef']);
             this.element.autocomplete({
                 minLength: 0,
                 source: function(request, response) {
-                    emen2.db("record.findbyvalue", [self.options.param, request.term], function(ret) {
+                    emen2.db("record.findbyvalue", [self.options.paramdef, request.term], function(ret) {
                         var r = $.map(ret, function(item) {
                             return {
                                 label: item[0] + " (" + item[1] + " records)",

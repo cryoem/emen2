@@ -57,7 +57,13 @@
             <tbody>
                 <tr>
                     <td>Current password:</td>
-                    <td><input type="password" name="opw" value="" /> <span class="e2l-small">(required to change email)</span></td>
+                    <td>
+                        % if ADMIN:
+                            <input type="password" disabled="disabled" placeholder="Admin" /> <span class="e2l-small">(Admin may directly change email)</span>
+                        % else:
+                            <input type="password" name="opw" value="" /> <span class="e2l-small">(required to change email)</span>
+                        % endif
+                    </td>
                 </tr>
                 </tr>
                     <td>New email:</td>
@@ -83,7 +89,13 @@
             <tbody>
                 <tr>
                     <td>Current password:</td>
-                    <td><input type="password" name="opw" /></td>
+                    <td>
+                        % if ADMIN:
+                            <input type="password" disabled="disabled" placeholder="Admin" /> <span class="e2l-small">(Admin may directly set password)</span>
+                        % else:
+                            <input type="password" name="opw" />
+                        % endif
+                    </td>
                 </tr>
                 <tr>
                     <td>New password:</td>

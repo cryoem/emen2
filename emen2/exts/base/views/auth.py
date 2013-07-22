@@ -9,13 +9,14 @@ class Auth(View):
         self.template = '/auth/login'
         self.title = 'Login'
         self.ctxt["username"] = username
-        if 'auth/login' in redirect:
+        redirect = redirect or '/'
+        if 'auth/' in redirect:
             redirect = '/'
         if username != None:
             ctxid = self.db.auth.login(username, password, host=self.request_host)
             self.notify('Successfully logged in.')
             self.set_header('X-Ctxid', ctxid)
-            self.redirect(redirect or '/')
+            self.redirect(redirect)
 
     @View.add_matcher(r'^/auth/logout/$')
     def logout(self, msg='', **kwargs):
@@ -23,7 +24,7 @@ class Auth(View):
         self.title = 'Logout'
         self.db.auth.logout()
         self.set_header('X-Ctxid', '')
-        self.redirect(content='Successfully logged out.', auto=False)
+        self.redirect('/', content='Successfully logged out.')
 
     @View.add_matcher(r'^/auth/password/change/$', name='password/change')
     def setpassword(self, **kwargs):

@@ -285,7 +285,9 @@ class Vartype(object):
     def _form(self, value):
         if value is None:
             value = ''
-        elem = Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><input type="text" name="%s" value="%s" /></span>""")%(
+        elem = Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><input type="text" data-paramdef="%s" data-vartype="%s" name="%s" value="%s" /></span>""")%(
+            self.pd.name,
+            self.pd.vartype,
             self.pd.name,
             self.pd.vartype,
             self.pd.name,
@@ -817,7 +819,7 @@ class vt_user(Vartype):
         if self.pd.iter:
             label = "+"
             iter_ = "true"
-        return Markup("""<input type="button" value="%s" class="e2-edit-add-find" data-keytype="user" data-param="%s" data-iter="%s"/>""")%(
+        return Markup("""<input type="button" value="%s" class="e2-edit-add-find" data-keytype="user" data-paramdef="%s" data-iter="%s"/>""")%(
             label,
             self.pd.name,
             iter_

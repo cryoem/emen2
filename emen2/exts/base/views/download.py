@@ -38,9 +38,14 @@ class Download(View):
     defaultType = 'application/octet-stream'
 
     @View.add_matcher('^/download/$', name='multi')
-    @View.add_matcher('^/download/(?P<name>[^/]*)/(?P<filename>[^/]*)/$')
-    @View.add_matcher('^/binary/(?P<name>[^/]*/)/$', name='binary')
+    @View.add_matcher('^/download/(?P<name>[^/]*)/$', name='test0')
+    @View.add_matcher('^/download/(?P<name>[^/]*)/(?P<filename>[^/]*)/$', name='test')
+    @View.add_matcher('^/binary/(?P<name>[^/]*)/$', name='binary')
+    @View.add_matcher('^/binary/(?P<name>[^/]*)/(?P<filename>[^/]*)/$', name='test2')
     def main(self, name, filename=None, size=None, format=None, q=None, rename=None, tar=None):
+        # Testing...
+        self._filename = filename
+
         # Compatibility...
         if hasattr(name, '__iter__'):
             names = name
@@ -124,8 +129,8 @@ class Download(View):
 
         fsize = os.stat(filepath).st_size
         f = open(filepath)
-
-        if request.postpath[-1] == "save":
+        
+        if request.postpath[-1] == "save" or not self._filename:
             request.setHeader('Content-Disposition', 'attachment; filename=%s'%filename.encode('utf-8'))
 
         request.setHeader('Content-Length', str(fsize))

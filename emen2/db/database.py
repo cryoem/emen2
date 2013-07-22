@@ -638,7 +638,7 @@ class DB(object):
         if self.dbenv._context.bdb.exists(ctx.name, txn=txn):
             self.dbenv._context.bdb.delete(ctx.name, txn=txn)
         else:
-            raise SessionError, "Cannot logout: Unknown Context"
+            raise SessionError, "Session expired"
         emen2.db.log.security("Logout succeeded: %s" % (ctx.name))
 
     @publicmethod(compat="checkcontext")
@@ -1014,6 +1014,10 @@ class DB(object):
         header_desc = {}
         for pd in self.dbenv['paramdef'].gets(keys, ctx=ctx, txn=txn):
             header_desc[pd.name] = pd.desc_short
+        # Quick fix :(
+        for i in keys:
+            if i not in header_desc and i.endswith(')'):
+                header_desc[i] = i.replace('(', ': ').replace(')','')
 
         # Return format
         ret['view'] = view
@@ -1303,7 +1307,6 @@ class DB(object):
                 views[v] = byrt[recdef.name]
         else:
             views["{{name}}"] = recs
-            
         
         # Optional: Apply MarkDown formatting to view before inserting values.
         if options.get('markdown'):

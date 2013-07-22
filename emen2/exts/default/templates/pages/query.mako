@@ -1,4 +1,8 @@
-<%! import uuid %>
+<%! 
+import jsonrpc.jsonutil 
+import random
+import uuid
+%>
 
 <%def name="table(q, parent=None, rectype=None, qc=True, header=True, controls=True)">
     <%

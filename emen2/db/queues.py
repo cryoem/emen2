@@ -18,6 +18,15 @@ CPU_COUNT = 2
 
 import emen2.db.log
 
+def run(task):
+    p = subprocess.Popen(task, stderr=subprocess.PIPE)
+    p.wait()
+    stdout, stderr = p.communicate()
+    ret = p.returncode
+    if ret:
+        raise Exception(stderr)
+    return ret
+
 ##### Subprocess queues #####
 
 # threading.Thread style
@@ -36,7 +45,8 @@ class ProcessWorker(object):
             # a = subprocess.Popen(task)
             # returncode = a.wait()
             try:
-                ret = subprocess.check_output(task, stderr=subprocess.STDOUT)
+                # ret = subprocess.check_output(task, stderr=subprocess.STDOUT)
+                run(task)
             except Exception, e:
                 emen2.db.log.error("Couldn't build tile: %s"%e)
             finally:

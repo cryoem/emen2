@@ -258,7 +258,7 @@ class macro_thumbnail(Macro):
 # 
 #         # Need to put in a hidden input element so that empty sets will still be submitted.
 #         return """
-#             <input id="%s" type="checkbox" name="%s" data-param="%s" value="%s" %s />
+#             <input id="%s" type="checkbox" name="%s" data-paramdef="%s" value="%s" %s />
 #             <label for="%s">%s</label>
 #             <input type="hidden" name="%s" value="" />"""%(labelid, param, param, value, checked, labelid, label or value, param)
 # 
