@@ -12,7 +12,7 @@ children_recnames = DB.view(children)
 ## <br /><br /> <%buttons:singlepage label='In this session...'>
 <h1>In this session...</h1>
 
-    <p>There are ${len(children)} image records in this imaging session, with ${len(bdos)} attachments. <a href="/query/children.is.${rec.name}*/attachments/">Download all attachments</a>.</p>
+    <p>There are ${len(children)} image records in this imaging session, with ${len(bdos)} attachments. <a href="/record/${rec.name}/query/attachments/">Download all attachments</a>.</p>
 
     % for bdo in bdos:
         <div class="e2l-float-left" style="margin-right:10px;margin-bottom:10px;padding:10px;border:solid 1px #ccc">

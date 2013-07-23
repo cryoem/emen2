@@ -63,9 +63,9 @@ core_paramdefs = [
 # Binary
 {"name": "filename", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Filename"},
 {"name": "filesize", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "property": "bytes", "defaultunits": "B", "desc_short": "Filesize"},
-{"name": "filesize_compress", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "property": "bytes", "defaultunits": "B", "desc_short": "Filesize (compressed)"},
 {"name": "md5", "keytype": "paramdef", "parents": ["core"], "vartype": "md5", "desc_short": "MD5 Checksum"},
-{"name": "md5_compress", "keytype": "paramdef", "parents": ["core"], "vartype": "md5", "desc_short": "MD5 Checksum (compressed)"},
+# {"name": "md5_compress", "keytype": "paramdef", "parents": ["core"], "vartype": "md5", "desc_short": "MD5 Checksum (compressed)"},
+# {"name": "filesize_compress", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "property": "bytes", "defaultunits": "B", "desc_short": "Filesize (compressed)"},
 {"name": "file_binary", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "iter": True, "desc_short": "Attachments"},
 {"name": "compress", "keytype": "paramdef", "parents":["core"], "vartype": "string", "desc_short": "Compressed format"}
 ]
@@ -75,6 +75,15 @@ base_paramdefs = [
 {"name": "name_first", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "First name"},
 {"name": "name_middle", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Middle name"},
 {"name": "name_last", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Last name"},
+
+{"name": "performed_by", "keytype": "paramdef", "parents": ["base"], "vartype": "user", "desc_short": "Performed by"},
+{"name": "date_occurred", "keytype": "paramdef", "parents": ["base"], "vartype": "datetime", "desc_short": "Date occurred"},
+{"name": "deleted", "keytype": "paramdef", "vartype": "boolean", "parents": ["base"], "desc_short": "Deleted"},
+{"name": "folder_description", "keytype": "paramdef", "vartype": "string", "parents": ["base"], "desc_short": "Description"},
+{"name": "name_folder", "keytype": "paramdef", "vartype": "string", "parents": ["base"], "desc_short": "Folder name"},
+{"name": "person_photo", "keytype": "paramdef", "vartype": "binary", "parents": ["base"], "desc_short": "Profile photo"},
+
+
 {'desc_short': 'Project title', 'keytype': 'paramdef', 'name': 'name_project', 'parents': ['base'], 'vartype': 'string'},
 
 {'choices': ['Rejected',
@@ -135,7 +144,7 @@ base_paramdefs = [
 'desc_short': 'Background information',
 'keytype': 'paramdef',
 'name': 'description_background',
-'parents': ['textual_descriptions', 'biology_of_project'],
+'parents': ['base'],
 'vartype': 'text'
 },
 
@@ -187,8 +196,8 @@ $#email: $$email
 'name': 'group',
 'parents': ['core'],
 'views': { 'recname': """$$name_group""",
-         'tabularview': """$$name_group $$institution $$name_contact"""}},
-
+         'tabularview': """$$name_group $$institution $$name_contact"""}
+},
 
 {
 'desc_long': 'A folder, which is useful as a general purpose organization device.',

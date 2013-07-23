@@ -2079,7 +2079,7 @@ class DB(object):
             emails[user.name] = user.email
 
         for    user in users:
-            self.dbenv["newuser"].delete(user.name, txn=txn)
+            self.dbenv["newuser"].delete(user.name, ctx=ctx, txn=txn)
 
         # Send the emails
         for name, email in emails.items():

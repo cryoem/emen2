@@ -1716,8 +1716,10 @@ class NewUserDB(CollectionDB):
         self.bdb.delete(self.keydump(key), txn=txn, flags=flags)
 
     def new(self, *args, **kwargs):
+        print "newuser new:", args, kwargs
         txn = kwargs.get('txn', None)
         newuser = super(NewUserDB, self).new(*args, **kwargs)
+        print "--", newuser.email, newuser.password
 
         # Check  if this email already exists
         indemail = self.getindex('email', txn=txn)

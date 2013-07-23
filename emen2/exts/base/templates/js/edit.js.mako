@@ -313,7 +313,7 @@
 			    minimum: 0,
 			    selected: function(self, name){
 					var parent = self.element.parent();
-					var param = self.element.attr('data-paramdef');
+					var param = self.element.attr('data-paramdefl');
 					var iter = self.element.attr('data-iter');
 			        var d = $('<div/>').InfoBox({
 			            keytype: 'user',
@@ -475,13 +475,14 @@
                 if (e.length == 3) {
                     row.prepend(emen2.template.image('comment.closed.png'));
                     row.text(e[2]);
-                    row.appendTo(comments);
+                    // row.appendTo(comments);
                 } else if (e.length == 4) {
                     var pdname = e[2];
                     if (emen2.caches['paramdef'][pdname]){
-                        pdname=emen2.caches['paramdef'][pdname].desc_short
+                        pdname=emen2.caches['paramdef'][pdname].desc_short;
                     }
-                    emen2.template.image('edit.png').appendTo(row);
+                    emen2.template.image('edit.png')
+                        .appendTo(row);
                     row.append('Edited ' );
                     $('<a />')
                         .attr('href', emen2.template.uri(['paramdef', e[2]]))
@@ -489,7 +490,7 @@
                         .appendTo(row);
                     row.append('. Previous value was: ');
                     $('<span />')
-                        .text(e[3] || "None")
+                        .text(String(e[3]) || "None")
                         .appendTo(row);
                 }
             });

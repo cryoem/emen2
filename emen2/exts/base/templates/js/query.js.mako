@@ -748,7 +748,7 @@
                                 .attr('src', '/'+rendered);
                         } else {
                             var a = $('<a />')
-                                .attr('href', emen2.template.uri(['record', names[i]]))
+                                .attr('href', emen2.template.uri([self.options.q['keytype'], names[i]]))
                                 .text(rendered);
                         }
                         $('<td />').append(a).appendTo(row);

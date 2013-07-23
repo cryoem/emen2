@@ -79,7 +79,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     :attr password: Hashed (bcrypt) password.
     """
 
-    attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(['email'])
+    attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(['email', 'password'])
 
     def init(self, d):
         super(BaseUser, self).init(d)
@@ -99,10 +99,15 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     def validate(self):
         super(BaseUser, self).validate()
         if not self.password: 
+            traceback.print_stack()
             raise self.error('No password set.')
         if not self.email:
             raise self.error('No email set.')
-        self._validate_email(self.email)
+
+    def isowner(self):
+        if self.name and self.name == self._ctx.username:
+            return True
+        return Super(BaseUser, self).isowner()
 
     ##### Setters #####
 
@@ -136,6 +141,13 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         history = history or []
         password = unicode(password or '')
 
+        # Todo: make this better.
+        # Pass through MD5 or BCrypt passwords.
+        if len(password) == 60 and password.startswith('$'):
+            return password
+        if len(password) == 40:
+            return password
+
         # Check against email, username.
         if self.name and self.name in password:
             raise self.error("User name cannot be in password")
@@ -150,8 +162,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             '.*([0-9]).*',
             '.*([\!\@\#\$\%\^\&\*\(\)\[\]\/\?\<\>\,\.\~\`\=]).*'
         ]
-        if not all([re.match(i, password) for i in categories]):
-            raise self.error("Password needs more complexity. One each from: a-z, A-Z, 0-9, and a special character such as @, #, !, %, ^, etc.")
+        # if not all([re.match(i, password) for i in categories]):
+        #    raise self.error("Password not strong enough. Needs a lower case letter, an upper case letter, a number, and a symbol such as @, #, !, %, ^, etc.")
 
         # Check the minimum length.
         if len(password) < MINLENGTH:
@@ -163,8 +175,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
                 raise self.error("Cannot re-use previous password.")
         
         # bcrypt hash the password with a random salt.
-        password = self._hashpassword(password)
-        return password
+        return self._hashpassword(password)
 
     def checkpassword(self, password):
         """Check the user password. Will raise a SecurityError if failed."""
@@ -356,7 +367,6 @@ class NewUser(BaseUser):
 
     def setsignupinfo(self, update):
         self._set('signupinfo', update)
-        self.validate()
 
 
 class User(BaseUser):

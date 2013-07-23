@@ -247,7 +247,8 @@ class Record(View):
         # Look up all the binaries
         children = self.db.rel.children(self.rec.name, recurse=-1)
         bdos = self.db.binary.find(record=children, count=0)
-        self.ctxt['q'] = self.db.table(subset=[i.name for i in bdos], keytype='binary', view="{{checkbox()}} {{thumbnail()}} {{filename}} {{filesize}}")
+        names = [i.name for i in bdos]
+        self.ctxt['q'] = self.db.table(subset=names, keytype="binary", checkbox=True, view="{{checkbox()}} {{thumbnail}} {{filename}} {{filesize}} {{recname(record)}} {{record}}")
     
     @View.add_matcher('^/record/(?P<name>[^/]*)/children/$')
     def children_map(self, name=None):
