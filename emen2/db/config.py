@@ -321,7 +321,7 @@ class UsageParser(object):
         if exts:
             exts = exts.split(',')
             self.config.globalns.extensions.exts = exts
-
+			
         # Create new database?
         self.config.globalns.params.create = self.options['create']
 

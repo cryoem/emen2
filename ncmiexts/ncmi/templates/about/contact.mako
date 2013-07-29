@@ -3,18 +3,24 @@ public = True
 %>
 <%inherit file="/page" />
 
-<h1 style="background:red">Contact</h1>
+<h1>Contact</h1>
 
-For general inquiries:<br />
-Web Admin<br />
-Email: webadmin@blake.grid.bcm.edu<br />
+<p>
+    For general inquiries:
+    <br />
+    Web Admin<br />
+    Email: 
+    <a href="mailto:webadmin@blake.grid.bcm.edu">
+        webadmin@blake.grid.bcm.edu
+    </a>
+</p>
 
-<br /><br />
+<h1>Mailing address</h1>
 
-Address:
-<pre>
-  National Center for Macromolecular Imaging, Room N420
-  Baylor College of Medicine, Mail Stop BCM125
-  1 Baylor Plaza, 
+<p>
+  National Center for Macromolecular Imaging<br />
+  Baylor College of Medicine<br/>
+  Mail Stop BCM125<br />
+  1 Baylor Plaza, <br />
   Houston, TX 77030
-</pre>
+</p>

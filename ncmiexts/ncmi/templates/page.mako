@@ -109,7 +109,7 @@ body {
 
   <li><a href="/people">People</a>
     <ul>
-      <li><a href="">Current faculty &amp; staff</a></li>
+      <li><a href="/people/current">Current faculty &amp; staff</a></li>
       <li><a href="">Alumni</a></li>
     </ul>
   </li>
