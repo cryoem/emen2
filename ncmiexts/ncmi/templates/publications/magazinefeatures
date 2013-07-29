@@ -1,0 +1,53 @@
+<%!
+public = True
+%>
+<%inherit file="/page" />
+
+<div id="content">
+
+
+
+
+
+
+
+
+
+<h2>Magazine Feature Articles</h2>
+
+                <ul>
+                    <li><a
+		    href="http://www.bcm.edu/news/item.cfm?newsID=553">Computational advancements open door to virus, cell interactions</a> - BCM News</li>
+                    <br><br><li><a href="http://ncmi.bcm.edu/ncmi/publication/magazine_articles/NCRRreport">A Closer Look at the Bigger Picture - NCRR Report, Summer 2004</a></li>
+                    <br><br><li><a href="http://ncmi.bcm.edu/ncmi/publication/magazine_articles/houstonchronicle">Houston researchers fight microscopic
+		    battles</a> - Houston Chronicle Newspaper</li>
+                    <br><br><li><a href="http://www.ncsa.uiuc.edu/News/Access/Stories/ParticleReconstruction/">Piecing it Together</a> - Access Magazine</li>
+                </ul>
+             
+	<!-- end content div -->
+</div>
+
+
+<div id="footer">
+	<a href="http://www.bcm.edu"><img src="http://ncmi.bcm.edu/ncmi/images/bcmLogo" id="logo" alt="Baylor College of Medicine" /></a>
+	<a href="http://www.bcm.edu/">BCM Home</a> | 
+	<a href="http://intranet.bcm.edu/">BCM Intranet</a> | 
+	<a href="http://www.bcm.edu/about/privacy/notices.cfm">Privacy Notices</a> | 
+	<a href="http://www.bcm.edu/about/contact.cfm">Contact BCM</a> | 
+	<a href="http://www.bcm.edu/sitemap.cfm">BCM Site Map</a><br />
+	&copy; 1998-2007 Baylor College of Medicine<br />
+
+	<a href="http://ncmi.bcm.tmc.edu/ncmi">National Center for Macromolecular Imaging</a> |
+
+		Logged In as <a href="change_password_html"><i>vincentyu</i></a> | <a href="manage_zmi_logout">LOGOUT</a>
+	 | 
+
+	<br />
+
+	Room N420, 1 Baylor Plaza, Houston, TX 77030 | Phone: 713-798-6989 | Fax: 713-798-1625 <br />
+
+	<a href="mailto:webadmin@blake.grid.bcm.edu">Contact Webmaster</a> | 
+	Modified: 
+	Apr. 19, 2007
+			
+</div>
