@@ -228,9 +228,9 @@ class DBProxy(object):
         setattr(func, 'compat', compat)
 
         cls._publicmethods[func.apiname] = func
-        cls._publicmethods[func.func_name] = func
-        if compat:
-            cls._publicmethods[compat] = func
+        # cls._publicmethods[func.func_name] = func
+        # if compat:
+        #    cls._publicmethods[compat] = func
 
         cls.mt.add_method(apiname, func)
         cls.mt.add_method(func.func_name, func)

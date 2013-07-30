@@ -302,6 +302,9 @@ class BaseDBObject(object):
         self.error("Cannot set parameter %s in this way"%key, warning=True)
         return set()
 
+    def _set_uri(self, key, value):
+        return set()
+
     ##### Update parents / children #####
 
     def _set_children(self, key, value):

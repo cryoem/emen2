@@ -2883,7 +2883,7 @@ class DB(object):
 
         Examples:
 
-        >>> db.binary.put({filename='hello.txt', filedata='Hello, world', record='0'})
+        >>> db.binary.put({'filename':'hello.txt', 'filedata':'Hello, world', 'record':'0'})
         <Binary bdo:2011101000000>
 
         >>> db.binary.put({'name':'bdo:2011101000000', 'filename':'newfilename.txt'})

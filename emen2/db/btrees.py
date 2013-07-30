@@ -116,13 +116,13 @@ class EMEN2DBEnv(object):
             for item in loader.loadfile(keytype=keytype):
                 emen2.db.log.debug("BDB: Load %s %s"%(keytype, item.get('name')))
                 name = item.get('name')
-                
+                uri = item.pop('uri', None)
                 orig = None
                 try:
                     orig = self[keytype]._get_data(name, txn=txn)
                 except KeyError, e:
                     pass
-                if orig and orig.get('uri') != item.get('uri'):
+                if orig and orig.get('uri') != uri:
                     print "SKIPPING", name
                     continue
                 
@@ -130,6 +130,7 @@ class EMEN2DBEnv(object):
                 # parents[name] = set(item.pop('parents', []))
                 i = self[keytype].dataclass(ctx=ctx)
                 i._load(item)
+                i.__dict__['uri'] = uri
                 self[keytype]._put_data(i.name, i, txn=txn)
 
             for k,v in children.items():
