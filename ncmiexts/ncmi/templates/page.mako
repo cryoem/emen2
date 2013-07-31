@@ -79,7 +79,9 @@ body {
   margin:10px;
 }
 .ncmi-person img {
+	float:left;
   width:128px;
+  margin:10px;
 }
 .ncmi-person p {
   padding:10px;

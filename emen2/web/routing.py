@@ -206,8 +206,8 @@ class _Router(emen2.util.registry.Registry):
             route = cls.registry.get('TemplateRender/main')
             f = partial(route.method, template=template)
             return route.cls, f
-        except:
-            pass
+        except Exception, e:
+            emen2.db.log.error("Couldn't render template %s: %s"%(template, e))
             
         # Raise a 404.
         raise responsecodes.NotFoundError(path or name)
