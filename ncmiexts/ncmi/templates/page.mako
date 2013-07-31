@@ -92,9 +92,6 @@ body {
 </%block>
 
 
-
-
-
 <div id="ncmi-title">
 
 
