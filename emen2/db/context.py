@@ -109,10 +109,10 @@ class Context(object):
         return "admin" in self.groups
 
     def checkreadadmin(self):
-        return set(["admin", "readadmin"]) & self.groups
+        return bool(set(["admin", "readadmin"]) & self.groups)
 
     def checkcreate(self):
-        return set(["admin", "create"]) & self.groups
+        return bool(set(["admin", "create"]) & self.groups)
 
 
 class SpecialRootContext(Context):

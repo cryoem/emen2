@@ -6,6 +6,7 @@ import re
 import sys
 import time
 import datetime
+import dateutil
 import collections
 import functools
 import getpass
@@ -60,6 +61,8 @@ if BACKEND == "bdb":
 else:
     raise ImportError, "Unsupported EMEN2 backend: %s"%backend
 
+# This should go in configuration.
+MINLENGTH = 8
 
 # EMEN2 Extensions
 emen2.db.config.load_exts()
@@ -92,35 +95,43 @@ basestring = (str, unicode)
 ##### Utility methods #####
 
 def getrandomid():
-    """Generate a random ID."""
+    """Generate a random ID (UUID4 string)
+    :return: UUID4 string
+    """
     return uuid.uuid4().hex
 
 def getctime():
-    """Current database time, as float in seconds since the epoch."""
+    """Current database time, as float in seconds since the UNIX epoch.
+    :return: Time as float in seconds since the UNIX epoch.
+    """
     return time.time()
 
 def utcnow():
-    """Returns the current database UTC time in ISO 8601 format."""
+    """Returns the current database UTC time in ISO 8601 format.
+    :return: UTC time in ISO 8601 format.
+    """
     return datetime.datetime.utcnow().replace(microsecond=0).isoformat()+'+00:00'
 
 def getpw(pw=None):
-    """Prompt for a password."""
-    minlength = 8
+    """Prompt for a password.
+    :keyword pw: Use this password, or prompt using getpass.getpass()
+    :return: Password.
+    """
+    # TODO: Actually validate password using User rules.
     pw = pw or getpass.getpass("Password: ")
-    while len(pw) < minlength:
+    while len(pw) < MINLENGTH:
         if len(pw) == 0:
             print "Warning! No password!"
             pw = ''
             break
-        elif len(pw) < minlength:
-            print "Warning! If you set a password, it needs to be more than %s characters."%minlength
+        elif len(pw) < MINLENGTH:
+            print "Warning! If you set a password, it needs to be more than %s characters."%MINLENGTH
             pw = getpass.getpass("Password: ")
     return pw
 
 def ol(name, output=True):
     """Decorator function to return a list if function arg 'name' was a list, 
     or return the first element if function arg 'name' was not a list.
-
     :param name: Argument name to transform to list.
     :keyword output: Transform output.
     """
@@ -174,15 +185,16 @@ def limit_result_length(default=None):
 ##### Email #####
 
 # ian: TODO: put this in a separate module
-def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
+def sendmail(to_addr, subject='', msg='', template=None, ctxt=None):
     """(Internal) Send an email. You can provide either a template or a message subject and body.
 
     :param to_addr: Email recipient
     :keyword subject: Subject
     :keyword msg: Message text, or
-    :keyword template: ... Template name  
-    :keyword ctxt: ... Dictionary to pass to template  
-    :return: Email recipient, or None if no message was sent
+    :keyword template: ... template name  
+    :keyword ctxt: Dictionary to pass to template  
+    :return: Email recipient, or None if email is not configured.
+    :exception: ValueError if no message to send.
     """
     from_addr, smtphost = emen2.db.config.mailconfig()
     if not (from_addr and smtphost):
@@ -207,7 +219,7 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
             msg = emen2.db.config.templates.render_template(template, ctxt)
         except Exception, e:
             emen2.db.log.warn('EMAIL: Could not render mail template %s: %s'%(template, e))
-            return
+            raise ValueError, "Could not render mail template."
     else:
         raise ValueError, "No message to send!"
 
@@ -231,6 +243,7 @@ def opendb(name=None, password=None, admin=False, db=None):
     :keyparam password: Password
     :keyparam admin: Open DBProxy with an administrative context
     :keyparam db: Use an existing DB instance.
+    :return: DBProxy
     """
     # Import here to avoid issues with publicmethod.
     import emen2.db.proxy
@@ -247,11 +260,12 @@ def opendb(name=None, password=None, admin=False, db=None):
     return proxy
 
 
-def setup(db=None, rootpw=None, rootemail=None):
+def setup(db=None, rootpw=None, rootemail='root@localhost'):
     """Create root user, basic groups, and root record.
 
-    @keyparam rootpw Root Account Password
-    @keyparam rootemail Root Account email
+    :keyword db: DBProxy
+    :keyword rootpw: Root Account Password
+    :keyword rootemail: Root Account email
     """
     db = db or opendb(db=db, admin=True)
     with db:
@@ -260,9 +274,7 @@ def setup(db=None, rootpw=None, rootemail=None):
            print "Admin account and default groups already exist."
            return
 
-        defaultemail = 'root@localhost'
         print "\n=== Setup Admin (root) account ==="
-        rootemail = rootemail or defaultemail
         rootpw = getpw(pw=rootpw)
         root = {'name':'root', 'email':rootemail, 'password':rootpw}
         db.user.put(root)
@@ -289,7 +301,7 @@ class DB(object):
     """EMEN2 Database."""
 
     def __init__(self, path=None, dbenv=None):
-        """
+        """(Internal) EMEN2 Database.
         :keyword path: Directory containing an EMEN2 Database Environment.
         :keyword dbenv: Pass an existing EMEN2DBEnv.
         """
@@ -347,8 +359,11 @@ class DB(object):
 
         return context
 
-    def _sudo(self, username=None, ctx=None, txn=None):
-        """(Internal) Create an admin context for performing actions that require admin privileges."""
+    def _sudo(self, username='root', ctx=None, txn=None):
+        """(Internal) Create an admin context for performing actions that require admin privileges.
+        :keyword username: Requested username
+        :return: New SpecialRootContext, with requested username instead or root
+        """
         emen2.db.log.security("Created special root context for %s."%username)
         ctx = emen2.db.context.SpecialRootContext()
         ctx.refresh(db=self, username=username)
@@ -373,7 +388,13 @@ class DB(object):
         return self.dbenv[keytype].puts(items, ctx=ctx, txn=txn)
 
     def _boolmode_collapse(self, rets, boolmode):
-        """(Internal) Perform bool operation on results."""
+        """(Internal) Perform bool operation on results.
+
+        :param rets: List of sets
+        :param boolmode: AND / OR
+        :return: Reduced sets w/ intersection (AND) or union (OR)
+        """
+        # TODO: Deprecated?
         if not rets:
             rets = [set()]
         if boolmode == 'AND':
@@ -383,7 +404,11 @@ class DB(object):
         return allret
 
     def _user_by_email(self, name, ctx=None, txn=None):
-        """(Internal) Lookup a user by name or email address."""
+        """(Internal) Lookup a user by name or email address.
+        
+        :param name: Username or email
+        :return: User (no bound Context)
+        """
         name = unicode(name or '').strip().lower()
         found = self.dbenv["user"].getindex('email', txn=txn).get(name, txn=txn)
         if found:
@@ -391,7 +416,11 @@ class DB(object):
         return self.dbenv["user"]._get_data(name, txn=txn)
 
     def _findrecorddefnames(self, names, ctx=None, txn=None):
-        """(Internal) Find referenced recorddefs."""
+        """(Internal) Find referenced recorddefs.
+        :param names:
+        :return: RecordDefs
+        """
+        # TODO: Deprecated?
         recnames, recs, rds = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
         rds = set(rds)
         rds |= set([i.rectype for i in recs])
@@ -401,7 +430,11 @@ class DB(object):
         return rds
 
     def _findparamdefnames(self, names, ctx=None, txn=None):
-        """(Internal) Find referenced paramdefs."""
+        """(Internal) Find referenced paramdefs.
+        :param names:
+        :return: ParamDefs
+        """
+        # TODO: Deprecated?
         recnames, recs, params = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
         params = set(params)
         if recnames:
@@ -411,7 +444,13 @@ class DB(object):
         return params
 
     def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
-        """(Internal) Find referenced users/binaries."""
+        """(Internal) Find referenced users/binaries.
+        
+        :param names: Records
+        :param vartypes:
+        :return: ParamDefs with a given Vartype
+        """
+        # TODO: Deprecated?
         recnames, recs, values = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
         values = set(values)
         if recnames:
@@ -457,7 +496,13 @@ class DB(object):
         return values
 
     def _find_pdrd_vartype(self, vartype, items):
-        """(Internal) Find RecordDef based on vartype."""
+        """(Internal) Find RecordDef based on vartype.
+        
+        :param vartype:
+        :param items:
+        :return: ParamDefs
+        """
+        # TODO: Deprecated?
         ret = set()
         vartype = listops.check_iterable(vartype)
         for item in items:
@@ -467,7 +512,20 @@ class DB(object):
 
     # todo: This should just use the query system.
     def _find_pdrd(self, cb, query=None, childof=None, keytype="paramdef", record=None, vartype=None, ctx=None, txn=None, **qp):
-        """(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
+        """(Internal) Find ParamDefs or RecordDefs based on **qp constraints.
+        
+        Ugly old method.
+        
+        :param cb:
+        :keyword query:
+        :keyword childof:
+        :keyword keytype:
+        :keyword record:
+        :keyword vartype:
+        :keyword qp: Query parameters
+        :return: ParamDefs or RecordDefs.
+        """
+        # TODO: Deprecated?
         rets = []
         # This can still be done much better
         names, items = zip(*self.dbenv[keytype].items(ctx=ctx, txn=txn))
@@ -516,15 +574,26 @@ class DB(object):
 
     @publicmethod()
     def time_difference(self, t1, t2=None, ctx=None, txn=None):
-        """Returns the difference between two ISO8601 format timestamps in seconds.
+        """Returns the difference between two ISO8601 format timestamps, in seconds.
+        
+        Examples:
+        
+        >>> db.time.difference('2013-05-01')
+        7861667.0
+        
+        >>> db.time.difference('1990')
+        725932042.0
+
         
         :param t1: The first time.
         :keyword t2: The second time; defaults to now.
         :return: Time difference, in seconds.
         """
-        t1 = dateutil.parser.parse(t1)[0]
-        t2 = dateutil.parser.parse(t2 or utcnow())[0]
-        return t2 - t1
+        t1 = dateutil.parser.parse(t1)
+        if not t1.tzinfo:
+            t1 = t1.replace(tzinfo=dateutil.tz.tzutc())
+        t2 = dateutil.parser.parse(t2 or utcnow())
+        return (t2 - t1).total_seconds()
         
     @publicmethod()
     def time_now(self, ctx=None, txn=None):
@@ -548,10 +617,7 @@ class DB(object):
         Examples:
 
         >>> db.version()
-        2.0rc7
-
-        >>> db.version(program='API')
-        2.0rc7
+        2.2.9
 
         :keyword program: Check version for this program (API, emen2client, etc.)
         :return: Version string
@@ -631,7 +697,7 @@ class DB(object):
         Examples:
 
         >>> db.auth.logout()
-        None
+        None        
         """
         if ctx.name in self.contexts_cache:
             self.contexts_cache.pop(ctx.name, None)
@@ -691,7 +757,7 @@ class DB(object):
 
         :return: True if the user can create records.
         """
-        return ctx.checkcreate
+        return ctx.checkcreate()
 
 
     ##### Generic methods #####
@@ -700,14 +766,10 @@ class DB(object):
     def exists(self, name, keytype='record', ctx=None, txn=None):
         """Check for the existence of an item.
         
-        Examples:
-        
-        >>> db.exists("root", keytype="user")
-        True
-        
-        :param name: Item name
-        :keyword keytype: Item keytype
-        :return: True if the item exists
+        This method is the same as:
+            db.<keytype>.exists(name)
+
+        See these methods (e.g. record.exists) for additional details.    
         """
         return self.dbenv[keytype].exists(name, txn=txn)
 
@@ -718,54 +780,19 @@ class DB(object):
 
         This method is the same as:
             db.<keytype>.get(items)
-
-        >>> db.get('0')
-        <Record 0, folder>
-
-        >>> db.get(['0', '136'])
-        [<Record 0, folder>, <Record 136, group>]
-
-        >>> db.get('creator', keytype='paramdef')
-        <ParamDef creator>
-
-        >>> db.get(['ian', 'steve'], keytype='user')
-        [<User ian>, <User steve>]
-
-        :param names: Item name(s)
-        :keyword keytype: Item keytype
-        :keyword filt: Ignore failures
-        :return: Item(s)
-        :exception KeyError:
-        :exception SecurityError:
+            
+        See these methods (e.g. record.get) for additional details.    
         """
         return getattr(self, '%s_get'%(keytype))(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod()
     def new(self, *args, **kwargs):
-        """Create a new item.
+        """Construct a new item.
 
         This method is the same as:
             db.<keytype>.new(*args, **kwargs)
-
-        Examples:
-
-        >>> db.new(rectype='folder', keytype='record')
-        <Record None, folder>
-
-        >>> db.new(name='new_item', vartype='string', keytype='paramdef')
-        <ParamDef new_item>
-
-        >>> db.new(name='new_item', vartype='unknown_vartype', keytype='paramdef')
-        ValidationError: "Unknown vartype unknown_vartype"
-
-        >>> db.new(rectype='folder', keytype='recorddef')
-        ExistingKeyError, "RecordDef folder already exists."
-
-        :keyword keytype: Item keytype
-        :return: New, uncommitted item
-        :exception ExistingKeyError:
-        :exception SecurityError:
-        :exception ValidationError:
+            
+        See these methods (e.g. record.new) for additional details.
         """
         keytype = kwargs.pop('keytype', 'record')
         return getattr(self, '%s_new'%(keytype))(*args, **kwargs)
@@ -778,23 +805,7 @@ class DB(object):
         This method is the same as:
             db.<keytype>.put(items)
 
-        Examples:
-
-        >>> db.put({'rectype':'folder', 'name_folder':'Test', 'parents':['0']})
-        <Record 499203, folder>
-
-        >>> db.put([<Record 0, folder>, <Record 136, group])
-        [<Record 0, folder>, <Record 136, group>]
-
-        >>> db.put({'name': 'test_name', 'vartype':'string', 'desc_short':'Test parameter'}, keytype='paramdef')
-        <ParamDef test_name>
-
-        :param items: Item(s) to commit
-        :keyword keytype: Item keytype
-        :keyword filt: Ignore failures
-        :return: Updated item(s)
-        :exception SecurityError:
-        :exception ValidationError:
+        See these methods (e.g. record.put) for additional details.
         """
         return getattr(self, '%s_put'%(keytype))(items, ctx=ctx, txn=txn)
 
@@ -815,16 +826,15 @@ class DB(object):
     #     keytype = kwargs.pop('keytype', 'record')
     #     return getattr(self, '%s_find'%(keytype))(ctx=ctx, txn=txn)
 
-    @publicmethod()
-    def query2(self, *c, **kwargs):
-        """Experimental."""
-        keytype = kwargs.pop('keytype','record')
-        ctx = kwargs.pop('ctx')
-        txn = kwargs.pop('txn')
-        c = list(c)
-        for k,v in kwargs.items():
-            c.append([k, 'is', v])
-        return self.query(c, keytype=keytype, ctx=ctx, txn=txn)['names']
+    # def _query2(self, *c, **kwargs):
+    #     """Experimental."""
+    #     keytype = kwargs.pop('keytype','record')
+    #     ctx = kwargs.pop('ctx')
+    #     txn = kwargs.pop('txn')
+    #     c = list(c)
+    #     for k,v in kwargs.items():
+    #         c.append([k, 'is', v])
+    #     return self.query(c, keytype=keytype, ctx=ctx, txn=txn)['names']
 
     @publicmethod()
     def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keywords=None, keytype="record", ctx=None, txn=None, **kwargs):
@@ -833,15 +843,15 @@ class DB(object):
         Constraints are provided in the following format:
             [param, operator, value]
 
-        Operation and value are optional. An arbitrary number of constraints may be given.
+        Operation and value are optional for each constraint.
 
         Operators:
-            is        or  ==
-            not       or  !=
-            gt        or  >
-            lt        or  <
-            gte       or  >=
-            lte       or  <=
+            is        or      ==
+            not       or      !=
+            gt        or      >
+            lt        or      <
+            gte       or      >=
+            lte       or      <=
             any
             none
             contains
@@ -849,10 +859,8 @@ class DB(object):
             name
 
         Examples constraints:
-            [name, '==', 136]
-            ['creator', '==', 'ian']
+            ['creator', 'is', 'ian']
             ['rectype', 'is', 'image_capture*']
-            ['recname()', 'noop']
             [['modifytime', '>=', '2011'], ['name_pi', 'contains', 'steve']]
 
         For record names, parameter names, and protocol names, a '*' can be used to also match children, e.g:
@@ -883,6 +891,7 @@ class DB(object):
         :keyparam count: Return a limited number of results
         :keyparam reverse: Reverse sorting
         :keyparam subset: Restrict to names
+        :keyparam keywords: Search for keywords
         :keyparam keytype: Key type
         :return: A dictionary containing the original query arguments, and the result in the 'names' key
         :exception KeyError:
@@ -912,14 +921,30 @@ class DB(object):
 
     @publicmethod()
     def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, checkbox=False, keywords=None, keytype="record", view=None, ctx=None, txn=None, **kwargs):
-        """Query results suitable for making a table.
-
-        This method extends query() to include rendered views in the results.
+        """Query results in table format.
+        
+        This method extends query() to include rendered values in the results.
         These are available in the 'rendered' key in the return value. Key is
         the item name, value is a list of the values for each column. The
-        headers for each column are in the 'header' key.
+        headers for each column are in the 'keys_desc' key.
 
         The maximum number of items returned in the table is 1000.
+        
+        Examples:
+        
+        >>> db.table([['creator', '==', 'ian']])
+        {   'names':['3','2','1'], 
+            'stats': {'time': 0.002, 'length':3}, 
+            'c': [['creator', 'is', 'ian]], 
+            'sortkey': 'creationtime',
+            'rendered': {
+                '1': {'recname()': 'Folder 1', 'rectype': 'folder', 'creator': 'ian', ...},
+                '2': {'recname()': 'Folder 2', 'rectype': 'folder', 'creator': 'ian', ...},
+                '3': {'recname()': 'Folder 3', 'rectype': 'folder', 'creator': 'ian', ...}
+            },
+            'keys_desc': {'recname()': 'recname: ', 'creator': 'Created by', 'creationtime': 'Creation time', 'rectype': 'Protocol', 'name': 'ID'}
+            ...
+        }
         
         :keyparam c: Constraints
         :keyparam mode: AND / OR on constraints
@@ -1049,6 +1074,24 @@ class DB(object):
 
         The matching values for each constraint are available in the "items"
         key in the return value. This is a list of stub items.
+        
+        Examples:
+        
+        >>> db.plot(x={'key':'ctf_bfactor'}, y={'key':'ctf_defocus_set'})
+        {   
+            'names':['6','5','4'], 
+            'stats': {'time': 0.002, 'length':3}, 
+            'c': [],
+            'y': {'key': 'ctf_defocus_set'}, 
+            'x': {'key': 'ctf_bfactor'}, 
+            'z': {},
+            'recs': [
+                {'ctf_defocus_set': 1.1, 'ctf_bfactor': 188.406, 'name': u'6'},
+                {'ctf_defocus_set': 1.2, 'ctf_bfactor': 148.551, 'name': u'5'},
+                {'ctf_defocus_set': 1.3, 'ctf_bfactor': 142.121, 'name': u'4'}
+            ]
+            ...
+        }        
 
         :keyparam c: Constraints
         :keyparam mode: AND / OR on constraints
@@ -1090,29 +1133,28 @@ class DB(object):
         ret['stats']['time'] = q.time
         ret['recs'] = q.cache.values()
         return ret
-        
-    @publicmethod()
-    def groupby(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keywords=None, keytype="record", ctx=None, txn=None, **kwargs):
-        # Run the query
-        ret = {}
-        q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
-        q.run()
-
-        q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)        
-        grouped = collections.defaultdict(set)
-        print q.cache
-        # for k,v in q.cache.items():
-        #     grouped[v].add(k)
-        # print grouped
-        # print recs
-        
-        
-        
+    
+    # @publicmethod()
+    # def groupby(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keywords=None, keytype="record", ctx=None, txn=None, **kwargs):
+    #     # Run the query
+    #     ret = {}
+    #     q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
+    #     q.run()
+    # 
+    #     q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)        
+    #     grouped = collections.defaultdict(set)
+    #     print q.cache
+    #     # for k,v in q.cache.items():
+    #     #     grouped[v].add(k)
+    #     # print grouped
+    #     # print recs
 
     @publicmethod()
     @ol('names')
     def render(self, names, keys=None, keytype='record', options=None, ctx=None, txn=None):
         """Render keys.
+
+        Examples:
 
         >>> db.render('0')
         {'name': u'0', 'creator': u'Admin', u'name_folder': u'EMEN2', ...}
@@ -1126,8 +1168,6 @@ class DB(object):
         >>> db.render('0', keys=['name_folder'], options={'output':'form'})
         {u'name_folder': Markup(u'<span class="e2-edit" data-paramdef="name_folder" 
             data-vartype="string"><input type="text" name="name_folder" value="EMEN2" /></span>'), ...}
-
-        Example:
 
         :param names:
         :keyword keys: Render these keys; otherwise, render most keys.
@@ -1268,7 +1308,7 @@ class DB(object):
         :keyparam view: A view template
         :keyparam viewname: A view template from the item's RecordDef views.
         :keyparam keytype: Key type
-        :keyparam options: A dictionay containing rendering options, may include 'output', 'tz', 'lnf', etc., keys.    
+        :keyparam options: A dictionary containing rendering options, may include 'output', 'tz', 'lnf', etc., keys.    
         """
         options = options or {}
         ret = {}
@@ -1342,7 +1382,7 @@ class DB(object):
 
         :param parent: Parent name
         :param child: Child name
-        :param keytype: Item type
+        :keyword keytype: Item type
         :keyword filt: Ignore failures
         :return:
         :exception KeyError:
@@ -2331,7 +2371,7 @@ class DB(object):
         >>> db.record.validate({'rectype':'folder', 'performed_by':'unknown_user'})
         ValidationError
 
-        >>> db.record.validate({'name':'136', 'name_folder':'No permission to edit..'})
+        >>> db.record.validate({'name':'136', 'name_folder':'No permission to edit.'})
         SecurityError
 
         >>> db.record.validate({'name':'12345', 'name_folder':'Unknown record'})
@@ -2351,7 +2391,7 @@ class DB(object):
     def record_adduser(self, names, users, level=0, ctx=None, txn=None):
         """Add users to a Record's permissions.
 
-        >>> db.record.adduser(0, 'ian')
+        >>> db.record.adduser('0', 'ian')
         <Record 0, folder>
 
         >>> db.record.adduser(['0', '136'], ['ian', 'steve'])
