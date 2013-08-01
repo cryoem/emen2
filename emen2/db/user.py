@@ -20,11 +20,18 @@ import emen2.db.exceptions
 import emen2.db.dataobject
 import emen2.db.config
 
-MINLENGTH = 8
+# These will go in config.
+PASSWORD_MINLENGTH = 8
+PASSWORD_CATEGORIES = [
+    # '.*([a-z]).*',
+    # '.*([A-Z]).*',
+    # '.*([0-9]).*',
+    # '.*([\!\@\#\$\%\^\&\*\(\)\[\]\/\?\<\>\,\.\~\`\=]).*'
+]
 
 # DBO that contains a password and email address
 class BaseUser(emen2.db.dataobject.BaseDBObject):
-    """Base User DBO. Allows an email address and a password.
+    """Base User DBO, with an email address and a password.
     
     Passwords are currently hashed with bcrypt. The password is never exposed
     via the API; you have to directly retreive the item from the DB without
@@ -147,26 +154,22 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         if len(password) == 40:
             return password
 
+        # root password can be anything.
+        if self.name == 'root':
+            return password
+
         # Check against email, username.
         if self.name and self.name in password:
             raise self.error("User name cannot be in password")
         if self.email and self.email in password:
             raise self.error("Email cannot be in password")
 
-        # Check category strength first; 
-        #   gives the user feedback before checking length.
-        categories = [
-            '.*([a-z]).*',
-            '.*([A-Z]).*',
-            '.*([0-9]).*',
-            '.*([\!\@\#\$\%\^\&\*\(\)\[\]\/\?\<\>\,\.\~\`\=]).*'
-        ]
-        # if not all([re.match(i, password) for i in categories]):
-        #    raise self.error("Password not strong enough. Needs a lower case letter, an upper case letter, a number, and a symbol such as @, #, !, %, ^, etc.")
-
         # Check the minimum length.
-        if len(password) < MINLENGTH:
+        if len(password) < PASSWORD_MINLENGTH:
             raise self.error("Password too short; minimum %s characters required"%MINLENGTH)
+
+        if not all([re.match(i, password) for i in PASSWORD_CATEGORIES]):
+            raise self.error("Password not strong enough. Needs a lower case letter, an upper case letter, a number, and a symbol such as @, #, !, %, ^, etc.")
 
         # Check the password history.
         for i in history:
@@ -223,7 +226,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         This creates an internal 'secret' token that can be used to reset a
         password. This should be sent to the user's registered email address.
 
-        The secret must never be accessible via public methods. Only via email.
+        The secret must never be accessible via public methods.
         """
         # The second argument should be the email address
         self._setsecret('resetpassword', None)
@@ -317,7 +320,8 @@ signupinfo = set(["name_first", "name_middle", "name_last", "comments", "institu
 class NewUser(BaseUser):
     """New User.
     
-    This is a container for signup information. It is convered to a User when approved.
+    This is a container for signup information. It is convered to a User when
+    approved.
     
     The signup information is kept in 'signupinfo'. This will be converted to a
     'person' record when approved.

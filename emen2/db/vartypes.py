@@ -34,7 +34,7 @@ ValidationError = emen2.db.exceptions.ValidationError
 ALLOW_MISSING = True
 
 # Text values equivalent to "None"
-NONEVALUES = [None, "", "N/A", "n/a", "None"]
+NONE_VALUES = [None, "", "N/A", "n/a", "None"]
 
 ##### Helper methods #####
 
@@ -81,9 +81,9 @@ def iso8601duration(d):
     S is the second designator that follows the value for the number of seconds.
 
     Examples:
-    d = 'P1M2D' # 1 month, 2 days
-    d = 'P1Y2M3DT4H5M6S' # 1 year, 2 months, 3 days, 4 hours, 5 minutes, 6 seconds
-    d = 'P3W' # 3 weeks
+        'P1M2D' = 1 month, 2 days
+        'P1Y2M3DT4H5M6S' = 1 year, 2 months, 3 days, 4 hours, 5 minutes, 6 seconds
+        'P3W' = 3 weeks
     """
     regex = re.compile("""
             (?P<type>.)
@@ -108,15 +108,14 @@ def iso8601duration(d):
 ##### Vartypes #####
 
 class Vartype(object):
-    '''Base class for Vartypes.'''
-
-    #: The index key type for this class
-    keyformat = 'str'
-
-    #: Is this vartype iterable?
-    iterable = True
+    '''Base class for Vartypes.
     
-    #: Sort using rendered values?
+    :attr keyformat: Index format
+    :attr iterable: Allow iterable
+    :attr sort_render: Sort using rendered values?
+    '''
+    keyformat = 'str'
+    iterable = True
     sort_render = False
 
     def __init__(self, pd=None, cache=None, db=None, options=None):
@@ -130,6 +129,7 @@ class Vartype(object):
     registered = {}
     @classmethod
     def register(cls, name):
+        """Register a Vartype."""
         def f(o):
             if name in cls.registered:
                 raise ValueError("""%s is already registered""" % name)
@@ -139,12 +139,13 @@ class Vartype(object):
 
     @classmethod
     def get_vartype(cls, name, *args, **kwargs):
+        """Get a registered Vartype."""
         return cls.registered[name](*args, **kwargs)
 
     ##### Validation #####
 
     # def validate(self, pd, value):
-    #     if value in NONEVALUES:
+    #     if value in NONE_VALUES:
     #         return None
     # 
     #     if pd.property:
@@ -153,10 +154,19 @@ class Vartype(object):
     #     return self.vartypes[pd.vartype](cache=self.cache, db=self.db, pd=pd).validate(value)
 
     def validate(self, value):
-        """Validate a value"""
+        """Validate a parameter value using this vartype.
+        
+        It may return a different value, such as taking an empty string and
+        returning None, or taking a single string and returning a list of
+        strings.
+        
+        :param value: Validate this value.
+        :return: The validated value.
+        """
         raise ValidationError, "%s is an organizational parameter, and is not intended to be used."%self.pd.name
 
     def _validate_reference(self, value, keytype=None):
+        # Validate a reference to another database object.
         ret = []
         changed = False
         key = ('%s.names'%keytype,)
@@ -184,15 +194,15 @@ class Vartype(object):
         return ret
 
     def _rci(self, value):
-        """If the parameter is non-iterable, return a single value."""
+        """If the parameter is not iterable, return a single value."""
         if value and not self.pd.iter:
             return value.pop()
         return value or None
-
     
     ##### Indexing #####
 
     def reindex_keywords(self, items):
+        """Generate the list of keywords."""
         return {}, {}
 
     def reindex(self, items):
@@ -299,14 +309,10 @@ class Vartype(object):
 class vt_none(Vartype):
     pass
 
-# Float vartypes
-#    Indexed as 'f'
 @Vartype.register('float')
 class vt_float(Vartype):
     """Floating-point number."""
-
     keyformat = 'float'
-
     def validate(self, value):
         return self._rci(map(float, ci(value)))
 
@@ -329,9 +335,7 @@ class vt_float(Vartype):
 @Vartype.register('percent')
 class vt_percent(Vartype):
     """Percentage. 0 <= x <= 1."""
-
     keyformat = 'float'
-
     def validate(self, value):
         value = map(float, ci(value))
         for i in value:
@@ -342,32 +346,24 @@ class vt_percent(Vartype):
     def _unicode(self, value):
         return '%0.0f'%(i*100.0)
 
-# Integer vartypes
-#    Indexed as 'd'
 @Vartype.register('int')
 class vt_int(Vartype):
     """Integer."""
-
     keyformat = 'int'
-
     def validate(self, value):
         return self._rci(map(int, ci(value)))
 
 @Vartype.register('coordinate')
 class vt_coordinate(Vartype):
     """Coordinates; tuples of floats."""
-
     keyformat = None
-
     def validate(self, value):
         return [(float(x), float(y)) for x,y in ci(value)]
 
 @Vartype.register('boolean')
 class vt_boolean(Vartype):
     """Boolean value. Accepts 0/1, True/False, T/F, Yes/No, Y/N, None."""
-
     keyformat = 'int'
-
     def validate(self, value):
         t = ['t', 'y', 'yes', 'true', '1']
         f = ['f', 'n', 'no', 'false', 'none', '0']
@@ -407,14 +403,10 @@ class vt_boolean(Vartype):
 class vt_keywords(Vartype):
     pass
 
-# String vartypes
-#    Indexed as keyformat 'str'
 @Vartype.register('string')
 class vt_string(Vartype):
     """String."""
-    
     _indexwords = re.compile('[a-zA-Z0-9]{3,}')
-
     def _getindexwords(self, value):
         """(Internal) Split up a text param into components"""
         # print "-> reindex", self.pd.name, self.pd.vartype, self._indexwords.findall(value)
@@ -450,7 +442,6 @@ class vt_string(Vartype):
 @Vartype.register('choice')
 class vt_choice(vt_string):
     """One value from a defined list of choices."""
-
     def validate(self, value):
         value = [unicode(i).strip() for i in ci(value)]
         for v in value:
@@ -479,9 +470,7 @@ class vt_choice(vt_string):
 @Vartype.register('text')
 class vt_text(vt_string):
     """Freeform text, with word indexing."""
-
     elem = 'div'
-
     def reindex(self, items):
         return self.reindex_keywords(items)
 
@@ -501,11 +490,6 @@ class vt_text(vt_string):
             self.pd.name,
             value
             )
-
-# Time vartypes (keyformat is string)
-#    Indexed as keyformat 'str'
-import dateutil.parser
-import dateutil.tz
 
 @Vartype.register('datetime')
 class vt_datetime(Vartype):
@@ -598,7 +582,6 @@ class vt_time(vt_datetime):
 @Vartype.register('uri')
 class vt_uri(Vartype):
     """URI"""
-
     # ian: todo: parse with urlparse
     def validate(self, value):
         value = [unicode(i).strip() for i in ci(value)]
@@ -611,9 +594,7 @@ class vt_uri(Vartype):
 @Vartype.register('dict')
 class vt_dict(Vartype):
     """Dictionary with string keys and values."""
-
     keyformat = None
-
     def validate(self, value):
         if not value:
             return None
@@ -623,9 +604,7 @@ class vt_dict(Vartype):
 @Vartype.register('dictlist')
 class vt_dictlist(vt_dict):
     """Dictionary with string keys and list values."""
-
     keyformat = None
-
     def validate(self, value):
         if not value:
             return None        
@@ -641,7 +620,6 @@ class vt_dictlist(vt_dict):
 @Vartype.register('binary')
 class vt_binary(Vartype):
     """File Attachment"""
-
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='binary')
         return self._rci(value)
@@ -717,16 +695,12 @@ class vt_binary(Vartype):
             elem
             )
 
-# md5 checksum
-#    Indexed as keyformat 'str'
 @Vartype.register('md5')
 class vt_md5(Vartype):
-    """String"""
+    """MD5 Checksum"""
     def validate(self, value):
         return self._rci([unicode(x).strip() for x in ci(value)])
 
-# References to other database objects
-#    Not indexed.
 @Vartype.register('record')
 class vt_record(Vartype):
     """References to other Records."""
@@ -756,12 +730,9 @@ class vt_recorddef(Vartype):
             return rd.desc_short
         return value
 
-# User, ACL, and Group vartypes
-#    Indexed as keyformat 'str'
 @Vartype.register('user')
 class vt_user(Vartype):
     """Users."""
-    
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='user')
         return self._rci(value)
@@ -827,7 +798,6 @@ class vt_user(Vartype):
 @Vartype.register('acl')
 class vt_acl(Vartype):
     """Permissions access control list; nested lists of users."""
-
     def validate(self, value):
         if not hasattr(value, '__iter__'):
             value = [[value],[],[],[]]
@@ -882,13 +852,10 @@ class vt_group(Vartype):
         value = self._validate_reference(ci(value), keytype='group')
         return self._rci(value)
 
-# Comment and History vartypes
-#    Not indexed
 @Vartype.register('comments')
 class vt_comments(Vartype):
     """Comments."""
     keyformat = None
-
     # ian: todo... sort this out.
     def validate(self, value):
         return value
