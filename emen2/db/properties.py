@@ -7,12 +7,12 @@ import math
 import re
 
 # EMEN2 imports
-import emen2.util.listops
+import emen2.utils
 import emen2.db.exceptions
 import emen2.db.magnitude as mg
 
 # Convenience
-ci = emen2.util.listops.check_iterable
+ci = emen2.utils.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
 
 # Unit synonyms

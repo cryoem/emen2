@@ -5,7 +5,7 @@ import collections
 import time
 import re
 import emen2.db.vartypes
-import emen2.util.listops
+import emen2.utils
 
 # Tuning options.
 # below this number, use the actual items instead of indexes.

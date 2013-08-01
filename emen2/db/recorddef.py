@@ -161,7 +161,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
     # ian: todo: Validate that these are actually valid RecordDefs
     def _set_typicalchld(self, key, value):
-        value = emen2.util.listops.check_iterable(value)
+        value = emen2.utils.check_iterable(value)
         value = filter(None, [unicode(i) for i in value]) or None
         return self._set('typicalchld', value, self.isowner())
 

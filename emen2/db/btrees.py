@@ -18,7 +18,7 @@ import bsddb3
 import emen2.db.config
 import emen2.db.log
 import emen2.db.query
-import emen2.util.listops
+import emen2.utils
 from emen2.db.exceptions import *
 
 # EMEN2 DBObjects
@@ -1185,7 +1185,7 @@ class CollectionDB(BaseDB):
         keys = sorted(map(self.keyload, self.bdb.keys(txn2)), reverse=True)
         self.dbenv.txncommit(txn2)
 
-        for chunk in emen2.util.listops.chunk(keys, 1000):
+        for chunk in emen2.utils.chunk(keys, 1000):
             txn3 = self.dbenv.newtxn(write=True)
             if chunk:
                 emen2.db.log.info("BDB: Rebuilding indexes: %s ... %s"%(chunk[0], chunk[-1]))
@@ -1448,7 +1448,7 @@ class CollectionDB(BaseDB):
         addrels = addrels or {}
         remove = collections.defaultdict(set)
         add = collections.defaultdict(set)
-        ci = emen2.util.listops.check_iterable
+        ci = emen2.utils.check_iterable
         for k,v in removerels.items():
             for v2 in ci(v):
                 remove[self.keyclass(k)].add(self.keyclass(v2))

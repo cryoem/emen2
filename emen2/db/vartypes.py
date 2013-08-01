@@ -24,11 +24,11 @@ from markupsafe import Markup, escape
 # EMEN2 imports
 import emen2.db.log
 import emen2.db.exceptions
-import emen2.util.listops
+import emen2.utils
 
 # Convenience
 tzutc = dateutil.tz.tzutc()
-ci = emen2.util.listops.check_iterable
+ci = emen2.utils.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
 
 # Allow references to missing items.
@@ -874,7 +874,7 @@ class vt_acl(Vartype):
 
         if hasattr(value, 'items'):
             v = [[],[],[],[]]
-            ci = emen2.util.listops.check_iterable
+            ci = emen2.utils.check_iterable
             v[0] = ci(value.get('read'))
             v[1] = ci(value.get('comment'))
             v[2] = ci(value.get('write'))

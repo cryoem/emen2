@@ -11,7 +11,6 @@ import functools
 import inspect
 
 # EMEN2 imports
-from emen2.util import listops
 import emen2.db.log
 
 ##############################################################

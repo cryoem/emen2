@@ -5,7 +5,6 @@ import datetime
 import copy
 import urllib
 
-import emen2.util.listops
 from emen2.web.view import View
 
 cmp_order = [

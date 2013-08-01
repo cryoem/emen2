@@ -49,7 +49,7 @@ import emen2.db.context
 import emen2.db.group
 
 # EMEN2 Utilities
-import emen2.util.listops as listops
+import emen2.utils
 
 # EMEN2 Exceptions into local namespace
 from emen2.db.exceptions import *
@@ -142,10 +142,10 @@ def ol(name, output=True):
         @functools.wraps(f)
         def wrapped_f(*args, **kwargs):
             if kwargs.has_key(name):
-                olreturn, olvalue = listops.oltolist(kwargs[name])
+                olreturn, olvalue = emen2.utils.oltolist(kwargs[name])
                 kwargs[name] = olvalue
             elif (olpos-1) <= len(args):
-                olreturn, olvalue = listops.oltolist(args[olpos])
+                olreturn, olvalue = emen2.utils.oltolist(args[olpos])
                 args = list(args)
                 args[olpos] = olvalue
             else:
@@ -153,7 +153,7 @@ def ol(name, output=True):
 
             result = f(*args, **kwargs)
             if output and olreturn:
-                return listops.first_or_none(result)
+                return emen2.utils.first_or_none(result)
             return result
             
         return wrapped_f
@@ -421,7 +421,7 @@ class DB(object):
         :return: RecordDefs
         """
         # TODO: Deprecated?
-        recnames, recs, rds = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
+        recnames, recs, rds = emen2.utils.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
         rds = set(rds)
         rds |= set([i.rectype for i in recs])
         if recnames:
@@ -435,7 +435,7 @@ class DB(object):
         :return: ParamDefs
         """
         # TODO: Deprecated?
-        recnames, recs, params = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
+        recnames, recs, params = emen2.utils.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
         params = set(params)
         if recnames:
             recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
@@ -451,7 +451,7 @@ class DB(object):
         :return: ParamDefs with a given Vartype
         """
         # TODO: Deprecated?
-        recnames, recs, values = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
+        recnames, recs, values = emen2.utils.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
         values = set(values)
         if recnames:
             recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
@@ -504,7 +504,7 @@ class DB(object):
         """
         # TODO: Deprecated?
         ret = set()
-        vartype = listops.check_iterable(vartype)
+        vartype = emen2.utils.check_iterable(vartype)
         for item in items:
             if item.vartype in vartype:
                 ret.add(item.name)
@@ -529,7 +529,7 @@ class DB(object):
         rets = []
         # This can still be done much better
         names, items = zip(*self.dbenv[keytype].items(ctx=ctx, txn=txn))
-        ditems = listops.dictbykey(items, 'name')
+        ditems = emen2.utils.dictbykey(items, 'name')
 
         query = unicode(query or '').split()
         for q in query:
@@ -545,7 +545,7 @@ class DB(object):
             rets.append(self._find_pdrd_vartype(vartype, items))
 
         if record is not None:
-            rets.append(cb(listops.check_iterable(record), ctx=ctx, txn=txn))
+            rets.append(cb(emen2.utils.check_iterable(record), ctx=ctx, txn=txn))
 
         allret = self._boolmode_collapse(rets, boolmode='AND')
         ret = map(ditems.get, allret)
@@ -1179,7 +1179,7 @@ class DB(object):
         options = options or {}
 
         # Get Record instances from names argument.
-        names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
+        names, recs, newrecs, other = emen2.utils.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
         names.extend(other)
         recs.extend(self.dbenv[keytype].gets(names, ctx=ctx, txn=txn))
 
@@ -1213,7 +1213,7 @@ class DB(object):
                 params.add(m)
                 
         # Process parameters and descriptions.
-        pds = listops.dictbykey(self.dbenv["paramdef"].gets(params | descs, ctx=ctx, txn=txn), 'name')
+        pds = emen2.utils.dictbykey(self.dbenv["paramdef"].gets(params | descs, ctx=ctx, txn=txn), 'name')
         found = set(pds.keys())
         missed = (params - found) | (descs - found)
         params -= missed
@@ -1322,7 +1322,7 @@ class DB(object):
             options['time_precision'] = 3
 
         # Get Record instances from names argument.
-        names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
+        names, recs, newrecs, other = emen2.utils.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
         names.extend(other)
         recs.extend(self.dbenv[keytype].gets(names, ctx=ctx, txn=txn))
         for newrec in newrecs:
@@ -1720,7 +1720,7 @@ class DB(object):
 
         # Find users referenced in a record
         if record:
-            f = self._findbyvartype(listops.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
+            f = self._findbyvartype(emen2.utils.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
             if foundusers is None:
                 foundusers = f
             else:
@@ -2169,7 +2169,7 @@ class DB(object):
         # Todo: Use general query system.
         # Just get everything and sort directly.
         items = self.dbenv["group"].gets(self.dbenv["group"].filter(None, ctx=ctx, txn=txn), ctx=ctx, txn=txn)
-        ditems = listops.dictbykey(items, 'name')
+        ditems = emen2.utils.dictbykey(items, 'name')
 
         rets = []
         query = unicode(query or '').split()
@@ -2188,7 +2188,7 @@ class DB(object):
             rets.append(ret)
 
         if record:
-            ret = self._findbyvartype(listops.check_iterable(record), ['groups'], ctx=ctx, txn=txn)
+            ret = self._findbyvartype(emen2.utils.check_iterable(record), ['groups'], ctx=ctx, txn=txn)
             rets.append(set(ret))
 
         allret = self._boolmode_collapse(rets, boolmode='AND')
@@ -2779,7 +2779,7 @@ class DB(object):
             
         # Allow either Record(s) or Record name(s) as input
         ret = collections.defaultdict(set)
-        recnames, recs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
+        recnames, recs, other = emen2.utils.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
 
         if len(recnames) < 1000:
             # Get the records directly
@@ -3008,7 +3008,7 @@ class DB(object):
         if kwargs.get('name'):
             rets.append(set(name for name in names if q in name))
         if record is not None:
-            ret = self._findbyvartype(listops.check_iterable(record), ['binary'], ctx=ctx, txn=txn)
+            ret = self._findbyvartype(emen2.utils.check_iterable(record), ['binary'], ctx=ctx, txn=txn)
             rets.append(ret)
         allret = self._boolmode_collapse(rets, boolmode='AND')
         ret = self.dbenv["binary"].gets(allret, ctx=ctx, txn=txn)

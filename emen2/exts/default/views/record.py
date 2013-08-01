@@ -6,7 +6,7 @@ import collections
 import jsonrpc
 
 import emen2.db.exceptions
-import emen2.util.listops as listops
+import emen2.utils
 import emen2.web.responsecodes
 from emen2.web.view import View
 
@@ -155,10 +155,10 @@ class Record(View):
         users = set()
         if hasattr(permissions, 'items'):
             for k,v in permissions.items():
-                users |= set(listops.check_iterable(v))
+                users |= set(emen2.utils.check_iterable(v))
         else:
             for v in permissions:
-                users |= set(listops.check_iterable(v))
+                users |= set(emen2.utils.check_iterable(v))
 
         if self.request_method != 'post':
             return
@@ -317,9 +317,9 @@ class Record(View):
         # Update context
         # self.ctxt['tab'] = 'history'
         self.ctxt['users'] = users
-        self.ctxt['users_d'] = emen2.util.listops.dictbykey(users, 'name') # do this in template
+        self.ctxt['users_d'] = emen2.utils.dictbykey(users, 'name') # do this in template
         self.ctxt['paramdefs'] = paramdefs
-        self.ctxt['paramdefs_d'] = emen2.util.listops.dictbykey(paramdefs, 'name') # do this in template
+        self.ctxt['paramdefs_d'] = emen2.utils.dictbykey(paramdefs, 'name') # do this in template
         self.ctxt['simple'] = simple
         self.ctxt['revision'] = revision
 
@@ -359,7 +359,7 @@ class Record(View):
         names.add(self.rec.name)        
 
         recs = self.db.record.get(names)
-        recs_d = emen2.util.listops.dictbykey(recs)
+        recs_d = emen2.utils.dictbykey(recs)
         state = set(map(unicode, state or [])) & names
 
         # Find published items

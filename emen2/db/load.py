@@ -22,7 +22,6 @@ import json
 import jsonrpc.jsonutil
 
 # EMEN2 imports
-import emen2.util.listops
 import emen2.db.config
 
 

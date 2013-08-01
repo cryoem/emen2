@@ -1,6 +1,6 @@
 import functools
 import threading
-from emen2.util import registry
+from emen2.web import registry
 
 #NOTE: this is probably unnecessary... All it adds is error-handling if the callback is not 
      # actually callable
@@ -67,7 +67,7 @@ class Event(object):
 
 @registry.Registry.setup
 class EventRegistry(registry.Registry):
-    '''Register an event, see emen2.util.registry for documentation'''
+    '''Register an event, see emen2.web.registry for documentation'''
     child_class = Event
 
     events = {}

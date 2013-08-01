@@ -8,7 +8,6 @@ import copy
 import emen2.db.exceptions
 import emen2.db.dataobject
 import emen2.db.recorddef
-import emen2.util.listops as listops
 
 class Record(emen2.db.dataobject.PermissionsDBObject):
     """Database Record.

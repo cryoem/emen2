@@ -7,7 +7,7 @@ import operator
 import hashlib
 import UserDict
 
-import emen2.util.listops
+import emen2.utils
 import emen2.db.exceptions
 import emen2.db.vartypes
 
@@ -317,7 +317,7 @@ class BaseDBObject(object):
         """Set a relationship. Make sure we have permissions to edit the relationship."""
         # Filter out changes to permissions on records
         # that we can't access...
-        value = set(emen2.util.listops.check_iterable(value))
+        value = set(emen2.utils.check_iterable(value))
         orig = self.get(key)
         changed = orig ^ value
 
@@ -574,7 +574,7 @@ class PermissionsDBObject(BaseDBObject):
     def _check_permformat(self, value):
         if hasattr(value, 'items'):
             v = [[],[],[],[]]
-            ci = emen2.util.listops.check_iterable
+            ci = emen2.utils.check_iterable
             v[0] = ci(value.get('read'))
             v[1] = ci(value.get('comment'))
             v[2] = ci(value.get('write'))
@@ -682,7 +682,7 @@ class PermissionsDBObject(BaseDBObject):
 
     def setgroups(self, groups):
         """Set the object's groups"""
-        groups = emen2.util.listops.check_iterable(groups)
+        groups = emen2.utils.check_iterable(groups)
         return self._set('groups', set(groups), self.isowner())
 
 

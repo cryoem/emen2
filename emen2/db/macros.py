@@ -6,7 +6,7 @@ import operator
 import cgi
 import re
 
-import emen2.util.listops
+import emen2.utils
 import emen2.db.exceptions
 
 # Markdown and Markupsafe are required now.
@@ -14,7 +14,7 @@ import markdown
 from markupsafe import Markup, escape
 
 # Convenience
-ci = emen2.util.listops.check_iterable
+ci = emen2.utils.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
 
 # From http://stackoverflow.com/questions/2212933/python-regex-for-reading-csv-like-rows

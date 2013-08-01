@@ -5,7 +5,7 @@ import json
 import jsonrpc.jsonutil
 import emen2.db
 import emen2.db.config
-import emen2.util.listops
+import emen2.utils
 
 
 def dump_json(outfile, items, uri=None):
@@ -38,7 +38,7 @@ class Dumper(object):
         keys[keytype] |= set(names)
 
         # Find referenced items.
-        for chunk in emen2.util.listops.chunk(keys[keytype], count=1000):
+        for chunk in emen2.utils.chunk(keys[keytype], count=1000):
             items = self.db.get(chunk, keytype=keytype)
             print "Processing: %s ... %s"%(items[0].name, items[-1].name)
             # Find paramdefs that reference other items..
@@ -54,7 +54,7 @@ class Dumper(object):
         for keytype in self.keytypes:
             modify = getattr(self, '_modify_%s'%keytype, lambda x:x)
             
-            for chunk in emen2.util.listops.chunk(keys.get(keytype, []), count=1000):
+            for chunk in emen2.utils.chunk(keys.get(keytype, []), count=1000):
                 items = self.db.get(chunk, keytype=keytype)
                 for item in items:
                     if uri:

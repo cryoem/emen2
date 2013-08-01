@@ -49,7 +49,7 @@ class AddExtLookup(mako.lookup.TemplateLookup):
 
 templates = AddExtLookup(
     input_encoding='utf-8', 
-    imports=['from emen2.util.listops import jsonencode'],
+    imports=['from emen2.utils import jsonencode'],
     default_filters=['h'],
     )
 

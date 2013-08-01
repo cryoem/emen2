@@ -8,7 +8,6 @@ import emen2.web.server
 
 Options = emen2.web.server.WebServerOptions
 
-
 def logger():
     emen2.db.log.logger.start()
     return emen2.db.log.logger.emit

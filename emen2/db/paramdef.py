@@ -5,7 +5,7 @@ import functools
 import time
 
 # EMEN2 imports
-import emen2.util.listops
+import emen2.utils
 import emen2.db.dataobject
 import emen2.db.magnitude
 
@@ -162,7 +162,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     # Several values can only be changed by administrators.
 
     def _set_choices(self, key, value):
-        value = emen2.util.listops.check_iterable(value)
+        value = emen2.utils.check_iterable(value)
         value = filter(None, [unicode(i) for i in value]) or None
         return self._set(key, value, self.isowner())
 

@@ -24,7 +24,6 @@ import emen2.db.config
 import emen2.db.log
 import emen2.db.exceptions
 import emen2.db.handlers
-import emen2.util.listops
 import emen2.web.events
 import emen2.web.routing
 import emen2.web.responsecodes
