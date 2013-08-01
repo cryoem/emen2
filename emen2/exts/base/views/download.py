@@ -1,4 +1,3 @@
-# $Id$
 import time
 import re
 import os
@@ -114,7 +113,6 @@ class Download(View):
         
         return self._transfer_single(files, request, cache=cache)
 
-
     ##### Process the result #####
 
     def _transfer_single(self, files, request, cache=True):
@@ -142,7 +140,6 @@ class Download(View):
         a = twisted.web.static.NoRangeStaticProducer(request, f)
         a.start()
 
-
     def _transfer_tar(self, files, request, cache=False):
         # Download multiple files using TarPipe
         t = emen2.db.database.utcnow()[:10]
@@ -151,7 +148,6 @@ class Download(View):
         request.setHeader('Content-Encoding', 'application/octet-stream')
         a = twisted.web.static.NoRangeStaticProducer(request, TarPipe(files))
         a.start()
-        
 
 class TarPipe(object):
     def __init__(self, files={}):
@@ -185,7 +181,3 @@ class TarPipe(object):
             data = self.buffer.read(size)
         return data
 
-
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

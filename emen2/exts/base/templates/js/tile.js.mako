@@ -460,8 +460,6 @@
     });    
 })(jQuery);
 
-
-
 <%!
 public = True
 headers = {

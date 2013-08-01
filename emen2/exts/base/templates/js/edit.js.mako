@@ -510,7 +510,6 @@
     
 })(jQuery);
 
-
 <%!
 public = True
 headers = {

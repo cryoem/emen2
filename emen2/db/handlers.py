@@ -1,4 +1,3 @@
-# $Id$
 '''File handlers
 
 '''
@@ -95,8 +94,6 @@ def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
     # Otherwise, add to the task queue.
     emen2.db.queues.processqueue.add_task(args, name=filepath, priority=priority)
     return "building"
-    
-    
 
 def main(g):
     """Use a Handler to build a thumbnail."""
@@ -121,7 +118,6 @@ def main(g):
 class ThumbnailError(Exception):
     pass
 
-
 class ThumbnailOptions(optparse.OptionParser):
     """Options to run a Binary thumbnail generator."""
     
@@ -138,8 +134,6 @@ class ThumbnailOptions(optparse.OptionParser):
         if len(args) < 2:
             raise ValueError, "Handler class name and input file required"
         return options, args
-
-
 
 ##### File handler #####
 
@@ -187,10 +181,8 @@ class BinaryHandler(object):
         # if not any([self.filepath, self.filedata, self.fileobj]):
         #    raise ThumbnailError, "No data; can be filepath, filedata, or fileobj."
 
-
     def get(self, key, default=None):
         return self.__dict__.get(key, default)
-
 
     ##### Open the underlying data #####
         
@@ -244,7 +236,6 @@ class BinaryHandler(object):
         # Remove temporary files...
         for f in self._tmpfiles:
              os.remove(f)
-
 
     ##### Extract metadata and build thumbnails #####
 
@@ -395,7 +386,6 @@ class ImageHandler(BinaryHandler):
 
         a = subprocess.Popen(args)
         a.wait()
-        
 
     def _thumbnail_build(self, workfile):
         self.build_scale(workfile, self._outfile('thumb.jpg'), tilesize=128)

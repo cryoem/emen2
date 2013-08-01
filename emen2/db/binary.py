@@ -1,4 +1,3 @@
-# $Id$
 """Database support for Binary attachments."""
 
 import time
@@ -26,8 +25,6 @@ WINDOWS_DEVICE_FILENAMES = ['CON', 'PRN', 'AUX', 'NUL',
     'COM6', 'COM7', 'COM8', 'COM9', 'LPT1',
     'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6',
     'LPT7', 'LPT8', 'LPT9']
-                    
-                    
 
 def parse(bdokey, counter=None):
     """Parse a 'bdo:2010010100001' type identifier into parts and
@@ -123,7 +120,6 @@ def writetmp(filedata=None, fileobj=None, basepath=None, suffix="upload"):
     md5sum = m.hexdigest()
     emen2.db.log.info("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfile, filesize, md5sum))
     return filesize, md5sum, tmpfile
-
 
 class Binary(emen2.db.dataobject.BaseDBObject):
     """Binary file stored on disk and managed by EMEN2.
@@ -260,7 +256,4 @@ class Binary(emen2.db.dataobject.BaseDBObject):
         if whitelist and not any([re.search(i, value) for i in whitelist]):
             raise self.error("Disallowed filename: %s"%value)            
         return value
-        
 
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

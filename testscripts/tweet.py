@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-# $Id$
 
 import subprocess
 import twitter

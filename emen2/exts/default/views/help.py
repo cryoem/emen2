@@ -1,4 +1,3 @@
-# $Id$
 from emen2.web.view import View
 
 @View.register
@@ -10,4 +9,3 @@ class Help(View):
         self.template = "/pages/help"
         
         
-__version__ = "$Revision$".split(":")[1][:-1].strip()

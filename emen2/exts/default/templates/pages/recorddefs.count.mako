@@ -16,7 +16,6 @@
 </h1>
 </form>
 
-
 <%
 import operator
 import collections
@@ -32,7 +31,6 @@ labels = {
     10000: "More than 10,000 Records"
 }
 
-
 d = collections.defaultdict(list)
 for recorddef in recorddefs:
     group = groupings[[count.get(recorddef.name, 0)<=i for i in groupings].count(False)-1]
@@ -43,7 +41,6 @@ for k,v in d.items():
 
 %>
 
-
 <%buttons:singlepage label='Index'>
     <ul>
     % for k in sorted(d.keys(), reverse=True):
@@ -52,7 +49,6 @@ for k,v in d.items():
     </ul>
     <p>Showing ${len(recorddefs)} of ${len(recorddefnames)} protocols.</p>    
 </%buttons:singlepage>
-
 
 % for k in sorted(d.keys(), reverse=True):
 

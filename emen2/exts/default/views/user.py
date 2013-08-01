@@ -1,4 +1,3 @@
-# $Id$
 import re
 import os
 import time
@@ -10,11 +9,9 @@ import emen2.db.database
 import emen2.utils
 from emen2.web.view import View
 
-
 # Use randomly assigned usernames?
 HASH_USERNAME_FORCE = False
 HASH_USERNAME = True
-
 
 @View.register
 class User(View):
@@ -59,8 +56,6 @@ class User(View):
             self.db.user.put(user)
             self.simple("Saved account settings.")
 
-
-
 @View.register
 class Users(View):
 
@@ -98,8 +93,6 @@ class Users(View):
         self.ctxt['users'] = users
         self.ctxt['sortby'] = sortby
         self.ctxt['reverse'] = reverse
-
-
 
 @View.register
 class NewUser(View):
@@ -183,6 +176,3 @@ class NewUser(View):
         self.ctxt['groups'] = self.db.group.get(groupnames)
         self.ctxt['groups_default'] = set(['create'])
 
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

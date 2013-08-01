@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Written by Stephen Murray, Mary Daoud, and Ian Rees
-
 import argparse
 import getpass
 import codecs
@@ -12,7 +11,6 @@ from datetime import *
 from Bio import Entrez
 from Bio import Medline
 import jsonrpc.proxy
-
 
 def format_pub(pub):
     """Format the PUBMED record."""
@@ -107,10 +105,7 @@ def summary_map(pubmed_pub):
     return ret
 
 
-
-
 # Email address to give to PUBMED
-
 if __name__ == "__main__":
     
     parser = argparse.ArgumentParser(description='Print or update publications')

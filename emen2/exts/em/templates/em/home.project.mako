@@ -53,7 +53,6 @@ def format_keys(s, names, key='displayname'):
         ret.append(item.get(key, i))
     return ", ".join(ret)
 
-
 pi1 = set(project.get('project_investigators') or [])
 pi2 = set(project.get('name_pi') or [])
 
@@ -61,9 +60,7 @@ inv_diff = False
 if project['permissions'][0] or project['permissions'][1] or set(project['permissions'][2])^pi1 or set(project['permissions'][3])^pi2:
     inv_diff = True
 
-
 %>
-
 
 <div class="e2l-sidebar-main">
     
@@ -79,7 +76,6 @@ if project['permissions'][0] or project['permissions'][1] or set(project['permis
     <%buttons:singlepage label='Project details'>    
         ${project_render}
     </%buttons:singlepage>
-
 
     <%buttons:singlepage label='Permissions'>
         <p>
@@ -122,7 +118,6 @@ if project['permissions'][0] or project['permissions'][1] or set(project['permis
         </div>
         <div id="e2l-sidebar-activity-users"></div>
     </%buttons:singlepage>
-    
 
     <div class="e2-tab e2-tab-switcher" id="e2l-sidebar-project-children">
         <ul class="e2l-cf">

@@ -7,7 +7,6 @@ import collections
 <%inherit file="/page" />
 <%namespace name="buttons" file="/buttons"  /> 
 
-
 <%block name="js_ready">
     ${parent.js_ready()}
 
@@ -27,8 +26,6 @@ import collections
         height:200,
     });
 </%block>
-
-
 
 <div class="e2l-sidebar-sidebar">
     

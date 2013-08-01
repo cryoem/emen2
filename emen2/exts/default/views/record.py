@@ -1,4 +1,3 @@
-# $Id$
 import urllib
 import time
 import collections
@@ -13,8 +12,6 @@ from emen2.web.view import View
 class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
     title = 'Record not Found'
     msg = 'Record %s not found'
-
-
 
 @View.register
 class Record(View):
@@ -133,19 +130,16 @@ class Record(View):
         if _format == "json":
             return jsonrpc.jsonutil.encode(self.rec)
 
-
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/attachments/$', name='edit/attachments', write=True)
     def edit_attachments(self, name=None, **kwargs):
         self.edit(name=name, **kwargs)
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name, anchor='attachments'))
-
 
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/relationships/$', name='edit/relationships', write=True)
     def edit_relationships(self, name=None, **kwargs):
         # ian: todo: Check orphans, show orphan confirmation page
         self.edit(name=name, **kwargs)
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name, anchor='relationships'))
-
 
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/permissions/$', name='edit/permissions', write=True)
     def edit_permissions(self, name=None, permissions=None, groups=None, action=None, filt=True):
@@ -178,7 +172,6 @@ class Record(View):
             self.rec = self.db.record.put(self.rec)
 
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name, anchor='permissions'))
-
 
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/new/(?P<rectype>[^/]*)/$', write=True)
     def new(self, name=None, rectype=None, _redirect=None, _format=None, **kwargs): 
@@ -214,12 +207,10 @@ class Record(View):
         if _format == "json":
             return jsonrpc.jsonutil.encode(newrec)
 
-
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/$')
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/(?P<path>.*)/$')
     def query(self, name=None, path=None, q=None, c=None, **kwargs):
         self.main(name=name)
-    
 
     # @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/(?P<path>.*)/attachments/$')
     # @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/attachments/$')
@@ -257,7 +248,6 @@ class Record(View):
         childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, expandable=True)
         self.ctxt['childmap'] = childmap
 
-
     @View.add_matcher('^/record/(?P<name>[^/]*)/children/(?P<childtype>\w+)/$')
     def children(self, name=None, childtype=None):
         """Main record rendering."""
@@ -272,7 +262,6 @@ class Record(View):
         self.ctxt['tab'] = 'children-%s'%childtype
         self.ctxt['childtype'] = childtype
         self.ctxt["pages"].active = childtype # Show the active tab -- this might go away at some point.
-
 
     @View.add_matcher("^/record/(?P<name>[^/]*)/hide/$", write=True)
     def hide(self, name=None, confirm=False, childaction=None):
@@ -289,8 +278,6 @@ class Record(View):
 
         self.db.record.hide(self.rec.name, childaction=childaction)
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name))
-
-
 
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/history/$')
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/history/(?P<revision>.*)/', name='history/revision')
@@ -323,7 +310,6 @@ class Record(View):
         self.ctxt['simple'] = simple
         self.ctxt['revision'] = revision
 
-
     @View.add_matcher("^/record/(?P<name>[^/]*)/email/$")
     def email(self, name=None):
         """Email referenced users."""
@@ -348,7 +334,6 @@ class Record(View):
 
         emailusers = self.db.user.get(users_ref | users_permissions)
         self.ctxt['emailusers'] = emailusers
-
 
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/publish/$', write=True)
     def publish(self, name=None, state=None):
@@ -390,10 +375,6 @@ class Record(View):
         recs = self.db.record.put(commit)
         self.redirect(self.routing.reverse('Record/publish', name=self.rec.name))
 
-        
-
-
-
 @View.register
 class Records(View):
     
@@ -406,7 +387,6 @@ class Records(View):
         self.ctxt['root'] = root
         self.ctxt['childmap'] = childmap
         self.ctxt['create'] = self.db.auth.check.create()
-
 
     @View.add_matcher(r"^/records/edit/relationships/$", write=True)
     def edit_relationships(self, root="0", removerels=None, addrels=None, **kwargs):
@@ -445,10 +425,3 @@ class Records(View):
 
         self.simple(content="Saved %s records."%(len(recs)))
 
-
-
-
-
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,4 +1,3 @@
-# $Id$
 """Vartypes (data types)."""
 
 import operator
@@ -40,7 +39,7 @@ NONEVALUES = [None, "", "N/A", "n/a", "None"]
 ##### Helper methods #####
 
 def update_user_cache(cache, db, values):
-    # Check cache
+    """Check and update cache of users"""
     to_cache = []
     for v in values:
         hit, dn = cache.check(('user', v))
@@ -53,6 +52,7 @@ def update_user_cache(cache, db, values):
             cache.store(('user', user.name), user)
 
 def update_recorddef_cache(cache, db, values):
+    """Check and update cache of recorddefs"""
     to_cache = []
     for v in values:
         hit, dn = cache.check(('recorddef', v))
@@ -63,13 +63,9 @@ def update_recorddef_cache(cache, db, values):
         rds = db.recorddef.get(to_cache)
         for rd in rds:
             cache.store(('recorddef', rd.name), rd)
-    
-
-
 
 def iso8601duration(d):
-    """
-    Parse ISO 8601 duration format.
+    """Parse ISO 8601 duration format.
 
     From Wikipedia, ISO 8601 duration format is:
         P[n]Y[n]M[n]DT[n]H[n]M[n]S
@@ -88,9 +84,7 @@ def iso8601duration(d):
     d = 'P1M2D' # 1 month, 2 days
     d = 'P1Y2M3DT4H5M6S' # 1 year, 2 months, 3 days, 4 hours, 5 minutes, 6 seconds
     d = 'P3W' # 3 weeks
-
     """
-
     regex = re.compile("""
             (?P<type>.)
             ((?P<weeks>[0-9,]+)W)?
@@ -105,14 +99,11 @@ def iso8601duration(d):
             """, re.X)
     match = regex.search(d)
     rd = {} # return date
-
     # rdate['type'] = match.group('type')
     for key in ['weeks','years','months','days','hours','minutes','seconds']:
         if match.group(key):
             rd[key] = int(match.group(key))
-
     return rd
-
 
 ##### Vartypes #####
 
@@ -149,7 +140,6 @@ class Vartype(object):
     @classmethod
     def get_vartype(cls, name, *args, **kwargs):
         return cls.registered[name](*args, **kwargs)
-
 
     ##### Validation #####
 
@@ -229,7 +219,6 @@ class Vartype(object):
 
         return addrefs, delrefs
 
-
     ##### Rendering #####
 
     def process(self, value):
@@ -306,12 +295,9 @@ class Vartype(object):
             lis.append("""<li>%s</li>"""%add)
         return """<ul>%s</ul>"""%"".join(lis)
         
-
-
 @Vartype.register('none')
 class vt_none(Vartype):
     pass
-    
 
 # Float vartypes
 #    Indexed as 'f'
@@ -339,7 +325,6 @@ class vt_float(Vartype):
             value,
             units
         )
-    
 
 @Vartype.register('percent')
 class vt_percent(Vartype):
@@ -357,8 +342,6 @@ class vt_percent(Vartype):
     def _unicode(self, value):
         return '%0.0f'%(i*100.0)
 
-
-
 # Integer vartypes
 #    Indexed as 'd'
 @Vartype.register('int')
@@ -370,7 +353,6 @@ class vt_int(Vartype):
     def validate(self, value):
         return self._rci(map(int, ci(value)))
 
-
 @Vartype.register('coordinate')
 class vt_coordinate(Vartype):
     """Coordinates; tuples of floats."""
@@ -379,7 +361,6 @@ class vt_coordinate(Vartype):
 
     def validate(self, value):
         return [(float(x), float(y)) for x,y in ci(value)]
-
 
 @Vartype.register('boolean')
 class vt_boolean(Vartype):
@@ -421,12 +402,10 @@ class vt_boolean(Vartype):
             self.pd.vartype,
             Markup("".join(choices))
             )
-        
 
 @Vartype.register('keywords')
 class vt_keywords(Vartype):
     pass
-
 
 # String vartypes
 #    Indexed as keyformat 'str'
@@ -468,7 +447,6 @@ class vt_string(Vartype):
     def validate(self, value):
         return self._rci([unicode(x).strip() for x in ci(value)])
 
-
 @Vartype.register('choice')
 class vt_choice(vt_string):
     """One value from a defined list of choices."""
@@ -497,7 +475,6 @@ class vt_choice(vt_string):
             self.pd.name,
             Markup("".join(choices))
             )
-        
 
 @Vartype.register('text')
 class vt_text(vt_string):
@@ -524,8 +501,6 @@ class vt_text(vt_string):
             self.pd.name,
             value
             )
-
-
 
 # Time vartypes (keyformat is string)
 #    Indexed as keyformat 'str'
@@ -595,7 +570,6 @@ class vt_datetime(Vartype):
             local_time.isoformat(),
             self._strip(local_time) 
             )
-            
 
 @Vartype.register('date')
 class vt_date(vt_datetime):
@@ -608,7 +582,6 @@ class vt_date(vt_datetime):
                 ret.append(i)
         return self._rci(ret)
 
-
 @Vartype.register('time')
 class vt_time(vt_datetime):
     """Time, HH:MM:SS."""
@@ -619,8 +592,6 @@ class vt_time(vt_datetime):
                 dateutil.parser.parse(i).strftime("%H:%M:%S")
                 ret.append(i)
         return self._rci(ret)
-
-
 
 # Reference vartypes.
 #    Indexed as keyformat 'str'
@@ -636,8 +607,6 @@ class vt_uri(Vartype):
                 raise ValidationError, "Invalid URI: %s"%value
         return self._rci(value)
 
-
-
 # Mapping types
 @Vartype.register('dict')
 class vt_dict(Vartype):
@@ -650,7 +619,6 @@ class vt_dict(Vartype):
             return None
         r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
         return dict(r)
-
 
 @Vartype.register('dictlist')
 class vt_dictlist(vt_dict):
@@ -667,7 +635,6 @@ class vt_dictlist(vt_dict):
             v = [unicode(i) for i in v]
             ret[k] = v
         return ret
-
 
 # Binary vartypes
 #    Not indexed.
@@ -750,7 +717,6 @@ class vt_binary(Vartype):
             elem
             )
 
-
 # md5 checksum
 #    Indexed as keyformat 'str'
 @Vartype.register('md5')
@@ -758,7 +724,6 @@ class vt_md5(Vartype):
     """String"""
     def validate(self, value):
         return self._rci([unicode(x).strip() for x in ci(value)])
-
 
 # References to other database objects
 #    Not indexed.
@@ -769,14 +734,12 @@ class vt_record(Vartype):
         value = self._validate_reference(ci(value), keytype='record')
         return self._rci(value)
 
-
 @Vartype.register('link')
 class vt_link(Vartype):
     """Reference."""
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='record') # Ugly hack :(
         return self._rci(value)
-
 
 @Vartype.register('recorddef')
 class vt_recorddef(Vartype):
@@ -792,8 +755,6 @@ class vt_recorddef(Vartype):
         if rd:
             return rd.desc_short
         return value
-
-
 
 # User, ACL, and Group vartypes
 #    Indexed as keyformat 'str'
@@ -862,7 +823,6 @@ class vt_user(Vartype):
             self.pd.vartype,
             elem
             )
-        
 
 @Vartype.register('acl')
 class vt_acl(Vartype):
@@ -915,14 +875,12 @@ class vt_acl(Vartype):
     def _form(self, value):
         return self._html(value)
 
-
 @Vartype.register('group')
 class vt_group(Vartype):
     """Group."""
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='group')
         return self._rci(value)
-
 
 # Comment and History vartypes
 #    Not indexed
@@ -950,12 +908,8 @@ class vt_comments(Vartype):
     def render_form(self, value):
         return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s"><textarea placeholder="Add additional comments"></textarea></div>""")%(self.pd.name, self.pd.vartype)
 
-
-
 @Vartype.register('history')
 class vt_history(Vartype):
     """History."""    
     keyformat = None
 
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

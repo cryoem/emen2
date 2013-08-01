@@ -1,4 +1,3 @@
-# $Id$
 """EMEN2 logging
 
 Functions:
@@ -12,7 +11,6 @@ Functions:
     index
     commit
 """
-
 
 import traceback
 import functools
@@ -134,5 +132,3 @@ index = functools.partial(msg, level='INDEX')
 commit = functools.partial(msg, level='COMMIT')
 web = functools.partial(msg, level='WEB')
 
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

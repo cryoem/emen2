@@ -1,4 +1,3 @@
-# $Id$
 """Parameter DBOs."""
 
 import functools
@@ -228,6 +227,3 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         value = unicode(value or '') or None
         value = emen2.db.properties.equivs.get(value, value)
         return self._set('defaultunits', value, self.isowner())
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

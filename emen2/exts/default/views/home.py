@@ -1,4 +1,3 @@
-# $Id$
 import datetime
 import time
 import tempfile
@@ -11,7 +10,6 @@ import emen2.db.exceptions
 import emen2.db.config
 import emen2.db.log
 from emen2.web.view import View
-
 
 @View.register
 class Home(View):
@@ -95,8 +93,6 @@ class Home(View):
         recorddef_defaults = emen2.db.config.get('customization.recorddef_defaults')
         self.ctxt['default_project'] = self.db.recorddef.get(recorddef_defaults.get('project', 'project'))
         self.ctxt['default_group'] = self.db.recorddef.get(recorddef_defaults.get('group','group'))
-        
-
 
         # Update context
         self.ctxt['recnames'] = recnames

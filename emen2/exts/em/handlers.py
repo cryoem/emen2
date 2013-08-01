@@ -1,4 +1,3 @@
-# $Id$
 '''File handlers.'''
 
 import time
@@ -27,7 +26,6 @@ try:
     BinaryHandler = emen2.db.handlers.BinaryHandler
 except:
     BinaryHandler = DummyHandler
-    
 
 # EMAN2 can only be imported in the main thread.
 try:
@@ -37,7 +35,6 @@ try:
     signal.signal(15, signal.SIG_DFL)
 except ImportError:
     EMAN2 = None
-
 
 class EMDataBuilder(object):
     '''Helper class to build tiles and thumbnails for EMAN2-readable files.
@@ -90,7 +87,6 @@ class EMDataBuilder(object):
         
         # print ret
         return ret
-        
 
     def _build(self, index):
         '''Build a single image in the file.'''
@@ -129,7 +125,6 @@ class EMDataBuilder(object):
                 header['slices'].append(self.build_slice(img2, index=index, nz=i, fixed=[128,512,1024]))
         
         return header
-        
 
     def _build_compile(self, ret, outfile):
         '''Combine the results into a single tile file.'''
@@ -163,7 +158,6 @@ class EMDataBuilder(object):
             os.remove(filename)
 
         tf.close()        
-
 
     def build_slice(self, img, nz=1, index=0, tile=False, pspec=False, fixed=None):
         '''Build a single 2D slice from a 2D or 3D image.'''
@@ -319,7 +313,6 @@ class EMDataBuilder(object):
         # Return both the 2D and 1D files
         return pspec_dict, pspec1d_dict
 
-
 ##### Cryo-EM file format handlers #####
 
 class EMDataHandler(BinaryHandler):
@@ -333,14 +326,10 @@ class EMDataHandler(BinaryHandler):
         }
         builder = EMDataBuilder()
         tile = builder.build(str(workfile), outfile, copyout=copyout)            
-        
-
 
 @BinaryHandler.register(['dm3', 'mrc', 'tif', 'tiff', 'hdf'])
 class MicrographHandler(EMDataHandler):
     _allow_gzip = True
-    
-
 
 # IMPORTANT -- Do not change this.
 if __name__ == "__main__":

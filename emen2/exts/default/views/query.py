@@ -1,4 +1,3 @@
-# $Id$
 import os
 import operator
 import datetime
@@ -146,8 +145,3 @@ class Query(View):
         names = [i.name for i in bdos]
         self.ctxt['q'] = self.db.table(subset=names, keytype="binary", checkbox=True, view="{{checkbox()}} {{thumbnail}} {{filename}} {{filesize}} {{recname(record)}} {{record}}")
 
-
-
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

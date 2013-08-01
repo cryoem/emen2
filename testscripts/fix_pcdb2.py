@@ -1,4 +1,3 @@
-# $Id$
 import cPickle as pickle
 from testc import *
 
@@ -25,4 +24,3 @@ with db:
         for v2 in v:
             db.pclink(k, v2, keytype="recorddef")
             
-__version__ = "$Revision$".split(":")[1][:-1].strip()

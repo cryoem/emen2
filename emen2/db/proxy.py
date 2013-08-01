@@ -1,4 +1,3 @@
-# $Id$
 """Proxy for accessing EMEN2 API methods."""
 
 import os
@@ -28,7 +27,6 @@ def publicmethod(*args, **kwargs):
         return func
     return _inner
 
-
 strht = lambda s, c: s.partition(c)[::2]
 def fb():
     return 'hi'
@@ -40,7 +38,6 @@ def help(mt):
             methods = mt.children.keys()
         )
     return _inner
-
 
 class MethodTree(object):
     '''Arranges the database methods into a tree so that they can be accessed as db.<a>.<b> (e.g. db.record.get)
@@ -128,13 +125,11 @@ class _Method(object):
         self._proxy = proxy
         self._name = name
 
-
     def __getattr__(self, name):
         func = self._proxy._publicmethods.get("%s.%s"%(self._name, name))
         if func:
             return self._proxy._wrap(func)
         return _Method(self._proxy, "%s.%s" % (self._name, name))
-
 
     def __call__(self, *args):
         raise AttributeError, "No public method %s"%self._name
@@ -298,5 +293,3 @@ class DBProxy(object):
 
         return wrapper
 
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

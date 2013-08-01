@@ -73,7 +73,6 @@ ul {
     margin-top:0px;
 }
 
-
 /* Container elements: left-right margin */
 
 #precontent {
@@ -134,8 +133,6 @@ ul {
     display:none;
 }
 
-
-
 /***** Nav bar *****/
 
 #navigation {
@@ -160,7 +157,6 @@ ul {
     color: #666;
     font-weight: lighter;
 }
-
 
 /***** Editbar ******/
 /* Linear gradient... */
@@ -193,8 +189,6 @@ ul {
     margin-bottom:-4px;
 }
 
-
-
 /***** Main tabs ********/
 
 .e2-tab-main > ul {
@@ -213,7 +207,6 @@ ul {
 }
 
 /***** Input control Styling ********/
-
 
 button,
 select,
@@ -246,7 +239,6 @@ h1 .e2l-actions .e2-button {
 h1 label {
     font-weight: normal;
 }
-
 
 input[type=button]:hover,
 input[type=submit]:hover,

@@ -6,7 +6,6 @@
 <%namespace name="buttons" file="/buttons" /> 
 <%namespace name="forms" file="/forms"  /> 
 
-
 <%block name="js_ready">
     ${parent.js_ready()}
     ${buttons.tocache(recorddef)}
@@ -22,9 +21,7 @@
     <div class="e2-tree-main" style="overflow:hidden">${parentmap | n,unicode}</div>
 </%block>
 
-
 <form method="post" action="">
-
 
 <h1>
     ${ctxt.title}
@@ -39,9 +36,6 @@
     </ul>
         
 </h1>
-
-
-
 
 <%buttons:singlepage label='Details'>
     <table class="e2l-kv">
@@ -121,11 +115,6 @@
     </table>
 </%buttons:singlepage>
 
-
-
-
-
-
 <%buttons:singlepage label='Main Protocol'>
     % if new or (edit and ADMIN):
         <textarea name="mainview" rows="10" required="required">${recorddef.mainview}</textarea>
@@ -133,11 +122,6 @@
         ${markdown.markdown(recorddef.mainview.replace('\n','  \n'), safe_mode='escape') | n,unicode}
     % endif
 </%buttons:singlepage>
-
-
-
-
-
 
 <div class="e2-tab e2-tab-switcher" id="recorddef-views">
     <ul class="e2l-cf">
@@ -163,7 +147,6 @@
         % endfor
     </ul>
 
-
     % for count, (key, view) in enumerate(v):
         % if count == 0:
             <div class="e2-tab-active" data-tab="${count}">
@@ -185,10 +168,6 @@
     
 </div>
 
-
-
-
-
 % if not new:
     <%buttons:singlepage label='History'>
         <table class="e2l-kv">
@@ -205,13 +184,8 @@
     </%buttons:singlepage>
 % endif
 
-
-
-
-
 <%buttons:singlepage label='Relationships'>
     <div id="e2-relationships" data-name="${recorddef.name}" data-keytype="${recorddef.keytype}"></div>
 </%buttons:singlepage>
-
 
 </form>

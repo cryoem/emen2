@@ -7,7 +7,6 @@ import emen2.db
 import emen2.db.config
 import emen2.utils
 
-
 def dump_json(outfile, items, uri=None):
     if os.path.exists(outfile):
         print "Warning: File %s exists"%outfile
@@ -17,7 +16,6 @@ def dump_json(outfile, items, uri=None):
             if uri:
                 item['uri'] = '%s/%s/%s/'%(uri, item.get('keytype'), item.get('name'))
             f.write(json.dumps(item)+"\n")
-
 
 class Dumper(object):
     
@@ -119,8 +117,6 @@ class Dumper(object):
     def _modify_user(self, item):
         return item
 
-
-
 class PublicDumper(Dumper):
     def _modify_record(self, item):
         # Remove permissions, mark published data as anon
@@ -136,13 +132,9 @@ class PublicDumper(Dumper):
         item.__dict__['password'] = ''
         return item
 
-
-
 class DumpOptions(emen2.db.config.DBOptions):
     def parseArgs(self, infile):
         self['infile'] = infile
-
-
 
 if __name__ == "__main__":
     import emen2.db
@@ -155,5 +147,3 @@ if __name__ == "__main__":
     keys['user'].remove('root')
     dumper.write(keys, outfile="dump-publicdata.json", uri="http://ncmidb.bcm.edu")
     
-    
-    __version__ = "$Revision$".split(":")[1][:-1].strip()

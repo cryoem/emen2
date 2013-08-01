@@ -1,4 +1,3 @@
-# $Id$
 # This Python file is encoding:UTF-8 Encoded
 """Properties -- types of physical properties (units)."""
 
@@ -88,7 +87,6 @@ equivs = {
     'days': 'day',
     'years': 'year'
 }
-
 
 # SI prefix synonyms
 si_equivs = {
@@ -227,7 +225,6 @@ mg.new_mag('mile', mg.mg(160934.4, 'cm'))
 mg.new_mag('gallon', mg.Magnitude(3.78541178e-3, m=3))
 mg.new_mag('torr', mg.Magnitude(1/760.0, m=-1, kg=1, s=-2))
 mg.new_mag('degree', mg.Magnitude(1))
-
 
 class Property(object):    
     restricted = False
@@ -525,20 +522,3 @@ class prop_acceleration(Property):
 class prop_resolution(Property):
     defaultunits = u'Å/pixel'
     units = [u'Å/pixel', 'dpi', 'lpi']
-        
-
-if __name__ == '__main__':
-    # print convert(-460, 'degF', 'K')
-    # a = prop_temperature()
-    # print a.convert(100, 'K', 'degC')
-    
-    # a = prop_angle()
-    # print a.convert(360, 'degree', 'rad')    
-        
-    # a = prop_mass()
-    # print a.convert(1, 'kDa', 'MDa')    
-        
-    a = prop_angle()
-    print a.convert(1, 'degree', 'rads')    
-        
-__version__ = "$Revision$".split(":")[1][:-1].strip()

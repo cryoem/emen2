@@ -1,4 +1,3 @@
-# $Id$
 """Query system."""
 
 import collections
@@ -44,7 +43,6 @@ def getop(op):
     }
     return ops[synonyms.get(op, op)]
 
-
 def keyformatconvert(keyformat, term):
     try:
         if keyformat == 'int':
@@ -56,7 +54,6 @@ def keyformatconvert(keyformat, term):
     except:
         pass
     return term
-
 
 class QueryTimeOut(Exception):
     pass
@@ -108,7 +105,6 @@ class Constraint(object):
 
     def _run(self):
         return None
-
 
 class IndexedConstraint(Constraint):
     """Constraint that has an index."""
@@ -182,11 +178,9 @@ class ParamConstraint(IndexedConstraint):
             return f
         return set(f or [])
 
-
 class KeywordsConstraint(ParamConstraint):
     def _run(self):
         return self._run_index()    
-
 
 class RectypeConstraint(ParamConstraint):
     """Rectype constraints."""
@@ -206,7 +200,6 @@ class RectypeConstraint(ParamConstraint):
                 f.extend(f2)
         return set(f or [])
 
-
 class RelConstraint(IndexedConstraint):
     """Relationship constraints."""
     
@@ -225,7 +218,6 @@ class RelConstraint(IndexedConstraint):
         term = keyformatconvert(self.p.btree.keyformat, term)
         rel = self.p.btree.rel([term], recurse=recurse, ctx=self.p.ctx, txn=self.p.txn)
         return rel.get(term, set())
-        
 
 class MacroConstraint(Constraint):
     """Macro constraints"""
@@ -253,7 +245,6 @@ class MacroConstraint(Constraint):
                 f.add(item.name)
                 self.p.cache[item.name][self.param] = value
         return f
-        
 
 class Query(object):
     def __init__(self, constraints, mode='AND', subset=None, keywords=None, ctx=None, txn=None, btree=None):
@@ -471,6 +462,3 @@ class Query(object):
             constraint = ParamConstraint(param, op, term)
         constraint.init(self)
         return constraint
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

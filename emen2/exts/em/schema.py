@@ -40,14 +40,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
  {'choices': ['1', '2', '4', '8', '16'],'desc_long': 'Binning',
   'desc_short': 'Hardware Binning Y',
   'keytype': 'paramdef',
   'name': 'binning_hardware_y',
   'parents': ['binning'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Stack ND1',
   'desc_short': 'Stack ND1',
@@ -56,7 +54,6 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
  {'desc_long': 'Spot alignment 2 deflectors',
   'desc_short': 'Spot alignment 2 deflectors',
   'keytype': 'paramdef',
@@ -64,7 +61,6 @@ paramdefs = [
   'parents': [],
   'property': 'count',
   'vartype': 'int'},
-
 
  {'defaultunits': 'A',
   'desc_long': '',
@@ -75,14 +71,12 @@ paramdefs = [
   'property': 'current',
   'vartype': 'float'},
 
-
  {'desc_long': 'Textual descriptions',
   'desc_short': 'Textual descriptions',
   'keytype': 'paramdef',
   'name': 'textual_descriptions',
   'parents': ['descriptive_information'],
   'vartype': 'none'},
-
 
  {'desc_long': 'Journal name',
   'desc_short': 'Journal name',
@@ -91,7 +85,6 @@ paramdefs = [
   'parents': ['publication'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Gain',
   'desc_short': 'Gain',
   'keytype': 'paramdef',
@@ -99,14 +92,12 @@ paramdefs = [
   'parents': ['scanner'],
   'vartype': 'float'},
 
-
  {'desc_long': 'fax',
   'desc_short': 'fax',
   'keytype': 'paramdef',
   'name': 'fax',
   'parents': [],
   'vartype': 'string'},
-
 
  {'desc_long': 'Condenser stigmator deflectors',
   'desc_short': 'Condenser stigmator deflectors',
@@ -116,14 +107,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': '???',
   'desc_short': '???',
   'keytype': 'paramdef',
   'name': 'def_plax',
   'parents': [],
   'vartype': 'int'},
-
 
  {'defaultunits': 'degree',
   'desc_long': 'Stage tilt X-axis',
@@ -134,7 +123,6 @@ paramdefs = [
   'property': 'angle',
   'vartype': 'float'},
 
-
  {'desc_long': 'CryoEM ParamDefs',
   'desc_short': 'CryoEM ParamDefs',
   'keytype': 'paramdef',
@@ -142,14 +130,12 @@ paramdefs = [
   'parents': ['root'],
   'vartype': 'none'},
 
-
  {'desc_long': '',
   'desc_short': 'Last Dark Frame Dataset',
   'keytype': 'paramdef',
   'name': 'ddd_last_dark_frame_dataset',
   'parents': ['ddd_camera'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'um',
   'desc_long': 'Intended defocus while imaging, underfocus positive',
@@ -159,7 +145,6 @@ paramdefs = [
   'parents': ['ctf', 'length'],
   'property': 'length',
   'vartype': 'float'},
-
 
  {'choices': ['0',
                '1',
@@ -178,7 +163,6 @@ paramdefs = [
   'parents': ['textual_descriptions'],
   'vartype': 'int'},
 
-
  {'choices': ['1024', '2048', '4096', '10240'],'defaultunits': 'pixel',
   'desc_long': 'Size of frame along the X-axis',
   'desc_short': 'Frame width',
@@ -188,7 +172,6 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Humidifier enabled flag',
   'desc_short': 'Humidifier enabled',
   'keytype': 'paramdef',
@@ -196,14 +179,12 @@ paramdefs = [
   'parents': ['blotting'],
   'vartype': 'boolean'},
 
-
  {'desc_long': 'Humidity',
   'desc_short': 'Humidity',
   'keytype': 'paramdef',
   'name': 'humidity',
   'parents': ['physical_property'],
   'vartype': 'string'},
-
 
  {'defaultunits': 's',
   'desc_long': 'Blanking time',
@@ -214,14 +195,12 @@ paramdefs = [
   'property': 'time',
   'vartype': 'int'},
 
-
  {'choices': ['Data Collection', 'Screening', 'Unknown', 'Other'],'desc_long': 'Type of microscopy session',
   'desc_short': 'Session type',
   'keytype': 'paramdef',
   'name': 'type_session',
   'parents': ['microscopy'],
   'vartype': 'choice'},
-
 
  {'choices': ['1', '2', '4', '8', '16'],'desc_long': '',
   'desc_short': 'Hardware Binning X',
@@ -230,14 +209,12 @@ paramdefs = [
   'parents': ['binning'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Fixed Increment',
   'desc_short': 'Fixed Increment',
   'keytype': 'paramdef',
   'name': 'stack_fixedincrement',
   'parents': ['stack'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Spot',
   'desc_short': 'Spot',
@@ -246,14 +223,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Visualization Bitrate',
   'desc_short': 'Visualization Bitrate',
   'keytype': 'paramdef',
   'name': 'visualization_bitrate',
   'parents': [],
   'vartype': 'int'},
-
 
  {'choices': ['Frozen Hydrated',
                'Sugar Embedding',
@@ -265,7 +240,6 @@ paramdefs = [
   'parents': ['freezing'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Gun shift deflectors',
   'desc_short': 'Gun shift deflectors',
   'keytype': 'paramdef',
@@ -274,14 +248,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Zeiss brightness',
   'desc_short': 'Zeiss brightness',
   'keytype': 'paramdef',
   'name': 'zeiss_brightness',
   'parents': ['scanner'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Rate parameters',
   'desc_short': 'Rate parameters',
@@ -290,14 +262,12 @@ paramdefs = [
   'parents': ['elapsed_time'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Lens voltage',
   'desc_short': 'Lens Voltage Parameters',
   'keytype': 'paramdef',
   'name': 'voltage_lens',
   'parents': ['lens', 'current_lens', 'voltage'],
   'vartype': 'float'},
-
 
  {'choices': ['Electron  Diffraction',
                'X-Ray  Solution  Scattering',
@@ -308,14 +278,12 @@ paramdefs = [
   'parents': ['biological_target', 'scanner'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Description of the event or discussion',
   'desc_short': 'Text',
   'keytype': 'paramdef',
   'name': 'description_notebook',
   'parents': ['textual_descriptions'],
   'vartype': 'text'},
-
 
  {'defaultunits': 'um',
   'desc_long': 'Delta X',
@@ -326,7 +294,6 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'Visualization Codec',
   'desc_short': 'Visualization Codec',
   'keytype': 'paramdef',
@@ -334,14 +301,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'string'},
 
-
  {'desc_long': 'Stack Lens Data',
   'desc_short': 'Stack Lens Data',
   'keytype': 'paramdef',
   'name': 'stack_data_lens',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'defaultunits': 'pixel',
   'desc_long': 'Right coordinate',
@@ -352,14 +317,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Complete description of solubilization buffer used in purification',
   'desc_short': 'Storage buffer',
   'keytype': 'paramdef',
   'name': 'description_buffer_purification',
   'parents': ['textual_descriptions'],
   'vartype': 'text'},
-
 
  {'desc_long': 'Current',
   'desc_short': 'Current',
@@ -368,7 +331,6 @@ paramdefs = [
   'parents': ['physical_property'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Editor Comments',
   'desc_short': 'Editor Comments',
   'keytype': 'paramdef',
@@ -376,14 +338,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'text'},
 
-
  {'desc_long': 'Interm lens 4 DAC',
   'desc_short': 'Interm lens 4 DAC',
   'keytype': 'paramdef',
   'name': 'lens_il4dac',
   'parents': [],
   'vartype': 'int'},
-
 
  {'defaultunits': 'e/A2/sec',
   'desc_long': 'The dosage received by the camera per unit time',
@@ -394,15 +354,12 @@ paramdefs = [
   'property': 'dose',
   'vartype': 'float'},
 
-
-
  {'desc_long': 'Stack ID Type',
   'desc_short': 'Stack ID Type',
   'keytype': 'paramdef',
   'name': 'stack_data_idtype',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'desc_long': 'Purpose of experiment',
   'desc_short': 'Purpose',
@@ -411,7 +368,6 @@ paramdefs = [
   'parents': ['textual_descriptions', 'biology_of_project'],
   'vartype': 'text'},
 
-
  {'desc_long': 'Title of a book',
   'desc_short': 'Book Title',
   'keytype': 'paramdef',
@@ -419,14 +375,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'string'},
 
-
  {'desc_long': 'Reconstruction parameters',
   'desc_short': 'Reconstruction parameters',
   'keytype': 'paramdef',
   'name': 'parameters_reconstruction',
   'parents': ['final_reconstruction'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Box file attachments. Typically ordered by date.',
   'desc_short': 'Box Files',
@@ -436,14 +390,12 @@ paramdefs = [
   'parents': ['processing'],
   'vartype': 'binary'},
 
-
  {'desc_long': 'Box Label',
   'desc_short': 'Box Label',
   'keytype': 'paramdef',
   'name': 'box_label',
   'parents': ['box'],
   'vartype': 'string'},
-
 
  {'choices': ['Empty - no ice',
                'Too thin',
@@ -458,14 +410,12 @@ paramdefs = [
   'parents': ['textual_descriptions', 'ice'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Dark level',
   'desc_short': 'Dark level',
   'keytype': 'paramdef',
   'name': 'eos_darklevel',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'CTF details',
   'desc_short': 'CTF details',
@@ -474,14 +424,12 @@ paramdefs = [
   'parents': ['microscope', 'imaging'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Number of grids discarded',
   'desc_short': 'Number of grids discarded ',
   'keytype': 'paramdef',
   'name': 'grids_tem_lost',
   'parents': ['grid'],
   'vartype': 'int'},
-
 
  {'defaultunits': 'pf',
   'desc_long': 'Concentration per mL',
@@ -492,7 +440,6 @@ paramdefs = [
   'property': 'concentration',
   'vartype': 'float'},
 
-
  {'desc_long': 'Stack STAMP',
   'desc_short': 'Stack STAMP',
   'keytype': 'paramdef',
@@ -500,14 +447,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'string'},
 
-
  {'desc_long': 'The person who did the training',
   'desc_short': 'Trainer',
   'keytype': 'paramdef',
   'name': 'trainer',
   'parents': ['people'],
   'vartype': 'string'},
-
 
  {'defaultunits': 's',
   'desc_long': 'Length of time the pads are in contact with the grid during the blot.',
@@ -518,14 +463,12 @@ paramdefs = [
   'property': 'time',
   'vartype': 'float'},
 
-
  {'desc_long': 'Interm lens 1 DAC',
   'desc_short': 'Interm lens 1 DAC',
   'keytype': 'paramdef',
   'name': 'lens_il1dac',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Direct Electron Detector parameters',
   'desc_short': 'Direct Electron Detector parameters',
@@ -534,14 +477,12 @@ paramdefs = [
   'parents': ['camera'],
   'vartype': 'none'},
 
-
  {'desc_long': 'X beam-tilt setting',
   'desc_short': 'X beam tilt',
   'keytype': 'paramdef',
   'name': 'def_beamtiltx',
   'parents': [],
   'vartype': 'int'},
-
 
  {'defaultunits': 'kV',
   'desc_long': 'Projector lens voltage',
@@ -552,7 +493,6 @@ paramdefs = [
   'property': 'voltage',
   'vartype': 'float'},
 
-
  {'desc_long': 'User-defined bookmarks',
   'desc_short': 'Bookmarks',
   'iter': True,
@@ -561,14 +501,12 @@ paramdefs = [
   'parents': ['core'],
   'vartype': 'int'},
 
-
  {'desc_long': 'Cond lens 1 DAC',
   'desc_short': 'Cond lens 1 DAC',
   'keytype': 'paramdef',
   'name': 'lens_cl1dac',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'MDS defX',
   'desc_short': 'MDS defX',
@@ -577,14 +515,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'MDS defY',
   'desc_short': 'MDS defY',
   'keytype': 'paramdef',
   'name': 'mds_defy',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': '???',
   'desc_short': '???',
@@ -593,14 +529,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'X image-shift setting',
   'desc_short': 'X image shift',
   'keytype': 'paramdef',
   'name': 'def_imageshiftx',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Y image-shift setting',
   'desc_short': 'Y image shift',
@@ -609,14 +543,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Magnification',
   'desc_short': 'Magnification',
   'keytype': 'paramdef',
   'name': 'magnification',
   'parents': ['microscope', 'imaging'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Camera details',
   'desc_short': 'Camera details',
@@ -625,7 +557,6 @@ paramdefs = [
   'parents': ['equipment'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Sequence',
   'desc_short': 'Sequence',
   'keytype': 'paramdef',
@@ -633,14 +564,12 @@ paramdefs = [
   'parents': ['biological_target', 'physical_property'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Intensity',
   'desc_short': 'Intensity',
   'keytype': 'paramdef',
   'name': 'stack_intensity',
   'parents': ['stack'],
   'vartype': 'float'},
-
 
  {'defaultunits': 'degree',
   'desc_long': 'Direction of drift',
@@ -651,7 +580,6 @@ paramdefs = [
   'property': 'angle',
   'vartype': 'float'},
 
-
  {'desc_long': 'Publication type',
   'desc_short': 'Publication type',
   'keytype': 'paramdef',
@@ -659,14 +587,12 @@ paramdefs = [
   'parents': ['publication'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Biological target',
   'desc_short': 'Biological target',
   'keytype': 'paramdef',
   'name': 'biological_target',
   'parents': ['descriptive_information'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'kV',
   'desc_long': 'Accelerating voltage',
@@ -677,7 +603,6 @@ paramdefs = [
   'property': 'voltage',
   'vartype': 'float'},
 
-
  {'desc_long': 'Number of blots done on the grid',
   'desc_short': 'Number of blots',
   'keytype': 'paramdef',
@@ -685,14 +610,12 @@ paramdefs = [
   'parents': ['blotting'],
   'vartype': 'int'},
 
-
  {'desc_long': 'phone',
   'desc_short': 'phone',
   'keytype': 'paramdef',
   'name': 'phone',
   'parents': [],
   'vartype': 'string'},
-
 
  {'defaultunits': 'uL',
   'desc_long': 'Volume of the aliquot',
@@ -703,14 +626,12 @@ paramdefs = [
   'property': 'volume',
   'vartype': 'float'},
 
-
  {'desc_long': 'Obj lens x stigmator',
   'desc_short': 'Obj lens x stigmator',
   'keytype': 'paramdef',
   'name': 'def_olstigx',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Y gun-shift setting',
   'desc_short': 'Y gun shift',
@@ -719,14 +640,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Grid Size Y',
   'desc_short': 'Grid Size Y',
   'keytype': 'paramdef',
   'name': 'stack_size_my',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'desc_long': 'Grid size X',
   'desc_short': 'Grid size X',
@@ -735,14 +654,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
  {'desc_long': 'Grid Size Z',
   'desc_short': 'Grid Size Z',
   'keytype': 'paramdef',
   'name': 'stack_size_mz',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'defaultunits': 'degC',
   'desc_long': '',
@@ -753,14 +670,12 @@ paramdefs = [
   'property': 'temperature',
   'vartype': 'float'},
 
-
  {'choices': ['On', 'Off'],'desc_long': '',
   'desc_short': 'Dark Correction',
   'keytype': 'paramdef',
   'name': 'ddd_dark_correction',
   'parents': ['ddd_camera'],
   'vartype': 'string'},
-
 
  {'defaultunits': 's',
   'desc_long': 'Pre-exposure delay',
@@ -771,8 +686,6 @@ paramdefs = [
   'property': 'time',
   'vartype': 'float'},
 
-
-
  {'defaultunits': 'A',
   'desc_long': 'Lens current',
   'desc_short': 'Lens current',
@@ -782,7 +695,6 @@ paramdefs = [
   'property': 'current',
   'vartype': 'float'},
 
-
  {'desc_long': '',
   'desc_short': 'Vacuum Level',
   'keytype': 'paramdef',
@@ -790,14 +702,12 @@ paramdefs = [
   'parents': ['microscope'],
   'vartype': 'string'},
 
-
  {'choices': ['on-axis', 'off-axis'],'desc_long': 'Focus centering',
   'desc_short': 'Focus centering',
   'keytype': 'paramdef',
   'name': 'focus_centering',
   'parents': [],
   'vartype': 'choice'},
-
 
  {'desc_long': 'Projector lens',
   'desc_short': 'Projector lens',
@@ -807,14 +717,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'choices': ['Gain Normalized', 'Dark Subtracted', 'Unprocessed'],'desc_long': 'Frame type',
   'desc_short': 'Frame type',
   'keytype': 'paramdef',
   'name': 'type_frame',
   'parents': [],
   'vartype': 'choice'},
-
 
  {'desc_long': 'Projector deflectors',
   'desc_short': 'Projector deflectors',
@@ -823,7 +731,6 @@ paramdefs = [
   'parents': [],
   'property': 'count',
   'vartype': 'int'},
-
 
  {'choices': ['5', '20', '30', '40', '50', '60'],'defaultunits': 'um',
   'desc_long': 'Objective aperture',
@@ -834,7 +741,6 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'defaultunits': 'um',
   'desc_long': 'Defocus determined by fitting the power spectrum',
   'desc_short': 'Meas defocus',
@@ -843,7 +749,6 @@ paramdefs = [
   'parents': ['ctf', 'length'],
   'property': 'length',
   'vartype': 'float'},
-
 
  {'defaultunits': 's',
   'desc_long': '',
@@ -854,7 +759,6 @@ paramdefs = [
   'property': 'time',
   'vartype': 'float'},
 
-
  {'defaultunits': 'uL',
   'desc_long': 'Volume of the aliquot in uL',
   'desc_short': 'Vol aliquot, uL',
@@ -864,7 +768,6 @@ paramdefs = [
   'property': 'volume',
   'vartype': 'float'},
 
-
  {'desc_long': 'Box Coords',
   'desc_short': 'Box Coords',
   'iter': True,
@@ -873,14 +776,12 @@ paramdefs = [
   'parents': ['box'],
   'vartype': 'coordinate'},
 
-
  {'desc_long': 'X gun-shift setting',
   'desc_short': 'X gun shift',
   'keytype': 'paramdef',
   'name': 'def_gunshiftx',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Intermediate stigmator deflectors',
   'desc_short': 'Intermediate stigmator deflectors',
@@ -889,7 +790,6 @@ paramdefs = [
   'parents': [],
   'property': 'count',
   'vartype': 'int'},
-
 
  {'defaultunits': 'um',
   'desc_long': 'Pixel size',
@@ -900,14 +800,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'Proj lens 3 DAC',
   'desc_short': 'Proj lens 3 DAC',
   'keytype': 'paramdef',
   'name': 'lens_pl3dac',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': '???',
   'desc_short': '???',
@@ -916,14 +814,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'choices': ['Holey Carbon Film', 'Continuous Carbon'],'desc_long': 'Substrate used',
   'desc_short': 'Substrate',
   'keytype': 'paramdef',
   'name': 'select_substrate_grid',
   'parents': ['grid'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Aliquot description',
   'desc_short': 'Aliquot description',
@@ -932,14 +828,12 @@ paramdefs = [
   'parents': ['aliquot', 'textual_descriptions'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Visualization Name',
   'desc_short': 'Name',
   'keytype': 'paramdef',
   'name': 'visualization_name',
   'parents': [],
   'vartype': 'string'},
-
 
  {'defaultunits': 'A^2',
   'desc_long': 'B-factor in the drift direction',
@@ -950,8 +844,6 @@ paramdefs = [
   'property': 'bfactor',
   'vartype': 'float'},
 
-
-
  {'defaultunits': 'degree',
   'desc_long': 'Y rotation or tilt',
   'desc_short': 'Y rot/tilt',
@@ -961,7 +853,6 @@ paramdefs = [
   'property': 'angle',
   'vartype': 'float'},
 
-
  {'desc_long': 'Screen to film ratio',
   'desc_short': 'Screen/film ratio',
   'keytype': 'paramdef',
@@ -969,14 +860,12 @@ paramdefs = [
   'parents': ['ratio', 'film'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Stack CMAP',
   'desc_short': 'Stack CMAP',
   'keytype': 'paramdef',
   'name': 'stack_data_cmap',
   'parents': ['stack'],
   'vartype': 'string'},
-
 
  {'choices': ['Quantifoil   R 1.2/1.3',
                'Quantifoil R 2/1',
@@ -990,14 +879,12 @@ paramdefs = [
   'parents': ['grid'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Y gun-tilt setting',
   'desc_short': 'Y gun tilt',
   'keytype': 'paramdef',
   'name': 'def_guntilty',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'X gun-tilt setting',
   'desc_short': 'X gun tilt',
@@ -1006,14 +893,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Hazards',
   'desc_short': 'Hazards',
   'keytype': 'paramdef',
   'name': 'hazard',
   'parents': ['descriptive_information'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Cell size Y',
   'desc_short': 'Cell size Y',
@@ -1022,14 +907,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Down-sampling ratio of the film scanner',
   'desc_short': 'Average factor',
   'keytype': 'paramdef',
   'name': 'scan_average',
   'parents': ['scanner'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Full citation for a publication in P41 APR format',
   'desc_short': 'Citation',
@@ -1038,7 +921,6 @@ paramdefs = [
   'parents': [],
   'vartype': 'text'},
 
-
  {'desc_long': 'Purification parameters',
   'desc_short': 'Purification parameters',
   'keytype': 'paramdef',
@@ -1046,14 +928,12 @@ paramdefs = [
   'parents': ['experimental-techniques'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Workshop Agenda',
   'desc_short': 'Workshop Agenda',
   'keytype': 'paramdef',
   'name': 'agenda',
   'parents': ['project_information'],
   'vartype': 'text'},
-
 
  {'defaultunits': 'um',
   'desc_long': 'CCD size X (width) in pixels',
@@ -1064,14 +944,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'Comment on purpose',
   'desc_short': 'Comment on purpose',
   'keytype': 'paramdef',
   'name': 'comment_purpose',
   'parents': ['textual_descriptions'],
   'vartype': 'string'},
-
 
  {'desc_long': 'ID of this CCD recording process',
   'desc_short': 'CCD process ID',
@@ -1080,15 +958,12 @@ paramdefs = [
   'parents': ['identifiers', 'ccd_camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Saxton Increment',
   'desc_short': 'Saxton Increment',
   'keytype': 'paramdef',
   'name': 'stack_saxtonincrement',
   'parents': ['stack'],
   'vartype': 'float'},
-
-
 
  {'desc_long': 'Gun tilt deflectors',
   'desc_short': 'Gun tilt deflectors',
@@ -1098,14 +973,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'choices': ['200', '300', '400'],'desc_long': 'Mesh size of the grid',
   'desc_short': 'Grid mesh size',
   'keytype': 'paramdef',
   'name': 'grid_tem_mesh_size',
   'parents': ['length', 'grid', 'area'],
   'vartype': 'string'},
-
 
  {'desc_long': '',
   'desc_short': 'Gain Frame Status',
@@ -1114,14 +987,12 @@ paramdefs = [
   'parents': ['ddd_camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Freezing label',
   'desc_short': 'Freezing label',
   'keytype': 'paramdef',
   'name': 'title_freezing',
   'parents': ['identifiers'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'A^2',
   'desc_long': 'ctf B-factor',
@@ -1132,14 +1003,12 @@ paramdefs = [
   'property': 'bfactor',
   'vartype': 'float'},
 
-
  {'desc_long': 'Year a book was published',
   'desc_short': 'Publication Year',
   'keytype': 'paramdef',
   'name': 'year_published',
   'parents': [],
   'vartype': 'string'},
-
 
  {'desc_long': 'Micrograph ID',
   'desc_short': 'Micrograph ID',
@@ -1148,7 +1017,6 @@ paramdefs = [
   'parents': ['identifiers'],
   'vartype': 'string'},
 
-
  {'choices': ['EMAN', 'IMAGIC', 'SAVR', 'SPIDER'],'desc_long': 'Low dose method',
   'desc_short': 'Low dose method',
   'keytype': 'paramdef',
@@ -1156,14 +1024,12 @@ paramdefs = [
   'parents': ['textual_descriptions', 'final_reconstruction'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Resolution',
   'desc_short': 'Resolution',
   'keytype': 'paramdef',
   'name': 'visualization_resolution',
   'parents': [],
   'vartype': 'string'},
-
 
  {'desc_long': 'Mask files for a 3D map or volume',
   'desc_short': '3D Volume Masks',
@@ -1173,14 +1039,12 @@ paramdefs = [
   'parents': ['file_volume'],
   'vartype': 'binary'},
 
-
  {'desc_long': 'MDS blanking type',
   'desc_short': 'MDS blanking type',
   'keytype': 'paramdef',
   'name': 'mds_blankingtype',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Date Completed',
   'desc_short': 'Date Completed',
@@ -1189,14 +1053,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'datetime'},
 
-
  {'desc_long': 'Grid manufacturer batch ID',
   'desc_short': 'Grid manufacturer batch ID',
   'keytype': 'paramdef',
   'name': 'id_grid_batch',
   'parents': ['identifiers'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Condenser tilt deflectors',
   'desc_short': 'Condenser tilt deflectors',
@@ -1206,7 +1068,6 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Recent Progress',
   'desc_short': 'Recent Progress',
   'keytype': 'paramdef',
@@ -1214,14 +1075,12 @@ paramdefs = [
   'parents': ['textual_descriptions'],
   'vartype': 'text'},
 
-
  {'desc_long': 'Frozen by',
   'desc_short': 'Frozen by',
   'keytype': 'paramdef',
   'name': 'frozen_by',
   'parents': ['people'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'nm',
   'desc_long': 'Y position',
@@ -1232,7 +1091,6 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'defaultunits': 'nm',
   'desc_long': 'X position',
   'desc_short': 'X pos',
@@ -1241,7 +1099,6 @@ paramdefs = [
   'parents': [],
   'property': 'length',
   'vartype': 'float'},
-
 
  {'defaultunits': 'nm',
   'desc_long': 'Z position',
@@ -1252,14 +1109,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'High-tension level',
   'desc_short': 'High-tension level',
   'keytype': 'paramdef',
   'name': 'eos_htlevel',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Creator Comments',
   'desc_short': 'Creator Comments',
@@ -1268,7 +1123,6 @@ paramdefs = [
   'name': 'comments_creator',
   'parents': [],
   'vartype': 'comments'},
-
 
  {'choices': ['1024', '2048', '4096', '10240'],'defaultunits': 'pixel',
   'desc_long': 'Size of frame along the Y-axis',
@@ -1279,14 +1133,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Proj lens 2 DAC',
   'desc_short': 'Proj lens 2 DAC',
   'keytype': 'paramdef',
   'name': 'lens_pl2dac',
   'parents': [],
   'vartype': 'int'},
-
 
  {'defaultunits': 'um',
   'desc_long': 'Scan step',
@@ -1297,7 +1149,6 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'Coarse objective lens',
   'desc_short': 'Coarse objective lens',
   'keytype': 'paramdef',
@@ -1306,14 +1157,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Manual exposure time',
   'desc_short': 'Manual exposure time',
   'keytype': 'paramdef',
   'name': 'photo_manualexptime',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': '???',
   'desc_short': '???',
@@ -1322,14 +1171,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Wavelength',
   'desc_short': 'Wavelength',
   'keytype': 'paramdef',
   'name': 'wavelength',
   'parents': ['physical_property', 'length'],
   'vartype': 'float'},
-
 
  {'choices': ['10', '20', '50', '70', '120', '150', '200'],'defaultunits': 'um',
   'desc_long': 'Condenser aperture',
@@ -1340,14 +1187,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'int'},
 
-
  {'desc_long': 'General parameter for storage of textual comments',
   'desc_short': 'Comments',
   'keytype': 'paramdef',
   'name': 'comments_text',
   'parents': ['textual_descriptions'],
   'vartype': 'text'},
-
 
  {'desc_long': 'Cond lens y stigmator',
   'desc_short': 'Cond lens y stigmator',
@@ -1356,14 +1201,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Cond lens x stigmator',
   'desc_short': 'Cond lens x stigmator',
   'keytype': 'paramdef',
   'name': 'def_clstigx',
   'parents': [],
   'vartype': 'int'},
-
 
  {'defaultunits': 'mV',
   'desc_long': 'Omega-filter setting',
@@ -1374,7 +1217,6 @@ paramdefs = [
   'property': 'voltage',
   'vartype': 'int'},
 
-
  {'desc_long': 'Camera index',
   'desc_short': 'Camera index',
   'keytype': 'paramdef',
@@ -1383,14 +1225,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Local person in charge',
   'desc_short': 'Person in charge',
   'keytype': 'paramdef',
   'name': 'localperson',
   'parents': ['people'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Date the sample was received',
   'desc_short': 'Date received',
@@ -1399,14 +1239,12 @@ paramdefs = [
   'parents': ['date_time'],
   'vartype': 'datetime'},
 
-
  {'desc_long': 'Maximum biohazard level for experiments in this project',
   'desc_short': 'Max biohazard level',
   'keytype': 'paramdef',
   'name': 'hazard_bl_max',
   'parents': ['project_information', 'hazard'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Publication is in press',
   'desc_short': 'In Press',
@@ -1415,14 +1253,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'boolean'},
 
-
  {'choices': ['On', 'Off'],'desc_long': '',
   'desc_short': 'Save Raw Frames',
   'keytype': 'paramdef',
   'name': 'ddd_raw_frame_save',
   'parents': ['ddd_camera'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Box Size',
   'desc_short': 'Box Size',
@@ -1431,14 +1267,12 @@ paramdefs = [
   'parents': ['box'],
   'vartype': 'int'},
 
-
  {'desc_long': 'Biomedical Relevance',
   'desc_short': 'Biomedical Relevance',
   'keytype': 'paramdef',
   'name': 'description_medical_relevance',
   'parents': ['textual_descriptions', 'biology_of_project'],
   'vartype': 'text'},
-
 
  {'desc_long': 'Image shift 1 deflectors',
   'desc_short': 'Image shift 1 deflectors',
@@ -1447,7 +1281,6 @@ paramdefs = [
   'parents': [],
   'property': 'count',
   'vartype': 'int'},
-
 
  {'choices': ['Gatan   2kx2k  MSC',
                'Gatan  4kx4k   US',
@@ -1459,16 +1292,12 @@ paramdefs = [
   'parents': ['ccd_camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Map name',
   'desc_short': 'Map name',
   'keytype': 'paramdef',
   'name': 'mapname',
   'parents': ['final_reconstruction', 'identifiers'],
   'vartype': 'string'},
-
-
-
 
  {'desc_long': 'Imaging',
   'desc_short': 'Imaging',
@@ -1477,14 +1306,12 @@ paramdefs = [
   'parents': ['physical_property'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Stack Filename',
   'desc_short': 'Stack Filename',
   'keytype': 'paramdef',
   'name': 'stack_filename',
   'parents': [],
   'vartype': 'string'},
-
 
  {'desc_long': 'Visualization Length',
   'desc_short': 'Visualization Length',
@@ -1493,16 +1320,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Number of Labels',
   'desc_short': 'Number of Labels',
   'keytype': 'paramdef',
   'name': 'stack_data_nlabl',
   'parents': ['stack'],
   'vartype': 'int'},
-
-
-
 
  {'desc_long': 'Stack X Origin',
   'desc_short': 'Stack X Origin',
@@ -1511,14 +1334,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Descriptive Information',
   'desc_short': 'Descriptive Information',
   'keytype': 'paramdef',
   'name': 'descriptive_information',
   'parents': ['root'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Image type, ispg',
   'desc_short': 'Image type',
@@ -1527,14 +1348,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
  {'desc_long': 'Cell angle Gamma',
   'desc_short': 'Cell angle Gamma',
   'keytype': 'paramdef',
   'name': 'stack_angle_gamma',
   'parents': ['stack'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Length',
   'desc_short': 'Length',
@@ -1543,14 +1362,12 @@ paramdefs = [
   'parents': ['size'],
   'vartype': 'string'},
 
-
  {'choices': ['Retracted'],'desc_long': '',
   'desc_short': 'Camera Position',
   'keytype': 'paramdef',
   'name': 'camera_position',
   'parents': ['microscope'],
   'vartype': 'string'},
-
 
  {'desc_long': '',
   'desc_short': 'Raw Frames Filename Suffix',
@@ -1559,14 +1376,12 @@ paramdefs = [
   'parents': ['ddd_camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Corresponding Author',
   'desc_short': 'Corresponding Author',
   'keytype': 'paramdef',
   'name': 'author_corresponding',
   'parents': [],
   'vartype': 'string'},
-
 
  {'choices': ['Excellent', 'Good', 'Fair', 'Bad'],'desc_long': 'Comments on the grids',
   'desc_short': 'Grid comments',
@@ -1575,14 +1390,12 @@ paramdefs = [
   'parents': ['textual_descriptions', 'grid'],
   'vartype': 'string'},
 
-
  {'desc_long': 'RNA sequence',
   'desc_short': 'RNA sequence',
   'keytype': 'paramdef',
   'name': 'sequence_rna',
   'parents': ['sequence'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Symmetry',
   'desc_short': 'Symmetry',
@@ -1591,15 +1404,12 @@ paramdefs = [
   'parents': ['physical_property'],
   'vartype': 'string'},
 
-
-
  {'desc_long': 'Journal volume',
   'desc_short': 'Vol journal',
   'keytype': 'paramdef',
   'name': 'journal_volume',
   'parents': ['publication'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Piece coordinates for montage',
   'desc_short': 'Piece coordinates for montage',
@@ -1608,14 +1418,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Size',
   'desc_short': 'Size',
   'keytype': 'paramdef',
   'name': 'size',
   'parents': ['physical_property'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Title or Subject of this note',
   'desc_short': 'Subject',
@@ -1624,7 +1432,6 @@ paramdefs = [
   'parents': ['textual_descriptions'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Biological details',
   'desc_short': 'Project biological details',
   'keytype': 'paramdef',
@@ -1632,14 +1439,12 @@ paramdefs = [
   'parents': ['project_information'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Publication details',
   'desc_short': 'Publication details',
   'keytype': 'paramdef',
   'name': 'publication',
   'parents': ['descriptive_information'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Objective mini lens',
   'desc_short': 'Objective mini lens',
@@ -1649,15 +1454,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
-
  {'desc_long': 'Title of the grid',
   'desc_short': 'Label',
   'keytype': 'paramdef',
   'name': 'title_purification',
   'parents': ['identifiers'],
   'vartype': 'string'},
-
 
  {'desc_long': 'First Author of a publication',
   'desc_short': 'First Author',
@@ -1666,7 +1468,6 @@ paramdefs = [
   'parents': [],
   'vartype': 'string'},
 
-
  {'desc_long': 'DNA sequence',
   'desc_short': 'DNA sequence',
   'keytype': 'paramdef',
@@ -1674,14 +1475,12 @@ paramdefs = [
   'parents': ['sequence'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Stack Z Origin',
   'desc_short': 'Stack Z Origin',
   'keytype': 'paramdef',
   'name': 'stack_data_zorg',
   'parents': ['stack'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Current Tilt Angles',
   'desc_short': 'Current Tilt Angles',
@@ -1691,14 +1490,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Pages ',
   'desc_short': 'Pages ',
   'keytype': 'paramdef',
   'name': 'page_range',
   'parents': ['publication'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'um',
   'desc_long': 'Difference between major and minor defocus in astigmatism',
@@ -1709,14 +1506,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'Temperature of microscopy stage',
   'desc_short': 'Temp stage',
   'keytype': 'paramdef',
   'name': 'temperature_tem_stage',
   'parents': ['temperature_specimen'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Intended Audience',
   'desc_short': 'Intended Audience',
@@ -1725,14 +1520,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'string'},
 
-
  {'desc_long': 'Visualization Synopsis',
   'desc_short': 'Synopsis',
   'keytype': 'paramdef',
   'name': 'visualization_synopsis',
   'parents': [],
   'vartype': 'text'},
-
 
  {'desc_long': 'Image encoding',
   'desc_short': 'Image encoding',
@@ -1741,16 +1534,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'string'},
 
-
  {'desc_long': 'Cond lens 3 DAC',
   'desc_short': 'Cond lens 3 DAC',
   'keytype': 'paramdef',
   'name': 'lens_cl3dac',
   'parents': [],
   'vartype': 'int'},
-
-
-
 
  {'defaultunits': 'e/A^2',
   'desc_long': 'The dosage received by the camera',
@@ -1760,7 +1549,6 @@ paramdefs = [
   'parents': ['dose'],
   'property': 'exposure',
   'vartype': 'float'},
-
 
  {
   'choices': ['Vitrobot',
@@ -1773,7 +1561,6 @@ paramdefs = [
   'parents': ['equipment', 'vitrification'],
   'vartype': 'string'},
 
-
  {'defaultunits': u'\xc5',
   'desc_long': 'Fourier shell correlation',
   'desc_short': 'FSC',
@@ -1782,7 +1569,6 @@ paramdefs = [
   'parents': ['final_reconstruction'],
   'property': 'length',
   'vartype': 'float'},
-
 
  {'defaultunits': 'degree',
   'desc_long': 'Astigmatism major axis angle',
@@ -1793,7 +1579,6 @@ paramdefs = [
   'property': 'angle',
   'vartype': 'float'},
 
-
  {'desc_long': 'Beam blanked',
   'desc_short': 'Beam blanked',
   'keytype': 'paramdef',
@@ -1801,14 +1586,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'boolean'},
 
-
  {'choices': ['first', 'second', 'third', 'not recorded'],'desc_long': 'Selected area aperture',
   'desc_short': 'Sel area apert',
   'keytype': 'paramdef',
   'name': 'aperture_selarea',
   'parents': ['length', 'area'],
   'vartype': 'string'},
-
 
  {'defaultunits': 's',
   'desc_long': 'The time elapsed between applying the sample and blotting',
@@ -1819,7 +1602,6 @@ paramdefs = [
   'property': 'time',
   'vartype': 'float'},
 
-
  {'desc_long': 'Stack RMS',
   'desc_short': 'Stack RMS',
   'keytype': 'paramdef',
@@ -1827,14 +1609,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Concentration',
   'desc_short': 'Concentration',
   'keytype': 'paramdef',
   'name': 'concentration',
   'parents': ['physical_property'],
   'vartype': 'string'},
-
 
  {'defaultunits': 's',
   'desc_long': 'The vitrobot can be used in two modes: manual and automatic operation.  During manual operation, the human operator initiates the next respective step by use of the foot pedal.  In automatic operation, the vitrobot proceeds automatically taking a fixed amount of time for each step; the length of this step is recorded in this parameter',
@@ -1845,7 +1625,6 @@ paramdefs = [
   'property': 'time',
   'vartype': 'float'},
 
-
  {'desc_long': 'Condenser mini lens',
   'desc_short': 'Condenser mini lens',
   'keytype': 'paramdef',
@@ -1854,8 +1633,6 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
-
  {'desc_long': 'Angle',
   'desc_short': 'Angle',
   'keytype': 'paramdef',
@@ -1863,14 +1640,12 @@ paramdefs = [
   'parents': ['physical_property'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Maximum signal to noise ratio in radial curve',
   'desc_short': 'SNR Max',
   'keytype': 'paramdef',
   'name': 'ctf_snr_max',
   'parents': ['ctf'],
   'vartype': 'float'},
-
 
  {
   'desc_long': 'Equipment details',
@@ -1880,14 +1655,12 @@ paramdefs = [
   'parents': ['root'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Stack VD2',
   'desc_short': 'Stack VD2',
   'keytype': 'paramdef',
   'name': 'stack_data_vd2',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'desc_long': 'Stack VD1',
   'desc_short': 'Stack VD1',
@@ -1896,14 +1669,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
  {'desc_long': 'The title of the publication',
   'desc_short': 'Title',
   'keytype': 'paramdef',
   'name': 'title_publication',
   'parents': ['publication'],
   'vartype': 'string'},
-
 
  {'desc_long': 'MDS blanking time',
   'desc_short': 'MDS blanking time',
@@ -1912,7 +1683,6 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Stage Pos X',
   'desc_short': 'Stage Pos X',
   'keytype': 'paramdef',
@@ -1920,14 +1690,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'float'},
 
-
  {'desc_long': 'Stage Pos Y',
   'desc_short': 'Stage Pos Y',
   'keytype': 'paramdef',
   'name': 'stack_stagepos_y',
   'parents': [],
   'vartype': 'float'},
-
 
  {'defaultunits': 'um',
   'desc_long': 'CCD size Y (length) in pixels',
@@ -1938,14 +1706,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': '?Wobbler?',
   'desc_short': '?Wobbler?',
   'keytype': 'paramdef',
   'name': 'eos_alpha',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Link to cryo-holder',
   'desc_short': 'Film holder',
@@ -1954,14 +1720,12 @@ paramdefs = [
   'parents': ['scanner'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Photo exposure mode',
   'desc_short': 'Photo exposure mode',
   'keytype': 'paramdef',
   'name': 'photo_exposuremode',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Visitor List',
   'desc_short': 'Visitor List',
@@ -1971,14 +1735,12 @@ paramdefs = [
   'parents': ['people'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Date of the journal',
   'desc_short': 'Date journal',
   'keytype': 'paramdef',
   'name': 'journal_date',
   'parents': ['publication'],
   'vartype': 'datetime'},
-
 
  {'desc_long': 'Map Column S (1=x, 2=y, 3=z)',
   'desc_short': 'Map Column S',
@@ -1987,16 +1749,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
-
-
  {'desc_long': 'PubMedCentral ID',
   'desc_short': 'PubMedCentral ID',
   'keytype': 'paramdef',
   'name': 'pmcid',
   'parents': [],
   'vartype': 'string'},
-
 
  {'desc_long': 'URI References',
   'desc_short': 'URI References',
@@ -2005,15 +1763,12 @@ paramdefs = [
   'parents': ['descriptive_information'],
   'vartype': 'string'},
 
-
-
  {'desc_long': '',
   'desc_short': 'Faraday Plate Peak Reading During Last Exposure',
   'keytype': 'paramdef',
   'name': 'faraday_plate_peak',
   'parents': ['ddd_camera'],
   'vartype': 'float'},
-
 
  {'defaultunits': u'\xc5',
   'desc_long': 'Height of the sample',
@@ -2023,7 +1778,6 @@ paramdefs = [
   'parents': ['length'],
   'property': 'length',
   'vartype': 'float'},
-
 
  {'choices': ['4',
                '6',
@@ -2049,7 +1803,6 @@ paramdefs = [
   'parents': ['magnification'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Post-blank status',
   'desc_short': 'Post-blank status',
   'keytype': 'paramdef',
@@ -2057,14 +1810,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'boolean'},
 
-
  {'desc_long': 'publisher',
   'desc_short': 'Publisher',
   'keytype': 'paramdef',
   'name': 'publisher',
   'parents': [],
   'vartype': 'string'},
-
 
  {'desc_long': 'Journal URI',
   'desc_short': 'Journal URI',
@@ -2090,7 +1841,6 @@ paramdefs = [
   'parents': ['people'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Purification procedure',
   'desc_short': 'Purification procedure',
   'keytype': 'paramdef',
@@ -2098,14 +1848,12 @@ paramdefs = [
   'parents': ['textual_descriptions', 'purification'],
   'vartype': 'text'},
 
-
  {'desc_long': 'Blotting parameters',
   'desc_short': 'Blotting parameters',
   'keytype': 'paramdef',
   'name': 'blotting',
   'parents': ['freezing'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'mrad',
   'desc_long': 'Illumination angle',
@@ -2116,14 +1864,12 @@ paramdefs = [
   'property': 'angle',
   'vartype': 'float'},
 
-
  {'desc_long': 'Ratio',
   'desc_short': 'Ratio',
   'keytype': 'paramdef',
   'name': 'ratio',
   'parents': ['physical_property'],
   'vartype': 'string'},
-
 
  {'defaultunits': '%RH',
   'desc_long': 'Vitrobot humidity',
@@ -2134,14 +1880,12 @@ paramdefs = [
   'property': 'relative_humidity',
   'vartype': 'float'},
 
-
  {'desc_long': 'Sample symmetry',
   'desc_short': 'Sample symmetry',
   'keytype': 'paramdef',
   'name': 'symmetry_particle',
   'parents': ['biological_target', 'symmetry'],
   'vartype': 'string'},
-
 
  {'defaultunits': 's',
   'desc_long': 'Length of exposure',
@@ -2152,7 +1896,6 @@ paramdefs = [
   'property': 'time',
   'vartype': 'float'},
 
-
  {'desc_long': 'Parameters for experimental techniques',
   'desc_short': 'Experimental technique parameters',
   'keytype': 'paramdef',
@@ -2160,14 +1903,12 @@ paramdefs = [
   'parents': ['root'],
   'vartype': 'none'},
 
-
  {'desc_long': 'Whatever done after freezing',
   'desc_short': 'Post-freezing comments',
   'keytype': 'paramdef',
   'name': 'description_grid_postfreezing',
   'parents': ['textual_descriptions', 'grid'],
   'vartype': 'string'},
-
 
  {'defaultunits': u'\xc5',
   'desc_long': 'Actual defocus',
@@ -2178,7 +1919,6 @@ paramdefs = [
   'property': 'length',
   'vartype': 'int'},
 
-
  {'desc_long': 'Fine objective lens',
   'desc_short': 'Fine objective lens',
   'keytype': 'paramdef',
@@ -2187,14 +1927,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': '',
   'desc_short': 'Temperature Control Mode',
   'keytype': 'paramdef',
   'name': 'ddd_temperature_control_mode',
   'parents': ['ddd_camera'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Film camera',
   'desc_short': 'Film camera',
@@ -2203,14 +1941,12 @@ paramdefs = [
   'parents': ['camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Freezing parameters',
   'desc_short': 'Freezing parameters',
   'keytype': 'paramdef',
   'name': 'freezing',
   'parents': ['experimental-techniques'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Sample storage conditions',
   'desc_short': 'Sample storage conditions',
@@ -2219,14 +1955,12 @@ paramdefs = [
   'parents': ['biological_target', 'textual_descriptions'],
   'vartype': 'text'},
 
-
  {'desc_long': 'Specimen stability',
   'desc_short': 'Specimen stability',
   'keytype': 'paramdef',
   'name': 'description_specimen_stability',
   'parents': ['biological_target', 'textual_descriptions'],
   'vartype': 'text'},
-
 
  {'desc_long': '',
   'desc_short': 'Sensor Output Mode',
@@ -2235,14 +1969,12 @@ paramdefs = [
   'parents': ['ddd_camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Imaging mode',
   'desc_short': 'Imaging mode',
   'keytype': 'paramdef',
   'name': 'eos_imagingmode',
   'parents': [],
   'vartype': 'int'},
-
 
  {'choices': ['Front',
                'Back',
@@ -2256,14 +1988,12 @@ paramdefs = [
   'parents': ['blotting'],
   'vartype': 'string'},
 
-
  {'desc_long': 'CCD camera parameters',
   'desc_short': 'CCD camera parameters',
   'keytype': 'paramdef',
   'name': 'ccd_camera',
   'parents': ['camera'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'nm',
   'desc_long': 'Intended defocus',
@@ -2274,14 +2004,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'int'},
 
-
  {'desc_long': 'Physical properties',
   'desc_short': 'Physical properties',
   'keytype': 'paramdef',
   'name': 'physical_property',
   'parents': ['root'],
   'vartype': 'none'},
-
 
  {'defaultunits': 'degree',
   'desc_long': 'X tilt',
@@ -2292,15 +2020,12 @@ paramdefs = [
   'property': 'angle',
   'vartype': 'float'},
 
-
  {'desc_long': 'Microscopy parameters',
   'desc_short': 'Microscopy parameters',
   'keytype': 'paramdef',
   'name': 'microscopy',
   'parents': ['experimental-techniques'],
   'vartype': 'string'},
-
-
 
  {'desc_long': 'Microscope parameters',
   'desc_short': 'Microscope parameters',
@@ -2309,14 +2034,12 @@ paramdefs = [
   'parents': ['equipment'],
   'vartype': 'string'},
 
-
  {'desc_long': 'The person who performs the service',
   'desc_short': 'Serviced by',
   'keytype': 'paramdef',
   'name': 'service_engineer',
   'parents': ['equipment_service', 'people'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'uL',
   'desc_long': 'Before plunging, the grid may be immersed in a solution containing the sample itself or  a solution that would pre-treat the grid; vitrobot_level_liquid measures the volume of this solution',
@@ -2327,14 +2050,12 @@ paramdefs = [
   'property': 'volume',
   'vartype': 'float'},
 
-
  {'desc_long': 'Sample components and sequences/IDs',
   'desc_short': 'Sample components and sequences/IDs',
   'keytype': 'paramdef',
   'name': 'description_genetic',
   'parents': ['textual_descriptions', 'biology_of_project'],
   'vartype': 'text'},
-
 
  {'defaultunits': 'V',
   'desc_long': 'High-tension setting',
@@ -2345,14 +2066,12 @@ paramdefs = [
   'property': 'voltage',
   'vartype': 'int'},
 
-
  {'desc_long': 'Box Color; hex RGB string',
   'desc_short': 'Box Color',
   'keytype': 'paramdef',
   'name': 'box_color',
   'parents': ['box'],
   'vartype': 'string'},
-
 
  {'desc_long': 'MDS blanking def',
   'desc_short': 'MDS blanking def',
@@ -2361,14 +2080,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Structure processing details',
   'desc_short': 'Structure processing details',
   'keytype': 'paramdef',
   'name': 'processed_structure',
   'parents': ['textual_descriptions', 'structure'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Reference',
   'desc_short': 'Reference (remove)',
@@ -2377,7 +2094,6 @@ paramdefs = [
   'parents': ['publication'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Y beam-shift setting',
   'desc_short': 'Y beam shift',
   'keytype': 'paramdef',
@@ -2385,14 +2101,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'X beam-shift setting',
   'desc_short': 'X beam shift',
   'keytype': 'paramdef',
   'name': 'def_beamshiftx',
   'parents': [],
   'vartype': 'int'},
-
 
  {'defaultunits': 'pixel',
   'desc_long': 'Top coordinate',
@@ -2403,7 +2117,6 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'defaultunits': 'degree',
   'desc_long': 'Delta X',
   'desc_short': 'Delta X',
@@ -2413,7 +2126,6 @@ paramdefs = [
   'property': 'angle',
   'vartype': 'float'},
 
-
  {'desc_long': 'Condenser lens 1',
   'desc_short': 'Condenser lens 1',
   'keytype': 'paramdef',
@@ -2421,7 +2133,6 @@ paramdefs = [
   'parents': [],
   'property': 'count',
   'vartype': 'int'},
-
 
  {'desc_long': 'Condenser lens 3',
   'desc_short': 'Condenser lens 3',
@@ -2431,7 +2142,6 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Condenser lens 2',
   'desc_short': 'Condenser lens 2',
   'keytype': 'paramdef',
@@ -2440,14 +2150,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Slit Width',
   'desc_short': 'Slit Width',
   'keytype': 'paramdef',
   'name': 'stack_slitwidth',
   'parents': ['stack'],
   'vartype': 'float'},
-
 
  {'choices': ['<2 um',
                '2  - 5 um',
@@ -2465,14 +2173,12 @@ paramdefs = [
   'parents': ['length', 'grid', 'area'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Technical Contact',
   'desc_short': 'Technical Contact',
   'keytype': 'paramdef',
   'name': 'contact_technical',
   'parents': [],
   'vartype': 'string'},
-
 
  {'defaultunits': 'cm',
   'desc_long': 'The diameter of the electron beam',
@@ -2483,14 +2189,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'Screen status',
   'desc_short': 'Screen status',
   'keytype': 'paramdef',
   'name': 'post_acquisition_screen_status_lowered',
   'parents': [],
   'vartype': 'boolean'},
-
 
  {'desc_long': 'Pole piece',
   'desc_short': 'Pole piece',
@@ -2499,14 +2203,12 @@ paramdefs = [
   'parents': ['microscope'],
   'vartype': 'string'},
 
-
  {'desc_long': 'The title of the structure',
   'desc_short': 'Structure title',
   'keytype': 'paramdef',
   'name': 'title_structure',
   'parents': ['identifiers', 'publication'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'ms',
   'desc_long': 'Zeiss exposure',
@@ -2517,7 +2219,6 @@ paramdefs = [
   'property': 'time',
   'vartype': 'float'},
 
-
  {'defaultunits': '%RH',
   'desc_long': 'Room humidity',
   'desc_short': 'Room humid',
@@ -2527,7 +2228,6 @@ paramdefs = [
   'property': 'relative_humidity',
   'vartype': 'float'},
 
-
  {'desc_long': 'Original Tilt Angles',
   'desc_short': 'Original Tilt Angles',
   'iter': True,
@@ -2536,14 +2236,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'float'},
 
-
  {'desc_long': '',
   'desc_short': 'FPGA Version',
   'keytype': 'paramdef',
   'name': 'ddd_fpga_version',
   'parents': ['ddd_camera'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Number of bytes per section in the extended header, nint',
   'desc_short': 'Ext. header bytes per section',
@@ -2552,14 +2250,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
  {'desc_long': 'Photo film text',
   'desc_short': 'Photo film text',
   'keytype': 'paramdef',
   'name': 'photo_filmtext',
   'parents': [],
   'vartype': 'string'},
-
 
  {'desc_long': 'Extended header flags (binary), nreal',
   'desc_short': 'Ext. header flags',
@@ -2568,14 +2264,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
  {'desc_long': 'Corresponding author contact information',
   'desc_short': 'Corresponding Auth Email',
   'keytype': 'paramdef',
   'name': 'corresponding_author_contact',
   'parents': ['publication', 'people'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Maximum tilt angle of stack',
   'desc_short': 'Maximum tilt angle of stack',
@@ -2584,15 +2278,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'float'},
 
-
-
  {'desc_long': 'Protein sequence (one letter amino acid abbreviations)',
   'desc_short': 'Protein sequence',
   'keytype': 'paramdef',
   'name': 'sequence_protein',
   'parents': ['sequence'],
   'vartype': 'string'},
-
 
  {'desc_long': 'CCD model number',
   'desc_short': 'CCD model no',
@@ -2601,7 +2292,6 @@ paramdefs = [
   'parents': ['identifiers', 'ccd_camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Sample storage location',
   'desc_short': 'Sample storage location',
   'keytype': 'paramdef',
@@ -2609,14 +2299,12 @@ paramdefs = [
   'parents': ['biological_target', 'textual_descriptions'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Volume size X',
   'desc_short': 'Volume size X',
   'keytype': 'paramdef',
   'name': 'stack_size_nx',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'defaultunits': 's',
   'desc_long': 'Pre-irradiation time',
@@ -2627,7 +2315,6 @@ paramdefs = [
   'property': 'time',
   'vartype': 'int'},
 
-
  {'defaultunits': 'degC',
   'desc_long': '',
   'desc_short': 'Water Line Temperature',
@@ -2636,7 +2323,6 @@ paramdefs = [
   'parents': ['temperature'],
   'property': 'temperature',
   'vartype': 'float'},
-
 
  {'defaultunits': 'K',
   'desc_long': 'Specimen temperature',
@@ -2647,14 +2333,12 @@ paramdefs = [
   'property': 'temperature',
   'vartype': 'float'},
 
-
  {'desc_long': 'Photo film number',
   'desc_short': 'Photo film number',
   'keytype': 'paramdef',
   'name': 'photo_filmnumber',
   'parents': [],
   'vartype': 'string'},
-
 
  {'desc_long': 'Volume size Z',
   'desc_short': 'Volume size Z',
@@ -2663,7 +2347,6 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
  {'desc_long': 'List of authors',
   'desc_short': 'Authors (Lastname, F. M.)',
   'iter': True,
@@ -2671,7 +2354,6 @@ paramdefs = [
   'name': 'author_list',
   'parents': ['people'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'mm',
   'desc_long': 'maxres',
@@ -2682,8 +2364,6 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
-
  {'desc_long': 'Proj lens 1 DAC',
   'desc_short': 'Proj lens 1 DAC',
   'keytype': 'paramdef',
@@ -2691,14 +2371,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Bright-dark mode',
   'desc_short': 'Bright-dark',
   'keytype': 'paramdef',
   'name': 'eos_brightdarkmode',
   'parents': [],
   'vartype': 'int'},
-
 
  {'defaultunits': '%',
   'desc_long': 'Amplitude contrast',
@@ -2709,14 +2387,12 @@ paramdefs = [
   'property': 'percentage',
   'vartype': 'float'},
 
-
  {'desc_long': 'Ice type',
   'desc_short': 'Ice type',
   'keytype': 'paramdef',
   'name': 'ice_type',
   'parents': ['textual_descriptions', 'ice'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'degC',
   'desc_long': '',
@@ -2727,14 +2403,12 @@ paramdefs = [
   'property': 'temperature',
   'vartype': 'float'},
 
-
  {'desc_long': 'PubMed ID',
   'desc_short': 'PubMed ID',
   'keytype': 'paramdef',
   'name': 'pmid',
   'parents': ['publication'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Attachments',
   'desc_short': 'Attachments',
@@ -2743,14 +2417,12 @@ paramdefs = [
   'parents': ['descriptive_information'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Name of a conference for a publication',
   'desc_short': 'Conference Name',
   'keytype': 'paramdef',
   'name': 'name_conference',
   'parents': [],
   'vartype': 'string'},
-
 
  {'desc_long': 'Aliquot parameters',
   'desc_short': 'Aliquot parameters',
@@ -2759,14 +2431,12 @@ paramdefs = [
   'parents': ['biological_target'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Aliquot storage conditions',
   'desc_short': 'Aliquot storage conditions',
   'keytype': 'paramdef',
   'name': 'aliquot_storage',
   'parents': ['aliquot'],
   'vartype': 'text'},
-
 
  {'desc_long': 'Maximum pixel value',
   'desc_short': 'Maximum pixel value',
@@ -2775,15 +2445,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'float'},
 
-
-
  {'desc_long': 'Ice parameters',
   'desc_short': 'Ice parameters',
   'keytype': 'paramdef',
   'name': 'ice',
   'parents': ['vitrification'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Spot alignment 1 deflectors',
   'desc_short': 'Spot alignment 1 deflectors',
@@ -2793,14 +2460,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Space group number, nsymbt',
   'desc_short': 'Space group number',
   'keytype': 'paramdef',
   'name': 'stack_data_nsymbt',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'desc_long': '',
   'desc_short': 'Temperature Control',
@@ -2809,14 +2474,12 @@ paramdefs = [
   'parents': ['ddd_camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Service date',
   'desc_short': 'Service date',
   'keytype': 'paramdef',
   'name': 'service_date',
   'parents': ['date_time', 'equipment_service'],
   'vartype': 'datetime'},
-
 
  {'desc_long': 'Specimen holder',
   'desc_short': 'Specimen holder',
@@ -2825,14 +2488,12 @@ paramdefs = [
   'parents': ['equipment'],
   'vartype': 'string'},
 
-
  {'desc_long': 'ID of the recorded frame ',
   'desc_short': 'Frame ID ',
   'keytype': 'paramdef',
   'name': 'id_ccd_frame',
   'parents': ['identifiers'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'mg/ml',
   'desc_long': 'Solution concentration',
@@ -2843,14 +2504,12 @@ paramdefs = [
   'property': 'concentration',
   'vartype': 'float'},
 
-
  {'desc_long': 'Spectrum Mode',
   'desc_short': 'Spectrum Mode',
   'keytype': 'paramdef',
   'name': 'eos_spectrummode',
   'parents': [],
   'vartype': 'int'},
-
 
  {'choices': ['Dark'],'desc_long': '',
   'desc_short': 'Exposure Mode',
@@ -2859,7 +2518,6 @@ paramdefs = [
   'parents': ['ddd_camera'],
   'vartype': 'string'},
 
-
  {'defaultunits': 'Pi   Amp/cm2',
   'desc_long': 'Screen current',
   'desc_short': 'Screen current',
@@ -2867,7 +2525,6 @@ paramdefs = [
   'name': 'current_screen',
   'parents': ['current'],
   'vartype': 'float'},
-
 
  {'defaultunits': 'pixel',
   'desc_long': 'Left coordinate',
@@ -2878,7 +2535,6 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'defaultunits': 's',
   'desc_long': 'The time elapsed between blotting and plunging',
   'desc_short': 'Drain time',
@@ -2888,14 +2544,12 @@ paramdefs = [
   'property': 'time',
   'vartype': 'float'},
 
-
  {'desc_long': 'Vitrification parameters',
   'desc_short': 'Vitrification parameters',
   'keytype': 'paramdef',
   'name': 'vitrification',
   'parents': ['freezing'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Grid description',
   'desc_short': 'Grid description',
@@ -2904,15 +2558,12 @@ paramdefs = [
   'parents': ['identifiers'],
   'vartype': 'string'},
 
-
  {'desc_long': 'MDS mode',
   'desc_short': 'MDS mode',
   'keytype': 'paramdef',
   'name': 'mds_mdsmode',
   'parents': [],
   'vartype': 'int'},
-
-
 
  {'desc_long': 'Accession ID',
   'desc_short': 'Accession ID',
@@ -2921,14 +2572,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'string'},
 
-
  {'desc_long': '',
   'desc_short': 'Elapsed Time',
   'keytype': 'paramdef',
   'name': 'elapsed_time',
   'parents': ['physical_property'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Intermediate lens 2',
   'desc_short': 'Intermediate lens 2',
@@ -2937,7 +2586,6 @@ paramdefs = [
   'parents': [],
   'property': 'count',
   'vartype': 'int'},
-
 
  {'defaultunits': u'\xc5',
   'desc_long': 'Resolution cutoff for low-pass filter',
@@ -2948,14 +2596,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'Service type',
   'desc_short': 'Service type',
   'keytype': 'paramdef',
   'name': 'service_type',
   'parents': ['equipment_service'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'mm',
   'desc_long': 'Spherical aberration',
@@ -2966,7 +2612,6 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'defaultunits': 'mm',
   'desc_long': 'Chromatic aberration',
   'desc_short': 'C sub c',
@@ -2976,7 +2621,6 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'Intermediate lens 3',
   'desc_short': 'Intermediate lens 3',
   'keytype': 'paramdef',
@@ -2985,14 +2629,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'choices': ['1', '2', '4', '8', '16'],'desc_long': '',
   'desc_short': 'Binning Y',
   'keytype': 'paramdef',
   'name': 'binning_y',
   'parents': ['binning'],
   'vartype': 'float'},
-
 
  {'choices': ['1', '2', '4', '8', '16'],'desc_long': '',
   'desc_short': 'Binning X',
@@ -3001,14 +2643,12 @@ paramdefs = [
   'parents': ['binning'],
   'vartype': 'float'},
 
-
  {'desc_long': 'PI Credits',
   'desc_short': 'PI Credits',
   'keytype': 'paramdef',
   'name': 'visualization_credits_pi',
   'parents': [],
   'vartype': 'string'},
-
 
  {'defaultunits': 'degC',
   'desc_long': '',
@@ -3019,14 +2659,12 @@ paramdefs = [
   'property': 'temperature',
   'vartype': 'float'},
 
-
  {'desc_long': 'Number of good grids',
   'desc_short': 'Good grids',
   'keytype': 'paramdef',
   'name': 'grids_tem_good',
   'parents': ['grid'],
   'vartype': 'int'},
-
 
  {'desc_long': 'Buffer used for dilution',
   'desc_short': 'Dilution buffer',
@@ -3035,14 +2673,12 @@ paramdefs = [
   'parents': ['textual_descriptions', 'dilution'],
   'vartype': 'text'},
 
-
  {'desc_long': 'Service description',
   'desc_short': 'Service desc',
   'keytype': 'paramdef',
   'name': 'service_description',
   'parents': ['equipment_service'],
   'vartype': 'text'},
-
 
  {'desc_long': 'Image stack and tomography Parameters',
   'desc_short': 'Image stack parameters',
@@ -3051,14 +2687,12 @@ paramdefs = [
   'parents': ['physical_property'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Screen closed',
   'desc_short': 'Screen closed',
   'keytype': 'paramdef',
   'name': 'digicamcond_closescreen',
   'parents': [],
   'vartype': 'boolean'},
-
 
  {'defaultunits': 'pixel',
   'desc_long': 'Bottom coordinate',
@@ -3069,14 +2703,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Camera name',
   'desc_short': 'Camera name',
   'keytype': 'paramdef',
   'name': 'digicamprm_cameraname',
   'parents': [],
   'vartype': 'string'},
-
 
  {'desc_long': 'Temperature',
   'desc_short': 'Temperature',
@@ -3085,14 +2717,12 @@ paramdefs = [
   'parents': ['physical_property'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Aliquot ID used',
   'desc_short': 'Aliquot ID used',
   'keytype': 'paramdef',
   'name': 'aliquot_used',
   'parents': ['aliquot'],
   'vartype': 'int'},
-
 
  {'defaultunits': 'nm',
   'desc_long': 'Absorbance of the sample at a specific wavelength (wavelength_at_absorbance)',
@@ -3103,14 +2733,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'Unique or restrictive identifiers',
   'desc_short': 'Unique or restrictive identifiers',
   'keytype': 'paramdef',
   'name': 'identifiers',
   'parents': ['descriptive_information'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'nm',
   'desc_long': 'Defocus',
@@ -3121,15 +2749,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'int'},
 
-
  {'desc_long': 'Map Column C (1=x, 2=y, 3=z)',
   'desc_short': 'Map Column C',
   'keytype': 'paramdef',
   'name': 'stack_map_mapc',
   'parents': ['stack'],
   'vartype': 'int'},
-
-
 
  {'desc_long': 'City where a conference took place',
   'desc_short': 'Conference City',
@@ -3138,14 +2763,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'string'},
 
-
  {'desc_long': 'Size of the electron beam spot',
   'desc_short': 'Spot size',
   'keytype': 'paramdef',
   'name': 'tem_spot_size',
   'parents': ['microscope', 'area'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Condenser shift deflectors',
   'desc_short': 'Condenser shift deflectors',
@@ -3154,7 +2777,6 @@ paramdefs = [
   'parents': [],
   'property': 'count',
   'vartype': 'int'},
-
 
  {'choices': ['60 degree #1',
                '60 degree #2',
@@ -3167,7 +2789,6 @@ paramdefs = [
   'parents': ['equipment'],
   'vartype': 'string'},
 
-
  {'defaultunits': u'\xc5',
   'desc_long': 'Inner radius',
   'desc_short': 'Inner radius',
@@ -3177,15 +2798,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
-
  {'choices': ['On', 'Off'],'desc_long': '',
   'desc_short': 'Save Summed Image',
   'keytype': 'paramdef',
   'name': 'ddd_raw_frame_save_summed',
   'parents': ['ddd_camera'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Dose',
   'desc_short': 'Dose',
@@ -3194,14 +2812,12 @@ paramdefs = [
   'parents': ['physical_property', 'ratio'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Dose rate scaling factor',
   'desc_short': 'Dose rate scaling factor',
   'keytype': 'paramdef',
   'name': 'dose_rate_scaling_factor',
   'parents': ['microscope'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Voltage',
   'desc_short': 'Voltage',
@@ -3210,14 +2826,12 @@ paramdefs = [
   'parents': ['physical_property'],
   'vartype': 'float'},
 
-
  {'desc_long': 'The person(source) who/which provides the sample',
   'desc_short': 'Sample provider',
   'keytype': 'paramdef',
   'name': 'provided_by',
   'parents': ['people'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'mg/ml',
   'desc_long': 'Aliquot concentration in mg/ml',
@@ -3228,14 +2842,12 @@ paramdefs = [
   'property': 'concentration',
   'vartype': 'float'},
 
-
  {'desc_long': 'Specimen name',
   'desc_short': 'Specimen name',
   'keytype': 'paramdef',
   'name': 'name_specimen',
   'parents': ['biological_target', 'identifiers'],
   'vartype': 'string'},
-
 
  {'defaultunits': u'\xc5/pixel',
   'desc_long': 'Apixel',
@@ -3246,14 +2858,12 @@ paramdefs = [
   'property': 'resolution',
   'vartype': 'float'},
 
-
  {'desc_long': 'Equipment service parameters',
   'desc_short': 'Equipment service parameters',
   'keytype': 'paramdef',
   'name': 'equipment_service',
   'parents': ['equipment'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'pixel',
   'desc_long': 'Image size X',
@@ -3264,14 +2874,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': '',
   'desc_short': 'Dark Frame Status',
   'keytype': 'paramdef',
   'name': 'ddd_dark_frame_status',
   'parents': ['ddd_camera'],
   'vartype': 'string'},
-
 
  {'desc_long': '',
   'desc_short': 'ROI Offset Y',
@@ -3280,7 +2888,6 @@ paramdefs = [
   'parents': ['camera'],
   'vartype': 'float'},
 
-
  {'desc_long': '',
   'desc_short': 'ROI Offset X',
   'keytype': 'paramdef',
@@ -3288,14 +2895,12 @@ paramdefs = [
   'parents': ['camera'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Mean pixel value',
   'desc_short': 'Mean pixel value',
   'keytype': 'paramdef',
   'name': 'stack_pixel_mean',
   'parents': ['stack'],
   'vartype': 'float'},
-
 
  {'choices': ['5 step',
                'UF',
@@ -3312,7 +2917,6 @@ paramdefs = [
   'parents': ['microscope'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Workshop Instructors',
   'desc_short': 'Instructors',
   'iter': True,
@@ -3321,7 +2925,6 @@ paramdefs = [
   'parents': ['people'],
   'vartype': 'user'},
 
-
  {'desc_long': '',
   'desc_short': 'ROI Offset Width',
   'keytype': 'paramdef',
@@ -3329,15 +2932,12 @@ paramdefs = [
   'parents': ['camera'],
   'vartype': 'float'},
 
-
  {'desc_long': '',
   'desc_short': 'ROI Offset Height',
   'keytype': 'paramdef',
   'name': 'roi_offset_h',
   'parents': ['camera'],
   'vartype': 'float'},
-
-
 
  {'choices': ['Zeiss',
                'Nikon',
@@ -3355,14 +2955,12 @@ paramdefs = [
   'parents': ['identifiers', 'scanner', 'film'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Grid parameters',
   'desc_short': 'Grid parameters',
   'keytype': 'paramdef',
   'name': 'grid',
   'parents': ['equipment', 'blotting'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'degree',
   'desc_long': 'Delta X',
@@ -3373,7 +2971,6 @@ paramdefs = [
   'property': 'angle',
   'vartype': 'float'},
 
-
  {'defaultunits': 's',
   'desc_long': 'Glow discharge time',
   'desc_short': 'Glow discharge time',
@@ -3383,14 +2980,12 @@ paramdefs = [
   'property': 'time',
   'vartype': 'float'},
 
-
  {'desc_long': 'Minimum pixel value',
   'desc_short': 'Minimum pixel value',
   'keytype': 'paramdef',
   'name': 'stack_pixel_min',
   'parents': ['stack'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Defocus setting',
   'desc_short': 'Defocus setting',
@@ -3399,14 +2994,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Frame Dose',
   'desc_short': 'Frame Dose',
   'keytype': 'paramdef',
   'name': 'stack_dose',
   'parents': [],
   'vartype': 'float'},
-
 
  {'desc_long': '???',
   'desc_short': '???',
@@ -3415,14 +3008,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Comments on the ice condition',
   'desc_short': 'Ice cond',
   'keytype': 'paramdef',
   'name': 'assess_ice_comments',
   'parents': ['textual_descriptions', 'ice'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'count',
   'desc_long': 'Total magnification factor after calibration by unspecified means',
@@ -3433,14 +3024,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'float'},
 
-
  {'desc_long': 'Y beam-tilt setting',
   'desc_short': 'Y beam tilt',
   'keytype': 'paramdef',
   'name': 'def_beamtilty',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Dilution',
   'desc_short': 'Dilution',
@@ -3449,14 +3038,12 @@ paramdefs = [
   'parents': ['experimental-techniques'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Vitrobot parameters',
   'desc_short': 'Vitrobot parameters',
   'keytype': 'paramdef',
   'name': 'vitrobot',
   'parents': ['vitrification_device'],
   'vartype': 'string'},
-
 
  {'desc_long': '',
   'desc_short': 'Sensor Coarse Gain',
@@ -3465,14 +3052,12 @@ paramdefs = [
   'parents': ['ddd_camera'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Due Date',
   'desc_short': 'Due Date',
   'keytype': 'paramdef',
   'name': 'date_due',
   'parents': [],
   'vartype': 'datetime'},
-
 
  {'desc_long': 'Stack Labels',
   'desc_short': 'Stack Labels',
@@ -3482,14 +3067,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'string'},
 
-
  {'desc_long': 'People',
   'desc_short': 'People',
   'keytype': 'paramdef',
   'name': 'people',
   'parents': ['descriptive_information'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Description of storage location',
   'desc_short': 'Description of storage location',
@@ -3498,14 +3081,12 @@ paramdefs = [
   'parents': ['biological_target', 'textual_descriptions'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Interm lens 3DAC',
   'desc_short': 'Interm lens 3 DAC',
   'keytype': 'paramdef',
   'name': 'lens_il3dac',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Person who scanned',
   'desc_short': 'Scanned by',
@@ -3514,14 +3095,12 @@ paramdefs = [
   'parents': ['people'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Cond lens 2 DAC',
   'desc_short': 'Cond lens 2 DAC',
   'keytype': 'paramdef',
   'name': 'lens_cl2dac',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Total Dose for Tilt Series',
   'desc_short': 'Total Dose for Tilt Series',
@@ -3530,7 +3109,6 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Data Mode, 0 = unsigned byte, 1 = short int, 2 = float, 3 = short*2, 4 = float*2',
   'desc_short': 'Data Mode',
   'keytype': 'paramdef',
@@ -3538,14 +3116,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
  {'desc_long': 'Interm lens x stigmator',
   'desc_short': 'Interm lens x stigmator',
   'keytype': 'paramdef',
   'name': 'def_ilstigx',
   'parents': [],
   'vartype': 'int'},
-
 
  {'defaultunits': 'cm',
   'desc_long': 'Camera length',
@@ -3556,7 +3132,6 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'defaultunits': 's',
   'desc_long': 'Exposure time',
   'desc_short': 'Exposure',
@@ -3565,7 +3140,6 @@ paramdefs = [
   'parents': [],
   'property': 'time',
   'vartype': 'int'},
-
 
  {'defaultunits': 'kV',
   'desc_long': 'lens_voltage_objective',
@@ -3576,7 +3150,6 @@ paramdefs = [
   'property': 'voltage',
   'vartype': 'float'},
 
-
  {'defaultunits': 'um',
   'desc_long': 'Delta X',
   'desc_short': 'Delta X',
@@ -3585,7 +3158,6 @@ paramdefs = [
   'parents': [],
   'property': 'length',
   'vartype': 'float'},
-
 
  {'defaultunits': 'um',
   'desc_long': 'Delta X',
@@ -3596,14 +3168,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'Person who received the material',
   'desc_short': 'Received by',
   'keytype': 'paramdef',
   'name': 'name_receiver',
   'parents': ['people'],
   'vartype': 'string'},
-
 
  {'desc_long': 'URIs',
   'desc_short': 'URIs',
@@ -3613,14 +3183,12 @@ paramdefs = [
   'parents': ['uri', 'publication'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Image processing related parameters',
   'desc_short': 'Image processing',
   'keytype': 'paramdef',
   'name': 'processing',
   'parents': ['root'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'pixel',
   'desc_long': 'Image size Y',
@@ -3631,15 +3199,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
-
  {'desc_long': 'Reconstruction Description',
   'desc_short': 'Reconstruction description',
   'keytype': 'paramdef',
   'name': 'description_reconstruction',
   'parents': ['textual_descriptions'],
   'vartype': 'string'},
-
 
  {'desc_long': 'List of editors',
   'desc_short': 'Editors',
@@ -3649,14 +3214,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'string'},
 
-
  {'desc_long': 'Absorbance',
   'desc_short': 'Absorbance',
   'keytype': 'paramdef',
   'name': 'absorbance',
   'parents': ['physical_property'],
   'vartype': 'float'},
-
 
  {'defaultunits': 'kDa',
   'desc_long': 'Mass of the target protein/sample',
@@ -3667,14 +3230,12 @@ paramdefs = [
   'property': 'mass',
   'vartype': 'float'},
 
-
  {'desc_long': """Y coordinate of microscope's stage position during imaging""",
   'desc_short': 'Stage pos, Y',
   'keytype': 'paramdef',
   'name': 'position_stage_y',
   'parents': ['microscope'],
   'vartype': 'float'},
-
 
  {'desc_long': """X coordinate of microscope's stage position during imaging""",
   'desc_short': 'Stage pos, X',
@@ -3683,14 +3244,12 @@ paramdefs = [
   'parents': ['microscope'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Substrate preparation',
   'desc_short': 'Substrate preparation',
   'keytype': 'paramdef',
   'name': 'select_substrate_grid_prep',
   'parents': ['grid'],
   'vartype': 'text'},
-
 
  {'desc_long': 'Cell size X',
   'desc_short': 'Cell size X',
@@ -3699,14 +3258,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Cell angle Beta',
   'desc_short': 'Cell angle Beta',
   'keytype': 'paramdef',
   'name': 'stack_angle_beta',
   'parents': ['stack'],
   'vartype': 'float'},
-
 
  {'defaultunits': 'degC',
   'desc_long': 'Room temperature',
@@ -3717,7 +3274,6 @@ paramdefs = [
   'property': 'temperature',
   'vartype': 'float'},
 
-
  {'defaultunits': 'nm',
   'desc_long': 'Wavelength of the sample at its absorbance peak',
   'desc_short': 'Wavelength',
@@ -3727,14 +3283,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'desc_long': 'Stage Position',
   'desc_short': 'Stage Position',
   'keytype': 'paramdef',
   'name': 'stack_stagepos',
   'parents': ['stack'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Workshop Organizers',
   'desc_short': 'Workshop Organizers',
@@ -3744,14 +3298,12 @@ paramdefs = [
   'parents': ['people'],
   'vartype': 'user'},
 
-
  {'desc_long': 'Number of boxes',
   'desc_short': 'Box Count',
   'keytype': 'paramdef',
   'name': 'box_count',
   'parents': ['box'],
   'vartype': 'int'},
-
 
  {'desc_long': 'Sub image starting point X',
   'desc_short': 'Subimage origin X',
@@ -3760,14 +3312,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
  {'desc_long': 'Sub image starting point Y',
   'desc_short': 'Subimage origin Y',
   'keytype': 'paramdef',
   'name': 'stack_start_ny',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'desc_long': 'Sub image starting point Z',
   'desc_short': 'Subimage origin Z',
@@ -3776,14 +3326,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'int'},
 
-
  {'desc_long': 'Map Column R (1=x, 2=y, 3=z)',
   'desc_short': 'Map Column R',
   'keytype': 'paramdef',
   'name': 'stack_map_mapr',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'choices': ['Glow Discharge',
                'Plasma Cleaner',
@@ -3797,15 +3345,12 @@ paramdefs = [
   'parents': ['textual_descriptions', 'grid'],
   'vartype': 'string'},
 
-
  {'desc_long': None,
   'desc_short': 'Presentation comments',
   'keytype': 'paramdef',
   'name': 'comment_presentation',
   'parents': ['textual_descriptions'],
   'vartype': 'string'},
-
-
 
  {'desc_long': 'Screen to CCD ratio',
   'desc_short': 'Screen/CCD ratio',
@@ -3814,14 +3359,12 @@ paramdefs = [
   'parents': ['ratio', 'ccd_camera'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Microscope name',
   'desc_short': 'Microscope name',
   'keytype': 'paramdef',
   'name': 'tem_name',
   'parents': ['microscope', 'identifiers'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Area',
   'desc_short': 'Area',
@@ -3830,14 +3373,12 @@ paramdefs = [
   'parents': ['size'],
   'vartype': 'string'},
 
-
  {'choices': ['CCD', 'DDD', 'SO-163'],'desc_long': 'Detector',
   'desc_short': 'Detector',
   'keytype': 'paramdef',
   'name': 'film_type',
   'parents': ['identifiers', 'film'],
   'vartype': 'string'},
-
 
  {'desc_long': 'Interm lens 2 DAC',
   'desc_short': 'Interm lens 2 DAC',
@@ -3846,14 +3387,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Number of aliquots shipped with these conditions',
   'desc_short': 'Aliquots received',
   'keytype': 'paramdef',
   'name': 'aliquot_count',
   'parents': ['aliquot'],
   'vartype': 'int'},
-
 
  {'desc_long': '',
   'desc_short': 'Sensor Offset',
@@ -3862,14 +3401,12 @@ paramdefs = [
   'parents': ['ddd_camera'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Volume',
   'desc_short': 'Volume',
   'keytype': 'paramdef',
   'name': 'volume',
   'parents': ['size'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Binning',
   'desc_short': 'Binning',
@@ -3878,14 +3415,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Extended header size',
   'desc_short': 'Extended header size',
   'keytype': 'paramdef',
   'name': 'stack_data_extheadersize',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'desc_long': 'Reference type',
   'desc_short': 'Reference type',
@@ -3894,14 +3429,12 @@ paramdefs = [
   'parents': ['publication'],
   'vartype': 'string'},
 
-
  {'choices': ['1', '2', '3', '4'],'desc_long': 'Number of exposure',
   'desc_short': 'Exposure #',
   'keytype': 'paramdef',
   'name': 'number_exposure',
   'parents': ['identifiers'],
   'vartype': 'int'},
-
 
  {'defaultunits': '%',
   'desc_long': 'Zeiss contrast',
@@ -3912,7 +3445,6 @@ paramdefs = [
   'property': 'percentage',
   'vartype': 'float'},
 
-
  {'desc_long': '3D Density map or volume',
   'desc_short': '3D Volume',
   'iter': True,
@@ -3921,14 +3453,12 @@ paramdefs = [
   'parents': ['binary_data'],
   'vartype': 'binary'},
 
-
  {'desc_long': 'MDS shutter delay',
   'desc_short': 'MDS shutter delay',
   'keytype': 'paramdef',
   'name': 'mds_shutterdelay',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Illumination Mode',
   'desc_short': 'Illumination Mode',
@@ -3937,14 +3467,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Title of a chapter or section',
   'desc_short': 'Chapter Title',
   'keytype': 'paramdef',
   'name': 'name_chapter',
   'parents': [],
   'vartype': 'string'},
-
 
  {'choices': ['Data, Good Quality',
                'Data, Medium Quality',
@@ -3958,14 +3486,12 @@ paramdefs = [
   'parents': ['textual_descriptions'],
   'vartype': 'choice'},
 
-
  {'desc_long': 'Volume size Y',
   'desc_short': 'Volume size Y',
   'keytype': 'paramdef',
   'name': 'stack_size_ny',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'desc_long': 'Minimum tilt angle of stack',
   'desc_short': 'Minimum tilt angle of stack',
@@ -3974,14 +3500,12 @@ paramdefs = [
   'parents': ['stack'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Scanned micrograph parameters',
   'desc_short': 'Scanned micrograph parameters',
   'keytype': 'paramdef',
   'name': 'scanner',
   'parents': ['equipment'],
   'vartype': 'string'},
-
 
  {'desc_long': '',
   'desc_short': 'Data Output Mode',
@@ -3990,7 +3514,6 @@ paramdefs = [
   'parents': ['ddd_camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Identifier used as the record title',
   'desc_short': 'Record title',
   'keytype': 'paramdef',
@@ -3998,14 +3521,12 @@ paramdefs = [
   'parents': ['identifiers'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Journal article abstract',
   'desc_short': 'Abstract text',
   'keytype': 'paramdef',
   'name': 'abstract',
   'parents': ['publication'],
   'vartype': 'text'},
-
 
  {'defaultunits': 'mm',
   'desc_long': 'The angle at which the two pads meet at the point of impact with the grid.  Positive values indicate that less pressure than the default of zero is applied during blotting (e.g., +2).  Lower offset means that a pressure higher than the default is being applied (e.g., -2).',
@@ -4016,14 +3537,12 @@ paramdefs = [
   'property': 'length',
   'vartype': 'float'},
 
-
  {'choices': ['Off', '0', '1', '10', '15', '18', '20', '30'],'desc_long': 'The type of energy filter ',
   'desc_short': 'Energy filter ',
   'keytype': 'paramdef',
   'name': 'status_energy_filter',
   'parents': ['microscope'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'pixel',
   'desc_long': 'Image size Z',
@@ -4034,7 +3553,6 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Intermediate lens 1',
   'desc_short': 'Intermediate lens 1',
   'keytype': 'paramdef',
@@ -4043,14 +3561,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Film parameters',
   'desc_short': 'Film parameters',
   'keytype': 'paramdef',
   'name': 'film',
   'parents': ['equipment'],
   'vartype': 'string'},
-
 
  {'desc_long': '',
   'desc_short': 'DDD Raw frames',
@@ -4084,14 +3600,12 @@ paramdefs = [
   'iter': True,
   'vartype': 'binary'},
 
-
  {'desc_long': '',
   'desc_short': 'Last Gain Frame Dataset',
   'keytype': 'paramdef',
   'name': 'ddd_last_gain_frame_dataset',
   'parents': ['ddd_camera'],
   'vartype': 'string'},
-
 
  {'choices': ['On', 'Off'],'desc_long': '',
   'desc_short': 'Gain Correction',
@@ -4100,14 +3614,12 @@ paramdefs = [
   'parents': ['ddd_camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Cell angle Alpha',
   'desc_short': 'Cell angle Alpha',
   'keytype': 'paramdef',
   'name': 'stack_angle_alpha',
   'parents': ['stack'],
   'vartype': 'float'},
-
 
  {'desc_long': 'Number of grids used',
   'desc_short': 'Number of grids used',
@@ -4116,14 +3628,12 @@ paramdefs = [
   'parents': ['grid'],
   'vartype': 'int'},
 
-
  {'desc_long': 'Project Details',
   'desc_short': 'Project Details',
   'keytype': 'paramdef',
   'name': 'project_information',
   'parents': ['descriptive_information'],
   'vartype': 'string'},
-
 
  {'desc_long': 'CCD serial number',
   'desc_short': 'CCD serial no',
@@ -4132,14 +3642,12 @@ paramdefs = [
   'parents': ['identifiers', 'ccd_camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Lens Parameters',
   'desc_short': 'Lens Parameters',
   'keytype': 'paramdef',
   'name': 'lens',
   'parents': ['equipment', 'microscope'],
   'vartype': 'none'},
-
 
  {'choices': ['1', '2', '4', '8', '16'],'desc_long': 'Binning',
   'desc_short': 'Binning',
@@ -4148,7 +3656,6 @@ paramdefs = [
   'parents': ['imaging'],
   'vartype': 'float'},
 
-
  {'desc_long': 'Stigmator level',
   'desc_short': 'Stigmator level',
   'keytype': 'paramdef',
@@ -4156,15 +3663,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'The serial number of the microscope',
   'desc_short': 'Serial no',
   'keytype': 'paramdef',
   'name': 'microscope_serialno',
   'parents': ['identifiers'],
   'vartype': 'string'},
-
-
 
  {
   'desc_long': 'Structure parameters',
@@ -4174,14 +3678,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'none'},
 
-
  {'desc_long': 'Date and Time',
   'desc_short': 'Date and time parameters',
   'keytype': 'paramdef',
   'name': 'date_time',
   'parents': ['descriptive_information'],
   'vartype': 'string'},
-
 
  {'desc_long': '',
   'desc_short': 'Raw Frame Type',
@@ -4190,14 +3692,12 @@ paramdefs = [
   'parents': ['ddd_camera'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Notes',
   'desc_short': 'Notes',
   'keytype': 'paramdef',
   'name': 'acquire_text',
   'parents': [],
   'vartype': 'text'},
-
 
  {'desc_long': 'Reconstruction details',
   'desc_short': 'Reconstruction details',
@@ -4206,14 +3706,12 @@ paramdefs = [
   'parents': ['descriptive_information'],
   'vartype': 'string'},
 
-
  {'desc_long': 'Obj lens y stigmator',
   'desc_short': 'Obj lens y stigmator',
   'keytype': 'paramdef',
   'name': 'def_olstigy',
   'parents': [],
   'vartype': 'int'},
-
 
  {'desc_long': 'Image shift 2 deflectors',
   'desc_short': 'Image shift 2 deflectors',
@@ -4223,14 +3721,12 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
-
  {'desc_long': 'Stack creator ID. This may not map to a database user.',
   'desc_short': 'Stack creator ID',
   'keytype': 'paramdef',
   'name': 'stack_data_creatid',
   'parents': ['stack'],
   'vartype': 'int'},
-
 
  {'desc_long': 'Interm lens y stigmator',
   'desc_short': 'Interm lens y stigmator',
@@ -4239,14 +3735,12 @@ paramdefs = [
   'parents': [],
   'vartype': 'int'},
 
-
  {'desc_long': 'Mass',
   'desc_short': 'Mass',
   'keytype': 'paramdef',
   'name': 'mass',
   'parents': ['size'],
   'vartype': 'string'},
-
 
  {'defaultunits': 'min',
   'desc_long': 'Develop time (in min)',
@@ -4257,14 +3751,12 @@ paramdefs = [
   'property': 'time',
   'vartype': 'int'},
 
-
  {'desc_long': 'The date the paper submitted',
   'desc_short': 'Date submit',
   'keytype': 'paramdef',
   'name': 'date_submit',
   'parents': ['date_time'],
   'vartype': 'datetime'},
-
 
  {'desc_long': 'Objective stigmator deflectors',
   'desc_short': 'Objective stigmator deflectors',
@@ -4274,7 +3766,6 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'}
   ]
-
 
 EMAN2paramdefs = [{
     'desc_short': 'Host endian-ness',
@@ -5268,9 +4759,7 @@ EMAN2paramdefs = [{
     'keytype': 'paramdef'
 }]
 
-
 recorddefs = [
-
 
  {'desc_long': 'A maintenance event on the microscope. Any time there is change to the microscope or maintenance performed, this record should be used. If the microscope is altered in a way that affects imaging parameters, a new microscope record should be created.',
   'desc_short': 'Microscope maintenance',
@@ -5295,9 +4784,6 @@ recorddefs = [
   'typicalchld': [],
   'views': {'recname': """Maintenance: {{service_type}} on {{date_occurred}}"""}},
 
-
-
-
  {'desc_long': 'A manuscript in preparation',
   'desc_short': 'Manuscript',
   'keytype': 'recorddef',
@@ -5316,9 +4802,6 @@ recorddefs = [
   'private': 0,
   'typicalchld': [],
   'views': {'recname': """Manuscript: {{title_publication}}"""}},
-
-
-
 
  {'desc_long': 'Manual plunger session',
   'desc_short': 'Manual plunger session',
@@ -5364,9 +4847,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
   'typicalchld': [],
   'views': { 'recname': """Freezing session: {{title_freezing}} using {{vitrification_device}} by {{performed_by}} on {{date_occurred}}"""}},
 
-
-
-
  {'desc_long': None,
   'desc_short': 'Experiments',
   'keytype': 'recorddef',
@@ -5376,9 +4856,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
 
  {'desc_long': 'Maintenance record for a piece of equipment',
   'desc_short': 'Equipment Maintenance',
@@ -5403,9 +4880,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
   'typicalchld': [],
   'views': {'recname': """Equipment maintenance: {{service_type}} on {{date_occurred}}"""}},
 
-
-
-
  {'desc_long': 'A meeting about a project. Enter the details of the meeting, e.g. agenda, minutes, and any relevant attachments.',
   'desc_short': 'Project meeting',
   'keytype': 'recorddef',
@@ -5427,9 +4901,6 @@ Attending: {{author_list}}
   'typicalchld': [],
   'views': { 'recname': """Project meeting: {{subject_notebook}} with {{author_list}} on {{date_occurred}}"""}},
 
-
-
-
  {'desc_long': 'Bookmarks. This is used by the system and should not be created directly.',
   'desc_short': 'Bookmarks',
   'keytype': 'recorddef',
@@ -5442,9 +4913,6 @@ Attending: {{author_list}}
   'private': False,
   'typicalchld': [],
   'views': {'recname': """Bookmarks"""}},
-
-
-
 
  {'desc_long': 'Microscope alignment',
   'desc_short': 'Microscope alignment',
@@ -5549,8 +5017,6 @@ Note: this protocol is in the process of being updated.
   'typicalchld': [],
   'views': { 'recname': """Microscope alignment by {{performed_by}} on {{date_occurred}}""" }},
 
-
-
  {'desc_long': None,
   'desc_short': 'Transmission Electron Microscopy protocols',
   'keytype': 'recorddef',
@@ -5560,9 +5026,6 @@ Note: this protocol is in the process of being updated.
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
 
  {'desc_long': '(Deprecated) Use movie.',
   'desc_short': '(Deprecated) Use movie.',
@@ -5576,10 +5039,6 @@ Deprecated; use movie.
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
-
 
  {'desc_long': 'A publication that results from the project. To add references of interest that were not produced by this group, the "reference" protocol may be more appropriate.',
   'desc_short': 'Publication',
@@ -5610,9 +5069,6 @@ Note: a PubMed ID or PMCID is sufficient to describe the publication.
   'views': { 'recname': """Article: {{title_publication}} by {{author_corresponding}}""",
              'tabularview': """{{title_publication}} {{author_first}} {{author_list}} {{journal_date}} {{name_journal}} {{pmid}} {{pmcid}}"""}},
 
-
-
-
  {'desc_long': 'This is a project specifically for software development rather than a biological target.',
   'desc_short': 'Software project',
   'keytype': 'recorddef',
@@ -5638,9 +5094,6 @@ Please use nested projects going forward, instead of subprojects.
   'typicalchld': ['progress_report'],
   'views': { 'recname': """Software project: {{name_project}}""",
              'tabularview': """{{name_project}} {{name_pi}} {{project_investigators}} {{project_type}} {{project_status}} {{project_block}}"""}},
-
-
-
 
  {'desc_long': 'This record represents a single scan of a micrograph. There may be more than one scan record per micrograph.',
   'desc_short': 'Scanned micrograph',
@@ -5678,9 +5131,6 @@ Please use nested projects going forward, instead of subprojects.
   'views': { 'recname': """Micrograph scan using {{scanner_film}} by {{performed_by}}""",
              'tabularview': """{{scanner_film}} {{scan_average}} {{scanner_cartridge}} {{file_binary_image}} {{scanned_by}}"""}},
 
-
-
-
  {'desc_long': 'Maintenance record for a camera.',
   'desc_short': 'Camera maintenance',
   'keytype': 'recorddef',
@@ -5704,9 +5154,6 @@ Please use nested projects going forward, instead of subprojects.
   'typicalchld': [],
   'views': { 'recname': """Camera maintenance: {{service_type}} on {{date_occurred}}"""}},
 
-
-
-
  {'desc_long': 'A camera or other imaging instrument.',
   'desc_short': 'Camera',
   'keytype': 'recorddef',
@@ -5725,10 +5172,6 @@ Please use nested projects going forward, instead of subprojects.
   'private': 0,
   'typicalchld': ['camera_maintenance'],
   'views': { 'recname': """Camera {{ccd_id}}"""}},
-
-
-
-
 
  {'desc_long': 'A presentation given, e.g. at a workshop or lab meeting. For talks given at conferences, the "publication_abstract" protocol may be more appropriate.',
   'desc_short': 'Presentation',
@@ -5754,9 +5197,6 @@ Please use nested projects going forward, instead of subprojects.
   'views': { 'recname': """Presentation: {{subject_notebook}} by {{author_list}}""",
              'tabularview': """{{subject_notebook}} {{file_binary}} {{author_list}}"""}},
 
-
-
-
  {'desc_long': 'This protocol is for storing common forms and templates. Please describe the form, the purpose of the form, any special instructions for submission, and who receives completed forms. You may attach the forms directly, e.g. as PDF, or provide a link where the form may be downloaded.',
   'desc_short': 'Form',
   'keytype': 'recorddef',
@@ -5774,9 +5214,6 @@ Submit to: {{name_contact}}
   'typicalchld': [],
   'views': { 'recname': """Form: {{name_folder}}""",
              'tabularview': """{{name_folder}}"""}},
-
-
-
 
  {'desc_long': 'An aliquot from a purification sample. Parent should be the purification record, children will usually be grid_preparation or freezing sessions.',
   'desc_short': 'Aliquot',
@@ -5812,9 +5249,6 @@ Store the vessels under the following conditions:
   'views': { 'recname': """Aliquot: {{id_aliquot}} received by {{name_receiver}} on {{date_received}}""",
              'tabularview': """{{name_receiver}} {{date_received}} {{aliquot_count}} {{volume_aliquot}} {{concentration_solution}} {{id_aliquot}} {{description_aliquot}}"""}},
 
-
-
-
  {'desc_long': None,
   'desc_short': 'Freezing protocols',
   'keytype': 'recorddef',
@@ -5824,9 +5258,6 @@ Store the vessels under the following conditions:
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
 
  {'desc_long': """A density map. For a finished reconstruction, you may want to use 'structure' protocol.""",
   'desc_short': 'Density map',
@@ -5850,9 +5281,6 @@ The structure was completed:
   'views': { 'recname': """Density map: {{title_structure}}""",
              'tabularview': """{{title_structure}} {{file_binary}}"""}},
 
-
-
-
  {'desc_long': 'A session on the microscope. The start and end times are important for usage accounting. Each grid used in this microscopy session should have a grid_imaging record. Parent record should be the current microscope configuration.',
   'desc_short': 'JEOL 2010F microscope session',
   'keytype': 'recorddef',
@@ -5862,9 +5290,6 @@ The structure was completed:
   'private': 0,
   'typicalchld': ['grid_imaging'],
   'views': { 'recname': """JEOL 2010F microscopy session""" }},
-
-
-
 
  {'desc_long': '(Deprecated) All groups',
   'desc_short': '(Deprecated) All groups',
@@ -5879,9 +5304,6 @@ Deprecated. Use the 'group' protocol.
   'typicalchld': [],
   'views': {}},
 
-
-
-
  {'desc_long': '(Deprecated) Project meeting or discussion',
   'desc_short': '(Deprecated) Project meeting or discussion',
   'keytype': 'recorddef',
@@ -5895,9 +5317,6 @@ Deprecated; use project_meeting
   'typicalchld': [],
   'views': {}},
 
-
-
-
  {'desc_long': None,
   'desc_short': "Places",
   'keytype': 'recorddef',
@@ -5907,9 +5326,6 @@ Deprecated; use project_meeting
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
 
  {'desc_long': '(Deprecated) Meeting',
   'desc_short': '(Deprecated) Meeting',
@@ -5923,9 +5339,6 @@ Deprecated; use publication_abstract.
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
 
  {'desc_long': 'A session on the microscope. The start and end times are important for usage accounting. Each grid used in this microscopy session should have a grid_imaging record. Parent record should be the current microscope configuration.\n\nNote: microscopy sessions are usually created using EMDash, which manages all the other associated records and relationships, as well as logging the start and end time of the session.',
   'desc_short': 'Microscopy session',
@@ -5981,7 +5394,6 @@ Use the alignment protocol for the particular microscope to:
   'typicalchld': ['grid_imaging'],
   'views': { 'recname': """Microscopy: {{parentvalue(tem_name)}} by {{performed_by}} on {{date_start}}: {{description_purpose}}""",
              'tabularview': """{{parentvalue(tem_name)}} {{aperture_condenser}} {{tem_spot_size}} {{aperture_objective}} {{tem_lowdose_method}} {{assess_ice_thick}} {{childcount(image_capture*)}}"""}},
-
 
  {'desc_long': 'Cryo-sectioned grid',
   'desc_short': 'Cryo-sectioned grid',
@@ -6048,9 +5460,6 @@ Note: If the vitrobot's humidifier is on, then also set
   'views': { 'recname': """Cryo-sectioned grid: {{title_grid}} by {{performed_by}} on {{date_occurred}}""",
              'tabularview': """{{title_grid}} {{vitrobot_time_step}} {{vitrobot_time_blot}} {{vitrobot_blots}} {{vitrobot_blot_offset}} {{vitrobot_humid_on}} {{vitrobot_time_wait}} {{vitrobot_time_drain}} {{vitrobot_level_liquid}}"""}},
 
-
-
-
  {'desc_long': 'A microscope. Whenever a major change is made to a microscope, a new microscope record should be created. Parent should be a folder containing configurations of that microscope.',
   'desc_short': 'Microscope',
   'keytype': 'recorddef',
@@ -6085,9 +5494,6 @@ Note: If the vitrobot's humidifier is on, then also set
                    'microscopy'],
   'views': { 'recname': """{{tem_name}}""",
              'tabularview': """{{tem_name}} {{lens_voltage_objective}} {{date_start}} {{date_end}} {{aberration_spherical}} {{aberration_chromatic}} {{dose_rate_scaling_factor}} {{ccd_screen_ratio}} {{film_screen_ratio}}"""}},
-
-
-
 
  {'desc_long': 'Gatan CP3 session',
   'desc_short': 'Gatan CP3 session',
@@ -6137,9 +5543,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
   'typicalchld': [],
   'views': { 'recname': """Freezing: {{title_freezing}} by {{performed_by}} on {{date_occurred}}"""}},
 
-
-
-
  {'desc_long': 'Cryo-holder loading',
   'desc_short': 'Cryo-holder loading',
   'keytype': 'recorddef',
@@ -6179,9 +5582,6 @@ Now use the end of the loading stick to press the grid down on the tip until the
   'typicalchld': [],
   'views': { 'recname': """Cryo-holder loading by {{performed_by}} on {{date_occcurred}}"""}},
 
-
-
-
  {'desc_long': 'A vitrification device; e.g. a vitrobot, Gatan plunger, etc.',
   'desc_short': 'Vitrification device',
   'keytype': 'recorddef',
@@ -6201,7 +5601,6 @@ Note: under construction.
   'typicalchld': ['vitrobot_maintenance'],
   'views': { 'recname': """Vitrification device"""}},
 
-
  {'desc_long': 'Berriman freezing session',
   'desc_short': 'Berriman freezing session',
   'keytype': 'recorddef',
@@ -6214,9 +5613,6 @@ Note: under construction.
   'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Berriman freezing session"""}},
-
-
-
 
  {'desc_long': 'Maintenance record for a vitrification device',
   'desc_short': 'Vitrobot maintenance',
@@ -6241,12 +5637,6 @@ Note: under construction.
   'typicalchld': [],
   'views': { 'recname': """Maintenance: {{service_type}} on {{date_occurred}}"""}},
 
-
-
-
-
-
-
  {'desc_long': 'A film scanner.',
   'desc_short': 'Film scanner',
   'keytype': 'recorddef',
@@ -6265,9 +5655,6 @@ Note: under construction.
   'private': 0,
   'typicalchld': ['scanner_maintenance'],
   'views': {'recname': """Scanner: {{scanner_film}}"""}},
-
-
-
 
  {'desc_long': 'A reference to a publication of interest to the project. For articles that your group has published, use the "publication" protocol. You may want to attach a PDF of the paper. Parent should be a project.',
   'desc_short': 'Reference',
@@ -6302,12 +5689,6 @@ Note: a PubMed ID or PMCID is sufficient to describe the publication.
   'views': { 'recname': """Reference: {{title_publication}}""",
              'tabularview': """{{title_publication}} {{author_first}} {{author_list}} {{journal_date}} {{name_journal}} {{pmid}} {{pmcid}}"""}},
 
-
-
-
-
-
-
  {'desc_long': '(Deprecated) Tilt series',
   'desc_short': '(Deprecated) Tilt series',
   'keytype': 'recorddef',
@@ -6320,9 +5701,6 @@ Deprecated; use stack.
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
 
  {'desc_long': 'JAMES frame',
   'desc_short': 'JAMES frame',
@@ -6380,9 +5758,6 @@ This protocol could be improved.
   'views': { 'recname': """JAMES CCD frame acquired by {{performed_by}} on {{date_occurred}}""",
              'tabularview': """{{dm3_exposure_time}} {{ctf_bfactor}} {{ctf_defocus_measured}} {{tem_magnification_set}}"""}},
 
-
-
-
  {'desc_long': '(Deprecated) Tilt series frame',
   'desc_short': '(Deprecated) Tilt series frame',
   'keytype': 'recorddef',
@@ -6396,9 +5771,6 @@ Deprecated; use stack.
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
 
  {'desc_long': 'A book chapter resulting from a projects research. Please enter PMID/PMCID if available. Please link against relevant projects.',
   'desc_short': 'Book chapter',
@@ -6433,9 +5805,6 @@ Note: a PubMed ID or PMCID is sufficient to describe the publication.
   'typicalchld': [],
   'views': { 'recname': """Book: {{name_book}}, {{name_chapter}}""",
              'tabularview': """{{name_chapter}} {{author_first}} {{author_list}} {{name_book}} {{pmid}} {{pmcid}}"""}},
-
-
-
 
  {'desc_long': 'Grid preparation.',
   'desc_short': 'Grid preparation',
@@ -6494,8 +5863,6 @@ Note: If the vitrobot's humidifier is on, then also set
   'typicalchld': ['grid_imaging'],
   'views': { 'recname': """Grid: {{title_grid}} by {{performed_by}} on {{date_occurred}}""",
              'tabularview': """{{title_grid}} {{vitrobot_time_step}} {{vitrobot_time_blot}} {{vitrobot_blots}} {{vitrobot_blot_offset}} {{vitrobot_humid_on}} {{vitrobot_time_wait}} {{vitrobot_time_drain}} {{vitrobot_level_liquid}}"""}},
-
-
 
 # Got to here.
 
@@ -6635,9 +6002,6 @@ Note: If the vitrobot's humidifier is on, then also set
   'views': { 'recname': """JADAS: {{file_binary_image}}""",
              'tabularview': """{{thumbnail()}} {{file_binary_image}} {{ctf_defocus_set}} {{ctf_defocus_measured}} {{tem_magnification_set}} {{ctf_bfactor}} {{time_exposure_tem}} {{tem_dose_rate}} {{assess_image_quality}}"""}},
 
-
-
-
  {'desc_long': 'Tomography session',
   'desc_short': 'Tomography session',
   'keytype': 'recorddef',
@@ -6652,7 +6016,6 @@ This protocol is being worked on
   'typicalchld': [],
   'views': { 'recname': """Tomography session""",
              'tabularview': """{{tem_magnification_set}} {{temperature_specimen}} {{ice_type}}"""}},
-
 
  {'desc_long': 'General purpose lab notebook entry; stores general notes, observations, results, etc. Attach any relevant files.',
   'desc_short': 'Lab notebook entry',
@@ -6672,9 +6035,6 @@ This protocol is being worked on
   'views': { 'recname': """Lab notebook: {{subject_notebook}}""",
              'tabularview': """{{subject_notebook}} {{file_binary}}"""}},
 
-
-
-
  {'desc_long': '(Deprecated) JEOL Demo',
   'desc_short': '(Deprecated) JEOL Demo',
   'keytype': 'recorddef',
@@ -6689,9 +6049,6 @@ Deprecated
   'typicalchld': [],
   'views': {}},
 
-
-
-
  {'desc_long': '(Deprecated) Microscope suite',
   'desc_short': '(Deprecated) Microscope suite',
   'keytype': 'recorddef',
@@ -6705,9 +6062,6 @@ Deprecated.
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
 
  {'desc_long': 'A Vitrobot session. For each grid frozen, there should be a grid_preparation record. Parent should be a purification aliquot.',
   'desc_short': 'Vitrobot session',
@@ -6743,9 +6097,6 @@ Obtain blotting paper and puncture it using the puncture tool. Load the blotting
   'views': { 'recname': """Vitrobot: {{title_freezing}} by {{performed_by}} on {{date_occurred}}""",
              'tabularview': """{{select_technique_freezing}} {{aliquot_used}} {{grids_tem_used}} {{grid_tem_type}} {{vitrification_device}} {{grid_tem_hole_size}} {{id_grid_batch}} {{grid_volume_applied}}"""}},
 
-
-
-
  {'desc_long': 'An abstract based on the project\'s research; generally from a conference. Please enter PMID/PMCID if available. Please link against relevant subprojects. Attach any relevant files, such as posters or talk slides.',
   'desc_short': 'Conference abstract',
   'keytype': 'recorddef',
@@ -6779,11 +6130,6 @@ Obtain blotting paper and puncture it using the puncture tool. Load the blotting
   'typicalchld': [],
   'views': { 'recname': """Abstract: {{title_publication}}. {{name_conference}}, {{year_published}}, {{city_conference}}""",
              'tabularview': """{{year_published}} {{author_list}} {{title_publication}} {{name_conference}} {{city_conference}} {{modifytime}}"""}},
-
-
-
-
-
 
  {'desc_long': 'Pneumatic plunger session',
   'desc_short': 'Pneumatic plunger session',
@@ -6819,9 +6165,6 @@ For glow discharge, the discharge time is {{time_glowdischarge}}
   'typicalchld': [],
   'views': { 'recname': """Pneumatic freezing session: {{title_freezing}} by {{performed_by}} on {{date_occurred}}"""}},
 
-
-
-
  {'desc_long': '(Deprecated) Discussion',
   'desc_short': '(Deprecated) Discussion',
   'keytype': 'recorddef',
@@ -6836,9 +6179,6 @@ Deprecated; use project_meeting
   'typicalchld': [],
   'views': {}},
 
-
-
-
  {'desc_long': 'Generic equipment',
   'desc_short': 'Equipment',
   'keytype': 'recorddef',
@@ -6851,9 +6191,6 @@ Description: {{folder_description}}""",
   'private': 0,
   'typicalchld': ['equipment_maintenance'],
   'views': { 'recname': """{{name_folder}}"""}},
-
-
-
 
  {'desc_long': 'This is a project specifically targeted at software development rather than a biological target.',
   'desc_short': 'Software project',
@@ -6879,9 +6216,6 @@ Description: {{folder_description}}""",
   'typicalchld': ['progress_report'],
   'views': { 'recname': """Project {{name_project}} ({{name_specimen}})""",
              'tabularview': """{{name_project}} {{name_pi}} {{project_investigators}} {{project_type}} {{project_status}} {{project_block}}"""}},
-
-
-
 
  {'desc_long': 'Reconstruction',
   'desc_short': 'Reconstruction',
@@ -6916,9 +6250,6 @@ Additional comments about this reconstruction:
   'typicalchld': [],
   'views': { 'recname': """Reconstruction: {{mapname}} ({{resolution_cutoff}})""",
              'tabularview': """{{mapname}} {{comment_reconstruction}} {{angstroms_per_pixel}} {{x_value}} {{y_value}} {{z_value}} {{resolution_cutoff}} {{shell_corr_fourier}}"""}},
-
-
-
 
  {'desc_long': 'Please use nested "project" records, instead of the "subproject" protocol.',
   'desc_short': 'Subproject',
@@ -6972,9 +6303,6 @@ Additional comments about this reconstruction:
   'views': { 'recname': """Subproject: {{name_project}}""",
              'tabularview': """{{name_project}} {{name_pi}} {{project_investigators}} {{project_status}} {{project_block}} {{childcount()}}"""}},
 
-
-
-
  {'desc_long': 'This record represents a single frame from an uploaded image stack (usually tomogram). This protocol is somewhat deprecated; individual frames are no longer separated out from the main stack.',
   'desc_short': 'Tilt-series image',
   'keytype': 'recorddef',
@@ -6997,9 +6325,6 @@ This protocol is somewhat deprecated; individual frames are no longer separated 
   'typicalchld': [],
   'views': { 'recname': """Slice: tilt angle, {{specimen_tilt}}""",
              'tabularview': """{{thumbnail()}} {{specimen_tilt}} {{stack_data_montage}} {{stack_stagepos}} {{tem_magnification_set}} {{stack_intensity}} {{stack_dose}}"""}},
-
-
-
 
  {'desc_long': 'A Direct Electron Detector frame. Please enter defocus, magnification, and dose at a minimum. The measured defocus and B-factor may be set after CTF correction by EMAN/EMAN2 scripts. Parent should be a grid_imaging session.',
   'desc_short': 'DDD frame',
@@ -7098,11 +6423,6 @@ Members of this group include:
   'views': { 'recname': """{{comment_purpose}} Working Group""",
              'tabularview': """{{localperson}} {{comment_purpose}}"""}},
 
-
-
-
-
-
  {'desc_long': 'Gatan MkII freezing session',
   'desc_short': 'Gatan MkII freezing session',
   'keytype': 'recorddef',
@@ -7145,9 +6465,6 @@ Note: If the humidifier is on, then also set
   'private': 0,
   'typicalchld': [],
   'views': {  'recname': """Gatan MkII freezing session: {{title_freezing}} by {{performed_by}} on {{date_occurred}}"""}},
-
-
-
 
  {'desc_long': 'High pressure freezing session',
   'desc_short': 'High pressure freezing session',
@@ -7195,9 +6512,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
   'typicalchld': [],
   'views': { 'recname': """High pressure freezing session: {{title_freezing}} by {{performed_by}} on {{date_occurred}}"""}},
 
-
-
-
  {'desc_long': None,
   'desc_short': 'Processing',
   'keytype': 'recorddef',
@@ -7207,9 +6521,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
 
  {'desc_long': 'An update on progress in the project. Attach any relevant files.',
   'desc_short': 'Progress Report',
@@ -7228,9 +6539,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
   'views': { 'recname': """Progress Report by {{performed_by}} on {{date_occurred}}""",
              'tabularview': """{{description_progress}} {{file_binary}}"""}},
 
-
-
-
  {'desc_long': None,
   'desc_short': 'Image types',
   'keytype': 'recorddef',
@@ -7240,9 +6548,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
 
  {'desc_long': 'Single particle (virus) session',
   'desc_short': 'Single particle (virus) session',
@@ -7258,9 +6563,6 @@ Reserved for future use.
   'typicalchld': [],
   'views': {}},
 
-
-
-
  {'desc_long': 'Single particle microscopy session',
   'desc_short': 'Single particle microscopy session',
   'keytype': 'recorddef',
@@ -7274,10 +6576,6 @@ Reserved for future use
   'private': 0,
   'typicalchld': [],
   'views': {}},
-
-
-
-
 
  {'desc_long': 'This record represents a single grid during an imaging session. There may be several grid_imaging records per microscopy session. Children will be ccd, micrograph, or stack. Parents should be the project or subproject, the grid_preparation record (see freezing session), and the microscopy session.\n\nNote: grid imaging sessions are usually created using EMDash, which manages all the other associated records and relationships.',
   'desc_short': 'Grid imaging session',
@@ -7304,9 +6602,6 @@ Reserved for future use
   'typicalchld': ['ccd', 'stack', 'micrograph', 'ddd'],
   'views': { 'recname': """Imaging: {{parentvalue(title_grid)}} on {{parentvalue(tem_name,2)}} by {{performed_by}} on {{date_occurred}}: {{childcount(image_capture*)}} images""",
              'tabularview': """{{tem_magnification_set}} {{temperature_specimen}} {{description_purpose}} {{parentvalue(title_freezing)}} {{childcount(image_capture*)}}"""}},
-
-
-
 
  {'desc_long': 'A stack of images, usually a tomogram. Parent is a grid_imaging record, with stackimage records as children.',
   'desc_short': 'Image stack',
@@ -7389,9 +6684,6 @@ The following values will be harvested from the image stack header.
   'views': { 'recname': """Image Stack: {{stack_size_nx}} x {{stack_size_ny}} x {{stack_size_nz}} ( {{stack_minangle}} : {{stack_maxangle}} )""",
              'tabularview': """{{stack_filename}} {{stack_size_nx}} {{stack_size_ny}} {{stack_size_nz}} {{stack_maxangle}} {{stack_minangle}}"""}},
 
-
-
-
  {'desc_long': 'A refined 3D structure.',
   'desc_short': 'Structure',
   'keytype': 'recorddef',
@@ -7411,9 +6703,6 @@ The following values will be harvested from the image stack header.
   'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Structure: {{title_structure}}"""}},
-
-
-
 
  {'desc_long': 'Protocol for box coordinates',
   'desc_short': 'Box',
@@ -7435,9 +6724,6 @@ Box Coordinates:
   'typicalchld': [],
   'views': { 'recname': """{{box_count}} Boxes""",
              'tabularview': """{{box_size}} {{box_count}}"""}},
-
-
-
 
  {'desc_long': 'A Cryo-EM, EMAN, or other type of workshop. This will generally serve as an area for linking public data sets, uploading presentations and posters, and registering users.',
   'desc_short': 'Workshop',
@@ -7467,9 +6753,6 @@ Box Coordinates:
   'typicalchld': ['presentation'],
   'views': { 'recname': """{{name_project}} Workshop on {{date_start}}""",
              'tabularview': """{{name_project}} {{date_start}} {{date_end}}"""}},
-
-
-
 
  {'desc_long': 'A biochemical purification. There should be at least one aliquot child record.',
   'desc_short': 'Purification',
@@ -7511,10 +6794,6 @@ Box Coordinates:
   'views': { 'recname': """Purification: {{title_purification}} by {{creator}} @ {{creationtime}}: {{childcount(aliquot)}} aliquots""",
              'tabularview': """{{date_received}} {{provided_by}} {{name_receiver}} {{title_purification}} {{description_storage_conditions}} {{concentration_solution}} {{childcount(aliquot)}}"""}},
 
-
-
-
-
  {'desc_long': 'Maintenance record for a scanner.',
   'desc_short': 'Scanner maintenance',
   'keytype': 'recorddef',
@@ -7535,8 +6814,6 @@ Box Coordinates:
   'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Scanner maintenance: {{service_type}} on {{service_date}}"""}},
-
-
 
  {'desc_long': 'A visualization or movie. Attach any relevant files.',
   'desc_short': 'Movie',
@@ -7567,9 +6844,6 @@ Box Coordinates:
   'typicalchld': [],
   'views': { 'recname': """Visualization: {{visualization_name}} ({{visualization_length}}) by {{performed_by}} (status: {{project_status}})""",
              'tabularview': """{{visualization_name}} {{visualization_length}} {{project_status}} {{date_due}}"""}},
-
-
-
 
  {'desc_long': 'A CCD frame. Please enter defocus, magnification, and dose at a minimum. The measured defocus and B-factor may be set after CTF correction by EMAN/EMAN2 scripts. Parent should be a grid_imaging session.\n\nNote: Please use EMDash to create images.',
   'desc_short': 'CCD frame',
@@ -7690,9 +6964,6 @@ Remember to deintensify the beam once the ice has been meltedAt this point addit
              'recname': """CCD {{file_binary_image}}""",
              'tabularview': """{{thumbnail()}} {{file_binary_image}} {{ctf_defocus_set}} {{ctf_defocus_measured}} {{tem_magnification_set}} {{ctf_bfactor}} {{time_exposure_tem}} {{tem_dose_rate}} {{assess_image_quality}}"""}},
 
-
-
-
  {'desc_long': 'A micrograph taken on film. If the image is scanned, there should be a scan child. There may be multiple scans per micrograph. Parent should be a grid_imaging session.',
   'desc_short': 'Film micrograph',
   'keytype': 'recorddef',
@@ -7749,7 +7020,6 @@ Remember to deintensify the beam once the ice has been meltedAt this point addit
   'views': { 'recname': """Micrograph {{id_micrograph}}""",
              'tabularview': """{{id_micrograph}} {{ctf_defocus_set}} {{ctf_defocus_measured}} {{tem_magnification_set}} {{ctf_bfactor}} {{time_exposure_tem}} {{tem_dose_rate}} {{assess_image_quality}} {{childcount(scan)}}"""}}  
 ]
-
 
 if __name__ == "__main__":
     emen2.db.dump.dump_json(sys.argv[1], items=paramdefs+paramdefs+recorddefs+EMAN2paramdefs, uri="http://ncmidb.bcm.edu")

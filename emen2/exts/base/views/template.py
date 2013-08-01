@@ -1,10 +1,7 @@
-# $Id$
 import itertools
 
 from emen2.web.view import View
 import emen2.db.config
-
-
 
 @View.register
 class TemplateRender(View):
@@ -30,8 +27,3 @@ class TemplateRender(View):
         else:
             self.ctxt['content'] = '<b>Error, private template</b>'
 
-
-
-        
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

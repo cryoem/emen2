@@ -17,7 +17,6 @@
  
 (function($, undefined) {
 
-
 var defaults = {
 
     // display
@@ -109,14 +108,10 @@ var rtlDefaults = {
     }
 };
 
-
-
 var fc = $.fullCalendar = { version: "1.5.2" };
 var fcViews = fc.views = {};
 
-
 $.fn.fullCalendar = function(options) {
-
 
     // method calling
     if (typeof options == 'string') {
@@ -148,7 +143,6 @@ $.fn.fullCalendar = function(options) {
         eventSources.push(options.events);
         delete options.events;
     }
-    
 
     options = $.extend(true, {},
         defaults,
@@ -169,13 +163,10 @@ $.fn.fullCalendar = function(options) {
     
 };
 
-
 // function for adding/overriding defaults
 function setDefaults(d) {
     $.extend(true, defaults, d);
 }
-
-
 
  
 function Calendar(element, options, eventSources) {
@@ -534,17 +525,13 @@ function Calendar(element, options, eventSources) {
             inst.eventsDirty = true;
         });
     }
-    
-
 
     /* Selection
     -----------------------------------------------------------------------------*/
-    
 
     function select(start, end, allDay) {
         currentView.select(start, end, allDay===undefined ? true : allDay);
     }
-    
 
     function unselect() { // safe to be called before renderView
         if (currentView) {
@@ -670,7 +657,6 @@ function Calendar(element, options, eventSources) {
                 }
             });
     }
-    
 
 }
 
@@ -691,8 +677,6 @@ function Header(calendar, options) {
     // locals
     var element = $([]);
     var tm;
-    
-
 
     function render() {
         tm = options.theme ? 'ui' : 'fc';
@@ -836,7 +820,6 @@ function Header(calendar, options) {
             .removeClass(tm + '-state-disabled');
     }
 
-
 }
 
 fc.sourceNormalizers = [];
@@ -848,7 +831,6 @@ var ajaxDefaults = {
 };
 
 var eventGUID = 1;
-
 
 function EventManager(options, _sources) {
     var t = this;
@@ -1005,7 +987,6 @@ function EventManager(options, _sources) {
     
     /* Sources
     -----------------------------------------------------------------------------*/
-    
 
     function addEventSource(source) {
         source = _addEventSource(source);
@@ -1029,7 +1010,6 @@ function EventManager(options, _sources) {
             return source;
         }
     }
-    
 
     function removeEventSource(source) {
         sources = $.grep(sources, function(src) {
@@ -1224,9 +1204,7 @@ function EventManager(options, _sources) {
         return ((typeof source == 'object') ? (source.events || source.url) : '') || source;
     }
 
-
 }
-
 
 fc.addDays = addDays;
 fc.cloneDate = cloneDate;
@@ -1236,8 +1214,6 @@ fc.parseTime = parseTime;
 fc.formatDate = formatDate;
 fc.formatDates = formatDates;
 
-
-
 /* Date Math
 -----------------------------------------------------------------------------*/
 
@@ -1245,7 +1221,6 @@ var dayIDs = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'],
     DAY_MS = 86400000,
     HOUR_MS = 3600000,
     MINUTE_MS = 60000;
-    
 
 function addYears(d, n, keepTime) {
     d.setFullYear(d.getFullYear() + n);
@@ -1254,7 +1229,6 @@ function addYears(d, n, keepTime) {
     }
     return d;
 }
-
 
 function addMonths(d, n, keepTime) { // prevents day overflow/underflow
     if (+d) { // prevent infinite looping on invalid dates
@@ -1273,7 +1247,6 @@ function addMonths(d, n, keepTime) { // prevents day overflow/underflow
     return d;
 }
 
-
 function addDays(d, n, keepTime) { // deals with daylight savings
     if (+d) {
         var dd = d.getDate() + n,
@@ -1289,7 +1262,6 @@ function addDays(d, n, keepTime) { // deals with daylight savings
     return d;
 }
 
-
 function fixDate(d, check) { // force d to be on check's YMD, for daylight savings purposes
     if (+d) { // prevent infinite looping on invalid dates
         while (d.getDate() != check.getDate()) {
@@ -1298,12 +1270,10 @@ function fixDate(d, check) { // force d to be on check's YMD, for daylight savin
     }
 }
 
-
 function addMinutes(d, n) {
     d.setMinutes(d.getMinutes() + n);
     return d;
 }
-
 
 function clearTime(d) {
     d.setHours(0);
@@ -1313,14 +1283,12 @@ function clearTime(d) {
     return d;
 }
 
-
 function cloneDate(d, dontKeepTime) {
     if (dontKeepTime) {
         return clearTime(new Date(+d));
     }
     return new Date(+d);
 }
-
 
 function zeroDate() { // returns a Date with time 00:00:00 and dateOfMonth=1
     var i=0, d;
@@ -1330,7 +1298,6 @@ function zeroDate() { // returns a Date with time 00:00:00 and dateOfMonth=1
     return d;
 }
 
-
 function skipWeekend(date, inc, excl) {
     inc = inc || 1;
     while (!date.getDay() || (excl && date.getDay()==1 || !excl && date.getDay()==6)) {
@@ -1339,11 +1306,9 @@ function skipWeekend(date, inc, excl) {
     return date;
 }
 
-
 function dayDiff(d1, d2) { // d1 - d2
     return Math.round((cloneDate(d1, true) - cloneDate(d2, true)) / DAY_MS);
 }
-
 
 function setYMD(date, y, m, d) {
     if (y !== undefined && y != date.getFullYear()) {
@@ -1360,11 +1325,8 @@ function setYMD(date, y, m, d) {
     }
 }
 
-
-
 /* Date Parsing
 -----------------------------------------------------------------------------*/
-
 
 function parseDate(s, ignoreTimezone) { // ignoreTimezone defaults to true
     if (typeof s == 'object') { // already a Date object
@@ -1385,7 +1347,6 @@ function parseDate(s, ignoreTimezone) { // ignoreTimezone defaults to true
     // TODO: never return invalid dates (like from new Date(<string>)), return null instead
     return null;
 }
-
 
 function parseISO8601(s, ignoreTimezone) { // ignoreTimezone defaults to false
     // derived from http://delete.me.uk/2005/03/iso8601.html
@@ -1440,7 +1401,6 @@ function parseISO8601(s, ignoreTimezone) { // ignoreTimezone defaults to false
     return date;
 }
 
-
 function parseTime(s) { // returns minutes since start of day
     if (typeof s == 'number') { // an hour
         return s * 60;
@@ -1461,17 +1421,13 @@ function parseTime(s) { // returns minutes since start of day
     }
 }
 
-
-
 /* Date Formatting
 -----------------------------------------------------------------------------*/
 // TODO: use same function formatDate(date, [date2], format, [options])
 
-
 function formatDate(date, format, options) {
     return formatDates(date, null, format, options);
 }
-
 
 function formatDates(date1, date2, format, options) {
     options = options || defaults;
@@ -1550,7 +1506,6 @@ function formatDates(date1, date2, format, options) {
     return res;
 };
 
-
 var dateFormatters = {
     s    : function(d)    { return d.getSeconds() },
     ss    : function(d)    { return zeroPad(d.getSeconds()) },
@@ -1584,14 +1539,10 @@ var dateFormatters = {
     }
 };
 
-
-
 fc.applyAll = applyAll;
-
 
 /* Event Date Math
 -----------------------------------------------------------------------------*/
-
 
 function exclEndDay(event) {
     if (event.end) {
@@ -1601,27 +1552,21 @@ function exclEndDay(event) {
     }
 }
 
-
 function _exclEndDay(end, allDay) {
     end = cloneDate(end);
     return allDay || end.getHours() || end.getMinutes() ? addDays(end, 1) : clearTime(end);
 }
 
-
 function segCmp(a, b) {
     return (b.msLength - a.msLength) * 100 + (a.event.start - b.event.start);
 }
-
 
 function segsCollide(seg1, seg2) {
     return seg1.end > seg2.start && seg1.start < seg2.end;
 }
 
-
-
 /* Event Sorting
 -----------------------------------------------------------------------------*/
-
 
 // event rendering utilities
 function sliceSegs(events, visEventEnds, start, end) {
@@ -1662,7 +1607,6 @@ function sliceSegs(events, visEventEnds, start, end) {
     return segs.sort(segCmp);
 }
 
-
 // event rendering calculation utilities
 function stackSegs(segs) {
     var levels = [],
@@ -1696,11 +1640,8 @@ function stackSegs(segs) {
     return levels;
 }
 
-
-
 /* Event Element Binding
 -----------------------------------------------------------------------------*/
-
 
 function lazySegBind(container, segs, bindHandlers) {
     container.unbind('mouseover').mouseover(function(ev) {
@@ -1720,11 +1661,8 @@ function lazySegBind(container, segs, bindHandlers) {
     });
 }
 
-
-
 /* Element Dimensions
 -----------------------------------------------------------------------------*/
-
 
 function setOuterWidth(element, width, includeMargins) {
     for (var i=0, e; i<element.length; i++) {
@@ -1733,7 +1671,6 @@ function setOuterWidth(element, width, includeMargins) {
     }
 }
 
-
 function setOuterHeight(element, height, includeMargins) {
     for (var i=0, e; i<element.length; i++) {
         e = $(element[i]);
@@ -1741,55 +1678,45 @@ function setOuterHeight(element, height, includeMargins) {
     }
 }
 
-
 // TODO: curCSS has been deprecated (jQuery 1.4.3 - 10/16/2010)
-
 
 function hsides(element, includeMargins) {
     return hpadding(element) + hborders(element) + (includeMargins ? hmargins(element) : 0);
 }
-
 
 function hpadding(element) {
     return (parseFloat($.curCSS(element[0], 'paddingLeft', true)) || 0) +
            (parseFloat($.curCSS(element[0], 'paddingRight', true)) || 0);
 }
 
-
 function hmargins(element) {
     return (parseFloat($.curCSS(element[0], 'marginLeft', true)) || 0) +
            (parseFloat($.curCSS(element[0], 'marginRight', true)) || 0);
 }
-
 
 function hborders(element) {
     return (parseFloat($.curCSS(element[0], 'borderLeftWidth', true)) || 0) +
            (parseFloat($.curCSS(element[0], 'borderRightWidth', true)) || 0);
 }
 
-
 function vsides(element, includeMargins) {
     return vpadding(element) +  vborders(element) + (includeMargins ? vmargins(element) : 0);
 }
-
 
 function vpadding(element) {
     return (parseFloat($.curCSS(element[0], 'paddingTop', true)) || 0) +
            (parseFloat($.curCSS(element[0], 'paddingBottom', true)) || 0);
 }
 
-
 function vmargins(element) {
     return (parseFloat($.curCSS(element[0], 'marginTop', true)) || 0) +
            (parseFloat($.curCSS(element[0], 'marginBottom', true)) || 0);
 }
 
-
 function vborders(element) {
     return (parseFloat($.curCSS(element[0], 'borderTopWidth', true)) || 0) +
            (parseFloat($.curCSS(element[0], 'borderBottomWidth', true)) || 0);
 }
-
 
 function setMinHeight(element, height) {
     height = (typeof height == 'number' ? height + 'px' : height);
@@ -1799,33 +1726,25 @@ function setMinHeight(element, height) {
     });
 }
 
-
-
 /* Misc Utils
 -----------------------------------------------------------------------------*/
-
 
 //TODO: arraySlice
 //TODO: isFunction, grep ?
 
-
 function noop() { }
-
 
 function cmp(a, b) {
     return a - b;
 }
 
-
 function arrayMax(a) {
     return Math.max.apply(Math, a);
 }
 
-
 function zeroPad(n) {
     return (n < 10 ? '0' : '') + n;
 }
-
 
 function smartProperty(obj, name) { // get a camel-cased/namespaced property of an object
     if (obj[name] !== undefined) {
@@ -1842,7 +1761,6 @@ function smartProperty(obj, name) { // get a camel-cased/namespaced property of 
     return obj[''];
 }
 
-
 function htmlEscape(s) {
     return s.replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
@@ -1852,11 +1770,9 @@ function htmlEscape(s) {
         .replace(/\n/g, '<br />');
 }
 
-
 function cssKey(_element) {
     return _element.id + '/' + _element.className + '/' + _element.style.cssText.replace(/(^|;)\s*(top|left|width|height)\s*:[^;]*/ig, '');
 }
-
 
 function disableTextSelection(element) {
     element
@@ -1864,7 +1780,6 @@ function disableTextSelection(element) {
         .css('MozUserSelect', 'none')
         .bind('selectstart.ui', function() { return false; });
 }
-
 
 /*
 function enableTextSelection(element) {
@@ -1874,7 +1789,6 @@ function enableTextSelection(element) {
         .unbind('selectstart.ui');
 }
 */
-
 
 function markFirstLast(e) {
     e.children()
@@ -1886,14 +1800,12 @@ function markFirstLast(e) {
             .addClass('fc-last');
 }
 
-
 function setDayID(cell, date) {
     cell.each(function(i, _cell) {
         _cell.className = _cell.className.replace(/^fc-\w*/, 'fc-' + dayIDs[date.getDay()]);
         // TODO: make a way that doesn't rely on order of classes
     });
 }
-
 
 function getSkinCss(event, opt) {
     var source = event.source || {};
@@ -1931,7 +1843,6 @@ function getSkinCss(event, opt) {
     return statements.join(';');
 }
 
-
 function applyAll(functions, thisObj, args) {
     if ($.isFunction(functions)) {
         functions = [ functions ];
@@ -1946,7 +1857,6 @@ function applyAll(functions, thisObj, args) {
     }
 }
 
-
 function firstDefined() {
     for (var i=0; i<arguments.length; i++) {
         if (arguments[i] !== undefined) {
@@ -1954,8 +1864,6 @@ function firstDefined() {
         }
     }
 }
-
-
 
 fcViews.month = MonthView;
 
@@ -2059,7 +1967,6 @@ fcViews.basicDay = BasicDayView;
 
 //TODO: when calendar's date starts out on a weekend, shouldn't happen
 
-
 function BasicDayView(element, calendar) {
     var t = this;
     
@@ -2095,7 +2002,6 @@ function BasicDayView(element, calendar) {
 setDefaults({
     weekMode: 'fixed'
 });
-
 
 function BasicView(element, calendar, viewName) {
     var t = this;
@@ -2715,7 +2621,6 @@ function BasicEventRenderer() {
         });
     }
 
-
 }
 
 fcViews.agendaWeek = AgendaWeekView;
@@ -2760,7 +2665,6 @@ function AgendaWeekView(element, calendar) {
         t.visEnd = visEnd;
         renderAgenda(weekends ? 7 : 5);
     }
-    
 
 }
 
@@ -2796,7 +2700,6 @@ function AgendaDayView(element, calendar) {
         t.end = t.visEnd = end;
         renderAgenda(1);
     }
-    
 
 }
 
@@ -2817,10 +2720,8 @@ setDefaults({
     maxTime: 24
 });
 
-
 // TODO: make it work in quirks mode (event corners, all-day height)
 // TODO: test liquid width, especially in IE6
-
 
 function AgendaView(element, calendar, viewName) {
     var t = this;
@@ -2922,7 +2823,6 @@ function AgendaView(element, calendar, viewName) {
     var rtl, dis, dit;  // day index sign / translate
     var minMinute, maxMinute;
     var colFormat;
-    
 
     
     /* Rendering
@@ -3191,8 +3091,6 @@ function AgendaView(element, calendar, viewName) {
         colWidth = Math.floor((slotTableWidth - axisWidth) / colCnt);
         setOuterWidth(dayHeadCells.slice(0, -1), colWidth);
     }
-    
-
 
     function resetScroll() {
         var d0 = zeroDate();
@@ -3220,13 +3118,11 @@ function AgendaView(element, calendar, viewName) {
     
     /* Slot/Day clicking and binding
     -----------------------------------------------------------------------*/
-    
 
     function dayBind(cells) {
         cells.click(slotClick)
             .mousedown(daySelectionMousedown);
     }
-
 
     function slotBind(cells) {
         cells.click(slotClick)
@@ -3255,7 +3151,6 @@ function AgendaView(element, calendar, viewName) {
     
     /* Semi-transparent Overlay Helpers
     -----------------------------------------------------*/
-    
 
     function renderDayOverlay(startDate, endDate, refreshCoordinateGrid) { // endDate is exclusive
         if (refreshCoordinateGrid) {
@@ -3284,7 +3179,6 @@ function AgendaView(element, calendar, viewName) {
         var rect = coordinateGrid.rect(row0, col0, row1, col1, slotLayer);
         return renderOverlay(rect, slotLayer);
     }
-    
 
     function renderSlotOverlay(overlayStart, overlayEnd) {
         var dayStart = cloneDate(t.visStart);
@@ -3600,7 +3494,6 @@ function AgendaView(element, calendar, viewName) {
         }
     }
 
-
 }
 
 function AgendaEventRenderer() {
@@ -3656,7 +3549,6 @@ function AgendaEventRenderer() {
     
     /* Rendering
     ----------------------------------------------------------------------------*/
-    
 
     function renderEvents(events, modifiedEventId) {
         reportEvents(events);
@@ -4195,10 +4087,8 @@ function AgendaEventRenderer() {
             }
         });
     }
-    
 
 }
-
 
 function countForwardSegs(levels) {
     var i, j, k, level, segForward, segBack;
@@ -4215,9 +4105,6 @@ function countForwardSegs(levels) {
         }
     }
 }
-
-
-
 
 function View(element, calendar, viewName) {
     var t = this;
@@ -4468,7 +4355,6 @@ function View(element, calendar, viewName) {
             normalizeEvent(e, options);
         }
     }
-    
 
 }
 
@@ -4951,7 +4837,6 @@ function DayEventRenderer() {
             
         });
     }
-    
 
 }
 
@@ -4979,8 +4864,6 @@ function SelectionManager() {
     // locals
     var selected = false;
 
-
-
     // unselectAuto
     if (opt('selectable') && opt('unselectAuto')) {
         $(document).mousedown(function(ev) {
@@ -4993,7 +4876,6 @@ function SelectionManager() {
             unselect(ev);
         });
     }
-    
 
     function select(startDate, endDate, allDay) {
         unselect();
@@ -5050,7 +4932,6 @@ function SelectionManager() {
         }
     }
 
-
 }
  
 function OverlayManager() {
@@ -5078,7 +4959,6 @@ function OverlayManager() {
         usedOverlays.push(e.css(rect).show());
         return e;
     }
-    
 
     function clearOverlays() {
         var e;
@@ -5086,7 +4966,6 @@ function OverlayManager() {
             unusedOverlays.push(e.hide().unbind());
         }
     }
-
 
 }
 
@@ -5137,7 +5016,6 @@ function CoordinateGrid(buildFunc) {
 }
 
 function HoverListener(coordinateGrid) {
-
 
     var t = this;
     var bindType;

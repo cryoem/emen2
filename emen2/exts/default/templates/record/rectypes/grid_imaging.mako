@@ -23,5 +23,4 @@ children_recnames = DB.view(children)
         </div>
     % endfor
 
-
 ## </%buttons:singlepage>

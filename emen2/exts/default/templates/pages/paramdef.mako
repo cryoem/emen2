@@ -21,12 +21,10 @@
     $('.e2-tree').TreeControl({'attach':true});
 </%block>
 
-
 <%block name="precontent">
     ${parent.precontent()}
     <div class="e2-tree-main" style="overflow:hidden">${parentmap | n,unicode}</div>
 </%block>
-
 
 <%def name="paramdef_edit(paramdef, edit=False, new=False)">
     <table class="e2l-kv">
@@ -110,8 +108,6 @@
     </table>        
 </%def>
 
-
-
 <%def name="paramdef_edit_history(paramdef, edit=False, new=False)">
     <table class="e2l-kv">
         <tr>
@@ -125,7 +121,6 @@
         </tr>
     </table>
 </%def>
-
 
 <%def name="paramdef_edit_fixed(paramdef, edit=False, new=False)">
     <table class="e2l-kv">
@@ -208,9 +203,5 @@
         </tr>
     </table>
 </%def>
-
-
-
-
 
 ${next.body()}

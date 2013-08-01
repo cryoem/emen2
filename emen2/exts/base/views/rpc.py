@@ -1,4 +1,3 @@
-# $Id$
 import sys
 import cgi
 import time

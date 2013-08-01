@@ -89,7 +89,6 @@ emen2.time.start = function(t1, width) {
 // EMEN2 Time interval helpers
 emen2.time.interval = {};
 
-
 // Return year interval
 emen2.time.interval.year = function(t1) {
     var t1 = t1 || new Date();
@@ -132,8 +131,6 @@ emen2.time.interval.second = function(t1) {
     var end = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), t1.getMinutes(), t1.getSeconds()+1, 0);
     return [start, end]
 };
-
-
 
 // EMEN2 cache handling
 emen2.cache = {};
@@ -268,7 +265,6 @@ emen2.ui.buttonfeedback = function(elem) {
     elem.addClass('e2l-disabled');
 }
 
-
 // Convert a byte count to human friendly
 emen2.template.prettybytes = function(bytes) {
     var b = 0;
@@ -290,7 +286,6 @@ emen2.template.prettybytes = function(bytes) {
         return "Unknown"
     }
 };
-
 
 // EMEN2 Utility functions
 emen2.util = {};

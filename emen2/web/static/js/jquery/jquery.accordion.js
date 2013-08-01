@@ -76,7 +76,6 @@
             .attr("tabIndex", "0")
             .next()
             .hide();
-         
 
          // only need links in taborder for Safari
          if (!$.browser.safari)
@@ -131,8 +130,6 @@
         if (this.options.helpTrigger)  {
            $(this.options.helpTrigger).click( function() { self.help(); });
         }
-
-
 
       },
 

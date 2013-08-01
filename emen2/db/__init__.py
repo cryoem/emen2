@@ -1,4 +1,3 @@
-# $Id$
 """EMEN2: An extesible electronic lab notebook and database."""
 
 def opendb(**kwargs):
@@ -9,12 +8,8 @@ def opendb(**kwargs):
     import emen2.db.database
     return emen2.db.database.opendb(**kwargs)
 
-
 def opendbwithopts(optclass, **kwargs):
     import emen2.db.config
     cmd = emen2.db.config.UsageParser(optclass=optclass)
     import emen2.db.database
     return cmd, emen2.db.database.opendb(**kwargs)
-        
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

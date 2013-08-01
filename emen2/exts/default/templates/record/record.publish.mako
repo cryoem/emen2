@@ -10,7 +10,6 @@
     });
 </%block>
 
-
 <form method="post" action="">
 <h1>
     Manage public data &mdash; <span id="publish_count">${len(published)}</span> records selected

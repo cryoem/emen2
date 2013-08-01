@@ -24,7 +24,6 @@ class TestURL(unittest.TestCase):
         self.assertEqual(mtch.groupdict()['a'], match)
         self.assertEqual(url.get_callback(sub)(match), int(match))
 
-
 class TestRouting(unittest.TestCase):
     def setUp(self):
         self.Router = routing.Router()

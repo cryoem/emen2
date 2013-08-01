@@ -1,4 +1,3 @@
-# $Id$
 """EMEN2 Macros."""
 
 import random
@@ -50,7 +49,6 @@ def parse_args(args):
         ret.append(i)
     return ret
 
-
 ##### Macro #####
 
 class Macro(object):
@@ -99,12 +97,10 @@ class Macro(object):
     def macro_name(self, params):
         return unicode("Macro")
 
-
 # Dummy
 @Macro.register('dummy')
 class macro_dummy(Macro):
     pass
-
 
 @Macro.register('recname')
 class macro_recname(Macro):
@@ -264,6 +260,3 @@ class macro_thumbnail(Macro):
 # 
 #     def macro_name(self, params):
 #         return "Checkbox:", params
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -129,7 +129,6 @@
             // Show completion button
             $('.e2-dialog-no-close button').attr('disabled','disabled');
             $('.e2-dialog-no-close button .ui-button-text').text("Uploading...");
-            
 
             // Get the files and parameter name
             var fileinput = $('input:file', this.element);

@@ -9,7 +9,6 @@
     ${user_util.newuser_js_ready()}
 </%block>
 
-
 <h1>Welcome to ${TITLE}</h1>
 
 <p>

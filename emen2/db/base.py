@@ -83,7 +83,6 @@ base_paramdefs = [
 {"name": "name_folder", "keytype": "paramdef", "vartype": "string", "parents": ["base"], "desc_short": "Folder name"},
 {"name": "person_photo", "keytype": "paramdef", "vartype": "binary", "parents": ["base"], "desc_short": "Profile photo"},
 
-
 {'desc_short': 'Project title', 'keytype': 'paramdef', 'name': 'name_project', 'parents': ['base'], 'vartype': 'string'},
 
 {'choices': ['Rejected',
@@ -154,10 +153,6 @@ base_paramdefs = [
 {"name": "phone", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Phone"},
 {"name": "website", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Website"},
 ]
-
-
-
-
 
 core_recorddefs = [
 {"name":"root", "keytype":"recorddef", "mainview":"# {{desc_short}}  \n{{desc_long}} \n", "views":{"recname":"Root: {{desc_short}}", "banner":"{{desc_long}}"}, "desc_short":"Root protocol"}
@@ -238,7 +233,6 @@ Description: {desc_long}
 'views': { 'recname': """Project: {{name_project}} ({{name_pi}})""", 'tabularview': """{{name_project}} {{name_pi}} {{project_investigators}} {{project_status}} {{project_block}} {{childcount()}}"""}
 }
 ]
-
 
 if __name__ == "__main__":
     emen2.db.dump.dump_json(sys.argv[1], items=core_paramdefs+base_paramdefs+core_recorddefs+base_recorddefs, uri="http://ncmidb.bcm.edu")

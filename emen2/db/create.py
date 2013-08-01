@@ -1,4 +1,3 @@
-# $Id$
 """Create a new database."""
 
 import os

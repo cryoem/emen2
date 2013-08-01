@@ -1,4 +1,3 @@
-# $Id$
 """EMEN2 process and message queues."""
 
 import time
@@ -6,7 +5,6 @@ import random
 import subprocess
 import threading
 import Queue
-
 
 # try:
 #    import multiprocessing
@@ -51,8 +49,6 @@ class ProcessWorker(object):
                 emen2.db.log.error("Couldn't build tile: %s"%e)
             finally:
                 self.queue.task_done()
-            
-            
 
 class ProcessQueue(Queue.LifoQueue):
     """A queue of processes to run."""
@@ -87,11 +83,9 @@ class ProcessQueue(Queue.LifoQueue):
             t = threading.Thread(target=worker.run)
             t.daemon = True
             t.start()
-            
 
 processqueue = ProcessQueue()
 processqueue.start(processes=CPU_COUNT)
-
 
 if __name__ == "__main__":
     pq = ProcessQueue()
@@ -100,6 +94,3 @@ if __name__ == "__main__":
     pq.start()
     pq.join()
     # pq.end()
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

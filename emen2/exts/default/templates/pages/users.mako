@@ -1,7 +1,6 @@
 <%inherit file="/page" />
 <%namespace name="buttons"  file="/buttons"  /> 
 
-
 <form method="post" action="${ctxt.root}/users/">
 <h1>
     ${ctxt.title}
@@ -16,8 +15,6 @@
     </ul>
 </h1>
 </form>
-
-
 
 <%
 import operator
@@ -36,15 +33,12 @@ for k,v in d.items():
 
 %>
 
-
 <%buttons:singlepage label='Last Name Index'>
     % for k in sorted(d.keys()):
         <a href="#${k}">${k}</a>
     % endfor
     <p>Showing ${len(users)} of ${len(usernames)} users.</p>
 </%buttons:singlepage>
-
-
 
 % for k in sorted(d.keys()):
 

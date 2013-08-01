@@ -1,4 +1,3 @@
-# $Id$
 """This module manages EMEN2 configurations and options."""
 
 import os
@@ -53,8 +52,6 @@ templates = AddExtLookup(
     default_filters=['h'],
     )
 
-
-
 ##### Config methods #####
 
 def get_filename(package, resource=None):
@@ -90,14 +87,12 @@ def set(key, value):
     """
     raise NotImplementedError, "Soon."
 
-
 ##### Email config helper #####
 
 def mailconfig():
     from_addr = get('mail.from')
     smtphost = get('mail.smtphost') 
     return from_addr, smtphost
-
 
 ##### Extensions #####
 
@@ -144,7 +139,6 @@ def load_view(ext):
     if viewmodule:
         imp.load_module(modulename, *viewmodule)
 
-
 def load_json(ext, cb=None, *args, **kwargs):
     path = resolve_ext(ext)
     if not cb:
@@ -155,8 +149,6 @@ def load_json(ext, cb=None, *args, **kwargs):
 def resolve_ext(ext):
     paths = list(Config.globalns.paths.exts)
     return imp.find_module(ext, paths)[1]
-
-
 
 ##### Configuration loader #####
 
@@ -194,8 +186,6 @@ class Config(object):
             raise ValueError(err_msg)
         else:
             return True
-
-
 
 ##### Default OptionParser #####
 # This has been converted to Twisted usage.Options parser
@@ -240,7 +230,6 @@ class DBOptions(usage.Options):
         # Do additional processing during configuration loading
         pass
 
-
 class UsageParser(object):
 
     def __init__(self, optclass=None, options=None):
@@ -256,7 +245,6 @@ class UsageParser(object):
         self.config = Config()
         self.load_config()
 
-
     def load_config(self, **kw):
         if self.config.globalns.getattr('CONFIG_LOADED', False):
             return
@@ -265,7 +253,6 @@ class UsageParser(object):
         # with globalns:
         self._load_config(**kw)
         self.config.globalns.CONFIG_LOADED = True
-
 
     def _load_config(self, **kw):
         # Set EMEN2DBHOME from the options or environment variable.
@@ -335,5 +322,3 @@ class UsageParser(object):
         import emen2.db.log
         emen2.db.log.logger.init()
 
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,4 +1,3 @@
-# $Id$
 """Load a dumped database
 
 Functions:
@@ -23,7 +22,6 @@ import jsonrpc.jsonutil
 
 # EMEN2 imports
 import emen2.db.config
-
 
 def random_password(N):
     """Generate a random password of length N."""
@@ -53,7 +51,6 @@ class BaseLoader(object):
                     else:
                         yield item
 
-
 class Loader(BaseLoader):
     def load(self):
         t = time.time()
@@ -71,7 +68,6 @@ class Loader(BaseLoader):
         t = time.time()-t
         s = float(count) / t
         print "total time: %s, %s put/sec"%(t, s)
-
 
 class LoadOptions(emen2.db.config.DBOptions):
     def parseArgs(self, infile):

@@ -1,4 +1,3 @@
-# $Id$
 """User DBOs."""
 
 import time
@@ -310,7 +309,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     def _delsecret(self):
         self.__dict__['secret'] = None
 
-
 # Parameters allowed during New User signup.
 signupinfo = set(["name_first", "name_middle", "name_last", "comments", "institution",
     "department", "address_street", "address_city", "address_state", "address_zipcode",
@@ -367,7 +365,6 @@ class NewUser(BaseUser):
 
     def setsignupinfo(self, update):
         self._set('signupinfo', update)
-
 
 class User(BaseUser):
     """User. 
@@ -507,6 +504,3 @@ class User(BaseUser):
         else:
             return self.name
         return uname
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

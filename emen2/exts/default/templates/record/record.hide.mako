@@ -1,6 +1,5 @@
 <%inherit file="/record/record" />
 
-
 <div>
 
     % if commit:
@@ -12,7 +11,6 @@
         <p>
     
     % else:
-
 
     <form action="" method="post">
 

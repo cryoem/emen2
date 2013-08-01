@@ -1,4 +1,3 @@
-# $Id$
 """Main database module."""
 
 import os
@@ -181,7 +180,6 @@ def limit_result_length(default=None):
 
     return result
 
-
 ##### Email #####
 
 # ian: TODO: put this in a separate module
@@ -229,7 +227,6 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None):
     s.sendmail(from_addr, [from_addr, to_addr], msg)
     emen2.db.log.info('EMAIL: Mail sent: %s -> %s'%(from_addr, to_addr))
     return to_addr
-    
 
 ##### Open or create new database #####
 
@@ -258,7 +255,6 @@ def opendb(name=None, password=None, admin=False, db=None):
         ctx.refresh(db=proxy)
         proxy._ctx = ctx
     return proxy
-
 
 def setup(db=None, rootpw=None, rootemail='root@localhost'):
     """Create root user, basic groups, and root record.
@@ -758,7 +754,6 @@ class DB(object):
         :return: True if the user can create records.
         """
         return ctx.checkcreate()
-
 
     ##### Generic methods #####
         
@@ -1364,7 +1359,6 @@ class DB(object):
             recs = self.render(recs, keys=keys, ctx=ctx, txn=txn, options=options)
             ret.update(self._view_render(view, recs))
         return ret
-
 
     ##### Relationships #####
 
@@ -2893,9 +2887,6 @@ class DB(object):
         recnames = self.view(all_nodes, ctx=ctx, txn=txn)            
 
         return recnames, paths, names
-            
-            
-
 
     ##### Binaries #####
 
@@ -3037,6 +3028,4 @@ class DB(object):
         # Commit the record
         self.dbenv["record"].put(rec, ctx=ctx, txn=txn)
         self.dbenv["binary"].put(bdo, ctx=ctx, txn=txn)
-    
 
-__version__ = "$Revision$".split(":")[1][:-1].strip()

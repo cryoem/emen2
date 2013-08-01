@@ -32,7 +32,6 @@
                                 <input type="file" name="person_photo"/>
                             </p>
 
-
                         </td>
                     </tr>
                 </tbody>
@@ -44,8 +43,6 @@
     </%buttons:singlepage>
 
 % endif
-
-
 
 <%buttons:singlepage label='Change email'>
     <form method="post" action="${ctxt.root}/auth/email/change/">
@@ -76,8 +73,6 @@
 
     </form>
 </%buttons:singlepage>
-
-
 
 <%buttons:singlepage label='Change password'>
     <form action="${ctxt.root}/auth/password/change/" method="post">
@@ -113,8 +108,6 @@
     </form>
 </%buttons:singlepage>
 
-
-
 <%buttons:singlepage label='Set privacy'>
     Who may view your account information:
         
@@ -127,8 +120,6 @@
     </form>        
 </%buttons:singlepage>
 
-
-
 % if ADMIN:
     <%buttons:singlepage label='Account status'>
         <form method="post" action="${ctxt.reverse('User/edit', name=user.name)}">
@@ -140,14 +131,10 @@
     </%buttons:singlepage>
 % endif
 
-
-
 <%buttons:singlepage label='History'>
     <p>Created: <time class="e2-localize" datetime="${user.get("creationtime")}">${user.get("creationtime")}</time></p>
     <p>Modified: <time class="e2-localize" datetime="${user.get("modifytime")}">${user.get("modifytime")}</time></p>
 </%buttons:singlepage>
-
-
 
 ## <%buttons:singlepage label='Groups'>
 ## </%buttons:singlepage>

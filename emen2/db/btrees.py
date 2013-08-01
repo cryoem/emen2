@@ -1,4 +1,3 @@
-# $Id$
 """BerkeleyDB Driver."""
 
 import collections
@@ -47,7 +46,6 @@ try:
 except ImportError, inst:
     bulk = None
 
-
 # ian: todo: move this to EMEN2DBEnv
 DB_CONFIG = """\
 # Don't touch these
@@ -57,7 +55,6 @@ set_lg_regionmax 1048576
 set_lg_max 8388608
 set_lg_bsize 2097152
 """
-
 
 ##### EMEN2 Database Environment #####
 
@@ -139,7 +136,6 @@ class EMEN2DBEnv(object):
             for k,v in parents.items():
                 for v2 in v:
                     self[keytype].pclink(v2, k, ctx=ctx, txn=txn)
-
 
     def create(self):
         """Load database parameters and protocols from JSON."""
@@ -350,7 +346,6 @@ class EMEN2DBEnv(object):
     def rebuild_indexes(self, ctx=None, txn=None):
         for k,v in self.keytypes.items():
             v.rebuild_indexes(ctx=ctx, txn=txn)
-        
 
 # Berkeley DB wrapper classes
 class BaseDB(object):
@@ -492,7 +487,6 @@ class BaseDB(object):
             # Unknown dataformat.
             raise Exception, "Invalid data format: %s. Supported: str, int, float, pickle"%dataformat
         self.dataformat = dataformat
-    
 
 class IndexDB(BaseDB):
     '''EMEN2DB optimized for indexes.
@@ -706,8 +700,6 @@ class IndexDB(BaseDB):
         cursor.close()
 
         return addindexitems
-
-
 
 # Context-aware DB for Database Objects.
 # These support a single DB and a single data class.
@@ -1123,8 +1115,6 @@ class CollectionDB(BaseDB):
             indkeywords.removerefs(oldval, recs, txn=txn)
         for newval,recs in addkeywords.items():
             indkeywords.addrefs(newval, recs, txn=txn)
-
-
 
     ##### Manage indexes. #####
 
@@ -1616,7 +1606,6 @@ class CollectionDB(BaseDB):
         cursor.close()
         return result, visited
 
-
 class BinaryDB(CollectionDB):
     """CollectionDB for Binaries"""
     def _key_generator(self, item, txn=None):
@@ -1631,7 +1620,6 @@ class BinaryDB(CollectionDB):
         item.__dict__['_filepath'] = newdkey['filepath']
         # Return the new name.
         return newdkey['name']
-
 
 ALLOW_RECORD_NAMES = False
 class RecordDB(CollectionDB):
@@ -1688,7 +1676,6 @@ class RecordDB(CollectionDB):
 
         return names - find
 
-
 class UserDB(CollectionDB):
     def new(self, *args, **kwargs):
         txn = kwargs.get('txn', None)
@@ -1708,7 +1695,6 @@ class UserDB(CollectionDB):
         if not ctx or ctx.username == 'anonymous':
             return set()
         return super(UserDB, self).filter(names, ctx=ctx, txn=txn)
-
 
 class NewUserDB(CollectionDB):
     def delete(self, key, ctx=None, txn=None, flags=0):
@@ -1740,5 +1726,3 @@ class NewUserDB(CollectionDB):
             raise emen2.db.exceptions.SecurityError, "Admin rights needed to view user queue"
         return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
 
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -8,7 +8,6 @@
     % endif
 </%def>
 
-
 <%
 children_groups = collections.defaultdict(set)
 for i in children:
@@ -18,7 +17,6 @@ users_d = dict((i.name, i) for i in users)
 recdefs_d = dict((i.name, i) for i in recdefs)
 %>
 
-
 ## Relationship tree
 <%block name="precontent">
     ${parent.precontent()}
@@ -26,11 +24,9 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     <div class="e2-tree-main" style="overflow:hidden">${parentmap | n,unicode}</div>
 </%block>
 
-
 <%block name="css_inline">
     ${parent.css_inline()}
 </%block>
-
 
 <%block name="js_ready">
     ${parent.js_ready()}
@@ -129,8 +125,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     
 </%block>
 
-
-
 <div class="e2l-sidebar-sidebar">
 
     <ul id="e2-tab-record" class="e2l-cf e2l-sidebar-projectlist" role="tablist" data-tabgroup="record">
@@ -142,22 +136,18 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             </h2>
         </li>
 
-
         ## Edit Record
         % if rec.writable():
             <li role="tab" data-tab="edit" ${istab(tab, "edit")}><a href="#edit">${buttons.image('edit.png')} Edit</a></li>
         % endif
-
 
         ## New Record
         % if create and rec.writable():
             <li role="tab" data-tab="new" ${istab(tab, "new")}><a href="#new">${buttons.image('new.png')}New</a></li>
         % endif
 
-
         ## Permissions Editor
         <li role="tab" data-tab="permissions"><a href="#permissions">${buttons.image('permissions.png')} Permissions</a></li>
-
 
         ## Attachments Editor
         <%
@@ -183,7 +173,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
         ## Relationship Editor
         <li role="tab" data-tab="relationships"><a href="#relationships">${buttons.image('relationships.png')} Relationships</a></li>
-
 
         ## View Selector
         <li role="tab" data-tab="views">
@@ -314,7 +303,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             </li>
         % endfor
 
-
         ## Tools
         ## ${buttons.image('tools.png')} 
         ## This is a block that can be extended by rectype-specific child templates.
@@ -333,7 +321,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     </ul>
 
 </div>
-
 
 <div class="e2-tab e2-tab-record e2l-sidebar-main" data-tabgroup="record" role="tabpanel">
 
@@ -403,7 +390,4 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         </p>        
     </div>
 </div>
-
-
-
 

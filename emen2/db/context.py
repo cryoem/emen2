@@ -1,4 +1,3 @@
-# $Id$
 """Sessions / Contexts."""
 
 import time
@@ -14,7 +13,6 @@ import emen2.db.database
 import emen2.db.exceptions
 import emen2.db.proxy
 import emen2.db.config
-
 
 # This is temporarily here. It may be moved.
 class Cacher(object):
@@ -36,7 +34,6 @@ class Cacher(object):
             return True, self.cache[key]
         # print '\tnot found'
         return False, None
-        
 
 # Contexts do not use BaseDBObject since they are completely internal to the DB
 class Context(object):
@@ -114,7 +111,6 @@ class Context(object):
     def checkcreate(self):
         return bool(set(["admin", "create"]) & self.groups)
 
-
 class SpecialRootContext(Context):
     def refresh(self, user=None, grouplevels=None, host=None, username=None, db=None, txn=None):
         self.name = None
@@ -125,7 +121,6 @@ class SpecialRootContext(Context):
         self.cache = Cacher()        
         self.groups = set(["admin"])
         self.grouplevels = {"admin":3}
-
 
 class AnonymousContext(Context):
     def refresh(self, user=None, grouplevels=None, host=None, db=None, txn=None):
@@ -138,4 +133,3 @@ class AnonymousContext(Context):
         self.groups = set(["anon"])
         self.grouplevels = {"anon":0}
 
-__version__ = "$Revision$".split(":")[1][:-1].strip()

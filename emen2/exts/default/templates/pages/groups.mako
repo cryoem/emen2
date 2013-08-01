@@ -1,7 +1,6 @@
 <%inherit file="/page" />
 <%namespace name="buttons"  file="/buttons"  /> 
 
-
 <%
 import operator
 import collections
@@ -43,8 +42,6 @@ for k,v in d.items():
     % endfor
     <p>Showing ${len(groups)} of ${len(groupnames)} user groups.</p>    
 </%buttons:singlepage>
-
-
 
 % for k in sorted(d.keys()):
 

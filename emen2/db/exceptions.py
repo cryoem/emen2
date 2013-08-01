@@ -1,4 +1,3 @@
-# $Id$
 """Exceptions."""
 
 # Security Errors
@@ -26,4 +25,3 @@ class ExistingKeyError(ValueError):
 class TimeError(Exception):
     """Operation timed out."""
 
-__version__ = "$Revision$".split(":")[1][:-1].strip()

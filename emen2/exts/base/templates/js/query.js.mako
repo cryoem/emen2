@@ -505,7 +505,6 @@
                     .val($(this).val())
                     .appendTo(form);
             });
-            
 
             var count = $('<p />')
                 .text('Download '+$.escape(bdos.length)+' files?') 

@@ -1,4 +1,3 @@
-# $Id$
 
 import re
 import time
@@ -115,7 +114,6 @@ class RoutedResource(object):
         if slot in cls.slots:
             return cls.slots[slot][-1]
         else: raise ValueError, "No such slot"
-
 
 class FixedArgsResource(object):
     """Better handling of request args than Twisted's Resource."""
@@ -263,8 +261,6 @@ class FixedArgsResource(object):
 
         return unicode(args, 'utf-8')
 
-
-
 class EMEN2Resource(RoutedResource, FixedArgsResource):
     """Base resource for EMEN2. 
     
@@ -308,7 +304,6 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
     def __str__(self):
         '''Render the resource, encoded as UTF-8'''
         return self.get_data().encode('utf-8', 'replace')
-
 
     ##### Headers #####
 
@@ -404,7 +399,6 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
         return result
 
-
     ##### Callbacks #####
 
     def render_cb(self, result, request, t=0, **_):
@@ -495,7 +489,6 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
         request.finish()
 
-
     ##### Error handlers #####
 
     def render_error(self, location, e):
@@ -520,18 +513,10 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         # failure = twisted.python.failure.Failure(exc_value=Exception("Cancelled request"))
         # deferred.errback(failure)
 
-
-
-
-
-
-
-
 ##### XML-RPC and JSON-RPC Resources #####
 
 class XMLRPCResource(object):
     pass
-
 
 class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
     q = Queue.Queue()
@@ -601,8 +586,3 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
         else:
             pass
 
-
-
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -28,7 +28,6 @@
     });    
 </%def>
 
-
 <%def name="newuser(user)">
     <table class="e2l-kv">    
         <tbody>        
@@ -55,9 +54,6 @@
         </tbody>
     </table>
 </%def>
-
-
-
 
 <%def name="profile(user=None, userrec=None, edit=False, prefix='userrec.')">
     % if edit:
@@ -174,5 +170,4 @@
     % endif
 
 </%def>
-
 

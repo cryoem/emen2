@@ -1,9 +1,7 @@
-# $Id$
 from emen2.web.view import View
 import time
 import datetime
 import calendar
-
 
 class Item(object):
     def __init__(self, title, rec):
@@ -11,7 +9,6 @@ class Item(object):
         self.data = rec
         self.name = rec.name
         self.date = rec['creationtime']
-
 
 @View.register
 class RSS(View):
@@ -81,4 +78,3 @@ class RSS(View):
         self.ctxt['items'] = items
         self.title = '%s Record Feed - %s to %s' % (emen2.db.config.get('customization.title'), self._begin, self._end)
         return View.get_data(self)
-__version__ = "$Revision$".split(":")[1][:-1].strip()

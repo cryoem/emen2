@@ -1,4 +1,3 @@
-# $Id$
 import re
 import sre_parse
 import urllib
@@ -115,7 +114,6 @@ class Route(object):
 
         # Hint that this route will cause writes
         self.write = write
-
 
     def match(self, path):
         result = None
@@ -313,6 +311,4 @@ class _IndexedListIterator(object):
 
     def __getitem__(self, arg):
         return self.lis[arg]
-        
 
-__version__ = "$Revision$".split(":")[1][:-1].strip()

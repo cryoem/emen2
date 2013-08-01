@@ -1,4 +1,3 @@
-# $Id$
 """RecordDef (Protocol) classes."""
 
 import re
@@ -29,7 +28,6 @@ def parseparmvalues(text):
         #   defaults[n] = match.group('def')
 
     return params, defaults, required
-
 
 class RecordDef(emen2.db.dataobject.BaseDBObject):
     """RecordDefs, aka Experimental Protocols.
@@ -188,5 +186,3 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         p['paramsR'] = r
         self.__dict__.update(p)
 
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -1,4 +1,3 @@
-# $Id$
 """Record DBOs."""
 
 import collections
@@ -67,7 +66,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         Time of comment
     2
         Comment text
-
 
     The following methods are overridden:
     
@@ -244,5 +242,3 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
         return cp
 
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

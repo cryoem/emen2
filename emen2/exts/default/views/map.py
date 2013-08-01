@@ -1,7 +1,5 @@
-# $Id$
 from emen2.web.view import View
 import emen2.db.config
-
 
 def bfs(root, tree, recurse=1):
     maxrecurse = emen2.db.config.get('params.maxrecurse')
@@ -18,8 +16,6 @@ def bfs(root, tree, recurse=1):
     stack = set()
     inner(stack, tree.get(None, [root]))
     return stack
-
-
 
 @View.register
 class Tree(View):
@@ -85,5 +81,3 @@ class Tree(View):
         self.ctxt['link'] = link
         self.ctxt['showroot'] = showroot
 
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

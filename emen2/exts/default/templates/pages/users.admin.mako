@@ -2,7 +2,6 @@
 <%inherit file="/page" />
 <%namespace name="pages_user_util" file="/pages/user"  /> 
 
-
 <p>
     <form method="post" action="${ctxt.root}/users/admin/">
         % if q:
@@ -15,7 +14,6 @@
 </p>
 
 <br /><br />
-
 
 <%
 for user in users:

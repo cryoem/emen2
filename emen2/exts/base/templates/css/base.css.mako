@@ -39,7 +39,6 @@ begin with one of the following prefixes:
 
 ******************************************/
 
-
 /***** Layout Styles *****/
 /* 
     These are styles that are 
@@ -120,7 +119,6 @@ ul.e2l-actions li {
     float: right;
 }
 
-
 /* e2-alert: Alerts, notifications, and errors */
 ul.e2-alert {
     list-style: none;
@@ -165,7 +163,6 @@ ul.e2l-controls
     margin-bottom:10px;
     padding: 0px;
 }
-
 
 /* e2l-spinner: Activity indicator */
 
@@ -216,9 +213,7 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     border-bottom:solid 1px #ccc;
 }
 
-
 /***** These should go in style.css *****/
-
 
 /* e2l-menu: Navigation */
 .e2l-menu {
@@ -266,10 +261,6 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     display: block;
 }
 
-
-
-
-
 /******************************************
          EMEN2 Widgets
 ******************************************/
@@ -302,8 +293,6 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     background: white;
 }
 
-
-
 /* e2-switcher: Simple tab widget */
 .e2-tab-switcher {
     margin-bottom:20px;
@@ -326,7 +315,6 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     background: #eee;
 }
 
-
 /* e2-tab-main: Page layout level tabs */
 .e2-tab-main > ul {
     border-bottom:solid 1px #ccc;
@@ -341,8 +329,6 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     border-bottom: solid 1px white;
     background: white;
 }
-
-
 
 /***** e2l-edit: Editing controls *****/
 .e2-edit {
@@ -427,7 +413,6 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     border-bottom: solid 1px #ccc;
 }
 
-
 /***** e2-infobox: Display Infobox *****/
 .e2-infobox {
 	clear:both;
@@ -488,7 +473,6 @@ textarea.e2l-fw {
     margin-bottom: 10px; */
 }
 
-
 /***** e2-wordcount: Wordcount widget *****/
 .e2-wordcount-count {
     text-align: right;
@@ -498,7 +482,6 @@ textarea.e2l-fw {
 .e2-wordcount-error {
     color: <%self:REMOVED />;
 }
-
 
 /***** e2-siblings: Sibling relationship widget *****/
 .e2-siblings h1 {
@@ -511,7 +494,6 @@ textarea.e2l-fw {
 .e2-siblings li.e2-siblings-active {
     list-style-type: disc;
 }
-
 
 /***** e2-tree: Relationship tree *****/
 
@@ -634,7 +616,6 @@ textarea.e2l-fw {
     border:solid red 2px;
 }
 
-
 /***** e2-tile: Tile image preview *****/
 .e2-tile .e2-tile-controls {
     display: block;
@@ -672,9 +653,6 @@ textarea.e2l-fw {
     position:relative;
     border-bottom:solid 1px #ccc;
 }
-
-
-
 
 /***** e2-box: Boxer *****/
 
@@ -771,7 +749,6 @@ line {
     float:left;
 }
 
-
 /* Grumble */
 .e2-button
 {
@@ -806,7 +783,6 @@ line {
     position:fixed;
 }
 
-
 .ui-autocomplete {
     max-width: 300px;
     max-height: 300px;
@@ -822,10 +798,8 @@ line {
 .ui-timepicker-div td { font-size: 90%; }
 .ui-tpicker-grid-label { background: none; border: none; margin: 0; padding: 0; }
 
-
 /* Dialogs that aren't allowed to close */
 .e2-dialog-no-close .ui-dialog-titlebar-close {display: none }
-
 
 /* IE 6 doesn't support max-height
  * we use height instead, but this forces the menu to always be this tall
@@ -833,7 +807,6 @@ line {
     height: 300px;
 }
 */
-
 
 /* TODO -- Integrate this back into the rest of the CSS */
 
@@ -897,8 +870,6 @@ table p {
     padding:0px;
 }
 
-
-
 .e2l-shadow-drop, 
 .e2l-help
 {
@@ -909,10 +880,6 @@ table p {
     -webkit-box-shadow: 3px 3px 3px #ddd;
     box-shadow: 3px 3px 3px #ddd;
 }
-
-
- 
-
 
 <%!
 public = True

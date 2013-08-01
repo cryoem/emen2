@@ -1,4 +1,3 @@
-# $Id$
 from emen2.web.view import View
 
 @View.register
@@ -26,6 +25,4 @@ class Error(View):
         self.ctxt["error"] = error
         self.ctxt['location'] = location
 
-
         
-__version__ = "$Revision$".split(":")[1][:-1].strip()

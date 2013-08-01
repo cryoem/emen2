@@ -23,7 +23,6 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
     });
 </script>    
 
-
 <h1>Recent activity</h1>
 
 <div id="recent_activity">

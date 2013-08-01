@@ -9,7 +9,6 @@ import json
 # import emen2.clients
 import emen2.db.admin
 
-
 PROJECT  = EMAN2.db_open_dict("bdb:project")
 APIX = PROJECT.get('global.apix')
 
@@ -46,7 +45,6 @@ def open_refine_classes(refine, classes, prefix=None, mappings=None, db=None):
 
     included -= excluded
 
-
     print "Reading particle sets to get source_uris"
     for k in ptcl_source:
         d = EMAN2.db_open_dict(k)
@@ -64,7 +62,6 @@ def open_refine_classes(refine, classes, prefix=None, mappings=None, db=None):
         excl = v & excluded
         scores[k] = len(incl)/float(len(v)) #1.0 - 
 
-
     source_map = collections.defaultdict(list)    
     total = float(len(scores))
     for count, k in enumerate(sorted(scores, key=scores.get)):
@@ -72,7 +69,6 @@ def open_refine_classes(refine, classes, prefix=None, mappings=None, db=None):
         srcbin = int((count/total)*10)
         # srcbin = int(scores[k]*20)
         source_map[srcbin].append(k)
-
 
     #putrecs = []
     # for k,v in scores.items():
@@ -100,9 +96,6 @@ def open_refine_classes(refine, classes, prefix=None, mappings=None, db=None):
         json.dump(source_map, f)
         f.close()    
         make_plots(source_map, prefix=prefix)
-        
-    
-    
 
 def plot_processed_snr(prefix="ctfp", db=None, apix=None):
     f = open('source2_gi.json')
@@ -116,7 +109,6 @@ def plot_processed_snr(prefix="ctfp", db=None, apix=None):
         ctf.from_string(v[0])
         source_ctf[k] = ctf.snr
         print ctf.snr
-
 
     for k,v in source_gi.items():
         print "\n==", k
@@ -153,13 +145,10 @@ def make_plots(source, prefix=None):
             for x,y in peaks(ctf.snr, apix=APIX):
                 outfile.write("%s\t%s\n"%(x,y))
         outfile.close()
-                
-
 
 if __name__ == "__main__":
     pass
     # plot_processed_snr(db=db)
     #open_refine_classes("refine_08", "classes_04", prefix="decbin", db=db)
     #make_plots("test_bin.json", prefix="bin2")
-
 

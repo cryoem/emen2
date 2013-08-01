@@ -1,4 +1,3 @@
-# # $Id$
 # import re
 # import os
 # import pickle
@@ -353,4 +352,3 @@
 # 
 # 
 # 
-# __version__ = "$Revision$".split(":")[1][:-1].strip()

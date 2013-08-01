@@ -1,4 +1,3 @@
-# $Id$
 import os
 import pickle
 import math
@@ -76,9 +75,4 @@ class Preview(View):
             self.set_header("Content-Type", "application/json")
 
         return data
-    
 
-
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

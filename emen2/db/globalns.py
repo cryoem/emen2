@@ -1,4 +1,3 @@
-# $Id$
 """Do not use any of these classes or functions directly.
 Use the get() and set() functions in emen2.db.config instead.
 """
@@ -26,12 +25,8 @@ def dict_merge(dct1, dct2):
     dct1.update( (k,dct2[k]) for k in newkeys )
     return dct1
 
-
-
 class _Null:
     pass
-
-
 
 class Hier(collections.MutableMapping):
     ####################
@@ -126,8 +121,6 @@ class Hier(collections.MutableMapping):
     def __iter__(self): return iter(self._values)
     def __len__(self): return len(self._values)
 
-
-
 ##########################################################
 # Direct access is deprecated. Use emen2.db.config: get and set
 
@@ -155,7 +148,6 @@ except ImportError:
 import jsonrpc.jsonutil
 
 inst = lambda x:x()
-
 
 class GlobalNamespace(Hier):
 
@@ -216,7 +208,6 @@ class GlobalNamespace(Hier):
                 raise AttributeError('Attribute %r not found' % name)
             return value
 
-
     __yaml_keys = collections.defaultdict(list)
     __yaml_files = collections.defaultdict(list)
     __options = collections.defaultdict(set)
@@ -255,12 +246,10 @@ class GlobalNamespace(Hier):
         elif bool(value) == False:
             raise LockedNamespaceError, 'cannot unlock %s' % cls.__name__
 
-
     @classmethod
     def __unlock(cls):
         """unlock namespace (for internal/debug use only)"""
         cls.__locked = False
-
 
     hier = dict()
 
@@ -300,7 +289,6 @@ class GlobalNamespace(Hier):
             data = loadfunc(data)
 
         return data
-
 
     @classmethod
     def from_file(cls, fn=None, data=None):
@@ -345,11 +333,9 @@ class GlobalNamespace(Hier):
 
         return self
 
-
     def to_json(self, keys=None, kg=None, file=None, indent=4, sort_keys=True):
         '''Dump the data as a JSON file'''
         return json.dumps(self.__dump_prep(keys, kg, file), indent=indent, sort_keys=sort_keys)
-
 
     def to_yaml(self, keys=None, kg=None, file=None, fs=0):
         '''Dump the data as a YAML file'''
@@ -429,10 +415,6 @@ class GlobalNamespace(Hier):
         result = Hier.getattr(self, name, default=default, *args, **kwargs)
         return result
 
-
-
-
-
 #import <module>
 import unittest
 
@@ -442,7 +424,6 @@ class TestGlobalNamespace(unittest.TestCase):
         self.a = GlobalNamespace('one instance')
         self.b = GlobalNamespace('two instance')
         self.a.a = 1
-
 
     def test_attributenotfound(self):
         self.assertRaises(lambda: self.a.not_found, AttributeError)
@@ -465,7 +446,6 @@ class TestGlobalNamespace(unittest.TestCase):
         self.assertEqual(self.a.___a, tempdict['a'])
         print "test 3 passed"
         a.reset()
-
 
 if __name__ == '__main__':
     pass
@@ -533,8 +513,6 @@ class listWrapper(object):
     def __len__(self): return len(self.__list)
     def json_equivalent(self): return list(self)
 
-
-
 class Watch(object):
     def __init__(self, ns, name, default, validator=None):
         self.ns = ns
@@ -565,7 +543,6 @@ class Claim(Watch):
         self.validator = validator
         self._validate(default)
 
-
         Watch.__init__(self, ns, name, default, validator)
 
     def _validate(self, value):
@@ -589,8 +566,6 @@ class Claim(Watch):
         setattr(ns, self.name[-1], value)
         return self
 
-
-
 def json_strip_comments(data):
     r = re.compile('/\\*.*\\*/', flags=re.M|re.S)
     data = r.sub("", data)
@@ -600,11 +575,8 @@ def json_strip_comments(data):
 class LockedNamespaceError(TypeError):
     pass
 
-
 # try:
 #     import emen2.db
 #     emen2.db.log
 # except AttributeError:
 #     import emen2.db.log
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

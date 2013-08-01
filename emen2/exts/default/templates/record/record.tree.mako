@@ -8,7 +8,6 @@
     });
 </%block>
 
-
 <h1>
     Record relationships 
     ## starting at ${recnames.get(rec.name)} (${rec.name})

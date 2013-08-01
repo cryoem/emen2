@@ -124,7 +124,6 @@ Exported symbols
 - newmag(indicator, mag) --- Intern a new magnitude with its name
 - MagnitudeError [class] --- Magnitude error handling
 
-
 Defining new magnitudes
 -----------------------
 
@@ -157,7 +156,6 @@ This code was very much inspired by
     http://www.cs.utexas.edu/users/novak/units.html
 and its associated paper,
     http://www.cs.utexas.edu/users/novak/units95.html
-
 
 Bits and bytes (2009-11-03)
 ---------------------------
@@ -213,7 +211,6 @@ _prefix = {'y': 1e-24,  # yocto
            'Pi': 2 ** 50, # Pebi (<- peta, 10^15)
            'Ei': 2 ** 60  # Exbi (<- exa, 10^18)
            }
-
 
 ###### Default print formatting options
 
@@ -297,7 +294,6 @@ def output_units(un=None):
         _prn_units = un
     return _prn_units
 
-
 ###### Resolution areas
 
 def _res2num(res):
@@ -329,7 +325,6 @@ def _res2m2(res):
     """
     hr, vr = _res2num(res)
     return 0.0254 * 0.0254 / (vr * hr)
-
 
 # Definition of the magnitude type.  Includes operator overloads.
 
@@ -1088,7 +1083,6 @@ def _init_mags():
 
     # Acceleration
     new_mag('gravity', Magnitude(9.80665, m=1, s=-2))
-
 
 if not _mags:
     _init_mags()

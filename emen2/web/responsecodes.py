@@ -1,7 +1,5 @@
-# $Id$
 '''Contains Classses which should mirror HTTP resoponse codes'''
 #NOTE: unittests in tests/responsecodes_test.py -- run after any changes
-
 
 class HTTPResponseCode(Exception):
     '''Base class for setting HTTP Response codes.  If a view
@@ -14,26 +12,21 @@ class HTTPResponseCode(Exception):
         self.msg = msg
         self.headers = {}
 
-
 class MethodNotSupported(HTTPResponseCode):
     '''Set the response status to 501'''
     code = 501
-
 
 class HTTPCancelledResponse(HTTPResponseCode):
     '''Set the response status to 500'''
     code = 500
 
-
 class HTTP200Response(HTTPResponseCode):
     '''Set the response status to 200'''
     code = 200
 
-
 class HTTP300Response(HTTPResponseCode):
     '''Set the response status to 300'''
     code = 300
-
 
 class HTTPMovedPermanently(HTTP300Response):
     '''Set the response status to 301.
@@ -44,7 +37,6 @@ class HTTPMovedPermanently(HTTP300Response):
         HTTP300Response.__init__(self, msg)
         self.headers['Location'] = unicode(dest).encode('utf-8')
 
-
 class HTTPFound(HTTP300Response):
     '''Set the response status to 302
 
@@ -54,26 +46,21 @@ class HTTPFound(HTTP300Response):
         HTTP300Response.__init__(self, msg)
         self.headers['Location'] = unicode(dest).encode('utf-8')
 
-
 class HTTPNotModified(HTTP300Response):
     '''Set the response status to 304'''
     code = 304
-
 
 class HTTP400Response(HTTPResponseCode):
     '''Set the response status to 400'''
     code = 400
 
-
 class UnauthorizedError(HTTP400Response):
     '''Set the response status to 401'''
     code = 401
 
-
 class ForbiddenError(HTTP400Response):
     '''Set the response status to 403'''
     code = 403
-
 
 class NotFoundError(HTTP400Response):
     '''Set the response status to 404 (Not Found)'''
@@ -84,7 +71,6 @@ class NotFoundError(HTTP400Response):
         self.msg %= msg
         HTTP400Response.__init__(self, self.msg)
 
-
 class MethodNotAllowedError(HTTP400Response):
     '''Set the response status to 405'''
     title = 'Method Not Allowed'
@@ -94,11 +80,7 @@ class MethodNotAllowedError(HTTP400Response):
         self.msg %= msg
         HTTP400Response.__init__(self, self.msg)
 
-
 class GoneError(HTTP400Response):
     '''Set the response status to 410'''
     code = 410
 
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

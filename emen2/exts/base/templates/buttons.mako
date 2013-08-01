@@ -21,8 +21,6 @@
     </div>        
 </%def>
 
-
-
 <%def name="singlepage(label, cls='e2-tab-switcher')">
     <div class="e2-tab e2-tab-switcher">
         <ul class="e2l-cf">
@@ -32,18 +30,15 @@
     </div>            
 </%def>
 
-
 ## Some simple helpers
 
 <%def name="image(name, alt='', cls='')">
     <img src="${ctxt.root}/static-${ctxt.version}/images/${name}" class="${cls}" alt="${alt}" />
 </%def>
 
-
 <%def name="spinner(show=True, cls='')">
     <img src="${ctxt.root}/static/images/spinner.gif" class="e2l-spinner ${forms.iffalse(show, 'e2l-hide')} ${cls}" alt="Loading" />
 </%def>
-
 
 <%def name="caret(state='down')">
     % if state == 'up':
@@ -53,18 +48,15 @@
     % endif
 </%def>
 
-
 <%def name="save(label='Save')">
     <div class="e2l-controls">
         <input value="${label}" type="submit">
     </div>
 </%def>
 
-
 <%def name="editicon()">
     <img src="${ctxt.root}/static/images/edit.png" alt="Edit" />
 </%def>
-
 
 <%def name="tocache(item)">
     <%
@@ -74,7 +66,6 @@
     %>
     emen2.caches[${item.keytype | n,jsonencode}][${name | n,jsonencode}] = ${item | n,jsonencode};
 </%def>
-
 
 ## Info Box
 

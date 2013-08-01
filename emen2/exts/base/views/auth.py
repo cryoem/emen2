@@ -1,4 +1,3 @@
-# $Id$
 from emen2.web.view import View
 
 @View.register
@@ -73,7 +72,6 @@ class Auth(View):
             except Exception, errmsg:
                 self.notify(errmsg, error=True)
 
-
     @View.add_matcher(r'^/auth/email/change/$', name='email/change')
     def setemail(self, **kwargs):
         self.template = '/auth/email.change'
@@ -94,7 +92,6 @@ class Auth(View):
                     self.redirect(content='A verification email has been sent to %s.'%email, auto=False)
             except Exception, errmsg:
                 self.notify(errmsg, error=True)
-                
 
     @View.add_matcher(r'^/auth/email/verify/(?P<name>[^/]*)/(?P<email>[^/]*)/(?P<secret>\w+)/$', name='email/verify')
     def verifyemail(self, name=None, email=None, secret=None, **kwargs):
@@ -108,5 +105,3 @@ class Auth(View):
             except Exception, errmsg:
                 self.notify(errmsg, error=True)
 
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

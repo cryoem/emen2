@@ -171,4 +171,3 @@ class TestDB(unittest.TestCase):
         self.assertRaises(ValueError, recorddef.__setitem__, 'name', 'new_name')
         self.assertRaises(ValueError, recorddef.__setattr__, 'name', 'new_name')
 
-

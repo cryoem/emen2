@@ -16,7 +16,6 @@
     });
 </%block>
 
-
 <h1>
     % if new:
         New User Group
@@ -71,7 +70,6 @@
                 <td><time class="e2-localize" datetime="${group.creationtime}">${group.creationtime}</time></td>
             </tr>
 
-
             <tr>
                 <td>Modified:</td>
                 <td><time class="e2-localize" datetime="${group.modifytime}">${group.modifytime}</time></td>
@@ -79,16 +77,12 @@
 
         % endif
 
-
     </table>
 </%buttons:singlepage>
-
-
 
 <%buttons:singlepage label='Members'>
     <div id="members"></div>
 </%buttons:singlepage>
-
 
 % if new or edit:
     <div class="e2l-controls" id="ext_save">
@@ -96,6 +90,5 @@
         <input type="submit" value="Save">
     </div>
 % endif
-
 
 </form>

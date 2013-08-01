@@ -1,8 +1,6 @@
-# $Id$
 import collections
 
 from emen2.web.view import View
-
 
 @View.register
 class ParamDef(View):
@@ -32,7 +30,6 @@ class ParamDef(View):
             new = False,
             parentmap = parentmap
             ))
-
 
     @View.add_matcher(r'^/paramdef/(?P<name>[^/]*)/edit/$')
     def edit(self, name, **kwargs):
@@ -68,7 +65,6 @@ class ParamDef(View):
         self.ctxt['edit'] = True
         self.ctxt['new'] = True
         self.title = 'New Parameter based on: %s'%self.paramdef.desc_short
-
 
 @View.register
 class ParamDefs(View):
@@ -111,16 +107,13 @@ class ParamDefs(View):
         self.ctxt['childmap'] = childmap
         self.ctxt['create'] = self.db.auth.check.create()
 
-
     @View.add_matcher(r'^/paramdefs/vartype/$')
     def vartype(self, *args, **kwargs):
         return self.main(action='vartype', *args, **kwargs)
 
-
     @View.add_matcher(r'^/paramdefs/tree/$')
     def tree(self, *args, **kwargs):
         return self.main(action='tree', *args, **kwargs)
-
 
     @View.add_matcher(r'^/paramdefs/property/$')
     def property(self, *args, **kwargs):
@@ -130,11 +123,4 @@ class ParamDefs(View):
     @View.add_matcher(r'^/paramdefs/name/$')
     def name(self, *args, **kwargs):
         return self.main(action='name', *args, **kwargs)
-        
 
-
-
-
-
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

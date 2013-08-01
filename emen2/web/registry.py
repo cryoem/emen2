@@ -20,7 +20,6 @@ def contextmanager(func):
         # ^^^ This is the only line diferent from contextlib.GeneratorContextManager
     return helper
 
-
 class RegisteredObj(object):
     '''Interface definition for :py:attr:`Registry.child_class`'''
     def __init__(self, name, *args):
@@ -136,7 +135,6 @@ if __name__ == '__main__':
         lis = lis[:]
         random.shuffle(lis)
         return iter(lis)
-
 
     for obj_name in shuffled(['first_obj', 'second_obj', 'third_obj']):
         with registry.dataobj(obj_name) as obj:

@@ -1,5 +1,5 @@
-Authors: Ian Rees, Steven Ludtke Copyright 
-(c) 2007-2013 Baylor College of Medicine
+Authors: Ian Rees, Steven Ludtke 
+Copyright (c) 2007-2013 Baylor College of Medicine
 
 Redistribution and use in source and binary forms, with or without
 modification, are permitted provided that the following conditions are met:

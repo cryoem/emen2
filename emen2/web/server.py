@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# $Id$
 import traceback
 import thread
 import os.path
@@ -71,10 +70,8 @@ class DBPool(object):
         result = call(*args, **kwargs)
         return result
 
-
 # The thread pool.
 pool = DBPool()
-
 
 ##### Web server ######
 
@@ -196,4 +193,3 @@ def start_rpc():
 if __name__ == "__main__":
     start_standalone()
 
-__version__ = "$Revision$".split(":")[1][:-1].strip()

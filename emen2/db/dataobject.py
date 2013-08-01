@@ -1,4 +1,3 @@
-# $Id$
 """Base classes for EMEN2 DatabaseObjects."""
 
 import re
@@ -372,7 +371,6 @@ class BaseDBObject(object):
         vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self._ctx.db, cache=self._ctx.cache)
         return vartype.validate(value)
 
-
     ##### Convenience methods #####
 
     def error(self, msg='', e=None, warning=False):
@@ -388,8 +386,6 @@ class BaseDBObject(object):
             # emen2.db.log.warn("Warning: %s"%e(msg))
             pass
         return e(msg)
-
-
 
 # A class for dbo's that have detailed ACL permissions.
 class PermissionsDBObject(BaseDBObject):
@@ -685,5 +681,3 @@ class PermissionsDBObject(BaseDBObject):
         groups = emen2.utils.check_iterable(groups)
         return self._set('groups', set(groups), self.isowner())
 
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -10,7 +10,6 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
     $("#e2-download").DownloadControl({});
 </%block>
 
-
 <form id="e2-download" method="post" action="${ctxt.root}/download/">
     <input type="hidden" name="tar" value="True" />
     <h1>
@@ -65,6 +64,5 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
         </tbody>
 
     </table>
-
 
 </form>

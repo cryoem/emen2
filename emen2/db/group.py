@@ -1,4 +1,3 @@
-# $Id$
 """Group: Represents a group of users, each with certain permissions."""
 
 # EMEN2 imports
@@ -66,6 +65,3 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
 
     def _set_displayname(self, key, value):
         return self._set(key, str(value or self.name), self.isowner())
-        
-
-__version__ = "$Revision$".split(":")[1][:-1].strip()

@@ -10,11 +10,9 @@
     </li>
 </h1>
 
-
 <div class="e2l-cf">
 
     ${user_util.profile(user=user, userrec=user.userrec, edit=False)}
 
 </div>
-
 

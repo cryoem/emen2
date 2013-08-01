@@ -101,7 +101,6 @@
     </div>
 </%def>
 
-
 <%def name="person(name, ctxt)">
     <% child = ctxt.db.record.get(name) %>
     <% if child['username'] == 'root': return %>
@@ -135,7 +134,6 @@
         </div>
     </div>
 </%def>
-
 
 <%def name="extract(record, key, default=None)">
     %if record[key]:
