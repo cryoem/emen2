@@ -203,27 +203,27 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
     # These immutable attributes only ever be set for a new Binary, before commit
     def _set_md5(self, key, value):
-        if self.name:
+        if not self.isnew():
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
         return self._set(key, value, self.isowner())
 
     def _set_md5_compress(self, key, value):
-        if self.name:
+        if not self.isnew():
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
         return self._set(key, value, self.isowner())
 
     def _set_compress(self, key, value):
-        if self.name:
+        if not self.isnew():
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
         return self._set(key, value, self.isowner())
 
     def _set_filesize(self, key, value):
-        if self.name:
+        if not self.isnew():
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
         return self._set(key, value, self.isowner())
 
     def _set_filesize_compress(self, key, value):
-        if self.name:
+        if not self.isnew():
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
         return self._set(key, value, self.isowner())
 

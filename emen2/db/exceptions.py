@@ -1,7 +1,10 @@
 """Exceptions."""
 
+class EMEN2Exception(Exception):
+    pass
+
 # Security Errors
-class SecurityError(Exception):
+class SecurityError(EMEN2Exception):
     """Security error."""
     code = 401
 
@@ -15,13 +18,13 @@ class DisabledUserError(SecurityError):
     """Disabled user."""
 
 # Validation Errors
-class ValidationError(ValueError):
+class ValidationError(EMEN2Exception):
     """Validation error."""
 
-class ExistingKeyError(ValueError):
+class ExistingKeyError(EMEN2Exception):
     """This account name or email is already in use."""
 
 # Time out
-class TimeError(Exception):
+class TimeError(EMEN2Exception):
     """Operation timed out."""
 

@@ -809,12 +809,7 @@ class DB(object):
     #     """Delete item(s)."""
     #     keytype = kwargs.pop('keytype', 'record')
     #     return getattr(self, '%s_delete'%(keytype))(ctx=ctx, txn=txn)
-
-    # @publicmethod()
-    # def names(self, keytype='record', ctx=None, txn=None):
-    #     """Keys."""
-    #     return getattr(self, '%s_names'%(keytype))(ctx=ctx, txn=txn)
-
+    
     # @publicmethod()
     # def find(self, keytype='record', ctx=None, txn=None):
     #     """A simple query."""
@@ -1884,10 +1879,10 @@ class DB(object):
 
         Examples:
 
-        >>> db.setpassword('foobar', 'barfoo')
+        >>> db.setpassword('ian', 'foobar', 'barfoo')
         <User ian>
 
-        >>> db.setpassword(None, 'barfoo', secret=654067667525479cba8eb2940a3cf745de3ce608)
+        >>> db.setpassword('ian', None, 'barfoo', secret=654067667525479cba8eb2940a3cf745de3ce608)
         <User ian>
 
         :param oldpassword: Old password.
@@ -2010,7 +2005,7 @@ class DB(object):
         
     @publicmethod(write=True, admin=True, compat="approveuser")
     @ol('names')
-    def newuser_approve(self, names, secret=None, reject=None, filt=True, ctx=None, txn=None):
+    def newuser_approve(self, names, secret=None, ctx=None, txn=None):
         """(Admin Only) Approve account in user queue.
 
         Examples:
@@ -2026,8 +2021,6 @@ class DB(object):
 
         :param names: New user queue name(s)
         :keyword secret: User secret for self-approval
-        :keyword reject: Also reject new users: see db.newuser.reject(). For convenience.
-        :keyword filt: Ignore failures
         :return: Approved User(s)
         :exception ExistingKeyError:
         :exception KeyError:
@@ -2039,7 +2032,7 @@ class DB(object):
         autoapprove = emen2.db.config.get('users.autoapprove')
 
         # Get users from the new user approval queue
-        newusers = self.dbenv["newuser"].gets(names, filt=filt, ctx=ctx, txn=txn)
+        newusers = self.dbenv["newuser"].gets(names, ctx=ctx, txn=txn)
         cusers = []
 
         # This will also check if the current username or email is in use
@@ -2049,18 +2042,17 @@ class DB(object):
             # Delete the pending user
             self.dbenv["newuser"].delete(name, ctx=ctx, txn=txn)
 
-            user = self.dbenv["user"].new(name=name, email=newuser.email, password=newuser.password, ctx=ctx, txn=txn)
             # Put the new user
+            user = self.dbenv["user"].new(name=name, email=newuser.email, password=newuser.password, ctx=ctx, txn=txn)
             user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
 
             # Create the "Record" for this user
             rec = self.dbenv["record"].new(rectype='person', ctx=ctx, txn=txn)
 
             # Are there any child records specified...
-            childrec = newuser.signupinfo.pop('child', None)
+            childrecs = newuser.signupinfo.pop('childrecs', None)
 
             # This gets updated with the user's signup info
-            # rec['username'] = name
             rec.update(newuser.signupinfo)
             rec.adduser(name, level=2)
             rec.addgroup("authenticated")
@@ -2071,7 +2063,7 @@ class DB(object):
             user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
             cusers.append(user)
 
-            if childrec:
+            for childrec in childrecs:
                 crec = self.record_new(rectype=childrec.get('rectype'), ctx=ctx, txn=txn)
                 crec.adduser(name, level=3)
                 crec.parents.add(rec.name)
@@ -2090,7 +2082,7 @@ class DB(object):
 
     @publicmethod(write=True, admin=True, compat="rejectuser")
     @ol('names')
-    def newuser_reject(self, names, filt=True, ctx=None, txn=None):
+    def newuser_reject(self, names, ctx=None, txn=None):
         """(Admin Only) Remove a user from the new user queue.
 
         Examples:
@@ -2102,13 +2094,12 @@ class DB(object):
         set(['kay', 'spambot'])
 
         :param names: New queue name(s) to reject
-        :keyword filt: Ignore failures
         :return: Rejected user name(s)
         :exception KeyError:
         :exception SecurityError:
         """
         emails = {}
-        users = self.dbenv["newuser"].gets(names, filt=filt, ctx=ctx, txn=txn)
+        users = self.dbenv["newuser"].gets(names, ctx=ctx, txn=txn)
         for user in users:
             emails[user.name] = user.email
 
@@ -2897,43 +2888,47 @@ class DB(object):
 
     @publicmethod()
     def binary_new(self, ctx=None, txn=None):
-        return self.dbenv["binary"].new(name=None, ctx=ctx, txn=txn)
+        return self.dbenv["binary"].new(ctx=ctx, txn=txn)
 
-    @publicmethod(write=True, compat="putbinary")
+    @publicmethod(write=True)
     @ol('items')
     def binary_put(self, items, ctx=None, txn=None):
-        """Add or update a Binary (file attachment).
+        return self.dbenv["binary"].puts(items, ctx=ctx, txn=txn)
 
-        For new items, data may be supplied using with either
-        bdo['filedata'] or bdo['fileobj']
+    # The contents of a Binary cannot be changed after uploading. The file
+    # size and md5 checksum will be calculated as the file is written. 
+    # Any attempt to change the contents raise a
+    # SecurityError. Not even admin users may override this.
+    # 
+    # Examples:
+    # 
+    # >>> db.binary.put({'filename':'hello.txt', 'filedata':'Hello, world', 'record':'0'})
+    # <Binary bdo:2011101000000>
+    # 
+    # >>> db.binary.put({'name':'bdo:2011101000000', 'filename':'newfilename.txt'})
+    # <Binary bdo:2011101000000>
+    # 
+    # >>> db.binary.put({'name':'bdo:2011101000000', 'filedata':'Goodbye'})
+    # SecurityError
+    # 
+    # :param item: Binary
+    # :exception SecurityError:
+    # :exception ValidationError:
 
-        The contents of a Binary cannot be changed after uploading. The file
-        size and md5 checksum will be calculated as the file is written. 
-        Any attempt to change the contents raise a
-        SecurityError. Not even admin users may override this.
-
-        Examples:
-
-        >>> db.binary.put({'filename':'hello.txt', 'filedata':'Hello, world', 'record':'0'})
-        <Binary bdo:2011101000000>
-
-        >>> db.binary.put({'name':'bdo:2011101000000', 'filename':'newfilename.txt'})
-        <Binary bdo:2011101000000>
-
-        >>> db.binary.put({'name':'bdo:2011101000000', 'filedata':'Goodbye'})
-        SecurityError
-
-        :param item: Binary
-        :exception SecurityError:
-        :exception ValidationError:
-        """
+    @publicmethod(write=True)
+    @ol('items')
+    def binary_upload(self, items, ctx=None, txn=None):
+        """Alternate binary.put() that includes a file."""
         bdos = []
         actions = []
-        for bdo in items:
+        for handler in items:
             newfile = False
-            if not bdo.get('name'):
-                handler = bdo
-                filesize, md5sum, newfile = emen2.db.binary.writetmp(filedata=bdo.get('filedata', None), fileobj=bdo.get('fileobj', None))
+            filedata = handler.get('filedata')
+            fileobj = handler.get('fileobj')
+            filename = handler.get('filename')
+            record = handler.get('record')
+            if not handler.get('name'):
+                filesize, md5sum, newfile = emen2.db.binary.writetmp(filedata=filedata, fileobj=fileobj)
                 bdo = self.dbenv["binary"].new(filename=handler.get('filename'), filesize=filesize, md5=md5sum, ctx=ctx, txn=txn)
 
             bdo = self.dbenv["binary"].put(bdo, ctx=ctx, txn=txn)

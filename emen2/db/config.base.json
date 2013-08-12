@@ -88,6 +88,16 @@
     },
     
     "security": {
+        // Minimum password length
+        "password_minlength": 6,
+        // A set of regular expressions for characters required in passwords.
+        "password_strength": [
+        //    ".*([a-z]).*",
+        //    ".*([A-Z]).*",
+        //    ".*([0-9]).*",
+        //    ".*([\\!\\@\\#\\$\\%\\^\\&\\*\\(\\)\\[\\]\/\\?\\<\\>\\,\\.\\~\\`\\=]).*"
+        ],
+
         // A set of regular expressions for disallowed filenames.
         // Basically, keep users from uploading easily executable files, or dot files.
         "filename_blacklist": [

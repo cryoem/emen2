@@ -20,15 +20,6 @@ import emen2.db.exceptions
 import emen2.db.dataobject
 import emen2.db.config
 
-# These will go in config.
-PASSWORD_MINLENGTH = 8
-PASSWORD_CATEGORIES = [
-    # '.*([a-z]).*',
-    # '.*([A-Z]).*',
-    # '.*([0-9]).*',
-    # '.*([\!\@\#\$\%\^\&\*\(\)\[\]\/\?\<\>\,\.\~\`\=]).*'
-]
-
 # DBO that contains a password and email address
 class BaseUser(emen2.db.dataobject.BaseDBObject):
     """Base User DBO, with an email address and a password.
@@ -90,7 +81,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     def init(self, d):
         super(BaseUser, self).init(d)
 
-        # Required initialization params
+        # Email and password attributes.
         self.__dict__['email'] = None
         self.__dict__['password'] = None
 
@@ -111,9 +102,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             raise self.error('No email set.')
 
     def isowner(self):
-        if self.name and self.name == self._ctx.username:
+        if self.name == self._ctx.username:
             return True
-        return Super(BaseUser, self).isowner()
+        return super(BaseUser, self).isowner()
 
     ##### Setters #####
 
@@ -134,9 +125,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     def _hashpassword(self, password, salt=None):
         # Check that we've been given a valid salt. 
         # bcrypt.hashpw will raise ValueError otherwise.
-        if salt and not salt.startswith('$'):
-            return False
-        return bcrypt.hashpw(unicode(password or ''), salt or bcrypt.gensalt())
+        if not salt or not salt.startswith('$'):
+            salt = bcrypt.gensalt()
+        return bcrypt.hashpw(unicode(password or ''), salt)
 
     def _hashpassword_old(self, password, salt=None):
         password = unicode(salt or '') + unicode(password or '')
@@ -146,17 +137,12 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # All accounts must have a password.
         history = history or []
         password = unicode(password or '')
-
-        # Todo: make this better.
-        # Pass through MD5 or BCrypt passwords.
-        if len(password) == 60 and password.startswith('$'):
-            return password
-        if len(password) == 40:
-            return password
+        minlength = emen2.db.config.get('security.password_minlength')
+        strength = emen2.db.config.get('security.password_strength')
 
         # root password can be anything.
         if self.name == 'root':
-            return password
+            return self._hashpassword(password)
 
         # Check against email, username.
         if self.name and self.name in password:
@@ -165,10 +151,10 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             raise self.error("Email cannot be in password")
 
         # Check the minimum length.
-        if len(password) < PASSWORD_MINLENGTH:
+        if len(password) < minlength:
             raise self.error("Password too short; minimum %s characters required"%MINLENGTH)
 
-        if not all([re.match(i, password) for i in PASSWORD_CATEGORIES]):
+        if not all([re.match(i, password) for i in strength]):
             raise self.error("Password not strong enough. Needs a lower case letter, an upper case letter, a number, and a symbol such as @, #, !, %, ^, etc.")
 
         # Check the password history.
@@ -176,7 +162,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             if self._hashpassword(password, i) == i:
                 raise self.error("Cannot re-use previous password.")
         
-        # bcrypt hash the password with a random salt.
+        # bcrypt hash the password.
         return self._hashpassword(password)
 
     def checkpassword(self, password):
@@ -312,11 +298,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     def _delsecret(self):
         self.__dict__['secret'] = None
 
-# Parameters allowed during New User signup.
-signupinfo = set(["name_first", "name_middle", "name_last", "comments", "institution",
-    "department", "address_street", "address_city", "address_state", "address_zipcode",
-    "country", "uri", "phone_voice", "phone_fax"])
-
 class NewUser(BaseUser):
     """New User.
     
@@ -336,31 +317,28 @@ class NewUser(BaseUser):
         #     which is committed as a 'person' record when approved
         self.__dict__['signupinfo'] = {}
 
-    def validate(self):
-        super(NewUser, self).validate()
-
+    def _validate_signupinfo(self, rec):
         # Check signupinfo
-        required = set(["name_first","name_last"])
         newsignup = {}
-
-        for param, value in self.signupinfo.items():
-            if not value:
-                continue
-            # These will be transferred to a Record
+        if not rec.get('rectype'):
+            self.error(msg='No rectype specified!')
+        for param, value in rec.items():
             try:
                 value = self.validate_param(param, value)
-            except ValueError:
-                emen2.db.log.info("NewUser Validation: Couldn't validate new user signup field %s: %s"%(param, value))
-                continue
+            except Exception, e:
+                raise self.error(msg=e.message)
             newsignup[param] = value
+        return newsignup
 
-        for param in required:
-            if not newsignup.get(param):
-                raise ValueError, "Required param %s"%param
+    def validate(self):
+        super(NewUser, self).validate()
+        signupinfo = self.signupinfo or {}
+        signupinfo['rectype'] = 'person'
+        childrecs = signupinfo.pop('childrecs', [])
+        childrecs = [self._validate_signupinfo(i) for i in childrecs]
 
-        if self.signupinfo.get('child'):
-            newsignup['child'] = self.signupinfo['child']
-
+        newsignup = self._validate_signupinfo(signupinfo)
+        newsignup['childrecs'] = childrecs
         self.__dict__['signupinfo'] = newsignup
 
     def _set_signupinfo(self, key, value):
@@ -368,7 +346,7 @@ class NewUser(BaseUser):
         return set(['signupinfo'])
 
     def setsignupinfo(self, update):
-        self._set('signupinfo', update)
+        self._set('signupinfo', update, self.isnew() or self.isowner())
 
 class User(BaseUser):
     """User. 

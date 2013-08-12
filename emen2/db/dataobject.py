@@ -83,11 +83,9 @@ class BaseDBObject(object):
     :attr children: Children set
 
     :classattr attr_public: Public (exported) attributes
-    :property keytype: Key type (default is lower case class name)
     """
     
     attr_public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
-    keytype = property(lambda x:x.__class__.__name__.lower())
 
     def __init__(self, _d=None, **_k):
         """Initialize a new DBO.
@@ -141,6 +139,8 @@ class BaseDBObject(object):
     def setContext(self, ctx):
         """Set permissions and bind the context."""
         self.__dict__['_ctx'] = ctx
+        if not self.readable():
+            raise emen2.db.exceptions.SecurityError, "Permission denied: %s"%(self.name)
 
     def changedparams(self, item=None):
         """Differences between two instances."""
@@ -149,7 +149,8 @@ class BaseDBObject(object):
 
     ##### Permissions
     # Two basic permissions are defined: owner and writable
-    # PermissiionsDBObject has a more complete permissions model
+    # By default, everyone can read an object.
+    # PermissionsDBObject has a more complete permissions model
     # Lack of read access is handled in setContext (raise SecurityError)
 
     def isowner(self):
@@ -160,6 +161,9 @@ class BaseDBObject(object):
             return True
         if self._ctx.username == getattr(self, 'creator', None):
             return True
+
+    def readable(self):
+        return True
 
     def writable(self, key=None):
         """Check write permissions."""
@@ -283,15 +287,15 @@ class BaseDBObject(object):
 
     ##### Real updates #####
 
-    def _set(self, key, value, check=None):
-        """Actually set a value."""
-        # The default permission required to set a key
-        # is write permissions. Additionally, the default
-        # for write permissions is owners only.
-        if check == None:
-            check = self.isowner()
+    def _set(self, key, value, check):
+        """Actually set a value. 
+        
+        Check must be True; e.g.:
+            self._set('key', 'value', self.isowner())
+        This is to encourage the developer to think and explicitly check permissions.
+        """
         if not check:
-            msg = "Insufficient permissions to change parameter %s"%key
+            msg = "Insufficient permissions to change parameter: %s"%key
             raise self.error(msg, e=emen2.db.exceptions.SecurityError)
         self.__dict__[key] = value
         return set([key])
@@ -302,6 +306,7 @@ class BaseDBObject(object):
         return set()
 
     def _set_uri(self, key, value):
+        """URI cannot be changed; ignore any attempts."""
         return set()
 
     ##### Update parents / children #####
@@ -353,9 +358,8 @@ class BaseDBObject(object):
     def validate_param(self, key, value):
         """Validate a single parameter value."""
         # Check the cache for the param
+        # ... raise an Exception if the param isn't found.
         hit, pd = self._ctx.cache.check(('paramdef', key))
-
-        # ... otherwise, raise an Exception if the param isn't found.
         if not hit:
             try:
                 pd = self._ctx.db.paramdef.get(key, filt=False)
@@ -369,7 +373,13 @@ class BaseDBObject(object):
 
         # Validate
         vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self._ctx.db, cache=self._ctx.cache)
-        return vartype.validate(value)
+        try:
+            value = vartype.validate(value)
+        except emen2.db.exceptions.EMEN2Exception, e:
+            raise self.error(msg=e.message)
+        except Exception, e:
+            raise self.error(msg=e.message)
+        return value
 
     ##### Convenience methods #####
 
@@ -380,10 +390,9 @@ class BaseDBObject(object):
         if e == None:
             e = emen2.db.exceptions.ValidationError
         if not msg:
-            msg = e.__doc__
-            
+            msg = e.__doc__            
         if warning:
-            # emen2.db.log.warn("Warning: %s"%e(msg))
+            emen2.db.log.warn("Warning: %s"%e(msg))
             pass
         return e(msg)
 
@@ -445,7 +454,6 @@ class PermissionsDBObject(BaseDBObject):
         This method overrides :py:meth:`BaseDBObject.init`
         """
         super(PermissionsDBObject, self).init(d)
-
         p = {}
         # Results of security test performed when the context is set
         # correspond to, read,comment,write and owner permissions,
@@ -457,14 +465,13 @@ class PermissionsDBObject(BaseDBObject):
         p['groups'] = set()
         if self._ctx.username != 'root':
             p['permissions'][3].append(self._ctx.username)
-
         self.__dict__.update(p)
 
     ##### Setters #####
 
     def _set_permissions(self, key, value):
         self.setpermissions(value)
-        return set(['_set_groups'])
+        return set(['permissions'])
 
     def _set_groups(self, key, value):
         self.setgroups(value)
@@ -480,7 +487,6 @@ class PermissionsDBObject(BaseDBObject):
         :param ctx: the context to check access against.
         :type: :py:class:`emen2.db.context.Context`
         """
-
         # Check if we can access this item..
         self.__dict__['_ctx'] = ctx
 
@@ -526,6 +532,8 @@ class PermissionsDBObject(BaseDBObject):
     def readable(self):
         """Does the user have permission to read the record(level 0)?
 
+        This method overrides :py:meth:`BaseDBObject.readable`
+
         :rtype: bool
         """
         return any(self._ptest)
@@ -551,7 +559,6 @@ class PermissionsDBObject(BaseDBObject):
 
         :rtype: [str]
         """
-        ###TODO:documentation: what does this do?
         return set(reduce(operator.concat, self.permissions))
 
     def owners(self):
@@ -585,11 +592,8 @@ class PermissionsDBObject(BaseDBObject):
         """Add a user to the record's permissions
 
         :param users: A list of users to be added to the permissions
-        :type users: [str]
         :param level: The permission level to give to the users
-        :type level: int
         :param reassign: Whether or not the users added should be reassigned. (default False)
-        :type reassign: bool
         """
         if not users:
             return
@@ -623,8 +627,6 @@ class PermissionsDBObject(BaseDBObject):
         :param value: The list of users
         :type value: [ [str], [str], [str] ]
         :param reassign: Whether or not the users added should be reassigned. (default False)
-        :type reassign: bool
-
         """
         umask = self._check_permformat(value)
 
@@ -643,7 +645,7 @@ class PermissionsDBObject(BaseDBObject):
         self.setpermissions(p)
 
     def removeuser(self, users):
-        """Remove a user from permissions"""
+        """Remove users from permissions."""
         if not users:
             return
 
@@ -656,7 +658,7 @@ class PermissionsDBObject(BaseDBObject):
         self.setpermissions(p)
 
     def setpermissions(self, value):
-        """Set the permissions"""
+        """Set the permissions."""
         value = self._check_permformat(value)
         return self._set('permissions', value, self.isowner())
 
