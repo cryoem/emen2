@@ -11,9 +11,11 @@ import string
 import email.utils
 import uuid
 
-# Use bcrypt for passwords.
-# This is no longer optional.
-import bcrypt
+try:
+    import bcrypt
+except:
+    bcrypt = None
+
 import hashlib
 
 # EMEN2 imports
@@ -161,17 +163,29 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
     ##### Password methods #####
 
-    def _hashpassword(self, password, salt=None):
-        # Check that we've been given a valid salt. 
-        # bcrypt.hashpw will raise ValueError otherwise.
-        if not salt or not salt.startswith('$'):
-            salt = bcrypt.gensalt()
-        return bcrypt.hashpw(unicode(password or ''), salt)
-
-    def _hashpassword_old(self, password, salt=None):
-        password = unicode(salt or '') + unicode(password or '')
-        return hashlib.sha1(unicode(password)).hexdigest()
-
+    def _hashpassword(self, password, salt=None, hashtype=None):
+        hashtype = hashtype or emen2.db.config.get('security.password_hash')
+        password = password or ''
+        salt = salt or ''
+        ret = ''
+        if hashtype == 'bcrypt':
+            if not bcrypt:
+                raise self.error('Hash algorithm bcrypt not available')
+            # Check that we've been given a valid salt. 
+            # bcrypt.hashpw will raise ValueError otherwise.
+            if not salt or not salt.startswith('$'):
+                salt = bcrypt.gensalt()
+            ret = bcrypt.hashpw(password, salt)
+        elif hashtype == 'SHA-1':
+            ret = hashlib.sha1(salt+password).hexdigest()
+        elif hashtype == 'SHA-2':
+            ret = hashlib.sha512(salt+password).hexdigest()
+        elif hashtype == 'PBKDF2':
+            raise NotImplementedError("PBKDF2 hashing coming soon.")
+        else:
+            raise self.error('Unknown hash algorithm: %s'%hashtype)
+        return ret
+            
     def _validate_password(self, password, history=None):
         # All accounts must have a password.
         history = history or []
@@ -191,17 +205,12 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
         # Check the minimum length.
         if len(password) < minlength:
-            raise self.error("Password too short; minimum %s characters required"%MINLENGTH)
+            raise self.error("Password too short; minimum %s characters required"%minlength)
 
         if not all([re.match(i, password) for i in strength]):
             raise self.error("Password not strong enough. Needs a lower case letter, an upper case letter, a number, and a symbol such as @, #, !, %, ^, etc.")
 
-        # Check the password history.
-        for i in history:
-            if self._hashpassword(password, i) == i:
-                raise self.error("Cannot re-use previous password.")
-        
-        # bcrypt hash the password.
+        # hash the password.
         return self._hashpassword(password)
 
     def checkpassword(self, password):
@@ -216,11 +225,11 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         if getattr(self, '_ctx', None) and self._ctx.checkadmin():
             return True
 
-        # Also check legacy MD5 based password hashes..
+        # Check legacy SHA-1 based password hashes..
         # TODO: Convert the password to bcrypt hashed pw when found.
         # TODO: Perhaps expire these accounts and require password reset?
         # raise MigratePasswordException...?
-        if self._hashpassword_old(password) == self.password:
+        if self._hashpassword(password, hashtype='SHA-1') == self.password:
             return True
 
         # Check the bcrypt-hashed password.
