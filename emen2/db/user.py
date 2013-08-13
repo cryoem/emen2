@@ -20,6 +20,44 @@ import emen2.db.exceptions
 import emen2.db.dataobject
 import emen2.db.config
 
+class UserHistory(emen2.db.dataobject.PrivateDBO):
+    """Manage previously used values."""
+    def __init__(self, name=None, *args, **kwargs):
+        self.name = name
+        self.history = []
+
+    def addhistory(self, timestamp, user, param, value):
+        """Add a value to the history."""
+        v = (timestamp, user, param, value)
+        if v in self.history:
+            raise ValueError, "This event is already present."
+        self.history.append(v)
+    
+    def gethistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
+        """Get :limit: previously used values."""
+        h = sorted(self.history, reverse=True)
+        if timestamp:
+            h = filter(lambda x:x[0] == timestamp, h)
+        if user:
+            h = filter(lambda x:x[1] == user, h)
+        if param:
+            h = filter(lambda x:x[2] == param, h)
+        if value:
+            h = filter(lambda x:x[3] == value, h)
+        if limit is not None:
+            h = h[:limit]
+        return h
+
+    def checkhistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
+        """Check if an param or value is in the past :limit: items."""
+        if self.gethistory(timestamp=timestamp, user=user, param=param, value=value, limit=limit):
+            return True
+        return False
+
+    def prunehistory(self, user=None, param=None, value=None, limit=None):
+        """Prune the history to :limit: items."""
+        self.history = self.gethistory(user=user, param=param, value=value, limit=limit)
+
 # DBO that contains a password and email address
 class BaseUser(emen2.db.dataobject.BaseDBObject):
     """Base User DBO, with an email address and a password.
@@ -391,10 +429,10 @@ class User(BaseUser):
         ctxuser = self._ctx.username
         p = {}
 
-        # secret is never made available except through direct get().
-        # This may cause the secret to be reset at some points...
+        # secret is never made available through normal get().
         p['secret'] = None
-        if not (admin or self._ctx.username == self.name):
+        # Hide the password hash if not root or owner.
+        if not (admin or ctxuser == self.name):
             p['password'] = None
         
         # Defaults for cached attributes..
@@ -403,7 +441,7 @@ class User(BaseUser):
         p['_groups'] = set()
 
         # If the user has requested privacy, we return only basic info
-        if self._ctx.username == 'anonymous':
+        if ctxuser == 'anonymous':
             p['email'] = None
         if not admin and self.name != ctxuser:
             if self.privacy == 2:

@@ -7,6 +7,12 @@ class EMEN2Exception(Exception):
 class SecurityError(EMEN2Exception):
     """Security error."""
     code = 401
+    
+class ExpiredPassword(SecurityError):
+    """Expired password."""  
+
+class RecycledPassword(SecurityError):
+    """Recycled password."""
 
 class SessionError(SecurityError):
     """Session expired."""

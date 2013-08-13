@@ -678,6 +678,28 @@ class DB(object):
             emen2.db.log.security("Login failed: No such user: %s"%(username))                
             raise AuthenticationError, AuthenticationError.__doc__
 
+        # Check the password hasn't expired.
+        # This may become integrated into user.checkpassword().        
+        expire = emen2.db.config.get('security.password_expire')
+        if expire:
+            try:
+                events = self.dbenv._userhistory._get_data(user.name, txn=txn)
+            except KeyError:
+                events = self.dbenv._userhistory.new(name=user.name, txn=txn)
+            previous = events.gethistory(param='password', limit=1)
+            # Automatic migration... Option wasn't enabled, 
+            #   or user hasn't changed password.
+            if not previous:
+                events.addhistory(user.modifytime, user.name, 'password', user.password)
+                self.dbenv._userhistory._put_data(user.name, events, txn=txn)
+                previous = events.gethistory(param='password', limit=1)
+            # Check for expired password.
+            if previous:
+                diff = self.time_difference(previous[0][0])
+                if diff > expire:
+                    emen2.db.log.security("Login failed: expired password for %s, password age was %s, max age is %s"%(user.name, diff, expire))
+                    raise emen2.db.exceptions.ExpiredPassword, "This password has expired."
+
         # Create the Context for this user/host
         newcontext = emen2.db.context.Context(username=user.name, host=host)
 
@@ -1126,18 +1148,7 @@ class DB(object):
     
     # @publicmethod()
     # def groupby(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keywords=None, keytype="record", ctx=None, txn=None, **kwargs):
-    #     # Run the query
-    #     ret = {}
-    #     q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
-    #     q.run()
-    # 
-    #     q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)        
-    #     grouped = collections.defaultdict(set)
-    #     print q.cache
-    #     # for k,v in q.cache.items():
-    #     #     grouped[v].add(k)
-    #     # print grouped
-    #     # print recs
+    #   pass
 
     @publicmethod()
     @ol('names')
@@ -1618,7 +1629,7 @@ class DB(object):
 
     @publicmethod()
     def user_new(self, *args, **kwargs):
-        raise NotImplementedError, "Use newuser.new() to create new users."
+        raise NotImplementedError, "Use newuser.request() to create new users."
     
     @publicmethod(write=True, compat="putuser")
     @ol('items')
@@ -1879,10 +1890,10 @@ class DB(object):
 
         Examples:
 
-        >>> db.setpassword('ian', 'foobar', 'barfoo')
+        >>> db.user.setpassword('ian', 'foobar', 'barfoo')
         <User ian>
 
-        >>> db.setpassword('ian', None, 'barfoo', secret=654067667525479cba8eb2940a3cf745de3ce608)
+        >>> db.user.setpassword('ian', None, 'barfoo', secret=654067667525479cba8eb2940a3cf745de3ce608)
         <User ian>
 
         :param oldpassword: Old password.
@@ -1895,15 +1906,38 @@ class DB(object):
         :exception ValidationError:
         """
         # Try to authenticate using either the password OR the secret!
-        # Note: The password will be hidden if ctx.username != user.name
-        # user = self.dbenv["user"].get(name or ctx.username, filt=False, ctx=ctx, txn=txn)
-        #ed: odded 'or ctx.username' to match docs
+        # Get the user directly; .get() strips out password in most cases.
         user = self._user_by_email(name, ctx=ctx, txn=txn)
         if not secret:
             user.setContext(ctx)
+
+        # Check that we can actually set the password.
+        # This will raise a SecurityError if failed.
         user.setpassword(oldpassword, newpassword, secret=secret)
+
+        # Check the user is not recycling a previous password.
+        # This may become integrated into user.setpassword().
+        recycle = emen2.db.config.get('security.password_recycle')
+        if recycle:
+            try:
+                events = self.dbenv._userhistory._get_data(user.name, txn=txn)
+            except KeyError:
+                events = self.dbenv._userhistory.new(name=user.name, txn=txn)
+            for previous in events.gethistory(param='password', limit=recycle):
+                check = user._hashpassword(newpassword, salt=previous[2])
+                if check == previous[2]:
+                    raise emen2.db.exceptions.RecycledPassword, "You may not re-use a previously used password."
+            emen2.db.log.security("Updating history log for %s"%user.name)
+            events.addhistory(ctx.utcnow, ctx.username, 'password', user.password)
+            # Should I prune this?
+            # events.prunehistory(param='password', limit=recycle)
+            self.dbenv._userhistory._put_data(user.name, events, txn=txn)
+        
+        # Save the user. Don't use regular .put(), it will fail on setting pw.
         emen2.db.log.security("Changing password for %s"%user.name)
         self.dbenv["user"]._put_data(user.name, user, txn=txn)
+
+        # Send an email on successful commit.
         self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/password.changed'})
         return self.dbenv["user"].get(user.name, ctx=ctx, txn=txn)
 
@@ -1958,10 +1992,15 @@ class DB(object):
     def newuser_new(self, *args, **kwargs):
         return self.dbenv["newuser"].new(*args, **kwargs)
 
-    @publicmethod(write=True, compat="adduser")
+    @publicmethod(write=True)
     @ol('items')
     def newuser_put(self, items, ctx=None, txn=None):
-        """Add a new user.
+        raise NotImplementedError, "Use newuser.request() to create new users."
+
+    @publicmethod(write=True)
+    @ol('items')
+    def newuser_request(self, items, ctx=None, txn=None):
+        """Request a new user account.
 
         Note: This only adds the user to the new user queue. The
         account must be processed by an administrator before it
@@ -1969,10 +2008,10 @@ class DB(object):
 
         Examples:
 
-        >>> db.newuser.put(<NewUser kay>)
+        >>> db.newuser.request(<NewUser kay>)
         <NewUser kay>
 
-        >>> db.newuser.put({'name':'kay', 'password':'foobar', 'email':'kay@example.com'})
+        >>> db.newuser.request({'name':'kay', 'password':'foobar', 'email':'kay@example.com'})
         <NewUser kay>
 
         :param items: New user(s).
@@ -2895,43 +2934,51 @@ class DB(object):
     def binary_put(self, items, ctx=None, txn=None):
         return self.dbenv["binary"].puts(items, ctx=ctx, txn=txn)
 
-    # The contents of a Binary cannot be changed after uploading. The file
-    # size and md5 checksum will be calculated as the file is written. 
-    # Any attempt to change the contents raise a
-    # SecurityError. Not even admin users may override this.
-    # 
-    # Examples:
-    # 
-    # >>> db.binary.put({'filename':'hello.txt', 'filedata':'Hello, world', 'record':'0'})
-    # <Binary bdo:2011101000000>
-    # 
-    # >>> db.binary.put({'name':'bdo:2011101000000', 'filename':'newfilename.txt'})
-    # <Binary bdo:2011101000000>
-    # 
-    # >>> db.binary.put({'name':'bdo:2011101000000', 'filedata':'Goodbye'})
-    # SecurityError
-    # 
-    # :param item: Binary
-    # :exception SecurityError:
-    # :exception ValidationError:
-
     @publicmethod(write=True)
     @ol('items')
     def binary_upload(self, items, ctx=None, txn=None):
-        """Alternate binary.put() that includes a file."""
+        """Alternate binary.put() that includes a file.
+
+        The contents of a Binary cannot be changed after uploading. The file
+        size and md5 checksum will be calculated as the file is written. 
+        Any attempt to change the contents raise a
+        SecurityError. Not even admin users may override this.
+    
+        Examples:
+    
+        >>> db.binary.upload({'filename':'hello.txt', 'filedata':'Hello, world', 'record':'0'})
+        <Binary bdo:2011101000000>
+    
+        >>> db.binary.upoad({'name':'bdo:2011101000000', 'filename':'newfilename.txt'})
+        <Binary bdo:2011101000000>
+    
+        >>> db.binary.upload({'name':'bdo:2011101000000', 'filedata':'Goodbye'})
+        SecurityError
+    
+        >>> db.binary.upload({'filename':'test.txt', 'fileobj':open("test.txt")})
+    
+        :param items: Binary(s) or Handler(s) or similar.
+        :exception SecurityError:
+        :exception ValidationError:
+        """
         bdos = []
         actions = []
-        for handler in items:
+        for item in items:
+            # Get the details from the item
             newfile = False
-            filedata = handler.get('filedata')
-            fileobj = handler.get('fileobj')
-            filename = handler.get('filename')
-            record = handler.get('record')
-            if not handler.get('name'):
-                filesize, md5sum, newfile = emen2.db.binary.writetmp(filedata=filedata, fileobj=fileobj)
-                bdo = self.dbenv["binary"].new(filename=handler.get('filename'), filesize=filesize, md5=md5sum, ctx=ctx, txn=txn)
+            filedata = item.get('filedata')
+            fileobj = item.get('fileobj')
+            filename = item.get('filename')
+            record = item.get('record')
 
-            bdo = self.dbenv["binary"].put(bdo, ctx=ctx, txn=txn)
+            # Write out to temporary storage.
+            # Create a new BDO if necessary.
+            # if fileobj or filedata:
+            if not item.get('name'):
+                filesize, md5sum, newfile = emen2.db.binary.writetmp(filedata=filedata, fileobj=fileobj)
+                bdo = self.dbenv["binary"].new(filename=filename, filesize=filesize, md5=md5sum, record=record, ctx=ctx, txn=txn)
+
+            bdo = self.dbenv["binary"].put(item, ctx=ctx, txn=txn)
             bdos.append(bdo)
 
             if newfile:

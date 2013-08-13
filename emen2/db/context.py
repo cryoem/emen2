@@ -35,12 +35,9 @@ class Cacher(object):
         # print '\tnot found'
         return False, None
 
-# Contexts do not use BaseDBObject since they are completely internal to the DB
-class Context(object):
+class Context(emen2.db.dataobject.PrivateDBO):
     """Defines a database context (like a session). After a user is authenticated
     a Context is created, and used for subsequent access."""
-
-    attr_user = set()
 
     def __init__(self, db=None, username=None, user=None, groups=None, grouplevels=None, host=None, maxidle=604800):
         self.db = None

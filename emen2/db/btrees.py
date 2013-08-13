@@ -29,15 +29,15 @@ import emen2.db.recorddef
 import emen2.db.user
 import emen2.db.context
 import emen2.db.group
-
-Record = emen2.db.record.Record
-Binary = emen2.db.binary.Binary
-ParamDef = emen2.db.paramdef.ParamDef
-RecordDef = emen2.db.recorddef.RecordDef
-User = emen2.db.user.User
-NewUser = emen2.db.user.NewUser
-Group = emen2.db.group.Group
-Context = emen2.db.context.Context
+# Record = emen2.db.record.Record
+# Binary = emen2.db.binary.Binary
+# ParamDef = emen2.db.paramdef.ParamDef
+# RecordDef = emen2.db.recorddef.RecordDef
+# User = emen2.db.user.User
+# NewUser = emen2.db.user.NewUser
+# Group = emen2.db.group.Group
+# Context = emen2.db.context.Context
+# UserHistory = emen2.db.context.UserHistory
 
 try:
     import emen2.db.bulk
@@ -189,15 +189,17 @@ class EMEN2DBEnv(object):
 
     def init(self):
         # Authentication. These are not public.
-        self._context = CollectionDB(dataclass=Context, dbenv=self)
+        self._context = CollectionDB(dataclass=emen2.db.context.Context, dbenv=self)
+        # For FIPS-140 Compliance.
+        self._userhistory = CollectionDB(dataclass=emen2.db.user.UserHistory, dbenv=self)
         # These are public dbs.
-        self.keytypes['paramdef']  = CollectionDB(dataclass=ParamDef, dbenv=self)
-        self.keytypes['recorddef'] = CollectionDB(dataclass=RecordDef, dbenv=self)
-        self.keytypes['group']     = CollectionDB(dataclass=Group, dbenv=self)
-        self.keytypes['record']    = RecordDB(dataclass=Record, dbenv=self)
-        self.keytypes['user']      = UserDB(dataclass=User, dbenv=self)
-        self.keytypes['newuser']   = NewUserDB(dataclass=NewUser, dbenv=self)
-        self.keytypes['binary']    = BinaryDB(dataclass=Binary, dbenv=self)
+        self.keytypes['paramdef']  = CollectionDB(dataclass=emen2.db.paramdef.ParamDef, dbenv=self)
+        self.keytypes['recorddef'] = CollectionDB(dataclass=emen2.db.recorddef.RecordDef, dbenv=self)
+        self.keytypes['group']     = CollectionDB(dataclass=emen2.db.group.Group, dbenv=self)
+        self.keytypes['record']    = RecordDB(dataclass=emen2.db.record.Record, dbenv=self)
+        self.keytypes['user']      = UserDB(dataclass=emen2.db.user.User, dbenv=self)
+        self.keytypes['newuser']   = NewUserDB(dataclass=emen2.db.user.NewUser, dbenv=self)
+        self.keytypes['binary']    = BinaryDB(dataclass=emen2.db.binary.Binary, dbenv=self)
 
     # ian: todo: make this nicer.
     def close(self):
@@ -1004,7 +1006,7 @@ class CollectionDB(BaseDB):
         return items
 
     def _put_data(self, name, item, txn=None, flags=0):
-        emen2.db.log.debug("BDB: %s put: %s"%(self.filename, item.name))        
+        emen2.db.log.debug("BDB: %s put: %s"%(self.filename, name))        
         self.bdb.put(self.keydump(name), self.datadump(item), txn=txn, flags=flags)
     
     def delete(self, name, ctx=None, txn=None, flags=0):

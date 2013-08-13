@@ -121,7 +121,7 @@ class Record(View):
 
         for f in self.request_files:
             param = f.get('param', 'file_binary')
-            bdo = self.db.binary.put(f)
+            bdo = self.db.binary.upload(f)
             self.db.binary.addreference(self.rec.name, param, bdo.name)
 
         # Redirect
@@ -199,7 +199,7 @@ class Record(View):
 
         for f in self.request_files:
             param = f.get('param', 'file_binary')
-            bdo = self.db.binary.put(f)
+            bdo = self.db.binary.upload(f)
             self.db.binary.addreference(newrec.name, param, bdo.name)
 
         # IMPORTANT NOTE: Some clients (EMDash) require the _format support below as part of the REST API.

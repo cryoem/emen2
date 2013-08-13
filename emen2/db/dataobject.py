@@ -10,6 +10,10 @@ import emen2.utils
 import emen2.db.exceptions
 import emen2.db.vartypes
 
+class PrivateDBO(object):
+    def setContext(self, ctx=None):
+        raise emen2.db.exceptions.SecurityError, "Private item."
+
 class BaseDBObject(object):
     """Base class for EMEN2 DBOs.
 
@@ -48,8 +52,8 @@ class BaseDBObject(object):
     In addition to implementing the mapping interface, the following methods
     are required as part of the database object interface:
 
-        validate         Validate the item before committing
         setContext       Check read permission and bind to a Context
+        validate         Validate the item before committing
         isowner          Check ownership permission
         isnew            Check if the item has been committed
         writable         Check write permission
