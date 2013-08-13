@@ -212,6 +212,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             raise self.error(e=emen2.db.exceptions.DisabledUserError)
 
         # Administrators may change other user's passwords.
+        # Use getattr() because _setContext may not have been called.
         if getattr(self, '_ctx', None) and self._ctx.checkadmin():
             return True
 
@@ -381,7 +382,6 @@ class NewUser(BaseUser):
         signupinfo['rectype'] = 'person'
         childrecs = signupinfo.pop('childrecs', [])
         childrecs = [self._validate_signupinfo(i) for i in childrecs]
-
         newsignup = self._validate_signupinfo(signupinfo)
         newsignup['childrecs'] = childrecs
         self.__dict__['signupinfo'] = newsignup
