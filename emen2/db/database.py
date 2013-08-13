@@ -374,8 +374,8 @@ class DB(object):
         :param keytype: DBO keytype
         :param names: DBO names
         :param method: DBO method
-        :param *args: method args
-        :param *kwargs: method kwargs
+        :param args: method args
+        :param kwargs: method kwargs
         :return: Results of commit/puts
         """
         items = self.dbenv[keytype].gets(names, ctx=ctx, txn=txn)
