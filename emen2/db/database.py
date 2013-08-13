@@ -637,6 +637,26 @@ class DB(object):
 
     ##### Login and Context Management #####
 
+    def _auth_check_expired(self, user, ctx=None, txn=None):
+        # This may become integrated into user.checkpassword().        
+        try:
+            events = self.dbenv._userhistory._get_data(user.name, txn=txn)
+        except KeyError:
+            events = self.dbenv._userhistory.new(name=user.name, txn=txn)
+        previous = events.gethistory(param='password', limit=1)
+        # Automatic migration... Option wasn't enabled, 
+        #   or user hasn't changed password.
+        if not previous:
+            events.addhistory(user.modifytime, user.name, 'password', user.password)
+            self.dbenv._userhistory._put_data(user.name, events, txn=txn)
+            previous = events.gethistory(param='password', limit=1)
+        # Check for expired password.
+        if previous:
+            diff = self.time_difference(previous[0][0])
+            if diff > expire:
+                emen2.db.log.security("Login failed: expired password for %s, password age was %s, max age is %s"%(user.name, diff, expire))
+                raise emen2.db.exceptions.ExpiredPassword(name=user.name, message="This password has expired.")        
+
     @publicmethod(write=True, compat="login")
     def auth_login(self, username, password, host=None, ctx=None, txn=None):
         """Login.
@@ -678,27 +698,10 @@ class DB(object):
             emen2.db.log.security("Login failed: No such user: %s"%(username))                
             raise AuthenticationError, AuthenticationError.__doc__
 
-        # Check the password hasn't expired.
-        # This may become integrated into user.checkpassword().        
+        # Check the password hasn't expired; will raise ExpiredPassword.
         expire = emen2.db.config.get('security.password_expire')
         if expire:
-            try:
-                events = self.dbenv._userhistory._get_data(user.name, txn=txn)
-            except KeyError:
-                events = self.dbenv._userhistory.new(name=user.name, txn=txn)
-            previous = events.gethistory(param='password', limit=1)
-            # Automatic migration... Option wasn't enabled, 
-            #   or user hasn't changed password.
-            if not previous:
-                events.addhistory(user.modifytime, user.name, 'password', user.password)
-                self.dbenv._userhistory._put_data(user.name, events, txn=txn)
-                previous = events.gethistory(param='password', limit=1)
-            # Check for expired password.
-            if previous:
-                diff = self.time_difference(previous[0][0])
-                if diff > expire:
-                    emen2.db.log.security("Login failed: expired password for %s, password age was %s, max age is %s"%(user.name, diff, expire))
-                    raise emen2.db.exceptions.ExpiredPassword, "This password has expired."
+            self._auth_check_expired(user, ctx=ctx, txn=txn)
 
         # Create the Context for this user/host
         newcontext = emen2.db.context.Context(username=user.name, host=host)
@@ -910,6 +913,7 @@ class DB(object):
         :exception ValidationError:
         :exception SecurityError:
         """
+        count, pos = int(count), int(pos) # check
         c = c or []
         ret = dict(
             c=c[:], #copy
@@ -973,6 +977,7 @@ class DB(object):
         options['time_precision'] = 3
         
         # Limit tables to 1000 items per page.
+        count, pos = int(count), int(pos) # check        
         if count < 1 or count > 1000:
             count = 1000
 
@@ -1112,8 +1117,8 @@ class DB(object):
         :keyparam z: Z arguments
         :keyparam subset: Restrict to names        
         :keyparam keytype: Key type
-
         """
+        count, pos = int(count), int(pos) # check        
         x = x or {}
         y = y or {}
         z = z or {}
@@ -1908,8 +1913,8 @@ class DB(object):
         # Try to authenticate using either the password OR the secret!
         # Get the user directly; .get() strips out password in most cases.
         user = self._user_by_email(name, ctx=ctx, txn=txn)
-        if not secret:
-            user.setContext(ctx)
+        # if not secret:
+        #    user.setContext(ctx)
 
         # Check that we can actually set the password.
         # This will raise a SecurityError if failed.
@@ -1924,9 +1929,10 @@ class DB(object):
             except KeyError:
                 events = self.dbenv._userhistory.new(name=user.name, txn=txn)
             for previous in events.gethistory(param='password', limit=recycle):
-                check = user._hashpassword(newpassword, salt=previous[2])
-                if check == previous[2]:
-                    raise emen2.db.exceptions.RecycledPassword, "You may not re-use a previously used password."
+                check = user._hashpassword(newpassword, salt=previous[3])
+                print "newpassword/check/previous", newpassword, check, previous
+                if check == previous[3]:
+                    raise emen2.db.exceptions.RecycledPassword(name=user.name, message="You may not re-use a previously used password.")
             emen2.db.log.security("Updating history log for %s"%user.name)
             events.addhistory(ctx.utcnow, ctx.username, 'password', user.password)
             # Should I prune this?
@@ -1990,7 +1996,7 @@ class DB(object):
 
     @publicmethod()
     def newuser_new(self, *args, **kwargs):
-        return self.dbenv["newuser"].new(*args, **kwargs)
+        raise NotImplementedError, "Use newuser.request() to create new users."
 
     @publicmethod(write=True)
     @ol('items')
