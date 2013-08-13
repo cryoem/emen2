@@ -237,10 +237,12 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         if self.isnew():
             self._set('password', newpassword, self.isowner())
         elif self._checksecret('resetpassword', None, secret):
-            self._set('password', newpassword, self.isowner())
+            # Checked security --
+            self._set('password', newpassword, True)
             self._delsecret()
         elif self.checkpassword(oldpassword):
-            self._set('password', newpassword, self.isowner())
+            # Checked security --
+            self._set('password', newpassword, True)
         else:
             raise self.error(e=emen2.db.exceptions.AuthenticationError)
 

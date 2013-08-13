@@ -466,6 +466,11 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
             request.addCookie('ctxid', '', path='/')
             emen2.db.log.security(e)
 
+        # Expired password.
+        except emen2.db.exceptions.PasswordReset, e:
+            data = self._render_error(request.uri, e, route='Error/expired', name=e.name)
+            emen2.db.log.security(e)
+
         # Authentication exceptions
         except emen2.db.exceptions.SecurityError, e:
             data = self.render_error_security(request.uri, e)
@@ -486,7 +491,6 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         request.setResponseCode(getattr(e, 'code', 500))
         [request.setHeader(k, v) for k,v in headers.items()]
         request.write(data)
-
         request.finish()
 
     ##### Error handlers #####
@@ -495,12 +499,16 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         # return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
         return mako.exceptions.html_error_template().render()
 
-    def render_error_security(self, location, e):
+    def render_error_security(self, location, e, route=None):
         return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
 
     def render_error_response(self, location, e):
         return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
 
+    def _render_error(self, location, e, route=None, **kwargs):
+        route = route or 'Error/resp'
+        return unicode(emen2.web.routing.execute(route, db=None, error=e, location=location, **kwargs)).encode('utf-8')
+        
     def _request_broken(self, failure, request, deferred):
         # Cancel the deferred.
         # The errback will be called, but not the callback.

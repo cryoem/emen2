@@ -25,23 +25,26 @@ class Auth(View):
         self.set_header('X-Ctxid', '')
         self.redirect('/', content='Successfully logged out.')
 
-    @View.add_matcher(r'^/auth/password/change/$', name='password/change')
+    @View.add_matcher(r'^/auth/password/change/$', name='setpassword')
     def setpassword(self, **kwargs):
         self.template = '/auth/password.change'
         self.title = "Password change"
+        name = kwargs.pop('name', None)
+        if not name:
+            try:
+                name = self.db.auth.check.context()[0]
+            except:
+                self.notify("No name specified!", error=True)
+                return
 
-        name = kwargs.pop("name",None) or self.db.auth.check.context()[0]
         opw = kwargs.pop("opw",None)
         on1 = kwargs.pop("on1",None)
         on2 = kwargs.pop("on2",None)
-
         self.ctxt['name'] = name
         if not on1 and not on2:
             pass
-
         elif on1 != on2:
             self.notify("New passwords did not match", error=True)
-
         else:
             try:
                 self.db.user.setpassword(name, opw, on1)

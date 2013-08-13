@@ -7,12 +7,6 @@ class EMEN2Exception(Exception):
 class SecurityError(EMEN2Exception):
     """Security error."""
     code = 401
-    
-class ExpiredPassword(SecurityError):
-    """Expired password."""  
-
-class RecycledPassword(SecurityError):
-    """Recycled password."""
 
 class SessionError(SecurityError):
     """Session expired."""
@@ -23,6 +17,20 @@ class AuthenticationError(SecurityError):
 class DisabledUserError(SecurityError):
     """Disabled user."""
 
+class PasswordReset(SecurityError):
+    """Invalid password."""
+    def __init__(self, message=None, name=None):
+        self.name = name
+        self.message = message or "Invalid password."
+    def __str__(self):
+        return self.message
+    
+class ExpiredPassword(PasswordReset):
+    """Expired password."""  
+
+class RecycledPassword(PasswordReset):
+    """Recycled password."""
+    
 # Validation Errors
 class ValidationError(EMEN2Exception):
     """Validation error."""

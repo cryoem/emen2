@@ -637,7 +637,7 @@ class DB(object):
 
     ##### Login and Context Management #####
 
-    def _auth_check_expired(self, user, ctx=None, txn=None):
+    def _auth_check_expired(self, user, expire, ctx=None, txn=None):
         # This may become integrated into user.checkpassword().        
         try:
             events = self.dbenv._userhistory._get_data(user.name, txn=txn)
@@ -677,7 +677,6 @@ class DB(object):
         :return: Auth token (ctxid)
         :exception AuthenticationError: Invalid user username, email, or password
         """
-        
         # Strip the username
         username = unicode(username).lower().strip()
         
@@ -701,7 +700,7 @@ class DB(object):
         # Check the password hasn't expired; will raise ExpiredPassword.
         expire = emen2.db.config.get('security.password_expire')
         if expire:
-            self._auth_check_expired(user, ctx=ctx, txn=txn)
+            self._auth_check_expired(user, expire, ctx=ctx, txn=txn)
 
         # Create the Context for this user/host
         newcontext = emen2.db.context.Context(username=user.name, host=host)
@@ -1885,6 +1884,23 @@ class DB(object):
 
         return self.dbenv["user"].get(user.name, ctx=ctx, txn=txn)
 
+    def _user_check_recycle(self, user, recycle, ctx=None, txn=None):
+        # This may become integrated into user.setpassword().
+        try:
+            events = self.dbenv._userhistory._get_data(user.name, txn=txn)
+        except KeyError:
+            events = self.dbenv._userhistory.new(name=user.name, txn=txn)
+        for previous in events.gethistory(param='password', limit=recycle):
+            check = user._hashpassword(newpassword, salt=previous[3])
+            if check == previous[3]:
+                raise emen2.db.exceptions.RecycledPassword(name=user.name, message="You may not re-use a previously used password.")
+        emen2.db.log.security("Updating history log for %s"%user.name)
+        events.addhistory(ctx.utcnow, ctx.username, 'password', user.password)
+        # Should I prune this?
+        # events.prunehistory(param='password', limit=recycle)
+        self.dbenv._userhistory._put_data(user.name, events, txn=txn)
+        
+
     @publicmethod(write=True, compat="setpassword")
     def user_setpassword(self, name, oldpassword, newpassword, secret=None, ctx=None, txn=None):
         """Change password.
@@ -1921,24 +1937,11 @@ class DB(object):
         user.setpassword(oldpassword, newpassword, secret=secret)
 
         # Check the user is not recycling a previous password.
-        # This may become integrated into user.setpassword().
+        # This will raise RecycledPassword if failed.
         recycle = emen2.db.config.get('security.password_recycle')
         if recycle:
-            try:
-                events = self.dbenv._userhistory._get_data(user.name, txn=txn)
-            except KeyError:
-                events = self.dbenv._userhistory.new(name=user.name, txn=txn)
-            for previous in events.gethistory(param='password', limit=recycle):
-                check = user._hashpassword(newpassword, salt=previous[3])
-                print "newpassword/check/previous", newpassword, check, previous
-                if check == previous[3]:
-                    raise emen2.db.exceptions.RecycledPassword(name=user.name, message="You may not re-use a previously used password.")
-            emen2.db.log.security("Updating history log for %s"%user.name)
-            events.addhistory(ctx.utcnow, ctx.username, 'password', user.password)
-            # Should I prune this?
-            # events.prunehistory(param='password', limit=recycle)
-            self.dbenv._userhistory._put_data(user.name, events, txn=txn)
-        
+            self._user_check_recycle(user, recycle, ctx=ctx, txn=txn)
+            
         # Save the user. Don't use regular .put(), it will fail on setting pw.
         emen2.db.log.security("Changing password for %s"%user.name)
         self.dbenv["user"]._put_data(user.name, user, txn=txn)

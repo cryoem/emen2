@@ -85,11 +85,12 @@ class BaseDBObject(object):
     :attr uri: Reference to original item if imported
     :attr parents: Parents set
     :attr children: Children set
-
+    :property keytype:
     :classattr attr_public: Public (exported) attributes
     """
     
     attr_public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
+    keytype = property(lambda x:x.__class__.__name__.lower())
 
     def __init__(self, _d=None, **_k):
         """Initialize a new DBO.
@@ -335,7 +336,9 @@ class BaseDBObject(object):
         
         # Check write permissions; need write permission on both.
         for item in access:
-            if not (self.writable() and item.writable()):
+            if (self.readable() and item.writable()) or (self.writable() and item.readable()):
+                pass # Ok, we have permissions
+            else:
                 msg = 'Insufficient permissions to add or remove relationship: %s -> %s'%(self.name, item.name)
                 raise self.error(msg, e=emen2.db.exceptions.SecurityError)
 
