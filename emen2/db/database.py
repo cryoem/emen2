@@ -1930,7 +1930,8 @@ class DB(object):
         # Get the user directly; .get() strips out password in most cases.
         user = self._user_by_email(name, ctx=ctx, txn=txn)
         # if not secret:
-        #    user.setContext(ctx)
+        if ctx and ctx.username != 'anonymous':
+            user.setContext(ctx)
 
         # Check that we can actually set the password.
         # This will raise a SecurityError if failed.

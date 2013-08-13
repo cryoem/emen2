@@ -9,6 +9,7 @@ import traceback
 import random
 import string
 import email.utils
+import uuid
 
 # Use bcrypt for passwords.
 # This is no longer optional.
@@ -209,6 +210,10 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # This needs to work even if there is no Context set.
         if self.get('disabled'):
             raise self.error(e=emen2.db.exceptions.DisabledUserError)
+
+        # Administrators may change other user's passwords.
+        if getattr(self, '_ctx', None) and self._ctx.checkadmin():
+            return True
 
         # Also check legacy MD5 based password hashes..
         # TODO: Convert the password to bcrypt hashed pw when found.
