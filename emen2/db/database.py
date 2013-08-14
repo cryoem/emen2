@@ -60,7 +60,8 @@ if BACKEND == "bdb":
 else:
     raise ImportError, "Unsupported EMEN2 backend: %s"%backend
 
-# This should go in configuration.
+# This is just for initial configuration...
+# TODO: Handle better.
 MINLENGTH = 8
 
 # EMEN2 Extensions
@@ -91,6 +92,13 @@ VIEW_REGEX_M = '''(\{\{[\#\^\/]?%s\}\})'''%VIEW_REGEX_P
 # basestring goes away in Python 3
 basestring = (str, unicode)
 
+# Rate limits!!
+# This is a temporary solution.
+# Keys are account names. Values are time.time() of 
+#   unsuccesful logins.
+LOGIN_RATES = {}
+
+
 ##### Utility methods #####
 
 def getrandomid():
@@ -104,6 +112,13 @@ def getctime():
     :return: Time as float in seconds since the UNIX epoch.
     """
     return time.time()
+
+def utcdifference(t1, t2=None):
+    t1 = dateutil.parser.parse(t1)
+    if not t1.tzinfo:
+        t1 = t1.replace(tzinfo=dateutil.tz.tzutc())
+    t2 = dateutil.parser.parse(t2 or utcnow())
+    return (t2 - t1).total_seconds()
 
 def utcnow():
     """Returns the current database UTC time in ISO 8601 format.
@@ -585,11 +600,7 @@ class DB(object):
         :keyword t2: The second time; defaults to now.
         :return: Time difference, in seconds.
         """
-        t1 = dateutil.parser.parse(t1)
-        if not t1.tzinfo:
-            t1 = t1.replace(tzinfo=dateutil.tz.tzutc())
-        t2 = dateutil.parser.parse(t2 or utcnow())
-        return (t2 - t1).total_seconds()
+        return utcdifference(t1, t2)
         
     @publicmethod()
     def time_now(self, ctx=None, txn=None):
@@ -637,25 +648,35 @@ class DB(object):
 
     ##### Login and Context Management #####
 
-    def _auth_check_expired(self, user, expire, ctx=None, txn=None):
-        # This may become integrated into user.checkpassword().        
-        try:
-            events = self.dbenv._userhistory._get_data(user.name, txn=txn)
-        except KeyError:
-            events = self.dbenv._userhistory.new(name=user.name, txn=txn)
-        previous = events.gethistory(param='password', limit=1)
-        # Automatic migration... Option wasn't enabled, 
-        #   or user hasn't changed password.
-        if not previous:
-            events.addhistory(user.modifytime, user.name, 'password', user.password)
-            self.dbenv._userhistory._put_data(user.name, events, txn=txn)
-            previous = events.gethistory(param='password', limit=1)
-        # Check for expired password.
-        if previous:
-            diff = self.time_difference(previous[0][0])
-            if diff > expire:
-                emen2.db.log.security("Login failed: expired password for %s, password age was %s, max age is %s"%(user.name, diff, expire))
-                raise emen2.db.exceptions.ExpiredPassword(name=user.name, message="This password has expired.")        
+    def _auth_login_addrate(self, name):
+        attempts = LOGIN_RATES.get(name, [])
+        attempts.append(time.time())
+        LOGIN_RATES[name] = attempts
+
+    def _auth_login_checkrate(self, name):
+        # Check login rate limits.
+        # Ok, this is an initial implementation. Hopefully, to be improved.
+        now = time.time()
+        rate = emen2.db.config.get('security.login_rate') # 180
+        tries = emen2.db.config.get('security.login_attempts') # 5
+        block = emen2.db.config.get('security.login_block') # 900
+        attempts = LOGIN_RATES.get(name, [])
+        print "rate/tries/block/attempts", rate, tries, block, attempts
+        if len(attempts) > tries:
+            # Blocked until 900 seconds elapsed from last attempt.
+            if now > (max(attempts) + block):
+                # Clear attempts.
+                LOGIN_RATES[name] = []
+                return True
+            else:
+                # Keep block
+                return False
+
+        # We haven't hit 5 attempts in 180 seconds.
+        # Let older attempts fall off.
+        LOGIN_RATES[name] = [i for i in attempts if i >= (now - rate)]
+        return True
+            
 
     @publicmethod(write=True, compat="login")
     def auth_login(self, username, password, host=None, ctx=None, txn=None):
@@ -679,34 +700,53 @@ class DB(object):
         """
         # Strip the username
         username = unicode(username).lower().strip()
-        
-        # Check password; user.checkpassword will raise SecurityError if wrong.
+
+        # Note: error message to user is the same regardless of missing key,
+        # bad username, or bad password.. so they cannot fish for accounts.
+
+        # Check login rates.
+        if not self._auth_login_checkrate(username):
+            raise TooManyAttempts
+
+        # Get the user.
         try:
             user = self._user_by_email(username, txn=txn)
-            user.checkpassword(password)
-        except DisabledUserError, e:
-            emen2.db.log.security("Login failed: Disabled user: %s"%(username))                
-            raise DisabledUserError, DisabledUserError.__doc__
-        except SecurityError, e:
-            # Both of these errors appear the same to the user,
-            # but are logged with the specific reason for
-            # login failure.
-            emen2.db.log.security("Login failed: Bad password: %s"%(username))                
-            raise AuthenticationError, AuthenticationError.__doc__
         except KeyError, e:
-            emen2.db.log.security("Login failed: No such user: %s"%(username))                
-            raise AuthenticationError, AuthenticationError.__doc__
+            emen2.db.log.security("Login failed: No such user: %s"%(username))
+            self._auth_login_addrate(username)              
+            raise AuthenticationError
 
-        # Check the password hasn't expired; will raise ExpiredPassword.
-        expire = emen2.db.config.get('security.password_expire')
-        if expire:
-            self._auth_check_expired(user, expire, ctx=ctx, txn=txn)
+        # Now that we have a user name, get the events log.
+        try:
+            events = self.dbenv._user_history._get_data(user.name, txn=txn)
+        except KeyError:
+            events = self.dbenv._user_history.new(name=user.name, txn=txn)
+            
+        # Check the password and expiration.
+        try:
+            user.login(password, events=events)
+        except DisabledUserError, e:
+            emen2.db.log.security("Login failed: Disabled user: %s"%(user.name))
+            raise DisabledUserError
+        except InactiveAccount, e:
+            emen2.db.log.security("Login failed: Inactive user: %s"%(user.name))
+            raise InactiveAccount
+        except AuthenticationError, e:
+            emen2.db.log.security("Login failed: Bad password: %s"%(user.name))                
+            self._auth_login_addrate(user.name)                         
+            raise AuthenticationError
 
         # Create the Context for this user/host
         newcontext = emen2.db.context.Context(username=user.name, host=host)
 
         # Put the Context.
         self.dbenv._context._put_data(newcontext.name, newcontext, txn=txn)
+        
+        # Add the last login to the user's history.
+        events.prunehistory(param='context', limit=1)
+        events.addhistory(utcnow(), user.name, 'context', newcontext.name)
+        self.dbenv._user_history._put_data(events.name, events, txn=txn)
+
         emen2.db.log.security("Login succeeded: %s -> %s" % (newcontext.username, newcontext.name))
         return newcontext.name
 
@@ -910,7 +950,7 @@ class DB(object):
         :return: A dictionary containing the original query arguments, and the result in the 'names' key
         :exception KeyError:
         :exception ValidationError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         count, pos = int(count), int(pos) # check
         c = c or []
@@ -1038,7 +1078,7 @@ class DB(object):
             else:
                 try:
                     rd = self.dbenv["recorddef"].get("root", filt=False, ctx=ctx, txn=txn)
-                except (KeyError, SecurityError):
+                except (KeyError, PermissionsError):
                     view = defaultview
                 else:
                     view = rd.views.get('tabularview', defaultview)
@@ -1390,7 +1430,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return:
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         return self.dbenv[keytype].pclink(parent, child, ctx=ctx, txn=txn)
 
@@ -1412,7 +1452,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return:
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         return self.dbenv[keytype].pcunlink(parent, child, ctx=ctx, txn=txn)
 
@@ -1431,7 +1471,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return:
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         return self.dbenv[keytype].relink(removerels, addrels, ctx=ctx, txn=txn)
 
@@ -1457,7 +1497,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return: All items that share a common parent
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         return self.dbenv[keytype].siblings(name, ctx=ctx, txn=txn)
 
@@ -1485,7 +1525,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return:
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         return self.dbenv[keytype].rel(names, recurse=recurse, rel='parents', ctx=ctx, txn=txn)
 
@@ -1511,7 +1551,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return:
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         return self.dbenv[keytype].rel(names, recurse=recurse, rel='children', ctx=ctx, txn=txn)
 
@@ -1752,7 +1792,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return: Updated user(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         return self._mapput('user', names, 'disable', ctx=ctx, txn=txn)
 
@@ -1772,7 +1812,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return: Updated user(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         return self._mapput('user', names, 'enable', ctx=ctx, txn=txn)
 
@@ -1792,7 +1832,7 @@ class DB(object):
         :keyword names: User name(s). Default is the current context user.
         :return: Updated user(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         return self._mapput('user', names, 'setprivacy', ctx.username, ctx, txn, state)
@@ -1826,7 +1866,7 @@ class DB(object):
         :param str name: User name. Default is current context user.
         :return: Updated user
         :exception KeyError:
-        :exception: :py:class:`SecurityError <SecurityError>` if the password and/or auth token are wrong
+        :exception: :py:class:`PermissionsError <PermissionsError>` if the password and/or auth token are wrong
         :exception ValidationError:
         """
         # Verify the email address is owned by the user requesting change.
@@ -1841,7 +1881,7 @@ class DB(object):
         ind = self.dbenv["user"].getindex('email', txn=txn)
         if ind.get(email, txn=txn):
             time.sleep(2)
-            raise SecurityError, "The email address %s is already in use"%(email)
+            raise ExistingKeyError("The email address %s is already in use"%(email))
 
         # Do not use get; it will strip out the secret.
         user = self.dbenv["user"]._get_data(name, txn=txn)
@@ -1884,22 +1924,27 @@ class DB(object):
 
         return self.dbenv["user"].get(user.name, ctx=ctx, txn=txn)
 
-    def _user_check_recycle(self, user, recycle, ctx=None, txn=None):
-        # This may become integrated into user.setpassword().
+    @publicmethod(write=True, admin=True)
+    def user_expirepassword(self, name, ctx=None, txn=None):
+        if not ctx.checkadmin():
+            raise PermissionsError("Only an administrator may perform this action.")
+        # Get the user, and we'll clear their password history.
+        # This will force them to set a new password upon logging in.
+        user = self._user_by_email(name, ctx=ctx, txn=txn)
         try:
-            events = self.dbenv._userhistory._get_data(user.name, txn=txn)
+            events = self.dbenv._user_history._get_data(user.name, txn=txn)
         except KeyError:
-            events = self.dbenv._userhistory.new(name=user.name, txn=txn)
-        for previous in events.gethistory(param='password', limit=recycle):
-            check = user._hashpassword(newpassword, salt=previous[3])
-            if check == previous[3]:
-                raise emen2.db.exceptions.RecycledPassword(name=user.name, message="You may not re-use a previously used password.")
-        emen2.db.log.security("Updating history log for %s"%user.name)
-        events.addhistory(ctx.utcnow, ctx.username, 'password', user.password)
-        # Should I prune this?
-        # events.prunehistory(param='password', limit=recycle)
-        self.dbenv._userhistory._put_data(user.name, events, txn=txn)
-        
+            events = self.dbenv._user_history.new(name=user.name, txn=txn)    
+
+        h = events.gethistory(param='password')
+        events.prunehistory(param='password')
+        # for i in h:
+        events.addhistory('1900-01-01T00:00:00Z+00:00', 'password', user.name, user.password)
+
+        emen2.db.log.security("Expiring password for %s"%user.name)
+        self.dbenv["user"]._put_data(user.name, user, txn=txn)
+        self.dbenv._user_history._put_data(user.name, events, txn=txn)
+
 
     @publicmethod(write=True, compat="setpassword")
     def user_setpassword(self, name, oldpassword, newpassword, secret=None, ctx=None, txn=None):
@@ -1923,7 +1968,7 @@ class DB(object):
         :keyword name: User name. Default is the current context user.
         :return: Updated user
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         # Try to authenticate using either the password OR the secret!
@@ -1933,19 +1978,25 @@ class DB(object):
         if ctx and ctx.username != 'anonymous':
             user.setContext(ctx)
 
-        # Check that we can actually set the password.
-        # This will raise a SecurityError if failed.
-        user.setpassword(oldpassword, newpassword, secret=secret)
+        # Get the user's events.
+        try:
+            events = self.dbenv._user_history._get_data(user.name, txn=txn)
+        except KeyError:
+            events = self.dbenv._user_history.new(name=user.name, txn=txn)
 
-        # Check the user is not recycling a previous password.
-        # This will raise RecycledPassword if failed.
-        recycle = emen2.db.config.get('security.password_recycle')
-        if recycle:
-            self._user_check_recycle(user, recycle, ctx=ctx, txn=txn)
-            
+        # Check that we can actually set the password.
+        # This will raise a PermissionsError if failed.
+        user.setpassword(oldpassword, newpassword, secret=secret, events=events)
+
         # Save the user. Don't use regular .put(), it will fail on setting pw.
         emen2.db.log.security("Changing password for %s"%user.name)
         self.dbenv["user"]._put_data(user.name, user, txn=txn)
+
+        # Save the user events.
+        recycle = emen2.db.config.get('security.password_recycle') or 0
+        events.prunehistory(param='password', limit=recycle)
+        events.addhistory(utcnow(), ctx.username, 'password', user.password)
+        self.dbenv._user_history._put_data(user.name, events, txn=txn)
 
         # Send an email on successful commit.
         self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/password.changed'})
@@ -1969,7 +2020,7 @@ class DB(object):
         :keyword name: User name. Default is the current context user.
         :return: Updated user
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         
         from_addr, smtphost = emen2.db.config.mailconfig()
@@ -1996,11 +2047,14 @@ class DB(object):
     @publicmethod(admin=True, compat="getqueueduser")
     @ol('names')
     def newuser_get(self, names, filt=True, ctx=None, txn=None):
+        if not ctx.checkadmin():
+            raise PermissionsError("Only an administrator may perform this action.")
         return self.dbenv["newuser"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod()
     def newuser_new(self, *args, **kwargs):
-        raise NotImplementedError, "Use newuser.request() to create new users."
+        # raise NotImplementedError, "Use newuser.request() to create new users."
+        return self.dbenv["newuser"].new(*args, **kwargs)
 
     @publicmethod(write=True)
     @ol('items')
@@ -2028,7 +2082,7 @@ class DB(object):
         :return: New user(s)
         :exception KeyError:
         :exception ExistingKeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         items = self.dbenv["newuser"].puts(items, ctx=ctx, txn=txn)
@@ -2046,10 +2100,14 @@ class DB(object):
         
     @publicmethod(admin=True, compat="getuserqueue")
     def newuser_filter(self, names=None, ctx=None, txn=None):
+        if not ctx.checkadmin():
+            raise PermissionsError("Only an administrator may perform this action.")
         return self.dbenv["newuser"].filter(names, ctx=ctx, txn=txn)
         
     @publicmethod(admin=True)
     def newuser_find(self, names=None, ctx=None, txn=None):
+        if not ctx.checkadmin():
+            raise PermissionsError("Only an administrator may perform this action.")
         return self.dbenv["newuser"].filter(names, ctx=ctx, txn=txn)
         
     @publicmethod(write=True, admin=True, compat="approveuser")
@@ -2073,10 +2131,11 @@ class DB(object):
         :return: Approved User(s)
         :exception ExistingKeyError:
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
-
+        if not ctx.checkadmin():
+            raise PermissionsError("Only an administrator may perform this action.")
         group_defaults = emen2.db.config.get('users.group_defaults')
         autoapprove = emen2.db.config.get('users.autoapprove')
 
@@ -2088,8 +2147,12 @@ class DB(object):
         for newuser in newusers:
             name = newuser.name
 
+            print 0
+
             # Delete the pending user
             self.dbenv["newuser"].delete(name, ctx=ctx, txn=txn)
+
+            print 1
 
             # Put the new user
             user = self.dbenv["user"].new(name=name, email=newuser.email, password=newuser.password, ctx=ctx, txn=txn)
@@ -2111,6 +2174,7 @@ class DB(object):
             user.record = rec.name
             user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
             cusers.append(user)
+            print 2
 
             for childrec in childrecs:
                 crec = self.record_new(rectype=childrec.get('rectype'), ctx=ctx, txn=txn)
@@ -2145,8 +2209,10 @@ class DB(object):
         :param names: New queue name(s) to reject
         :return: Rejected user name(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
+        if not ctx.checkadmin():
+            raise PermissionsError("Only an administrator may perform this action.")
         emails = {}
         users = self.dbenv["newuser"].gets(names, ctx=ctx, txn=txn)
         for user in users:
@@ -2176,6 +2242,8 @@ class DB(object):
     @publicmethod(write=True, admin=True, compat="putgroup")
     @ol('items')
     def group_put(self, items, ctx=None, txn=None):
+        if not ctx.checkadmin():
+            raise PermissionsError("Only an administrator may perform this action.")
         return self.dbenv["group"].puts(items, ctx=ctx, txn=txn)
 
     @publicmethod(compat="getgroupnames")
@@ -2324,7 +2392,7 @@ class DB(object):
         [<Record 136, group>]
 
         >>> db.record.hide(['136', '137'], filt=False)
-        SecurityError
+        PermissionsError
 
         >>> db.record.hide('12345', filt=False)
         KeyError
@@ -2333,7 +2401,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return: Deleted Record(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         names = set(names)
 
@@ -2378,13 +2446,13 @@ class DB(object):
         [<Record 0, folder>, <Record 136, group>]
 
         >>> db.record.update(['0','136', '137'], {'performed_by':'ian'}, filt=False)
-        SecurityError
+        PermissionsError
 
         :param names: Record name(s)
         :param update: Update Records with this dictionary
         :return: Updated Record(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         return self._mapput('record', names, 'update', ctx, txn, update)
@@ -2406,7 +2474,7 @@ class DB(object):
         ValidationError
 
         >>> db.record.validate({'name':'136', 'name_folder':'No permission to edit.'})
-        SecurityError
+        PermissionsError
 
         >>> db.record.validate({'name':'12345', 'name_folder':'Unknown record'})
         KeyError
@@ -2414,7 +2482,7 @@ class DB(object):
         :param items: Record(s)
         :return: Validated Record(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         return self.dbenv["record"].validate(items, ctx=ctx, txn=txn)
@@ -2432,7 +2500,7 @@ class DB(object):
         [<Record 0, folder>, <Record 136, group>]
 
         >>> db.record.adduser(['0', '136'], ['ian', 'steve'], filt=False)
-        SecurityError
+        PermissionsError
 
         :param names: Record name(s)
         :param users: User name(s) to add
@@ -2440,7 +2508,7 @@ class DB(object):
         :keyword level: Permissions level; 0=read, 1=comment, 2=write, 3=owner
         :return: Updated Record(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         return self._mapput('record', names, 'adduser', ctx, txn, users)
@@ -2459,14 +2527,14 @@ class DB(object):
         [<Record 0, folder>, <Record 136, group>]
 
         >>> db.record.removeuser(['0', '136'], ['ian', 'steve'], filt=False)
-        SecurityError
+        PermissionsError
 
         :param names: Record name(s)
         :param users: User name(s) to remove
         :keyword filt: Ignore failures
         :return: Updated Record(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         return self._mapput('record', names, 'removeuser', ctx, txn, users)
@@ -2488,14 +2556,14 @@ class DB(object):
         [<Record 0, folder>, <Record 136, group>]
 
         >>> db.record.addgroup(['0', '136'], 'authenticated', filt=False)
-        SecurityError
+        PermissionsError
 
         :param names: Record name(s)
         :param groups: Group name(s) to add
         :keyword filt: Ignore failures
         :return: Updated Record(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         return self._mapput('record', names, 'addgroup', ctx, txn, groups)
@@ -2517,14 +2585,14 @@ class DB(object):
         [<Record 0, folder>, <Record 136, group>]
 
         >>> db.user.removegroup(['0', '136'], 'authenticated', filt=False)
-        SecurityError
+        PermissionsError
 
         :param names: Record name(s)
         :param groups: Group name(s)
         :keyword filt: Ignore failures
         :return: Updated Record(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         return self._mapput('record', names, 'removegroup', ctx, txn, groups)
@@ -2546,7 +2614,7 @@ class DB(object):
         >>> db.record.setpermissionscompat(names=['137'], recurse=-1, addgroups=['authenticated'], overwrite_groups=True)
 
         >>> db.record.setpermissionscompat(names=['137'], recurse=-1, addgroups=['authenticated'], overwrite_groups=True, filt=False)
-        SecurityError
+        PermissionsError
 
         :param names: Record name(s)
         :keyword addumask: Add this permissions mask to the record's current permissions.
@@ -2559,7 +2627,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return:
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         recs = self.dbenv["record"].gets(names, ctx=ctx, txn=txn)
@@ -2612,7 +2680,7 @@ class DB(object):
         <Record 136, group>
 
         >>> db.record.addcomment('137', 'No comment permissions!?')
-        SecurityError
+        PermissionsError
 
         >>> db.record.addcomment('12345', 'Record does not exist')
         KeyError
@@ -2622,7 +2690,7 @@ class DB(object):
         :keyparam filt: Ignore failures
         :return: Updated Record(s)
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         return self._mapput('record', names, 'addcomment', ctx, txn, comment)
@@ -2679,7 +2747,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return: A list of comments, with the Record ID as the first item@[[record name, username, time, comment], ...]
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         recs = self.dbenv["record"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
@@ -2719,7 +2787,7 @@ class DB(object):
         :keyword filt: Ignore failures
         :return: Set of Record names
         :exception KeyError: No such RecordDef
-        :exception SecurityError: Unable to access RecordDef
+        :exception PermissionsError: Unable to access RecordDef
         """
         rds = self.dbenv['recorddef'].expand(names, ctx=ctx, txn=txn)
         ind = self.dbenv["record"].getindex("rectype", txn=txn)
@@ -2801,7 +2869,7 @@ class DB(object):
         :keyword rectype: Filter by a list of RecordDefs (incl., recorddef*)
         :return: Dictionary of Record names by RecordDef
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         """
         if not names:
             return {}
@@ -2863,7 +2931,7 @@ class DB(object):
         :keyword rectypes: Filter by RecordDef. Can be single RecordDef or list, and use '*'
         :keyword filt: Ignore failures
         :return: (Dictionary of rendered views {Record.name:view}, Child tree dictionary)
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception KeyError:
         """
         recnames, paths, roots = self.record_findpaths([], root_rectypes=['group'], leaf_rectypes=['project*'], ctx=ctx, txn=txn)
@@ -2952,7 +3020,7 @@ class DB(object):
         The contents of a Binary cannot be changed after uploading. The file
         size and md5 checksum will be calculated as the file is written. 
         Any attempt to change the contents raise a
-        SecurityError. Not even admin users may override this.
+        PermissionsError. Not even admin users may override this.
     
         Examples:
     
@@ -2963,12 +3031,12 @@ class DB(object):
         <Binary bdo:2011101000000>
     
         >>> db.binary.upload({'name':'bdo:2011101000000', 'filedata':'Goodbye'})
-        SecurityError
+        PermissionsError
     
         >>> db.binary.upload({'filename':'test.txt', 'fileobj':open("test.txt")})
     
         :param items: Binary(s) or Handler(s) or similar.
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
         """
         bdos = []

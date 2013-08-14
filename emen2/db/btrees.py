@@ -29,16 +29,6 @@ import emen2.db.recorddef
 import emen2.db.user
 import emen2.db.context
 import emen2.db.group
-# Record = emen2.db.record.Record
-# Binary = emen2.db.binary.Binary
-# ParamDef = emen2.db.paramdef.ParamDef
-# RecordDef = emen2.db.recorddef.RecordDef
-# User = emen2.db.user.User
-# NewUser = emen2.db.user.NewUser
-# Group = emen2.db.group.Group
-# Context = emen2.db.context.Context
-# UserHistory = emen2.db.context.UserHistory
-
 try:
     import emen2.db.bulk
     bulk = emen2.db.bulk
@@ -191,7 +181,7 @@ class EMEN2DBEnv(object):
         # Authentication. These are not public.
         self._context = CollectionDB(dataclass=emen2.db.context.Context, dbenv=self)
         # For FIPS-140 Compliance.
-        self._userhistory = CollectionDB(dataclass=emen2.db.user.UserHistory, dbenv=self)
+        self._user_history = CollectionDB(dataclass=emen2.db.dataobject.History, keytype='user_history', dbenv=self)
         # These are public dbs.
         self.keytypes['paramdef']  = CollectionDB(dataclass=emen2.db.paramdef.ParamDef, dbenv=self)
         self.keytypes['recorddef'] = CollectionDB(dataclass=emen2.db.recorddef.RecordDef, dbenv=self)
@@ -360,7 +350,7 @@ class BaseDB(object):
     :attr DBSETFLAGS: Additional flags
     """
 
-    def __init__(self, filename, keyformat='str', dataformat='str', dataclass=None, dbenv=None, extension='bdb'):
+    def __init__(self, filename, keyformat='str', dataformat='str', dataclass=None, dbenv=None, extension='bdb', ):
         """Create and open the DB.
         
         :param filename: Base filename to use
@@ -769,7 +759,7 @@ class CollectionDB(BaseDB):
         # Change the filename slightly
         dataclass = kwargs.get('dataclass')
         dbenv = kwargs.get('dbenv')
-        self.keytype = (kwargs.get('keytype') or dataclass.__name__).lower()
+        self.keytype = (kwargs.pop('keytype', None) or dataclass.__name__).lower()
         
         # Sequences
         self.sequencedb = None
@@ -894,20 +884,20 @@ class CollectionDB(BaseDB):
     def gets(self, keys, filt=True, ctx=None, txn=None, flags=0):
         """Get a list of items, with a Context. Requires ctx and txn.
 
-        The filt keyword, if True, will ignore KeyError and SecurityError.
+        The filt keyword, if True, will ignore KeyError and PermissionsError.
         Alternatively, it can be set to a list of Exception types to ignore.
 
         :param key: Items to get
-        :keyword filt: Ignore KeyError, SecurityError
+        :keyword filt: Ignore KeyError, PermissionsError
         :keyword ctx: Context
         :keyword txn: Transaction
         :return: DBOs with bound Context
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
 
         """
         if filt == True:
-            filt = (emen2.db.exceptions.SecurityError, KeyError)
+            filt = (emen2.db.exceptions.PermissionsError, KeyError)
 
         ret = []
         for key in keys:
@@ -955,7 +945,7 @@ class CollectionDB(BaseDB):
         :keyword txn: Transaction
         :return: Updated DBOs
         :exception KeyError:
-        :exception SecurityError:
+        :exception PermissionsError:
         :exception ValidationError:
 
         """
@@ -968,7 +958,7 @@ class CollectionDB(BaseDB):
             if self.exists(name, txn=txn, flags=bsddb3.db.DB_RMW):
                 # Get the existing item.
                 orec = self._get_data(name, txn=txn, flags=bsddb3.db.DB_RMW)
-                # May raise a SecurityError if you can't read it.
+                # May raise a PermissionsError if you can't read it.
                 orec.setContext(ctx)
                 orec.update(updrec)
             else:
@@ -1470,17 +1460,17 @@ class CollectionDB(BaseDB):
         try:
             p.setContext(ctx)
             perm.append(p.writable())
-        except emen2.db.exceptions.SecurityError:
+        except emen2.db.exceptions.PermissionsError:
             pass
 
         try:
             c.setContext(ctx)
             perm.append(c.writable())
-        except emen2.db.exceptions.SecurityError:
+        except emen2.db.exceptions.PermissionsError:
             pass
 
         if not any(perm):
-            raise emen2.db.exceptions.SecurityError, "Insufficient permissions to add/remove relationship"
+            raise emen2.db.exceptions.PermissionsError("Insufficient permissions to add/remove relationship")
 
         # Transform into the right format for _reindex_relink..
         newvalue = set() | p.children # copy
@@ -1701,14 +1691,12 @@ class UserDB(CollectionDB):
 class NewUserDB(CollectionDB):
     def delete(self, key, ctx=None, txn=None, flags=0):
         if not ctx.checkadmin():
-            raise emen2.db.exceptions.SecurityError, "Only admin can delete keys."
+            raise emen2.db.exceptions.PermissionsError("Only admin can delete keys.")
         self.bdb.delete(self.keydump(key), txn=txn, flags=flags)
 
     def new(self, *args, **kwargs):
-        print "newuser new:", args, kwargs
         txn = kwargs.get('txn', None)
         newuser = super(NewUserDB, self).new(*args, **kwargs)
-        print "--", newuser.email, newuser.password
 
         # Check  if this email already exists
         indemail = self.getindex('email', txn=txn)
@@ -1725,6 +1713,6 @@ class NewUserDB(CollectionDB):
     def filter(self, names=None, ctx=None, txn=None):
         # This requires admin access
         if not ctx or not ctx.checkadmin():
-            raise emen2.db.exceptions.SecurityError, "Admin rights needed to view user queue"
+            raise emen2.db.exceptions.PermissionsError("Admin rights needed to view user queue")
         return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
 

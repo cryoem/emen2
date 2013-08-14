@@ -92,7 +92,7 @@ class TestDB(unittest.TestCase):
 
         user = self.db.newuser.new(password=pw, email=em)
         user.setsignupinfo(signup_info)
-        self.db.newuser.put(user)
+        self.db.newuser.request(user)
         self.db.newuser.approve(user.name)
         c_user = self.db.user.get(user.name)
         urec = c_user.userrec

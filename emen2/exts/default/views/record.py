@@ -112,7 +112,7 @@ class Record(View):
 
         # Get the record
         if not self.rec.writable():
-            raise emen2.db.exceptions.SecurityError, "No write permission for record %s"%self.rec.name
+            raise emen2.db.exceptions.PermissionsError, "No write permission for record %s"%self.rec.name
 
         # Update the record
         if kwargs:

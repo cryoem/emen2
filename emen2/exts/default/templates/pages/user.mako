@@ -20,8 +20,8 @@
         var msg = '';
         if (op1 != op2) {
             msg = 'Passwords did not match';
-        } else if (op1.length < 6 || op2.length < 6) {
-            msg = 'Minimum password length is 6';
+        } else if (op1.length < 8 || op2.length < 8) {
+            msg = 'Minimum password length is 8';
         }
         $('#e2-newuser-passwordmatch').html(msg || 'Ok');
         this.setCustomValidity(msg);
@@ -40,7 +40,7 @@
                 <td>Password:</td>
                 <td>
                     <input name="password" type="password" required />
-                    <span class="e2l-small">Minimum 6 characters</span>
+                    <span class="e2l-small">Minimum 8 characters</span>
                 </td>
             </tr>
 

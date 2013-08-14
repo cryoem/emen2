@@ -154,7 +154,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         # Check write permission
         if not self.writable():
             msg = "Insufficient permissions to change param %s"%key
-            raise self.error(msg, e=emen2.db.exceptions.SecurityError)
+            raise self.error(msg, e=emen2.db.exceptions.PermissionsError)
 
         # No change
         if self.params.get(key) == value:
@@ -201,7 +201,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         :param value: The comment to be added
         """
         if not self.commentable():
-            raise self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.SecurityError)
+            raise self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.PermissionsError)
 
         if not value:
             return set()

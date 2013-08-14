@@ -471,9 +471,14 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
             data = self._render_error(request.uri, e, route='Error/expired', name=e.name)
             emen2.db.log.security(e)
 
-        # Authentication exceptions
-        except emen2.db.exceptions.SecurityError, e:
-            data = self.render_error_security(request.uri, e)
+        # Permissions exceptions.
+        except emen2.db.exceptions.PermissionsError, e:
+            data = self._render_error(request.uri, e, route='Error/auth', name=e.name)
+            emen2.db.log.security(e)
+
+        # Permissions exceptions.
+        except emen2.db.exceptions.AuthenticationError, e:
+            data = self._render_error(request.uri, e, route='Error/auth', name=e.name)
             emen2.db.log.security(e)
 
         # HTTP errors

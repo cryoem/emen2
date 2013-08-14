@@ -123,7 +123,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
             return True
         elif self._ctx.checkreadadmin():
             return True
-        raise SecurityError, "Private RecordDef"
+        raise PermissionsError, "Private RecordDef"
 
     def validate(self):
         # Run findparams one last time before we commit...

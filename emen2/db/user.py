@@ -11,55 +11,13 @@ import string
 import email.utils
 import uuid
 
-try:
-    import bcrypt
-except:
-    bcrypt = None
-
-import hashlib
-
 # EMEN2 imports
 import emen2.db.exceptions
 import emen2.db.dataobject
 import emen2.db.config
+import emen2.db.auth
 
-class UserHistory(emen2.db.dataobject.PrivateDBO):
-    """Manage previously used values."""
-    def __init__(self, name=None, *args, **kwargs):
-        self.name = name
-        self.history = []
 
-    def addhistory(self, timestamp, user, param, value):
-        """Add a value to the history."""
-        v = (timestamp, user, param, value)
-        if v in self.history:
-            raise ValueError, "This event is already present."
-        self.history.append(v)
-    
-    def gethistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
-        """Get :limit: previously used values."""
-        h = sorted(self.history, reverse=True)
-        if timestamp:
-            h = filter(lambda x:x[0] == timestamp, h)
-        if user:
-            h = filter(lambda x:x[1] == user, h)
-        if param:
-            h = filter(lambda x:x[2] == param, h)
-        if value:
-            h = filter(lambda x:x[3] == value, h)
-        if limit is not None:
-            h = h[:limit]
-        return h
-
-    def checkhistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
-        """Check if an param or value is in the past :limit: items."""
-        if self.gethistory(timestamp=timestamp, user=user, param=param, value=value, limit=limit):
-            return True
-        return False
-
-    def prunehistory(self, user=None, param=None, value=None, limit=None):
-        """Prune the history to :limit: items."""
-        self.history = self.gethistory(user=user, param=param, value=value, limit=limit)
 
 # DBO that contains a password and email address
 class BaseUser(emen2.db.dataobject.BaseDBObject):
@@ -98,7 +56,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     Note: the actual verification email is currently handled in the public API
     methods. See database.py.
 
-    Note: Previously, MD5 hashes were used. These accounts are allowed to
+    Note: Previously, SHA-1 hashes were used. These accounts are allowed to
     continue operating. In the future, I may add a configuration setting to
     force these passwords to expire, or to provide a migration process to
     bcrypt when a user logs in.
@@ -108,13 +66,14 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         init            Set attributes
         setContext      Check read permissions, bind Context, strip out password/secrets.
         validate        Check required attributes
-        checkpassword   Check the password; raise SecurityError if failed.
+        checkpassword   Check the password; raise PermissionsError if failed.
         setpassword     Set the password; requires password or secret token.
         resetpassword   Set the password reset secret token.
         setemail        Set the email; requires password and secret token (2 step process.)
+        login           Check the password and optionally check account inactivity or expired passwords.
       
     :attr email: email
-    :attr password: Hashed (bcrypt) password.
+    :attr password: Hashed password.
     """
 
     attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(['email', 'password'])
@@ -150,116 +109,120 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     ##### Setters #####
 
     def _set_password(self, key, value):
-        # This will always fail unless you're an admin --
+        # This will always fail unless you're an admin:
         #   you need to specify the current password or a secret auth token.
         self.setpassword(None, value)
         return set(['password'])
     
     def _set_email(self, key, value):
-        # This will always fail unless you're an admin --
+        # This will always fail unless you're an admin:
         #   you need to specify the current password or a secret auth token.
         self.setemail(value)
         return set(['email'])
+    
+    ##### Account inactive or expired password #####
 
-    ##### Password methods #####
-
-    def _hashpassword(self, password, salt=None, hashtype=None):
-        hashtype = hashtype or emen2.db.config.get('security.password_hash')
-        password = password or ''
-        salt = salt or ''
-        ret = ''
-        if hashtype == 'bcrypt':
-            if not bcrypt:
-                raise self.error('Hash algorithm bcrypt not available')
-            # Check that we've been given a valid salt. 
-            # bcrypt.hashpw will raise ValueError otherwise.
-            if not salt or not salt.startswith('$'):
-                salt = bcrypt.gensalt()
-            ret = bcrypt.hashpw(password, salt)
-        elif hashtype == 'SHA-1':
-            ret = hashlib.sha1(salt+password).hexdigest()
-        elif hashtype == 'SHA-2':
-            ret = hashlib.sha512(salt+password).hexdigest()
-        elif hashtype == 'PBKDF2':
-            raise NotImplementedError("PBKDF2 hashing coming soon.")
-        else:
-            raise self.error('Unknown hash algorithm: %s'%hashtype)
-        return ret
-            
-    def _validate_password(self, password, history=None):
-        # All accounts must have a password.
-        history = history or []
-        password = unicode(password or '')
-        minlength = emen2.db.config.get('security.password_minlength')
-        strength = emen2.db.config.get('security.password_strength')
-
-        # root password can be anything.
-        if self.name == 'root':
-            return self._hashpassword(password)
-
-        # Check against email, username.
-        if self.name and self.name in password:
-            raise self.error("User name cannot be in password")
-        if self.email and self.email in password:
-            raise self.error("Email cannot be in password")
-
-        # Check the minimum length.
-        if len(password) < minlength:
-            raise self.error("Password too short; minimum %s characters required"%minlength)
-
-        if not all([re.match(i, password) for i in strength]):
-            raise self.error("Password not strong enough. Needs a lower case letter, an upper case letter, a number, and a symbol such as @, #, !, %, ^, etc.")
-
-        # hash the password.
-        return self._hashpassword(password)
-
-    def checkpassword(self, password):
-        """Check the user password. Will raise a SecurityError if failed."""
+    def login(self, password, events=None):
         # Disabled users cannot login.
         # This needs to work even if there is no Context set.
         if self.get('disabled'):
             raise self.error(e=emen2.db.exceptions.DisabledUserError)
 
-        # Administrators may change other user's passwords.
-        # Use getattr() because _setContext may not have been called.
-        if getattr(self, '_ctx', None) and self._ctx.checkadmin():
-            return True
+        # Check the password. Will raise an exception on failure.
+        self.checkpassword(password)
 
-        # Check legacy SHA-1 based password hashes..
-        # TODO: Convert the password to bcrypt hashed pw when found.
-        # TODO: Perhaps expire these accounts and require password reset?
-        # raise MigratePasswordException...?
-        if self._hashpassword(password, hashtype='SHA-1') == self.password:
-            return True
+        # Check this account isn't expired.
+        expire = emen2.db.config.get('security.password_expire')
+        inactive = emen2.db.config.get('security.user_inactive')
+        self._checkexpired(expire=expire, inactive=inactive, events=events)
 
-        # Check the bcrypt-hashed password.
-        if self._hashpassword(password, salt=self.password) == self.password:
-            return True
+    def _checkexpired(self, expire=None, inactive=None, events=None):
+        # If no events, nothing to do here.
+        if not events:
+            return
             
+        # Check the password hasn't expired; will raise ExpiredPassword.
+        if expire:
+            last_password = events.gethistory(param='password', limit=1)
+            if last_password:
+                last_password = last_password[0][0]
+            else:
+                last_password = self.creationtime
+            password_diff = emen2.db.database.utcdifference(last_password)
+            # print "last_password?", last_password, password_diff, expire
+            if password_diff > expire:
+                emen2.db.log.security("Login failed: expired password for %s, password age was %s, max age is %s"%(self.name, password_diff, expire))
+                raise emen2.db.exceptions.ExpiredPassword(name=self.name, message="This password has expired.")        
+
+        # Check the user hasn't been inactive; will raise InactiveAccount.
+        if inactive:
+            last_context = events.gethistory(param='context', limit=1)
+            if last_context:
+                last_context = last_context[0][0]
+                inactive_diff = emen2.db.database.utcdifference(last_context)
+                # print "last_context?", last_context, inactive_diff, inactive
+                if inactive_diff > inactive:
+                    emen2.db.log.security("Login failed: inactive account for %s, last login was %s, max inactivity is %s"%(self.name, inactive_diff, inactive))
+                    raise emen2.db.exceptions.InactiveAccount(name=self.name, message="This account has expired due to inactivity.")
+
+    ##### Password methods #####
+
+    def checkpassword(self, password):
+        """Check the user password. Will raise a PermissionsError if failed."""
+        # Check legacy SHA-1 based password hashes..
+        # TODO: Perhaps expire these accounts and require password reset?
+        auth = emen2.db.auth.PasswordAuth()
+        if auth.check(password, self.password, algorithm='SHA-1'):
+            return True
+
+        # Check the password.
+        if auth.check(password, self.password):
+            return True
+
         raise self.error(e=emen2.db.exceptions.AuthenticationError)
 
-    def setpassword(self, oldpassword, newpassword, secret=None):
+    def setpassword(self, oldpassword, newpassword, secret=None, events=None):
         """Set the user password.
         
         You must provide either a password, or an authentication secret.
         """
+        # Check that we have permission to update the password.
         # Check that it's:
         #   a new user,
         #   or we know an authentication secret
         #   or we know the existing password, 
         # checkpassword will raise exception for failed attempt
-        newpassword = self._validate_password(newpassword)
         if self.isnew():
-            self._set('password', newpassword, self.isowner())
+            pass
         elif self._checksecret('resetpassword', None, secret):
-            # Checked security --
-            self._set('password', newpassword, True)
-            self._delsecret()
+            pass
         elif self.checkpassword(oldpassword):
-            # Checked security --
-            self._set('password', newpassword, True)
+            pass
         else:
             raise self.error(e=emen2.db.exceptions.AuthenticationError)
+
+        # Validate the new password.
+        auth = emen2.db.auth.PasswordAuth()
+        hashpassword = auth.validate(newpassword)
+        
+        # Check we haven't recycled an existing password.
+        recycle = emen2.db.config.get('security.password_recycle')
+        if recycle:
+            self._checkrecycle(newpassword, recycle=recycle, events=events)
+        
+        # Remove any secrets, if set.
+        self._delsecret() 
+        # Finally, set the password.
+        self._set('password', hashpassword, True)
+
+    def _checkrecycle(self, password, recycle=None, events=None):
+        # If no events, nothing to do here.
+        if not events or not recycle:
+            return
+        auth = emen2.db.auth.PasswordAuth()        
+        for previous in events.gethistory(param='password', limit=recycle):
+            if auth.check(password, previous[3]):
+                raise emen2.db.exceptions.RecycledPassword(name=self.name, message="You may not re-use a previously used password.")
 
     def resetpassword(self):
         """Reset the user password. 

@@ -10,10 +10,6 @@ import emen2.utils
 import emen2.db.exceptions
 import emen2.db.vartypes
 
-class PrivateDBO(object):
-    def setContext(self, ctx=None):
-        raise emen2.db.exceptions.SecurityError, "Private item."
-
 class BaseDBObject(object):
     """Base class for EMEN2 DBOs.
 
@@ -145,7 +141,7 @@ class BaseDBObject(object):
         """Set permissions and bind the context."""
         self.__dict__['_ctx'] = ctx
         if not self.readable():
-            raise emen2.db.exceptions.SecurityError, "Permission denied: %s"%(self.name)
+            raise emen2.db.exceptions.PermissionsError("Permission denied: %s"%(self.name))
 
     def changedparams(self, item=None):
         """Differences between two instances."""
@@ -156,7 +152,7 @@ class BaseDBObject(object):
     # Two basic permissions are defined: owner and writable
     # By default, everyone can read an object.
     # PermissionsDBObject has a more complete permissions model
-    # Lack of read access is handled in setContext (raise SecurityError)
+    # Lack of read access is handled in setContext (raise PermissionsError)
 
     def isowner(self):
         """Check ownership privileges on item."""
@@ -263,7 +259,7 @@ class BaseDBObject(object):
             pass
         elif key in self.attr_public:
             # These can't be modified without a setter method defined.
-            # (Return quietly instead of SecurityError or KeyError)
+            # (Return quietly instead of PermissionsError or KeyError)
             return cp
         else:
             # Setter for parameters that are not explicitly listed as attributes
@@ -301,7 +297,7 @@ class BaseDBObject(object):
         """
         if not check:
             msg = "Insufficient permissions to change parameter: %s"%key
-            raise self.error(msg, e=emen2.db.exceptions.SecurityError)
+            raise self.error(msg, e=emen2.db.exceptions.PermissionsError)
         self.__dict__[key] = value
         return set([key])
 
@@ -340,7 +336,7 @@ class BaseDBObject(object):
                 pass # Ok, we have permissions
             else:
                 msg = 'Insufficient permissions to add or remove relationship: %s -> %s'%(self.name, item.name)
-                raise self.error(msg, e=emen2.db.exceptions.SecurityError)
+                raise self.error(msg, e=emen2.db.exceptions.PermissionsError)
 
         # Keep items that we can't access..
         #    they might be new items, or items we won't
@@ -515,7 +511,7 @@ class PermissionsDBObject(BaseDBObject):
 
         # Now, check if we can read.
         if not self.readable():
-            raise emen2.db.exceptions.SecurityError, "Permission denied: %s"%(self.name)
+            raise emen2.db.exceptions.PermissionsError, "Permission denied: %s"%(self.name)
         return True
 
     def getlevel(self, user):
@@ -690,3 +686,59 @@ class PermissionsDBObject(BaseDBObject):
         groups = emen2.utils.check_iterable(groups)
         return self._set('groups', set(groups), self.isowner())
 
+class PrivateDBO(object):
+    def setContext(self, ctx=None):
+        raise emen2.db.exceptions.PermissionsError, "Private item."
+
+# History
+class History(PrivateDBO):
+    """Manage previously used values."""
+    def __init__(self, name=None, *args, **kwargs):
+        self.name = name
+        self.history = []
+
+    def addhistory(self, timestamp, user, param, value):
+        """Add a value to the history."""
+        v = (timestamp, user, param, value)
+        if v in self.history:
+            raise ValueError, "This event is already present."
+        self.history.append(v)
+    
+    def gethistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
+        """Get :limit: previously used values."""
+        h = sorted(self.history, reverse=True)
+        if timestamp:
+            h = filter(lambda x:x[0] == timestamp, h)
+        if user:
+            h = filter(lambda x:x[1] == user, h)
+        if param:
+            h = filter(lambda x:x[2] == param, h)
+        if value:
+            h = filter(lambda x:x[3] == value, h)
+        if limit is not None:
+            h = h[:limit]
+        return h
+
+    def checkhistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
+        """Check if an param or value is in the past :limit: items."""
+        if self.gethistory(timestamp=timestamp, user=user, param=param, value=value, limit=limit):
+            return True
+        return False
+
+    def prunehistory(self, user=None, param=None, value=None, limit=None):
+        """Prune the history to :limit: items."""
+        other = []
+        match = []
+        for t, u, p, v in self.history:
+            if u == user or p == param or v == value:
+                match.append((t,u,p,v))
+            else:
+                other.append((t,u,p,v))
+
+        if limit:
+            match = sorted(match, reverse=True)[:limit]
+        else:
+            match = []
+
+        self.history = sorted(match+other, reverse=True)
+        

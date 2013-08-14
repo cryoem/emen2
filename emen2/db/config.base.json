@@ -89,7 +89,7 @@
     
     "security": {
         // Password hashing method.
-        "password_hash": "bcrypt",
+        "password_algorithm": "bcrypt",
         // Minimum password length is (n)
         "password_minlength": 8,
         // A set of regular expressions for characters required in passwords.
@@ -99,14 +99,22 @@
         //    ".*([A-Z]).*",
         //    ".*([0-9]).*",
         //    ".*([\\!\\@\\#\\$\\%\\^\\&\\*\\(\\)\\[\\]\/\\?\\<\\>\\,\\.\\~\\`\\=]).*"
-        // Password maximum age in (n) seconds. 90 days is 7776000 seconds.
+        // Password maximum age in (n) seconds. 
+        // 1 day is 86400 seconds.
+        // 30 days is 2592000 seconds.
+        // 60 days is 5184000 seconds.
+        // 90 days is 7776000 seconds.
         "password_expire": null,
         // Password minimum age in (n) seconds.
         "password_minexpire": null,        
         // Prevent password re-use from (n) previous passwords.
         "password_recycle": null,
 
+        // Inactive accounts are disabled after (n) seconds from last login.
+        "user_inactive": null,
+
         // Failed logins per seconds before IP block.
+        "login_attempts": 5,
         "login_rate": 180,
         // Time to block IP.
         "login_block": 900,

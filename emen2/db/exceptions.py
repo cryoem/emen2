@@ -1,44 +1,70 @@
 """Exceptions."""
 
 class EMEN2Exception(Exception):
-    pass
+    def __init__(self, message=None, name=None):
+        self.name = name
+        self.message = message or self.__doc__
+    def __str__(self):
+        return self.message
 
-# Security Errors
+##### Security Errors #####
 class SecurityError(EMEN2Exception):
     """Security error."""
     code = 401
 
-class SessionError(SecurityError):
-    """Session expired."""
 
+
+##### Permissions error. #####
+class PermissionsError(SecurityError):
+    """Insufficient permissions."""
+
+
+
+##### Authentication errors. #####
 class AuthenticationError(SecurityError):
     """Invalid account name or password."""
 
-class DisabledUserError(SecurityError):
+# Expired session.
+class SessionError(AuthenticationError):
+    """Session expired."""
+
+class TooManyAttempts(AuthenticationError):
+    """Too many login attempts. Please try again later."""
+
+# Disabled users.
+class InactiveAccount(AuthenticationError):
+    """Account disabled for inactivity."""
+
+class DisabledUserError(AuthenticationError):
     """Disabled user."""
 
+    
+
+##### Password setting errors. #####
 class PasswordReset(SecurityError):
     """Invalid password."""
-    def __init__(self, message=None, name=None):
-        self.name = name
-        self.message = message or "Invalid password."
-    def __str__(self):
-        return self.message
     
+class WeakPassword(PasswordReset):
+    """Weak password."""
+
 class ExpiredPassword(PasswordReset):
     """Expired password."""  
 
 class RecycledPassword(PasswordReset):
     """Recycled password."""
     
-# Validation Errors
+    
+    
+##### Validation Errors #####
 class ValidationError(EMEN2Exception):
     """Validation error."""
 
 class ExistingKeyError(EMEN2Exception):
     """This account name or email is already in use."""
 
-# Time out
-class TimeError(EMEN2Exception):
+
+
+##### Time out #####
+class TimeOutError(EMEN2Exception):
     """Operation timed out."""
 
