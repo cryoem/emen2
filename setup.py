@@ -9,8 +9,7 @@ if __name__ == "__main__":
     packages = [
         'emen2',
         'emen2.db',
-        'emen2.web',
-        'emen2.util'
+        'emen2.web'
         ]
         
     package_data = {        
