@@ -78,7 +78,9 @@
         "port": 8080,
 
         // HTTPS port. You will need to place the SSL certificate and key files in the SSL directory
-        "https": 0,
+        // A helpful tutorial for generating the certificate:
+        //  http://www.akadia.com/services/ssh_test_certificate.html
+        "https": 8081,
 
         // The hostname of the EMEN2 installation, for reversing to a full URI
         "host": "localhost",
@@ -171,11 +173,11 @@
         "bookmarks": [
             ["Query", "/query/form/"],
             ["-",""],
-            ["Projects", "/query/rectype.is.project/?sortkey=name_pi&count=1000"],
-            ["Grid imaging sessions", "/query/rectype.is.grid_imaging/"],
-            ["Images", "/query/rectype.is.image_capture*"],
-            ["Lab notebooks", "/query/rectype.is.labnotebook/"],
-            ["Publications", "/query/rectype.is.publication*"]
+            ["Projects", "/query/results/rectype.is.project/?sortkey=name_pi&count=1000"],
+            ["Grid imaging sessions", "/query/results/rectype.is.grid_imaging/"],
+            ["Images", "/query/results/rectype.is.image_capture*"],
+            ["Lab notebooks", "/query/results/rectype.is.labnotebook/"],
+            ["Publications", "/query/results/rectype.is.publication*"]
         ]
     }
 }

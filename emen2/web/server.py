@@ -115,6 +115,8 @@ class EMEN2BaseServer(object):
     def __init__(self, options=None):
         options = options or {}
         self.port = options.get('port') or emen2.db.config.get('web.port')
+        self.https = emen2.db.config.get('web.https')
+        self.ssl = emen2.db.config.get('paths.ssl')
 
     #@contextlib.contextmanager
     def start(self, service=None):
@@ -146,10 +148,19 @@ class EMEN2BaseServer(object):
     def attach_to_service(self, service):
         emen2_service = internet.TCPServer(self.port, self.site)
         emen2_service.setServiceParent(service)
+        key = os.path.join(self.ssl, 'server.key')
+        crt = os.path.join(self.ssl, 'server.crt')
+        if self.https and ssl and os.path.exists(key) and os.path.exists(crt):
+            emen2_service_https = internet.SSLServer(self.https, self.site, ssl.DefaultOpenSSLContextFactory(key, crt))
+            emen2_service_https.setServiceParent(service)
 
     def attach_standalone(self):
         reactor = twisted.internet.reactor
         reactor.listenTCP(self.port, self.site)
+        key = os.path.join(self.ssl, 'server.key')
+        crt = os.path.join(self.ssl, 'server.crt')
+        if self.https and ssl and os.path.exists(key) and os.path.exists(crt):
+            reactor.listenSSL(self.https, self.site, ssl.DefaultOpenSSLContextFactory(key, crt))
         reactor.run()
 
 class EMEN2RPCServer(EMEN2BaseServer):

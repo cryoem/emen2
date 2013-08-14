@@ -16,7 +16,6 @@ bookmarks = emen2.db.config.get('bookmarks.bookmarks')
         <li>
             <a href="${ctxt.root}/">Home ${buttons.caret()}</a>
             <ul>
-                <li><a href="${ctxt.root}/query/">All records</a></li>
                 <li><a href="${ctxt.root}/query/form/">Record query</a></li>
                 <li><a href="${ctxt.root}/records/">Record relationships</a></li>
                 <li class="e2l-menu-divider"><a href="${ctxt.root}/recorddefs/">Protocols</a></li>

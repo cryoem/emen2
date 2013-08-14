@@ -417,7 +417,7 @@
                     <li>Add attachments: <input type="file" class="e2-attachments-fileinput" name="file_binary" multiple /></li> \
                 </ul> \
                 <ul class="e2l-controls"> \
-                    <li><input type="submit" class="e2l-save" value="Save attachments" /></li> \
+                    <li><input type="submit" class="e2l-save" value="Update attachments" /></li> \
                 </ul>');
 
             // Selection control

@@ -661,7 +661,7 @@ class DB(object):
         tries = emen2.db.config.get('security.login_attempts') # 5
         block = emen2.db.config.get('security.login_block') # 900
         attempts = LOGIN_RATES.get(name, [])
-        print "rate/tries/block/attempts", rate, tries, block, attempts
+        # print "rate/tries/block/attempts", rate, tries, block, attempts
         if len(attempts) > tries:
             # Blocked until 900 seconds elapsed from last attempt.
             if now > (max(attempts) + block):
@@ -2147,12 +2147,8 @@ class DB(object):
         for newuser in newusers:
             name = newuser.name
 
-            print 0
-
             # Delete the pending user
             self.dbenv["newuser"].delete(name, ctx=ctx, txn=txn)
-
-            print 1
 
             # Put the new user
             user = self.dbenv["user"].new(name=name, email=newuser.email, password=newuser.password, ctx=ctx, txn=txn)
@@ -2174,7 +2170,6 @@ class DB(object):
             user.record = rec.name
             user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
             cusers.append(user)
-            print 2
 
             for childrec in childrecs:
                 crec = self.record_new(rectype=childrec.get('rectype'), ctx=ctx, txn=txn)
@@ -3055,9 +3050,8 @@ class DB(object):
             if not item.get('name'):
                 filesize, md5sum, newfile = emen2.db.binary.writetmp(filedata=filedata, fileobj=fileobj)
                 bdo = self.dbenv["binary"].new(filename=filename, filesize=filesize, md5=md5sum, record=record, ctx=ctx, txn=txn)
-
-            bdo = self.dbenv["binary"].put(item, ctx=ctx, txn=txn)
-            bdos.append(bdo)
+                bdo = self.dbenv["binary"].put(bdo, ctx=ctx, txn=txn)
+                bdos.append(bdo)
 
             if newfile:
                 actions.append([bdo, newfile, bdo.filepath])

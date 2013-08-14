@@ -452,28 +452,19 @@
                 );
             }
 
-            // Query control
             // $('<li />')
-            //    .addClass('e2l-float-right')
-            //    .appendTo(ul)
-            //    .append(
-            //        $('<input type="button" />')
-            //        .val('Modify query')
-            //    );                                                            
-
-            $('<li />')
-            .addClass('e2l-float-right')
-            .append(
-                $('<input class="e2-query-keywords" type="text" />')
-                    .attr('name', 'keywords')
-                    .attr('placeholder', 'Filter')
-                    .attr('size', 6)
-                )
-            .append(
-                $('<input type="button" value="Go" />')
-                    .click(function(){self.keywords()})
-                )
-            .appendTo(ul);
+            // .addClass('e2l-float-right')
+            // .append(
+            //     $('<input class="e2-query-keywords" type="text" />')
+            //         .attr('name', 'keywords')
+            //         .attr('placeholder', 'Filter')
+            //         .attr('size', 6)
+            //     )
+            // .append(
+            //     $('<input type="button" value="Go" />')
+            //         .click(function(){self.keywords()})
+            //     )
+            // .appendTo(ul);
                                         
             $('<li />')
                 .addClass('e2l-float-right')
@@ -582,7 +573,7 @@
             this.checkbox_cache();
 
             this.options.q = q;
-            $('.e2-query-control', this.element).QueryControl('update', this.options.q)                    
+            // $('.e2-query-control', this.element).QueryControl('update', this.options.q)                    
 
             this.update_controls();
             this.rebuild_table();
