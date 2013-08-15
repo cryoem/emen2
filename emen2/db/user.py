@@ -221,10 +221,14 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # If no events, nothing to do here.
         if not events or not recycle:
             return
-        auth = emen2.db.auth.PasswordAuth()        
+        error = emen2.db.exceptions.RecycledPassword(name=self.name, message="You may not re-use a previously used password.")
+        auth = emen2.db.auth.PasswordAuth()
+        if auth.check(password, self.password):
+            raise error
         for previous in events.gethistory(param='password', limit=recycle):
             if auth.check(password, previous[3]):
-                raise emen2.db.exceptions.RecycledPassword(name=self.name, message="You may not re-use a previously used password.")
+                raise error
+        
 
     def resetpassword(self):
         """Reset the user password. 

@@ -662,7 +662,7 @@ class DB(object):
         block = emen2.db.config.get('security.login_block') # 900
         attempts = LOGIN_RATES.get(name, [])
         # print "rate/tries/block/attempts", rate, tries, block, attempts
-        if len(attempts) > tries:
+        if len(attempts) >= tries:
             # Blocked until 900 seconds elapsed from last attempt.
             if now > (max(attempts) + block):
                 # Clear attempts.

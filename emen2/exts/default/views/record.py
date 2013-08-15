@@ -17,7 +17,7 @@ class Record(View):
         """Main record rendering."""
         # Get record..
         self.rec = self.db.record.get(name, filt=False)
-        self.title = self.db.view(name) or self.name
+        self.title = self.db.view(self.rec.name) or self.rec.name
 
         # Look for any recorddef-specific template.
         try:
@@ -28,8 +28,8 @@ class Record(View):
         self.template = template
 
         # Render main view
-        rendered = self.db.view(name, viewname=viewname, options={'output':'html', 'markdown':True})
-        rendered_edit = self.db.view(name, viewname=viewname, options={'output':'form', 'markdown':True, 'name': self.rec.name})
+        rendered = self.db.view(self.rec.name, viewname=viewname, options={'output':'html', 'markdown':True})
+        rendered_edit = self.db.view(self.rec.name, viewname=viewname, options={'output':'form', 'markdown':True, 'name': self.rec.name})
         
         # Access tags
         accesstags = []

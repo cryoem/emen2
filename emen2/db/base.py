@@ -64,8 +64,6 @@ core_paramdefs = [
 {"name": "filename", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Filename"},
 {"name": "filesize", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "property": "bytes", "defaultunits": "B", "desc_short": "Filesize"},
 {"name": "md5", "keytype": "paramdef", "parents": ["core"], "vartype": "md5", "desc_short": "MD5 Checksum"},
-# {"name": "md5_compress", "keytype": "paramdef", "parents": ["core"], "vartype": "md5", "desc_short": "MD5 Checksum (compressed)"},
-# {"name": "filesize_compress", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "property": "bytes", "defaultunits": "B", "desc_short": "Filesize (compressed)"},
 {"name": "file_binary", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "iter": True, "desc_short": "Attachments"},
 {"name": "compress", "keytype": "paramdef", "parents":["core"], "vartype": "string", "desc_short": "Compressed format"}
 ]
@@ -79,8 +77,8 @@ base_paramdefs = [
 {"name": "performed_by", "keytype": "paramdef", "parents": ["base"], "vartype": "user", "desc_short": "Performed by"},
 {"name": "date_occurred", "keytype": "paramdef", "parents": ["base"], "vartype": "datetime", "desc_short": "Date occurred"},
 {"name": "deleted", "keytype": "paramdef", "vartype": "boolean", "parents": ["base"], "desc_short": "Deleted"},
-{"name": "folder_description", "keytype": "paramdef", "vartype": "string", "parents": ["base"], "desc_short": "Description"},
 {"name": "name_folder", "keytype": "paramdef", "vartype": "string", "parents": ["base"], "desc_short": "Folder name"},
+{"name": "folder_description", "keytype": "paramdef", "vartype": "string", "parents": ["base"], "desc_short": "Description"},
 {"name": "person_photo", "keytype": "paramdef", "vartype": "binary", "parents": ["base"], "desc_short": "Profile photo"},
 
 {'desc_short': 'Project title', 'keytype': 'paramdef', 'name': 'name_project', 'parents': ['base'], 'vartype': 'string'},
@@ -199,14 +197,14 @@ $#email: $$email
 'desc_short': 'Folder',
 'keytype': 'recorddef',
 'mainview': """
-# Folder: {{desc_short}}  
-Description: {desc_long}  
+# Folder: {{name_folder}}  
+Description: {{folder_description}}
 """,
 'name': 'folder',
 'parents': ['core'],
 'private': False,
 'typicalchld': [],
-'views': { 'banner': '{{desc_long}}', 'recname': """{{desc_short}}""", 'tabularview': """Folder: {{desc_short}}"""}
+'views': { 'banner': '{{folder_description}}', 'recname': """{{name_folder}}""", 'tabularview': """{{name_folder}} {{folder_description}}"""}
 },
 
 {
