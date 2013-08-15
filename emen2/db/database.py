@@ -698,7 +698,7 @@ class DB(object):
         :return: Auth token (ctxid)
         :exception AuthenticationError: Invalid user username, email, or password
         """
-        # Strip the username
+        # Strip the attempted login name.
         username = unicode(username).lower().strip()
 
         # Note: error message to user is the same regardless of missing key,
@@ -708,7 +708,7 @@ class DB(object):
         if not self._auth_login_checkrate(username):
             raise TooManyAttempts
 
-        # Get the user.
+        # Get the user. This can be the user name or email.
         try:
             user = self._user_by_email(username, txn=txn)
         except KeyError, e:
@@ -733,7 +733,9 @@ class DB(object):
             raise InactiveAccount
         except AuthenticationError, e:
             emen2.db.log.security("Login failed: Bad password: %s"%(user.name))                
-            self._auth_login_addrate(user.name)                         
+            # Block based on the attempted login name, not user.name;
+            #   prevents cross-checking of user name and email.
+            self._auth_login_addrate(username)
             raise AuthenticationError
 
         # Create the Context for this user/host
