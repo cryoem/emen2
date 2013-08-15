@@ -49,7 +49,7 @@ bookmarks = emen2.db.config.get('bookmarks.bookmarks')
 
 
         <li class="e2l-float-right nohover" role="search">
-            <form method="get" action="${ctxt.root}/query/">
+            <form method="get" action="${ctxt.root}/query/results/">
                 <input type="text" name="keywords" size="8" placeholder="Search" id="e2-header-search" />
             </form>
         </li>

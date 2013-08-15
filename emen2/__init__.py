@@ -1,2 +1,2 @@
 # EMEN2 version
-__version__ = '2.2.9'
+__version__ = '2.2.9c'

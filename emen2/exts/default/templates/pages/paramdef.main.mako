@@ -7,7 +7,7 @@
     ${ctxt.title}
 
     <ul class="e2l-actions">
-        <li><a class="e2-button" href="${ctxt.root}/query/${paramdef.name}.!None./">${buttons.image('query.png', 'Query')} Query</a></li>
+        <li><a class="e2-button" href="${ctxt.root}/query/results/${paramdef.name}.any./">${buttons.image('query.png', 'Query')} Query</a></li>
 
         % if editable:
             <li><a class="e2-button" href="${ctxt.root}/paramdef/${paramdef.name}/edit/">${buttons.image('edit.png', 'Edit')} Edit</a></li>

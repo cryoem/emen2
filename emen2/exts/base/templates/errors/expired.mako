@@ -1,8 +1,8 @@
 <%inherit file="/page" />
 
-<h1>Expired password</h1>
+<h1>${error.title or "Expired password"}</h1>
 
-<p>Your password has expired. You must create a new password before you can login.</p>
+<p>${error}</p>
 
 <form action="${ctxt.root}/auth/password/change/" method="post">
     <input type="hidden" name="name" value="${name or ''}" />

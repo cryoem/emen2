@@ -462,7 +462,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
         # Expired or invalid session. Remove ctxid and redirect to root.
         except emen2.db.exceptions.SessionError, e:
-            data = self.render_error_security(request.uri, e)
+            data = self._render_error(request.uri, e, route='Error/auth')
             request.addCookie('ctxid', '', path='/')
             emen2.db.log.security(e)
 
@@ -483,7 +483,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
         # HTTP errors
         except emen2.web.responsecodes.HTTPResponseCode, e:
-            data = self.render_error_response(request.uri, e)
+            data = self._render_error(request.uri, e, route='Error/resp')
             emen2.db.log.error(e)
 
         # General error
@@ -503,12 +503,6 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
     def render_error(self, location, e):
         # return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
         return mako.exceptions.html_error_template().render()
-
-    def render_error_security(self, location, e, route=None):
-        return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
-
-    def render_error_response(self, location, e):
-        return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
 
     def _render_error(self, location, e, route=None, **kwargs):
         route = route or 'Error/resp'

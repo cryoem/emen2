@@ -1,8 +1,9 @@
 """Exceptions."""
 
 class EMEN2Exception(Exception):
-    def __init__(self, message=None, name=None):
+    def __init__(self, message=None, name=None, title=None):
         self.name = name
+        self.title = title
         self.message = message or self.__doc__
     def __str__(self):
         return self.message

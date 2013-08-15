@@ -1,0 +1,34 @@
+{
+    "security": {
+        "password_algorithm": "bcrypt",
+        "password_minlength": 8,
+        "password_strength": [
+            ".*([a-z]).*",
+            ".*([A-Z]).*",
+            ".*([0-9]).*",
+            ".*([\\!\\@\\#\\$\\%\\^\\&\\*\\(\\)\\[\\]\/\\?\\<\\>\\,\\.\\~\\`\\=]).*"
+        ],
+        "password_expire": 5184000,
+        "password_minexpire": 86400,        
+        "password_recycle": 6,
+        "password_expire_initial": true,
+        
+        "user_inactive": 7776000,
+
+        "login_attempts": 5,
+        "login_rate": 180,
+        "login_block": 900,
+
+        "filename_whitelist": [],
+        "filename_blacklist": [
+            "^\\.",
+            "\\.exe$",
+            "\\.bat$",
+            "\\.com$",
+            "\\.vbs$"
+        ],
+
+        "email_blacklist": [],
+        "email_whitelist": []
+    }
+}

@@ -90,13 +90,11 @@ class Query(View):
         self.template = '/pages/query.main'
         self.title = "Query"
         q = q or {}
-        c = q.get('c', [])
+        q.update(form)
+        c = c or q.get('c', [])
         c.extend(self.path_to_constraints(path))
         c.extend(self.form_to_constraints(form))
         q['c'] = c
-        # print "Q:", q
-        # print "C:", q['c']
-        # print "KWARGS:", form
         self.q = q
         self.ctxt['parent'] = None
         self.ctxt['rectype'] = None
@@ -115,6 +113,11 @@ class Query(View):
         
     @View.add_matcher(r'^/query/redirect/$')
     def form_redirect(self, path=None, q=None, c=None, **form):
+        form2 = {}
+        for k,v in form.items():
+            if v:
+                form2[k] = v
+        form = form2
         self.common(path, q, c, form=form)
         self.template = '/pages/query.form'
         self.ctxt['q'] = self.q
@@ -126,6 +129,7 @@ class Query(View):
         name='query')
     def main(self, path=None, q=None, c=None, **form):
         self.common(path, q, c, form)
+        # print "running:", self.q
         self.q = self.db.table(**self.q)
         self.ctxt['q'] = self.q
 
@@ -151,7 +155,6 @@ class Query(View):
         self.q['z'] = z
         self.template = '/pages/query.plot'
         self.q = self.db.plot(**self.q)
-        # print "Plot results:", self.q
         self.ctxt['q'] = self.q
 
     # /download/ can't be in the path because of a emen2resource.getchild issue

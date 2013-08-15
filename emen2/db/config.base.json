@@ -92,6 +92,7 @@
     "security": {
         // Password hashing method.
         "password_algorithm": "bcrypt",
+
         // Minimum password length is (n)
         "password_minlength": 8,
         // A set of regular expressions for characters required in passwords.
@@ -101,6 +102,7 @@
         //    ".*([A-Z]).*",
         //    ".*([0-9]).*",
         //    ".*([\\!\\@\\#\\$\\%\\^\\&\\*\\(\\)\\[\\]\/\\?\\<\\>\\,\\.\\~\\`\\=]).*"
+
         // Password maximum age in (n) seconds. 
         // 1 day is 86400 seconds.
         // 30 days is 2592000 seconds.
@@ -111,6 +113,8 @@
         "password_minexpire": null,        
         // Prevent password re-use from (n) previous passwords.
         "password_recycle": null,
+        // Require users to set a new password on initial login.
+        "password_expire_initial": false,
 
         // Inactive accounts are disabled after (n) seconds from last login.
         "user_inactive": null,

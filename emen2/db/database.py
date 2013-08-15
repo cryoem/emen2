@@ -1892,8 +1892,12 @@ class DB(object):
         
         # Try and change user email.
         oldemail = user.email
-        user.setemail(email, secret=secret, password=password)
-        user_secret = getattr(user, 'secret', None)
+        try:
+            user.setemail(email, secret=secret, password=password)
+            user_secret = getattr(user, 'secret', None)
+        except SecurityError, e:
+            emen2.db.log.security('Failed to change email for %s: %s'%(user.name, e))
+            raise e
 
         # If there is no mail server configured, go ahead and set email.
         from_addr, smtphost = emen2.db.config.mailconfig()
@@ -1985,8 +1989,12 @@ class DB(object):
             events = self.dbenv._user_history.new(name=user.name, txn=txn)
 
         # Check that we can actually set the password.
-        # This will raise a PermissionsError if failed.
-        user.setpassword(oldpassword, newpassword, secret=secret, events=events)
+        # This will raise a SecurityError if failed.
+        try:
+            user.setpassword(oldpassword, newpassword, secret=secret, events=events)
+        except SecurityError, e:
+            emen2.db.log.security('Failed to change password for %s: %s'%(user.name, e))
+            raise e
 
         # Save the user. Don't use regular .put(), it will fail on setting pw.
         emen2.db.log.security("Changing password for %s"%user.name)
@@ -2146,14 +2154,17 @@ class DB(object):
         # This will also check if the current username or email is in use
         for newuser in newusers:
             name = newuser.name
+            emen2.db.log.security('Approving new user: %s, %s'%(newuser.name, newuser.email))
 
             # Delete the pending user
             self.dbenv["newuser"].delete(name, ctx=ctx, txn=txn)
 
             # Put the new user
-            user = self.dbenv["user"].new(name=name, email=newuser.email, password=newuser.password, ctx=ctx, txn=txn)
+            user = self.dbenv["user"].new(name=name, email=newuser.email, ctx=ctx, txn=txn)
+            # Manually copy the password hash.
+            user.__dict__['password'] = newuser.password
             user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
-
+            
             # Create the "Record" for this user
             rec = self.dbenv["record"].new(rectype='person', ctx=ctx, txn=txn)
 
@@ -2213,7 +2224,8 @@ class DB(object):
         for user in users:
             emails[user.name] = user.email
 
-        for    user in users:
+        for user in users:
+            emen2.db.log.security('Rejecting new user: %s, %s'%(user.name, user.email))
             self.dbenv["newuser"].delete(user.name, ctx=ctx, txn=txn)
 
         # Send the emails

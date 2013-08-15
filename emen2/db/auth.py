@@ -16,6 +16,7 @@ import emen2.db.exceptions
 import emen2.db.config
 
 SALT_BYTES = 22
+HASH_TYPES = ['SHA-1', 'SHA-2', 'bcrypt', '2', '2a', 'PBKDF2', 'MD5']
 
 class PasswordAuth(object):
     """Manage password hashes.
@@ -36,11 +37,30 @@ class PasswordAuth(object):
     Note that I included an extra $ between the salt and hash for simplicity's
     sake; bcrypt omits this.    
     """
+
+    # def random(self, password):
+    #     # Satisfy minimum complexity rules.
+    #     base = "abAB09!@abAB09!@"
+    #     rand = os.urandom(32).encode('base_64')
+    #     return base+rand
+
+    def checkhashed(self, password):
+        # Small possibility this could be a false positive.
+        try:
+            parsed = self.parse(password)
+        except ValueError:
+            return False
+        return True
+
     def validate(self, password):
-        # All accounts must have a password.
         minlength = emen2.db.config.get('security.password_minlength')
         strength = emen2.db.config.get('security.password_strength')
 
+        # We need to avoid double hashing.
+        # Not the best solution...
+        if self.checkhashed(password):
+            return password
+        
         # Check the minimum length.
         if not password or len(password) < minlength:
             raise emen2.db.exceptions.WeakPassword("Password too short; minimum %s characters required"%minlength)
@@ -56,6 +76,8 @@ class PasswordAuth(object):
         salt = salt or ''
         password = password or ''
         algorithm = algorithm or emen2.db.config.get('security.password_algorithm')
+        if algorithm not in HASH_TYPES:
+            raise NotImplementedError("Unknown password hashing algorithm: %s"%algorithm)
         if algorithm == 'SHA-1':
             return self.sha1(password, salt)
         elif algorithm == 'SHA-2':
@@ -64,10 +86,8 @@ class PasswordAuth(object):
             return self.bcrypt(password, salt)
         elif algorithm == 'PBKDF2':
             return self.pbkdf2(password, salt)
-        elif algorithm == 'old':
+        elif algorithm == 'MD5':
             return self.old(password, salt)
-        else:
-            raise NotImplementedError("Unknown password hashing algorithm: %s"%algorithm)
     
     def check(self, password, hashed, algorithm=None):
         """Check a password."""
@@ -84,20 +104,25 @@ class PasswordAuth(object):
     
     def parse(self, password):
         p = password.split('$')
-        if len(p) > 2:
+        if len(p) == 4:
             algorithm = p[1]
             rounds = p[2]
-        if len(p) == 4:
             salt = p[3][:SALT_BYTES]
             hashedpassword = p[3][SALT_BYTES:]
         elif len(p) == 5:
+            algorithm = p[1]
+            rounds = p[2]
             salt = p[3][:SALT_BYTES]
             hashedpassword = p[4]
-        else:
-            algorithm = 'old'
+        elif len(password) == 40:
+            algorithm = 'MD5'
+            rounds = 0
             salt = ''
             hashedpassword = password
-            rounds = 0
+        else:
+            raise ValueError("Could not parse password hash.")
+        if algorithm not in HASH_TYPES:
+            raise NotImplementedError("Unknown password hashing algorithm: %s"%algorithm)            
         return algorithm, rounds, salt, hashedpassword
     
     def format_password(self, algorithm, rounds, salt, hashedpassword):

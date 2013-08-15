@@ -131,21 +131,23 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # Check the password. Will raise an exception on failure.
         self.checkpassword(password)
 
-        # Check this account isn't expired.
-        expire = emen2.db.config.get('security.password_expire')
-        inactive = emen2.db.config.get('security.user_inactive')
-        self._checkexpired(expire=expire, inactive=inactive, events=events)
-
-    def _checkexpired(self, expire=None, inactive=None, events=None):
+        # Check for expired password.
         # If no events, nothing to do here.
         if not events:
             return
-            
+
+        # Check this account isn't expired.
+        expire_initial = emen2.db.config.get('security.password_expire_initial')
+        expire = emen2.db.config.get('security.password_expire')
+        inactive = emen2.db.config.get('security.user_inactive')
+
         # Check the password hasn't expired; will raise ExpiredPassword.
         if expire:
             last_password = events.gethistory(param='password', limit=1)
             if last_password:
                 last_password = last_password[0][0]
+            elif expire_initial:
+                raise emen2.db.exceptions.ExpiredPassword(name=self.name, message="Please set a new password before your initial login.", title="Initial login")
             else:
                 last_password = self.creationtime
             password_diff = emen2.db.database.utcdifference(last_password)

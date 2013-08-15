@@ -54,13 +54,14 @@ class Auth(View):
 
     @View.add_matcher(r'^/auth/password/reset/$', name='password/reset')
     @View.add_matcher(r'^/auth/password/reset/(?P<name>[^/]*)/(?P<secret>\w+)/$', name='password/reset/confirm')
-    def resetpassword(self, email=None, name=None, secret=None, newpassword=None, **kwargs):
+    def resetpassword(self, email=None, name=None, secret=None, newpassword=None, message=None, **kwargs):
         self.template = '/auth/password.reset'
         self.title = "Password reset"
         self.ctxt['name'] = name
         self.ctxt['email'] = email
         self.ctxt['secret'] = secret
         self.ctxt['newpassword'] = ''
+        self.ctxt['message'] = message
         if name and secret and newpassword:
             try:
                 self.db.user.setpassword(name, oldpassword=None, newpassword=newpassword, secret=secret)

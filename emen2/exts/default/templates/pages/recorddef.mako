@@ -29,7 +29,7 @@
         % if new or edit:
             <li><input type="submit" value="Save">
         % else:
-            <li><a class="e2-button" href="${ctxt.root}/query/rectype.is.${recorddef.name}/">${buttons.image('query.png', 'Query')} Query</a></li>
+            <li><a class="e2-button" href="${ctxt.root}/query/results/rectype.is.${recorddef.name}/">${buttons.image('query.png', 'Query')} Query</a></li>
             <li><a class="e2-button" href="${ctxt.root}/recorddef/${recorddef.name}/edit/">${buttons.image('edit.png', 'Edit')} Edit</a></li>
             <li><a class="e2-button" href="${ctxt.root}/recorddef/${recorddef.name}/new/"><img src="${ctxt.root}/static/images/edit.png" alt="New" /> New</a></li>
         % endif

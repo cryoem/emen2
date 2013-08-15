@@ -32,8 +32,6 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     ${parent.js_ready()}
     ${buttons.tocache(rec)}
 
-    emen2.caches['recnames'] = ${recnames | n,jsonencode};
-
 	// Bind the tree controls
     $('.e2-tree').TreeControl({'attach':true});
 

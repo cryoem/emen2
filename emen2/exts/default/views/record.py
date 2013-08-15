@@ -9,10 +9,6 @@ import emen2.utils
 import emen2.web.responsecodes
 from emen2.web.view import View
 
-class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
-    title = 'Record not Found'
-    msg = 'Record %s not found'
-
 @View.register
 class Record(View):
     
@@ -21,12 +17,11 @@ class Record(View):
         """Main record rendering."""
         # Get record..
         self.rec = self.db.record.get(name, filt=False)
-        recnames = self.db.view([name])
-        self.title = recnames.get(self.rec.name, self.rec.name)
+        self.title = self.db.view(name) or self.name
 
         # Look for any recorddef-specific template.
-        template = '/record/rectypes/%s'%self.rec.rectype
         try:
+            template = '/record/rectypes/%s'%self.rec.rectype
             emen2.db.config.templates.get_template(template)
         except:
             template = '/record/rectypes/root'
@@ -69,7 +64,7 @@ class Record(View):
         recdef = self.db.recorddef.get(self.rec.rectype)
         recdefs = [recdef] + self.db.recorddef.get(children_groups.keys())
 
-        # Pages -- a deprecated UI element. 
+        # Tab pages -- a UI element. This may be replaced in the future.
         recdefs_d = dict([i.name, i] for i in recdefs)
         pages = collections.OrderedDict()
         pages.uris = {}
@@ -88,7 +83,6 @@ class Record(View):
             recdef = recdef,
             recdefs = recdefs,
             users = users,
-            recnames = recnames,
             parentmap = parentmap,
             edit = False,
             create = self.db.auth.check.create(),
@@ -99,8 +93,7 @@ class Record(View):
             siblings = siblings,
             table = "",
             pages = pages
-        )    
-        
+        )            
     
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/$', write=True)
     def edit(self, name=None, _format=None, **kwargs):
@@ -110,7 +103,8 @@ class Record(View):
             self.ctxt["edit"] = True
             return
 
-        # Get the record
+        # Check write permissions first, so we won't waste time, 
+        #   e.g. trying to upload files before failing.
         if not self.rec.writable():
             raise emen2.db.exceptions.PermissionsError, "No write permission for record %s"%self.rec.name
 
@@ -119,13 +113,15 @@ class Record(View):
             self.rec.update(kwargs)
             self.rec = self.db.record.put(self.rec)
 
+        # Upload files.
         for f in self.request_files:
             param = f.get('param', 'file_binary')
             bdo = self.db.binary.upload(f)
             self.db.binary.addreference(self.rec.name, param, bdo.name)
 
         # Redirect
-        # IMPORTANT NOTE: Some clients (EMDash) require the _format support below as part of the REST API.        
+        # IMPORTANT NOTE: Some clients (EMDash) require the 
+        #   _format support below as part of the REST API.        
         self.redirect(self._redirect or self.routing.reverse('Record/main', name=self.rec.name))
         if _format == "json":
             return jsonrpc.jsonutil.encode(self.rec)
@@ -137,7 +133,7 @@ class Record(View):
 
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/relationships/$', name='edit/relationships', write=True)
     def edit_relationships(self, name=None, **kwargs):
-        # ian: todo: Check orphans, show orphan confirmation page
+        # TODO: Check orphans, show orphan confirmation page
         self.edit(name=name, **kwargs)
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name, anchor='relationships'))
 
@@ -156,28 +152,22 @@ class Record(View):
 
         if self.request_method != 'post':
             return
-            
         if action == 'add':
             self.db.record.setpermissionscompat(names=self.rec.name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt)
-
         elif action == 'remove':
             self.db.record.setpermissionscompat(names=self.rec.name, recurse=-1, removeusers=users, removegroups=groups, filt=filt)
-
         elif action == 'overwrite':
             self.db.record.setpermissionscompat(names=self.rec.name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt, overwrite_users=True, overwrite_groups=True)
-
         else:
             self.rec['groups'] = groups
             self.rec['permissions'] = permissions
             self.rec = self.db.record.put(self.rec)
-
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name, anchor='permissions'))
 
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/new/(?P<rectype>[^/]*)/$', write=True)
     def new(self, name=None, rectype=None, _redirect=None, _format=None, **kwargs): 
         """Create a new record."""
         self.main(name=name)
-    
         newrec = self.db.record.new(rectype=rectype, inherit=[self.rec.name])
         if self.request_method not in ['post', 'put']:
             self.template = '/record/record.new'
@@ -197,6 +187,7 @@ class Record(View):
         newrec.update(kwargs)
         newrec = self.db.record.put(newrec)
 
+        # Upload any posted files.
         for f in self.request_files:
             param = f.get('param', 'file_binary')
             bdo = self.db.binary.upload(f)
@@ -207,30 +198,6 @@ class Record(View):
         if _format == "json":
             return jsonrpc.jsonutil.encode(newrec)
 
-    @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/$')
-    @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/(?P<path>.*)/$')
-    def query(self, name=None, path=None, q=None, c=None, **kwargs):
-        self.main(name=name)
-
-    # @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/(?P<path>.*)/attachments/$')
-    # @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/attachments/$')
-    # def query_attachments(self, name=None, path=None, q=None, c=None, **kwargs):
-    #     self.main(name=name)
-    #     self.template = '/record/record.query.attachments'
-    #     # Look up all the binaries
-    #     children = self.db.rel.children(self.rec.name, recurse=-1)
-    #     bdos = self.db.binary.find(record=children, count=0)
-    #     if len(bdos) > 100000 and not confirm:
-    #         raise Exception, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
-    # 
-    #     records = set([i.record for i in bdos])
-    #     users = set([bdo.get('creator') for bdo in bdos])
-    #     users = self.db.user.get(users)
-    #     # self.ctxt['tab'] = 'attachments'
-    #     self.ctxt['users'].extend(users)
-    #     self.ctxt['recnames'].update(self.db.view(records))
-    #     self.ctxt['bdos'] = bdos
-    
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/attachments/$')
     def query_attachments(self, name=None, path=None, q=None, c=None, **kwargs):
         self.main(name=name)
@@ -261,7 +228,8 @@ class Record(View):
         self.ctxt['table'] = query
         self.ctxt['tab'] = 'children-%s'%childtype
         self.ctxt['childtype'] = childtype
-        self.ctxt["pages"].active = childtype # Show the active tab -- this might go away at some point.
+        # Show the active tab -- this might go away at some point.
+        self.ctxt["pages"].active = childtype 
 
     @View.add_matcher("^/record/(?P<name>[^/]*)/hide/$", write=True)
     def hide(self, name=None, confirm=False, childaction=None):

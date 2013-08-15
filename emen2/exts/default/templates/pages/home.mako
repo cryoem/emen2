@@ -63,7 +63,7 @@ import collections
     <h1>
         Activity and recent records
         <a class="e2l-hact e2-button" href="${ctxt.root}/records/">Browse records</a>
-        <a class="e2l-hact e2-button" href="${ctxt.root}/query/">All records</a>
+        <a class="e2l-hact e2-button" href="${ctxt.root}/query/results/">All records</a>
     </h1>
 
     <div id="recent_activity">
