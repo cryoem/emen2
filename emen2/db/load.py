@@ -63,7 +63,7 @@ class Loader(BaseLoader):
             keytype = item.get('keytype')
             i = dbenv[keytype].dataclass(ctx=ctx) 
             i._load(item)
-            dbenv[keytype]._put(i, ctx=ctx, txn=txn)
+            dbenv[keytype]._puts([i], ctx=ctx, txn=txn)
             count += 1
         t = time.time()-t
         s = float(count) / t

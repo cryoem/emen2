@@ -188,7 +188,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
         if self.isowner():
             return True
         if self.record is not None:
-            rec = self._ctx.db.record.get(self.record, filt=False)
+            self._ctx.db.record.get(self.record, filt=False)
 
     def validate(self):
         # Validate

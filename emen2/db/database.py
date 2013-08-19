@@ -1267,7 +1267,7 @@ class DB(object):
         descs -= missed
 
         # Process macros.
-        for key,macro,args in macros:
+        for key, macro, args in macros:
             macro = emen2.db.macros.Macro.get_macro(macro, db=ctx.db, cache=ctx.cache)
             macro.preprocess(args, recs)
 
@@ -1924,7 +1924,7 @@ class DB(object):
         else:
             # Verified with secret.
             emen2.db.log.security("Changing email for user %s to %s"%(user.name, user.email))
-            self.dbenv['user']._put(user, ctx=ctx, txn=txn)
+            self.dbenv['user']._puts([user], ctx=ctx, txn=txn)
             # Send the user an email to acknowledge the change
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/email.verified', 'ctxt':ctxt})
 

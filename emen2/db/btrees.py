@@ -917,13 +917,6 @@ class CollectionDB(BaseDB):
             return d
         raise KeyError, "No such key %s"%(key)    
 
-    def _get_data_items(self, txn=None, flags=0):
-        # items() without ctx.
-        for k,v in self.bdb.items(txn=txn, flags=flags):
-            k = self.keyload(key)
-            v = self.dataload(v)
-            yield k,v
-
     ##### Write methods #####
 
     def validate(self, items, ctx=None, txn=None):
@@ -973,11 +966,9 @@ class CollectionDB(BaseDB):
         if commit:
             return self._puts(crecs, ctx=ctx, txn=txn)
         return crecs
-        
-    def _put(self, item, ctx=None, txn=None):
-        return self._puts([item], ctx=ctx, txn=txn)[0]
 
     def _puts(self, items, ctx=None, txn=None):
+        # Skip security checks and validation
         # TODO: ctx used only for cache.
         # Assign names for new items.
         # This will also update any relationships to uncommitted records.

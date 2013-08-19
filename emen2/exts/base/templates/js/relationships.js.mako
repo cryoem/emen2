@@ -133,7 +133,7 @@
                     .text(v.length+' '+rddesc)
                     .appendTo(elem);
                 $('<span />')
-                    .text(' (toggle)')
+                    .text(' (toggle) ')
                     .attr('data-checked', 'checked')
                     .attr('data-reltype', label)
                     .attr('data-rectype', k)

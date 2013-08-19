@@ -64,6 +64,6 @@ for i in range(count, count+block):
     rec.__dict__['history'] = sorted(history, key=lambda x:x[1])        
     # print rec.__dict__['comments']
 
-    db._db.dbenv["record"]._put(rec.name, rec, txn=txn)
+    db._db.dbenv["record"]._put_data(rec.name, rec, txn=txn)
 
 db._committxn()
