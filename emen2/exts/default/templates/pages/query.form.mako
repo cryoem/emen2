@@ -130,7 +130,7 @@ comparators = (
         <p>
             <strong>Columns:</strong>
         </p>
-        <textarea placeholder="{{recname()}} {{rectype}} {{name}}"></textarea>
+        <textarea name="view" placeholder="{{recname()}} {{rectype}} {{name}}"></textarea>
         
         <p>
             <strong class="e2-query-label">Rows:</strong> <input type="text" name="count" placeholder="100" /> <span class="e2l-small">(max 1,000)</span>

@@ -977,7 +977,7 @@ class DB(object):
         return ret
 
     @publicmethod()
-    def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, checkbox=False, keywords=None, keytype="record", view=None, ctx=None, txn=None, **kwargs):
+    def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, checkbox=False, viewdef=None, keywords=None, keytype="record", view=None, ctx=None, txn=None, **kwargs):
         """Query results in table format.
         
         This method extends query() to include rendered values in the results.
@@ -1038,7 +1038,7 @@ class DB(object):
             keytype=keytype,
             subset=subset,
             checkbox=checkbox,
-            keywords=keywords
+            keywords=keywords,
         )
 
         # Run the query

@@ -2,6 +2,8 @@
 
 import abc
 
+rni = NotImplementedError
+
 class Connection(object):
     pass
 
@@ -14,20 +16,20 @@ class EMEN2DBEnv(object):
         self.init()
 
     def create(self):
-        pass
-
+        raise rni
+        
     def open(self):
         # return Connection
-        pass
+        raise rni
 
     def init(self):
-        pass
+        raise rni
             
     def close(self):
-        pass
+        raise rni
 
     def rebuild_indexes(self):
-        pass
+        raise rni
         
     def __getitem__(self, key, default=None):
         return self.keytypes.get(key, default)
@@ -42,111 +44,111 @@ class BaseDB(object):
         self.open()
     
     def init(self):
-        pass
+        raise rni
         
     def open(self):
-        pass
+        raise rni
         
     def close(self):
-        pass
+        raise rni
         
     def truncate(self):
-        pass
+        raise rni
         
 def IndexDB(BaseDB):
     def get(self, key, default=None):
-        pass
+        raise rni
         
     def keys(self, minkey=None, maxkey=None):
-        pass
+        raise rni
         
     def items(self, minkey=None, maxkey=None):
-        pass
+        raise rni
         
     def removerefs(self, key, items):
-        pass
+        raise rni
         
     def addrefs(self, key, items):
-        pass
+        raise rni
         
 def CollectionDB(BaseDB):
     def new(self, *args, **kwargs): 
-        pass
+        raise rni
 
     def exists(self, key): 
-        pass
+        raise rni
 
     def filter(self, names=None): 
-        pass
+        raise rni
 
     def keys(self): 
-        pass
+        raise rni
 
     def items(self): 
-        pass
+        raise rni
 
     def values(self): 
-        pass
+        raise rni
 
     def get(self, key, filt=True): 
-        pass
+        raise rni
 
     def gets(self, keys, filt=True): 
-        pass
+        raise rni
 
     def _get_data(self, key, txn=None): 
-        pass
+        raise rni
 
     def validate(self, items): 
-        pass
+        raise rni
 
     def put(self, item, commit=True): 
-        pass
+        raise rni
 
     def puts(self, items, commit=True): 
-        pass
+        raise rni
 
     def _puts(self, items): 
-        pass
+        raise rni
 
     def _put_data(self, name, item): 
-        pass
+        raise rni
 
     def delete(self, name, flags=0): 
-        pass
+        raise rni
 
     def query(self, c=None, mode='AND', subset=None, keywords=None): 
-        pass
+        raise rni
 
     def getindex(self, param): 
-        pass
+        raise rni
 
     def rebuild_indexes(self): 
-        pass
+        raise rni
 
     def expand(self, names): 
-        pass
+        raise rni
 
     def parents(self, names, recurse=1): 
-        pass
+        raise rni
 
     def children(self, names, recurse=1): 
-        pass
+        raise rni
 
     def siblings(self, name): 
-        pass
+        raise rni
 
     def rel(self, names, recurse=1, rel='children', tree=False): 
-        pass
+        raise rni
 
     def pclink(self, parent, child): 
-        pass
+        raise rni
 
     def pcunlink(self, parent, child): 
-        pass
+        raise rni
 
     def relink(self, removerels=None, addrels=None): 
-        pass
+        raise rni
 
     def _bfs(self, key, rel='children', recurse=1):
-        pass
+        raise rni

@@ -11,14 +11,11 @@
         "password_expire": 5184000,
         "password_minexpire": 86400,        
         "password_recycle": 6,
-        "password_expire_initial": true,
-        
+        "password_expire_initial": true,        
         "user_inactive": 7776000,
-
         "login_attempts": 5,
         "login_rate": 180,
         "login_block": 900,
-
         "filename_whitelist": [],
         "filename_blacklist": [
             "^\\.",
@@ -27,7 +24,6 @@
             "\\.com$",
             "\\.vbs$"
         ],
-
         "email_blacklist": [],
         "email_whitelist": []
     }
