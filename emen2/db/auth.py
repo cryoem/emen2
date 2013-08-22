@@ -107,6 +107,7 @@ class PasswordAuth(object):
         return salt.split("$")[3][:SALT_BYTES]
     
     def parse(self, password):
+        password = password or ''
         p = password.split('$')
         if len(p) == 4:
             algorithm = p[1]

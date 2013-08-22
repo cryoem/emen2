@@ -59,7 +59,6 @@ class BaseDBObject(object):
     BaseDBObject also provides the following methods for extending/overriding:
 
         init             Subclass init
-        validate_param   Validate a parameter
         changedparams    Check parameters to re-index
         error            Raise an Exception (default is ValidationError)
 
@@ -88,46 +87,37 @@ class BaseDBObject(object):
     attr_public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
     keytype = property(lambda x:x.__class__.__name__.lower())
 
-    def __init__(self, _d=None, **_k):
-        """Initialize a new DBO.
-
-        You may provide either a dictionary (first argument or _d keyword)
-        or extra keyword arguments.
-        """
+    def __init__(self, **kwargs):
+        """Initialize a new DBO."""
 
         # Set the uncommitted flag. This will be stripped out when committed.
         # Check with self.isnew()
         self.__dict__['_new'] = True
 
-        # Copy input and kwargs into one dict
-        _d = dict(_d or {})
-        _d.update(_k)
-
         # Temporary setContext
-        ctx = _d.pop('ctx', None)
+        ctx = kwargs.pop('ctx', None)
         self.__dict__['_ctx'] = ctx
                 
         # Basic attributes
-        p = {}
-        p['name'] = _d.pop('name', None)
-        p['uri'] = _d.pop('uri', None)
-        p['keytype'] = _d.pop('keytype', None)
+        p = self.__dict__
+        p['name'] = kwargs.pop('name', None)
+        p['uri'] = kwargs.pop('uri', None)
+        p['keytype'] = kwargs.pop('keytype', None)
         p['creator'] = ctx.username
         p['creationtime'] = ctx.utcnow
         p['modifyuser'] = ctx.username
         p['modifytime'] = ctx.utcnow
         p['children'] = set()
         p['parents'] = set()
-        self.__dict__.update(p)
 
         # Subclass init
-        self.init(_d)
+        self.init(kwargs)
 
         # Set the context
         self.setContext(ctx)
 
         # Update with the remaining params
-        self.update(_d)
+        self.update(kwargs)
 
     def init(self, d):
         """Subclass init."""
@@ -270,7 +260,11 @@ class BaseDBObject(object):
 
         # Validate.
         # *All values* must pass through a validator.
-        value = self.validate_param(key, value)
+        validator = getattr(self, '_validate_%s'%key, None)
+        if validator:
+            value = validator(value)
+        else:
+            value = self._validate(key, value)
 
         # The setter might return multiple items that were updated
         # For instance, comments can update other params
@@ -358,7 +352,7 @@ class BaseDBObject(object):
     ##### Validation and error control #####
 
     # This is the main mechanism for validation.
-    def validate_param(self, key, value):
+    def _validate(self, key, value):
         """Validate a single parameter value."""
         # Check the cache for the param
         # ... raise an Exception if the param isn't found.

@@ -106,20 +106,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             return True
         return super(BaseUser, self).isowner()
 
-    ##### Setters #####
-
-    def _set_password(self, key, value):
-        # This will always fail unless you're an admin:
-        #   you need to specify the current password or a secret auth token.
-        self.setpassword(None, value)
-        return set(['password'])
-    
-    def _set_email(self, key, value):
-        # This will always fail unless you're an admin:
-        #   you need to specify the current password or a secret auth token.
-        self.setemail(value)
-        return set(['email'])
-    
     ##### Account inactive or expired password #####
 
     def login(self, password, events=None):
@@ -169,19 +155,30 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
     ##### Password methods #####
 
-    def checkpassword(self, password):
-        """Check the user password. Will raise a PermissionsError if failed."""
-        # Check legacy SHA-1 based password hashes..
-        # TODO: Perhaps expire these accounts and require password reset?
+    def _set_password(self, key, value):
+        # This will always fail unless you're an admin:
+        #   you need to specify the current password or a secret auth token.
+        self.setpassword(None, value)
+        return set(['password'])
+    
+    def _validate_password(self, value, recycle=None, events=None):
+        # Validate the new password.
+        value = unicode(value or '').strip()
         auth = emen2.db.auth.PasswordAuth()
-        if auth.check(password, self.password, algorithm='SHA-1'):
-            return True
+        hashpassword = auth.validate(value)
 
-        # Check the password.
-        if auth.check(password, self.password):
-            return True
+        # Check we haven't recycled an existing password.
+        recycle = emen2.db.config.get('security.password_recycle')
+        if events and recycle:
+            error = emen2.db.exceptions.RecycledPassword(name=self.name, message="You may not re-use a previously used password.")
+            auth = emen2.db.auth.PasswordAuth()
+            if auth.check(value, self.password):
+                raise error
+            for previous in events.gethistory(param='password', limit=recycle):
+                if auth.check(value, previous[3]):
+                    raise error
 
-        raise self.error(e=emen2.db.exceptions.AuthenticationError)
+        return hashpassword
 
     def setpassword(self, oldpassword, newpassword, secret=None, events=None):
         """Set the user password.
@@ -203,32 +200,27 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         else:
             raise self.error(e=emen2.db.exceptions.AuthenticationError)
 
-        # Validate the new password.
-        auth = emen2.db.auth.PasswordAuth()
-        hashpassword = auth.validate(newpassword)
-        
-        # Check we haven't recycled an existing password.
-        recycle = emen2.db.config.get('security.password_recycle')
-        if recycle:
-            self._checkrecycle(newpassword, recycle=recycle, events=events)
+        hashpassword = self._validate_password(newpassword, events=events)
         
         # Remove any secrets, if set.
         self._delsecret() 
         # Finally, set the password.
         self._set('password', hashpassword, True)
-
-    def _checkrecycle(self, password, recycle=None, events=None):
-        # If no events, nothing to do here.
-        if not events or not recycle:
-            return
-        error = emen2.db.exceptions.RecycledPassword(name=self.name, message="You may not re-use a previously used password.")
-        auth = emen2.db.auth.PasswordAuth()
-        if auth.check(password, self.password):
-            raise error
-        for previous in events.gethistory(param='password', limit=recycle):
-            if auth.check(password, previous[3]):
-                raise error
+        return self.password
         
+    def checkpassword(self, password):
+        """Check the user password. Will raise a PermissionsError if failed."""
+        # Check legacy SHA-1 based password hashes..
+        # TODO: Perhaps expire these accounts and require password reset?
+        auth = emen2.db.auth.PasswordAuth()
+        if auth.check(password, self.password, algorithm='SHA-1'):
+            return True
+
+        # Check the password.
+        if auth.check(password, self.password):
+            return True
+
+        raise self.error(e=emen2.db.exceptions.AuthenticationError)
 
     def resetpassword(self):
         """Reset the user password. 
@@ -243,10 +235,17 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
     ##### email setting/validation #####
 
+    def _set_email(self, key, value):
+        # This will always fail unless you're an admin:
+        #   you need to specify the current password or a secret auth token.
+        self.setemail(value)
+        return set(['email'])
+    
     def _validate_email(self, value):
         # After a long discussion in #python, it is impossible to validate
         #     emails other than checking for '@'
         # Note: Forcing emails to be stored as lower case.
+        value = unicode(value or '').strip()        
         _, value = email.utils.parseaddr(value)
         value = value.strip().lower()
         if '@' not in value:
@@ -276,7 +275,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         if self.isnew():
             self._set('email', value, self.isowner())
         elif self._checksecret('setemail', value, secret):
-            self._set('email', value, self.isowner())
+            self._set('email', value, True)
             self._delsecret()
         elif self.checkpassword(password):
             self._setsecret('setemail', value)
@@ -344,25 +343,23 @@ class NewUser(BaseUser):
     def _validate_signupinfo(self, rec):
         # Check signupinfo
         newsignup = {}
+        # Check child recs
+        childrecs = rec.pop('childrecs', [])
+        childrecs = [self._validate_signupinfo(i) for i in childrecs]        
+        # Validate this dict
         if not rec.get('rectype'):
             self.error(msg='No rectype specified!')
         for param, value in rec.items():
             try:
-                value = self.validate_param(param, value)
+                value = self._validate(param, value)
             except Exception, e:
                 raise self.error(msg=e.message)
             newsignup[param] = value
-        return newsignup
+        if childrecs:
+            newsignup['childrecs'] = childrecs
 
-    def validate(self):
-        super(NewUser, self).validate()
-        signupinfo = self.signupinfo or {}
-        signupinfo['rectype'] = 'person'
-        childrecs = signupinfo.pop('childrecs', [])
-        childrecs = [self._validate_signupinfo(i) for i in childrecs]
-        newsignup = self._validate_signupinfo(signupinfo)
-        newsignup['childrecs'] = childrecs
-        self.__dict__['signupinfo'] = newsignup
+        print "Validated signupinfo:", newsignup
+        return newsignup
 
     def _set_signupinfo(self, key, value):
         self.setsignupinfo(value)

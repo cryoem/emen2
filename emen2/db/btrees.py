@@ -794,7 +794,7 @@ class CollectionDB(BaseDB):
 
     ##### New items.. #####
 
-    def new(self, *args, **kwargs):
+    def new(self, **kwargs):
         """Returns new DBO. Requires ctx and txn.
 
         All the method args and keywords will be passed to the constructor.
@@ -808,7 +808,7 @@ class CollectionDB(BaseDB):
         ctx = kwargs.get('ctx', None)
         kwargs['keytype'] = self.keytype
         inherit = kwargs.pop('inherit', [])
-        item = self.dataclass(*args, **kwargs)
+        item = self.dataclass(**kwargs)
 
         for i in inherit:
             # Allow to raise an exception if does not exist or cannot read.

@@ -183,14 +183,15 @@ class _Router(emen2.web.registry.Registry):
                     return route.cls, f
         
         # Try to find a public template.
-        try:
+        if path:
             template = path[:-1]
-            makot = emen2.db.config.templates.get_template(template)
+            try:
+                makot = emen2.db.config.templates.get_template(template)
+            except Exception, e:
+                emen2.db.log.error("Couldn't render template %s: %s"%(template, e))
             route = cls.registry.get('TemplateRender/main')
             f = partial(route.method, template=template)
             return route.cls, f
-        except Exception, e:
-            emen2.db.log.error("Couldn't render template %s: %s"%(template, e))
             
         # Raise a 404.
         raise responsecodes.NotFoundError(path or name)

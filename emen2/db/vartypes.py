@@ -163,7 +163,7 @@ class Vartype(object):
         :param value: Validate this value.
         :return: The validated value.
         """
-        raise ValidationError, "%s is an organizational parameter, and is not intended to be used."%self.pd.name
+        raise ValidationError, "%s is an internal or organizational parameter, and is not intended to be used."%self.pd.name
 
     def _validate_reference(self, value, keytype=None):
         # Validate a reference to another database object.
@@ -206,6 +206,9 @@ class Vartype(object):
         return {}, {}
 
     def reindex(self, items):
+        if not self.keyformat:
+            return {}, {}
+            
         addrefs = collections.defaultdict(set)
         delrefs = collections.defaultdict(set)
         for name, new, old in items:
@@ -304,7 +307,15 @@ class Vartype(object):
         if add:
             lis.append("""<li>%s</li>"""%add)
         return """<ul>%s</ul>"""%"".join(lis)
-        
+
+
+class vt_unindexed(Vartype):
+    keyformat = None
+
+@Vartype.register('password')
+class vt_password(Vartype):
+    keyformat = None
+
 @Vartype.register('none')
 class vt_none(Vartype):
     pass
@@ -589,6 +600,17 @@ class vt_uri(Vartype):
             if not v.startswith("http://"):
                 raise ValidationError, "Invalid URI: %s"%value
         return self._rci(value)
+
+# JSON
+@Vartype.register('json')
+class vt_json(Vartype):
+    """JSON."""
+    keyformat = None
+    def validate(self, value):
+        if not value:
+            return None
+        return json.dumps(json.loads(value))
+
 
 # Mapping types
 @Vartype.register('dict')

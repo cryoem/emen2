@@ -241,6 +241,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
     def _validate_filename(self, value):
         """
         """
+        value = unicode(value or '').strip()
         # ... make this a regex.
         value = "".join([i for i in value if i.isalpha() or i.isdigit() or i in '.()-=_'])
 

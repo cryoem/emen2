@@ -52,8 +52,8 @@ core_paramdefs = [
 {"name": "disabled", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Disabled account"},
 # ... these just exist for validation.
 {"name": "displayname", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Display name"},
-{"name": "password", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Password"},
-{"name": "signupinfo", "keytype": "paramdef", "parents": ["core"], "vartype": "dict", "desc_short": "Signup Info"},
+{"name": "password", "keytype": "paramdef", "parents": ["core"], "vartype": "password", "desc_short": "Password"},
+{"name": "signupinfo", "keytype": "paramdef", "parents": ["core"], "vartype": "json", "desc_short": "Signup Info"},
 
 # Record
 {"name": "rectype", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol"},
@@ -146,6 +146,7 @@ base_paramdefs = [
 },
 
 {"name": "name_group", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Group name"},
+{"name": "department", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Department"},
 {"name": "institution", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Institution"},
 {"name": "name_contact", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Contact person"},
 {"name": "phone", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Phone"},
