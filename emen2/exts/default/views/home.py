@@ -91,8 +91,8 @@ class Home(View):
 
         # Default group and project recorddefs
         recorddef_defaults = emen2.db.config.get('customization.recorddef_defaults')
-        self.ctxt['default_project'] = self.db.recorddef.get(recorddef_defaults.get('project', 'project'))
-        self.ctxt['default_group'] = self.db.recorddef.get(recorddef_defaults.get('group','group'))
+        self.ctxt['default_project'] = self.db.recorddef.get(recorddef_defaults.get('project', 'project')) or self.db.recorddef.get('root')
+        self.ctxt['default_group'] = self.db.recorddef.get(recorddef_defaults.get('group','group')) or self.db.recorddef.get('root')
 
         # Update context
         self.ctxt['recnames'] = recnames

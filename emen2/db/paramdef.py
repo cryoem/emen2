@@ -15,7 +15,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     
     Provides the following attributes:
         desc_short, desc_long, vartype, choices, defaultunits, property, 
-        indexed, iter, immutable, property, indexed, controlhint
+        indexed, iter, immutable, property, indexed
     
     Please be aware that several attributes are effectively immutable, and
     cannot be easily changed after a ParamDef is created because it would
@@ -49,14 +49,6 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     among users, and are usually combined with query results to give additional
     common choices. However, for vartype 'choice', the list of choices is
     enforced as the only allowed values. Choices can be edited after creation.
-    
-    Editing widgets are usually determined by the vartype (this choice is
-    always up to that particular user interface.) However, some vartypes might
-    be edited in several different fashions, and a particular editing control
-    might be more effective than the default. In these cases, the 'controlhint'
-    attribute can be used to describe a different editing widget. It is just a
-    string; it is up to the user interface to interpret it. The controlhint can
-    be changed after creation.
     
     If a ParamDef represents a particular measurable physical property (length,
     volume, mass, pH, etc.) the 'property' attribute can be set to reference a
@@ -102,12 +94,11 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     :attr indexed: Values are indexed
     :attr iter: Values can be iterable
     :attr immutable: ParamDef is locked
-    :attr controlhint: Hint for user-interface widget
     """
     
     attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(['immutable', 
         'iter', 'desc_long', 'desc_short', 'choices', 'vartype',
-        'defaultunits', 'property', 'indexed', 'controlhint'])
+        'defaultunits', 'property', 'indexed'])
 
     def init(self, d):
         # Variable data type. List of valid types in the module global 'vartypes'
@@ -136,9 +127,6 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
         # turn indexing on/off, if vartype allows for it
         self.__dict__['indexed'] = True
-        
-        # Widget hint
-        self.__dict__['controlhint'] = None
 
     def validate(self):
         if not self.vartype:
@@ -161,15 +149,15 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     # Several values can only be changed by administrators.
 
     def _set_choices(self, key, value):
-        value = emen2.utils.check_iterable(value)
-        value = filter(None, [unicode(i) for i in value]) or None
+        value = map(self._strip, emen2.utils.check_iterable(value))
+        value = filter(None, value) or None
         return self._set(key, value, self.isowner())
 
     def _set_desc_short(self, key, value):
-        return self._set(key, unicode(value or self.name), self.isowner())
+        return self._set(key, self._strip(value or self.name), self.isowner())
 
     def _set_desc_long(self, key, value):
-        return self._set(key, unicode(value or ''), self.isowner())
+        return self._set(key, self._strip(value), self.isowner())
 
     # Only admin can change defaultunits/immutable/indexed/vartype.
     # This should still generate lots of warnings.
@@ -187,43 +175,28 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         if not self.isnew():
             raise self.error("Cannot change indexed from %s to %s."%(self.indexed, value))
         return self._set(key, bool(value), self.isowner())
-
-    def _set_controlhint(self, key, value):
-        if value != None:
-            value = unicode(value)
-        value = value or None
-        return self._set(key, value, self.isowner())
-                
+            
     # These can't be changed, it would disrupt the meaning of existing Records.
     def _set_vartype(self, key, value):
         if not self.isnew():
             raise self.error("Cannot change vartype from %s to %s."%(self.vartype, value))
-
-        value = unicode(value or '') or None
-
+        value = self._strip(value)
         if value not in emen2.db.vartypes.Vartype.registered:
             raise self.error("Invalid vartype: %s"%value)
-
         return self._set(key, value, self.isowner())
 
     def _set_property(self, key, value):
         if not self.isnew():
             raise self.error("Cannot change property from %s to %s."%(self.property, value))
-
-        value = unicode(value or '')
-        if value in ['None', None, '']:
-            value = None
-
+        value = self._strip(value)
         # Allow for unsetting
         if value != None and value not in emen2.db.properties.Property.registered:
             raise self.error("Invalid property: %s"%value)
-
         return self._set('property', value, self.isowner())
 
     def _set_defaultunits(self, key, value):
         if not self.isnew():
             raise self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
-
-        value = unicode(value or '') or None
+        value = self._strip(value)
         value = emen2.db.properties.equivs.get(value, value)
         return self._set('defaultunits', value, self.isowner())

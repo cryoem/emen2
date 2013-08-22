@@ -322,7 +322,8 @@ class Query(object):
         reverse = bool(reverse)
         if sortkey == 'name':
             # Shortcut.
-            if self.btree.keytype == 'record':
+            sequence = emen2.db.config.get('record.sequence')
+            if self.btree.keytype == 'record' and sequence:
                 result = sorted(self.result, reverse=reverse, key=lambda x:int(x))
             else:
                 result = sorted(self.result, reverse=reverse)                

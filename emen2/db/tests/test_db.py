@@ -148,7 +148,6 @@ class TestDB(unittest.TestCase):
         recorddef = self.db.recorddef.new(name='testrecorddef', mainview='$$name_folder $$address_city')
         self.db.recorddef.put(recorddef)
         rd = self.db.recorddef.get(recorddef.name)
-        self.assertEqual(rd.paramsK, set(['name_folder','address_city']))
 
     def test_record_render(self):
         recorddef = self.db.recorddef.new(name='testrecorddef', mainview='$$name_folder $$address_city')

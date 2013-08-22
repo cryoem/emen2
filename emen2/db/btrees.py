@@ -92,10 +92,10 @@ class EMEN2DBEnv(object):
         self.dbenv = self.open()
         self.init()
         
-    def _load_json(self, infile, keytypes=None, ctx=None, txn=None):
+    def _load_json(self, infile, keytypes=None, raw=False, ctx=None, txn=None):
         """Load a JSON file containing DBOs."""
         # Create a special root context to load the items
-        loader = emen2.db.load.BaseLoader(infile=infile)
+        loader = emen2.db.load.Loader(infile=infile)
         keytypes = keytypes or ['paramdef', 'user', 'group', 'recorddef', 'binary', 'record']
         for keytype in keytypes:
             children = collections.defaultdict(set)
@@ -103,22 +103,24 @@ class EMEN2DBEnv(object):
             for item in loader.loadfile(keytype=keytype):
                 emen2.db.log.debug("BDB: Load %s %s"%(keytype, item.get('name')))
                 name = item.get('name')
-                uri = item.pop('uri', None)
-                orig = None
-                try:
-                    orig = self[keytype]._get_data(name, txn=txn)
-                except KeyError, e:
-                    pass
-                if orig and orig.get('uri') != uri:
-                    print "SKIPPING", name
-                    continue
-                
-                # children[name] = set(item.pop('children', []))
-                # parents[name] = set(item.pop('parents', []))
-                i = self[keytype].dataclass(ctx=ctx)
-                i._load(item)
-                i.__dict__['uri'] = uri
-                self[keytype]._put_data(i.name, i, txn=txn)
+                uri = item.pop('get', None)
+                children[name] = set(item.pop('children', []))
+                parents[name] = set(item.pop('parents', []))
+                # if raw:
+                #     orig = None
+                #     try:
+                #         orig = self[keytype]._get_data(name, txn=txn)
+                #     except KeyError, e:
+                #         pass
+                #     if orig and orig.get('uri') != uri:
+                #         print "Skipping due to URI difference:", name
+                #         continue
+                # 
+                #     i = self[keytype].dataclass(ctx=ctx)
+                #     i._load(item)
+                #     self[keytype]._put_data(i.name, i, txn=txn)
+                # else:
+                self[keytype].puts([item], ctx=ctx, txn=txn)
 
             for k,v in children.items():
                 for v2 in v:
@@ -132,22 +134,18 @@ class EMEN2DBEnv(object):
         # Start txn
         ctx = emen2.db.context.SpecialRootContext()
         txn = self.newtxn(write=True)
+        # Load core ParamDefs... Items defined in core.json are required.
         keytypes = ['paramdef', 'recorddef']
-        
-        # Load core ParamDefs... Items defined in base.json are required.
-        infile = emen2.db.config.get_filename('emen2', 'db/base.json')
+        infile = emen2.db.config.get_filename('emen2', 'db/core.json')
         self._load_json(infile, keytypes=keytypes, ctx=ctx, txn=txn)
+        # for keytype in keytypes:
+        #    self[keytype].rebuild_indexes(ctx=ctx, txn=txn)
 
         # Load DBOs from extensions.
-        emen2.db.config.load_jsons(cb=self._load_json, keytypes=keytypes, ctx=ctx, txn=txn)
+        # emen2.db.config.load_jsons(cb=self._load_json, keytypes=keytypes, ctx=ctx, txn=txn)
 
         # Commit txn
         self.txncommit(txn=txn)
-        
-        # self._load_json does not update indexes; do this manually.
-        self['paramdef'].rebuild_indexes(ctx=ctx, txn=txn)
-        self['recorddef'].rebuild_indexes(ctx=ctx, txn=txn)
-
     
     def open(self):
         """Open the Database Environment."""
@@ -350,7 +348,7 @@ class BaseDB(object):
     :attr DBSETFLAGS: Additional flags
     """
 
-    def __init__(self, filename, keyformat='str', dataformat='str', dataclass=None, dbenv=None, extension='bdb', ):
+    def __init__(self, filename, keyformat='str', dataformat='str', dataclass=None, dbenv=None, extension='bdb'):
         """Create and open the DB.
         
         :param filename: Base filename to use
@@ -764,6 +762,9 @@ class CollectionDB(BaseDB):
         # Sequences
         self.sequencedb = None
         
+        # Relationships
+        self.rels = {}
+        
         # Indexes
         self.indexes = {}
         self._truncate_index = False
@@ -1070,7 +1071,7 @@ class CollectionDB(BaseDB):
 
         # If we can't access the index, skip. (Raise Exception?)
         ind = self.getindex(param, txn=txn)
-        indkeywords = self.getindex('keywords', txn=txn)
+        # indkeywords = self.getindex('keywords', txn=txn)
         if ind == None:
             return
 
@@ -1084,7 +1085,7 @@ class CollectionDB(BaseDB):
         # Process the changes into index addrefs / removerefs
         try:
             addrefs, removerefs = vt.reindex(changes)
-            addkeywords, removekeywords = vt.reindex_keywords(changes)
+            # addkeywords, removekeywords = vt.reindex_keywords(changes)
         except Exception, e:
            print "Could not reindex param %s: %s"%(pd.name, e)
            return
@@ -1094,10 +1095,10 @@ class CollectionDB(BaseDB):
             ind.removerefs(oldval, recs, txn=txn)
         for newval,recs in addrefs.items():
             ind.addrefs(newval, recs, txn=txn)
-        for oldval, recs in removekeywords.items():
-            indkeywords.removerefs(oldval, recs, txn=txn)
-        for newval,recs in addkeywords.items():
-            indkeywords.addrefs(newval, recs, txn=txn)
+        # for oldval, recs in removekeywords.items():
+        #     indkeywords.removerefs(oldval, recs, txn=txn)
+        # for newval,recs in addkeywords.items():
+        #     indkeywords.addrefs(newval, recs, txn=txn)
 
     ##### Manage indexes. #####
 
@@ -1205,7 +1206,7 @@ class CollectionDB(BaseDB):
 
     def _key_generator(self, item, txn=None):
         # Set name policy in this method.
-        return unicode(item.name or emen2.db.database.getrandomid())
+        return unicode(item.name or emen2.db.database.getnewid())
 
     def _incr_sequence(self, key='sequence', txn=None):
         # Update a sequence key. Requires txn.
@@ -1481,6 +1482,9 @@ class CollectionDB(BaseDB):
         # each item, and then update the parents/children IndexDBs.
         indc = self.getindex('children', txn=txn)
         indp = self.getindex('parents', txn=txn)
+        if not indc or not indp:
+            emen2.db.log.debug("BDB: No index for parents or children!")
+            return
 
         # The names of new items.
         names = []
@@ -1562,6 +1566,10 @@ class CollectionDB(BaseDB):
 
         # Get the index, and create a cursor here (slightly faster)
         rel = self.getindex(rel, txn=txn)
+        if not rel:
+            emen2.db.log.debug("BDB: No index for parents or children!")
+            return {}, set()
+            
         cursor = rel.bdb.cursor(txn=txn)
 
         # Starting items
@@ -1604,13 +1612,12 @@ class BinaryDB(CollectionDB):
         # Return the new name.
         return newdkey['name']
 
-ALLOW_RECORD_NAMES = False
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
         # Set name policy in this method.
-        if ALLOW_RECORD_NAMES:
-            return unicode(item.name or emen2.db.database.getrandomid())
-        return unicode(self._incr_sequence(txn=txn))
+        if emen2.db.config.get('record.sequence'):
+            return unicode(self._incr_sequence(txn=txn))
+        return unicode(item.name or emen2.db.database.getnewid())
 
     # Todo: integrate with main filter method, since this works
     # for all permission-defined items.
@@ -1621,9 +1628,10 @@ class RecordDB(CollectionDB):
         """
         if names is None:
             if ctx.checkreadadmin():
-                m = self._get_max(txn=txn)
-                return set(map(unicode, range(0, m)))
-                # return set(self.keys(txn=txn))
+                if emen2.db.config.get('record.sequence'):
+                    m = self._get_max(txn=txn)
+                    return set(map(unicode, range(0, m)))
+                return set(self.keys(txn=txn))  
             ind = self.getindex("permissions", txn=txn)
             indc = self.getindex('creator', txn=txn)
             indg = self.getindex("groups", txn=txn)

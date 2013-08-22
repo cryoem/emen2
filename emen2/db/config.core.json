@@ -139,6 +139,11 @@
         "email_blacklist": [],
         "email_whitelist": []
     },
+    
+    "record": {
+        "sequence": false,
+        "root": "root"
+    },
 
     // User settings
     "users":{

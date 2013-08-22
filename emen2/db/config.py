@@ -262,7 +262,7 @@ class UsageParser(object):
         self.config.load_data(EMEN2DBHOME=h)
 
         # Load the base configuration.
-        self.config.load_file(get_filename('emen2', 'db/config.base.json'))
+        self.config.load_file(get_filename('emen2', 'db/config.core.json'))
 
         # Load other specified config files
         for f in self.options.get('configfile', []):

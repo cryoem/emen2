@@ -347,7 +347,7 @@ class Record(View):
 class Records(View):
     
     @View.add_matcher(r"^/records/$")
-    def main(self, root="0", removerels=None, addrels=None, **kwargs):
+    def main(self, root="root", removerels=None, addrels=None, **kwargs):
         kwargs['recurse'] = kwargs.get('recurse', 2)
         childmap = self.routing.execute('Tree/embed', db=self.db, mode="children", keytype="record", root=root, recurse=kwargs.get('recurse'), id='sitemap')
         self.template = '/pages/records.tree'
@@ -357,7 +357,7 @@ class Records(View):
         self.ctxt['create'] = self.db.auth.check.create()
 
     @View.add_matcher(r"^/records/edit/relationships/$", write=True)
-    def edit_relationships(self, root="0", removerels=None, addrels=None, **kwargs):
+    def edit_relationships(self, root="root", removerels=None, addrels=None, **kwargs):
         self.title = 'Edit record relationships'
         if self.request_method != 'post':
             kwargs['recurse'] = kwargs.get('recurse', 2)

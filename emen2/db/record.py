@@ -116,12 +116,10 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
         # Check the rectype and any required parameters
         # (Check the cache for the recorddef)
-        cachekey = ('recorddef', self.rectype)
-        hit, rd = self._ctx.cache.check(cachekey)
-
         if not self.rectype:
             raise self.error('Protocol required')
-
+        cachekey = ('recorddef', self.rectype)
+        hit, rd = self._ctx.cache.check(cachekey)
         if not hit:
             try:
                 rd = self._ctx.db.recorddef.get(self.rectype, filt=False)
@@ -133,16 +131,14 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         # for param in rd.paramsR:
         #     if self.get(param) is None:
         #         raise self.error("Required parameter: %s"%(param))
-
-        self.__dict__['rectype'] = unicode(rd.name)
+        self.__dict__['rectype'] = self._strip(rd.name)
 
     ##### Setters #####
 
     def _set_rectype(self, key, value):
         if not self.isnew():
-            raise self.error("Cannot change rectype")
-        self.__dict__['rectype'] = unicode(value)
-        return set(['rectype'])
+            raise self.error("Cannot change rectype from %s to %s."%(self.rectype, value))
+        return self._set(key, self._strip(value), self.isowner())
         
     def _set_comments(self, key, value):
         """Bind record['comments'] setter"""
@@ -155,6 +151,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         if not self.writable():
             msg = "Insufficient permissions to change param %s"%key
             raise self.error(msg, e=emen2.db.exceptions.PermissionsError)
+
+        value = self._validate(key, value)
 
         # No change
         if self.params.get(key) == value:

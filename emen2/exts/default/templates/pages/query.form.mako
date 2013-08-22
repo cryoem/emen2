@@ -16,7 +16,7 @@ import random
         .FindControl({});
         
     $('.e2-query-tree').TreeBrowseControl({
-        root: "0",
+        root: "root",
         keytype: "record",
         selected: function(ui, name) {
             // Hacked: fix

@@ -177,8 +177,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
         self.__dict__['md5'] = None
         self.__dict__['filesize'] = None
         self.__dict__['compress'] = False
-        self.__dict__['filesize_compress'] = None
-        self.__dict__['md5_compress'] = None
         self.__dict__['_filepath'] = None
         self._filepath = None
 
@@ -205,38 +203,26 @@ class Binary(emen2.db.dataobject.BaseDBObject):
     def _set_md5(self, key, value):
         if not self.isnew():
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
-        return self._set(key, value, self.isowner())
-
-    def _set_md5_compress(self, key, value):
-        if not self.isnew():
-            raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
-        return self._set(key, value, self.isowner())
+        return self._set(key, self._strip(value), self.isowner())
 
     def _set_compress(self, key, value):
         if not self.isnew():
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
-        return self._set(key, value, self.isowner())
+        return self._set(key, self._strip(value), self.isowner())
 
     def _set_filesize(self, key, value):
         if not self.isnew():
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
-        return self._set(key, value, self.isowner())
-
-    def _set_filesize_compress(self, key, value):
-        if not self.isnew():
-            raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
-        return self._set(key, value, self.isowner())
+        return self._set(key, int(value), self.isowner())
 
     # These can be changed normally
     def _set_filename(self, key, value):
         # Sanitize filename.. This will allow unicode characters,
         #    and check for reserved filenames on linux/windows
-        value = unicode(value)
-        value = self._validate_filename(value)
-        return self._set(key, value, self.isowner())
+        return self._set(key, self._validate_filename(value), self.isowner())
 
     def _set_record(self, key, value):
-        return self._set(key, value, self.isowner())
+        return self._set(key, self._strip(value), self.isowner())
         
     def _validate_filename(self, value):
         """

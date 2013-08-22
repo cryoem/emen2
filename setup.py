@@ -13,7 +13,7 @@ if __name__ == "__main__":
         ]
         
     package_data = {        
-        'emen2.db': ['config.base.json', 'skeleton.json', 'base.json', 'bulk.c'],
+        'emen2.db': ['config.core.json', 'skeleton.json', 'core.json', 'bulk.c'],
         'emen2.web': ['static/*.*', 'static/*/*.*', 'static/*/*/*.*', 'static/*/*/*/*.*']
     }
     

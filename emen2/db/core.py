@@ -5,9 +5,10 @@ core_paramdefs = [
 # Core ParamDefs
 {"name": "root", "keytype": "paramdef", "parents": [], "vartype": "none", "desc_short": "Root parameter"},
 {"name": "core", "keytype": "paramdef", "parents": ["root"], "vartype": "none", "desc_short": "Core parameters"},
-{"name": "base", "keytype": "paramdef", "parents": ["root"], "vartype": "none", "desc_short": "Parameters for base protocols"},
 
 # Links
+{"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "link", "iter": True, "desc_short": "Parents"},
+{"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "link", "iter": True, "desc_short": "Children"},
 {"name": "record", "keytype": "paramdef", "parents": ["core"], "vartype": "record", "desc_short": "Record"},
 {"name": "paramdef", "keytype": "paramdef", "parents": ["core"], "vartype": "paramdef", "desc_short": "Parameter"},
 {"name": "user", "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "User"},
@@ -23,8 +24,6 @@ core_paramdefs = [
 {"name": "modifytime", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Modification time", "desc_long": "Timestamp of last modification"},
 {"name": "modifyuser", "immutable": True, "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record"},
 {"name": "uri", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "uri", "desc_short": "Resource location", "desc_long": "Resource location of an imported object"},
-{"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "link", "iter": True, "desc_short": "Parents"},
-{"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "link", "iter": True, "desc_short": "Children"},
 {"name": "permissions", "keytype": "paramdef","parents": ["core"], "vartype": "acl", "desc_short": "Permissions"},
 {"name": "keywords", "keytype": "paramdef","parents": ["core"], "vartype": "keywords", "desc_short": "Keywords"},
 
@@ -32,7 +31,6 @@ core_paramdefs = [
 {"name": "vartype", "immutable": True, "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Value type"},
 {"name": "immutable", "immutable": True, "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Default units"},
 {"name": "iter", "immutable": True, "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Iterable"},
-{"name": "controlhint", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Control hint"},
 {"name": "desc_short", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Short description"},
 {"name": "desc_long", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Long description"},
 {"name": "property", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Physical property"},
@@ -50,10 +48,7 @@ core_paramdefs = [
 {"name": "email", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Email"},
 {"name": "privacy", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "desc_short": "User privacy"},
 {"name": "disabled", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Disabled account"},
-# ... these just exist for validation.
-{"name": "displayname", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Display name"},
-{"name": "password", "keytype": "paramdef", "parents": ["core"], "vartype": "password", "desc_short": "Password"},
-{"name": "signupinfo", "keytype": "paramdef", "parents": ["core"], "vartype": "json", "desc_short": "Signup Info"},
+{"name": "password", "keytype": "paramdef", "parents": ["core"], "vartype": "password", "desc_short": "Password", "indexed": False},
 
 # Record
 {"name": "rectype", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol"},
@@ -68,8 +63,14 @@ core_paramdefs = [
 {"name": "compress", "keytype": "paramdef", "parents":["core"], "vartype": "string", "desc_short": "Compressed format"}
 ]
 
-base_paramdefs = [
+# Core RecordDefs
+core_recorddefs = [
+{"name":"root", "keytype":"recorddef", "mainview":"# {{desc_short}}  \n{{desc_long}} \n", "views":{"recname":"Root: {{desc_short}}", "banner":"{{desc_long}}"}, "desc_short":"Root protocol"}
+]
+
 # For base RecordDefs
+base_paramdefs = [
+{"name": "base", "keytype": "paramdef", "parents": ["root"], "vartype": "none", "desc_short": "Parameters for base protocols"},
 {"name": "name_first", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "First name"},
 {"name": "name_middle", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Middle name"},
 {"name": "name_last", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Last name"},
@@ -153,12 +154,8 @@ base_paramdefs = [
 {"name": "website", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Website"},
 ]
 
-core_recorddefs = [
-{"name":"root", "keytype":"recorddef", "mainview":"# {{desc_short}}  \n{{desc_long}} \n", "views":{"recname":"Root: {{desc_short}}", "banner":"{{desc_long}}"}, "desc_short":"Root protocol"}
-]
-
 base_recorddefs = [
-{"name":"base", "keytype":"recorddef", "mainview":"Core protocols.", "desc_short":"Core protocols", "parents":["root"]},
+{"name":"base", "keytype":"recorddef", "mainview":"Base protocols.", "desc_short":"Base protocols", "parents":["root"]},
 {"name":"experiments", "keytype":"recorddef", "mainview":"Experimental protocols.", "desc_short":"Experimental protocols", "parents":["root"]},
 
 {
@@ -170,7 +167,7 @@ base_recorddefs = [
 # Person
 Do not edit directly. Use the user profile view.
 """,
-'parents': ['core'],
+'parents': ['base'],
 'views': { 'recname': 'Person: {{name_first}} {{name_last}}'}
 },
 
@@ -188,7 +185,7 @@ $#website: $$website
 $#email: $$email     
 """,
 'name': 'group',
-'parents': ['core'],
+'parents': ['base'],
 'views': { 'recname': """$$name_group""",
          'tabularview': """$$name_group $$institution $$name_contact"""}
 },
@@ -202,7 +199,7 @@ $#email: $$email
 Description: {{folder_description}}
 """,
 'name': 'folder',
-'parents': ['core'],
+'parents': ['base'],
 'private': False,
 'typicalchld': [],
 'views': { 'banner': '{{folder_description}}', 'recname': """{{name_folder}}""", 'tabularview': """{{name_folder}} {{folder_description}}"""}
@@ -210,7 +207,7 @@ Description: {{folder_description}}
 
 {
 'name': 'project',
-'parents': ['core'],
+'parents': ['base'],
 'desc_long': 'A project. This should be used in a broad sense, such as an entire collaboration. For each specific goal, an additional child project should be created. Parent will usually be a group record.',
 'desc_short': 'Project',
 'keytype': 'recorddef',
@@ -234,5 +231,7 @@ Description: {{folder_description}}
 ]
 
 if __name__ == "__main__":
-    emen2.db.dump.dump_json(sys.argv[1], items=core_paramdefs+base_paramdefs+core_recorddefs+base_recorddefs, uri="http://ncmidb.bcm.edu")
+    emen2.db.dump.dump_json('core.json', items=core_paramdefs+core_recorddefs, uri="http://ncmidb.bcm.edu")
+    emen2.db.dump.dump_json('base.json', items=base_paramdefs+base_recorddefs, uri="http://ncmidb.bcm.edu")
+
 

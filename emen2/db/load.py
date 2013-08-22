@@ -1,11 +1,8 @@
 """Load a dumped database
 
-Functions:
-    random_password
-
 Classes:
-    BaseLoader
     Loader
+    RegularLoader
 """
 
 import os
@@ -23,11 +20,7 @@ import jsonrpc.jsonutil
 # EMEN2 imports
 import emen2.db.config
 
-def random_password(N):
-    """Generate a random password of length N."""
-    return ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
-
-class BaseLoader(object):
+class Loader(object):
     """Load database objects from a JSON file."""
     def __init__(self, db=None, infile=None):
         self.infile = infile
@@ -51,7 +44,7 @@ class BaseLoader(object):
                     else:
                         yield item
 
-class Loader(BaseLoader):
+class RegularLoader(Loader):
     def load(self):
         t = time.time()
         count = 0
@@ -59,11 +52,16 @@ class Loader(BaseLoader):
         ctx = self.db._ctx
         txn = self.db._txn
         for item in self.loadfile():
-            print "\n======= put count %s"%count
             keytype = item.get('keytype')
-            i = dbenv[keytype].dataclass(ctx=ctx) 
-            i._load(item)
-            dbenv[keytype]._puts([i], ctx=ctx, txn=txn)
+            name = item.get('name')
+            # print "===== %s: %s"%(keytype, name)
+            # print item
+            # i = dbenv[keytype].dataclass(ctx=ctx) 
+            # i._load(item)
+            try:
+                dbenv[keytype].puts([item], ctx=ctx, txn=txn)
+            except Exception, e:
+                print "Could not put", keytype, name, ":", e
             count += 1
         t = time.time()-t
         s = float(count) / t
@@ -77,6 +75,9 @@ if __name__ == "__main__":
     import emen2.db
     cmd, db = emen2.db.opendbwithopts(optclass=LoadOptions, admin=True)
     with db._newtxn(write=True):
-        loader = Loader(db=db, infile=cmd.options['infile'])
+        loader = RegularLoader(db=db, infile=cmd.options['infile'])
         loader.load()
+            
+            
+            
             

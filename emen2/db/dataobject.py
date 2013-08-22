@@ -193,14 +193,9 @@ class BaseDBObject(object):
         return cp
 
     def _load(self, update):
-        """Load from a JSON file; this skips validation on a few keys."""
+        """Load from a dictionary; this skips validation on some keys."""
         if not self.isnew():
             raise self.error('Cannot update previously committed items this way.')
-
-        # Skip validation for relationships.
-        # This will assume they are the correct data format.
-        for key in ['parents', 'children']:
-           self.__dict__[unicode(key)] = set(update.pop(key, None) or [])
 
         # Skip validation?
         keys = self.attr_public & set(update.keys())
@@ -234,8 +229,8 @@ class BaseDBObject(object):
     # Check if there is a method for setting this key,
     # validate the value, set the value, and update the time stamp.
     def __setitem__(self, key, value):
-        """Validate and set an attribute or key."""
-        # This will validate the parameter, look for a setter, and then call the setter.
+        """Set an attribute or key."""
+        # This will look for a setter, and then call the setter.
         # If a "_set_<key>" method exists, that will always be used for setting.
         # Then if no setter, and the method is part of the public attrs, then silently return.
         # Finally, use _setoob as the setter. This can allow 'out of bounds' attrs, or raise error (default).
@@ -258,14 +253,6 @@ class BaseDBObject(object):
             # Record class will use this to set non-attribute parameters
             setter = self._setoob
 
-        # Validate.
-        # *All values* must pass through a validator.
-        validator = getattr(self, '_validate_%s'%key, None)
-        if validator:
-            value = validator(value)
-        else:
-            value = self._validate(key, value)
-
         # The setter might return multiple items that were updated
         # For instance, comments can update other params
         cp |= setter(key, value)
@@ -281,6 +268,9 @@ class BaseDBObject(object):
         return cp
 
     ##### Real updates #####
+
+    def _strip(self, value):
+        return unicode(value or '').strip() or None
 
     def _set(self, key, value, check):
         """Actually set a value. 
@@ -316,7 +306,7 @@ class BaseDBObject(object):
         """Set a relationship. Make sure we have permissions to edit the relationship."""
         # Filter out changes to permissions on records
         # that we can't access...
-        value = set(emen2.utils.check_iterable(value))
+        value = set(map(self._strip, emen2.utils.check_iterable(value)))
         orig = self.get(key)
         changed = orig ^ value
 
@@ -464,16 +454,6 @@ class PermissionsDBObject(BaseDBObject):
             p['permissions'][3].append(self._ctx.username)
         self.__dict__.update(p)
 
-    ##### Setters #####
-
-    def _set_permissions(self, key, value):
-        self.setpermissions(value)
-        return set(['permissions'])
-
-    def _set_groups(self, key, value):
-        self.setgroups(value)
-        return set(['groups'])
-
     ##### Permissions checking #####
 
     def setContext(self, ctx):
@@ -569,9 +549,13 @@ class PermissionsDBObject(BaseDBObject):
         """Get a tuple with permission checks for each level"""
         return self._ptest
 
-    ##### Users #####
+    ##### Permissions #####
 
-    def _check_permformat(self, value):
+    def _set_permissions(self, key, value):
+        self.setpermissions(value)
+        return set(['permissions'])
+
+    def _validate_permissions(self, value):
         if hasattr(value, 'items'):
             v = [[],[],[],[]]
             ci = emen2.utils.check_iterable
@@ -594,7 +578,6 @@ class PermissionsDBObject(BaseDBObject):
         """
         if not users:
             return
-
         if not hasattr(users,"__iter__"):
             users = [users]
 
@@ -603,19 +586,15 @@ class PermissionsDBObject(BaseDBObject):
             raise Exception, "Invalid permissions level. 0 = Read, 1 = Comment, 2 = Write, 3 = Owner"
 
         p = [set(x) for x in self.permissions]
-
         # Root is implicit
         users = set(users) - set(['root'])
-
         if reassign:
             p = [i-users for i in p]
 
         p[level] |= users
-
         p[0] -= p[1] | p[2] | p[3]
         p[1] -= p[2] | p[3]
         p[2] -= p[3]
-
         self.setpermissions(p)
 
     def addumask(self, value, reassign=False):
@@ -625,12 +604,10 @@ class PermissionsDBObject(BaseDBObject):
         :type value: [ [str], [str], [str] ]
         :param reassign: Whether or not the users added should be reassigned. (default False)
         """
-        umask = self._check_permformat(value)
-
+        umask = self._validate_permissions(value)
         p = [set(x) for x in self.permissions]
         umask = [set(x) for x in umask]
         users = reduce(set.union, umask)
-
         if reassign:
             p = [i-users for i in p ]
 
@@ -638,28 +615,29 @@ class PermissionsDBObject(BaseDBObject):
         p[0] -= p[1] | p[2] | p[3]
         p[1] -= p[2] | p[3]
         p[2] -= p[3]
-
         self.setpermissions(p)
 
     def removeuser(self, users):
         """Remove users from permissions."""
         if not users:
             return
-
         p = [set(x) for x in self.permissions]
         if not hasattr(users, "__iter__"):
             users = [users]
         users = set(users)
         p = [i-users for i in p]
-
         self.setpermissions(p)
 
     def setpermissions(self, value):
         """Set the permissions."""
-        value = self._check_permformat(value)
+        value = self._validate_permissions(value)
         return self._set('permissions', value, self.isowner())
 
     ##### Groups #####
+
+    def _set_groups(self, key, value):
+        self.setgroups(value)
+        return set(['groups'])
 
     def addgroup(self, groups):
         """Add a group to the record"""
@@ -677,8 +655,8 @@ class PermissionsDBObject(BaseDBObject):
 
     def setgroups(self, groups):
         """Set the object's groups"""
-        groups = emen2.utils.check_iterable(groups)
-        return self._set('groups', set(groups), self.isowner())
+        groups = set(map(self._strip, emen2.utils.check_iterable(groups)))
+        return self._set('groups', groups, self.isowner())
 
 class PrivateDBO(object):
     def setContext(self, ctx=None):

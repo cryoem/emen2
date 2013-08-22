@@ -137,8 +137,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         """Only an admin may change the mainview"""
         if not self.isnew() and not self._ctx.checkadmin():
             raise self.error("Cannot change mainview")
-
-        value = unicode(textwrap.dedent(value))
+        value = self._strip(textwrap.dedent(value))
         ret = self._set('mainview', value, self.isowner())
         self._findparams()
         return ret
@@ -148,8 +147,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         views = {}
         value = value or {}
         for k,v in value.items():
-            views[k] = unicode(textwrap.dedent(v))
-
+            views[unicode(k)] = unicode(textwrap.dedent(v))
         ret = self._set('views', views, self.isowner())
         self._findparams()
         return ret
@@ -159,15 +157,15 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
     # ian: todo: Validate that these are actually valid RecordDefs
     def _set_typicalchld(self, key, value):
-        value = emen2.utils.check_iterable(value)
-        value = filter(None, [unicode(i) for i in value]) or None
+        value = map(self._strip, emen2.utils.check_iterable(value))
+        value = filter(None, value) or None
         return self._set('typicalchld', value, self.isowner())
 
     def _set_desc_short(self, key, value):
-        return self._set('desc_short', unicode(value or self.name), self.isowner())
+        return self._set('desc_short', self._strip(value or self.name), self.isowner())
 
     def _set_desc_long(self, key, value):
-        return self._set('desc_long', unicode(value or ''), self.isowner())
+        return self._set('desc_long', self._strip(value), self.isowner())
 
     ##### RecordDef Methods #####
 

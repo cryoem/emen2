@@ -140,7 +140,7 @@ class Vartype(object):
     @classmethod
     def get_vartype(cls, name, *args, **kwargs):
         """Get a registered Vartype."""
-        return cls.registered[name](*args, **kwargs)
+        return cls.registered.get(name, Vartype)(*args, **kwargs)
 
     ##### Validation #####
 
@@ -751,6 +751,21 @@ class vt_recorddef(Vartype):
         if rd:
             return rd.desc_short
         return value
+        
+@Vartype.register('paramdef')
+class vt_paramdef(Vartype):
+    """ParamDef name."""
+    def validate(self, value):
+        value = self._validate_reference(ci(value), keytype='paramdef')
+        return self._rci(value)
+
+    def _unicode(self, value):
+        update_recorddef_cache(self.cache, self.db, [value])
+        key = ('paramdef', value)
+        hit, rd = self.cache.check(key)
+        if rd:
+            return rd.desc_short
+        return value        
 
 @Vartype.register('user')
 class vt_user(Vartype):

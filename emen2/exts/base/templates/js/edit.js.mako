@@ -129,7 +129,7 @@
             var rd = emen2.caches['recorddef'][this.options.rectype];
             if (this.options.mode == 'new') {
                 // RecordDef description
-                $('<p class="e2l-shadow-drop" />').text(rd.desc_long).appendTo(this.dialog);
+                $('<p class="e2l-shadow-drop" />').appendTo(this.dialog);
                 // Add the parent for a new record
                 form.attr('data-name', 'None');
                 $('<input type="hidden" name="parents" />').val(this.options.parent).appendTo(form);

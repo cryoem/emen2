@@ -101,10 +101,13 @@ LOGIN_RATES = {}
 
 ##### Utility methods #####
 
-def getrandomid():
-    """Generate a random ID (UUID4 string)
+def getnewid():
+    """Generate an ID (UUID4 string)
     :return: UUID4 string
     """
+    # name = name or ''
+    # if name:
+    #     return hashlib.md5(unicode(name)).hexdigest()
     return uuid.uuid4().hex
 
 def getctime():
@@ -302,7 +305,7 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
             db.group.put(v)
 
         # Create an initial record
-        rec = {'rectype':'root', 'groups':['authenticated']}
+        rec = {'name':'root', 'rectype':'root', 'groups':['authenticated']}
         db.record.put(rec)
 
         
@@ -2799,7 +2802,7 @@ class DB(object):
         :exception PermissionsError: Unable to access RecordDef
         """
         rds = self.dbenv['recorddef'].expand(names, ctx=ctx, txn=txn)
-        ind = self.dbenv["record"].getindex("rectype", txn=txn)
+        ind = self.dbenv["record"].getindex('rectype', txn=txn)
         ret = set()
         for i in rds:
             ret |= ind.get(i, txn=txn)
@@ -2901,7 +2904,7 @@ class DB(object):
                 ret[i] = ind.get(i, txn=txn) & names
         else:
             # Use the index for larger sets
-            ind = self.dbenv["record"].getindex("rectype", txn=txn)
+            ind = self.dbenv["record"].getindex('rectype', txn=txn)
             # Filter permissions
             names = self.dbenv["record"].filter(recnames, ctx=ctx, txn=txn)
             while names:
@@ -3105,7 +3108,7 @@ class DB(object):
         :return: Binaries
         """
         def searchfilenames(filename, txn):
-            ind = self.dbenv["binary"].getindex('filename', txn=txn)
+            ind = self.dbenv['binary'].getindex('filename', txn=txn)
             ret = set()
             keys = (f for f in ind.keys(txn=txn) if filename in f)
             for key in keys:

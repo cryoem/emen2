@@ -358,15 +358,15 @@ class NewUser(BaseUser):
         if childrecs:
             newsignup['childrecs'] = childrecs
 
-        print "Validated signupinfo:", newsignup
+        # print "Validated signupinfo:", newsignup
         return newsignup
 
     def _set_signupinfo(self, key, value):
         self.setsignupinfo(value)
         return set(['signupinfo'])
 
-    def setsignupinfo(self, update):
-        self._set('signupinfo', update, self.isnew() or self.isowner())
+    def setsignupinfo(self, value):
+        self._set('signupinfo', self._validate_signupinfo(value), self.isnew() or self.isowner())
 
 class User(BaseUser):
     """User. 
@@ -449,7 +449,8 @@ class User(BaseUser):
         return self._set(key, value, self._ctx.checkadmin())
 
     def _set_record(self, key, value):
-        return self._set(key, value, self._ctx.checkadmin())
+        # TODO: better validation.
+        return self._set(key, self._strip(value), self._ctx.checkadmin())
 
     ##### Enable/disable #####
     # These will go through setattr -> setitem -> set_{param}
