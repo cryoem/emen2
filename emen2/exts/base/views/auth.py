@@ -8,7 +8,7 @@ class Auth(View):
         self.template = '/auth/login'
         self.title = 'Login'
         self.ctxt["username"] = username
-        redirect = redirect or '/'
+        redirect = redirect or self.ctxt.root
         if 'auth/' in redirect:
             redirect = self.ctxt.root
         if username != None:
