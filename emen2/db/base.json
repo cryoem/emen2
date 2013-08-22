@@ -64,6 +64,7 @@
 {"name": "description_goals", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/description_goals/", "vartype": "text", "parents": ["base"], "desc_short": "Project goals"}
 {"name": "description_background", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/description_background/", "vartype": "text", "parents": ["base"], "desc_short": "Background information"}
 {"name": "name_group", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_group/", "vartype": "string", "parents": ["base"], "desc_short": "Group name"}
+{"name": "department", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/department/", "vartype": "string", "parents": ["base"], "desc_short": "Department"}
 {"name": "institution", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/institution/", "vartype": "string", "parents": ["base"], "desc_short": "Institution"}
 {"name": "name_contact", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_contact/", "vartype": "string", "parents": ["base"], "desc_short": "Contact person"}
 {"name": "phone", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/phone/", "vartype": "string", "parents": ["base"], "desc_short": "Phone"}
