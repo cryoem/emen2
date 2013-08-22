@@ -10,7 +10,7 @@ class Auth(View):
         self.ctxt["username"] = username
         redirect = redirect or '/'
         if 'auth/' in redirect:
-            redirect = '/'
+            redirect = self.ctxt.root
         if username != None:
             ctxid = self.db.auth.login(username, password, host=self.request_host)
             self.notify('Successfully logged in.')
@@ -23,7 +23,7 @@ class Auth(View):
         self.title = 'Logout'
         self.db.auth.logout()
         self.set_header('X-Ctxid', '')
-        self.redirect('/', content='Successfully logged out.')
+        self.redirect(self.ctxt.root, content='Successfully logged out.')
 
     @View.add_matcher(r'^/auth/password/change/$', name='setpassword')
     def setpassword(self, **kwargs):
