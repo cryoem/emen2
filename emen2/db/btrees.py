@@ -92,61 +92,6 @@ class EMEN2DBEnv(object):
         self.dbenv = self.open()
         self.init()
         
-    def _load_json(self, infile, keytypes=None, raw=False, ctx=None, txn=None):
-        """Load a JSON file containing DBOs."""
-        # Create a special root context to load the items
-        loader = emen2.db.load.Loader(infile=infile)
-        keytypes = keytypes or ['paramdef', 'user', 'group', 'recorddef', 'binary', 'record']
-        for keytype in keytypes:
-            children = collections.defaultdict(set)
-            parents = collections.defaultdict(set)
-            for item in loader.loadfile(keytype=keytype):
-                emen2.db.log.debug("BDB: Load %s %s"%(keytype, item.get('name')))
-                name = item.get('name')
-                uri = item.pop('get', None)
-                children[name] = set(item.pop('children', []))
-                parents[name] = set(item.pop('parents', []))
-                # if raw:
-                #     orig = None
-                #     try:
-                #         orig = self[keytype]._get_data(name, txn=txn)
-                #     except KeyError, e:
-                #         pass
-                #     if orig and orig.get('uri') != uri:
-                #         print "Skipping due to URI difference:", name
-                #         continue
-                # 
-                #     i = self[keytype].dataclass(ctx=ctx)
-                #     i._load(item)
-                #     self[keytype]._put_data(i.name, i, txn=txn)
-                # else:
-                self[keytype].puts([item], ctx=ctx, txn=txn)
-
-            for k,v in children.items():
-                for v2 in v:
-                    self[keytype].pclink(k, v2, ctx=ctx, txn=txn)
-            for k,v in parents.items():
-                for v2 in v:
-                    self[keytype].pclink(v2, k, ctx=ctx, txn=txn)
-
-    def create(self):
-        """Load database parameters and protocols from JSON."""
-        # Start txn
-        ctx = emen2.db.context.SpecialRootContext()
-        txn = self.newtxn(write=True)
-        # Load core ParamDefs... Items defined in core.json are required.
-        keytypes = ['paramdef', 'recorddef']
-        infile = emen2.db.config.get_filename('emen2', 'db/core.json')
-        self._load_json(infile, keytypes=keytypes, ctx=ctx, txn=txn)
-        # for keytype in keytypes:
-        #    self[keytype].rebuild_indexes(ctx=ctx, txn=txn)
-
-        # Load DBOs from extensions.
-        # emen2.db.config.load_jsons(cb=self._load_json, keytypes=keytypes, ctx=ctx, txn=txn)
-
-        # Commit txn
-        self.txncommit(txn=txn)
-    
     def open(self):
         """Open the Database Environment."""
         emen2.db.log.info("BDB: Opening database environment: %s"%self.path)
@@ -1153,8 +1098,10 @@ class CollectionDB(BaseDB):
         emen2.db.log.info("BDB: Rebuilding indexes: Start")
         # ugly hack..
         self._truncate_index = True
-        for k in self.indexes:
-            self.indexes[k].truncate(txn=txn2)
+        for k in self.indexes.keys():
+            if self.indexes[k]:
+                self.indexes[k].close()
+            del self.indexes[k]
 
         keys = sorted(map(self.keyload, self.bdb.keys(txn2)), reverse=True)
         self.dbenv.txncommit(txn2)

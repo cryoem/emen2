@@ -98,7 +98,6 @@ basestring = (str, unicode)
 #   unsuccesful logins.
 LOGIN_RATES = {}
 
-
 ##### Utility methods #####
 
 def getnewid():
@@ -282,6 +281,18 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
     :keyword rootemail: Root Account email
     """
     db = db or opendb(db=db, admin=True)
+
+    with db:
+        # Initialize the core parameters and recorddefs
+        infile = emen2.db.config.get_filename('emen2', 'db/core.json')
+        loader = emen2.db.load.Loader(db=db, infile=infile)
+        loader.load(keytype='paramdef')
+        loader.load(keytype='recorddef')
+    
+    # Rebuild the paramdef indexes.
+    with db:
+        db._db.dbenv['paramdef'].rebuild_indexes(ctx=db._ctx, txn=db._txn)    
+
     with db:
         # Create a root user
         if db.user.get('root'):
@@ -308,7 +319,6 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
         rec = {'name':'root', 'rectype':'root', 'groups':['authenticated']}
         db.record.put(rec)
 
-        
 ##### Main Database Class #####
 
 class DB(object):

@@ -2,7 +2,6 @@
 
 Classes:
     Loader
-    RegularLoader
 """
 
 import os
@@ -26,10 +25,38 @@ class Loader(object):
         self.infile = infile
         self.db = db
 
-    def load(self):
-        pass
+    def load(self, infile=None, keytype=None):
+        t = time.time()
+        count = 0
+        dbenv = self.db._db.dbenv
+        ctx = self.db._ctx
+        txn = self.db._txn
+        children = collections.defaultdict(set)
+        parents = collections.defaultdict(set)
+        
+        for item in self.readfile(infile=infile, keytype=keytype):
+            keytype = item.get('keytype')
+            name = item.get('name')
+            children[name] = set(item.pop('children', []))
+            parents[name] = set(item.pop('parents', []))
+            try:
+                dbenv[keytype].puts([item], ctx=ctx, txn=txn)
+            except Exception, e:
+                print "Could not put", keytype, name, ":", e
+            count += 1
 
-    def loadfile(self, infile=None, keytype=None):
+        for k,v in children.items():
+            for v2 in v:
+                dbenv[keytype].pclink(k, v2, ctx=ctx, txn=txn)
+        for k,v in parents.items():
+            for v2 in v:
+                dbenv[keytype].pclink(v2, k, ctx=ctx, txn=txn)
+
+        t = time.time()-t
+        s = float(count) / t
+        print "total time: %s, %s put/sec"%(t, s)
+
+    def readfile(self, infile=None, keytype=None):
         infile = infile or self.infile
         if not os.path.exists(infile):
             yield
@@ -44,29 +71,6 @@ class Loader(object):
                     else:
                         yield item
 
-class RegularLoader(Loader):
-    def load(self):
-        t = time.time()
-        count = 0
-        dbenv = self.db._db.dbenv
-        ctx = self.db._ctx
-        txn = self.db._txn
-        for item in self.loadfile():
-            keytype = item.get('keytype')
-            name = item.get('name')
-            # print "===== %s: %s"%(keytype, name)
-            # print item
-            # i = dbenv[keytype].dataclass(ctx=ctx) 
-            # i._load(item)
-            try:
-                dbenv[keytype].puts([item], ctx=ctx, txn=txn)
-            except Exception, e:
-                print "Could not put", keytype, name, ":", e
-            count += 1
-        t = time.time()-t
-        s = float(count) / t
-        print "total time: %s, %s put/sec"%(t, s)
-
 class LoadOptions(emen2.db.config.DBOptions):
     def parseArgs(self, infile):
         self['infile'] = infile
@@ -75,9 +79,6 @@ if __name__ == "__main__":
     import emen2.db
     cmd, db = emen2.db.opendbwithopts(optclass=LoadOptions, admin=True)
     with db._newtxn(write=True):
-        loader = RegularLoader(db=db, infile=cmd.options['infile'])
-        loader.load()
-            
-            
-            
-            
+        loader = Loader(db=db, infile=cmd.options['infile'])
+        for keytype in ['paramdef', 'recorddef', 'user', 'group', 'binary', 'record']:
+            loader.load(keytype=keytype)
