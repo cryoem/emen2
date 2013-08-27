@@ -352,6 +352,7 @@ class BaseDBObject(object):
                 pd = self._ctx.db.paramdef.get(key, filt=False)
                 self._ctx.cache.store(('paramdef', key), pd)
             except KeyError:
+                return value
                 raise self.error('Parameter %s does not exist'%key)
 
         # Is it an immutable param?
