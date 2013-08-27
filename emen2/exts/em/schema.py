@@ -382,6 +382,13 @@ paramdefs = [
   'parents': ['final_reconstruction'],
   'vartype': 'string'},
 
+ {'desc_long': 'Image attachment',
+  'desc_short': 'Image attachment',
+  'keytype': 'paramdef',
+  'name': 'file_binary_image',
+  'parents': ['binary_data'],
+  'vartype': 'binary'},
+
  {'desc_long': 'Box file attachments. Typically ordered by date.',
   'desc_short': 'Box Files',
   'iter': True,
@@ -1561,7 +1568,7 @@ paramdefs = [
   'parents': ['equipment', 'vitrification'],
   'vartype': 'string'},
 
- {'defaultunits': u'\xc5',
+ {'defaultunits': u'Angstrom',
   'desc_long': 'Fourier shell correlation',
   'desc_short': 'FSC',
   'keytype': 'paramdef',
@@ -1756,13 +1763,6 @@ paramdefs = [
   'parents': [],
   'vartype': 'string'},
 
- {'desc_long': 'URI References',
-  'desc_short': 'URI References',
-  'keytype': 'paramdef',
-  'name': 'uri',
-  'parents': ['descriptive_information'],
-  'vartype': 'string'},
-
  {'desc_long': '',
   'desc_short': 'Faraday Plate Peak Reading During Last Exposure',
   'keytype': 'paramdef',
@@ -1770,7 +1770,7 @@ paramdefs = [
   'parents': ['ddd_camera'],
   'vartype': 'float'},
 
- {'defaultunits': u'\xc5',
+ {'defaultunits': 'Angstrom',
   'desc_long': 'Height of the sample',
   'desc_short': 'Height sample',
   'keytype': 'paramdef',
@@ -1910,7 +1910,7 @@ paramdefs = [
   'parents': ['textual_descriptions', 'grid'],
   'vartype': 'string'},
 
- {'defaultunits': u'\xc5',
+ {'defaultunits': 'Angstrom',
   'desc_long': 'Actual defocus',
   'desc_short': 'Actual defocus',
   'keytype': 'paramdef',
@@ -2587,7 +2587,7 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
- {'defaultunits': u'\xc5',
+ {'defaultunits': 'Angstrom',
   'desc_long': 'Resolution cutoff for low-pass filter',
   'desc_short': 'Cut-off point',
   'keytype': 'paramdef',
@@ -2789,7 +2789,7 @@ paramdefs = [
   'parents': ['equipment'],
   'vartype': 'string'},
 
- {'defaultunits': u'\xc5',
+ {'defaultunits': 'Angstrom',
   'desc_long': 'Inner radius',
   'desc_short': 'Inner radius',
   'keytype': 'paramdef',
@@ -2849,7 +2849,7 @@ paramdefs = [
   'parents': ['biological_target', 'identifiers'],
   'vartype': 'string'},
 
- {'defaultunits': u'\xc5/pixel',
+ {'defaultunits': 'Angstrom/pixel',
   'desc_long': 'Apixel',
   'desc_short': 'A/pixel',
   'keytype': 'paramdef',

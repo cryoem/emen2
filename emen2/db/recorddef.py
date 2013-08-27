@@ -77,7 +77,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
     :attr owner: Current owner of RecordDef. May be different than creator. Gives permission to edit views.
     """
 
-    attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short"])
+    public = emen2.db.dataobject.BaseDBObject.public | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short"])
 
     def init(self, d):
         super(RecordDef, self).init(d)

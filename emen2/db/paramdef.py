@@ -96,7 +96,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     :attr immutable: ParamDef is locked
     """
     
-    attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(['immutable', 
+    public = emen2.db.dataobject.BaseDBObject.public | set(['immutable', 
         'iter', 'desc_long', 'desc_short', 'choices', 'vartype',
         'defaultunits', 'property', 'indexed'])
 
@@ -162,41 +162,44 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     # Only admin can change defaultunits/immutable/indexed/vartype.
     # This should still generate lots of warnings.
     def _set_immutable(self, key, value):
-        if not self.isnew():
+        value = bool(value)
+        if value != self.immutable and not self.isnew():
             raise self.error("Cannot change immutable from %s to %s."%(self.immutable, value))
-        return self._set(key, bool(value), self.isowner())
+        return self._set(key, value, self.isowner())
 
     def _set_iter(self, key, value):
-        if not self.isnew():
+        value = bool(value)
+        if value != self.iter and not self.isnew():
             raise self.error("Cannot change iter from %s to %s."%(self.iter, value))
-        return self._set(key, bool(value), self.isowner())
+        return self._set(key, value, self.isowner())
 
     def _set_indexed(self, key, value):
-        if not self.isnew():
+        value = bool(value)
+        if value != self.indexed and not self.isnew():
             raise self.error("Cannot change indexed from %s to %s."%(self.indexed, value))
-        return self._set(key, bool(value), self.isowner())
+        return self._set(key, value, self.isowner())
             
     # These can't be changed, it would disrupt the meaning of existing Records.
     def _set_vartype(self, key, value):
-        if not self.isnew():
-            raise self.error("Cannot change vartype from %s to %s."%(self.vartype, value))
         value = self._strip(value)
+        if value != self.vartype and not self.isnew():
+            raise self.error("Cannot change vartype from %s to %s."%(self.vartype, value))
         if value not in emen2.db.vartypes.Vartype.registered:
             raise self.error("Invalid vartype: %s"%value)
         return self._set(key, value, self.isowner())
 
     def _set_property(self, key, value):
-        if not self.isnew():
-            raise self.error("Cannot change property from %s to %s."%(self.property, value))
         value = self._strip(value)
+        if value != self.property and not self.isnew():
+            raise self.error("Cannot change property from %s to %s."%(self.property, value))
         # Allow for unsetting
         if value != None and value not in emen2.db.properties.Property.registered:
             raise self.error("Invalid property: %s"%value)
         return self._set('property', value, self.isowner())
 
     def _set_defaultunits(self, key, value):
-        if not self.isnew():
-            raise self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
         value = self._strip(value)
-        value = emen2.db.properties.equivs.get(value, value)
+        value = unicode(emen2.db.properties.equivs.get(value, value))
+        if value != self.defaultunits and not self.isnew():
+            raise self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
         return self._set('defaultunits', value, self.isowner())

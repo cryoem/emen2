@@ -130,7 +130,8 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         ## Title
         <li role="tab">
             <h2 class="e2l-gradient">
-                <a href="${ctxt.root}/record/${rec.name}/">Record #${rec.name}</a>
+                <a href="${ctxt.root}/record/${rec.name}/">Record</a>
+                ##  #${rec.name}
             </h2>
         </li>
 

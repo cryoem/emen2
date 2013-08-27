@@ -6,7 +6,7 @@
 {"name": "date_occurred", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/date_occurred/", "vartype": "datetime", "parents": ["base"], "desc_short": "Date occurred"}
 {"name": "deleted", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/deleted/", "parents": ["base"], "vartype": "boolean", "desc_short": "Deleted"}
 {"name": "name_folder", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_folder/", "parents": ["base"], "vartype": "string", "desc_short": "Folder name"}
-{"name": "folder_description", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/folder_description/", "parents": ["base"], "vartype": "string", "desc_short": "Description"}
+{"name": "folder_description", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/folder_description/", "parents": ["base"], "vartype": "text", "desc_short": "Description"}
 {"name": "person_photo", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/person_photo/", "parents": ["base"], "vartype": "binary", "desc_short": "Profile photo"}
 {"name": "name_project", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_project/", "vartype": "string", "parents": ["base"], "desc_short": "Project title"}
 {"name": "project_status", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/project_status/", "choices": ["Rejected", "Indefinite Hold", "Wait for Sample", "Complete", "Screening", "Analysis", "Imaging", "Manuscript Prep."], "parents": ["base"], "vartype": "choice", "desc_short": "Project status", "desc_long": "The current state of this project"}

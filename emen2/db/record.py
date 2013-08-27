@@ -78,10 +78,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
     """
 
     #: Attributes readable by the user
-    attr_public = emen2.db.dataobject.PermissionsDBObject.attr_public | set(['comments', 'history', 'rectype'])
-
-    #: The id of the record, for backwards compatibility only
-    recid = property(lambda s:s.name)
+    public = emen2.db.dataobject.PermissionsDBObject.public | set(['comments', 'history', 'rectype'])
 
     def __repr__(self):
         return "<%s %s, %s at %x>" % (self.__class__.__name__, self.name, self.rectype, id(self))
@@ -98,11 +95,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         self.__dict__['comments'] = []
         self.__dict__['history'] = []
         self.__dict__['params'] = {}
-        
-        # Records are initialized with these two parameters....
-        # ... edit: turning off for now.
-        # self.__dict__['params']['date_occurred'] = self.__dict__['creationtime']
-        # self.__dict__['params']['performed_by'] = self.__dict__['creator']
 
     def validate(self):
         """Validate the record before committing."""
@@ -144,7 +136,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         """Bind record['comments'] setter"""
         return self.addcomment(value)
 
-    # in Record, params not in self.attr_public are put in self.params{}.
+    # in Record, params not in self.public are put in self.params{}.
     def _setoob(self, key, value):
         """Set a parameter value."""
         # Check write permission
@@ -167,14 +159,14 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
     def __getitem__(self, key, default=None):
         """Default behavior is similar to .get: return None as default"""
-        if key in self.attr_public:
+        if key in self.public:
             return getattr(self, key, default)
         else:
             return self.params.get(key, default)
 
     def keys(self):
         """All retrievable keys for this record"""
-        return self.params.keys() + list(self.attr_public)
+        return self.params.keys() + list(self.public)
 
     def items(self):
         return [(k,self[k]) for k in self.keys()]

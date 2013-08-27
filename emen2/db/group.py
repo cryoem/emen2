@@ -41,7 +41,7 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
     :attr disabled: Group is disabled
 
     """
-    attr_public = emen2.db.dataobject.PermissionsDBObject.attr_public | set(['privacy', 'disabled', 'displayname'])
+    public = emen2.db.dataobject.PermissionsDBObject.public | set(['privacy', 'disabled', 'displayname'])
 
     def init(self, d):
         super(Group, self).init(d)

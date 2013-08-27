@@ -31,6 +31,9 @@ class Loader(object):
         dbenv = self.db._db.dbenv
         ctx = self.db._ctx
         txn = self.db._txn
+        
+        # Pull out parents/children so relationships will
+        # be added additively.
         children = collections.defaultdict(set)
         parents = collections.defaultdict(set)
         
@@ -39,22 +42,33 @@ class Loader(object):
             name = item.get('name')
             children[name] = set(item.pop('children', []))
             parents[name] = set(item.pop('parents', []))
-            try:
-                dbenv[keytype].puts([item], ctx=ctx, txn=txn)
-            except Exception, e:
-                print "Could not put", keytype, name, ":", e
+            print "Load: put:", keytype, name
+            # try:
+            dbenv[keytype].puts([item], ctx=ctx, txn=txn)
+            # except Exception, e:
+            #    print "Load: Could not put:", keytype, name, ":", e
             count += 1
+            
+        keys = set(dbenv[keytype].filter(ctx=ctx, txn=txn))
 
         for k,v in children.items():
+            missing = v-keys
+            if missing:
+                print "Missing keys:", missing
+                v -= missing
             for v2 in v:
                 dbenv[keytype].pclink(k, v2, ctx=ctx, txn=txn)
         for k,v in parents.items():
+            missing = v-keys
+            if missing:
+                print "Missing keys:", missing
+                v -= missing
             for v2 in v:
                 dbenv[keytype].pclink(v2, k, ctx=ctx, txn=txn)
 
         t = time.time()-t
         s = float(count) / t
-        print "total time: %s, %s put/sec"%(t, s)
+        print "Load: total time: %0.2f, %0.2f put/sec"%(t, s)
 
     def readfile(self, infile=None, keytype=None):
         infile = infile or self.infile

@@ -41,5 +41,6 @@
 {"name": "filesize", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/filesize/", "defaultunits": "B", "vartype": "int", "parents": ["core"], "property": "bytes", "desc_short": "Filesize"}
 {"name": "md5", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/md5/", "vartype": "md5", "parents": ["core"], "desc_short": "MD5 Checksum"}
 {"name": "file_binary", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/file_binary/", "iter": true, "vartype": "binary", "parents": ["core"], "desc_short": "Attachments"}
+{"name": "file_binary_image", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/file_binary/", "vartype": "binary", "parents": ["core"], "desc_short": "Image attachment"}
 {"name": "compress", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/compress/", "vartype": "string", "parents": ["core"], "desc_short": "Compressed format"}
 {"name": "root", "views": {"recname": "Root: {{desc_short}}", "banner": "{{desc_long}}"}, "mainview": "# {{desc_short}}  \n{{desc_long}} \n", "keytype": "recorddef", "uri": "http://ncmidb.bcm.edu/recorddef/root/", "desc_short": "Root protocol"}

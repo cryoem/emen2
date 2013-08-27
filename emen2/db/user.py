@@ -76,7 +76,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     :attr password: Hashed password.
     """
 
-    attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(['email', 'password'])
+    public = emen2.db.dataobject.BaseDBObject.public | set(['email', 'password'])
 
     def init(self, d):
         super(BaseUser, self).init(d)
@@ -332,7 +332,7 @@ class NewUser(BaseUser):
     
     :attr signupinfo: Dictionary containing signup information.
     """
-    attr_public = BaseUser.attr_public | set(['signupinfo'])
+    public = BaseUser.public | set(['signupinfo'])
 
     def init(self, d):
         super(NewUser, self).init(d)
@@ -391,7 +391,7 @@ class User(BaseUser):
     :property displayname: User "display name"; set by database when accessed
     """
     
-    attr_public = BaseUser.attr_public | set(['privacy', 'disabled', 'displayname', 'userrec', 'groups', 'record'])
+    public = BaseUser.public | set(['privacy', 'disabled', 'displayname', 'userrec', 'groups', 'record'])
 
     # These get set during setContext and cleared before commit
     userrec = property(lambda s:s._userrec)

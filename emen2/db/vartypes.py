@@ -521,8 +521,8 @@ class vt_datetime(Vartype):
         for i in ci(value):
             if i:
                 t = dateutil.parser.parse(i)
-                if not t.tzinfo:
-                    raise ValidationError, "No UTC offset: %s"%i
+                # if not t.tzinfo:
+                #    raise ValidationError, "No UTC offset: %s"%i
                 ret.append(t.isoformat())
         return self._rci(ret)
         
@@ -543,7 +543,10 @@ class vt_datetime(Vartype):
     def _unicode(self, value):
         tz = self.options.get('tz')
         raw_time = dateutil.parser.parse(value)
-        local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
+        try:
+            local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
+        except:
+            return self._strip(raw_time)
         return self._strip(local_time)
     
     def _html(self, value):
@@ -669,6 +672,8 @@ class vt_binary(Vartype):
         if value is None:
             return ''
         bdo = self.db.binary.get(value)
+        if not bdo:
+            return Markup("Error getting binary: %s"%value)        
         elem = Markup("""
             <span class="e2-edit" data-paramdef="%s">
                 <a href="/download/%s/%s">
@@ -788,7 +793,12 @@ class vt_user(Vartype):
         if self.pd.iter:
             label = "+"
             iter_ = "true"
-        return Markup("""<input type="button" value="%s" class="e2-edit-add-find" data-keytype="user" data-paramdef="%s" data-iter="%s"/>""")%(
+        # The first hidden input is to clear the value if others are unchecked.
+        return Markup("""
+            <input type="hidden" value="" name="%s" />
+            <input type="button" value="%s" class="e2-edit-add-find" data-keytype="user" data-paramdef="%s" data-iter="%s" />
+            """)%(
+            self.pd.name,
             label,
             self.pd.name,
             iter_
@@ -802,9 +812,14 @@ class vt_user(Vartype):
         key = ('user', value)
         hit, user = self.cache.check(key)
 
+        displayname = value
         src = "/static/images/user.png"
-        if user.userrec.get('person_photo'):
-            src = "/download/%s/user.jpg?size=thumb"%(user.userrec.get('person_photo'))
+        email = ""
+        if user:
+            displayname = user.getdisplayname()     
+            email = user.email
+            if user.userrec.get('person_photo'):
+                src = "/download/%s/user.jpg?size=thumb"%(user.userrec.get('person_photo'))
 
         elem = Markup("""
             <div class="e2-infobox" data-name="%s" data-keytype="user">
@@ -818,8 +833,8 @@ class vt_user(Vartype):
                 self.pd.name,
                 value,
                 src,
-                user.getdisplayname(),
-                user.email
+                displayname,
+                email
             )
         
         # Show a 'Change' button...

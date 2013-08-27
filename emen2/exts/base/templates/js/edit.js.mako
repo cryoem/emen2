@@ -129,7 +129,7 @@
             var rd = emen2.caches['recorddef'][this.options.rectype];
             if (this.options.mode == 'new') {
                 // RecordDef description
-                $('<p class="e2l-shadow-drop" />').appendTo(this.dialog);
+                $('<p class="e2l-shadow-drop" />').text(rd.desc_long).appendTo(this.dialog);
                 // Add the parent for a new record
                 form.attr('data-name', 'None');
                 $('<input type="hidden" name="parents" />').val(this.options.parent).appendTo(form);
@@ -313,7 +313,7 @@
 			    minimum: 0,
 			    selected: function(self, name){
 					var parent = self.element.parent();
-					var param = self.element.attr('data-paramdefl');
+					var param = self.element.attr('data-paramdef');
 					var iter = self.element.attr('data-iter');
 			        var d = $('<div/>').InfoBox({
 			            keytype: 'user',

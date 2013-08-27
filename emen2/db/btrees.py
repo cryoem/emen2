@@ -1568,7 +1568,7 @@ class RecordDB(CollectionDB):
 
     # Todo: integrate with main filter method, since this works
     # for all permission-defined items.
-    def filter(self, names, ctx=None, txn=None):
+    def filter(self, names=None, ctx=None, txn=None):
         """Filter for permissions.
         :param names: Record name(s).
         :returns: Readable Record names.

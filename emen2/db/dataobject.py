@@ -33,13 +33,13 @@ class BaseDBObject(object):
     All attributes should also be valid EMEN2 parameters. The default behavior
     for BaseDBObject and subclasses is to validate the attributes as parameters
     when they are set or updated. When a DBO is exported (JSON, XML, etc.) only
-    the attributes listed in cls.attr_public are exported. Private attributes
+    the attributes listed in cls.public are exported. Private attributes
     may be used by using an underscore prefix -- but these WILL NOT BE SAVED,
     and discarded before committing. An example of this behavior is the
     User._displayname attribute, which is recalculated whenever the user is
     retreived from the database. However, the _displayname attribute is still
     exported by creating a displayname class property, and listing that in
-    cls.attr_public. In this way it is part of the public interface, even
+    cls.public. In this way it is part of the public interface, even
     though it is a generated, read-only attribute. Another example is the
     params attribute of Record. This is a normal attribute, and read/set from
     within the class's methods, but is not exported directly (it is instead
@@ -81,10 +81,10 @@ class BaseDBObject(object):
     :attr parents: Parents set
     :attr children: Children set
     :property keytype:
-    :classattr attr_public: Public (exported) attributes
+    :classattr public: Public (exported) attributes
     """
     
-    attr_public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
+    public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
     keytype = property(lambda x:x.__class__.__name__.lower())
 
     def __init__(self, **kwargs):
@@ -177,10 +177,10 @@ class BaseDBObject(object):
         return self.__getitem__(key, default)
 
     def has_key(self,key):
-        return key in self.attr_public
+        return key in self.public
 
     def keys(self):
-        return list(self.attr_public)
+        return list(self.public)
 
     def items(self):
         return [(k,self[k]) for k in self.keys()]
@@ -198,7 +198,7 @@ class BaseDBObject(object):
             raise self.error('Cannot update previously committed items this way.')
 
         # Skip validation?
-        keys = self.attr_public & set(update.keys())
+        keys = self.public & set(update.keys())
         keys.add('name')
         for key in keys:
             value = update.pop(key, None)
@@ -211,7 +211,7 @@ class BaseDBObject(object):
 
     # Behave like dict.get(key) instead of dict[key]
     def __getitem__(self, key, default=None):
-        if key in self.attr_public:
+        if key in self.public:
             return getattr(self, key, default)
         elif default:
             return default
@@ -242,13 +242,13 @@ class BaseDBObject(object):
         setter = getattr(self, '_set_%s'%key, None)
         if setter:
             pass
-        elif key in self.attr_public:
+        elif key in self.public:
             # These can't be modified without a setter method defined.
             # (Return quietly instead of PermissionsError or KeyError)
             return cp
         else:
             # Setter for parameters that are not explicitly listed as attributes
-            # in (attr_public)
+            # in (public)
             # Default is to raise KeyError or ValidationError
             # Record class will use this to set non-attribute parameters
             setter = self._setoob
@@ -286,7 +286,7 @@ class BaseDBObject(object):
         return set([key])
 
     def _setoob(self, key, value):
-        """Handle params not found in self.attr_public"""
+        """Handle params not found in self.public"""
         self.error("Cannot set parameter %s in this way"%key, warning=True)
         return set()
 
@@ -434,7 +434,7 @@ class PermissionsDBObject(BaseDBObject):
 
     # Changes to permissions and groups, along with parents/children,
     # are not logged.
-    attr_public = BaseDBObject.attr_public | set(['permissions', 'groups'])
+    public = BaseDBObject.public | set(['permissions', 'groups'])
 
     def init(self, d):
         """Initialize the permissions and groups
