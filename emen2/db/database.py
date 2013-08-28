@@ -1903,7 +1903,7 @@ class DB(object):
         user_secret = getattr(user, 'secret', None)
         user.setContext(ctx)
         if user_secret:
-            user.__dict__['secret'] = user_secret
+            user.data['secret'] = user_secret
         
         # Try and change user email.
         oldemail = user.email
@@ -2177,7 +2177,7 @@ class DB(object):
             # Put the new user
             user = self.dbenv["user"].new(name=name, email=newuser.email, ctx=ctx, txn=txn)
             # Manually copy the password hash.
-            user.__dict__['password'] = newuser.password
+            user.data['password'] = newuser.password
             user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
             
             # Create the "Record" for this user

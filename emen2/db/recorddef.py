@@ -52,29 +52,29 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
     RecordDefs may have parent/child relationships, similar to Records.
 
-    RecordDefs can be marked as private by setting the 'private' attribute. If
+    RecordDefs can be marked as private by setting the 'private' parameter. If
     private, you must be admin or able to read a record of this type to access
     the RecordDef
     
     RecordDefs can suggest values for child records using the 'typicalchld'
-    attribute, e.g., "grid_imaging" Records are often children of "project"
+    parameter, e.g., "grid_imaging" Records are often children of "project"
     Records.
 
     These BaseDBObject methods are overridden:
 
-        init            Set attributes
+        init            Init RecordDef
         setContext      Check read permissions and bind Context
-        validate        Check required attributes
+        validate        Check required parameters
 
-    :attr desc_short: Short description.
-    :attr desc_long: Long description. Shown as help in new record page.
-    :attr mainview: Default protocol view.
-    :attr views: Dictionary of additional views.
-    :attr private: Mark this RecordDef as private.
-    :attr typicalchld: A list of RecordDefs that are generally seen as children.
-    :attr params: Dictionary of all params found in all views (keys), with any default values specified (as value) (read-only attribute).
-    :attr paramsR: Parameters that are required for a Record of this RecordDef to validate (read-only attribute).
-    :attr owner: Current owner of RecordDef. May be different than creator. Gives permission to edit views.
+    :property desc_short: Short description.
+    :property desc_long: Long description. Shown as help in new record page.
+    :property mainview: Default protocol view.
+    :property views: Dictionary of additional views.
+    :property private: Mark this RecordDef as private.
+    :property typicalchld: A list of RecordDefs that are generally seen as children.
+    :property params: Dictionary of all params found in all views (keys), with any default values specified (as value) (read-only).
+    :property paramsR: Parameters that are required for a Record of this RecordDef to validate (read-only).
+    :property owner: Current owner of RecordDef. May be different than creator. Gives permission to edit views.
     """
 
     public = emen2.db.dataobject.BaseDBObject.public | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short"])
@@ -84,23 +84,23 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
         # A string defining the experiment with embedded params
         # this is the primary definition of the contents of the record
-        self.__dict__['mainview'] = ''
+        self.data['mainview'] = ''
 
         # Dictionary of additional (named) views for the record
-        self.__dict__['views'] = {}
+        self.data['views'] = {}
 
         # If this is True, this RecordDef may only be retrieved by its owner
         # or by someone with read access to a record of this type
-        self.__dict__['private'] = False
+        self.data['private'] = False
 
         # A list of RecordDef names of typical child records for this RecordDef
-        self.__dict__['typicalchld'] = []
+        self.data['typicalchld'] = []
 
         # Short description
-        self.__dict__['desc_short'] = None
+        self.data['desc_short'] = None
 
         # Long description
-        self.__dict__['desc_long'] = None
+        self.data['desc_long'] = None
 
         # The following are automatically generated
         # A dictionary keyed by the names of all params used in any of the views
@@ -108,21 +108,21 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         # this represents all params that must be defined to have a complete
         # representation of the record. Note, however, that such completeness
         # is NOT REQUIRED to have a valid Record
-        self.__dict__['params'] = {}
+        self.data['params'] = {}
 
         # Required parameters (will throw exception on record commit if empty)
-        self.__dict__['paramsR'] = set()
+        self.data['paramsR'] = set()
 
     # ian: todo: Important!! If we can access a record with the recorddef...
     def setContext(self, ctx):
         super(RecordDef, self).setContext(ctx=ctx)
         if not self.private:
-            return True
+            return
         # Private RecordDef...
-        if self._ctx.username == self.owner:
-            return True
-        elif self._ctx.checkreadadmin():
-            return True
+        if self.ctx.username == self.owner:
+            return
+        elif self.ctx.checkreadadmin():
+            return
         raise PermissionsError, "Private RecordDef"
 
     def validate(self):
@@ -135,37 +135,34 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
     def _set_mainview(self, key, value):
         """Only an admin may change the mainview"""
-        if not self.isnew() and not self._ctx.checkadmin():
-            raise self.error("Cannot change mainview")
         value = self._strip(textwrap.dedent(value))
-        ret = self._set('mainview', value, self.isowner())
+        if not self.isnew() and not self.ctx.checkadmin():
+            raise self.error("Cannot change mainview")
+        self._set('mainview', value, self.isowner())
         self._findparams()
-        return ret
 
     # These require normal record ownership
     def _set_views(self, key, value):
         views = {}
         value = value or {}
         for k,v in value.items():
-            views[unicode(k)] = unicode(textwrap.dedent(v))
-        ret = self._set('views', views, self.isowner())
+            views[self._strip(k)] = self._strip(textwrap.dedent(v))
+        self._set('views', views, self.isowner())
         self._findparams()
-        return ret
 
     def _set_private(self, key, value):
-        return self._set('private', int(value), self.isowner())
+        self._set('private', int(value), self.isowner())
 
-    # ian: todo: Validate that these are actually valid RecordDefs
     def _set_typicalchld(self, key, value):
         value = map(self._strip, emen2.utils.check_iterable(value))
         value = filter(None, value) or None
-        return self._set('typicalchld', value, self.isowner())
+        self._set('typicalchld', value, self.isowner())
 
     def _set_desc_short(self, key, value):
-        return self._set('desc_short', self._strip(value or self.name), self.isowner())
+        self._set('desc_short', self._strip(value or self.name), self.isowner())
 
     def _set_desc_long(self, key, value):
-        return self._set('desc_long', self._strip(value), self.isowner())
+        self._set('desc_long', self._strip(value), self.isowner())
 
     ##### RecordDef Methods #####
 
@@ -179,8 +176,6 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
             for j in t2:
                 # ian: fix for: empty default value in a view unsets default value specified in mainview
                 d.setdefault(j, d2.get(j))
-        p = {}
-        p['params'] = d
-        p['paramsR'] = r
-        self.__dict__.update(p)
+        self.data['params'] = d
+        self.data['paramsR'] = r
 

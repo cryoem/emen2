@@ -56,7 +56,7 @@ class Dumper(object):
                 items = self.db.get(chunk, keytype=keytype)
                 for item in items:
                     if uri:
-                        item.__dict__['uri'] = '%s/%s/%s'%(uri, keytype, item.name)
+                        item.data['uri'] = '%s/%s/%s'%(uri, keytype, item.name)
                     item = modify(item)
                     print "%s: %s"%(item.keytype, item.name)
                     f.write(jsonrpc.jsonutil.encode(item))
@@ -120,16 +120,16 @@ class Dumper(object):
 class PublicDumper(Dumper):
     def _modify_record(self, item):
         # Remove permissions, mark published data as anon
-        if set(['authenticated', 'publish']) & item.__dict__['groups']:
-            item.__dict__['groups'] = set(['anon'])
+        if set(['authenticated', 'publish']) & item.data['groups']:
+            item.data['groups'] = set(['anon'])
         else:
-            item.__dict__['groups'] = set()
-        item.__dict__['permissions'] = [[],[],[],[]]
+            item.data['groups'] = set()
+        item.data['permissions'] = [[],[],[],[]]
         return item
         
     def _modify_user(self, item):
         # Remove user passwords
-        item.__dict__['password'] = ''
+        item.data['password'] = ''
         return item
 
 class DumpOptions(emen2.db.config.DBOptions):

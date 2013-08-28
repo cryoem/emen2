@@ -124,14 +124,14 @@ def writetmp(filedata=None, fileobj=None, basepath=None, suffix="upload"):
 class Binary(emen2.db.dataobject.BaseDBObject):
     """Binary file stored on disk and managed by EMEN2.
 
-    Provides following attributes:
+    Provides following parameters:
         filename, record, md5, filesize, compress, filepath
 
     The Binary name has a specific format, bdo:YYYYMMDDXXXXX, where YYYYMMDD is
     date format and XXXXX is 5-char hex ID code of file for the day.
 
-    The filename attribute is the original name of the uploaded file. The
-    filesize attribute is the size of the file, and the md5 attribute is the
+    The filename parameter is the original name of the uploaded file. The
+    filesize parameter is the size of the file, and the md5 parameter is the
     MD5 checksum of the file. The filename may be changed by an owner after a
     Binary is committed, but the contents (filesize and md5) cannot be changed.
     If the file is compressed, compress will be set to the compression format
@@ -146,7 +146,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
     whitelist is required. See also: _validate_filename()
 
     Binaries are generally associated with a Record, stored in the record
-    attribute. Read permission on a Binary requires either ownership of the
+    parameter. Read permission on a Binary requires either ownership of the
     item, or read permission on the associated Record. The owner of the Binary
     can change which Record is associated.
 
@@ -155,9 +155,9 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
     These BaseDBObject methods are overridden:
 
-        init            Set attributes
+        init            Init Binary
         setContext      Check read permissions and bind Context
-        validate        Check required attributes
+        validate        Check required parameters
 
     :attr filename: File name
     :attr filesize: Size of the uncompressed file
@@ -168,68 +168,64 @@ class Binary(emen2.db.dataobject.BaseDBObject):
     """
 
     public = emen2.db.dataobject.BaseDBObject.public | set(["filepath", "filename", "record", "compress", "filesize", "md5"])
-    filepath = property(lambda x:x._filepath)
 
     def init(self, d):
         super(Binary, self).init(d)        
-        self.__dict__['filename'] = None
-        self.__dict__['record'] = None
-        self.__dict__['md5'] = None
-        self.__dict__['filesize'] = None
-        self.__dict__['compress'] = False
-        self.__dict__['_filepath'] = None
-        self._filepath = None
+        self.data['filename'] = None
+        self.data['record'] = None
+        self.data['md5'] = None
+        self.data['filesize'] = None
+        self.data['compress'] = False
+        self.filepath = None
 
     def setContext(self, ctx):
         super(Binary, self).setContext(ctx=ctx)
-        self.__dict__['_filepath'] = parse(self.name).get('filepath')
+        self.filepath = parse(self.name).get('filepath')
         if self.isowner():
-            return True
+            return
         if self.record is not None:
-            self._ctx.db.record.get(self.record, filt=False)
+            self.ctx.db.record.get(self.record, filt=False)
 
     def validate(self):
         # Validate
-        if not all([self.filename, self.md5, self.filesize != None]):
+        if not all([self.filename, self.md5, self.filesize is not None]):
             raise emen2.db.exceptions.ValidationError, "filename, filesize, and MD5 checksum are required"
 
     ##### Setters #####
     
-    # filepath is set during setContext, and discarded during commit (todo)
-    def _set_filepath(self, key, value):
-        return set()
-
-    # These immutable attributes only ever be set for a new Binary, before commit
+    # These immutable parameters only ever be set for a 
+    # new Binary, before commit
     def _set_md5(self, key, value):
         if not self.isnew():
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
-        return self._set(key, self._strip(value), self.isowner())
+        self._set(key, self._strip(value), self.isowner())
 
     def _set_compress(self, key, value):
         if not self.isnew():
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
-        return self._set(key, self._strip(value), self.isowner())
+        self._set(key, self._strip(value), self.isowner())
 
     def _set_filesize(self, key, value):
         if not self.isnew():
             raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
-        return self._set(key, int(value), self.isowner())
+        self._set(key, int(value), self.isowner())
 
     # These can be changed normally
     def _set_filename(self, key, value):
         # Sanitize filename.. This will allow unicode characters,
         #    and check for reserved filenames on linux/windows
-        return self._set(key, self._validate_filename(value), self.isowner())
+        value = self._validate_filename(value)
+        self._set(key, value, self.isowner())
 
     def _set_record(self, key, value):
-        return self._set(key, self._strip(value), self.isowner())
+        self._set(key, self._strip(value), self.isowner())
         
     def _validate_filename(self, value):
         """
         """
-        value = unicode(value or '').strip()
+        value = self._strip(value)
         # ... make this a regex.
-        value = "".join([i for i in value if i.isalpha() or i.isdigit() or i in '.()-=_'])
+        value = "".join([i for i in value if i.isalpha() or i.isdigit() or i in '.()-=_#'])
 
         # Check for illegal Windows filenames.
         if value.upper() in WINDOWS_DEVICE_FILENAMES:

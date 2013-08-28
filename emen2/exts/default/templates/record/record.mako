@@ -40,7 +40,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
     // Record, ptest
     var rec = emen2.caches['record'][${rec.name | n,jsonencode}];
-    var ptest = ${rec.ptest() | n,jsonencode}
+    var ptest = ${rec.ptest | n,jsonencode}
 
     // Intialize the Tab controller
     var tab = $("#e2-tab-record");        
@@ -152,7 +152,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         <%
         attachments = []
         # cheap filtering....
-        for k in rec.paramkeys():
+        for k in rec.keys():
             v = rec[k]
             if hasattr(v, "__iter__"):
                 attachments.extend(x for x in v if 'bdo:' in str(x))

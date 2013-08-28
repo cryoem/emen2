@@ -7,7 +7,7 @@ import emen2.db.exceptions
 class Group(emen2.db.dataobject.PermissionsDBObject):
     """Groups of users.
 
-    Provides the following attributes:
+    Provides the following parameters:
         disabled, displayname, privacy
 
     Groups are used in conjunction with permissions access control lists to
@@ -17,19 +17,19 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
     are only slightly modified from the parent PermissionsDBOBject class; you
     will find additional documentation there.
 
-    When referenced in a Record's groups attribute, the Group's permissions
+    When referenced in a Record's groups parameter, the Group's permissions
     will be overlaid on top of the Record permissions. As such, if a user has
     comment level permissions in a group, that user will have comment level
     permissions in any Record that lists that group. All four permissions levels
     will be checked in this way.
 
     Like a Record, you must have administrative rights in a group to edit that
-    groups permissions list.
+    group's permissions list.
 
-    The 'displayname' attribute serves a similar purpose to the User displayname
-    attribute; it provides a human-formatted description of the group.
+    The 'displayname' parameter serves a similar purpose to the User displayname
+    parameter; it provides a human-formatted description of the group.
 
-    The 'disabled' attribute will disable the Group: it will not be active, and
+    The 'disabled' parameter will disable the Group: it will not be active, and
     Records will not inherit its permissions.
 
     The following methods are overridden:
@@ -37,17 +37,18 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
         init            Init disabled, displayname, and privacy
         readable        Some special groups are readable by all
 
-    :attr displayname: Human readable display name
-    :attr disabled: Group is disabled
+    :property displayname: Human readable display name
+    :property disabled: Group is disabled
+    :property privacy: 
 
     """
     public = emen2.db.dataobject.PermissionsDBObject.public | set(['privacy', 'disabled', 'displayname'])
 
     def init(self, d):
         super(Group, self).init(d)
-        self.__dict__['disabled'] = False
-        self.__dict__['displayname'] = None
-        self.__dict__['privacy'] = True
+        self.data['disabled'] = False
+        self.data['displayname'] = None
+        self.data['privacy'] = True
 
     # Groups are readable by anyone.
     def readable(self):
@@ -58,10 +59,10 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
         value = int(value)
         if value not in [0,1,2]:
             raise self.error("Group privacy setting may be 0, 1, or 2.")
-        return self._set(key, value, self.isowner())
+        self._set(key, value, self.isowner())
 
     def _set_disabled(self, key, value):
-        return self._set(key, bool(value), self.isowner())
+        self._set(key, bool(value), self.isowner())
 
     def _set_displayname(self, key, value):
-        return self._set(key, str(value or self.name), self.isowner())
+        self._set(key, str(value or self.name), self.isowner())

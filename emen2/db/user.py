@@ -63,9 +63,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         
     These BaseDBObject methods are overridden:
 
-        init            Set attributes
+        init            Init
         setContext      Check read permissions, bind Context, strip out password/secrets.
-        validate        Check required attributes
+        validate        Check required parameters
         checkpassword   Check the password; raise PermissionsError if failed.
         setpassword     Set the password; requires password or secret token.
         resetpassword   Set the password reset secret token.
@@ -81,17 +81,17 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     def init(self, d):
         super(BaseUser, self).init(d)
 
-        # Email and password attributes.
-        self.__dict__['email'] = None
-        self.__dict__['password'] = None
+        # Email and password
+        self.data['email'] = None
+        self.data['password'] = None
 
         # Secret takes the format:
         # action type, args, ctime for when the token is set, and secret
-        self.__dict__['secret'] = None
+        self.data['secret'] = None
 
     def setContext(self, ctx, hide=True):
         super(BaseUser, self).setContext(ctx)
-        self.__dict__['secret'] = None
+        self.data.pop('secret', None)
 
     def validate(self):
         super(BaseUser, self).validate()
@@ -102,7 +102,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             raise self.error('No email set.')
 
     def isowner(self):
-        if self.name == self._ctx.username:
+        if self.name == self.ctx.username:
             return True
         return super(BaseUser, self).isowner()
 
@@ -159,7 +159,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # This will always fail unless you're an admin:
         #   you need to specify the current password or a secret auth token.
         self.setpassword(None, value)
-        return set(['password'])
     
     def _validate_password(self, value, recycle=None, events=None):
         # Validate the new password.
@@ -177,7 +176,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             for previous in events.gethistory(param='password', limit=recycle):
                 if auth.check(value, previous[3]):
                     raise error
-
         return hashpassword
 
     def setpassword(self, oldpassword, newpassword, secret=None, events=None):
@@ -206,7 +204,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         self._delsecret() 
         # Finally, set the password.
         self._set('password', hashpassword, True)
-        return self.password
         
     def checkpassword(self, password):
         """Check the user password. Will raise a PermissionsError if failed."""
@@ -239,13 +236,12 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # This will always fail unless you're an admin:
         #   you need to specify the current password or a secret auth token.
         self.setemail(value)
-        return set(['email'])
     
     def _validate_email(self, value):
         # After a long discussion in #python, it is impossible to validate
         #     emails other than checking for '@'
         # Note: Forcing emails to be stored as lower case.
-        value = unicode(value or '').strip()        
+        value = self._strip(value)
         _, value = email.utils.parseaddr(value)
         value = value.strip().lower()
         if '@' not in value:
@@ -281,7 +277,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             self._setsecret('setemail', value)
         else:
             raise self.error(e=emen2.db.exceptions.AuthenticationError)
-        return self.email
 
     ##### Secrets for account password resets #####
 
@@ -291,13 +286,13 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
     def _checksecret(self, action, args, secret):
         try:
-            if self._ctx.checkadmin():
+            if self.ctx.checkadmin():
                 return True
         except Exception, e:
             pass
 
         if not hasattr(self, 'secret'):
-            self.__dict__['secret'] = None
+            self.data['secret'] = None
 
         # This should check expiration time...
         if action and secret and getattr(self, 'secret', None):
@@ -306,9 +301,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         return False
 
     def _setsecret(self, action, args):
-        # secret is set using __dict__ (like _ctx/_ptest) because it's a secret, and not a normal attribute.
         if not hasattr(self, 'secret'):
-            self.__dict__['secret'] = None
+            self.data['secret'] = None
 
         if self.secret:
             if action == self.secret[0] and args == self.secret[1]:
@@ -316,10 +310,10 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
         # Generate random secret.
         secret = self._makesecret()
-        self.__dict__['secret'] = (action, args, secret, time.time())
+        self.data['secret'] = (action, args, secret, time.time())
 
     def _delsecret(self):
-        self.__dict__['secret'] = None
+        self.data['secret'] = None
 
 class NewUser(BaseUser):
     """New User.
@@ -338,7 +332,7 @@ class NewUser(BaseUser):
         super(NewUser, self).init(d)
         # New users store signup info in a dict,
         #     which is committed as a 'person' record when approved
-        self.__dict__['signupinfo'] = {}
+        self.data['signupinfo'] = {}
 
     def _validate_signupinfo(self, rec):
         # Check signupinfo
@@ -363,7 +357,6 @@ class NewUser(BaseUser):
 
     def _set_signupinfo(self, key, value):
         self.setsignupinfo(value)
-        return set(['signupinfo'])
 
     def setsignupinfo(self, value):
         self._set('signupinfo', self._validate_signupinfo(value), self.isnew() or self.isowner())
@@ -380,7 +373,7 @@ class User(BaseUser):
 
     A User can specify a 'privacy' level as an integer. The default, 0, allows
     other users to see the link to the 'person' record, stored in the 'record'
-    attribute. 1 hides the link to anonymous users, 2 hides the link from all
+    parameter. 1 hides the link to anonymous users, 2 hides the link from all
     other users.
 
     :attr disabled: Disable this account.
@@ -393,79 +386,74 @@ class User(BaseUser):
     
     public = BaseUser.public | set(['privacy', 'disabled', 'displayname', 'userrec', 'groups', 'record'])
 
-    # These get set during setContext and cleared before commit
-    userrec = property(lambda s:s._userrec)
-    displayname = property(lambda s:s._displayname)
-    groups = property(lambda s:s._groups)
-
     def init(self, d):
         super(User, self).init(d)
         # Enabled/disabled, privacy level, and record ID pointer
-        self.__dict__['disabled'] = False
-        self.__dict__['privacy'] = 0
-        self.__dict__['record'] = None
+        self.data['disabled'] = False
+        self.data['privacy'] = 0
+        self.data['record'] = None
+        self.userrec = {}
+        self.displayname = self.name
+        self.groups = set()
 
     def setContext(self, ctx, hide=True):
         super(User, self).setContext(ctx)
-        admin = self._ctx.checkreadadmin()
-        ctxuser = self._ctx.username
-        p = {}
+        admin = self.ctx.checkreadadmin()
+        ctxuser = self.ctx.username
 
         # secret is never made available through normal get().
-        p['secret'] = None
+        self.data.pop('secret', None)
+
         # Hide the password hash if not root or owner.
         if not (admin or ctxuser == self.name):
-            p['password'] = None
-        
-        # Defaults for cached attributes..
-        p['_userrec'] = {}
-        p['_displayname'] = self.name
-        p['_groups'] = set()
+            self.data.pop('password', None)
 
         # If the user has requested privacy, we return only basic info
         if ctxuser == 'anonymous':
-            p['email'] = None
+            self.data.pop('email', None)
         if not admin and self.name != ctxuser:
             if self.privacy == 2:
-                p['record'] = None
+                self.data.pop('record', None)
             if self.privacy > 0:
-                p['email'] = None
+                self.data.pop('email', None)
 
-        self.__dict__.update(p)
-        self.__dict__['_displayname'] = self.getdisplayname()
+        # Cached attributes.
+        self.userrec = {}
+        self.displayname = self.getdisplayname()
+        self.groups = set()
 
-    # Users can set their own privacy level
-    def _set_privacy(self, key, value):
-        value = int(value)
-        if value not in [0,1,2]:
-            raise self.error("User privacy setting may be 0, 1, or 2.")
-        return self._set(key, value, self.isowner())
-
-    # Only admin can change enabled/disabled or record reference
     def _set_disabled(self, key, value):
-        value = bool(value)
-        if self.name == self._ctx.username and value:
-            raise self.error("Cannot disable self!")
-        return self._set(key, value, self._ctx.checkadmin())
+        self.disable(value)
 
+    def _set_privacy(self, key, value):
+        self.setprivacy(value)
+        
     def _set_record(self, key, value):
         # TODO: better validation.
-        return self._set(key, self._strip(value), self._ctx.checkadmin())
+        # Only admin can change profile record.
+        self._set(key, self._strip(value), self.ctx.checkadmin())
 
     ##### Enable/disable #####
-    # These will go through setattr -> setitem -> set_{param}
-
+    
     def enable(self):
         """Enable the user."""
-        self.disabled = False
+        self.disable(False)
 
-    def disable(self):
+    def disable(self, state=True):
         """Disable the user."""
-        self.disabled = True
+        # Only admin can change enabled/disabled
+        state = bool(state)
+        if self.name == self.ctx.username and state:
+            raise self.error("Cannot disable self!")
+        self._set(key, state, self.ctx.checkadmin())
 
     def setprivacy(self, privacy):
         """Set privacy level."""
-        self.privacy = privacy
+        # Users can set their own privacy level
+        privacy = int(privacy)
+        if privacy not in [0,1,2]:
+            raise self.error("User privacy setting may be 0, 1, or 2.")
+        self._set(key, privacy, self.isowner())
 
     ##### Displayname and profile Record #####
 
@@ -476,20 +464,20 @@ class User(BaseUser):
                 return "(private)"
             return unicode(self.name)
 
-        if not self._userrec:
+        if not self.userrec:
             if not record:
-                record = self._ctx.db.record.get(self.record) or {}
-            self._set('_userrec', record, True)
+                record = self.ctx.db.record.get(self.record) or {}
+            self.userrec = record
 
-        return self._formatusername(lnf=lnf)
+        return self._formatdisplayname(lnf=lnf)
 
-    def _formatusername(self, lnf=False):
-        if not self._userrec:
+    def _formatdisplayname(self, lnf=False):
+        if not self.userrec:
             return self.name
         # Yes, this is not very pretty.
-        nf = self._userrec.get('name_first')
-        nm = self._userrec.get('name_middle')
-        nl = self._userrec.get('name_last')
+        nf = self.userrec.get('name_first')
+        nm = self.userrec.get('name_middle')
+        nl = self.userrec.get('name_last')
         if nf and nm and nl:
             if lnf:
                 uname = "%s, %s %s" % (nl, nf, nm)

@@ -908,7 +908,8 @@ class CollectionDB(BaseDB):
             orec.validate()
             crecs.append(orec)
 
-        # If we just wanted to validate the changes, return before writing changes.
+        # If we just wanted to validate the changes, 
+        #      return without writing changes.
         if commit:
             return self._puts(crecs, ctx=ctx, txn=txn)
         return crecs
@@ -938,13 +939,6 @@ class CollectionDB(BaseDB):
     
     def delete(self, name, ctx=None, txn=None, flags=0):
         return
-        # emen2.db.log.debug("BDB: %s put: %s"%(self.filename, name))  
-        # item = self._get_data(name)
-        # for i in item.get('parents', []):
-        #     self.pcunlink(i, item.name, ctx=ctx, txn=txn)
-        # for i in item.get('children', []):
-        #     self.pcunlink(item.name, i, ctx=ctx, txn=txn)            
-        # self.bdb.delete(self.keydump(name), txn=txn, flags=flags)
         
     def query(self, c=None, mode='AND', subset=None, keywords=None, ctx=None, txn=None):
         """Return a Query Constraint Group.
@@ -984,7 +978,7 @@ class CollectionDB(BaseDB):
             else:
                 orec = self._get_data(item.name, txn=txn) or {}
 
-            for param in item.changedparams(orec):
+            for param in item.changed(orec):
                 ind[param].append((item.name, item.get(param), orec.get(param)))
 
         # Return the index changes.
@@ -1142,12 +1136,12 @@ class CollectionDB(BaseDB):
                     raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%newname
                 # Update the item's name.
                 namemap[item.name] = newname
-                item.__dict__['name'] = newname
+                item.data['name'] = newname
 
         # Update all the record's links
         for item in items:
-            item.__dict__['parents'] = set([namemap.get(i,i) for i in item.get('parents', [])])
-            item.__dict__['children'] = set([namemap.get(i,i) for i in item.get('children', [])])
+            item.data['parents'] = set([namemap.get(i,i) for i in item.get('parents', [])])
+            item.data['children'] = set([namemap.get(i,i) for i in item.get('children', [])])
 
         return namemap
 
@@ -1480,10 +1474,10 @@ class CollectionDB(BaseDB):
                 rec = self._get_data(name, txn=txn)
             except:
                 continue
-            rec.__dict__['parents'] -= p_remove[rec.name]
-            rec.__dict__['parents'] |= p_add[rec.name]
-            rec.__dict__['children'] -= c_remove[rec.name]
-            rec.__dict__['children'] |= c_add[rec.name]
+            rec.data['parents'] -= p_remove[rec.name]
+            rec.data['parents'] |= p_add[rec.name]
+            rec.data['children'] -= c_remove[rec.name]
+            rec.data['children'] |= c_add[rec.name]
             self._put_data(rec.name, rec, txn=txn)
         for k,v in p_remove.items():
             if v:
@@ -1530,14 +1524,12 @@ class CollectionDB(BaseDB):
         for x in xrange(recurse-1):
             if not tovisit[x]:
                 break
-
             tovisit.append(set())
             for key in tovisit[x] - visited:
                 new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) 
                 if new:
                     tovisit[x+1] |= new
                     result[key] = new
-
             visited |= tovisit[x]
 
         visited |= tovisit[-1]
@@ -1555,7 +1547,7 @@ class BinaryDB(CollectionDB):
         # Make the new name.
         newdkey = emen2.db.binary.parse(dkey['name'], counter=counter)
         # Update the item's filepath..
-        item.__dict__['_filepath'] = newdkey['filepath']
+        item.filepath = newdkey['filepath']
         # Return the new name.
         return newdkey['name']
 
