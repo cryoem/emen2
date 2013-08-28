@@ -64,12 +64,6 @@ else:
 # TODO: Handle better.
 MINLENGTH = 8
 
-# EMEN2 Extensions
-emen2.db.config.load_exts()
-
-##### Conveniences #####
-publicmethod = emen2.db.proxy.publicmethod
-
 # Versions
 # from emen2.clients import __version__
 VERSIONS = {
@@ -89,14 +83,14 @@ VIEW_REGEX_P = '''
 VIEW_REGEX_CLASSIC = '''(\$[\$\@\#\!]%s(?P<sep>[\W])?)'''%VIEW_REGEX_P
 VIEW_REGEX_M = '''(\{\{[\#\^\/]?%s\}\})'''%VIEW_REGEX_P
 
-# basestring goes away in Python 3
-basestring = (str, unicode)
-
 # Rate limits!!
 # This is a temporary solution.
 # Keys are account names. Values are time.time() of 
 #   unsuccesful logins.
 LOGIN_RATES = {}
+
+##### Conveniences #####
+publicmethod = emen2.db.proxy.publicmethod
 
 ##### Utility methods #####
 

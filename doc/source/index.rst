@@ -24,7 +24,6 @@ Contents:
    debug
    dump
    exceptions
-   globalns
    group
    handlers
    load
