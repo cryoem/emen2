@@ -16,6 +16,7 @@ Run:
 python -m emen2.tap [twistd options] emen2 [emen2 options]
 
 """
+import twisted.python.usage
 import twisted.python.log
 import twisted.application
 
@@ -23,7 +24,20 @@ import emen2.db.log
 import emen2.db.config
 import emen2.web.server
 
-Options = emen2.web.server.WebServerOptions
+# Options = emen2.web.server.WebServerOptions
+class Options(twisted.python.usage.Options):
+    """Base database options."""
+
+    optParameters = [
+        ['home', 'h', None, 'EMEN2 database environment directory'],
+        ['ext', 'e', None, 'Add extension; can be comma-separated.'],
+    ]
+
+    def postProcess(self):
+        ## note that for optFlags self[option_name] is 1 if the option is given and 0 otherwise
+        ##     this converts those values into the appropriate bools
+        # these default to True:
+        pass
 
 def logger():
     emen2.db.log.logger.start()

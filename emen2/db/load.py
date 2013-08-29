@@ -115,14 +115,22 @@ class RawLoader(Loader):
         s = float(count) / t
         print "Load: total time: %0.2f, %0.2f put/sec"%(t, s)
 
-class LoadOptions(emen2.db.config.DBOptions):
-    def parseArgs(self, infile):
-        self['infile'] = infile
-
 if __name__ == "__main__":
+    import emen2.db.config
+    opts = emen2.db.config.DBOptions()
+    opts.add_argument('--raw', action='store_true', help='Raw load; no validation.')
+    opts.add_argument('files', nargs='+')
+    args = opts.parse_args()
+    
+    lc = Loader
+    if args.raw:
+        lc = RawLoader
+    
     import emen2.db
-    cmd, db = emen2.db.opendbwithopts(optclass=LoadOptions, admin=True)
-    with db._newtxn(write=True):
-        loader = RawLoader(db=db, infile=cmd.options['infile'])
-        for keytype in ['paramdef', 'recorddef', 'user', 'group', 'binary', 'record']:
-            loader.load(keytype=keytype)
+    db = emen2.db.opendb(admin=True)
+    for f in args.files:
+        with db:
+            loader = lc(db=db, infile=f)
+            for keytype in ['paramdef', 'recorddef', 'user', 'group', 'binary', 'record']:
+                loader.load(keytype=keytype)
+        

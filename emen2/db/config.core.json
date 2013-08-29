@@ -57,7 +57,7 @@
     // Logging
     "logging":{
         "debug": false,
-        "level": "info"
+        "level": "INFO"
     },
 
     // Mail settings. If the smtphost is configured, and from address is set,

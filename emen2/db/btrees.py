@@ -57,8 +57,8 @@ class EMEN2DBEnv(object):
         """
         
         # Database environment directory
-        self.path = path
-        self.snapshot = snapshot or (not emen2.db.config.get('params.snapshot'))
+        self.path = path or emen2.db.config.get('home')
+        self.snapshot = snapshot or (not emen2.db.config.get('bdb.snapshot'))
         self.cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024l
 
         # Make sure the data and journal directories exists.

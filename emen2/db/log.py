@@ -40,7 +40,7 @@ class WebLogger(twisted.python.log.FileLogObserver):
 class ErrorLogger(twisted.python.log.FileLogObserver):
     pass
     
-class EMEN2Logger(object):
+class Logger(object):
     log_levels = dict(
             DEBUG=-1,
             TXN=1,
@@ -58,26 +58,25 @@ class EMEN2Logger(object):
     
     def __init__(self):
         """Initialize logging system."""
-        # print "EMEN2Logger.__init__"
         self.started = False
-        self.log_level = 0
+        self.level = 4
         self.loggers = {}
         # Turn on logging to stdout by default
         # twisted.python.log.startLogging(sys.stdout, setStdout=False)
 
-    def init(self):
-        """Start logging system."""
-        # The configuration has been loaded
-        self.logpath = emen2.db.config.get("paths.log")
-        self.log_level = self.log_levels.get(emen2.db.config.get('log_level', 0))
+    def setlevel(self, level):
+        self.level = self.log_levels.get(level, 0)
 
     def start(self):
         """Start file-backed logging."""
+        if self.started:
+            raise Exception("Logging already started!")
         self.started = True
 
         # Open the various log files.        
+        self.logpath = emen2.db.config.get("paths.log")
         if not self.logpath:
-            raise Exception, "No log path set"
+            raise Exception("No log path set!")
             
         self.loggers["INFO"] = SubLogger(open(os.path.join(self.logpath, "emen2.log"), "a+"))
         self.loggers["SECURITY"] = SubLogger(open(os.path.join(self.logpath, "security.log"), "a+"))
@@ -99,21 +98,20 @@ class EMEN2Logger(object):
     def log(self, message, level='INFO'):
         """Print or write the log message."""
         priority = self.log_levels.get(level, 0)        
-        if priority < self.log_level:
+        if priority < self.level:
             return
 
         # If we're using twisted logging, pass through...
         if self.started: 
             twisted.python.log.msg(message, system=level)
         else:
-            pass
             try:
                 print "[%s]"%level, unicode(message).encode('utf-8')
             except UnicodeDecodeError:
                 print message
             
 # Create the logger
-logger = EMEN2Logger()
+logger = Logger()
 
 def print_exception():
     traceback.print_exc()

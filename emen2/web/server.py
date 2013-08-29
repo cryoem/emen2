@@ -75,16 +75,6 @@ pool = DBPool()
 
 ##### Web server ######
 
-class WebServerOptions(emen2.db.config.DBOptions):
-    optParameters = [
-        ['port',      'HTTP port',  None, None, int],
-        ['httpsport', 'HTTPS port', None, None, int],
-    ]
-
-    optFlags = [
-        ['https', None, 'Use HTTPS']
-    ]
-
 class EMEN2Site(twisted.web.server.Site):
     def log(self, request):
         # rfc identd used for client supplied session ID
@@ -113,8 +103,7 @@ class EMEN2BaseServer(object):
     usage = WebServerOptions
 
     def __init__(self, options=None):
-        options = options or {}
-        self.port = options.get('port') or emen2.db.config.get('web.port')
+        self.port = emen2.db.config.get('web.port')
         self.https = emen2.db.config.get('web.https')
         self.ssl = emen2.db.config.get('paths.ssl')
 
@@ -175,13 +164,14 @@ class EMEN2WebServer(EMEN2BaseServer):
     def attach_resources(self, root):
         # Load all View extensions
         import emen2.db.config
-        emen2.db.config.load_views()
+        emen2.db.config.config.load_views()
 
         # Child resources that do not go through the Router.
         import jsonrpc.server
         import emen2.web.resource
 
-        # if all the JSON_RPC class does is change the eventhandler, it can (and should) be instantiated this way:
+        # if all the JSON_RPC class does is change the eventhandler, 
+        #   it can (and should) be instantiated this way:
         from emen2.web.resource import JSONRPCServerEvents
         root.putChild('jsonrpc', jsonrpc.server.JSON_RPC().customize(JSONRPCServerEvents))
         root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
@@ -189,18 +179,18 @@ class EMEN2WebServer(EMEN2BaseServer):
         root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
         root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
     
-def start_standalone():
-    opt = emen2.db.config.UsageParser(WebServerOptions)
-    server = EMEN2WebServer(opt.options)
-    emen2.db.log.info("Web server started")
+def standalone(service='web'):
+    opts = emen2.db.config.DBOptions()
+    args = opts.parse_args()
+    if service == 'web':
+        service = EMEN2WebServer
+    elif service == 'rpc':
+        service = EMEN2RPCServer
+    else:
+        raise ValuError, "Unknown service"
+    server = service()
+    emen2.db.log.info("Service started: %s"%service)
     server.start()
     
-def start_rpc():
-    opt = emen2.db.config.UsageParser(WebServerOptions)
-    server = EMEN2RPCServer(opt.options)
-    emen2.db.log.info("RPC server started")
-    server.start()
-
 if __name__ == "__main__":
-    start_standalone()
-
+    standalone()

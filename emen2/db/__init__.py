@@ -1,15 +1,6 @@
 """EMEN2: An extesible electronic lab notebook and database."""
 
 def opendb(**kwargs):
-    """Open a database."""
-    # Import the config first and parse
-    import emen2.db.config
-    cmd = emen2.db.config.UsageParser()
+    """Open a database. Shorter alias to emen2.db.database.opendb."""
     import emen2.db.database
     return emen2.db.database.opendb(**kwargs)
-
-def opendbwithopts(optclass, **kwargs):
-    import emen2.db.config
-    cmd = emen2.db.config.UsageParser(optclass=optclass)
-    import emen2.db.database
-    return cmd, emen2.db.database.opendb(**kwargs)

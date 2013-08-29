@@ -29,6 +29,9 @@ import jsonrpc.jsonutil
 import emen2.db.config
 import emen2.db.log
 
+# EMEN2 Exceptions into local namespace
+from emen2.db.exceptions import *
+
 # EMEN2 Core
 import emen2.db.vartypes
 import emen2.db.properties
@@ -49,9 +52,6 @@ import emen2.db.group
 
 # EMEN2 Utilities
 import emen2.utils
-
-# EMEN2 Exceptions into local namespace
-from emen2.db.exceptions import *
 
 # Load backend
 BACKEND = "bdb"
@@ -253,8 +253,8 @@ def opendb(name=None, password=None, admin=False, db=None):
     :keyparam db: Use an existing DB instance.
     :return: DBProxy
     """
+    
     # Import here to avoid issues with publicmethod.
-    import emen2.db.proxy
     db = db or DB()
     
     # Create the proxy and login, as a user or admin.
@@ -318,16 +318,14 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
 class DB(object):
     """EMEN2 Database."""
 
-    def __init__(self, path=None, dbenv=None):
+    def __init__(self, dbenv=None):
         """(Internal) EMEN2 Database.
-        :keyword path: Directory containing an EMEN2 Database Environment.
         :keyword dbenv: Pass an existing EMEN2DBEnv.
         """
         # Cache for contexts
         self.contexts_cache = {}
         # Open the database
-        path = path or emen2.db.config.get('EMEN2DBHOME')
-        self.dbenv = dbenv or backend.EMEN2DBEnv(path=path)
+        self.dbenv = dbenv or backend.EMEN2DBEnv()
 
     ##### Utility methods #####
 

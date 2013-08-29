@@ -17,7 +17,7 @@ class AddExtLookup(mako.lookup.TemplateLookup):
 
     Extends TemplateLookup methods:
         get_template           Adds '.mako' to filenames
-        render_template        ""
+        render_template        
 
     """
     def get_template(self, uri):
@@ -37,8 +37,15 @@ templates = AddExtLookup(
 
 ##### Config methods #####
 
+def json_strip_comments(data):
+    """Remove JavaScript-style comments from a string."""
+    r = re.compile('/\\*.*\\*/', flags=re.M|re.S)
+    data = r.sub("", data)
+    data = re.sub("\s//.*\n", "", data)
+    return data
+
 def get_filename(package, resource=None):
-    """Get the absolute path to a file inside a given Python package"""
+    """Get the absolute path to a file inside a given Python package."""
     d = sys.modules[package].__file__
     if resource:
         d = os.path.dirname(d)
@@ -49,60 +56,10 @@ def get_filename(package, resource=None):
 ##### Email config helper #####
 
 def mailconfig():
+    """Return mail configuration: from address, smtp host."""
     from_addr = get('mail.from')
     smtphost = get('mail.smtphost') 
     return from_addr, smtphost
-
-##### Extensions #####
-
-def load_exts():
-    for ext in config.get('extensions.exts'):
-        load_ext(ext)
-
-def load_views():
-    for ext in config.get('extensions.exts'):
-        load_view(ext)
-
-def load_jsons(cb=None, *args, **kwargs):
-    for ext in config.get('extensions.exts'):
-        load_json(ext, cb=cb, *args, **kwargs)
-
-def load_ext(ext):
-    modulename = 'emen2.exts.%s'%ext
-    if modulename in sys.modules:
-        return
-    paths = config.get('paths.exts')
-    module = imp.find_module(ext, paths)
-    ret = imp.load_module(ext, *module)
-    # Extensions may have an optional "templates" directory,
-    # which will be added to the template search path.
-    templates.directories.insert(0, os.path.join(module[1], 'templates'))
-    return ret
-
-def load_view(ext):
-    modulename = 'emen2.exts.%s.views'%ext
-    if modulename in sys.modules:
-        return
-    paths = list(Config.globalns.paths.exts)
-    module = imp.find_module(ext, paths)
-    path = module[1]
-    try:
-        viewmodule = imp.find_module('views', [path])
-    except ImportError, e:
-        viewmodule = None
-    if viewmodule:
-        imp.load_module(modulename, *viewmodule)
-
-def load_json(ext, cb=None, *args, **kwargs):
-    path = resolve_ext(ext)
-    if not cb:
-        return
-    for j in sorted(glob.glob(os.path.join(path, 'json', '*.json'))):
-        cb(j, *args, **kwargs)
-
-def resolve_ext(ext):
-    paths = list(Config.globalns.paths.exts)
-    return imp.find_module(ext, paths)[1]
 
 ##### Config #####
 
@@ -113,32 +70,17 @@ def set(key, value):
     return config.set(key, value)
 
 class Config(object):
+    
+    home = property(lambda self:self.data.get('home'))
+    
     def __init__(self):
         self.data = {}
-        self.home = 'test'
-        self.loaded = False
         self.load(get_filename('emen2', 'db/config.core.json'))
-        
-    def load(self, infile):
-        with open(infile, 'r') as f:
-            data = f.read()
-        data = json_strip_comments(data)
-        data = json.loads(data)
-        self.data = data
     
-    def _wrap_path(self, root, d):
-        # Recursively prefix string values with root path.
-        if isinstance(d, basestring):
-            if not d.startswith('/'):
-                d = os.path.join(root, d)
-        elif hasattr(d, 'items'):
-            for k,v in d.items():
-                d[k] = self._wrap_path(root, v)
-        elif hasattr(d, '__iter__'):
-            d = [self._wrap_path(root, i) for i in d]
-        return d
-    
-    def get(self, key):
+    def get(self, key, default=None):
+        # Get a config value.
+        if not self.home:
+            raise ValueError("No EMEN2DBHOME directory.")
         path = key.replace('/', '.').split('.')
         ret = self.data
         for k in path:
@@ -151,27 +93,107 @@ class Config(object):
         return ret
 
     def set(self, key, value):
+        # Set a config value.
         raise NotImplementedError
+        
+    def _wrap_path(self, root, d):
+        # Recursively prefix string values with root path.
+        if isinstance(d, basestring):
+            if not d.startswith('/'):
+                d = os.path.join(root, d)
+        elif hasattr(d, 'items'):
+            for k,v in d.items():
+                d[k] = self._wrap_path(root, v)
+        elif hasattr(d, '__iter__'):
+            d = [self._wrap_path(root, i) for i in d]
+        return d
 
+    def sethome(self, home):
+        if not home:
+            raise ValueError("No EMEN2DBHOME directory.")
+        self.data['home'] = home
+        self.load(os.path.join(self.home, 'config.json'))
+        self.load_exts()
+        
+    def load(self, infile):
+        if not os.path.exists(infile):
+            return
+        with open(infile, 'r') as f:
+            data = f.read()
+        data = json_strip_comments(data)
+        data = json.loads(data)
+        self.data = data
+        
+    def _ext_paths(self):
+        paths = [get_filename('emen2', 'exts')]
+        paths += self.get('paths.exts') 
+        if os.getenv('EMEN2EXTPATH'):
+            for path in filter(None, os.getenv('EMEN2EXTPATH','').split(":")):
+                paths.append(path)
+        return paths
+    
+    def load_exts(self):
+        exts = self.get('extensions.exts')
+        for i in exts:
+            self.load_ext(i)
+        
+    def load_ext(self, ext):
+        # Load an extension and place the 
+        #   templates directory in the template search path.
+        modulename = 'emen2.exts.%s'%ext
+        if modulename in sys.modules:
+            return
+        module = imp.find_module(ext, self._ext_paths())
+        ret = imp.load_module(ext, *module)
+        # Extensions may have an optional "templates" directory,
+        # which will be added to the template search path.
+        templates.directories.insert(0, os.path.join(module[1], 'templates'))
+    
+    def load_views(self):
+        exts = self.get('extensions.exts')
+        for i in exts:
+            self.load_view(i)
+    
+    def load_view(self, ext):
+        modulename = 'emen2.exts.%s.views'%ext
+        if modulename in sys.modules:
+            return
+        module = imp.find_module(ext, self._ext_paths())
+        path = module[1]
+        try:
+            viewmodule = imp.find_module('views', [path])
+        except ImportError, e:
+            viewmodule = None
+        if viewmodule:
+            imp.load_module(modulename, *viewmodule)
+    
+# Configuration singleton.
 config = Config()
 
 ##### Argparse options #####
 
-class DBOptionsAP(argparse.ArgumentParser):
+class DBOptions(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
-        super(DBOptionsAP, self).__init__(*args, **kwargs)
-        self.add_argument("--home", help="EMEN2 database environment directory.")
-        self.add_argument("--ext", "-e", help="Add extensions; can be comma-separated.")
-        self.add_argument("--debug", help="Debug", action="store_true")
-        self.add_argument("--version", help="Version", action="store_true")
+        kwargs['add_help'] = False
+        super(DBOptions, self).__init__(*args, **kwargs)
+        self.add_argument("-h", "--home", help="EMEN2 database environment directory.")
+        self.add_argument("-e", "--ext", help="Add extensions; can be comma-separated.")
+        self.add_argument("--debug", help="Show debugging messages.", action="store_true")
+        self.add_argument("--help", action='help', help='Show this help message and exit.')
+    
+    def parse_args(self, *args, **kwargs):
+        """Convenience to insert home/ext/debug into the configuration."""
+        opts = super(DBOptions, self).parse_args(*args, **kwargs)
+        if opts.home:
+            config.sethome(opts.home)
+        if opts.ext:
+            exts = opts.ext.split(',')
+            config.data['extensions']['exts'] = exts
+        if opts.debug:
+            import emen2.db.log
+            emen2.db.log.logger.setlevel('DEBUG')
+        return opts
         
-if __name__ == "__main__":
-    # Test
-    config.load(sys.argv[1])
-    print config.get('paths.binary')
-    print config.get('record.sequence')
-    print config.get('users.group_defaults')
-    print config.get('security/email_whitelist')
-    
-    
+        
+        
     
