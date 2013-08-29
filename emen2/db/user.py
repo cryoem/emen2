@@ -76,7 +76,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     :attr password: Hashed password.
     """
 
-    public = emen2.db.dataobject.BaseDBObject.public | set(['email', 'password'])
+    public = emen2.db.dataobject.BaseDBObject.public | set(['email', 'password', 'name_first', 'name_middle', 'name_last', 'displayname'])
 
     def init(self, d):
         super(BaseUser, self).init(d)
@@ -152,6 +152,22 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
                 if inactive_diff > inactive:
                     emen2.db.log.security("Login failed: inactive account for %s, last login was %s, max inactivity is %s"%(self.name, inactive_diff, inactive))
                     raise emen2.db.exceptions.InactiveAccount(name=self.name, message="This account has expired due to inactivity.")
+
+
+
+    ##### Name and display name #####
+
+    def _set_name_first(self, key, value):
+        pass
+    
+    def _set_name_last(self, key, value):
+        pass
+        
+    def _set_name_middle(self, key, value):
+        pass
+        
+    def _set_displayname(self, key, value):
+        pass
 
     ##### Password methods #####
 
@@ -384,7 +400,7 @@ class User(BaseUser):
     :property displayname: User "display name"; set by database when accessed
     """
     
-    public = BaseUser.public | set(['privacy', 'disabled', 'displayname', 'userrec', 'groups', 'record'])
+    public = BaseUser.public | set(['privacy', 'disabled', 'userrec', 'groups', 'record'])
 
     def init(self, d):
         super(User, self).init(d)
