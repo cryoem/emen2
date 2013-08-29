@@ -194,6 +194,24 @@ class DBOptions(argparse.ArgumentParser):
             emen2.db.log.logger.setlevel('DEBUG')
         return opts
         
+##### Twisted Options #####
+        
+import twisted.python.usage
+        
+class DBOptionsTwisted(twisted.python.usage.Options):
+    """Base database options."""
+
+    optParameters = [
+        ['home', 'h', None, 'EMEN2 database environment directory'],
+        ['ext', 'e', None, 'Add extension; can be comma-separated.'],
+    ]
+
+    def postProcess(self):
+        ## note that for optFlags self[option_name] is 1 if the option is given and 0 otherwise
+        ##     this converts those values into the appropriate bools
+        # these default to True:
+        pass
+        
         
         
     

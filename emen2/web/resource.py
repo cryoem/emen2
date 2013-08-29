@@ -99,22 +99,6 @@ class RoutedResource(object):
 
         return cls
 
-    slots = collections.defaultdict(list)
-    @classmethod
-    def provides(cls, slot):
-        '''Decorate a method to indicate that the method provides a certain functionality'''
-        def _inner(view):
-            cls.slots[slot].append(functools.partial(cls, init=view))
-            return view
-        return _inner
-
-    @classmethod
-    def require(cls, slot):
-        '''Use to get a view with a desired functionality'''
-        if slot in cls.slots:
-            return cls.slots[slot][-1]
-        else: raise ValueError, "No such slot"
-
 class FixedArgsResource(object):
     """Better handling of request args than Twisted's Resource."""
     
@@ -319,9 +303,6 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         request.addCookie("ctxid", ctxid, path='/')
 
     ##### Resource interface #####
-
-    def get_json(self):
-        return None
 
     def get_data(self):
         return ""

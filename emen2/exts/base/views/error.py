@@ -4,7 +4,6 @@ from emen2.web.view import View
 class Error(View):
 
     @View.add_matcher('/error/')
-    @View.provides('error_handler')
     def main(self, error='', location='/', **kwargs):
         self.template = '/errors/error'
         self.title = 'Error'
