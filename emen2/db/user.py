@@ -17,20 +17,17 @@ import emen2.db.dataobject
 import emen2.db.config
 import emen2.db.auth
 
-
-
-# DBO that contains a password and email address
 class BaseUser(emen2.db.dataobject.BaseDBObject):
-    """Base User DBO, with an email address and a password.
+    """Base User DBO, email address, password, first/middle/last name, and displayname.
     
     Passwords are currently hashed with bcrypt. The password is never exposed
     via the API; you have to directly retreive the item from the DB without
-    going through get/setContext.
+    going through get / setContext.
     
     Users also contain a 'secret'. This is used to keep track of password reset
     tokens, approval tokens, etc. Like password, this is never exposed via the API.
     The secret contains (requested action, arguments, time, token). It's managed using
-    _checksecret, _setsecret, _delsecret.
+    checksecret, _setsecret, _delsecret.
         
     Password reset are done by setting a secret token with resetpassword(),
     sending the token to the registered email address, and calling setpassword()
@@ -65,8 +62,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
         init            Init
         setContext      Check read permissions, bind Context, strip out password/secrets.
-        validate        Check required parameters
-        checkpassword   Check the password; raise PermissionsError if failed.
+        validate        Check required parameters.
+        checkpassword   Check the password.
         setpassword     Set the password; requires password or secret token.
         resetpassword   Set the password reset secret token.
         setemail        Set the email; requires password and secret token (2 step process.)
@@ -84,90 +81,72 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # Email and password
         self.data['email'] = None
         self.data['password'] = None
+        
+        # Names
+        self.data['name_first'] = ''
+        self.data['name_middle'] = ''
+        self.data['name_last'] = ''
+        self.data['displayname'] = ''
 
         # Secret takes the format:
         # action type, args, ctime for when the token is set, and secret
         self.data['secret'] = None
 
     def setContext(self, ctx, hide=True):
+        # Hide the secret during setContext.
         super(BaseUser, self).setContext(ctx)
         self.data.pop('secret', None)
 
     def validate(self):
+        """Require email and password to be set."""
         super(BaseUser, self).validate()
         if not self.password: 
-            traceback.print_stack()
             raise self.error('No password set.')
         if not self.email:
             raise self.error('No email set.')
 
     def isowner(self):
+        """Always allow the user to modify their own user DBO."""
         if self.name == self.ctx.username:
             return True
         return super(BaseUser, self).isowner()
 
-    ##### Account inactive or expired password #####
+    ##### Name and display name #####
+
+    def _set_name_first(self, key, value):
+        # These should trigger an update to _set_displayname.
+        self._set(key, self._strip(value), self.isowner())
+        self._set_displayname(None, None)
+    
+    def _set_name_last(self, key, value):
+        self._set(key, self._strip(value), self.isowner())
+        self._set_displayname(None, None)
+        
+    def _set_name_middle(self, key, value):
+        self._set(key, self._strip(value), self.isowner())
+        self._set_displayname(None, None)
+        
+    def _set_displayname(self, key, value):
+        self._set('displayname', self.getdisplayname(), self.isowner())
+
+    ##### Login #####
 
     def login(self, password, events=None):
         # Disabled users cannot login.
         # This needs to work even if there is no Context set.
+        # Return a Context?
         if self.get('disabled'):
             raise self.error(e=emen2.db.exceptions.DisabledUserError)
 
-        # Check the password. Will raise an exception on failure.
-        self.checkpassword(password)
+        # Check the password.
+        if not self.checkpassword(password):
+            raise self.error(e=emen2.db.exceptions.AuthenticationError)
 
-        # Check for expired password.
-        # If no events, nothing to do here.
-        if not events:
-            return
-
-        # Check this account isn't expired.
-        expire_initial = emen2.db.config.get('security.password_expire_initial')
-        expire = emen2.db.config.get('security.password_expire')
-        inactive = emen2.db.config.get('security.user_inactive')
-
-        # Check the password hasn't expired; will raise ExpiredPassword.
-        if expire:
-            last_password = events.gethistory(param='password', limit=1)
-            if last_password:
-                last_password = last_password[0][0]
-            elif expire_initial:
-                raise emen2.db.exceptions.ExpiredPassword(name=self.name, message="Please set a new password before your initial login.", title="Initial login")
-            else:
-                last_password = self.creationtime
-            password_diff = emen2.db.database.utcdifference(last_password)
-            # print "last_password?", last_password, password_diff, expire
-            if password_diff > expire:
-                emen2.db.log.security("Login failed: expired password for %s, password age was %s, max age is %s"%(self.name, password_diff, expire))
-                raise emen2.db.exceptions.ExpiredPassword(name=self.name, message="This password has expired.")        
-
-        # Check the user hasn't been inactive; will raise InactiveAccount.
-        if inactive:
-            last_context = events.gethistory(param='context', limit=1)
-            if last_context:
-                last_context = last_context[0][0]
-                inactive_diff = emen2.db.database.utcdifference(last_context)
-                # print "last_context?", last_context, inactive_diff, inactive
-                if inactive_diff > inactive:
-                    emen2.db.log.security("Login failed: inactive account for %s, last login was %s, max inactivity is %s"%(self.name, inactive_diff, inactive))
-                    raise emen2.db.exceptions.InactiveAccount(name=self.name, message="This account has expired due to inactivity.")
-
-
-
-    ##### Name and display name #####
-
-    def _set_name_first(self, key, value):
-        pass
-    
-    def _set_name_last(self, key, value):
-        pass
-        
-    def _set_name_middle(self, key, value):
-        pass
-        
-    def _set_displayname(self, key, value):
-        pass
+        # Check for expired password or inactive account.
+        # These will raise an ExpiredPassword Exception on failure.
+        auth = emen2.db.auth.PasswordAuth(name=self.name)
+        auth.checkexpired(password, events=events)
+        auth.checkinactive(events=events)
 
     ##### Password methods #####
 
@@ -176,22 +155,14 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         #   you need to specify the current password or a secret auth token.
         self.setpassword(None, value)
     
-    def _validate_password(self, value, recycle=None, events=None):
+    def _validate_password(self, password, events=None):
+        password = unicode(password or '').strip()
         # Validate the new password.
-        value = unicode(value or '').strip()
         auth = emen2.db.auth.PasswordAuth()
-        hashpassword = auth.validate(value)
-
-        # Check we haven't recycled an existing password.
-        recycle = emen2.db.config.get('security.password_recycle')
-        if events and recycle:
-            error = emen2.db.exceptions.RecycledPassword(name=self.name, message="You may not re-use a previously used password.")
-            auth = emen2.db.auth.PasswordAuth()
-            if auth.check(value, self.password):
-                raise error
-            for previous in events.gethistory(param='password', limit=recycle):
-                if auth.check(value, previous[3]):
-                    raise error
+        hashpassword = auth.validate(password)
+        # Check the password hasn't been used recently.
+        auth.checkrecycle(password, events=events)
+        # Return the password hash.
         return hashpassword
 
     def setpassword(self, oldpassword, newpassword, secret=None, events=None):
@@ -204,10 +175,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         #   a new user,
         #   or we know an authentication secret
         #   or we know the existing password, 
-        # checkpassword will raise exception for failed attempt
         if self.isnew():
             pass
-        elif self._checksecret('resetpassword', None, secret):
+        elif self.checksecret('resetpassword', None, secret):
             pass
         elif self.checkpassword(oldpassword):
             pass
@@ -222,18 +192,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         self._set('password', hashpassword, True)
         
     def checkpassword(self, password):
-        """Check the user password. Will raise a PermissionsError if failed."""
-        # Check legacy SHA-1 based password hashes..
-        # TODO: Perhaps expire these accounts and require password reset?
+        """Check the user password."""
         auth = emen2.db.auth.PasswordAuth()
-        if auth.check(password, self.password, algorithm='SHA-1'):
-            return True
-
-        # Check the password.
-        if auth.check(password, self.password):
-            return True
-
-        raise self.error(e=emen2.db.exceptions.AuthenticationError)
+        return auth.check(password, self.password)
 
     def resetpassword(self):
         """Reset the user password. 
@@ -280,15 +241,15 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         #   it's a new user
         #   or we know an authentication secret
         #   or we know the existing password, 
-        # Note: admin users always return True for _checksecret
+        # Note: admin users always return True for checksecret
         # Note: the auth token is bound both to the method (setemail) and the
         #     specific requested email address.
         value = self._validate_email(value)
         if self.isnew():
             self._set('email', value, self.isowner())
-        elif self._checksecret('setemail', value, secret):
-            self._set('email', value, True)
+        elif self.checksecret('setemail', value, secret):
             self._delsecret()
+            self._set('email', value, True)
         elif self.checkpassword(password):
             self._setsecret('setemail', value)
         else:
@@ -300,7 +261,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # Use uuid4 as the secret.
         return uuid.uuid4().hex
 
-    def _checksecret(self, action, args, secret):
+    def checksecret(self, action, args, secret):
         try:
             if self.ctx.checkadmin():
                 return True
@@ -330,6 +291,33 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
     def _delsecret(self):
         self.data['secret'] = None
+
+    ##### Displayname and profile Record #####
+
+    def getdisplayname(self, lnf=False):
+        """Format display name."""
+        # Yes, this is not very pretty.
+        nf = self.data.get('name_first')
+        nm = self.data.get('name_middle')
+        nl = self.data.get('name_last')
+        if nf and nm and nl:
+            if lnf:
+                uname = "%s, %s %s" % (nl, nf, nm)
+            else:
+                uname = "%s %s %s" % (nf, nm, nl)
+        elif nf and nl:
+            if lnf:
+                uname = "%s, %s" % (nl, nf)
+            else:
+                uname = "%s %s" % (nf, nl)
+        elif nl:
+            uname = nl
+        elif nf:
+            uname = nf
+        else:
+            return self.name
+        return uname
+
 
 class NewUser(BaseUser):
     """New User.
@@ -396,11 +384,10 @@ class User(BaseUser):
     :attr privacy: Privacy level
     :attr record: Record ID containing additional profile information
     :property groups: Set by database when accessed
-    :property userrec: Copy of profile record; set by database when accessed
     :property displayname: User "display name"; set by database when accessed
     """
     
-    public = BaseUser.public | set(['privacy', 'disabled', 'userrec', 'groups', 'record'])
+    public = BaseUser.public | set(['privacy', 'disabled', 'record'])
 
     def init(self, d):
         super(User, self).init(d)
@@ -408,9 +395,8 @@ class User(BaseUser):
         self.data['disabled'] = False
         self.data['privacy'] = 0
         self.data['record'] = None
-        self.userrec = {}
-        self.displayname = self.name
         self.groups = set()
+        self.userrec = {}
 
     def setContext(self, ctx, hide=True):
         super(User, self).setContext(ctx)
@@ -432,11 +418,6 @@ class User(BaseUser):
                 self.data.pop('record', None)
             if self.privacy > 0:
                 self.data.pop('email', None)
-
-        # Cached attributes.
-        self.userrec = {}
-        self.displayname = self.getdisplayname()
-        self.groups = set()
 
     def _set_disabled(self, key, value):
         self.disable(value)
@@ -471,43 +452,3 @@ class User(BaseUser):
             raise self.error("User privacy setting may be 0, 1, or 2.")
         self._set(key, privacy, self.isowner())
 
-    ##### Displayname and profile Record #####
-
-    def getdisplayname(self, lnf=False, record=None):
-        """Get the user profile record and return the display name."""
-        if self.record is None:
-            if self.privacy:
-                return "(private)"
-            return unicode(self.name)
-
-        if not self.userrec:
-            if not record:
-                record = self.ctx.db.record.get(self.record) or {}
-            self.userrec = record
-
-        return self._formatdisplayname(lnf=lnf)
-
-    def _formatdisplayname(self, lnf=False):
-        if not self.userrec:
-            return self.name
-        # Yes, this is not very pretty.
-        nf = self.userrec.get('name_first')
-        nm = self.userrec.get('name_middle')
-        nl = self.userrec.get('name_last')
-        if nf and nm and nl:
-            if lnf:
-                uname = "%s, %s %s" % (nl, nf, nm)
-            else:
-                uname = "%s %s %s" % (nf, nm, nl)
-        elif nf and nl:
-            if lnf:
-                uname = "%s, %s" % (nl, nf)
-            else:
-                uname = "%s %s" % (nf, nl)
-        elif nl:
-            uname = nl
-        elif nf:
-            uname = nf
-        else:
-            return self.name
-        return uname

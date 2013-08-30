@@ -63,7 +63,8 @@
     // Mail settings. If the smtphost is configured, and from address is set,
     //    emails will be sent during certain events.
     "mail":{
-        // "from": "root@localhost",
+        "from": "root@localhost",
+        "smtphost": ""
         // "smtphost": "localhost"
     },
 
@@ -148,7 +149,7 @@
     // User settings
     "users":{
         // Automatically approve new user accounts
-        "autoapprove": false,
+        "auto_approve": false,
         
         // New users will be added to these groups
         "group_defaults": ["create"]        

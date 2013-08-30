@@ -14,15 +14,13 @@ except:
 
 import emen2.db.exceptions
 import emen2.db.config
+# import emen2.timeutil
 
 SALT_BYTES = 22
-HASH_TYPES = ['SHA-1', 'SHA-2', 'bcrypt', '2', '2a', 'PBKDF2', 'MD5']
+HASH_TYPES = ['SHA-1', 'SHA-2', 'bcrypt', '2', '2a', 'PBKDF2', 'MD5', 'legacy']
 
-class ExpirationAuth(object):
-    """Expiration checking will be moved here."""
-    pass
 
-class PasswordAuth(object):
+class Hasher(object):
     """Manage password hashes.
     
     EMEN2 Passwords use a convention similar to bcrypt:
@@ -30,7 +28,7 @@ class PasswordAuth(object):
     
     Example:
 
-    >>> auth = emen2.db.auth.PasswordAuth()    
+    >>> auth = emen2.db.auth.Hasher()    
     >>> auth.hash('testqwerty', algorithm='sha1')
     '$sha1$0$L7V7n+K78MOG3JyicTWXIB$F1joLfgwg5YNL9ueMLqN80+S+M'
 
@@ -42,44 +40,13 @@ class PasswordAuth(object):
     sake; bcrypt omits this.    
     """
 
-    # def random(self, password):
-    #     # Satisfy minimum complexity rules.
-    #     base = "abAB09!@abAB09!@"
-    #     rand = os.urandom(32).encode('base_64')
-    #     return base+rand
+    def check(self, password, hashed, algorithm=None):
+        """Check a password."""
+        algorithm = algorithm or self.parse(hashed)[0]
+        return self.hash(password, salt=hashed, algorithm=algorithm) == hashed
 
-    def checkhashed(self, password):
-        # Small possibility this could be a false positive.
-        try:
-            parsed = self.parse(password)
-        except ValueError:
-            return False
-        return True
-
-    def validate(self, password):
-        minlength = emen2.db.config.get('security.password_minlength')
-        strength = emen2.db.config.get('security.password_strength')
-
-        # We need to avoid double hashing.
-        # Not the best solution...
-        if self.checkhashed(password):
-            return password
-        
-        # Check the minimum length.
-        if not password or len(password) < minlength:
-            raise emen2.db.exceptions.WeakPassword("Password too short; minimum %s characters required"%minlength)
-
-        if not all([re.match(i, password) for i in strength]):
-            raise emen2.db.exceptions.WeakPassword("Password not strong enough. Needs a lower case letter, an upper case letter, a number, and a symbol such as @, #, !, %, ^, etc.")
-
-        # hash the password.
-        return self.hash(password)
-    
-    def hash(self, password, salt=None, algorithm=None):
+    def hash(self, password, algorithm, salt=None):
         """Hash the password."""
-        salt = salt or ''
-        password = password or ''
-        algorithm = algorithm or emen2.db.config.get('security.password_algorithm')
         if algorithm not in HASH_TYPES:
             raise NotImplementedError("Unknown password hashing algorithm: %s"%algorithm)
         if algorithm == 'SHA-1':
@@ -91,13 +58,19 @@ class PasswordAuth(object):
         elif algorithm == 'PBKDF2':
             return self.pbkdf2(password, salt)
         elif algorithm == 'MD5':
-            return self.old(password, salt)
+            return self.md5(password, salt)
+        elif algorithm == 'legacy':
+            return self.legacy(password, salt)
+            
+    def checkhashed(self, password):
+        ret = False
+        try:
+            self.parse(password)
+            ret = True
+        except:
+            pass
+        return ret
     
-    def check(self, password, hashed, algorithm=None):
-        """Check a password."""
-        algorithm = algorithm or self.parse(hashed)[0]
-        return self.hash(password, salt=hashed, algorithm=algorithm) == hashed
-
     def gen_salt(self):
         return os.urandom(SALT_BYTES).encode('base_64')[:SALT_BYTES]
     
@@ -132,10 +105,15 @@ class PasswordAuth(object):
     
     def format_password(self, algorithm, rounds, salt, hashedpassword):
         return """$%s$%s$%s$%s"""%(algorithm, rounds, salt, hashedpassword)
-        
-    def old(self, password, salt):
+            
+    def legacy(self, password, salt):
         return hashlib.sha1(salt+password).hexdigest()    
         
+    def md5(self, password, salt):
+        salt = self.get_salt(salt) or self.gen_salt()
+        h = hashlib.md5(salt+password).digest().encode('base_64')[:-3]
+        return self.format_password('md5', 0, salt, h)
+
     def sha1(self, password, salt):
         salt = self.get_salt(salt) or self.gen_salt()
         h = hashlib.sha1(salt+password).digest().encode('base_64')[:-3]
@@ -157,6 +135,96 @@ class PasswordAuth(object):
 
     def pbkdf2(self, password, salt):
         raise NotImplementedError("Hash algorithm PBKDF2 coming soon.")
+        
+class PasswordAuth(object):
+    """Check and validate passwords."""
+    
+    def __init__(self, name=None):
+        self.hasher = Hasher()
+        # TODO: Temporary..
+        self.name = name
+        self.creationtime = 0
+    
+    def validate(self, password, events=None):
+        minlength = emen2.db.config.get('security.password_minlength')
+        strength = emen2.db.config.get('security.password_strength')
+        algorithm = emen2.db.config.get('security.password_algorithm')
+
+        # TODO: Find a better way check this..
+        # Check if the password is already hashed;
+        print "checking hashed..."
+        if self.hasher.checkhashed(password):
+            print "is hashed"
+            return password
+
+        # Check the minimum length.
+        if not password or len(password) < minlength:
+            raise emen2.db.exceptions.WeakPassword("Password too short; minimum %s characters required"%minlength)
+
+        if not all([re.match(i, password) for i in strength]):
+            raise emen2.db.exceptions.WeakPassword("Password not strong enough. Needs a lower case letter, an upper case letter, a number, and a symbol such as @, #, !, %, ^, etc.")
+
+        # Hash the password.
+        return self.hasher.hash(password, algorithm)
+
+    def check(self, password, hashed, algorithm=None):
+        """Check a password."""
+        return self.hasher.check(password, hashed, algorithm=algorithm)
+    
+    def checkrecycle(self, password, events=None):
+        # Check we haven't recycled an existing password.
+        recycle = emen2.db.config.get('security.password_recycle')
+        if not recycle:
+            return
+        if not recycle:
+            return
+        
+        error = emen2.db.exceptions.RecycledPassword(name=self.name, message="You may not re-use a previously used password.")
+        # if self.check(password, self.password):
+        #    raise error
+        for previous in events.gethistory(param='password', limit=recycle):
+            if self.check(password, previous[3]):
+                raise error        
+        
+    def checkexpired(self, password, events=None):
+        expire_initial = emen2.db.config.get('security.password_expire_initial')
+        expire = emen2.db.config.get('security.password_expire')
+        if not (expire or expire_initial):
+            return
+        if not events:
+            return
+        
+        # Check the password hasn't expired; will raise ExpiredPassword.
+        last_password = events.gethistory(param='password', limit=1)
+        if last_password:
+            last_password = last_password[0][0]
+        elif expire_initial:
+            raise emen2.db.exceptions.ExpiredPassword(name=self.name, message="Please set a new password before your initial login.", title="Initial login")
+        else:
+            last_password = self.creationtime
+
+        password_diff = emen2.db.database.utcdifference(last_password)
+        if password_diff > expire:
+            emen2.db.log.security("Login failed: expired password for %s, password age was %s, max age is %s"%(self.name, password_diff, expire))
+            raise emen2.db.exceptions.ExpiredPassword(name=self.name, message="This password has expired.")        
+        
+    def checkinactive(self, events=None):
+        inactive = emen2.db.config.get('security.user_inactive')
+        if not inactive:
+            return
+        if not events:
+            return
+
+        last_context = events.gethistory(param='context', limit=1)
+        if not last_context:
+            return
+
+        last_context = last_context[0][0]
+        inactive_diff = emen2.db.database.utcdifference(last_context)
+        # print "last_context?", last_context, inactive_diff, inactive
+        if inactive_diff > inactive:
+            emen2.db.log.security("Login failed: inactive account for %s, last login was %s, max inactivity is %s"%(self.name, inactive_diff, inactive))
+            raise emen2.db.exceptions.InactiveAccount(name=self.name, message="This account has expired due to inactivity.")
         
 class KerberosAuth(object):
     """Kerberos-based authentication."""

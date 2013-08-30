@@ -295,7 +295,7 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
 
         print "\n=== Setup Admin (root) account ==="
         rootpw = getpw(pw=rootpw)
-        root = {'name':'root', 'email':rootemail, 'password':rootpw}
+        root = {'name':'root', 'email':rootemail, 'password':rootpw, 'name_last':'Admin'}
         db.user.put(root)
 
         # Create default groups
@@ -2101,8 +2101,7 @@ class DB(object):
         :exception ValidationError:
         """
         items = self.dbenv["newuser"].puts(items, ctx=ctx, txn=txn)
-
-        autoapprove = emen2.db.config.get('users.autoapprove')
+        autoapprove = emen2.db.config.get('users.auto_approve')
         if autoapprove:
             rootctx = self._sudo()
             rootctx.db._txn = txn
@@ -2152,49 +2151,58 @@ class DB(object):
         if not ctx.checkadmin():
             raise PermissionsError("Only an administrator may perform this action.")
         group_defaults = emen2.db.config.get('users.group_defaults')
-        autoapprove = emen2.db.config.get('users.autoapprove')
+        autoapprove = emen2.db.config.get('users.auto_approve')
 
         # Get users from the new user approval queue
         newusers = self.dbenv["newuser"].gets(names, ctx=ctx, txn=txn)
         cusers = []
 
-        # This will also check if the current username or email is in use
+        # Approve the users.
         for newuser in newusers:
-            name = newuser.name
             emen2.db.log.security('Approving new user: %s, %s'%(newuser.name, newuser.email))
 
             # Delete the pending user
-            self.dbenv["newuser"].delete(name, ctx=ctx, txn=txn)
+            self.dbenv["newuser"].delete(newuser.name, ctx=ctx, txn=txn)
 
-            # Put the new user
-            user = self.dbenv["user"].new(name=name, email=newuser.email, ctx=ctx, txn=txn)
+            # Create the new user. This checks for uniqueness of the email address.
+            # TODO: Just check the uniqueness of the email <here>.
+            user = self.dbenv["user"].new(name=newuser.name, email=newuser.email, ctx=ctx, txn=txn)
+            # Update the new user
+            for i in ['name_first', 'name_middle', 'name_last']:
+                user[i] = newuser.get(i)
             # Manually copy the password hash.
             user.data['password'] = newuser.password
             user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
-            
-            # Create the "Record" for this user
-            rec = self.dbenv["record"].new(rectype='person', ctx=ctx, txn=txn)
 
-            # Are there any child records specified...
-            childrecs = newuser.signupinfo.pop('childrecs', None)
+            # Create a user profile record.
+            if newuser.signupinfo:            
+                # TODO: This is an open security question...
+                # Create the "Record" for this user
+                rec = self.dbenv["record"].new(rectype='person', ctx=ctx, txn=txn)
+                # Are there any child records specified...
+                childrecs = newuser.signupinfo.pop('childrecs', None)
+                # This gets updated with the user's signup info
+                rec.update(newuser.signupinfo)
+                rec.adduser(user.name, level=2)
+                rec.addgroup("authenticated")
+                rec.parents = set()
+                rec.children = set()
+                rec = self.dbenv["record"].put(rec, ctx=ctx, txn=txn)
 
-            # This gets updated with the user's signup info
-            rec.update(newuser.signupinfo)
-            rec.adduser(name, level=2)
-            rec.addgroup("authenticated")
-            rec = self.dbenv["record"].put(rec, ctx=ctx, txn=txn)
-
-            # Update the User with the Record name and put again
-            user.record = rec.name
-            user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
-            cusers.append(user)
-
-            for childrec in childrecs:
-                crec = self.record_new(rectype=childrec.get('rectype'), ctx=ctx, txn=txn)
-                crec.adduser(name, level=3)
-                crec.parents.add(rec.name)
-                crec.update(childrec)
-                crec = self.dbenv["record"].put(crec, ctx=ctx, txn=txn)
+                # Update the User with the Record name and put again
+                user.record = rec.name
+                user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
+                cusers.append(user)
+                
+                # Any additional profile records...
+                for childrec in childrecs:
+                    crec = self.record_new(rectype=childrec.get('rectype'), ctx=ctx, txn=txn)
+                    crec.update(childrec)
+                    crec.children = set()
+                    crec.parents = set()
+                    crec.parents.add(rec.name)
+                    crec.adduser(user.name, level=3)
+                    crec = self.dbenv["record"].put(crec, ctx=ctx, txn=txn)
 
         # Send the 'account approved' emails
         for user in cusers:
