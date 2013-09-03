@@ -96,6 +96,15 @@ class Config(object):
         # Set a config value.
         raise NotImplementedError
         
+    def update(self, d):
+        print "updating: d", d
+        for section, values in d:
+            if section not in self.data:
+                self.data[section] = {}
+            for key in :
+                self.data[section][key] = d[section][key]
+        print self.data
+    
     def _wrap_path(self, root, d):
         # Recursively prefix string values with root path.
         if isinstance(d, basestring):
@@ -122,7 +131,7 @@ class Config(object):
             data = f.read()
         data = json_strip_comments(data)
         data = json.loads(data)
-        self.data = data
+        self.update(data)
         
     def _ext_paths(self):
         paths = [get_filename('emen2', 'exts')]
