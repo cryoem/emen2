@@ -148,6 +148,8 @@ class Config(object):
         # Extensions may have an optional "templates" directory,
         # which will be added to the template search path.
         templates.directories.insert(0, os.path.join(module[1], 'templates'))
+        print "loading...", ext
+        print templates.directories
     
     def load_views(self):
         exts = self.get('extensions.exts')
@@ -184,11 +186,11 @@ class DBOptions(argparse.ArgumentParser):
     def parse_args(self, *args, **kwargs):
         """Convenience to insert home/ext/debug into the configuration."""
         opts = super(DBOptions, self).parse_args(*args, **kwargs)
-        if opts.home:
-            config.sethome(opts.home)
         if opts.ext:
             exts = opts.ext.split(',')
             config.data['extensions']['exts'] = exts
+        if opts.home:
+            config.sethome(opts.home)
         if opts.debug:
             import emen2.db.log
             emen2.db.log.logger.setlevel('DEBUG')
@@ -212,6 +214,3 @@ class DBOptionsTwisted(twisted.python.usage.Options):
         # these default to True:
         pass
         
-        
-        
-    

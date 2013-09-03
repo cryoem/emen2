@@ -100,7 +100,7 @@ class EMEN2Site(twisted.web.server.Site):
 
 class EMEN2BaseServer(object):
 
-    usage = WebServerOptions
+    # usage = WebServerOptions
 
     def __init__(self, options=None):
         self.port = emen2.db.config.get('web.port')
