@@ -183,6 +183,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
         self.filepath = parse(self.name).get('filepath')
         if self.isowner():
             return
+        # Check we can access the associated record.
         if self.record is not None:
             self.ctx.db.record.get(self.record, filt=False)
 

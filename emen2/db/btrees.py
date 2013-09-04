@@ -750,11 +750,14 @@ class CollectionDB(BaseDB):
         :exception ExistingKeyError:
         
         """
-        txn = kwargs.pop('txn', None) # Don't pass the txn..
+        # Clean up kwargs.
+        txn = kwargs.pop('txn', None)
         ctx = kwargs.get('ctx', None)
-        kwargs['keytype'] = self.keytype
         inherit = kwargs.pop('inherit', [])
+        kwargs['keytype'] = self.keytype
+
         item = self.dataclass(**kwargs)
+        # item.init(kwargs)
 
         for i in inherit:
             # Allow to raise an exception if does not exist or cannot read.
@@ -914,6 +917,9 @@ class CollectionDB(BaseDB):
             return self._puts(crecs, ctx=ctx, txn=txn)
         return crecs
 
+    def _put(self, item, ctx=None, txn=None):
+        return self._puts([item], ctx=None, txn=None)
+        
     def _puts(self, items, ctx=None, txn=None):
         # Skip security checks and validation
         # TODO: ctx used only for cache.

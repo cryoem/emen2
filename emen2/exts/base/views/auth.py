@@ -47,7 +47,7 @@ class Auth(View):
             self.notify("New passwords did not match", error=True)
         else:
             try:
-                self.db.user.setpassword(name, opw, on1)
+                self.db.user.setpassword(name, on1, oldpassword=opw)
                 self.redirect(content="Password changed successfully.", auto=False)
             except Exception, errmsg:
                 self.notify(errmsg, error=True)
@@ -64,7 +64,7 @@ class Auth(View):
         self.ctxt['message'] = message
         if name and secret and newpassword:
             try:
-                self.db.user.setpassword(name, oldpassword=None, newpassword=newpassword, secret=secret)
+                self.db.user.setpassword(name, newpassword, oldpassword=None, secret=secret)
                 self.redirect(content='The password for your account has been changed.', auto=False)
             except Exception, errmsg:
                 self.notify(errmsg, error=True)

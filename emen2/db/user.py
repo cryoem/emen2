@@ -80,8 +80,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
         # Email and password
         self.data['email'] = None
-        self.data['password'] = None
-        
+        self.data['password'] = None        
+
         # Names
         self.data['name_first'] = ''
         self.data['name_middle'] = ''
@@ -92,6 +92,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # action type, args, ctime for when the token is set, and secret
         self.data['secret'] = None
 
+        
     def setContext(self, ctx, hide=True):
         # Hide the secret during setContext.
         super(BaseUser, self).setContext(ctx)
@@ -151,9 +152,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     ##### Password methods #####
 
     def _set_password(self, key, value):
-        # This will always fail unless you're an admin:
-        #   you need to specify the current password or a secret auth token.
-        self.setpassword(None, value)
+        """Can't set password this way. Use user.setpassword()."""
+        return
     
     def _validate_password(self, password, events=None):
         password = unicode(password or '').strip()
@@ -165,7 +165,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # Return the password hash.
         return hashpassword
 
-    def setpassword(self, oldpassword, newpassword, secret=None, events=None):
+    def setpassword(self, newpassword, oldpassword, secret=None, events=None):
         """Set the user password.
         
         You must provide either a password, or an authentication secret.
@@ -210,9 +210,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     ##### email setting/validation #####
 
     def _set_email(self, key, value):
-        # This will always fail unless you're an admin:
-        #   you need to specify the current password or a secret auth token.
-        self.setemail(value)
+        """Can't set email this way. Use user.setemail()."""
+        return
     
     def _validate_email(self, value):
         # After a long discussion in #python, it is impossible to validate

@@ -119,16 +119,14 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         if not self.private:
             return
         # Private RecordDef...
-        if self.ctx.username == self.owner:
+        if self.ctx.checkreadadmin():
             return
-        elif self.ctx.checkreadadmin():
-            return
-        raise PermissionsError, "Private RecordDef"
+        raise PermissionsError("Private RecordDef.")
 
     def validate(self):
         # Run findparams one last time before we commit...
         if not self.mainview:
-            raise self.error("Main protocol (mainview) required")
+            raise self.error("Main protocol (mainview) required.")
         self._findparams()
 
     ##### Setters #####
@@ -137,7 +135,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         """Only an admin may change the mainview"""
         value = self._strip(textwrap.dedent(value))
         if not self.isnew() and not self.ctx.checkadmin():
-            raise self.error("Cannot change mainview")
+            raise self.error("Cannot change mainview.")
         self._set('mainview', value, self.isowner())
         self._findparams()
 

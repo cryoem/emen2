@@ -1920,7 +1920,7 @@ class DB(object):
         if user.email == oldemail:
             # Need to verify email address change by receiving secret.
             emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, email))
-            self.dbenv["user"]._put_data(user.name, user, txn=txn)
+            self.dbenv["user"]._put(user, txn=txn)
 
             # Send the verify email containing the auth token
             ctxt['secret'] = user_secret[2]
@@ -1953,12 +1953,11 @@ class DB(object):
         events.addhistory('1900-01-01T00:00:00Z+00:00', 'password', user.name, user.password)
 
         emen2.db.log.security("Expiring password for %s"%user.name)
-        self.dbenv["user"]._put_data(user.name, user, txn=txn)
+        self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
         self.dbenv._user_history._put_data(user.name, events, txn=txn)
 
-
     @publicmethod(write=True, compat="setpassword")
-    def user_setpassword(self, name, oldpassword, newpassword, secret=None, ctx=None, txn=None):
+    def user_setpassword(self, name, newpassword, oldpassword=None, secret=None, ctx=None, txn=None):
         """Change password.
 
         Note: This method only takes a single User name.
@@ -1967,10 +1966,10 @@ class DB(object):
 
         Examples:
 
-        >>> db.user.setpassword('ian', 'foobar', 'barfoo')
+        >>> db.user.setpassword('ian', 'barfoo', oldpassword='barfoo')
         <User ian>
 
-        >>> db.user.setpassword('ian', None, 'barfoo', secret=654067667525479cba8eb2940a3cf745de3ce608)
+        >>> db.user.setpassword('ian', 'barfoo', secret=654067667525479cba8eb2940a3cf745de3ce608)
         <User ian>
 
         :param oldpassword: Old password.
@@ -1998,14 +1997,14 @@ class DB(object):
         # Check that we can actually set the password.
         # This will raise a SecurityError if failed.
         try:
-            user.setpassword(oldpassword, newpassword, secret=secret, events=events)
+            user.setpassword(newpassword, oldpassword=oldpassword, secret=secret, events=events)
         except SecurityError, e:
             emen2.db.log.security('Failed to change password for %s: %s'%(user.name, e))
             raise e
 
         # Save the user. Don't use regular .put(), it will fail on setting pw.
         emen2.db.log.security("Changing password for %s"%user.name)
-        self.dbenv["user"]._put_data(user.name, user, txn=txn)
+        self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
 
         # Save the user events.
         recycle = emen2.db.config.get('security.password_recycle') or 0
@@ -2046,7 +2045,7 @@ class DB(object):
         user.resetpassword()
 
         # Use direct put to preserve the secret
-        self.dbenv["user"]._put_data(user.name, user, txn=txn)
+        self.dbenv["user"]._put(user, txn=txn)
 
         # Absolutely never reveal the secret via any mechanism
         # but email to registered address

@@ -74,13 +74,20 @@ class BaseDBObject(object):
 
     def __init__(self, **kwargs):
         """Initialize a new DBO."""
-        # Temporary setContext.
+        self.data = {}
+        self.new = True
         self.ctx = kwargs.pop('ctx', None)
+        if kwargs:
+            self.init(kwargs)
+            self.setContext(self.ctx)
+            self.update(kwargs)
 
-        # Basic parameters
+    def init(self, d, ctx=None):
+        """Subclass init."""
+        # Base data
         data = {}
-        data['name'] = kwargs.pop('name', None)
-        data['uri'] = kwargs.pop('uri', None)
+        data['name'] = None
+        data['uri'] = None
         data['keytype'] = unicode(self.__class__.__name__.lower())
         data['creator'] = self.ctx.username
         data['creationtime'] = self.ctx.utcnow
@@ -89,22 +96,12 @@ class BaseDBObject(object):
         data['children'] = set()
         data['parents'] = set()
         self.data = data
-
-        # Set the uncommitted flag.
-        self.new = True
-
-        # Subclass init
-        self.init(kwargs)
-
-        # Set the context (for real)
-        self.setContext(self.ctx)
-
-        # Update with the remaining params
-        self.update(kwargs)
-
-    def init(self, d):
-        """Subclass init."""
-        pass
+        
+    def load(self, d, ctx=None):
+        """Load directly from JSON / dict."""
+        self.new = False
+        self.data = d
+        self.setContext(ctx)
 
     def validate(self):
         """Validate."""
@@ -220,11 +217,6 @@ class BaseDBObject(object):
         # For instance, comments can update other params
         setter(key, value)
 
-        # Only permissions, groups, and links do not trigger a modifytime update
-        if key not in ['permissions', 'groups', 'parents', 'children'] and not self.isnew():
-            self.data['modifytime'] = self.ctx.utcnow
-            self.data['modifyuser'] = self.ctx.username
-
     ##### Real updates #####
 
     def _set(self, key, value, check):
@@ -237,11 +229,25 @@ class BaseDBObject(object):
         if not check:
             msg = 'Insufficient permissions to change parameter: %s'%key
             raise self.error(msg, e=emen2.db.exceptions.PermissionsError)
+
         self.data[key] = value
+
+        # Only permissions, groups, and links do not trigger a modifytime update
+        if key not in ['permissions', 'groups', 'parents', 'children'] and not self.isnew():
+            self.data['modifytime'] = self.ctx.utcnow
+            self.data['modifyuser'] = self.ctx.username
 
     def _setoob(self, key, value):
         """Out-of-bounds."""
         self.error('Cannot set parameter %s in this way'%key, warning=True)
+
+    ##### Core parameters. #####
+    
+    def _set_name(self, key, value):
+        self._set(key, value, self.isnew())
+        
+    def _set_uri(self, key, value):
+        self._set(key, value, self.isnew())
 
     ##### Update parents / children #####
 
@@ -257,7 +263,7 @@ class BaseDBObject(object):
         value = filter(None, value) or []
         self._set(key, value, self.writable())
 
-    ##### Pickle methods #####
+    ##### Pickle / serialize methods #####
 
     def __setstate__(self, data):
         if 'data' not in data:
@@ -284,11 +290,11 @@ class BaseDBObject(object):
                 pd = self.ctx.db.paramdef.get(key, filt=False)
                 self.ctx.cache.store(('paramdef', key), pd)
             except KeyError:
-                raise self.error('Parameter %s does not exist'%key)
+                raise self.error('Parameter %s does not exist.'%key)
 
         # Is it an immutable param?
         if pd.get('immutable') and not self.isnew():
-            raise self.error('Cannot change immutable parameter %s'%pd.name)
+            raise self.error('Cannot change immutable parameter: %s'%pd.name)
 
         # Validate
         vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self.ctx.db, cache=self.ctx.cache)
@@ -410,7 +416,7 @@ class PermissionsDBObject(BaseDBObject):
 
         # Now, check if we can read.
         if not self.readable():
-            raise emen2.db.exceptions.PermissionsError, "Permission denied: %s"%(self.name)
+            raise emen2.db.exceptions.PermissionsError("Permission denied: %s"%(self.name))
 
     def getlevel(self, user):
         """Get the user's permission level (0-3) for this object."""
@@ -550,7 +556,7 @@ class PermissionsDBObject(BaseDBObject):
 
 class PrivateDBO(object):
     def setContext(self, ctx=None):
-        raise emen2.db.exceptions.PermissionsError, "Private item."
+        raise emen2.db.exceptions.PermissionsError("Private item.")
 
 # History
 class History(PrivateDBO):
