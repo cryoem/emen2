@@ -2,7 +2,11 @@
 import random
 import string
 
-PASSWORD = "correcthorsebatterystaple"
+def randword(length):
+    s = string.lowercase + string.digits
+    return ''.join(random.sample(s,length))
+
+PASSWORD = randword(12)
 NEWPASSWORD = PASSWORD[::-1]
 
 TESTS = [
@@ -17,12 +21,6 @@ TESTS = [
     'record_new'
 ]
 
-
-def randword(length):
-    s = string.lowercase + string.digits
-    return ''.join(random.sample(s,length))
-
-
 def sanity(db):
     # Sanity check
     db.user.get('root')
@@ -30,7 +28,6 @@ def sanity(db):
     db.recorddef.get('root')
     db.group.get('admin')
     db.record.get('root')
-
 
 ######################################
 
