@@ -99,7 +99,7 @@ class RawLoader(Loader):
             parents[name] = set(item.pop('parents', []))
             r = dbenv[keytype].new(ctx=ctx, txn=txn)
             r.data.update(item)
-            dbenv[keytype]._puts([r], ctx=ctx, txn=txn)
+            dbenv[keytype]._put(r, ctx=ctx, txn=txn)
             count += 1
             
         keys = set(dbenv[keytype].filter(ctx=ctx, txn=txn))

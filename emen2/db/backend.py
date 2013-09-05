@@ -114,7 +114,7 @@ def CollectionDB(BaseDB):
     def _put_data(self, name, item): 
         raise rni
 
-    def delete(self, name, flags=0): 
+    def delete(self, name): 
         raise rni
 
     def query(self, c=None, mode='AND', subset=None, keywords=None): 

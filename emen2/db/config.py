@@ -81,29 +81,31 @@ class Config(object):
         # Get a config value.
         if not self.home:
             raise ValueError("No EMEN2DBHOME directory.")
-        path = key.replace('/', '.').split('.')
-        ret = self.data
+        path = self._key_path(key)
+        root = self.data
         for k in path:
             try:
-                ret = ret[k]
+                root = root[k]
             except Exception, e:
                 raise KeyError("No such key: %s"%key)
         if path[0] == 'paths':
-            return self._wrap_path(self.home, ret)
-        return ret
+            return self._wrap_path(self.home, root)
+        return root
 
     def set(self, key, value):
-        # Set a config value.
-        raise NotImplementedError
-        
-    def update(self, d):
-        print "updating: d", d
-        for section, values in d:
-            if section not in self.data:
-                self.data[section] = {}
-            for key in :
-                self.data[section][key] = d[section][key]
-        print self.data
+        path = self._key_path(key)
+        root = self.data
+        for k in path[:-1]:
+            try:
+                root = root[k]
+            except Exception, e:
+                raise KeyError("No such key: %s"%key)
+        root[path[-1]] = value
+    
+    def _key_path(self, key, root=None):
+        if root is None:
+            root = self.data
+        return key.replace('/', '.').split('.')
     
     def _wrap_path(self, root, d):
         # Recursively prefix string values with root path.
@@ -117,12 +119,25 @@ class Config(object):
             d = [self._wrap_path(root, i) for i in d]
         return d
 
+    def update(self, d):
+        for k,v in d.items():
+            self._update(k, v, self.data)
+    
+    def _update(self, key, value, root=None):
+        if root is None:
+            root = self.data
+        if hasattr(value, 'items'):
+            root[key] = root.get(key, {})
+            for k,v in value.items():
+                self._update(k, v, root[key])
+        else:
+            root[key] = value
+
     def sethome(self, home):
         if not home:
             raise ValueError("No EMEN2DBHOME directory.")
         self.data['home'] = home
         self.load(os.path.join(self.home, 'config.json'))
-        self.load_exts()
         
     def load(self, infile):
         if not os.path.exists(infile):
@@ -133,16 +148,33 @@ class Config(object):
         data = json.loads(data)
         self.update(data)
         
-    def _ext_paths(self):
-        paths = [get_filename('emen2', 'exts')]
-        paths += self.get('paths.exts') 
-        if os.getenv('EMEN2EXTPATH'):
-            for path in filter(None, os.getenv('EMEN2EXTPATH','').split(":")):
-                paths.append(path)
-        return paths
-    
+    # Helper methods    
+    def setarg(self, arg):
+        key, _, value = arg.partition("=")
+        # This is an extremely crude conversion
+        # to JSON bool/null/int/float.
+        if value.lower() == "true":
+            value = True
+        elif value.lower() == "false":
+            value = False
+        elif value.lower() == "null":
+            value = None
+        elif value.isdigit():
+            value = int(value)
+        elif value.startswith('-') and value[1:].isdigit():
+            value = int(value)
+        elif "." in value:
+            value = float(value)
+        else:
+            pass
+        self.set(key, value)
+
+# Configuration singleton.
+config = Config()
+
+class ExtHandler(object):        
     def load_exts(self):
-        exts = self.get('extensions.exts')
+        exts = config.get('extensions.exts')
         for i in exts:
             self.load_ext(i)
         
@@ -157,11 +189,9 @@ class Config(object):
         # Extensions may have an optional "templates" directory,
         # which will be added to the template search path.
         templates.directories.insert(0, os.path.join(module[1], 'templates'))
-        print "loading...", ext
-        print templates.directories
     
     def load_views(self):
-        exts = self.get('extensions.exts')
+        exts = config.get('extensions.exts')
         for i in exts:
             self.load_view(i)
     
@@ -177,32 +207,53 @@ class Config(object):
             viewmodule = None
         if viewmodule:
             imp.load_module(modulename, *viewmodule)
-    
-# Configuration singleton.
-config = Config()
 
+    def _ext_paths(self):
+        paths = [get_filename('emen2', 'exts')]
+        paths += config.get('paths.exts') 
+        if os.getenv('EMEN2EXTPATH'):
+            for path in filter(None, os.getenv('EMEN2EXTPATH','').split(":")):
+                paths.append(path)
+        return paths
+    
+# Extension handler singleton.
+exthandler = ExtHandler()    
+    
 ##### Argparse options #####
 
 class DBOptions(argparse.ArgumentParser):
     def __init__(self, *args, **kwargs):
+        """A nice argument parser for EMEN2."""
         kwargs['add_help'] = False
         super(DBOptions, self).__init__(*args, **kwargs)
-        self.add_argument("-h", "--home", help="EMEN2 database environment directory.")
-        self.add_argument("-e", "--ext", help="Add extensions; can be comma-separated.")
+        self.add_argument("--home", "-h", help="EMEN2 database environment directory.")
+        self.add_argument("--ext", "-e", help="Add extensions; can be comma-separated.", action="append")
+        self.add_argument("--set", dest="setarg", help="Change setting, e.g.: web.port=8080", action="append")
         self.add_argument("--debug", help="Show debugging messages.", action="store_true")
         self.add_argument("--help", action='help', help='Show this help message and exit.')
     
     def parse_args(self, *args, **kwargs):
-        """Convenience to insert home/ext/debug into the configuration."""
+        """Convenience to insert home/ext/debug/etc into the configuration."""
         opts = super(DBOptions, self).parse_args(*args, **kwargs)
-        if opts.ext:
-            exts = opts.ext.split(',')
-            config.data['extensions']['exts'] = exts
+
         if opts.home:
             config.sethome(opts.home)
+
+        if opts.ext:
+            exts = []
+            for ext in opts.ext:
+                exts.extend(ext.split(','))
+            config.data['extensions']['exts'] = exts
+
         if opts.debug:
             import emen2.db.log
             emen2.db.log.logger.setlevel('DEBUG')
+
+        if opts.setarg:
+            for arg in opts.setarg:
+                config.setarg(arg)
+
+        exthandler.load_exts()
         return opts
         
 ##### Twisted Options #####
@@ -210,7 +261,7 @@ class DBOptions(argparse.ArgumentParser):
 import twisted.python.usage
         
 class DBOptionsTwisted(twisted.python.usage.Options):
-    """Base database options."""
+    """Options for starting EMEN2 using twistd / emen2ctl."""
 
     optParameters = [
         ['home', 'h', None, 'EMEN2 database environment directory'],

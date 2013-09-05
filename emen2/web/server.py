@@ -164,7 +164,7 @@ class EMEN2WebServer(EMEN2BaseServer):
     def attach_resources(self, root):
         # Load all View extensions
         import emen2.db.config
-        emen2.db.config.config.load_views()
+        emen2.db.config.exthandler.load_views()
 
         # Child resources that do not go through the Router.
         import jsonrpc.server

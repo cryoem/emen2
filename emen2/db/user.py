@@ -152,8 +152,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     ##### Password methods #####
 
     def _set_password(self, key, value):
-        """Can't set password this way. Use user.setpassword()."""
-        return
+        self.setpassword(value)
+        # """Can't set password this way. Use user.setpassword().""" ??
+        # return
     
     def _validate_password(self, password, events=None):
         password = unicode(password or '').strip()
@@ -165,10 +166,10 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # Return the password hash.
         return hashpassword
 
-    def setpassword(self, newpassword, oldpassword, secret=None, events=None):
+    def setpassword(self, newpassword, password=None, secret=None, events=None):
         """Set the user password.
         
-        You must provide either a password, or an authentication secret.
+        You must provide either the existing password or an authentication secret.
         """
         # Check that we have permission to update the password.
         # Check that it's:
@@ -179,7 +180,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             pass
         elif self.checksecret('resetpassword', None, secret):
             pass
-        elif self.checkpassword(oldpassword):
+        elif self.checkpassword(password):
             pass
         else:
             raise self.error(e=emen2.db.exceptions.AuthenticationError)
@@ -210,8 +211,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     ##### email setting/validation #####
 
     def _set_email(self, key, value):
-        """Can't set email this way. Use user.setemail()."""
-        return
+        self.setemail(value)
+        # """Can't set email this way. Use user.setemail()."""
+        # return
     
     def _validate_email(self, value):
         # After a long discussion in #python, it is impossible to validate

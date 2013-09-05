@@ -227,17 +227,17 @@ class BaseDB(object):
     def close(self):
         pass
         
-    def truncate(self, txn=None, flags=0):
+    def truncate(self, txn=None):
         pass
     
 class IndexDB(BaseDB):
-    def get(self, key, default=None, cursor=None, txn=None, flags=0):
+    def get(self, key, default=None, cursor=None, txn=None):
         return []
 
-    def keys(self, minkey=None, maxkey=None, txn=None, flags=0):
+    def keys(self, minkey=None, maxkey=None, txn=None):
         return []
         
-    def items(self, minkey=None, maxkey=None, txn=None, flags=0):
+    def items(self, minkey=None, maxkey=None, txn=None):
         return []
 
     def removerefs(self, key, items, txn=None):
@@ -268,27 +268,27 @@ class CollectionDB(BaseDB):
     def values(self, ctx=None, txn=None):
         raise []
 
-    def get(self, key, filt=True, ctx=None, txn=None, flags=0):
-        r = self.gets([key], txn=txn, ctx=ctx, filt=filt, flags=flags)
+    def get(self, key, filt=True, ctx=None, txn=None):
+        r = self.gets([key], txn=txn, ctx=ctx, filt=filt)
         if not r:
             return None
         return r[0]
 
-    def gets(self, keys, filt=True, ctx=None, txn=None, flags=0):
+    def gets(self, keys, filt=True, ctx=None, txn=None):
         if filt == True:
             filt = (emen2.db.exceptions.SecurityError, KeyError)
 
         ret = []
         for key in keys:
             try:
-                d = self._get_data(key, txn=txn, flags=flags)
+                d = self._get_data(key, txn=txn)
                 d.setContext(ctx)
                 ret.append(d)
             except filt, e:
                 pass
         return ret
         
-    def _get_data(self, key, txn=None, flags=0):
+    def _get_data(self, key, txn=None):
         emen2.db.log.info("C*: _get_data: %s"%key)
         q = """SELECT id, ts, user, param, value FROM record WHERE id=:id ORDER BY ts ASC"""
         cur = self.dbenv.cursor()

@@ -152,9 +152,7 @@ class PasswordAuth(object):
 
         # TODO: Find a better way check this..
         # Check if the password is already hashed;
-        print "checking hashed..."
         if self.hasher.checkhashed(password):
-            print "is hashed"
             return password
 
         # Check the minimum length.

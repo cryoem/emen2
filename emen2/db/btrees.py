@@ -350,7 +350,7 @@ class BaseDB(object):
         self.bdb = None
 
     # Dangerous!
-    def truncate(self, txn=None, flags=0):
+    def truncate(self, txn=None):
         """Truncate BDB (e.g. 'drop table'). Transaction required.
         :keyword txn: Transaction
         """
@@ -471,7 +471,7 @@ class IndexDB(BaseDB):
             else:
                 self._get_method = emen2.db.bulk.get_dup_notbulk
 
-    def _get_method_nonbulk(self, cursor, key, dt, flags=0):
+    def _get_method_nonbulk(self, cursor, key, dt):
         # Get without C module. Uses an already open cursor.
         n = cursor.set(key)
         r = set() #[]
@@ -484,7 +484,7 @@ class IndexDB(BaseDB):
     # Default get method used by get()
     _get_method = _get_method_nonbulk
 
-    def get(self, key, default=None, cursor=None, txn=None, flags=0):
+    def get(self, key, default=None, cursor=None, txn=None):
         """Return all the values for this key.
 
         Can be passed an already open cursor, or open one if necessary.
@@ -509,7 +509,7 @@ class IndexDB(BaseDB):
         return r
 
     # ian: todo: allow min/max
-    def keys(self, minkey=None, maxkey=None, txn=None, flags=0):
+    def keys(self, minkey=None, maxkey=None, txn=None):
         """Keys. Transaction required.
 
         :keyword txn: Transaction
@@ -518,7 +518,7 @@ class IndexDB(BaseDB):
         return list(keys)
 
     # ian: todo: allow min/max
-    def items(self, minkey=None, maxkey=None, txn=None, flags=0):
+    def items(self, minkey=None, maxkey=None, txn=None):
         """Accelerated items. Transaction required.
 
         :keyword txn: Transaction
@@ -535,7 +535,7 @@ class IndexDB(BaseDB):
         cursor.close()
         return ret
 
-    def iteritems(self, minkey=None, maxkey=None, txn=None, flags=0):
+    def iteritems(self, minkey=None, maxkey=None, txn=None):
         """Iteritems. Transaction required.
 
         :keyword minkey: Minimum key
@@ -782,7 +782,7 @@ class CollectionDB(BaseDB):
         # In this case, return immediately and don't acquire any locks.
         # Note: this method does not check permissions; you could use it to check
         #     if a key exists or not, even if you can't read the value.
-        emen2.db.log.debug("BDB: %s exists: %s"%(self.filename, key))        
+        emen2.db.log.debug("BDB: %s exists: %s"%(self.filename, key))
         if key < 0 or key is None:
             return False
         return self.bdb.exists(self.keydump(key), txn=txn, flags=flags)
@@ -823,14 +823,14 @@ class CollectionDB(BaseDB):
 
     ##### Filtered context gets.. #####
 
-    def get(self, key, filt=True, ctx=None, txn=None, flags=0):
+    def get(self, key, filt=True, ctx=None, txn=None):
         """See cgets(). This works the same, but for a single key."""
-        r = self.gets([key], txn=txn, ctx=ctx, filt=filt, flags=flags)
+        r = self.gets([key], txn=txn, ctx=ctx, filt=filt)
         if not r:
             return None
         return r[0]
 
-    def gets(self, keys, filt=True, ctx=None, txn=None, flags=0):
+    def gets(self, keys, filt=True, ctx=None, txn=None):
         """Get a list of items, with a Context. Requires ctx and txn.
 
         The filt keyword, if True, will ignore KeyError and PermissionsError.
@@ -851,17 +851,17 @@ class CollectionDB(BaseDB):
         ret = []
         for key in keys:
             try:
-                d = self._get_data(key, txn=txn, flags=flags)
+                d = self._get_data(key, txn=txn)
                 d.setContext(ctx)
                 ret.append(d)
             except filt, e:
                 pass
         return ret
         
-    def _get_data(self, key, txn=None, flags=0):
+    def _get_data(self, key, txn=None):
         emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
         kd = self.keydump(key)
-        d = self.dataload(self.bdb.get(kd, txn=txn, flags=flags))
+        d = self.dataload(self.bdb.get(kd, txn=txn))
         if d:
             return d
         raise KeyError, "No such key %s"%(key)    
@@ -899,7 +899,7 @@ class CollectionDB(BaseDB):
             # Get the existing item or create a new one.
             if self.exists(name, txn=txn, flags=bsddb3.db.DB_RMW):
                 # Get the existing item.
-                orec = self._get_data(name, txn=txn, flags=bsddb3.db.DB_RMW)
+                orec = self._get_data(name, txn=txn)
                 # May raise a PermissionsError if you can't read it.
                 orec.setContext(ctx)
                 orec.update(updrec)
@@ -918,7 +918,7 @@ class CollectionDB(BaseDB):
         return crecs
 
     def _put(self, item, ctx=None, txn=None):
-        return self._puts([item], ctx=None, txn=None)
+        return self._puts([item], ctx=ctx, txn=txn)
         
     def _puts(self, items, ctx=None, txn=None):
         # Skip security checks and validation
@@ -939,11 +939,11 @@ class CollectionDB(BaseDB):
         emen2.db.log.debug("BDB: Committed %s items"%(len(items)))
         return items
 
-    def _put_data(self, name, item, txn=None, flags=0):
+    def _put_data(self, name, item, txn=None):
         emen2.db.log.debug("BDB: %s put: %s"%(self.filename, name))        
-        self.bdb.put(self.keydump(name), self.datadump(item), txn=txn, flags=flags)
+        self.bdb.put(self.keydump(name), self.datadump(item), txn=txn)
     
-    def delete(self, name, ctx=None, txn=None, flags=0):
+    def delete(self, name, ctx=None, txn=None):
         return
         
     def query(self, c=None, mode='AND', subset=None, keywords=None, ctx=None, txn=None):
@@ -1126,7 +1126,6 @@ class CollectionDB(BaseDB):
 
         :param items: Items to update.
         :keyword txn: Transaction.
-
         """
         namemap = {}
         for item in items:
@@ -1141,14 +1140,13 @@ class CollectionDB(BaseDB):
                 if self.exists(newname, txn=txn, flags=bsddb3.db.DB_RMW):
                     raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%newname
                 # Update the item's name.
-                namemap[item.name] = newname
                 item.data['name'] = newname
+                namemap[item.name] = newname
 
         # Update all the record's links
         for item in items:
             item.data['parents'] = set([namemap.get(i,i) for i in item.get('parents', [])])
             item.data['children'] = set([namemap.get(i,i) for i in item.get('children', [])])
-
         return namemap
 
     def _key_generator(self, item, txn=None):
@@ -1391,8 +1389,8 @@ class CollectionDB(BaseDB):
 
         # Check that we have enough permissions to write to one item
         # Use raw get; manually setContext. Allow KeyErrors to raise.
-        p = self._get_data(parent, txn=txn, flags=bsddb3.db.DB_RMW)
-        c = self._get_data(child, txn=txn, flags=bsddb3.db.DB_RMW)
+        p = self._get_data(parent, txn=txn) # , flags=bsddb3.db.DB_RMW
+        c = self._get_data(child, txn=txn) # , flags=bsddb3.db.DB_RMW
         perm = []
 
         # Both items must exist, and we need to be able to write to one
@@ -1633,10 +1631,10 @@ class UserDB(CollectionDB):
         return super(UserDB, self).filter(names, ctx=ctx, txn=txn)
 
 class NewUserDB(CollectionDB):
-    def delete(self, key, ctx=None, txn=None, flags=0):
+    def delete(self, key, ctx=None, txn=None):
         if not ctx.checkadmin():
             raise emen2.db.exceptions.PermissionsError("Only admin can delete keys.")
-        self.bdb.delete(self.keydump(key), txn=txn, flags=flags)
+        self.bdb.delete(self.keydump(key), txn=txn)
 
     def new(self, *args, **kwargs):
         txn = kwargs.get('txn', None)
