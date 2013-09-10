@@ -443,7 +443,7 @@ class User(BaseUser):
         state = bool(state)
         if self.name == self.ctx.username and state:
             raise self.error("Cannot disable self!")
-        self._set(key, state, self.ctx.checkadmin())
+        self._set('disabled', state, self.ctx.checkadmin())
 
     def setprivacy(self, privacy):
         """Set privacy level."""
@@ -451,5 +451,5 @@ class User(BaseUser):
         privacy = int(privacy)
         if privacy not in [0,1,2]:
             raise self.error("User privacy setting may be 0, 1, or 2.")
-        self._set(key, privacy, self.isowner())
+        self._set('privacy', privacy, self.isowner())
 

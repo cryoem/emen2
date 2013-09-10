@@ -69,3 +69,7 @@ class ExistingKeyError(EMEN2Exception):
 class TimeOutError(EMEN2Exception):
     """Operation timed out."""
 
+
+##### Email #####
+class EmailError(EMEN2Exception):
+    """There was a problem sending an email."""

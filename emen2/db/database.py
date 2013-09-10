@@ -1784,6 +1784,7 @@ class DB(object):
         return self.dbenv["user"].gets(foundusers or [], ctx=ctx, txn=txn)
         
     @publicmethod(write=True, admin=True, compat="disableuser")
+    @ol('names')
     def user_disable(self, names, filt=True, ctx=None, txn=None):
         """(Admin Only) Disable a User.
 
@@ -1804,6 +1805,7 @@ class DB(object):
         return self._mapput('user', names, 'disable', ctx=ctx, txn=txn)
 
     @publicmethod(write=True, admin=True, compat="enableuser")
+    @ol('names')
     def user_enable(self, names, filt=True, ctx=None, txn=None):
         """(Admin Only) Re-enable a User.
 
@@ -1824,6 +1826,7 @@ class DB(object):
         return self._mapput('user', names, 'enable', ctx=ctx, txn=txn)
 
     @publicmethod(write=True, compat="setprivacy")
+    @ol('names')
     def user_setprivacy(self, names, state, ctx=None, txn=None):
         """Set privacy level.
 
@@ -1842,7 +1845,7 @@ class DB(object):
         :exception PermissionsError:
         :exception ValidationError:
         """
-        return self._mapput('user', names, 'setprivacy', ctx.username, ctx, txn, state)
+        return self._mapput('user', names, 'setprivacy', ctx, txn, state)
 
     # These methods sometimes use put instead of put because they need to modify
     # the user's secret auth token.
@@ -2039,7 +2042,7 @@ class DB(object):
         
         from_addr, smtphost = emen2.db.config.mailconfig()
         if not (from_addr and smtphost):
-            raise Exception, "Mail server is not configured; contact the administrator for help resetting a password."
+            raise emen2.db.exceptions.EmailError, "Mail server is not configured; contact the administrator for help resetting a password."
         
         user = self._user_by_email(name, ctx=ctx, txn=txn)
         user.resetpassword()
