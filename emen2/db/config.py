@@ -79,8 +79,8 @@ class Config(object):
     
     def get(self, key, default=None):
         # Get a config value.
-        if not self.home:
-            raise ValueError("No EMEN2DBHOME directory.")
+        # if not self.home:
+        #    raise ValueError("No EMEN2DBHOME directory.")
         path = self._key_path(key)
         root = self.data
         for k in path:
@@ -93,6 +93,7 @@ class Config(object):
         return root
 
     def set(self, key, value):
+        print "setting...", key, value
         path = self._key_path(key)
         root = self.data
         for k in path[:-1]:
@@ -252,7 +253,7 @@ class DBOptions(argparse.ArgumentParser):
         if opts.setarg:
             for arg in opts.setarg:
                 config.setarg(arg)
-
+        
         exthandler.load_exts()
         return opts
         

@@ -3,6 +3,8 @@ import collections
 import random
 import string
 import inspect
+import tempfile
+import shutil
 
 def randword(length):
     s = string.lowercase + string.digits
@@ -86,49 +88,49 @@ class Create(Test):
 @register
 class Time(Test):
     @test
-    def time_now(self):
-        print self.db.time.now()
+    def api_time_now(self):
+        self.db.time.now()
 
     @test
-    def time_difference(self):
-        print self.db.time.difference('2013-01-01')
+    def api_time_difference(self):
+        self.db.time.difference('2013-01-01')
 
 @register
 class Version(Test):
     @test
-    def version(self):
-        print self.db.version()
+    def api_version(self):
+        self.db.version()
 
 @register
 class Ping(Test):
     @test
-    def ping(self):
-        print self.db.ping()
+    def api_ping(self):
+        self.db.ping()
     
 ######################################
 
 @register
 class NewUser(Test):
     @test
-    def newuser_new(self):
+    def api_newuser_new(self):
         email = '%s@yosemite.exmaple.com'%randword(10)
         password = randword(10)
         user = self.db.newuser.new(email=email, password=password, name_first='Chiura', name_last='Obata')
         return user
 
     @test
-    def newuser_request(self):
-        user = self.db.newuser.request(self.newuser_new())
+    def api_newuser_request(self):
+        user = self.db.newuser.request(self.api_newuser_new())
         return user
 
     @test
-    def newuser_approve(self):
-        user = self.newuser_request()
+    def api_newuser_approve(self):
+        user = self.api_newuser_request()
         self.db.newuser.approve(user.name)
 
     @test
-    def newuser_reject(self):
-        user = self.newuser_request()
+    def api_newuser_reject(self):
+        user = self.api_newuser_request()
         self.db.newuser.reject(user.name)
 
 @register
@@ -145,7 +147,7 @@ class User(Test):
         self.username = user.name
         
     @test
-    def user_get(self):
+    def api_user_get(self):
         user = self.db.user.get(self.username)
         # Check filt=False
         try:
@@ -155,21 +157,25 @@ class User(Test):
         return user
 
     @test
-    def user_put(self):
+    def api_user_put(self):
         user = self.db.user.get(self.username)
         user['name_first'] = "Test"
         self.db.user.put(user)
+        # Reset state
+        user = self.db.user.get(self.username)
+        user['name_first'] = "John"
+        self.db.user.put(user)
 
     @test
-    def user_filter(self):
-        pass
+    def api_user_filter(self):
+        self.db.user.filter()
 
     @test
-    def user_find(self):
-        pass
+    def api_user_find(self):
+        self.db.user.find("John")
 
     @test
-    def user_setprivacy(self):
+    def api_user_setprivacy(self):
         self.db.user.setprivacy(self.username, 0)
         assert self.db.user.get(self.username).privacy == 0
         self.db.user.setprivacy(self.username, 1)
@@ -180,7 +186,7 @@ class User(Test):
         self.db.user.setprivacy(self.username, 0)
 
     @test
-    def user_disable(self):
+    def api_user_disable(self):
         self.db.user.disable(self.username)
         assert self.db.user.get(self.username).disabled == True
         # Reset state
@@ -188,12 +194,12 @@ class User(Test):
         assert self.db.user.get(self.username).disabled == False
 
     @test
-    def user_enable(self):
+    def api_user_enable(self):
         self.db.user.enable(self.username)
         assert self.db.user.get(self.username).disabled == False
 
     @test
-    def user_setpassword(self):
+    def api_user_setpassword(self):
         # Change password, and make sure we can login.
         newpassword = self.password[::-1]        
         self.db.user.setpassword(self.username, newpassword, password=self.password)
@@ -203,7 +209,7 @@ class User(Test):
         self.db.auth.login(self.username, self.password)
 
     @test
-    def user_setemail(self):
+    def api_user_setemail(self):
         # Change email, and make sure email index is updated for login.
         email = '%s@change.example.com'%randword(10)
         self.db.user.setemail(self.username, email, password=self.password)
@@ -213,7 +219,7 @@ class User(Test):
         self.db.auth.login(self.email, self.password)
 
     @test
-    def user_resetpassword(self):
+    def api_user_resetpassword(self):
         try:
             self.db.user.resetpassword(self.username)
         except emen2.db.exceptions.EmailError: 
@@ -225,13 +231,95 @@ class User(Test):
         self.db.user.resetpassword(password=newpassword, secret=secret)
     
     @test
-    def user_expirepassword(self):
+    def api_user_expirepassword(self):
         self.db.user.expirepassword(self.username)
+
+    @test
+    def test_change_displayname(self):
+        user = self.db.user.get(self.username)
+        user.name_first = "Russell"
+        user.name_last = "Lee"
+        self.db.user.put(user)
+        assert self.db.user.get(self.username).displayname == "Russell Lee"
+        # users = self.db.user.find("Russell")
+        # assert self.username in [i.name for i in users]
+
+    @test
+    def test_secret(self):
+        pass
 
 ######################################
 
-def group_(self):
-    pass
+@register
+class Group(Test):
+    def setup(self):
+        # Create some new users
+        users = []
+        for i in ['Dorothea Lange', 'Walker Evans']:
+            name = i.partition(' ')
+            email = '%s-%s@wpa.example.com'%(name[2], randword(10))
+            user = self.db.newuser.request(dict(email=email, name_first=name[0], name_last=name[2], password=randword(10)))
+            self.db.newuser.approve(user.name)
+            users.append(user.name)
+
+        group = self.db.group.new(displayname="Farm Security Administration")
+        group = self.db.group.put(group)
+
+        self.groupname = group.name
+        self.users = users
+        
+    @test
+    def api_group_new(self):
+        group = self.db.group.new(displayname="Tennessee Valley Authority")
+        return group
+
+    @test
+    def api_group_put(self):
+        group = self.api_group_new()
+        group = self.db.group.put(group)
+        return group
+
+    @test
+    def api_group_filter(self):
+        self.db.group.filter()
+
+    @test
+    def api_group_find(self):
+        for group in self.db.group.find("Farm"):
+            group, group.data
+            
+    @test
+    def test_group_members(self):
+        # Add users
+        group = self.db.group.get(self.groupname)
+        for i in self.users:
+            group.adduser(i)
+        self.db.group.put(group)
+        group = self.db.group.get(self.groupname)
+        for i in self.users:
+            assert i in group.members()
+        
+        # Remove a user
+        group = self.db.group.get(self.groupname)
+        for i in self.users:
+            group.removeuser(i)
+        self.db.group.put(group)
+        group = self.db.group.get(self.groupname)
+        for i in self.users:
+            assert i not in group.members()
+
+    @test
+    def test_group_change_displayname(self):
+        group = self.db.group.get(self.groupname)
+        orig = group.displayname
+        group.displayname = "Department of the Interior"
+        self.db.group.put(group)
+        groups = self.db.group.find("Interior")
+        assert self.groupname in [i.name for i in groups]
+        # Revert
+        group = self.db.group.get(self.groupname)
+        group.displayname = orig
+        self.db.group.put(group)    
 
 ######################################
 
@@ -249,82 +337,162 @@ class Auth(Test):
         self.username = user.name
             
     @test
-    def auth_login(self):
-        print self.db.auth.login(self.username, self.password)
+    def api_auth_login(self):
+        self.db.auth.login(self.username, self.password)
 
     @test
-    def auth_check_context(self):
-        print self.db.auth.check.context()
+    def api_auth_check_context(self):
+        self.db.auth.check.context()
 
     @test
-    def auth_check_admin(self):
-        print self.db.auth.check.admin()
+    def api_auth_check_admin(self):
+        self.db.auth.check.admin()
 
     @test
-    def auth_check_create(self):
-        print self.db.auth.check.create()
+    def api_auth_check_create(self):
+        self.db.auth.check.create()
 
     # @test
-    # def auth_logout(self):
+    # def api_auth_logout(self):
     #     print self.db.auth.logout()
     #     print self.db.auth.login("root", PASSWORD)
 
 ######################################
 
+@register
 class ParamDef(Test):
-    def paramdef_get(self):
-        pass
+    def setup(self):
+        pd = self.db.paramdef.new(vartype='float', desc_short='Numerical aperture')
+        pd = self.db.paramdef.put(pd)
+        self.pdname = pd.name
 
-    def paramdef_new(self):
-        pass
+    @test
+    def api_paramdef_new(self):
+        pd1 = self.db.paramdef.new(vartype='int', desc_short='Film speed')
+        pd2 = self.db.paramdef.new(vartype='float', desc_short='Shutter speed')
+        pd3 = self.db.paramdef.new(vartype='boolean', desc_short='Flash fired')
+        return [pd1, pd2, pd3]
 
-    def paramdef_put(self):
-        pass
+    @test
+    def api_paramdef_put(self):
+        for pd in self.api_paramdef_new():
+            self.db.paramdef.put(pd)
 
-    def paramdef_filter(self):
-        pass
+    @test
+    def api_paramdef_get(self):
+        self.db.paramdef.get(self.pdname)
 
-    def paramdef_find(self):
-        pass
+    @test
+    def api_paramdef_filter(self):
+        pds = self.db.paramdef.filter()
+        assert self.pdname in pds
 
-    def paramdef_properties(self):
-        pass
+    @test
+    def api_paramdef_find(self):
+        pds = self.db.paramdef.find('aperture')
+        assert self.pdname in [pd.name for pd in pds]
 
-    def paramdef_units(self):
-        pass
+    @test
+    def api_paramdef_properties(self):
+        print self.db.paramdef.properties()
 
-    def paramdef_vartypes(self):
+    @test
+    def api_paramdef_units(self):
+        for prop in self.db.paramdef.properties():
+            print prop, self.db.paramdef.units(prop)
+
+    @test
+    def api_paramdef_vartypes(self):
+        print self.db.paramdef.vartypes()
+
+    def test_vartype(self):
         pass
+    
+    def test_property(self):
+        pass
+    
+    def test_units(self):
+        pass
+        
+    def test_desc(self):
+        pass
+        
+    def test_choices(self):
+        pass
+    
+    def test_iter(self):
+        pass    
 
 ######################################
 
 class Rel(Test):
-    def rel_pclink(self):
+    def api_rel_pclink(self):
         pass
 
-    def rel_pcunlink(self):
+    def api_rel_pcunlink(self):
         pass
 
-    def rel_relink(self):
+    def api_rel_relink(self):
         pass
 
-    def rel_siblings(self):
+    def api_rel_siblings(self):
         pass
 
-    def rel_parents(self):
+    def api_rel_parents(self):
         pass
 
-    def rel_children(self):
+    def api_rel_children(self):
         pass    
 
-    def rel_tree(self):
+    def api_rel_tree(self):
         pass
 
 ######################################
 
 class RecordDef(Test):
-    def recorddef_(self):
+    def setup(self):
         pass
+
+    @test
+    def api_recorddef_new(self):
+        pass
+
+    @test
+    def api_recorddef_put(self):
+        pass
+
+    @test
+    def api_recorddef_get(self):
+        pass
+
+    @test
+    def api_recorddef_filter(self):
+        pass
+
+    @test
+    def api_recorddef_find(self):
+        pass
+
+    @test
+    def test_mainview(self):
+        pass
+    
+    @test
+    def test_views(self):
+        pass
+        
+    @test
+    def test_private(self):
+        pass
+        
+    @test
+    def test_params(self):
+        pass
+    
+    @test
+    def test_desc(self):
+        pass
+
 
 ######################################
 
@@ -343,150 +511,169 @@ class Record(Test):
         assert self.recs
     
     @test
-    def record_get(self):
+    def api_record_new(self):
+        # New record test
+        rec = self.db.record.new(rectype='root')
+        rec = self.db.record.new(rectype='root', inherit=[self.root.name])
+        assert self.root.name in rec.parents
+        return rec
+        
+    @test
+    def api_record_put(self):
+        rec = self.api_record_new()
+        rec = self.db.record.put(rec)
+        assert rec.name
+        assert rec.rectype == 'root'
+        assert self.root.name in rec.parents
+        return rec
+        
+    @test
+    def api_record_get(self):
         assert self.db.record.get(self.root.name)
         try:
             self.db.record.get('fail', filt=False)
         except KeyError:
             pass
 
-    @test
-    def record_new(self):
-        # New record test
-        rec = self.db.record.new(rectype='root')
-        rec = self.db.record.new(rectype='root', inherit=[self.root.name])
-        assert self.root.name in rec.parents
-        
-    def record_hide(self):
+    def api_record_hide(self):
         pass
     
 
-    def record_update(self):
+    def api_record_update(self):
         pass
     
 
-    def record_validate(self):
+    def api_record_validate(self):
         pass
     
 
-    def record_adduser(self):
+    def api_record_adduser(self):
         pass
     
 
-    def record_removeuser(self):
+    def api_record_removeuser(self):
         pass
     
 
-    def record_addgroup(self):
+    def api_record_addgroup(self):
         pass
     
 
-    def record_removegroup(self):
+    def api_record_removegroup(self):
         pass
     
 
-    def record_setpermissionscompat(self):
+    def api_record_setpermissionscompat(self):
         # ugh
         pass
     
 
-    def record_addcomment(self):
+    def api_record_addcomment(self):
         pass
     
 
-    def record_findcomments(self):
+    def api_record_findcomments(self):
         pass
 
 
-    def record_findorphans(self):
+    def api_record_findorphans(self):
         pass
 
 
-    def record_findbyrectype(self):
-        pass
-    
-
-    def record_findbyvalue(self):
+    def api_record_findbyrectype(self):
         pass
     
 
-    def record_groupbyrectype(self):
+    def api_record_findbyvalue(self):
         pass
     
 
-    def record_renderchildren(self):
+    def api_record_groupbyrectype(self):
+        pass
+    
+
+    def api_record_renderchildren(self):
         pass
 
 
-    def record_findpaths(self):
+    def api_record_findpaths(self):
         pass
     
 ######################################
 
 class Binary(Test):
-    def binary_get(self):
+    def api_binary_get(self):
         pass
     
-    def binary_new(self):
+    def api_binary_new(self):
         pass
     
-    def binary_find(self):
+    def api_binary_find(self):
         pass
 
-    def binary_filter(self):
+    def api_binary_filter(self):
         pass
 
-    def binary_put(self):
+    def api_binary_put(self):
         pass
 
-    def binary_upload(self):
+    def api_binary_upload(self):
         pass
     
-    def binary_addreference(self):
+    def api_binary_addreference(self):
         pass
     
 ######################################
     
 class Query(Test):
     @test
-    def query(self):
+    def api_query(self):
         pass
 
     @test
-    def table(self):
+    def api_table(self):
         pass    
 
     @test
-    def plot(self):
+    def api_plot(self):
         pass
 
 ######################################
 
 class Render(Test):
     @test
-    def render(self):
+    def api_render(self):
         pass    
 
     @test
-    def view(self):
+    def api_view(self):
         pass
     
 ######################################
 
 if __name__ == "__main__":
-    pass
     import emen2.db
     import emen2.db.config
     opts = emen2.db.config.DBOptions()
+    opts.add_argument("--tmp", help="Use temporary database and run all tests.", action="store_true")
     opts.add_argument("--create", help="Run database setup before test.", action="store_true")
     opts.add_argument("--test", help="Test to run. Default is all.", action="append")
     args = opts.parse_args()
+    
+    dbtmp = None
+    if args.tmp:
+        dbtmp = tempfile.mkdtemp(suffix=".db")
+        emen2.db.config.config.sethome(dbtmp)
+        
     db = emen2.db.opendb(admin=True)
     t = RunTests(db=db)
-    if args.create:
+    if args.tmp or args.create:
         t.runone(cls=Create)
     if args.test:
         for i in args.test:
             t.runone(i)
     else:
         t.run()
+    
+    if dbtmp:
+        shutil.rmtree(dbtmp)

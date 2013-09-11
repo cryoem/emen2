@@ -82,6 +82,9 @@ class BaseDBObject(object):
             self.setContext(self.ctx)
             self.update(kwargs)
 
+    def __repr__(self):
+        return """<%s at %0x: %s>"""%(self.__class__.__name__, id(self), self.name)
+
     def init(self, d, ctx=None):
         """Subclass init."""
         # Base data
