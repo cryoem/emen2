@@ -198,7 +198,7 @@ bytes_prefix = {
 
 # Other unit synonyms
 other_equivs = {
-    'KB': 'kB',
+    'KB': 'KiB',
 
     # Pressure
     'Torr': 'torr',

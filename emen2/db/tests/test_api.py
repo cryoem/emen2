@@ -13,10 +13,9 @@ def randword(length):
 EMAIL = '%s@sierra.example.com'%randword(10)
 PASSWORD = randword(10)
 
-import emen2.db.exceptions
 
 ######################################
-
+from emen2.db.exceptions import *
 class ExpectException(Exception):
     pass
 
@@ -62,16 +61,33 @@ class Test(object):
         methods = [f for k,f in inspect.getmembers(self, predicate=inspect.ismethod) if getattr(f, 'counter', None)]    
         methods = sorted(methods, key=lambda f:getattr(f, 'counter', None))
         return methods
+        
+    
+    def header(self, *msg):
+        print "\n====== "+" ".join(map(unicode, msg)) + " ======"
+    
+    def msg(self, *msg, **kwargs):
+        if 'newline' not in kwargs:
+            kwargs['newline'] = True
+        if kwargs.get('newline'):
+            print
+        print "\t"+" ".join(map(unicode, msg))
+
+    def ok(self, *msg):
+        self.msg("ok:", *msg, newline=False)
+
+    def fail(self, *msg):
+        self.msg("FAILED:", *msg)
 
     def setup(self):
         pass
 
     def run(self):
-        print "\n===== Setup: %s"%self
+        self.header("Setup:", self)
         with self.db:
             self.setup()
         for method in self._tests():
-            print "\n===== Testing: %s"%method
+            self.header(method)
             with self.db:
                 method()
         for c in self.children:
@@ -368,60 +384,159 @@ class ParamDef(Test):
 
     @test
     def api_paramdef_new(self):
-        pd1 = self.db.paramdef.new(vartype='int', desc_short='Film speed')
-        pd2 = self.db.paramdef.new(vartype='float', desc_short='Shutter speed')
-        pd3 = self.db.paramdef.new(vartype='boolean', desc_short='Flash fired')
-        return [pd1, pd2, pd3]
+        self.msg("Checking paramdef.new")
+        pd = self.db.paramdef.new(vartype='int', desc_short='Film speed')
+        self.ok(pd)
 
     @test
     def api_paramdef_put(self):
-        for pd in self.api_paramdef_new():
-            self.db.paramdef.put(pd)
+        self.msg("Checking paramdef.put")
+        pd = self.db.paramdef.new(vartype='int', desc_short='Film speed')
+        pd = self.db.paramdef.put(pd)
+        assert pd.name
+        assert pd.vartype == 'int'
+        assert pd.desc_short == 'Film speed'
+        self.ok(pd)
 
     @test
     def api_paramdef_get(self):
-        self.db.paramdef.get(self.pdname)
+        self.msg("Checking paramdef.get")
+        pd = self.db.paramdef.get(self.pdname)
+        assert pd.name == self.pdname
+        self.ok(pd)
 
     @test
     def api_paramdef_filter(self):
         pds = self.db.paramdef.filter()
         assert self.pdname in pds
+        self.ok()
 
     @test
     def api_paramdef_find(self):
         pds = self.db.paramdef.find('aperture')
         assert self.pdname in [pd.name for pd in pds]
+        self.ok()
 
     @test
     def api_paramdef_properties(self):
-        print self.db.paramdef.properties()
+        self.msg("Checking list of properties")
+        props = self.db.paramdef.properties()
+        self.ok(props)
 
     @test
     def api_paramdef_units(self):
+        self.msg("Checking list of units")
         for prop in self.db.paramdef.properties():
-            print prop, self.db.paramdef.units(prop)
+            units = self.db.paramdef.units(prop)
+            self.ok(prop, units)
 
     @test
     def api_paramdef_vartypes(self):
-        print self.db.paramdef.vartypes()
+        self.msg("Checking list of vartypes")
+        vartypes = self.db.paramdef.vartypes()
+        self.ok(vartypes)
 
+    @test
     def test_vartype(self):
-        pass
+        self.msg("Checking vartypes")
+        for i in self.db.paramdef.vartypes():
+            pd = self.db.paramdef.new(vartype=i, desc_short='Test %s'%i)
+            self.db.paramdef.put(pd)
+            self.ok(i)
+
+        self.msg("Checking vartype is immutable")
+        try:
+            pd = self.db.paramdef.get('root')
+            pd.vartype = "string"
+            self.db.paramdef.put(pd)
+            raise ExpectException
+        except ValidationError, e:
+            self.ok(e)
+
+        self.msg("Checking invalid vartype")
+        try:
+            pd = self.db.paramdef.new(vartype="invalidvartype", desc_short='Test invalid vartype')
+            self.db.paramdef.put(pd)
+            raise ExpectException
+        except ValidationError, e:
+            self.ok(e)
     
+    @test
     def test_property(self):
-        pass
+        self.msg("Checking properties")
+        for prop in self.db.paramdef.properties():
+            pd = self.db.paramdef.new(vartype='float', desc_short='Test property %s'%prop, property=prop)
+            pd = self.db.paramdef.put(pd)
+            assert pd.property == prop
+            self.ok(prop)
+            
+        self.msg("Checking immutable property")
+        try:
+            pd = self.db.paramdef.get('root')
+            pd.property = "length"
+            self.db.paramdef.put(pd)
+            raise ExpectException
+        except ValidationError, e:
+            self.ok(e)
+
+        self.msg("Checking invalid property")
+        try:
+            self.db.paramdef.new(vartype='float', desc_short='Test invalid property')
+            pd.vartype = "invalidproperty"
+            self.db.paramdef.put(pd)
+            raise ExpectException
+        except ValidationError, e:
+            self.ok(e)
+            
+        self.msg("Checking property only for float")
+        try:
+            self.db.paramdef.new(vartype='string', desc_short='Test invalid property')
+            pd.vartype = "length"
+            self.db.paramdef.put(pd)
+            raise ExpectException
+        except ValidationError, e:
+            self.ok(e)
     
+    @test
     def test_units(self):
-        pass
+        import emen2.db.properties
+        for prop in self.db.paramdef.properties():
+            self.msg('Checking property / units:', prop)
+            units = self.db.paramdef.units(prop)
+            for defaultunits in units:
+                pd = self.db.paramdef.new(vartype='float', property=prop, defaultunits=defaultunits, desc_short='Test property %s units %s'%(prop, units))
+                pd = self.db.paramdef.put(pd)
+                assert pd.vartype == 'float'                
+                # assert pd.defaultunits == defaultunits
+            self.ok(units)
+
+            propcls = emen2.db.properties.Property.get_property(prop)
+            for defaultunits in units:
+                try:
+                    value = propcls.convert(1.0, defaultunits, propcls.defaultunits)
+                    self.ok("1.0 %s -> %s %s"%(defaultunits, value, propcls.defaultunits))
+                except Exception, e:
+                    self.fail("%s -> %s"%(defaultunits, propcls.defaultunits), e)
+                    # print "--- Failed!"
+                    # print e
+                    # print defaultunits
+                    # print propcls.defaultunits
+                    # print "--------------"
+
         
+        
+    @test
     def test_desc(self):
         pass
         
+    @test
     def test_choices(self):
         pass
     
+    @test
     def test_iter(self):
-        pass    
+        pass
+        
 
 ######################################
 
@@ -493,7 +608,6 @@ class RecordDef(Test):
     def test_desc(self):
         pass
 
-
 ######################################
 
 @register
@@ -535,96 +649,106 @@ class Record(Test):
         except KeyError:
             pass
 
+    @test
     def api_record_hide(self):
         pass
     
-
+    @test
     def api_record_update(self):
         pass
     
-
+    @test
     def api_record_validate(self):
         pass
     
-
+    @test
     def api_record_adduser(self):
         pass
     
-
+    @test
     def api_record_removeuser(self):
         pass
-    
 
+    @test
     def api_record_addgroup(self):
         pass
     
-
+    @test
     def api_record_removegroup(self):
         pass
     
-
+    @test
     def api_record_setpermissionscompat(self):
         # ugh
         pass
     
-
+    @test
     def api_record_addcomment(self):
         pass
     
-
+    @test
     def api_record_findcomments(self):
         pass
 
-
+    @test
     def api_record_findorphans(self):
         pass
 
-
+    @test
     def api_record_findbyrectype(self):
         pass
     
-
+    @test
     def api_record_findbyvalue(self):
         pass
     
-
+    @test
     def api_record_groupbyrectype(self):
         pass
     
-
+    @test
     def api_record_renderchildren(self):
         pass
 
-
+    @test
     def api_record_findpaths(self):
         pass
     
 ######################################
 
+@register
 class Binary(Test):
+    @test
     def api_binary_get(self):
         pass
     
+    @test
     def api_binary_new(self):
         pass
     
+    @test
     def api_binary_find(self):
         pass
 
+    @test
     def api_binary_filter(self):
         pass
 
+    @test
     def api_binary_put(self):
         pass
 
+    @test
     def api_binary_upload(self):
         pass
     
+    @test
     def api_binary_addreference(self):
         pass
     
 ######################################
-    
+
+@register    
 class Query(Test):
     @test
     def api_query(self):
@@ -640,14 +764,15 @@ class Query(Test):
 
 ######################################
 
+@register
 class Render(Test):
     @test
     def api_render(self):
-        pass    
+        print db.render('root')    
 
     @test
     def api_view(self):
-        pass
+        print db.view('root')    
     
 ######################################
 
