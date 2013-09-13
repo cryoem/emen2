@@ -15,143 +15,147 @@ ci = emen2.utils.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
 
 # Unit synonyms
-equivs = {
-    'mm^2': 'mm mm',
-    'cm^2': 'cm cm',
-    'm^2': 'm m',
-    'km^2': 'km km',
-    'square feet': 'ft ft',
-    'square meters': 'm m',
-    'square kilometers': 'km km',
-    'square miles': 'mile mile',
+equivs = {}
 
-    'gallons': 'gallon',
-
-    'kg/m^3': 'kg/m m m',
-    'mol/m^3': 'mol/m m m',    
-    'm^3': 'm m m',
-
-    'Torr': 'torr',
-
-    u'Ångstrom': u'Å',
-    u'Ångstroms': u'Å',
-    'Angstrom': u'Å',
-    'Angstroms': u'Å',
-
-    'nL': 'nl',
-    'ul': u'µl',
-    u'µL': u'µl',
-    u'uL': u'µl',
-    'mL': 'ml',
-    'L': 'l',
-    'kL': 'kl',
-    'ML': 'Ml',    
-
-    'degrees K': 'K',
-    'degrees Kelvin': 'K',
-    'Kelvin': 'K',
-    
-    'degrees C': 'degC',
-    'Celcius': 'degC',
-    'centigrade': 'degC',
-    'degrees Celcius': 'degC',
-    
-    'degrees': 'degree',
-    
-    'moles': 'mol',
-    
-    'dollar': '$',
-    'dollars': '$',
-
-    'feet': 'ft',
-    'foot': 'ft',
-    
-    'inches': 'inch',
-    
-    'lightspeed': 'c',
-
-    'dots per inch': 'dpi',
-    'lines per inch': 'lpi',
-    
-    'Henry': 'H',
-    'Henrys': 'H',
-    
-    'katal': 'kat',
-    'katals': 'kat',
-    
-    'lumen': 'lm',
-    'lumens': 'lm',
-        
-    'minute': 'min',
-    'minutes': 'min',
-    
-    'mins': 'min',
-    'days': 'day',
-    'years': 'year'
-}
-
-# SI prefix synonyms
+# SI Synonyms
+# http://physics.nist.gov/cuu/Units/units.html
 si_equivs = {
+    # meter / m
     'meter': 'm',
     'meters': 'm',
     'metre': 'm',
     'metres': 'm',
 
+    # liter / l
     'Liter': 'l',
     'Liters': 'l',
     'Litre': 'l',
     'Litres': 'l',
 
+    # kilogram / kg
     'gram': 'g',
     'grams': 'g',
 
+    # ampere
+    'Amp': 'ampere',
+    'Amps': 'ampere',
+    'Ampere': 'ampere',
+    'Amperes': 'ampere',
     'amp': 'ampere',
     'amps': 'ampere',
     'amperes': 'ampere',
     
+    # second / s
     'second': 's',
     'seconds': 's',
-
+    
+    # Derived Units
+    # Force: Newton / N
     'Newton': 'N',
     'Newtons': 'N',
+    'newton': 'N',
+    'newtons': 'N',
     
+    # Absorbed dose: Gray / Gy
     'Gray': 'Gy',
     'Grays': 'Gy',
+    'gray': 'Gy',
+    'grays': 'Gy',
     
+    # Power: Watt / W
     'Watt': 'W',
     'Watts': 'W',
+    'watt': 'W',
+    'watts': 'W',
     
+    # Energy: Joule / J
     'Joule': 'J',
     'Joules': 'J',
+    'joule': 'J',
+    'joules': 'J',
     
+    # Electric potential difference: Volt / V
     'Volt': 'V',
     'Volts': 'V',
+    'volt': 'V',
+    'volts': 'V',
     
+    # Plane angle: radian / rad
     'rads': 'rad',
     'radians': 'rad',
-        
-    'Hertz': 'Hz',
     
+    # Frequency: Hertz / Hz
+    'Hertz': 'Hz',
+    'hertz': 'Hz',
+    
+    # Electric resistence: Ohm / Ω
     'Ohm': 'ohm',
     'Ohms': 'ohm',
+    'ohms': 'ohm',
     
+    # Magnetic flux density: Tesla / T
     'Tesla': 'T',
     'Teslas': 'T',
+    'tesla': 'T',
+    'teslas': 'T',
     
+    # Dose equivalent: Sievert / Sv
     'Sievert': 'Sv',
     'Sieverts': 'Sv',
+    'sievert': 'Sv',
+    'sieverts': 'Sv',
     
+    # Radionuclide activity: Becquerel / Bq
     'Becquerel': 'Bq',
     'Becquerels': 'Bq',
+    'becquerel': 'Bq',
+    'becquerels': 'Bq',
 
+    # Eletric charge: Coulomb / C
     'Coulomb': 'C',
     'Coulombs': 'C',
+    'coulomb': 'C',
+    'coulombs': 'C',
     
+    # Capacitance: Farad / F
+    'Farad': 'F',
+    'Farads': 'F',
     'farad': 'F',
-    'farads': 'F'    
+    'farads': 'F',
+    
+    # Solid angle: steradian / sr
+    
+    # Pressure: Pascal / Pa
+    'Pascal': 'Pa',
+    'pascal': 'Pa',
+
+    # Electric conductance
+    'Siemens': 'S',
+    'siemens': 'S',
+    
+    # Magnetic flux: Weber / Wb
+    'Weber': 'Wb',
+    'weber': 'Wb',
+    
+    # Inductance: Henry / H
+    'Henry': 'H',
+    'henry': 'H',
+    
+    # Luminous flux: lumen / lm
+    'Lumen': 'lm',
+    'lumen': 'lm',
+    
+    # Catalytic activity: katal / kat
+    'katal': 'kat',
+
+    # Illuminance: lux / lx
+    # Not defined in magnitude.py
+    # 'lux':, 'lx',
 }
 
 # SI Prefixes
+# These are placed before each synonym above, e.g.
+# nanometers -> nm
 si_prefix = {
     'yocto': 'y',
     'zepto': 'z',
@@ -159,7 +163,7 @@ si_prefix = {
     'femto': 'f',
     'pico': 'p',
     'nano': 'n',
-    'micro': 'µ',
+    'micro': 'u', # u'µ',
     'milli': 'm',
     'centi': 'c',
     'deci': 'd',
@@ -173,6 +177,7 @@ si_prefix = {
     'yotta': 'Y',
 }
 
+# These are handled a little differently.
 # bit/byte synonyms
 bytes_equivs = {
     'bit': 'b',
@@ -191,6 +196,79 @@ bytes_prefix = {
     'Exbi': 'Ei'
 }
 
+# Other unit synonyms
+other_equivs = {
+    'KB': 'kB',
+
+    # Pressure
+    'Torr': 'torr',
+
+    # (Liquid volume)
+    'gallons': 'gallon',
+    # lowercase l for liter
+    'nL': 'nl',
+    'uL': 'ul',
+    # 'ul': u'µl',
+    # u'µL': u'µl',
+    # u'uL': u'µl',
+    'mL': 'ml',
+    'L': 'l',
+    'kL': 'kl',
+    'ML': 'Ml',    
+
+    # Temperature
+    'degrees K': 'K',
+    'degrees Kelvin': 'K',
+    'Kelvin': 'K',
+    'degrees C': 'degC',
+    'Celcius': 'degC',
+    'centigrade': 'degC',
+    'degrees Celcius': 'degC',
+    
+    # Amount of substance
+    'moles': 'mol',
+    
+    # Currency
+    'dollar': '$',
+    'dollars': '$',
+
+    # Length
+    u'Ångstrom': u'Å',
+    u'Ångstroms': u'Å',
+    'Angstrom': u'Å',
+    'Angstroms': u'Å',
+    'feet': 'ft',
+    'foot': 'ft',
+    'inches': 'inch',
+    'lightspeed': 'c',
+
+    # Spatial frequency
+    'dots per inch': 'dpi',
+    'lines per inch': 'lpi',
+    
+    # Time
+    'minute': 'min',
+    'minutes': 'min',
+    'mins': 'min',
+    'days': 'day',
+    'years': 'year',
+    
+    # Derived units
+    'mm^2': 'mm mm',
+    'cm^2': 'cm cm',
+    'm^2': 'm m',
+    'km^2': 'km km',
+    'square feet': 'ft ft',
+    'square meters': 'm m',
+    'square kilometers': 'km km',
+    'square miles': 'mile mile',
+    'kg/m^3': 'kg/m m m',
+    'mol/m^3': 'mol/m m m',    
+    'm^3': 'm m m',    
+}
+
+equivs.update(other_equivs)
+
 # Massage my equivalents into the units system.
 for name,abbr in si_equivs.items():
     equivs[name] = abbr
@@ -206,6 +284,9 @@ for name,abbr in bytes_equivs.items():
     
 for name, abbr in equivs.items():
     equivs[name.lower()] = abbr
+
+# print "EQUIVS:"
+# for k,v in equivs.items(): print k,v
 
 # Structural biology units: Angstrom and Dalton
 mg.new_mag(u'Å', mg.Magnitude(1e-10, m=1))
@@ -227,6 +308,8 @@ mg.new_mag('mile', mg.mg(160934.4, 'cm'))
 mg.new_mag('gallon', mg.Magnitude(3.78541178e-3, m=3))
 mg.new_mag('torr', mg.Magnitude(1/760.0, m=-1, kg=1, s=-2))
 mg.new_mag('degree', mg.Magnitude(1))
+
+mg.new_mag('hour', mg.Magnitude(3600.0, s=1))
 
 class Property(object):    
     restricted = False
@@ -289,10 +372,10 @@ class Property(object):
         return value
 
     def check_restrict(self, units, allowed):
-        return
-        # allowed = [equivs.get(i,i) for i in allowed]
-        # if units not in allowed:
-        #     raise ValueError, "Units %s not allowed for this property. Allowed units: %s"%(units, ", ".join(allowed))
+        equivs = equivs.get(units, units)
+        allowed = [equivs.get(i,i) for i in allowed]
+        if units not in allowed:
+            raise ValueError, "Units %s not allowed for this property. Allowed units: %s"%(units, ", ".join(allowed))
             
     def convert(self, value, units, target):
         units = equivs.get(units, units)
@@ -369,7 +452,7 @@ class prop_pH(Property):
     defaultunits = 'pH'
     units = ['pH']
     def check_bounds(self, value, target):
-        if (target == 'pH' and not 0 <- value <- 14):
+        if (target == 'pH' and (value < 0 or value > 14)):
             raise ValueError, "pH must be between 0 and 14"
 
 @Property.register('concentration')
