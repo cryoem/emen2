@@ -198,7 +198,7 @@ bytes_prefix = {
 
 # Other unit synonyms
 other_equivs = {
-    'KB': 'KiB',
+    # 'KB': 'KiB',
 
     # Pressure
     'Torr': 'torr',
@@ -302,14 +302,18 @@ mg.new_mag('%T', mg.Magnitude(1))
 mg.new_mag('%', mg.Magnitude(1))
 mg.new_mag('pfu', mg.Magnitude(1))
 
-# Non-SI Units
+# Other units
 mg.new_mag('degF', mg.Magnitude(1.0))
 mg.new_mag('mile', mg.mg(160934.4, 'cm'))
 mg.new_mag('gallon', mg.Magnitude(3.78541178e-3, m=3))
-mg.new_mag('torr', mg.Magnitude(1/760.0, m=-1, kg=1, s=-2))
+mg.new_mag('torr', mg.mg(133.3224, 'Pa'))
+mg.new_mag('psi', mg.mg(6.8948e3, 'Pa'))
+mg.new_mag('bar', mg.mg(1e5, 'Pa'))
+mg.new_mag('atm', mg.mg(1.01325e5, 'Pa'))
 mg.new_mag('degree', mg.Magnitude(1))
-
 mg.new_mag('hour', mg.Magnitude(3600.0, s=1))
+mg.new_mag('hectare', mg.Magnitude(1e4, m=2))
+mg.new_mag('acre', mg.Magnitude(4046.8564224, m=2))
 
 class Property(object):    
     restricted = False
@@ -415,12 +419,12 @@ class prop_transmittance(Property):
 @Property.register('force')
 class prop_force(Property):
     defaultunits = 'N'
-    units = ['N']
+    units = ['N', 'kN']
 
 @Property.register('energy')
 class prop_energy(Property):
     defaultunits = 'J'
-    units = ['J']
+    units = ['J', 'kJ']
 
 @Property.register('resistance')
 class prop_resistance(Property):
@@ -516,7 +520,7 @@ class prop_temperature(Property):
 @Property.register('area')
 class prop_area(Property):
     defaultunits = 'm^2'
-    units = ['mm^2', 'cm^2', 'm^2', 'km^2', 'square feet']
+    units = ['mm^2', 'cm^2', 'm^2', 'km^2', 'square feet', 'hectare', 'acre']
 
 @Property.register('current')        
 class prop_current(Property):
@@ -526,7 +530,7 @@ class prop_current(Property):
 @Property.register('bytes')
 class prop_bytes(Property):
     defaultunits = 'B'
-    units = ['B', 'KB', 'MB', 'GB', 'TB', 'KiB', 'MiB', 'GiB', 'TiB']
+    units = ['B', 'kB', 'MB', 'GB', 'TB', 'KiB', 'MiB', 'GiB', 'TiB']
 
 @Property.register('percentage')
 class prop_percentage(Property):

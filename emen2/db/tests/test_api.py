@@ -13,10 +13,12 @@ def randword(length):
 EMAIL = '%s@sierra.example.com'%randword(10)
 PASSWORD = randword(10)
 
-
 ######################################
 from emen2.db.exceptions import *
 class ExpectException(Exception):
+    pass
+
+class TestNotImplemented(Exception):
     pass
 
 class RunTests(object):
@@ -24,6 +26,10 @@ class RunTests(object):
     __counter = 1
     def __init__(self, db=None):
         self.db = db
+        self._tests = []
+        self._test_ok = []
+        self._test_fail = []
+        self._test_notimplemented = []
         
     @classmethod
     def test(cls, f):
@@ -37,12 +43,26 @@ class RunTests(object):
 
     def run(self):
         for k,c in self.__tests.items():
-            c(db=self.db).run()
+            self._tests.append(c)
+            test = c(db=self.db)
+            test.run()
+            self._test_ok += test._test_ok
+            self._test_fail += test._test_fail
+            self._test_notimplemented += test._test_notimplemented
+
+        print "\n====== Test Statistics ======"
+        print "Test suites:", len(self._tests)
+        print "Total tests:", len(self._test_ok) + len(self._test_fail) + len(self._test_notimplemented)
+        print "Passed:", len(self._test_ok)
+        print "Fail:", len(self._test_fail)
+        print "Not Implemented:", len(self._test_notimplemented)
     
     def runone(self, k=None, cls=None):
         if k:
             cls = self.__tests[k]
-        cls(db=self.db).run()
+        self.__tests[k] = cls
+        self.run()
+        # cls(db=self.db).run()
 
     def coverage(self):
         for k,c in self.__tests.items():
@@ -56,13 +76,15 @@ class Test(object):
     children = []
     def __init__(self, db=None):
         self.db = db
+        self._test_ok = []
+        self._test_fail = []
+        self._test_notimplemented = []
 
     def _tests(self):
         methods = [f for k,f in inspect.getmembers(self, predicate=inspect.ismethod) if getattr(f, 'counter', None)]    
         methods = sorted(methods, key=lambda f:getattr(f, 'counter', None))
         return methods
-        
-    
+
     def header(self, *msg):
         print "\n====== "+" ".join(map(unicode, msg)) + " ======"
     
@@ -77,7 +99,7 @@ class Test(object):
         self.msg("ok:", *msg, newline=False)
 
     def fail(self, *msg):
-        self.msg("FAILED:", *msg)
+        self.msg("FAILED:", *msg, newline=False)
 
     def setup(self):
         pass
@@ -89,7 +111,14 @@ class Test(object):
         for method in self._tests():
             self.header(method)
             with self.db:
-                method()
+                try:
+                    method()
+                    self._test_ok.append(method)
+                except TestNotImplemented, e:
+                    self._test_notimplemented.append(method)
+                except Exception, e:
+                    self.fail(e)
+                    self._test_fail.append(method)
         for c in self.children:
             t = c(db=self.db)
             t.run()
@@ -129,29 +158,49 @@ class Ping(Test):
 class NewUser(Test):
     @test
     def api_newuser_new(self):
+        self.msg("Checking newuser.new()")
         email = '%s@yosemite.exmaple.com'%randword(10)
         password = randword(10)
         user = self.db.newuser.new(email=email, password=password, name_first='Chiura', name_last='Obata')
-        return user
+        self.ok(user)
 
     @test
     def api_newuser_request(self):
-        user = self.db.newuser.request(self.api_newuser_new())
-        return user
+        self.msg("Checking newuser.request()")
+        email = '%s@yosemite.exmaple.com'%randword(10)
+        password = randword(10)
+        user = self.db.newuser.new(email=email, password=password, name_first='Chiura', name_last='Obata')
+        user = self.db.newuser.request(user)
+        self.ok(user)
 
     @test
     def api_newuser_approve(self):
-        user = self.api_newuser_request()
+        self.msg("Checking newuser.approve()")
+        email = '%s@yosemite.exmaple.com'%randword(10)
+        password = randword(10)
+        user = self.db.newuser.new(email=email, password=password, name_first='Chiura', name_last='Obata')
+        user = self.db.newuser.request(user)
         self.db.newuser.approve(user.name)
+        assert user.name not in self.db.newuser.filter()
+        user = self.db.user.get(user.name)
+        assert user.name
+        self.ok(user)
 
     @test
     def api_newuser_reject(self):
-        user = self.api_newuser_request()
+        self.msg("Checking newuser.reject()")
+        email = '%s@yosemite.exmaple.com'%randword(10)
+        password = randword(10)
+        user = self.db.newuser.new(email=email, password=password, name_first='Chiura', name_last='Obata')
+        user = self.db.newuser.request(user)
         self.db.newuser.reject(user.name)
+        assert user.name not in self.db.newuser.filter()
+        self.ok(user)
 
 @register
 class User(Test):
     def setup(self):
+        self.msg("Setup...")
         # Create account        
         email = '%s@yosemite.exmaple.com'%randword(10)
         password = randword(10)
@@ -164,78 +213,109 @@ class User(Test):
         
     @test
     def api_user_get(self):
+        self.msg("Checking user.get()")
         user = self.db.user.get(self.username)
         # Check filt=False
         try:
             self.db.user.get('fail', filt=False)
         except KeyError:
             pass
-        return user
+        self.ok()
 
     @test
     def api_user_put(self):
+        self.msg("Checking user.put()")
         user = self.db.user.get(self.username)
         user['name_first'] = "Test"
-        self.db.user.put(user)
+        user = self.db.user.put(user)
+        assert user.name_first == "Test"
         # Reset state
         user = self.db.user.get(self.username)
         user['name_first'] = "John"
         self.db.user.put(user)
+        self.ok()
 
     @test
     def api_user_filter(self):
-        self.db.user.filter()
+        self.msg("Checking user.filter()")
+        users = self.db.user.filter()
+        assert users
+        self.ok(len(users))
 
     @test
     def api_user_find(self):
-        self.db.user.find("John")
+        self.msg("Checking user.find()")
+        users = self.db.user.find("John")
+        assert users
+        self.ok(len(users))
 
     @test
     def api_user_setprivacy(self):
+        self.msg("Checking user.setprivacy()")
         self.db.user.setprivacy(self.username, 0)
         assert self.db.user.get(self.username).privacy == 0
+        self.ok(0)
         self.db.user.setprivacy(self.username, 1)
         assert self.db.user.get(self.username).privacy == 1
+        self.ok(1)
         self.db.user.setprivacy(self.username, 2)
         assert self.db.user.get(self.username).privacy == 2
+        self.ok(2)
         # Reset state
         self.db.user.setprivacy(self.username, 0)
 
     @test
     def api_user_disable(self):
+        self.msg("Checking user.disable()")
         self.db.user.disable(self.username)
         assert self.db.user.get(self.username).disabled == True
+        self.ok(True)
         # Reset state
         self.db.user.enable(self.username)
         assert self.db.user.get(self.username).disabled == False
+        self.ok(False)
 
     @test
     def api_user_enable(self):
+        self.msg("Checking user.enable()")
         self.db.user.enable(self.username)
         assert self.db.user.get(self.username).disabled == False
+        self.ok(False)
 
     @test
     def api_user_setpassword(self):
+        self.msg("Checking user.setpassword()")
         # Change password, and make sure we can login.
         newpassword = self.password[::-1]        
         self.db.user.setpassword(self.username, newpassword, password=self.password)
-        self.db.auth.login(self.username, newpassword)
+        ctxid = self.db.auth.login(self.username, newpassword)
+        assert ctxid
+        self.ok(ctxid)
         # Reset state
         self.db.user.setpassword(self.username, self.password, password=newpassword)
-        self.db.auth.login(self.username, self.password)
+        ctxid = self.db.auth.login(self.username, self.password)
+        self.ok(ctxid)
 
     @test
     def api_user_setemail(self):
+        self.msg("Checking user.setemail()")
         # Change email, and make sure email index is updated for login.
         email = '%s@change.example.com'%randword(10)
         self.db.user.setemail(self.username, email, password=self.password)
         self.db.auth.login(email, self.password)
+        user = self.db.user.get(self.username)
+        assert user.email == email
+        self.ok(email)
         # Reset state
         self.db.user.setemail(self.username, self.email, password=self.password)
         self.db.auth.login(self.email, self.password)
+        user = self.db.user.get(self.username)
+        assert user.email == self.email
+        self.ok(self.email)
 
     @test
     def api_user_resetpassword(self):
+        self.msg("Checking user.resetpassword()")
         try:
             self.db.user.resetpassword(self.username)
         except emen2.db.exceptions.EmailError: 
@@ -245,9 +325,11 @@ class User(Test):
         secret = user.data.get('secret')
         newpassword = self.password[::-1]                
         self.db.user.resetpassword(password=newpassword, secret=secret)
+        self.ok()
     
     @test
     def api_user_expirepassword(self):
+        self.msg("Checking user.expirepassword()")
         self.db.user.expirepassword(self.username)
 
     @test
@@ -262,7 +344,7 @@ class User(Test):
 
     @test
     def test_secret(self):
-        pass
+        raise TestNotImplemented
 
 ######################################
 
@@ -270,6 +352,7 @@ class User(Test):
 class Group(Test):
     def setup(self):
         # Create some new users
+        self.msg("Setup...")
         users = []
         for i in ['Dorothea Lange', 'Walker Evans']:
             name = i.partition(' ')
@@ -277,35 +360,39 @@ class Group(Test):
             user = self.db.newuser.request(dict(email=email, name_first=name[0], name_last=name[2], password=randword(10)))
             self.db.newuser.approve(user.name)
             users.append(user.name)
-
         group = self.db.group.new(displayname="Farm Security Administration")
         group = self.db.group.put(group)
-
         self.groupname = group.name
         self.users = users
         
     @test
     def api_group_new(self):
+        self.msg("Checking group.new()")
         group = self.db.group.new(displayname="Tennessee Valley Authority")
-        return group
+        self.ok(group)
 
     @test
     def api_group_put(self):
-        group = self.api_group_new()
+        self.msg("Checking group.put()")
+        group = self.db.group.new(displayname="Tennessee Valley Authority")
         group = self.db.group.put(group)
-        return group
+        self.ok(group)
 
     @test
     def api_group_filter(self):
-        self.db.group.filter()
+        self.msg("Checking group.filter()")
+        groups = self.db.group.filter()
+        self.ok(len(groups))
 
     @test
     def api_group_find(self):
-        for group in self.db.group.find("Farm"):
-            group, group.data
+        self.msg("Checking group.find()")
+        groups = self.db.group.find("Farm")
+        self.ok(len(groups))
             
     @test
     def test_group_members(self):
+        self.msg("Checking group member editing")
         # Add users
         group = self.db.group.get(self.groupname)
         for i in self.users:
@@ -314,6 +401,7 @@ class Group(Test):
         group = self.db.group.get(self.groupname)
         for i in self.users:
             assert i in group.members()
+        self.ok("add")
         
         # Remove a user
         group = self.db.group.get(self.groupname)
@@ -323,19 +411,18 @@ class Group(Test):
         group = self.db.group.get(self.groupname)
         for i in self.users:
             assert i not in group.members()
+        self.ok("remove")
 
     @test
     def test_group_change_displayname(self):
+        self.msg("Checking group displayname editing")
         group = self.db.group.get(self.groupname)
         orig = group.displayname
         group.displayname = "Department of the Interior"
         self.db.group.put(group)
         groups = self.db.group.find("Interior")
         assert self.groupname in [i.name for i in groups]
-        # Revert
-        group = self.db.group.get(self.groupname)
-        group.displayname = orig
-        self.db.group.put(group)    
+        self.ok(self.groupname)
 
 ######################################
 
@@ -343,6 +430,7 @@ class Group(Test):
 class Auth(Test):
     def setup(self):
         # Create account
+        self.msg("Setup...")
         email = '%s@moonrise.exmaple.com'%randword(10)
         password = randword(10)
         user = self.db.newuser.new(email=email, password=password, name_first='Ansel', name_last='Adams')
@@ -378,6 +466,7 @@ class Auth(Test):
 @register
 class ParamDef(Test):
     def setup(self):
+        self.msg("Setup...")
         pd = self.db.paramdef.new(vartype='float', desc_short='Numerical aperture')
         pd = self.db.paramdef.put(pd)
         self.pdname = pd.name
@@ -500,6 +589,13 @@ class ParamDef(Test):
     @test
     def test_units(self):
         import emen2.db.properties
+        def _convert(value, u1, u2):
+            try:
+                value = propcls.convert(1.0, u1, u2)
+                self.ok("1.0 %s -> %s %s"%(u1, value, u2))
+            except Exception, e:
+                self.fail("%s -> %s"%(u1, u2), e)
+
         for prop in self.db.paramdef.properties():
             self.msg('Checking property / units:', prop)
             units = self.db.paramdef.units(prop)
@@ -511,56 +607,90 @@ class ParamDef(Test):
             self.ok(units)
 
             propcls = emen2.db.properties.Property.get_property(prop)
-            for defaultunits in units:
-                try:
-                    value = propcls.convert(1.0, defaultunits, propcls.defaultunits)
-                    self.ok("1.0 %s -> %s %s"%(defaultunits, value, propcls.defaultunits))
-                except Exception, e:
-                    self.fail("%s -> %s"%(defaultunits, propcls.defaultunits), e)
-                    # print "--- Failed!"
-                    # print e
-                    # print defaultunits
-                    # print propcls.defaultunits
-                    # print "--------------"
-
-        
+            
+            if propcls.defaultunits not in units:
+                _convert(1, propcls.defaultunits, propcls.defaultunits)
+            for u1 in units:
+                for u2 in units:
+                    _convert(1, u1, u2)
         
     @test
     def test_desc(self):
-        pass
+        self.msg("Checking desc")                
+        pd = self.db.paramdef.new(vartype='string', desc_short='Test', desc_long='Test change description')
+        pd = self.db.paramdef.put(pd)
+        new_short = 'Changed'
+        new_long = 'Changed description'
+        pd.desc_short = new_short
+        pd.desc_long = new_long
+        pd = self.db.paramdef.put(pd)
+        assert pd.desc_short == new_short
+        assert pd.desc_long == new_long
+        self.ok()
         
     @test
     def test_choices(self):
-        pass
+        self.msg("Checking choices")                
+        choices1 = ['one', 'two']
+        choices2 = ['two', 'three']
+        pd = self.db.paramdef.new(vartype='string', desc_short='Test', choices=choices1)
+        pd = self.db.paramdef.put(pd)
+        assert pd.choices == choices1
+        self.ok(choices1)
+        pd.choices = choices2
+        pd = self.db.paramdef.put(pd)
+        assert pd.choices == choices2
+        self.ok(choices2)
     
     @test
     def test_iter(self):
-        pass
-        
+        self.msg("Checking iter")        
+        pd = self.db.paramdef.new(vartype='string', desc_short='Test', iter=True)
+        pd = self.db.paramdef.put(pd)
+        assert pd.iter
+
+        self.msg("Checking iter is immutable")
+        try:
+            pd = self.db.paramdef.new(vartype='string', desc_short='Test', iter=True)
+            pd = self.db.paramdef.put(pd)
+            pd.iter = False
+            self.db.paramdef.put(pd)
+            raise ExpectException
+        except ValidationError, e:
+            self.ok(e)
+        try:
+            pd = self.db.paramdef.new(vartype='string', desc_short='Test', iter=False)
+            pd = self.db.paramdef.put(pd)
+            pd.iter = True
+            self.db.paramdef.put(pd)
+            raise ExpectException
+        except ValidationError, e:
+            self.ok(e)
+
 
 ######################################
 
 class Rel(Test):
     def api_rel_pclink(self):
-        pass
+        raise TestNotImplemented
 
     def api_rel_pcunlink(self):
-        pass
+        raise TestNotImplemented
 
     def api_rel_relink(self):
-        pass
+        raise TestNotImplemented
 
     def api_rel_siblings(self):
-        pass
+        raise TestNotImplemented
 
     def api_rel_parents(self):
-        pass
+        raise TestNotImplemented
 
     def api_rel_children(self):
-        pass    
+        raise TestNotImplemented
 
     def api_rel_tree(self):
-        pass
+        raise TestNotImplemented
 
 ######################################
 
@@ -570,49 +700,50 @@ class RecordDef(Test):
 
     @test
     def api_recorddef_new(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_recorddef_put(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_recorddef_get(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_recorddef_filter(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_recorddef_find(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def test_mainview(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def test_views(self):
-        pass
+        raise TestNotImplemented
         
     @test
     def test_private(self):
-        pass
+        raise TestNotImplemented
         
     @test
     def test_params(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def test_desc(self):
-        pass
+        raise TestNotImplemented
 
 ######################################
 
 @register
 class Record(Test):    
     def setup(self):
+        self.msg("Setup...")
         root = self.db.record.new(rectype='root', inherit=['root'])
         root = self.db.record.put(root)
         self.root = root
@@ -651,68 +782,68 @@ class Record(Test):
 
     @test
     def api_record_hide(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_record_update(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_record_validate(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_record_adduser(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_record_removeuser(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_record_addgroup(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_record_removegroup(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_record_setpermissionscompat(self):
         # ugh
-        pass
+        raise TestNotImplemented
     
     @test
     def api_record_addcomment(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_record_findcomments(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_record_findorphans(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_record_findbyrectype(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_record_findbyvalue(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_record_groupbyrectype(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_record_renderchildren(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_record_findpaths(self):
-        pass
+        raise TestNotImplemented
     
 ######################################
 
@@ -720,31 +851,31 @@ class Record(Test):
 class Binary(Test):
     @test
     def api_binary_get(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_binary_new(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_binary_find(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_binary_filter(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_binary_put(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_binary_upload(self):
-        pass
+        raise TestNotImplemented
     
     @test
     def api_binary_addreference(self):
-        pass
+        raise TestNotImplemented
     
 ######################################
 
@@ -752,15 +883,15 @@ class Binary(Test):
 class Query(Test):
     @test
     def api_query(self):
-        pass
+        raise TestNotImplemented
 
     @test
     def api_table(self):
-        pass    
+        raise TestNotImplemented
 
     @test
     def api_plot(self):
-        pass
+        raise TestNotImplemented
 
 ######################################
 
@@ -769,10 +900,12 @@ class Render(Test):
     @test
     def api_render(self):
         print db.render('root')    
+        raise TestNotImplemented
 
     @test
     def api_view(self):
         print db.view('root')    
+        raise TestNotImplemented
     
 ######################################
 
