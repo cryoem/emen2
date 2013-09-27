@@ -61,8 +61,8 @@ class RunTests(object):
         if k:
             cls = self.__tests[k]
         self.__tests[k] = cls
-        self.run()
-        # cls(db=self.db).run()
+        # self.run()
+        cls(db=self.db).run()
 
     def coverage(self):
         for k,c in self.__tests.items():
@@ -210,14 +210,23 @@ class User(Test):
         self.email = email
         self.password = password
         self.username = user.name
+    
+    def _make(self):
+        email = '%s@yosemite.exmaple.com'%randword(10)
+        password = randword(10)
+        user = self.db.newuser.new(email=email, password=password, name_first='John', name_last='Muir')
+        user = self.db.newuser.request(user)
+        return self.db.newuser.approve(user.name)
         
     @test
     def api_user_get(self):
         self.msg("Checking user.get()")
-        user = self.db.user.get(self.username)
+        user = self._make()
+        user = self.db.user.get(user.name)
         # Check filt=False
         try:
             self.db.user.get('fail', filt=False)
+            raise ExpectException
         except KeyError:
             pass
         self.ok()
@@ -225,21 +234,20 @@ class User(Test):
     @test
     def api_user_put(self):
         self.msg("Checking user.put()")
-        user = self.db.user.get(self.username)
+        user = self._make()
+        user = self.db.user.put(user)
         user['name_first'] = "Test"
         user = self.db.user.put(user)
         assert user.name_first == "Test"
-        # Reset state
-        user = self.db.user.get(self.username)
-        user['name_first'] = "John"
-        self.db.user.put(user)
         self.ok()
 
     @test
     def api_user_filter(self):
         self.msg("Checking user.filter()")
+        user = self._make()
         users = self.db.user.filter()
         assert users
+        # assert user.name in [i.name for i in users]
         self.ok(len(users))
 
     @test
@@ -374,7 +382,7 @@ class Group(Test):
     @test
     def api_group_put(self):
         self.msg("Checking group.put()")
-        group = self.db.group.new(displayname="Tennessee Valley Authority")
+        group = self.db.group.new(displayname="Works Progress Administration")
         group = self.db.group.put(group)
         self.ok(group)
 
@@ -473,13 +481,13 @@ class ParamDef(Test):
 
     @test
     def api_paramdef_new(self):
-        self.msg("Checking paramdef.new")
+        self.msg("Checking paramdef.new()")
         pd = self.db.paramdef.new(vartype='int', desc_short='Film speed')
         self.ok(pd)
 
     @test
     def api_paramdef_put(self):
-        self.msg("Checking paramdef.put")
+        self.msg("Checking paramdef.put()")
         pd = self.db.paramdef.new(vartype='int', desc_short='Film speed')
         pd = self.db.paramdef.put(pd)
         assert pd.name
@@ -489,7 +497,7 @@ class ParamDef(Test):
 
     @test
     def api_paramdef_get(self):
-        self.msg("Checking paramdef.get")
+        self.msg("Checking paramdef.get()")
         pd = self.db.paramdef.get(self.pdname)
         assert pd.name == self.pdname
         self.ok(pd)
@@ -670,45 +678,163 @@ class ParamDef(Test):
 
 ######################################
 
+@register
 class Rel(Test):
+    @test
     def api_rel_pclink(self):
-        raise TestNotImplemented
+        self.msg("Checking rel.pclink()")
+        # Setup
+        rec1 = self.db.record.new(rectype="root")
+        rec1 = self.db.record.put(rec1)
+        rec2 = self.db.record.new(rectype="root")
+        rec2 = self.db.record.put(rec2)
+        # Test
+        self.db.rel.pclink(rec1.name, rec2.name)
+        rec1 = self.db.record.get(rec1.name)
+        rec2 = self.db.record.get(rec2.name)
+        assert not rec1.parents
+        assert rec1.children == set([rec2.name])
+        assert rec2.parents == set([rec1.name])
+        assert not rec2.children
+        self.ok()
 
+    @test
     def api_rel_pcunlink(self):
-        raise TestNotImplemented
+        self.msg("Checking rel.pcunlink()")
+        # Setup
+        rec1 = self.db.record.new(rectype="root")
+        rec1 = self.db.record.put(rec1)
+        rec2 = self.db.record.new(rectype="root")
+        rec2 = self.db.record.put(rec2)
+        self.db.rel.pclink(rec1.name, rec2.name)
+        # Test
+        self.db.rel.pcunlink(rec1.name, rec2.name)
+        rec1 = self.db.record.get(rec1.name)
+        rec2 = self.db.record.get(rec2.name)
+        assert not rec1.parents
+        assert not rec1.children
+        assert not rec2.parents
+        assert not rec2.children
+        self.ok()
 
+    @test
     def api_rel_relink(self):
         raise TestNotImplemented
 
+    @test
     def api_rel_siblings(self):
-        raise TestNotImplemented
+        self.msg("Checking rel.siblings()")
+        # Setup
+        parent = self.db.record.put(dict(rectype='root'))
+        children = set()
+        for i in range(5):
+            child = self.db.record.put(dict(rectype='root'))
+            self.db.rel.pclink(parent.name, child.name)
+            children.add(child.name)
+        # Test
+        for i in children:
+            siblings = self.db.rel.siblings(i)
+            assert children == siblings
+        self.ok()
 
-    def api_rel_parents(self):
-        raise TestNotImplemented
-
+    @test
     def api_rel_children(self):
-        raise TestNotImplemented
+        self.msg("Checking rel.children()")
+        # Setup
+        root = self.db.record.put(dict(rectype='root'))
+        levels = []
+        addchildren = set([root.name])
+        for level in range(4):
+            nextlevel = set()
+            for child in addchildren:
+                for count in range(4):
+                    rec = self.db.record.put(dict(rectype='root'))
+                    self.db.rel.pclink(child, rec.name)
+                    nextlevel.add(rec.name)
+            levels.append(nextlevel)
+            addchildren = nextlevel
+        allchildren = set()
+        for i in levels:
+            allchildren |= i
+        
+        # Test
+        c_1 = self.db.rel.children(root.name, recurse=1)
+        assert c_1 == levels[0]
+        c_2 = self.db.rel.children(root.name, recurse=2)
+        assert c_2 == (levels[0] | levels[1])
+        c_3 = self.db.rel.children(root.name, recurse=3)
+        assert c_3 == (levels[0] | levels[1] | levels[2])
+        c_all = self.db.rel.children(root.name, recurse=-1)
+        assert c_all == allchildren
+        self.ok()
 
+    @test
+    def api_rel_parents(self):
+        self.msg("Checking rel.parents()")
+        # Setup
+        root = self.db.record.put(dict(rectype='root'))
+        levels = []
+        addchildren = set([root.name])
+        for level in range(4):
+            nextlevel = set()
+            for child in addchildren:
+                for count in range(4):
+                    rec = self.db.record.put(dict(rectype='root'))
+                    self.db.rel.pclink(child, rec.name)
+                    nextlevel.add(rec.name)
+            levels.append(nextlevel)
+            addchildren = nextlevel
+        allchildren = set()
+        for i in levels:
+            allchildren |= i
+        
+        # Test
+        allchildren.add(root.name)
+        for count, level in enumerate(levels):
+            child = random.sample(level, 1).pop()
+            p_1 = self.db.rel.parents(child, recurse=1)
+            assert len(p_1) == 1
+            assert not p_1 - allchildren
+            p_all = self.db.rel.parents(child, recurse=-1)
+            assert len(p_all) == (count+1)
+            assert not p_all - allchildren
+        self.ok()
+
+    @test
     def api_rel_tree(self):
         raise TestNotImplemented
 
 ######################################
 
+@register
 class RecordDef(Test):
-    def setup(self):
-        pass
-
     @test
     def api_recorddef_new(self):
-        raise TestNotImplemented
+        self.msg("Testing recorddef.new()")
+        rd = self.db.recorddef.new(mainview="Test: {{creator}} @ {{creationtime}}")
+        self.ok()
 
     @test
     def api_recorddef_put(self):
-        raise TestNotImplemented
+        self.msg("Testing recorddef.put()")
+        view = "Test: {{creator}} @ {{creationtime}}"
+        rd = self.db.recorddef.new(mainview=mainview)
+        rd = self.db.recorddef.put(rd)
+        assert rd.mainview == view
+        self.ok()
 
     @test
     def api_recorddef_get(self):
-        raise TestNotImplemented
+        self.msg("Checking recorddef.get()")
+        rd = self.db.user.get('root')
+        assert rd.name == 'root'
+        # Check filt=False
+        try:
+            self.db.recorddef.get('fail', filt=False)
+            raise ExpectException
+        except KeyError:
+            pass
+        self.ok()
 
     @test
     def api_recorddef_filter(self):
@@ -933,5 +1059,5 @@ if __name__ == "__main__":
     else:
         t.run()
     
-    if dbtmp:
-        shutil.rmtree(dbtmp)
+    # if dbtmp:
+    #    shutil.rmtree(dbtmp)

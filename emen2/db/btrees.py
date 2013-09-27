@@ -1304,7 +1304,7 @@ class CollectionDB(BaseDB):
         visited = {}
         t = time.time()
         for i in names:
-            result[i], visited[i] = self._bfs(i, rel=rel, recurse=recurse)
+            result[i], visited[i] = self._bfs(i, rel=rel, recurse=recurse, ctx=ctx, txn=txn)
 
         # Flatten the dictionary to get all touched names
         allr = set()
@@ -1642,6 +1642,8 @@ class NewUserDB(CollectionDB):
 
         # Check  if this email already exists
         indemail = self.getindex('email', txn=txn)
+        if not indemail:
+            raise Exception, "No email index!"
         if indemail.get(newuser.email, txn=txn):
             raise emen2.db.exceptions.ExistingKeyError
 
