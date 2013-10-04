@@ -26,6 +26,7 @@ core_paramdefs = [
 {"name": "uri", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "uri", "desc_short": "Resource location", "desc_long": "Resource location of an imported object"},
 {"name": "permissions", "keytype": "paramdef","parents": ["core"], "vartype": "acl", "desc_short": "Permissions"},
 {"name": "keywords", "keytype": "paramdef","parents": ["core"], "vartype": "keywords", "desc_short": "Keywords"},
+{"name": "hidden", "keytype": "paramdef", "vartype": "boolean", "parents": ["core"], "desc_short": "Hidden"},
 
 # ParamDef
 {"name": "vartype", "immutable": True, "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Value type"},
@@ -77,7 +78,6 @@ base_paramdefs = [
 
 {"name": "performed_by", "keytype": "paramdef", "parents": ["base"], "vartype": "user", "desc_short": "Performed by"},
 {"name": "date_occurred", "keytype": "paramdef", "parents": ["base"], "vartype": "datetime", "desc_short": "Date occurred"},
-{"name": "deleted", "keytype": "paramdef", "vartype": "boolean", "parents": ["base"], "desc_short": "Deleted"},
 {"name": "name_folder", "keytype": "paramdef", "vartype": "string", "parents": ["base"], "desc_short": "Folder name"},
 {"name": "folder_description", "keytype": "paramdef", "vartype": "string", "parents": ["base"], "desc_short": "Description"},
 {"name": "person_photo", "keytype": "paramdef", "vartype": "binary", "parents": ["base"], "desc_short": "Profile photo"},

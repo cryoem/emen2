@@ -754,10 +754,7 @@ class CollectionDB(BaseDB):
         txn = kwargs.pop('txn', None)
         ctx = kwargs.get('ctx', None)
         inherit = kwargs.pop('inherit', [])
-        kwargs['keytype'] = self.keytype
-
         item = self.dataclass(**kwargs)
-        # item.init(kwargs)
 
         for i in inherit:
             # Allow to raise an exception if does not exist or cannot read.
@@ -766,7 +763,7 @@ class CollectionDB(BaseDB):
                 item.addumask(i.get('permissions'))
             if i.get('groups'):
                 item.addgroup(i.get('groups'))
-            item['parents'].add(i.name)
+            item['parents'].append(i.name)
 
         # Acquire a write lock on this name.
         if self.exists(item.name, txn=txn, flags=bsddb3.db.DB_RMW):
@@ -918,7 +915,7 @@ class CollectionDB(BaseDB):
         return crecs
 
     def _put(self, item, ctx=None, txn=None):
-        return self._puts([item], ctx=ctx, txn=txn)
+        return self._puts([item], ctx=ctx, txn=txn)[0]
         
     def _puts(self, items, ctx=None, txn=None):
         # Skip security checks and validation
@@ -940,7 +937,7 @@ class CollectionDB(BaseDB):
         return items
 
     def _put_data(self, name, item, txn=None):
-        emen2.db.log.debug("BDB: %s put: %s"%(self.filename, name))        
+        emen2.db.log.debug("BDB: %s put: %s --> %s"%(self.filename, name, item.data))
         self.bdb.put(self.keydump(name), self.datadump(item), txn=txn)
     
     def delete(self, name, ctx=None, txn=None):
@@ -1145,8 +1142,8 @@ class CollectionDB(BaseDB):
 
         # Update all the record's links
         for item in items:
-            item.data['parents'] = set([namemap.get(i,i) for i in item.get('parents', [])])
-            item.data['children'] = set([namemap.get(i,i) for i in item.get('children', [])])
+            item.data['parents'] = sorted([namemap.get(i,i) for i in item.get('parents', [])])
+            item.data['children'] = sorted([namemap.get(i,i) for i in item.get('children', [])])
         return namemap
 
     def _key_generator(self, item, txn=None):
@@ -1378,8 +1375,10 @@ class CollectionDB(BaseDB):
         items = set(remove.keys()) | set(add.keys())
         items = self.gets(items, ctx=ctx, txn=txn)
         for item in items:
-            item.children -= remove[item.name]
-            item.children |= add[item.name]
+            children = set(item.children)
+            children -= remove[item.name]
+            children |= add[item.name]
+            item.children = sorted(children)
 
         return self.puts(items, ctx=ctx, txn=txn)
 
@@ -1410,7 +1409,8 @@ class CollectionDB(BaseDB):
             raise emen2.db.exceptions.PermissionsError("Insufficient permissions to add/remove relationship")
 
         # Transform into the right format for _reindex_relink..
-        newvalue = set() | p.children # copy
+        children = set(p.children)
+        newvalue = set() | children # copy
         if mode == 'addrefs':
             newvalue |= set([c.name])
         elif mode == 'removerefs':
@@ -1418,7 +1418,7 @@ class CollectionDB(BaseDB):
 
         # The values will actually be set on the records
         #  during the relinking method..
-        self._reindex_relink([], [[p.name, newvalue, p.children]], txn=txn)
+        self._reindex_relink([], [[p.name, newvalue, children]], txn=txn)
 
     # Handle the reindexing...
     def _reindex_relink(self, parents, children, txn=None):
@@ -1478,10 +1478,16 @@ class CollectionDB(BaseDB):
                 rec = self._get_data(name, txn=txn)
             except:
                 continue
-            rec.data['parents'] -= p_remove[rec.name]
-            rec.data['parents'] |= p_add[rec.name]
-            rec.data['children'] -= c_remove[rec.name]
-            rec.data['children'] |= c_add[rec.name]
+            parents = set(rec.data['parents'])
+            parents -= p_remove[rec.name]
+            parents |= p_add[rec.name]
+            rec.data['parents'] = sorted(parents)
+            
+            children = set(rec.data['children'])
+            children -= c_remove[rec.name]
+            children |= c_add[rec.name]
+            rec.data['children'] = sorted(children)
+            
             self._put_data(rec.name, rec, txn=txn)
         for k,v in p_remove.items():
             if v:

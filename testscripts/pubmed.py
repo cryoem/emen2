@@ -135,11 +135,11 @@ if __name__ == "__main__":
     # ... and retreive records: db.record.get
     publications = db.record.get(publications)
     # ... filter out deleted items (this is kind of a bug..)
-    publications = filter(lambda x:not x.get("deleted"), publications)
+    publications = filter(lambda x:not x.get("hidden"), publications)
     # ... filter out items that do not have a PUBMED ID (pmid)
     publications = filter(lambda y: y.get("pmid"), publications)
 
-    # publications is now a list of publication records that are not deleted and have a valid PUBMED ID
+    # publications is now a list of publication records that are not hidden and have a valid PUBMED ID
     # (a list of dictionaries)
     print "Got %s valid publications"%(len(publications))
 

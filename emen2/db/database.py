@@ -2194,7 +2194,6 @@ class DB(object):
                 # Update the User with the Record name and put again
                 user.record = rec.name
                 user = self.dbenv["user"].put(user, ctx=ctx, txn=txn)
-                cusers.append(user)
                 
                 # Any additional profile records...
                 for childrec in childrecs:
@@ -2206,6 +2205,8 @@ class DB(object):
                     crec.adduser(user.name, level=3)
                     crec = self.dbenv["record"].put(crec, ctx=ctx, txn=txn)
 
+            cusers.append(user)
+
         # Send the 'account approved' emails
         for user in cusers:
             ctxt = {'name':user.name, 'displayname':user.getdisplayname()}
@@ -2214,7 +2215,7 @@ class DB(object):
                 template = '/email/adduser.autoapproved'
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':template, 'ctxt':ctxt})
 
-        return self.dbenv["user"].gets(set([user.name for user in cusers]), ctx=ctx, txn=txn)
+        return self.dbenv["user"].gets(set([i.name for i in cusers]), ctx=ctx, txn=txn)
 
     @publicmethod(write=True, admin=True, compat="rejectuser")
     @ol('names')
@@ -2423,7 +2424,7 @@ class DB(object):
 
         :param name: Record name(s) to delete
         :keyword filt: Ignore failures
-        :return: Deleted Record(s)
+        :return: Hidden Record(s)
         :exception KeyError:
         :exception PermissionsError:
         """
@@ -2452,7 +2453,7 @@ class DB(object):
             else:
                 rec["comments"] = "Record hidden"
 
-            rec['deleted'] = True
+            rec.hidden = True
             rec.children = set()
             rec.parents = set()
             crecs.append(rec)
@@ -2535,7 +2536,7 @@ class DB(object):
         :exception PermissionsError:
         :exception ValidationError:
         """
-        return self._mapput('record', names, 'adduser', ctx, txn, users)
+        return self._mapput('record', names, 'adduser', ctx, txn, users, level)
 
     @publicmethod(write=True, compat="removepermission")
     @ol('names')
@@ -3028,8 +3029,8 @@ class DB(object):
         return self.dbenv["binary"].gets(names, filt=filt, ctx=ctx, txn=txn)
 
     @publicmethod()
-    def binary_new(self, ctx=None, txn=None):
-        return self.dbenv["binary"].new(ctx=ctx, txn=txn)
+    def binary_new(self, *args, **kwargs):
+        return self.dbenv["binary"].new(*args, **kwargs)
 
     @publicmethod(write=True)
     @ol('items')

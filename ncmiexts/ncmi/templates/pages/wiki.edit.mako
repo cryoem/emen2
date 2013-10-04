@@ -6,8 +6,8 @@ import jsonrpc.jsonutil
 %>
 
 
-% if rec.get('deleted'):
-    <div class="notify deleted">Deleted Record</div>
+% if rec.get('hidden'):
+    <div class="notify deleted">Hidden Record</div>
 % endif
 
 <div id="rendered" class="view" data-viewname="${viewname}" data-name="${rec.name}" ${['', 'data-edit="true"'][rec.writable()]}>

@@ -173,7 +173,7 @@ for project in p41_projects_included:
                 % for project in sorted(p41_projects, key=lambda x:recnames.get(x,'').lower()):
                     <%
                     r = recs_d[project]
-                    if not r.parents or r.get('deleted'):
+                    if not r.parents or r.get('hidden'):
                     	continue
                     %>
                   <tr>

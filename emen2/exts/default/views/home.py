@@ -61,7 +61,7 @@ class Home(View):
         # Groups and projects
         torender = set()
         def nodeleted(items):
-            return filter(lambda x:not x.get('deleted'), items)
+            return filter(lambda x:not x.get('hidden'), items)
 
         # Groups
         groups = nodeleted(self.db.record.get(self.db.record.findbyrectype('group')))

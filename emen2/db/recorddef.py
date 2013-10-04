@@ -149,7 +149,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         self._findparams()
 
     def _set_private(self, key, value):
-        self._set('private', int(value), self.isowner())
+        self._set('private', bool(value), self.isowner())
 
     def _set_typicalchld(self, key, value):
         value = map(self._strip, emen2.utils.check_iterable(value))

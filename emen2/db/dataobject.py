@@ -70,7 +70,7 @@ class BaseDBObject(object):
     :classattr public: Public (exported) keys
     """
     
-    public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
+    public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name', 'hidden'])
 
     def __init__(self, **kwargs):
         """Initialize a new DBO."""
@@ -96,8 +96,8 @@ class BaseDBObject(object):
         data['creationtime'] = self.ctx.utcnow
         data['modifyuser'] = self.ctx.username
         data['modifytime'] = self.ctx.utcnow
-        data['children'] = set()
-        data['parents'] = set()
+        data['children'] = []
+        data['parents'] = []
         self.data = data
         
     def load(self, d, ctx=None):
@@ -246,6 +246,9 @@ class BaseDBObject(object):
 
     ##### Core parameters. #####
     
+    def _set_hidden(self, key, value):
+        self._set(key, value, self.isowner())
+    
     def _set_name(self, key, value):
         self._set(key, value, self.isnew())
         
@@ -262,8 +265,7 @@ class BaseDBObject(object):
 
     def _setrel(self, key, value):
         """Set a relationship."""
-        value = set(map(self._strip, emen2.utils.check_iterable(value)))
-        value = filter(None, value) or []
+        value = sorted(map(self._strip, emen2.utils.check_iterable(value)))
         self._set(key, value, self.writable())
 
     ##### Pickle / serialize methods #####
@@ -389,7 +391,7 @@ class PermissionsDBObject(BaseDBObject):
 
         # Setup the base permissions
         self.data['permissions'] = [[],[],[],[self.ctx.username]]
-        self.data['groups'] = set()
+        self.data['groups'] = []
 
     ##### Permissions checking #####
 
@@ -475,12 +477,12 @@ class PermissionsDBObject(BaseDBObject):
         value = self._validate_permissions(value)
         self._set('permissions', value, self.isowner())
 
-    def adduser(self, users, level=0, reassign=False):
+    def adduser(self, users, level=0, reassign=True):
         """Add a user to the record's permissions.
 
         :param users: A list of users to be added to the permissions
         :param level: The permission level to give to the users
-        :param reassign: Whether or not the users added should be reassigned. (default False)
+        :param reassign: Allow for lowering of permission level.
         """
         if not users:
             return
@@ -492,8 +494,7 @@ class PermissionsDBObject(BaseDBObject):
             raise Exception, "Invalid permissions level. 0 = Read, 1 = Comment, 2 = Write, 3 = Owner"
 
         p = [set(x) for x in self.permissions]
-        # Root is implicit
-        users = set(users) - set(['root'])
+        users = set(users) 
         if reassign:
             p = [i-users for i in p]
 
@@ -540,21 +541,21 @@ class PermissionsDBObject(BaseDBObject):
 
     def setgroups(self, groups):
         """Set the object's groups."""
-        groups = set(map(self._strip, emen2.utils.check_iterable(groups)))
+        groups = sorted(map(self._strip, emen2.utils.check_iterable(groups)))
         self._set('groups', groups, self.isowner())
 
     def addgroup(self, groups):
         """Add a group to the record."""
         if not hasattr(groups, "__iter__"):
-            groups = [groups]
-        g = self.groups | set(groups)
+            groups = [groups]        
+        g = set(self.groups) | set(groups)
         self.setgroups(g)
 
     def removegroup(self, groups):
         """Remove a group from the record."""
         if not hasattr(groups, "__iter__"):
             groups = [groups]
-        g = self.groups - set(groups)
+        g = set(self.groups) - set(groups)
         self.setgroups(g)
 
 class PrivateDBO(object):

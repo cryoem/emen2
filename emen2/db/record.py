@@ -96,10 +96,10 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         # Cut out any None's
         # The rest of the parameters are validated 
         # when they are set or updated.
-        pitems = self.data.items()
-        for k,v in pitems:
-            if not v and v != 0 and v != False:
-                self.data.pop(k, None)
+        # pitems = self.data.items()
+        # for k,v in pitems:
+        #     if not v and v != 0 and v != False:
+        #         self.data.pop(k, None)
 
         # Check the rectype and any required parameters
         # (Check the cache for the recorddef)
@@ -157,6 +157,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
             return
         if not param:
             raise Exception, "Unable to add item to history log"
+        if self.data.get('history') is None:
+            self.data['history'] = []            
         self.data['history'].append((unicode(self.ctx.username), unicode(self.ctx.utcnow), unicode(param), self.data.get(param)))
 
     def addcomment(self, value):
@@ -169,8 +171,10 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
         if not value:
             return
-
+        
         # Grumble...
+        if self.data.get('comments') is None:
+            self.data['comments'] = []
         newcomments = []
         existing = [i[2] for i in self.comments]
         if not hasattr(value, "__iter__"):

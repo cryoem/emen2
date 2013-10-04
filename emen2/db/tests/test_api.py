@@ -5,13 +5,13 @@ import string
 import inspect
 import tempfile
 import shutil
+import traceback
 
-def randword(length):
+def randword(length=10):
     s = string.lowercase + string.digits
     return ''.join(random.sample(s,length))
 
-EMAIL = '%s@sierra.example.com'%randword(10)
-PASSWORD = randword(10)
+PASSWORD = randword()
 
 ######################################
 from emen2.db.exceptions import *
@@ -30,7 +30,7 @@ class RunTests(object):
         self._test_ok = []
         self._test_fail = []
         self._test_notimplemented = []
-        
+    
     @classmethod
     def test(cls, f):
         f.counter = cls.__counter
@@ -40,7 +40,7 @@ class RunTests(object):
     @classmethod
     def register(cls, c):
         cls.__tests[c.__name__] = c
-
+    
     def run(self):
         for k,c in self.__tests.items():
             self._tests.append(c)
@@ -49,7 +49,7 @@ class RunTests(object):
             self._test_ok += test._test_ok
             self._test_fail += test._test_fail
             self._test_notimplemented += test._test_notimplemented
-
+        
         print "\n====== Test Statistics ======"
         print "Test suites:", len(self._tests)
         print "Total tests:", len(self._test_ok) + len(self._test_fail) + len(self._test_notimplemented)
@@ -63,11 +63,11 @@ class RunTests(object):
         self.__tests[k] = cls
         # self.run()
         cls(db=self.db).run()
-
+    
     def coverage(self):
         for k,c in self.__tests.items():
             print c(db=self.db)._tests()
-        
+
 
 register = RunTests.register
 test = RunTests.test
@@ -79,12 +79,12 @@ class Test(object):
         self._test_ok = []
         self._test_fail = []
         self._test_notimplemented = []
-
+    
     def _tests(self):
-        methods = [f for k,f in inspect.getmembers(self, predicate=inspect.ismethod) if getattr(f, 'counter', None)]    
+        methods = [f for k,f in inspect.getmembers(self, predicate=inspect.ismethod) if getattr(f, 'counter', None)]
         methods = sorted(methods, key=lambda f:getattr(f, 'counter', None))
         return methods
-
+    
     def header(self, *msg):
         print "\n====== "+" ".join(map(unicode, msg)) + " ======"
     
@@ -94,22 +94,23 @@ class Test(object):
         if kwargs.get('newline'):
             print
         print "\t"+" ".join(map(unicode, msg))
-
+    
     def ok(self, *msg):
         self.msg("ok:", *msg, newline=False)
-
+    
     def fail(self, *msg):
         self.msg("FAILED:", *msg, newline=False)
-
+    
     def setup(self):
         pass
-
+    
     def run(self):
         self.header("Setup:", self)
         with self.db:
             self.setup()
         for method in self._tests():
-            self.header(method)
+            msg = "%s: %s"%(self.__class__.__name__, method.__doc__ or method.func_name)
+            self.header(msg)
             with self.db:
                 try:
                     method()
@@ -118,13 +119,14 @@ class Test(object):
                     self._test_notimplemented.append(method)
                 except Exception, e:
                     self.fail(e)
+                    traceback.print_exc(e)
                     self._test_fail.append(method)
         for c in self.children:
             t = c(db=self.db)
             t.run()
-            
+
 ######################################
-        
+
 # @register
 class Create(Test):
     def run(self):
@@ -135,48 +137,57 @@ class Time(Test):
     @test
     def api_time_now(self):
         self.db.time.now()
-
+        self.ok()
+    
     @test
     def api_time_difference(self):
         self.db.time.difference('2013-01-01')
+        self.ok()
 
 @register
 class Version(Test):
     @test
     def api_version(self):
         self.db.version()
+        self.ok()
 
 @register
 class Ping(Test):
     @test
     def api_ping(self):
         self.db.ping()
+        self.ok()
+        
+@register
+class BasicAPI(Test):
+    keytypes = ['record', 'paramdef', 'recorddef', 'binary', 'user']
     
+
 ######################################
 
 @register
 class NewUser(Test):
     @test
     def api_newuser_new(self):
-        self.msg("Checking newuser.new()")
-        email = '%s@yosemite.exmaple.com'%randword(10)
+        """Testing newuser.new()"""
+        email = '%s@yosemite.exmaple.com'%randword()
         password = randword(10)
         user = self.db.newuser.new(email=email, password=password, name_first='Chiura', name_last='Obata')
         self.ok(user)
-
+    
     @test
     def api_newuser_request(self):
-        self.msg("Checking newuser.request()")
-        email = '%s@yosemite.exmaple.com'%randword(10)
+        """Testing newuser.request()"""
+        email = '%s@yosemite.exmaple.com'%randword()
         password = randword(10)
         user = self.db.newuser.new(email=email, password=password, name_first='Chiura', name_last='Obata')
         user = self.db.newuser.request(user)
         self.ok(user)
-
+    
     @test
     def api_newuser_approve(self):
-        self.msg("Checking newuser.approve()")
-        email = '%s@yosemite.exmaple.com'%randword(10)
+        """Testing newuser.approve()"""
+        email = '%s@yosemite.exmaple.com'%randword()
         password = randword(10)
         user = self.db.newuser.new(email=email, password=password, name_first='Chiura', name_last='Obata')
         user = self.db.newuser.request(user)
@@ -185,11 +196,11 @@ class NewUser(Test):
         user = self.db.user.get(user.name)
         assert user.name
         self.ok(user)
-
+    
     @test
     def api_newuser_reject(self):
-        self.msg("Checking newuser.reject()")
-        email = '%s@yosemite.exmaple.com'%randword(10)
+        """Testing newuser.reject()"""
+        email = '%s@yosemite.exmaple.com'%randword()
         password = randword(10)
         user = self.db.newuser.new(email=email, password=password, name_first='Chiura', name_last='Obata')
         user = self.db.newuser.request(user)
@@ -199,28 +210,15 @@ class NewUser(Test):
 
 @register
 class User(Test):
-    def setup(self):
-        self.msg("Setup...")
-        # Create account        
-        email = '%s@yosemite.exmaple.com'%randword(10)
-        password = randword(10)
-        user = self.db.newuser.new(email=email, password=password, name_first='John', name_last='Muir')
-        user = self.db.newuser.request(user)
-        self.db.newuser.approve(user.name)
-        self.email = email
-        self.password = password
-        self.username = user.name
-    
     def _make(self):
-        email = '%s@yosemite.exmaple.com'%randword(10)
-        password = randword(10)
-        user = self.db.newuser.new(email=email, password=password, name_first='John', name_last='Muir')
+        email = '%s@yosemite.exmaple.com'%randword()
+        user = self.db.newuser.new(email=email, password=PASSWORD, name_first='John', name_last='Muir', name_middle=randword())
         user = self.db.newuser.request(user)
         return self.db.newuser.approve(user.name)
-        
+    
     @test
     def api_user_get(self):
-        self.msg("Checking user.get()")
+        """Testing user.get()"""
         user = self._make()
         user = self.db.user.get(user.name)
         # Check filt=False
@@ -230,126 +228,138 @@ class User(Test):
         except KeyError:
             pass
         self.ok()
-
+    
     @test
     def api_user_put(self):
-        self.msg("Checking user.put()")
+        """Testing user.put()"""
         user = self._make()
         user = self.db.user.put(user)
         user['name_first'] = "Test"
         user = self.db.user.put(user)
         assert user.name_first == "Test"
         self.ok()
-
+    
     @test
     def api_user_filter(self):
-        self.msg("Checking user.filter()")
+        """Testing user.filter()"""
         user = self._make()
         users = self.db.user.filter()
         assert users
-        # assert user.name in [i.name for i in users]
+        assert user.name in users
         self.ok(len(users))
-
+    
     @test
     def api_user_find(self):
-        self.msg("Checking user.find()")
-        users = self.db.user.find("John")
-        assert users
-        self.ok(len(users))
+        """Testing user.find()"""
+        user = self._make()
+        users = self.db.user.find(user.name_first.lower())
+        assert user.name in [i.name for i in users]
+        self.ok(user.name_first)
 
+        users = self.db.user.find(user.name_middle)
+        assert user.name in [i.name for i in users]
+        self.ok(user.name_middle)
+
+        users = self.db.user.find(user.name_last)
+        assert user.name in [i.name for i in users]
+        self.ok(user.name_last)
+
+        users = self.db.user.find(user.email)
+        assert user.name in [i.name for i in users]
+        self.ok(user.email)
+    
     @test
     def api_user_setprivacy(self):
-        self.msg("Checking user.setprivacy()")
-        self.db.user.setprivacy(self.username, 0)
-        assert self.db.user.get(self.username).privacy == 0
+        """Testing user.setprivacy()"""
+        user = self._make()
+        self.db.user.setprivacy(user.name, 0)
+        assert self.db.user.get(user.name).privacy == 0
         self.ok(0)
-        self.db.user.setprivacy(self.username, 1)
-        assert self.db.user.get(self.username).privacy == 1
-        self.ok(1)
-        self.db.user.setprivacy(self.username, 2)
-        assert self.db.user.get(self.username).privacy == 2
-        self.ok(2)
-        # Reset state
-        self.db.user.setprivacy(self.username, 0)
 
+        self.db.user.setprivacy(user.name, 1)
+        assert self.db.user.get(user.name).privacy == 1
+        self.ok(1)
+
+        self.db.user.setprivacy(user.name, 2)
+        assert self.db.user.get(user.name).privacy == 2
+        self.ok(2)
+    
     @test
     def api_user_disable(self):
-        self.msg("Checking user.disable()")
-        self.db.user.disable(self.username)
-        assert self.db.user.get(self.username).disabled == True
+        """Testing user.disable()"""
+        user = self._make()
+        self.db.user.disable(user.name)
+        assert self.db.user.get(user.name).disabled == True
         self.ok(True)
-        # Reset state
-        self.db.user.enable(self.username)
-        assert self.db.user.get(self.username).disabled == False
-        self.ok(False)
 
+        self.db.user.enable(user.name)
+        assert self.db.user.get(user.name).disabled == False
+        self.ok(False)
+    
     @test
     def api_user_enable(self):
-        self.msg("Checking user.enable()")
-        self.db.user.enable(self.username)
-        assert self.db.user.get(self.username).disabled == False
+        """Testing user.enable()"""
+        user = self._make()
+        self.db.user.enable(user.name)
+        assert self.db.user.get(user.name).disabled == False
         self.ok(False)
-
+    
     @test
     def api_user_setpassword(self):
-        self.msg("Checking user.setpassword()")
+        """Testing user.setpassword()"""
         # Change password, and make sure we can login.
-        newpassword = self.password[::-1]        
-        self.db.user.setpassword(self.username, newpassword, password=self.password)
-        ctxid = self.db.auth.login(self.username, newpassword)
+        user = self._make()
+        newpassword = PASSWORD[::-1]
+        self.db.user.setpassword(user.name, newpassword, password=PASSWORD)
+        ctxid = self.db.auth.login(user.name, newpassword)
         assert ctxid
         self.ok(ctxid)
-        # Reset state
-        self.db.user.setpassword(self.username, self.password, password=newpassword)
-        ctxid = self.db.auth.login(self.username, self.password)
-        self.ok(ctxid)
-
+    
     @test
     def api_user_setemail(self):
-        self.msg("Checking user.setemail()")
+        """Testing user.setemail()"""
         # Change email, and make sure email index is updated for login.
-        email = '%s@change.example.com'%randword(10)
-        self.db.user.setemail(self.username, email, password=self.password)
-        self.db.auth.login(email, self.password)
-        user = self.db.user.get(self.username)
+        user = self._make()
+        email = '%s@change.example.com'%randword()
+        self.db.user.setemail(user.name, email, password=PASSWORD)
+        self.db.auth.login(email, PASSWORD)
+        user = self.db.user.get(user.name)
         assert user.email == email
         self.ok(email)
-        # Reset state
-        self.db.user.setemail(self.username, self.email, password=self.password)
-        self.db.auth.login(self.email, self.password)
-        user = self.db.user.get(self.username)
-        assert user.email == self.email
-        self.ok(self.email)
-
+    
     @test
     def api_user_resetpassword(self):
-        self.msg("Checking user.resetpassword()")
+        """Testing user.resetpassword()"""
+        user = self._make()
         try:
-            self.db.user.resetpassword(self.username)
-        except emen2.db.exceptions.EmailError: 
+            self.db.user.resetpassword(user.name)
+        except emen2.db.exceptions.EmailError:
             return
         # Get secret.
-        user = self.db._db.dbenv['user']._get_data(self.username)
+        user = self.db._db.dbenv['user']._get_data(user.name)
         secret = user.data.get('secret')
-        newpassword = self.password[::-1]                
+        newpassword = PASSWORD[::-1]
         self.db.user.resetpassword(password=newpassword, secret=secret)
         self.ok()
     
     @test
     def api_user_expirepassword(self):
-        self.msg("Checking user.expirepassword()")
-        self.db.user.expirepassword(self.username)
-
+        """Testing user.expirepassword()"""
+        user = self._make()
+        self.db.user.expirepassword(user.name)
+    
     @test
     def test_change_displayname(self):
-        user = self.db.user.get(self.username)
+        """Testing change displayname"""
+        user = self._make()
+        user = self.db.user.get(user.name)
         user.name_first = "Russell"
         user.name_last = "Lee"
         self.db.user.put(user)
-        assert self.db.user.get(self.username).displayname == "Russell Lee"
-        # users = self.db.user.find("Russell")
-        # assert self.username in [i.name for i in users]
-
+        assert self.db.user.get(user.name).displayname == "Russell Lee"
+        users = self.db.user.find("Russell")
+        assert user.name in [i.name for i in users]
+    
     @test
     def test_secret(self):
         raise TestNotImplemented
@@ -358,79 +368,78 @@ class User(Test):
 
 @register
 class Group(Test):
-    def setup(self):
-        # Create some new users
-        self.msg("Setup...")
-        users = []
-        for i in ['Dorothea Lange', 'Walker Evans']:
-            name = i.partition(' ')
-            email = '%s-%s@wpa.example.com'%(name[2], randword(10))
-            user = self.db.newuser.request(dict(email=email, name_first=name[0], name_last=name[2], password=randword(10)))
-            self.db.newuser.approve(user.name)
-            users.append(user.name)
+    def _make(self):
         group = self.db.group.new(displayname="Farm Security Administration")
         group = self.db.group.put(group)
-        self.groupname = group.name
-        self.users = users
-        
+        return group
+    
     @test
     def api_group_new(self):
-        self.msg("Checking group.new()")
+        """Testing group.new()"""
         group = self.db.group.new(displayname="Tennessee Valley Authority")
         self.ok(group)
-
+    
     @test
     def api_group_put(self):
-        self.msg("Checking group.put()")
+        """Testing group.put()"""
         group = self.db.group.new(displayname="Works Progress Administration")
         group = self.db.group.put(group)
         self.ok(group)
-
+    
     @test
     def api_group_filter(self):
-        self.msg("Checking group.filter()")
+        """Testing group.filter()"""
+        group = self._make()
         groups = self.db.group.filter()
+        assert group.name in groups
         self.ok(len(groups))
-
+    
     @test
     def api_group_find(self):
-        self.msg("Checking group.find()")
-        groups = self.db.group.find("Farm")
-        self.ok(len(groups))
-            
+        """Testing group.find()"""
+        group = self._make()
+        word = randword()
+        group.displayname = "Random Group %s"%(word)
+        group = self.db.group.put(group)
+        for i in ['Random', 'Group', word, group.name]:
+            groups = self.db.group.find(i)
+            assert group.name in [i.name for i in groups]
+        self.ok()
+    
     @test
     def test_group_members(self):
-        self.msg("Checking group member editing")
+        """Testing group member editing"""
         # Add users
-        group = self.db.group.get(self.groupname)
-        for i in self.users:
+        group = self._make()
+        users = self.db.group.filter()
+        users = random.sample(users, 4)
+        for i in users:
             group.adduser(i)
-        self.db.group.put(group)
-        group = self.db.group.get(self.groupname)
-        for i in self.users:
+        group = self.db.group.put(group)
+        for i in users:
             assert i in group.members()
         self.ok("add")
         
         # Remove a user
-        group = self.db.group.get(self.groupname)
-        for i in self.users:
+        for i in users:
             group.removeuser(i)
-        self.db.group.put(group)
-        group = self.db.group.get(self.groupname)
-        for i in self.users:
+        group = self.db.group.put(group)
+        for i in users:
             assert i not in group.members()
         self.ok("remove")
-
+    
     @test
     def test_group_change_displayname(self):
-        self.msg("Checking group displayname editing")
-        group = self.db.group.get(self.groupname)
+        """Testing group displayname editing"""
+        group = self._make()
         orig = group.displayname
         group.displayname = "Department of the Interior"
         self.db.group.put(group)
         groups = self.db.group.find("Interior")
-        assert self.groupname in [i.name for i in groups]
-        self.ok(self.groupname)
+        assert group.name in [i.name for i in groups]
+        groups = self.db.group.find(orig.partition(" ")[0])
+        assert group.name not in [i.name for i in groups]
+        self.ok()
 
 ######################################
 
@@ -439,7 +448,7 @@ class Auth(Test):
     def setup(self):
         # Create account
         self.msg("Setup...")
-        email = '%s@moonrise.exmaple.com'%randword(10)
+        email = '%s@moonrise.exmaple.com'%randword()
         password = randword(10)
         user = self.db.newuser.new(email=email, password=password, name_first='Ansel', name_last='Adams')
         user = self.db.newuser.request(user)
@@ -447,23 +456,37 @@ class Auth(Test):
         self.email = email
         self.password = password
         self.username = user.name
-            
+    
     @test
     def api_auth_login(self):
-        self.db.auth.login(self.username, self.password)
-
+        """Testing auth.login()"""
+        ctxid = self.db.auth.login(self.username, self.password)
+        assert ctxid
+        # assert self.username == self.db.auth.check.context()[0]
+        self.ok()
+    
     @test
     def api_auth_check_context(self):
-        self.db.auth.check.context()
-
+        """Testing auth.check.context()"""
+        user, groups = self.db.auth.check.context()
+        # assert self.username == user
+        # assert 'authenticated' in groups
+        self.ok()
+    
     @test
     def api_auth_check_admin(self):
-        self.db.auth.check.admin()
-
+        """Testing auth.check.admin()"""
+        admin = self.db.auth.check.admin()
+        assert admin
+        self.ok()
+    
     @test
     def api_auth_check_create(self):
-        self.db.auth.check.create()
-
+        """Testing auth.check.create()"""
+        create = self.db.auth.check.create()
+        assert create
+        self.ok()
+    
     # @test
     # def api_auth_logout(self):
     #     print self.db.auth.logout()
@@ -473,75 +496,83 @@ class Auth(Test):
 
 @register
 class ParamDef(Test):
-    def setup(self):
-        self.msg("Setup...")
-        pd = self.db.paramdef.new(vartype='float', desc_short='Numerical aperture')
+    def _make(self):
+        pd = self.db.paramdef.new(vartype='float', desc_short='Numerical Aperture %s'%randword())
         pd = self.db.paramdef.put(pd)
-        self.pdname = pd.name
-
+        return pd
+    
     @test
     def api_paramdef_new(self):
-        self.msg("Checking paramdef.new()")
+        """Testing paramdef.new()"""
         pd = self.db.paramdef.new(vartype='int', desc_short='Film speed')
         self.ok(pd)
-
+    
     @test
     def api_paramdef_put(self):
-        self.msg("Checking paramdef.put()")
+        """Testing paramdef.put()"""
         pd = self.db.paramdef.new(vartype='int', desc_short='Film speed')
         pd = self.db.paramdef.put(pd)
         assert pd.name
         assert pd.vartype == 'int'
         assert pd.desc_short == 'Film speed'
         self.ok(pd)
-
+    
     @test
     def api_paramdef_get(self):
-        self.msg("Checking paramdef.get()")
-        pd = self.db.paramdef.get(self.pdname)
-        assert pd.name == self.pdname
+        """Testing paramdef.get()"""
+        pd = self._make()
+        pd = self.db.paramdef.get(pd.name)
+        try:
+            pd = self.db.paramdef.get(randword(), filt=False)
+            raise ExpectException
+        except KeyError, e:
+            pass
         self.ok(pd)
-
+    
     @test
     def api_paramdef_filter(self):
+        pd = self._make()
         pds = self.db.paramdef.filter()
-        assert self.pdname in pds
+        assert pd.name in pds
         self.ok()
-
+    
     @test
     def api_paramdef_find(self):
-        pds = self.db.paramdef.find('aperture')
-        assert self.pdname in [pd.name for pd in pds]
+        pd = self._make()
+        word = pd.desc_short.partition(" ")[-1]
+        pds = self.db.paramdef.find(word)
+        assert pd.name in [i.name for i in pds]
         self.ok()
-
+    
     @test
     def api_paramdef_properties(self):
-        self.msg("Checking list of properties")
+        """Testing list of properties"""
         props = self.db.paramdef.properties()
         self.ok(props)
-
+    
     @test
     def api_paramdef_units(self):
-        self.msg("Checking list of units")
+        """Testing list of units"""
         for prop in self.db.paramdef.properties():
             units = self.db.paramdef.units(prop)
             self.ok(prop, units)
-
+    
     @test
     def api_paramdef_vartypes(self):
-        self.msg("Checking list of vartypes")
+        """Testing list of vartypes"""
         vartypes = self.db.paramdef.vartypes()
         self.ok(vartypes)
-
+    
     @test
     def test_vartype(self):
-        self.msg("Checking vartypes")
+        """Testing vartypes"""
         for i in self.db.paramdef.vartypes():
+            self.msg("testing paramdef:", i)
             pd = self.db.paramdef.new(vartype=i, desc_short='Test %s'%i)
             self.db.paramdef.put(pd)
             self.ok(i)
-
-        self.msg("Checking vartype is immutable")
+        
+        self.msg('Testing vartype is immutable')
         try:
             pd = self.db.paramdef.get('root')
             pd.vartype = "string"
@@ -549,8 +580,8 @@ class ParamDef(Test):
             raise ExpectException
         except ValidationError, e:
             self.ok(e)
-
-        self.msg("Checking invalid vartype")
+        
+        self.msg('Testing for invalid vartypes')
         try:
             pd = self.db.paramdef.new(vartype="invalidvartype", desc_short='Test invalid vartype')
             self.db.paramdef.put(pd)
@@ -560,14 +591,14 @@ class ParamDef(Test):
     
     @test
     def test_property(self):
-        self.msg("Checking properties")
+        """Testing properties"""
         for prop in self.db.paramdef.properties():
             pd = self.db.paramdef.new(vartype='float', desc_short='Test property %s'%prop, property=prop)
             pd = self.db.paramdef.put(pd)
             assert pd.property == prop
             self.ok(prop)
-            
-        self.msg("Checking immutable property")
+        
+        self.msg('Testing property is immutable')
         try:
             pd = self.db.paramdef.get('root')
             pd.property = "length"
@@ -575,8 +606,8 @@ class ParamDef(Test):
             raise ExpectException
         except ValidationError, e:
             self.ok(e)
-
-        self.msg("Checking invalid property")
+        
+        self.msg('Testing for invalid properties')
         try:
             self.db.paramdef.new(vartype='float', desc_short='Test invalid property')
             pd.vartype = "invalidproperty"
@@ -584,8 +615,8 @@ class ParamDef(Test):
             raise ExpectException
         except ValidationError, e:
             self.ok(e)
-            
-        self.msg("Checking property only for float")
+        
+        self.msg('Testing properties can only be set for float vartype')
         try:
             self.db.paramdef.new(vartype='string', desc_short='Test invalid property')
             pd.vartype = "length"
@@ -596,6 +627,7 @@ class ParamDef(Test):
     
     @test
     def test_units(self):
+        """Testing units"""
         import emen2.db.properties
         def _convert(value, u1, u2):
             try:
@@ -603,17 +635,17 @@ class ParamDef(Test):
                 self.ok("1.0 %s -> %s %s"%(u1, value, u2))
             except Exception, e:
                 self.fail("%s -> %s"%(u1, u2), e)
-
+        
         for prop in self.db.paramdef.properties():
-            self.msg('Checking property / units:', prop)
+            self.msg('Testing property / units:', prop)
             units = self.db.paramdef.units(prop)
             for defaultunits in units:
                 pd = self.db.paramdef.new(vartype='float', property=prop, defaultunits=defaultunits, desc_short='Test property %s units %s'%(prop, units))
                 pd = self.db.paramdef.put(pd)
-                assert pd.vartype == 'float'                
+                assert pd.vartype == 'float'
                 # assert pd.defaultunits == defaultunits
             self.ok(units)
-
+            
             propcls = emen2.db.properties.Property.get_property(prop)
             
             if propcls.defaultunits not in units:
@@ -621,10 +653,10 @@ class ParamDef(Test):
             for u1 in units:
                 for u2 in units:
                     _convert(1, u1, u2)
-        
+    
     @test
     def test_desc(self):
-        self.msg("Checking desc")                
+        """Testing desc"""
         pd = self.db.paramdef.new(vartype='string', desc_short='Test', desc_long='Test change description')
         pd = self.db.paramdef.put(pd)
         new_short = 'Changed'
@@ -635,10 +667,10 @@ class ParamDef(Test):
         assert pd.desc_short == new_short
         assert pd.desc_long == new_long
         self.ok()
-        
+    
     @test
     def test_choices(self):
-        self.msg("Checking choices")                
+        """Testing choices"""
         choices1 = ['one', 'two']
         choices2 = ['two', 'three']
         pd = self.db.paramdef.new(vartype='string', desc_short='Test', choices=choices1)
@@ -652,12 +684,12 @@ class ParamDef(Test):
     
     @test
     def test_iter(self):
-        self.msg("Checking iter")        
+        """Testing iter"""
         pd = self.db.paramdef.new(vartype='string', desc_short='Test', iter=True)
         pd = self.db.paramdef.put(pd)
         assert pd.iter
-
-        self.msg("Checking iter is immutable")
+        
+        self.msg('Testing iter is immutable')
         try:
             pd = self.db.paramdef.new(vartype='string', desc_short='Test', iter=True)
             pd = self.db.paramdef.put(pd)
@@ -682,7 +714,7 @@ class ParamDef(Test):
 class Rel(Test):
     @test
     def api_rel_pclink(self):
-        self.msg("Checking rel.pclink()")
+        """Testing rel.pclink()"""
         # Setup
         rec1 = self.db.record.new(rectype="root")
         rec1 = self.db.record.put(rec1)
@@ -697,10 +729,10 @@ class Rel(Test):
         assert rec2.parents == set([rec1.name])
         assert not rec2.children
         self.ok()
-
+    
     @test
     def api_rel_pcunlink(self):
-        self.msg("Checking rel.pcunlink()")
+        """Testing rel.pcunlink()"""
         # Setup
         rec1 = self.db.record.new(rectype="root")
         rec1 = self.db.record.put(rec1)
@@ -716,14 +748,14 @@ class Rel(Test):
         assert not rec2.parents
         assert not rec2.children
         self.ok()
-
+    
     @test
     def api_rel_relink(self):
         raise TestNotImplemented
-
+    
     @test
     def api_rel_siblings(self):
-        self.msg("Checking rel.siblings()")
+        """Testing rel.siblings()"""
         # Setup
         parent = self.db.record.put(dict(rectype='root'))
         children = set()
@@ -736,10 +768,10 @@ class Rel(Test):
             siblings = self.db.rel.siblings(i)
             assert children == siblings
         self.ok()
-
+    
     @test
     def api_rel_children(self):
-        self.msg("Checking rel.children()")
+        """Testing rel.children()"""
         # Setup
         root = self.db.record.put(dict(rectype='root'))
         levels = []
@@ -756,7 +788,6 @@ class Rel(Test):
         allchildren = set()
         for i in levels:
             allchildren |= i
-        
         # Test
         c_1 = self.db.rel.children(root.name, recurse=1)
         assert c_1 == levels[0]
@@ -766,11 +797,12 @@ class Rel(Test):
         assert c_3 == (levels[0] | levels[1] | levels[2])
         c_all = self.db.rel.children(root.name, recurse=-1)
         assert c_all == allchildren
+        # TODO: Test other options, such as filters and tree        
         self.ok()
-
+    
     @test
     def api_rel_parents(self):
-        self.msg("Checking rel.parents()")
+        """Testing rel.parents()"""
         # Setup
         root = self.db.record.put(dict(rectype='root'))
         levels = []
@@ -786,8 +818,7 @@ class Rel(Test):
             addchildren = nextlevel
         allchildren = set()
         for i in levels:
-            allchildren |= i
-        
+            allchildren |= i        
         # Test
         allchildren.add(root.name)
         for count, level in enumerate(levels):
@@ -799,7 +830,8 @@ class Rel(Test):
             assert len(p_all) == (count+1)
             assert not p_all - allchildren
         self.ok()
-
+        # TODO: Test other options, such as filters and tree
+    
     @test
     def api_rel_tree(self):
         raise TestNotImplemented
@@ -808,53 +840,103 @@ class Rel(Test):
 
 @register
 class RecordDef(Test):
+    def _make(self):
+        rd = self.db.recorddef.new(mainview="Test: {{creator}} @ {{creationtime}} %s"%randword())
+        rd = self.db.recorddef.put(rd)
+        return rd
+
     @test
     def api_recorddef_new(self):
-        self.msg("Testing recorddef.new()")
+        """Testing recorddef.new()"""
         rd = self.db.recorddef.new(mainview="Test: {{creator}} @ {{creationtime}}")
         self.ok()
-
+    
     @test
     def api_recorddef_put(self):
-        self.msg("Testing recorddef.put()")
-        view = "Test: {{creator}} @ {{creationtime}}"
+        """Testing recorddef.put()"""
+        mainview = "Test: {{creator}} @ {{creationtime}}"
         rd = self.db.recorddef.new(mainview=mainview)
         rd = self.db.recorddef.put(rd)
-        assert rd.mainview == view
+        assert rd.mainview == mainview
         self.ok()
-
+    
     @test
     def api_recorddef_get(self):
-        self.msg("Checking recorddef.get()")
-        rd = self.db.user.get('root')
-        assert rd.name == 'root'
+        """Testing recorddef.get()"""
+        rd = self._make()
+        rd = self.db.recorddef.get(rd.name)
         # Check filt=False
         try:
-            self.db.recorddef.get('fail', filt=False)
+            self.db.recorddef.get(randword(), filt=False)
             raise ExpectException
         except KeyError:
             pass
         self.ok()
-
+    
     @test
     def api_recorddef_filter(self):
-        raise TestNotImplemented
-
+        """Testing recorddef.filter()"""
+        rd = self._make()
+        rds = self.db.recorddef.filter()
+        assert rd.name in rds
+        self.ok()
+    
     @test
     def api_recorddef_find(self):
-        raise TestNotImplemented
-
+        """Testing user.find()"""
+        rd = self._make()
+        rds = self.db.user.find(rd.desc_short.partition(" ")[-1])
+        assert rd.name in [i.name for i in rds]
+        self.ok(user.desc_short)
+    
     @test
     def test_mainview(self):
-        raise TestNotImplemented
+        rd = self._make()
+
+        self.msg('Testing mainview editing')
+        word = randword()
+        rd.mainview = 'A new mainview by {{creator}}, and here is a random word: %s'%word
+        rd = self.db.recorddef.put(rd)
+        self.ok()
+
+        self.msg('Testing mainview keyword search')
+        rds = self.db.recorddef.find(word)
+        assert rd.name in [i.name for i in rds]
+        self.ok()
+
+        self.msg('Testing mainview is required')
+        rd = self.db.recorddef.new()
+        rd.mainview = None
+        try:
+            self.db.recorddef.put(rd)
+            raise ExpectException
+        except ValidationError, e:
+            pass
+        self.ok()
     
     @test
     def test_views(self):
-        raise TestNotImplemented
-        
+        """Testing recorddef views"""
+        rd = self._make()
+        view = "Test recname: {{name}} {{rectype}}"
+        rd.views['recname'] = view
+        rd = self.db.recorddef.put(rd)
+        assert rd.views['recname'] == view
+            
     @test
     def test_private(self):
-        raise TestNotImplemented
+        """Testing recorddef private status"""
+        rd = self._make()
+        
+        rd.private = False
+        rd = self.db.recorddef.put(rd)
+        assert rd.private == False
+        self.ok(False)
+        
+        rd.private = True
+        rd = self.db.recorddef.put(rd)
+        assert rd.private == True
+        self.ok(True)
         
     @test
     def test_params(self):
@@ -862,119 +944,244 @@ class RecordDef(Test):
     
     @test
     def test_desc(self):
-        raise TestNotImplemented
+        """Testing desc"""
+        rd = self.db.recorddef.new(desc_short='Test', desc_long='Test change description', mainview='Average mainview')
+        rd = self.db.recorddef.put(rd)
+        word = randword()
+        new_short = 'Changed'
+        new_long = 'Changed description, and a random word: %s'%word
+        rd.desc_short = new_short
+        rd.desc_long = new_long
+        rd = self.db.recorddef.put(rd)
+        assert rd.desc_short == new_short
+        assert rd.desc_long == new_long
+        self.ok()
+        
+        self.msg('Testing keyword search')
+        rds = self.db.recorddef.find(word)
+        assert rd.name in [i.name for i in rds]
+        self.ok()
 
 ######################################
 
 @register
-class Record(Test):    
-    def setup(self):
-        self.msg("Setup...")
-        root = self.db.record.new(rectype='root', inherit=['root'])
-        root = self.db.record.put(root)
-        self.root = root
-        self.recs = []
-        for i in range(10):
-            rec = self.db.record.new(rectype='root', inherit=[self.root.name])
-            rec = self.db.record.put(rec)
-            self.recs.append(rec.name)
-        assert self.root
-        assert self.recs
+class Record(Test):
+    def _make(self):
+        rec = self.db.record.new(rectype='root')
+        rec = self.db.record.put(rec)
+        return rec
     
     @test
     def api_record_new(self):
+        """Testing record.new()"""
         # New record test
         rec = self.db.record.new(rectype='root')
-        rec = self.db.record.new(rectype='root', inherit=[self.root.name])
-        assert self.root.name in rec.parents
-        return rec
-        
+        rec = self.db.record.new(rectype='root', inherit=['root'])
+        assert 'root' in rec.parents
+        self.ok()
+    
     @test
     def api_record_put(self):
-        rec = self.api_record_new()
+        """Testing record.put()"""
+        rec = self.db.record.new(rectype='root', inherit=['root'])
         rec = self.db.record.put(rec)
         assert rec.name
         assert rec.rectype == 'root'
-        assert self.root.name in rec.parents
-        return rec
-        
-    @test
-    def api_record_get(self):
-        assert self.db.record.get(self.root.name)
-        try:
-            self.db.record.get('fail', filt=False)
-        except KeyError:
-            pass
-
-    @test
-    def api_record_hide(self):
-        raise TestNotImplemented
+        assert 'root' in rec.parents
+        self.ok()
     
     @test
+    def api_record_get(self):
+        """Testing record.get()"""
+        rec = self._make()
+        rec = self.db.record.get(rec.name)
+        try:
+            self.db.record.get(randword(), filt=False)
+        except KeyError:
+            pass
+        self.ok()
+    
+    @test
+    def api_record_hide(self):
+        """Testing record.hide()"""
+        rec = self._make()
+        self.db.record.hide(rec.name)
+        rec = self.db.record.get(rec.name)
+        assert rec.hidden
+        assert not rec.parents
+        assert not rec.children
+        for level in rec.permissions:
+            assert not level
+        self.ok()
+        
+    @test
     def api_record_update(self):
-        raise TestNotImplemented
+        """Testing record.update()"""        
+        rec = self._make()
+        word = 'Hello!'
+        self.db.record.update(rec.name, {'desc_short':word})
+        rec = self.db.record.get(rec.name)
+        assert rec.get('desc_short') == word
+        self.ok()
     
     @test
     def api_record_validate(self):
-        raise TestNotImplemented
+        """Testing record.validate()"""        
+        rec = self._make()
+        rec = self.db.record.validate(rec)
+        try:
+            rec.rectype = 'invalid-%s'%randword()
+            self.db.record.validate(rec)
+            raise ExpectException
+        except ValidationError, e:
+            pass
+        self.ok()
     
     @test
     def api_record_adduser(self):
-        raise TestNotImplemented
+        """Testing record.adduser()"""        
+        rec = self._make()        
+        user = 'test'
+        for level in range(4):
+            rec = self.db.record.adduser(rec.name, 'test', level=level)
+            assert user in rec['permissions'][level]
+            assert user in rec.members()
+        self.ok()
     
     @test
     def api_record_removeuser(self):
-        raise TestNotImplemented
-
+        """Testing record.removeuser()"""        
+        rec = self._make()
+        for level in range(4):
+            user = 'test%s'%level
+            rec = self.db.record.adduser(rec.name, user, level=level)
+        for user in rec.members():
+            rec = self.db.record.removeuser(rec.name, user)
+            assert user not in rec.members()
+        self.ok()
+        
     @test
     def api_record_addgroup(self):
-        raise TestNotImplemented
+        """Testing record.addgroup()"""        
+        rec = self._make()
+        groups = ['authenticated', 'anonymous']
+        for group in groups:
+            rec = self.db.record.addgroup(rec.name, group)
+            assert group in rec.groups
+        self.ok()
     
     @test
     def api_record_removegroup(self):
-        raise TestNotImplemented
+        """Testing record.removegroup()"""        
+        rec = self._make()
+        groups = ['authenticated', 'anonymous']
+        for group in groups:
+            rec = self.db.record.addgroup(rec.name, group)
+            assert group in rec.groups
+        for group in groups:
+            rec = self.db.record.removegroup(rec.name, group)
+            assert group not in rec.groups
+        self.ok()
     
     @test
     def api_record_setpermissionscompat(self):
+        """Testing record.setpermissionscompat()"""        
         # ugh
         raise TestNotImplemented
     
     @test
     def api_record_addcomment(self):
-        raise TestNotImplemented
-    
+        """Testing record.addcomment()"""        
+        rec = self._make()
+        comments = ['1', '2', '3']
+        for comment in comments:
+            rec = self.db.record.addcomment(rec.name, comment)
+            assert comment in [i[2] for i in rec.comments]
+        self.ok()
+        
     @test
     def api_record_findcomments(self):
-        raise TestNotImplemented
-
+        """Testing record.findcomments()"""        
+        rec = self._make()
+        comments = ['hickory', 'dickory', 'dock']
+        for comment in comments:
+            crec = self._make()
+            crec['comments'] = comment
+            crec = self.db.record.put(crec)
+            self.db.rel.pclink(rec.name, crec.name)
+        children = self.db.rel.children(rec.name)
+        found = self.db.record.findcomments(children)
+        for comment in comments:
+            assert comment in [i[3] for i in found]
+        self.ok()
+    
     @test
     def api_record_findorphans(self):
-        raise TestNotImplemented
-
-    @test
-    def api_record_findbyrectype(self):
+        """Testing record.findorphans()"""        
         raise TestNotImplemented
     
     @test
+    def api_record_findbyrectype(self):
+        """Testing record.findbyrectype()"""        
+        # Create some rectypes
+        recs = collections.defaultdict(set)
+        for i in range(5):
+            rd = self.db.recorddef.new(mainview="Test")
+            rd = self.db.recorddef.put(rd)
+            for j in range(5):
+                rec = self.db.record.new(rectype=rd.name)
+                rec = self.db.record.put(rec)
+                recs[rd.name].add(rec.name)
+        # Test
+        for k,v in recs.items():
+            found = self.db.record.findbyrectype(k)
+            assert not (v ^ found)
+        self.ok()
+        
+    @test
     def api_record_findbyvalue(self):
+        """Testing record.findbyvalue()"""        
         raise TestNotImplemented
     
     @test
     def api_record_groupbyrectype(self):
-        raise TestNotImplemented
-    
-    @test
-    def api_record_renderchildren(self):
-        raise TestNotImplemented
-
+        """Testing record.groupbyrectype()"""        
+        # Create some rectypes
+        recs = collections.defaultdict(set)
+        allrecs = set()
+        for i in range(5):
+            rd = self.db.recorddef.new(mainview="Test")
+            rd = self.db.recorddef.put(rd)
+            for j in range(5):
+                rec = self.db.record.new(rectype=rd.name)
+                rec = self.db.record.put(rec)
+                recs[rd.name].add(rec.name)
+                allrecs.add(rec.name)
+                
+        grouped = self.db.record.groupbyrectype(allrecs)
+        for k,v in grouped.items():            
+            assert not (v ^ recs[k])
+        self.ok()
+        
     @test
     def api_record_findpaths(self):
+        """Testing record.findpaths()"""        
         raise TestNotImplemented
-    
+
 ######################################
 
 @register
 class Binary(Test):
+    def _make(self):
+        bdo = self.db.binary.new(filename='hello.txt')
+        bdo['filedata'] = 'Hello, world!'
+        bdo = self.db.binary.upload(bdo)
+        return bdo
+
+    @test
+    def api_binary_put(self):
+        bdo = self._make()
+    
     @test
     def api_binary_get(self):
         raise TestNotImplemented
@@ -986,15 +1193,11 @@ class Binary(Test):
     @test
     def api_binary_find(self):
         raise TestNotImplemented
-
+    
     @test
     def api_binary_filter(self):
         raise TestNotImplemented
-
-    @test
-    def api_binary_put(self):
-        raise TestNotImplemented
-
+    
     @test
     def api_binary_upload(self):
         raise TestNotImplemented
@@ -1002,19 +1205,19 @@ class Binary(Test):
     @test
     def api_binary_addreference(self):
         raise TestNotImplemented
-    
+
 ######################################
 
-@register    
+@register
 class Query(Test):
     @test
     def api_query(self):
         raise TestNotImplemented
-
+    
     @test
     def api_table(self):
         raise TestNotImplemented
-
+    
     @test
     def api_plot(self):
         raise TestNotImplemented
@@ -1025,14 +1228,14 @@ class Query(Test):
 class Render(Test):
     @test
     def api_render(self):
-        print db.render('root')    
-        raise TestNotImplemented
-
-    @test
-    def api_view(self):
-        print db.view('root')    
+        print db.render('root')
         raise TestNotImplemented
     
+    @test
+    def api_view(self):
+        print db.view('root')
+        raise TestNotImplemented
+
 ######################################
 
 if __name__ == "__main__":
@@ -1048,7 +1251,7 @@ if __name__ == "__main__":
     if args.tmp:
         dbtmp = tempfile.mkdtemp(suffix=".db")
         emen2.db.config.config.sethome(dbtmp)
-        
+    
     db = emen2.db.opendb(admin=True)
     t = RunTests(db=db)
     if args.tmp or args.create:

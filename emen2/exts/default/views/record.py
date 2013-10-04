@@ -33,7 +33,7 @@ class Record(View):
         
         # Access tags
         accesstags = []
-        if self.rec.get('deleted'):
+        if self.rec.get('hidden'):
             accesstags.append('Hidden record')
         if 'publish' in self.rec.get('groups',[]):
             accesstags.append('Published data')
