@@ -191,7 +191,7 @@ class DBProxy(object):
     def _newtxn(self, write=False):
         self._txn = self._db.dbenv.txncheck(txn=self._txn, write=write)
         return self
-        
+                
     def _gettxn(self):
         return self._txn
 

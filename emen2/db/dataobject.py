@@ -70,7 +70,7 @@ class BaseDBObject(object):
     :classattr public: Public (exported) keys
     """
     
-    public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name', 'hidden'])
+    public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
 
     def __init__(self, **kwargs):
         """Initialize a new DBO."""
@@ -245,9 +245,6 @@ class BaseDBObject(object):
         self.error('Cannot set parameter %s in this way'%key, warning=True)
 
     ##### Core parameters. #####
-    
-    def _set_hidden(self, key, value):
-        self._set(key, value, self.isowner())
     
     def _set_name(self, key, value):
         self._set(key, value, self.isnew())
@@ -567,18 +564,18 @@ class History(PrivateDBO):
     """Manage previously used values."""
     def __init__(self, name=None, *args, **kwargs):
         self.name = name
-        self.history = []
+        self.data = []
 
     def addhistory(self, timestamp, user, param, value):
         """Add a value to the history."""
         v = (timestamp, user, param, value)
-        if v in self.history:
+        if v in self.data:
             raise ValueError, "This event is already present."
-        self.history.append(v)
+        self.data.append(v)
     
     def gethistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
         """Get :limit: previously used values."""
-        h = sorted(self.history, reverse=True)
+        h = sorted(self.data, reverse=True)
         if timestamp:
             h = filter(lambda x:x[0] == timestamp, h)
         if user:
@@ -601,7 +598,7 @@ class History(PrivateDBO):
         """Prune the history to :limit: items."""
         other = []
         match = []
-        for t, u, p, v in self.history:
+        for t, u, p, v in self.data:
             if u == user or p == param or v == value:
                 match.append((t,u,p,v))
             else:
@@ -611,5 +608,5 @@ class History(PrivateDBO):
             match = sorted(match, reverse=True)[:limit]
         else:
             match = []
-        self.history = sorted(match+other, reverse=True)
+        self.data = sorted(match+other, reverse=True)
         

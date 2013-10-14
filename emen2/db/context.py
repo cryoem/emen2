@@ -39,38 +39,46 @@ class Context(emen2.db.dataobject.PrivateDBO):
     """Defines a database context (like a session). After a user is authenticated
     a Context is created, and used for subsequent access."""
 
+    name = property(lambda x:x.data['name'])
+    username = property(lambda x:x.data['username'])
+    groups = property(lambda x:x.data['group'])
+    grouplevels = property(lambda x:x.data['grouplevels'])
+    host = property(lambda x:x.data['host'])
+    time = property(lambda x:x.data['time'])
+    utcnow = property(lambda x:x.data['utcnow'])
+    maxidle = property(lambda x:x.data['maxidle'])
+
     def __init__(self, db=None, username=None, user=None, groups=None, grouplevels=None, host=None, maxidle=604800):
         self.db = None
         self.setdb(db)
 
-        # Context UUID
-        self.name = emen2.db.database.getnewid()
-
-        # Context user information
-        self.user = user or {}
-        self.username = username
-        self.groups = groups or set()
-        self.grouplevels = grouplevels or {}
-
-        # Client IP
-        self.host = host
-
-        # Context time
-        self.time = emen2.db.database.getctime()
-        self.utcnow = emen2.db.database.utcnow()
-
-        # Maximum idle time before context expires
-        self.maxidle = maxidle
-        
         # Used for caching items
         self.cache = Cacher()
+        self.user = user or {}
 
+        # Data
+        self.data = {}
+
+        # Context UUID
+        self.data['name'] = emen2.db.database.getnewid()
+
+        # Context user information
+        self.data['username'] = username
+        self.data['groups'] = groups or set()
+        self.data['grouplevels'] = grouplevels or {}
+
+        # Client IP
+        self.data['host'] = host
+
+        # Context time
+        self.data['time'] = emen2.db.database.getctime()
+        self.data['utcnow'] = emen2.db.database.utcnow()
+
+        # Maximum idle time before context expires
+        self.data['maxidle'] = maxidle
+        
     def __getstate__(self):
-        # copy the dict since we change it
-        odict = self.__dict__.copy()
-        for i in ['db', 'user', 'groups', 'grouplevels']:
-            odict.pop(i, None)
-        return odict
+        return {'data':self.data}
 
     def setdb(self, db=None):
         """Associate a DB connection with the context."""
@@ -88,45 +96,50 @@ class Context(emen2.db.dataobject.PrivateDBO):
         if t > (self.time + self.maxidle):
             raise emen2.db.exceptions.SessionError, "Session expired"
 
-        self.time = t
-        self.utcnow = emen2.db.database.utcnow()
-        self.cache = Cacher()
-        self.grouplevels = grouplevels or {}
-        self.setdb(db=db)
+        self.data['time'] = t
+        self.data['utcnow'] = emen2.db.database.utcnow()
+        self.data['grouplevels'] = grouplevels or {}
 
+        self.cache = Cacher()
+        self.setdb(db=db)
+        
         self.user = {}
-        self.grouplevels["anon"] = 0
-        self.grouplevels["authenticated"] = self.grouplevels.get('authenticated', 0)
-        self.groups = set(self.grouplevels.keys())
+        self.data['grouplevels']["anon"] = 0
+        self.data['grouplevels']["authenticated"] = self.data['grouplevels'].get('authenticated', 0)
+        self.data['groups'] = set(self.grouplevels.keys())
 
     def checkadmin(self):
         return "admin" in self.groups
 
     def checkreadadmin(self):
-        return bool(set(["admin", "readadmin"]) & self.groups)
+        return 'admin' in self.groups or 'readadmin' in self.groups
 
     def checkcreate(self):
-        return bool(set(["admin", "create"]) & self.groups)
+        return 'admin' in self.groups or 'create' in self.groups
 
 class SpecialRootContext(Context):
     def refresh(self, user=None, grouplevels=None, host=None, username=None, db=None, txn=None):
-        self.name = None
         self.setdb(db=db)
-        self.username = username or u'root'
-        self.time = emen2.db.database.getctime()
-        self.utcnow = emen2.db.database.utcnow()
         self.cache = Cacher()        
-        self.groups = set(["admin"])
-        self.grouplevels = {"admin":3}
+        data = {}
+        data['name'] = None
+        data['username'] = username or 'root'
+        data['time'] = emen2.db.database.getctime()
+        data['utcnow'] = emen2.db.database.utcnow()
+        data['groups'] = set(["admin"])
+        data['grouplevels'] = {"admin":3}
+        self.data.update(data)
 
 class AnonymousContext(Context):
     def refresh(self, user=None, grouplevels=None, host=None, db=None, txn=None):
-        self.name = None
         self.setdb(db=db)
-        self.username = 'anonymous'
-        self.time = emen2.db.database.getctime()
-        self.utcnow = emen2.db.database.utcnow()
-        self.cache = Cacher()
-        self.groups = set(["anon"])
-        self.grouplevels = {"anon":0}
+        self.cache = Cacher()        
+        data = {}
+        data['name'] = None
+        data['username'] = 'anonymous'
+        data['time'] = emen2.db.database.getctime()
+        data['utcnow'] = emen2.db.database.utcnow()
+        data['groups'] = set(["anon"])
+        data['grouplevels'] = {"anon":0}
+        self.data.update(data)
 

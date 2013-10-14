@@ -6,10 +6,12 @@ import inspect
 import tempfile
 import shutil
 import traceback
+import hashlib
 
 def randword(length=10):
     s = string.lowercase + string.digits
-    return ''.join(random.sample(s,length))
+    data = [random.sample(s, 1)[0] for i in range(length)]
+    return ''.join(data)
 
 PASSWORD = randword()
 
@@ -1173,38 +1175,109 @@ class Record(Test):
 @register
 class Binary(Test):
     def _make(self):
-        bdo = self.db.binary.new(filename='hello.txt')
-        bdo['filedata'] = 'Hello, world!'
-        bdo = self.db.binary.upload(bdo)
+        bdo = self.db.binary.upload({'filename':'hello.txt', 'filedata':'Hello, world!'})
         return bdo
-
-    @test
-    def api_binary_put(self):
-        bdo = self._make()
     
     @test
     def api_binary_get(self):
-        raise TestNotImplemented
+        """Testing binary.get()"""
+        bdo = self._make()
+        bdo = self.db.binary.get(bdo.name)
+        try:
+            self.db.binary.get(randword(), filt=False)
+        except KeyError:
+            pass
+        self.ok()
     
     @test
+    def api_binary_put(self):
+        """Testing binary.put()"""
+        bdo = self._make()
+        bdo = self.db.binary.get(bdo.name)
+        # Check that we can't change certain details
+        try:
+            bdo.filesize = 0
+            self.db.binary.put(bdo)
+            raise ExpectException
+        except ValidationError, e:
+            pass
+        self.ok()
+        
+    @test
     def api_binary_new(self):
-        raise TestNotImplemented
+        """Testing binary.new()"""        
+        bdo = self.db.binary.new(filename='test.txt')
+        # try:
+        #     bdo = self.db.binary.new()
+        #     raise ExpectException
+        # except ValidationError, e:
+        #     pass
+        self.ok()
     
     @test
     def api_binary_find(self):
-        raise TestNotImplemented
+        """Testing binary.find()"""
+        bdo = self._make()
+        word = "%s.txt"%(randword())
+        bdo.filename = word
+        bdo = self.db.binary.put(bdo)
+        found = self.db.binary.find(word)
+        assert bdo.name in [i.name for i in found]
+        self.ok()
     
     @test
     def api_binary_filter(self):
-        raise TestNotImplemented
+        """Testing binary.filter()"""
+        bdo = self._make()
+        found = self.db.binary.filter()
+        assert bdo.name in found
+        self.ok()
     
     @test
     def api_binary_upload(self):
-        raise TestNotImplemented
+        """Testing binary.upload()"""
+        filename = "%s.txt"%randword(16)
+        filesize = 512
+        filedata = randword(filesize)
+        filedata_md5 = hashlib.md5(filedata).hexdigest()
+        bdo = self.db.binary.upload(dict(filename=filename, filedata=filedata))
+        assert bdo.filename == filename
+        assert bdo.filesize == filesize
+        assert bdo.md5 == filedata_md5
+        self.ok()
     
     @test
     def api_binary_addreference(self):
-        raise TestNotImplemented
+        """Testing binary.addreference()"""
+        bdo = self._make()
+        rec = self.db.record.new(rectype='root')
+        rec = self.db.record.put(rec)
+        self.db.binary.addreference(rec.name, 'file_binary', bdo.name)
+        rec = self.db.record.get(rec.name)
+        assert rec.get('file_binary', [])
+        assert bdo.name in rec.get('file_binary',[])
+        self.ok()
+
+    @test
+    def binary_getdata(self):
+        """Testing binary data"""
+        # Have to override some transaction semantics...
+        self.db.__exit__(None, None, None)
+        self.db.__enter__()
+        filename = "%s.txt"%randword(16)
+        filesize = 512
+        filedata = randword(filesize)
+        filedata_md5 = hashlib.md5(filedata).hexdigest()
+        bdo = self.db.binary.upload(dict(filename=filename, filedata=filedata))
+        bdo = self.db.binary.get(bdo.name)
+        self.db.__exit__(None, None, None)
+        self.db.__enter__()
+        with open(bdo.filepath) as f:
+            data = f.read()
+        assert data == filedata
+        assert len(data) == filesize == bdo.filesize
+        assert hashlib.md5(data).hexdigest() == filedata_md5 == bdo.md5
+        self.ok()
 
 ######################################
 

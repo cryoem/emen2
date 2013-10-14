@@ -74,7 +74,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
     """
 
     #: Attributes readable by the user
-    public = emen2.db.dataobject.PermissionsDBObject.public | set(['comments', 'history', 'rectype'])
+    public = emen2.db.dataobject.PermissionsDBObject.public | set(['comments', 'history', 'rectype', 'hidden'])
 
     def __repr__(self):
         return "<%s %s, %s at %x>" % (self.__class__.__name__, self.name, self.rectype, id(self))
@@ -93,14 +93,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
     def validate(self):
         """Validate the record before committing."""
-        # Cut out any None's
-        # The rest of the parameters are validated 
-        # when they are set or updated.
-        # pitems = self.data.items()
-        # for k,v in pitems:
-        #     if not v and v != 0 and v != False:
-        #         self.data.pop(k, None)
-
         # Check the rectype and any required parameters
         # (Check the cache for the recorddef)
         if not self.rectype:
@@ -114,14 +106,16 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
                 raise self.error('No such protocol: %s'%self.rectype)
             self.ctx.cache.store(cachekey, rd)
 
-        # This does rely somewhat on validators returning None if empty..
         # for param in rd.paramsR:
         #     if self.get(param) is None:
         #         raise self.error("Required parameter: %s"%(param))
         self.data['rectype'] = self._strip(rd.name)
 
     ##### Setters #####
-
+    
+    def _set_hidden(self, key, value):
+        self._set(key, value, self.isowner())
+    
     def _set_rectype(self, key, value):
         if not self.isnew():
             raise self.error("Cannot change rectype from %s to %s."%(self.rectype, value))
