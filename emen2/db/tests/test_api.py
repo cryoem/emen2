@@ -101,6 +101,9 @@ class Test(object):
     
     def ok(self, *msg):
         self.msg("ok:", *msg, newline=False)
+
+    def warn(self, *msg):
+        self.msg("warning:", *msg, newline=False)
     
     def fail(self, *msg):
         self.msg("FAILED:", *msg, newline=False)
@@ -259,7 +262,8 @@ class User(Test):
     def api_user_find(self):
         """Testing user.find()"""
         user = self._make()
-        users = self.db.user.find(user.name_first.lower())
+
+        users = self.db.user.find(user.name_first)
         assert user.name in [i.name for i in users]
         self.ok(user.name_first)
 
@@ -549,10 +553,10 @@ class ParamDef(Test):
     @test
     def api_paramdef_find(self):
         pd = self._make()
-        word = pd.desc_short.partition(" ")[-1]
-        pds = self.db.paramdef.find(word)
-        assert pd.name in [i.name for i in pds]
-        self.ok()
+        for word in pd.desc_short.split(" "):
+            pds = self.db.paramdef.find(word)
+            assert pd.name in [i.name for i in pds]
+            self.ok(word)
     
     @test
     def api_paramdef_properties(self):
@@ -643,7 +647,7 @@ class ParamDef(Test):
                 value = propcls.convert(1.0, u1, u2)
                 self.ok("1.0 %s -> %s %s"%(u1, value, u2))
             except Exception, e:
-                self.fail("%s -> %s"%(u1, u2), e)
+                self.warn("%s -> %s"%(u1, u2), e)
         
         for prop in self.db.paramdef.properties():
             self.msg('Testing property / units:', prop)
@@ -734,9 +738,9 @@ class Rel(Test):
         rec1 = self.db.record.get(rec1.name)
         rec2 = self.db.record.get(rec2.name)
         assert not rec1.parents
-        assert rec1.children == set([rec2.name])
-        assert rec2.parents == set([rec1.name])
+        assert len(rec1.children) == 1 and rec2.name in rec1.children
         assert not rec2.children
+        assert len(rec2.parents) == 1 and rec1.name in rec2.parents
         self.ok()
     
     @test

@@ -1620,7 +1620,7 @@ class DB(object):
         return self.dbenv["paramdef"].filter(names, ctx=ctx, txn=txn)
         
     @publicmethod(compat="findparamdef")
-    def paramdef_find(self, *args, **kwargs):
+    def paramdef_find(self, query, count=100, ctx=None, txn=None, **kwargs):
         """Find a ParamDef, by general search string, or by searching attributes.
 
         Examples:
@@ -1721,7 +1721,7 @@ class DB(object):
         return self.dbenv["user"].filter(names, ctx=ctx, txn=txn)
 
     @publicmethod(compat="finduser")
-    def user_find(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
+    def user_find(self, query=None, count=100, ctx=None, txn=None, **kwargs):
         """Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
 
         Keywords can be combined.
@@ -1731,22 +1731,14 @@ class DB(object):
         >>> db.user.find(name_last='rees')
         [<User ian>, <User kay>, ...]
 
-        >>> db.user.find(record='136')
-        [<User ian>, <User steve>, ...]
-
-        >>> db.user.find(email='bcm.edu', record='137*')
-        [<User ian>, <User wah>, <User mike>, ...]
-
         :keyword query: Contained in name_first, name_middle, name_last, or email
         :keyword name_first:
         :keyword name_middle:
         :keyword name_last:
         :keyword email:
-        :keyword record: Referenced in Record name(s)
         :keyword count: Limit number of results
         :return: Users
         """
-        query = filter(None, [i.strip() for i in unicode(query or '').split()])
         defaultparams = ['name_first', 'name_middle', 'name_last', 'email']
         return self._find('user', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
         # # Also search for email and name in users
@@ -3117,7 +3109,6 @@ class DB(object):
         :keyword count: Limit number of results
         :return: Binaries
         """
-        query = filter(None, [i.strip() for i in unicode(query or '').split()])
         defaultparams = ['filename', 'md5']
         return self._find('binary', query, defaultparams=defaultparams, filename=filename, md5=md5, ctx=ctx, txn=txn)
         # def searchfilenames(filename, txn):
