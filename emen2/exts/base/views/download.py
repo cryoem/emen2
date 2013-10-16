@@ -73,8 +73,9 @@ class Download(View):
             name = bdo.get('name', 'none')
             record = bdo.get('record', 'none')
             filename = bdo.get("filename")
-            filepath = bdo.get("filepath")
-            previewpath = emen2.db.binary.parse(bdo.get('name')).get('previewpath')
+            dkey = emen2.db.binary.parse(bdo.creationtime, bdo.name)
+            filepath = dkey['filepath']
+            previewpath = dkey['previewpath']
             
             if size:
                 # Thumbnail requested
@@ -92,7 +93,7 @@ class Download(View):
             elif os.access(filepath, os.F_OK):
                 # Found the file
                 if rename == 'name':
-                    filename = "%s.%s"%(bdo.get('name', 'none').replace('bdo:', ''), filename)
+                    filename = "%s.%s"%(bdo.get('name', 'none'), filename)
                 elif rename == 'record':
                     filename = "%s.%s"%(bdo.get('record', 'none'), filename)
                 files[filepath] = filename

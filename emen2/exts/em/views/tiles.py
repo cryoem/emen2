@@ -31,7 +31,7 @@ class Preview(View):
         x = int(kwargs.get('x', 0))
         y = int(kwargs.get('y', 0))
 
-        previewpath = emen2.db.binary.parse(bid).get('previewpath')
+        previewpath = emen2.db.binary.parse(bdo.creationtime, bdo.name)['previewpath']
         previewpath = '%s.eman2'%(previewpath)
 
         if not os.path.exists(previewpath):

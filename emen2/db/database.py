@@ -431,6 +431,33 @@ class DB(object):
             name = found.pop()
         return self.dbenv["user"]._get_data(name, txn=txn)
 
+    def _find(self, keytype, query, defaultparams=None, ctx=None, txn=None, **kwargs):
+        query = filter(None, [i.strip() for i in unicode(query or '').split()])
+        defaultparams = defaultparams or []
+        found = None
+
+        cs = []
+        for param,term in kwargs.items():
+            if kwargs.get(term):
+                cs.append([[param, 'contains', term]])
+        for term in query:
+            c = []
+            for param in defaultparams:
+                c.append([param, 'contains', term])
+            cs.append(c)
+
+        for subquery in cs:
+            q = self.dbenv[keytype].query(c=subquery, mode='OR', ctx=ctx, txn=txn)
+            q.run()
+            if not q.result:
+                return []
+            if found is None:
+                found = q.result
+            else:
+                found &= q.result
+
+        return self.dbenv[keytype].gets(found or [], ctx=ctx, txn=txn)
+
     def _findrecorddefnames(self, names, ctx=None, txn=None):
         """(Internal) Find referenced recorddefs.
         :param names:
@@ -1614,7 +1641,9 @@ class DB(object):
         :keyword boolmode: AND / OR for each search constraint
         :return: RecordDefs
         """
-        return self._find_pdrd(self._findparamdefnames, keytype='paramdef', *args, **kwargs)
+        defaultparams = ['desc_short', 'desc_long', 'vartype']
+        return self._find('paramdef', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
+        # return self._find_pdrd(self._findparamdefnames, keytype='paramdef', *args, **kwargs)
         
     @publicmethod(compat="getpropertynames")
     def paramdef_properties(self, ctx=None, txn=None):
@@ -1708,54 +1737,18 @@ class DB(object):
         >>> db.user.find(email='bcm.edu', record='137*')
         [<User ian>, <User wah>, <User mike>, ...]
 
-        :keyword query: Contained in name_first or name_last
-        :keyword email: ... contains in email
-        :keyword name_first: ... contains in first name
-        :keyword name_middle: ... contains in middle name
-        :keyword name_last: ... contains in last name
-        :keyword name: ... contains in the user name
+        :keyword query: Contained in name_first, name_middle, name_last, or email
+        :keyword name_first:
+        :keyword name_middle:
+        :keyword name_last:
+        :keyword email:
         :keyword record: Referenced in Record name(s)
         :keyword count: Limit number of results
         :return: Users
         """
-        foundusers = None
         query = filter(None, [i.strip() for i in unicode(query or '').split()])
-
-        # If no options specified, find all users
-        if not any([query, record, kwargs]):
-            foundusers = self.dbenv["user"].filter(None, ctx=ctx, txn=txn)
-
-        cs = []
-        for term in ['name_first', 'name_middle', 'name_last', 'email']:
-            if kwargs.get(term):
-                cs.append([[term, 'contains', kwargs.get(term)]])
-        for term in query:
-            c = []
-            c.append(['name_first', 'contains', term])
-            c.append(['name_middle', 'contains', term])
-            c.append(['name_last', 'contains', term])
-            c.append(['email', 'contains', term])
-            cs.append(c)
-
-        for subquery in cs:
-            q = self.dbenv['user'].query(c=subquery, mode='OR', ctx=ctx, txn=txn)
-            q.run()
-            if foundusers is None:
-                foundusers = q.result
-            else:
-                foundusers &= q.result
-
-        return self.dbenv["user"].gets(foundusers or [], ctx=ctx, txn=txn)
-
-        # Get 'username' from the found records.
-        # if foundrecs:
-        #     recs = self.dbenv["record"].gets(foundrecs, ctx=ctx, txn=txn)
-        #     f = set([rec.get('username') for rec in recs])
-        #     if foundusers is None:
-        #         foundusers = f
-        #     else:
-        #         foundusers &= f
-        # 
+        defaultparams = ['name_first', 'name_middle', 'name_last', 'email']
+        return self._find('user', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
         # # Also search for email and name in users
         # cs = []
         # if kwargs.get('email'):
@@ -3084,6 +3077,8 @@ class DB(object):
                 filesize, md5sum, newfile = emen2.db.binary.writetmp(filedata=filedata, fileobj=fileobj)
                 bdo = self.dbenv["binary"].new(filename=filename, filesize=filesize, md5=md5sum, record=record, ctx=ctx, txn=txn)
                 bdo = self.dbenv["binary"].put(bdo, ctx=ctx, txn=txn)
+                # Make sure the filepath gets updated...
+                bdo = self.dbenv["binary"].get(bdo.name, ctx=ctx, txn=txn)
                 bdos.append(bdo)
 
             if newfile:
@@ -3102,7 +3097,7 @@ class DB(object):
 
     # Warning: This can be SLOW!
     @publicmethod(compat="findbinary")
-    def binary_find(self, query=None, record=None, count=100, ctx=None, txn=None, **kwargs):
+    def binary_find(self, query=None, filename=None, md5=None, record=None, count=100, ctx=None, txn=None):
         """Find a binary by filename.
 
         Keywords can be combined.
@@ -3115,44 +3110,46 @@ class DB(object):
         >>> db.binary.find(record='136')
         [<Binary 2011... presentation.ppt>, <Binary 2011... retreat_photo.jpg>, ...]
 
-        :keyword query: Contained in any item below
-        :keyword name: ... Binary name
-        :keyword filename: ... filename
+        :keyword query: Contained in filename, md5
+        :keyword filename:
+        :keyword md5:
         :keyword record: Referenced in Record name(s)
         :keyword count: Limit number of results
-        :keyword boolmode: AND / OR for each search constraint (default: AND)
         :return: Binaries
         """
-        def searchfilenames(filename, txn):
-            ind = self.dbenv['binary'].getindex('filename', txn=txn)
-            ret = set()
-            keys = (f for f in ind.keys(txn=txn) if filename in f)
-            for key in keys:
-                ret |= ind.get(key, txn=txn)
-            return ret
-
-        rets = []
-        # This would probably work better if we used the sequencedb keys as a first step
-        if query or kwargs.get('name'):
-            names = self.dbenv["binary"].filter(None, ctx=ctx, txn=txn)
-
-        query = unicode(query or '').split()
-        for q in query:
-            ret = set()
-            ret |= set(name for name in names if q in name)
-            ret |= searchfilenames(q, txn=txn)
-        if kwargs.get('filename'):
-            rets.append(searchfilenames(kwargs.get('filename'), txn=txn))
-        if kwargs.get('name'):
-            rets.append(set(name for name in names if q in name))
-        if record is not None:
-            ret = self._findbyvartype(emen2.utils.check_iterable(record), ['binary'], ctx=ctx, txn=txn)
-            rets.append(ret)
-        allret = self._boolmode_collapse(rets, boolmode='AND')
-        ret = self.dbenv["binary"].gets(allret, ctx=ctx, txn=txn)
-        if count:
-            return ret[:count]
-        return ret
+        query = filter(None, [i.strip() for i in unicode(query or '').split()])
+        defaultparams = ['filename', 'md5']
+        return self._find('binary', query, defaultparams=defaultparams, filename=filename, md5=md5, ctx=ctx, txn=txn)
+        # def searchfilenames(filename, txn):
+        #     ind = self.dbenv['binary'].getindex('filename', txn=txn)
+        #     ret = set()
+        #     keys = (f for f in ind.keys(txn=txn) if filename in f)
+        #     for key in keys:
+        #         ret |= ind.get(key, txn=txn)
+        #     return ret
+        # 
+        # rets = []
+        # # This would probably work better if we used the sequencedb keys as a first step
+        # if query or kwargs.get('name'):
+        #     names = self.dbenv["binary"].filter(None, ctx=ctx, txn=txn)
+        # 
+        # query = unicode(query or '').split()
+        # for q in query:
+        #     ret = set()
+        #     ret |= set(name for name in names if q in name)
+        #     ret |= searchfilenames(q, txn=txn)
+        # if kwargs.get('filename'):
+        #     rets.append(searchfilenames(kwargs.get('filename'), txn=txn))
+        # if kwargs.get('name'):
+        #     rets.append(set(name for name in names if q in name))
+        # if record is not None:
+        #     ret = self._findbyvartype(emen2.utils.check_iterable(record), ['binary'], ctx=ctx, txn=txn)
+        #     rets.append(ret)
+        # allret = self._boolmode_collapse(rets, boolmode='AND')
+        # ret = self.dbenv["binary"].gets(allret, ctx=ctx, txn=txn)
+        # if count:
+        #     return ret[:count]
+        # return ret
         
     @publicmethod(write=True, compat="binaryaddreference")
     def binary_addreference(self, record, param, name, ctx=None, txn=None):

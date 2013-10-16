@@ -132,7 +132,7 @@ class EMEN2DBEnv(object):
         self.keytypes['record']    = RecordDB(dataclass=emen2.db.record.Record, dbenv=self)
         self.keytypes['user']      = UserDB(dataclass=emen2.db.user.User, dbenv=self)
         self.keytypes['newuser']   = NewUserDB(dataclass=emen2.db.user.NewUser, dbenv=self)
-        self.keytypes['binary']    = BinaryDB(dataclass=emen2.db.binary.Binary, dbenv=self)
+        self.keytypes['binary']    = CollectionDB(dataclass=emen2.db.binary.Binary, dbenv=self)
 
     # ian: todo: make this nicer.
     def close(self):
@@ -803,11 +803,11 @@ class CollectionDB(BaseDB):
         return set(self.keys(txn=txn))
     
     def keys(self, ctx=None, txn=None):
-        emen2.db.log.info("BDB: %s keys: Deprecated method!"%self.filename)
+        # emen2.db.log.info("BDB: %s keys: Deprecated method!"%self.filename)
         return map(self.keyload, self.bdb.keys(txn))
     
     def items(self, ctx=None, txn=None):
-        emen2.db.log.info("BDB: %s items: Deprecated method!"%self.filename)
+        # emen2.db.log.info("BDB: %s items: Deprecated method!"%self.filename)
         ret = []
         for k,v in self.bdb.items(txn):
             i = self.dataload(v)
@@ -1545,21 +1545,6 @@ class CollectionDB(BaseDB):
         visited |= tovisit[-1]
         cursor.close()
         return result, visited
-
-class BinaryDB(CollectionDB):
-    """CollectionDB for Binaries"""
-    def _key_generator(self, item, txn=None):
-        """Assign a name based on date, and the counter for that day."""
-        # Get the current date and counter.
-        dkey = emen2.db.binary.parse('')
-        # Increment the day's counter.
-        counter = self._incr_sequence(key=dkey['datekey'], txn=txn)
-        # Make the new name.
-        newdkey = emen2.db.binary.parse(dkey['name'], counter=counter)
-        # Update the item's filepath..
-        item.filepath = newdkey['filepath']
-        # Return the new name.
-        return newdkey['name']
 
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):

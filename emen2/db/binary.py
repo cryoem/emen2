@@ -25,71 +25,44 @@ WINDOWS_DEVICE_FILENAMES = ['CON', 'PRN', 'AUX', 'NUL',
     'COM6', 'COM7', 'COM8', 'COM9', 'LPT1',
     'LPT2', 'LPT3', 'LPT4', 'LPT5', 'LPT6',
     'LPT7', 'LPT8', 'LPT9']
-
-def parse(bdokey, counter=None):
-    """Parse a 'bdo:2010010100001' type identifier into parts and
-    find location in the filesystem."""
-
-    prot, _, bdokey = (bdokey or "").rpartition(":")
-    if not prot:
-        prot = "bdo"
-
-    # ian: todo: implement other BDO protocols, e.g. references to uris
-    if prot not in ["bdo"]:
-        raise Exception, "Invalid binary protocol: %s"%prot
-
-    if bdokey:
-        # Now process; must be 14 chars long..
-        year = int(bdokey[:4])
-        mon = int(bdokey[4:6])
-        day = int(bdokey[6:8])
-        if counter == None:
-            counter = int(bdokey[9:13],16)
-    else:
-        # Timestamps are now in ISO8601 format
-        # e.g.: "2011-10-16T02:00:00+00:00"
-        bdokey = emen2.db.database.utcnow()
-        year = int(bdokey[:4])
-        mon = int(bdokey[5:7])
-        day = int(bdokey[8:10])
-        counter = counter or 0
+    
+def parse(creationtime=None, name=None):
+    # Timestamps are now in ISO8601 format
+    # e.g.: "2011-10-16T02:00:00+00:00"
+    creationtime = creationtime or emen2.db.database.utcnow()
+    year = int(creationtime[:4])
+    mon = int(creationtime[5:7])
+    day = int(creationtime[8:10])
 
     # YYYYMMDD
-    datekey = "%04d%02d%02d"%(year, mon, day)
+    datekey = "%04d-%02d-%02d"%(year, mon, day)
     datedir = os.path.join('%04d'%year, '%02d'%mon, '%02d'%day)
 
     # Get the binary storage paths from config
     # Find the last item matching the current date
-    binarypaths = emen2.db.config.get('paths.binary')
-    bp = [x for x in sorted(binarypaths.keys()) if str(x)<=datekey]
+    # Resolve the parsed bdo key to a directory (filedir)
+    binarydirs = emen2.db.config.get('paths.binary')
+    bp = [x for x in sorted(binarydirs.keys()) if str(x)<=datekey]
+    filedir = os.path.join(binarydirs[bp[-1]], datedir)
 
-    # Resolve the parsed bdo key to a directory (basepath) and file (filepath)
-    basepath = os.path.join(binarypaths[bp[-1]], datedir)
-    filepath = os.path.join(basepath, "%05X"%counter)
-    
     # ... same for previewpath
-    previewpaths = emen2.db.config.get('paths.preview')
-    pp = [x for x in sorted(previewpaths.keys()) if str(x)<=datekey]
-    previewpath = os.path.join(previewpaths[pp[-1]], datedir, "%05X"%counter)
-
-    # The BDO name (bdo:YYYYMMDDXXXXX)
-    name = "%s:%s%05X"%(prot, datekey, counter)
-
-    return {
-        "prot":prot,
-        "year":year,
-        "mon":mon,
-        "day":day,
-        "counter":counter,
-        "datekey":datekey,
-        "basepath":basepath,
-        "filepath":filepath,
-        "previewpath":previewpath,
-        "name":name
-        }
-
+    previewdirs = emen2.db.config.get('paths.preview')
+    pp = [x for x in sorted(previewdirs.keys()) if str(x)<=datekey]
+    previewdir = os.path.join(previewdirs[pp[-1]], datedir)
+    
+    ret = {
+        "creationtime":creationtime,
+        "name":name,
+        "filedir":filedir,
+        "previewdir":previewdir
+    }
+    if name:
+        ret["filepath"] = os.path.join(filedir, name)
+        ret["previewpath"] = os.path.join(previewdir, name)
+    return ret
+    
 # Write contents to a temporary file.
-def writetmp(filedata=None, fileobj=None, basepath=None, suffix="upload"):
+def writetmp(filedata=None, fileobj=None, filedir=None, suffix="upload"):
     '''Write to temporary storage, and calculate size/md5.
     :return: Temporary file path, the file size, and an md5 digest.
     '''
@@ -102,12 +75,12 @@ def writetmp(filedata=None, fileobj=None, basepath=None, suffix="upload"):
     fileobj.seek(0)
 
     # Check that the directory for this day exists.
-    basepath = basepath or parse('')['basepath']
-    if not os.path.exists(basepath):
-        os.makedirs(basepath)
+    filedir = filedir or parse(None, 'tmp')['filedir']
+    if not os.path.exists(filedir):
+        os.makedirs(filedir)
 
     # Open the temporary file
-    (fd, tmpfile) = tempfile.mkstemp(dir=basepath, suffix='.%s'%suffix)
+    (fd, tmpfile) = tempfile.mkstemp(dir=filedir, suffix='.%s'%suffix)
 
     # Copy to the output file, updating md5 and size
     m = hashlib.md5()
@@ -126,9 +99,6 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
     Provides following parameters:
         filename, record, md5, filesize, compress, filepath
-
-    The Binary name has a specific format, bdo:YYYYMMDDXXXXX, where YYYYMMDD is
-    date format and XXXXX is 5-char hex ID code of file for the day.
 
     The filename parameter is the original name of the uploaded file. The
     filesize parameter is the size of the file, and the md5 parameter is the
@@ -180,7 +150,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
     def setContext(self, ctx):
         super(Binary, self).setContext(ctx=ctx)
-        self.filepath = parse(self.name).get('filepath')
+        self.filepath = parse(self.creationtime, self.name).get('filepath')
         if self.isowner():
             return
         # Check we can access the associated record.

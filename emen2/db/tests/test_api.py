@@ -94,7 +94,7 @@ class Test(object):
     
     def msg(self, *msg, **kwargs):
         if 'newline' not in kwargs:
-            kwargs['newline'] = True
+            kwargs['newline'] = False
         if kwargs.get('newline'):
             print
         print "\t"+" ".join(map(unicode, msg))
@@ -104,6 +104,9 @@ class Test(object):
     
     def fail(self, *msg):
         self.msg("FAILED:", *msg, newline=False)
+
+    def notimplemented(self, *msg):
+        self.msg("not implemented:", *msg, newline=False)
     
     def setup(self):
         pass
@@ -120,6 +123,7 @@ class Test(object):
                     method()
                     self._test_ok.append(method)
                 except TestNotImplemented, e:
+                    self.notimplemented(e)
                     self._test_notimplemented.append(method)
                 except Exception, e:
                     self.fail(e)
@@ -573,7 +577,6 @@ class ParamDef(Test):
     def test_vartype(self):
         """Testing vartypes"""
         for i in self.db.paramdef.vartypes():
-            self.msg("testing paramdef:", i)
             pd = self.db.paramdef.new(vartype=i, desc_short='Test %s'%i)
             self.db.paramdef.put(pd)
             self.ok(i)
@@ -847,7 +850,7 @@ class Rel(Test):
 @register
 class RecordDef(Test):
     def _make(self):
-        rd = self.db.recorddef.new(mainview="Test: {{creator}} @ {{creationtime}} %s"%randword())
+        rd = self.db.recorddef.new(mainview="Test: {{creator}} @ {{creationtime}} %s"%randword(), desc_short="%s test"%randword())
         rd = self.db.recorddef.put(rd)
         return rd
 
@@ -889,12 +892,13 @@ class RecordDef(Test):
     
     @test
     def api_recorddef_find(self):
-        """Testing user.find()"""
+        """Testing recorddef.find()"""
         rd = self._make()
-        rds = self.db.user.find(rd.desc_short.partition(" ")[-1])
-        assert rd.name in [i.name for i in rds]
-        self.ok(user.desc_short)
-    
+        for word in rd.desc_short.split(" "):
+            rds = self.db.recorddef.find(word)
+            assert rd.name in [i.name for i in rds]
+            self.ok(word)
+
     @test
     def test_mainview(self):
         rd = self._make()
@@ -1225,9 +1229,14 @@ class Binary(Test):
         word = "%s.txt"%(randword())
         bdo.filename = word
         bdo = self.db.binary.put(bdo)
+
         found = self.db.binary.find(word)
         assert bdo.name in [i.name for i in found]
-        self.ok()
+        self.ok(bdo.filename)
+
+        found = self.db.binary.find(bdo.md5)
+        assert bdo.name in [i.name for i in found]
+        self.ok(bdo.md5)
     
     @test
     def api_binary_filter(self):

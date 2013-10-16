@@ -38,9 +38,10 @@ def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
     import emen2.db.queues
     
     # Paths and filenames
-    previewpath = emen2.db.binary.parse(bdo.get('name')).get('previewpath')
-    filepath = bdo.get('filepath')
     filename = bdo.get('filename')
+    dkey = emen2.db.binary.parse(bdo.creationtime, bdo.name)
+    previewpath = dkey['previewpath']
+    filepath = dkey['filepath']
 
     # Sanitize the filename to check compress= and ext=
     ext = ''
