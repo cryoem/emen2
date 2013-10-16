@@ -41,7 +41,7 @@ class Context(emen2.db.dataobject.PrivateDBO):
 
     name = property(lambda x:x.data['name'])
     username = property(lambda x:x.data['username'])
-    groups = property(lambda x:x.data['group'])
+    groups = property(lambda x:x.data['groups'])
     grouplevels = property(lambda x:x.data['grouplevels'])
     host = property(lambda x:x.data['host'])
     time = property(lambda x:x.data['time'])

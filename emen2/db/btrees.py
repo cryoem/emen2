@@ -803,11 +803,11 @@ class CollectionDB(BaseDB):
         return set(self.keys(txn=txn))
     
     def keys(self, ctx=None, txn=None):
-        emen2.db.log.warn("BDB: %s keys: Deprecated method!"%self.filename)
+        emen2.db.log.info("BDB: %s keys: Deprecated method!"%self.filename)
         return map(self.keyload, self.bdb.keys(txn))
     
     def items(self, ctx=None, txn=None):
-        emen2.db.log.warn("BDB: %s items: Deprecated method!"%self.filename)
+        emen2.db.log.info("BDB: %s items: Deprecated method!"%self.filename)
         ret = []
         for k,v in self.bdb.items(txn):
             i = self.dataload(v)
@@ -1447,8 +1447,8 @@ class CollectionDB(BaseDB):
             names.append(name)
 
         for name, new, old in (children or []):
-            old = old or set()
-            new = new or set()
+            old = set(old or [])
+            new = set(new or [])
             for i in new - old:
                 add.append((name, i))
             for i in old - new:

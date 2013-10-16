@@ -1,7 +1,4 @@
 {"name": "base", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/base/", "vartype": "none", "parents": ["root"], "desc_short": "Parameters for base protocols"}
-{"name": "name_first", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_first/", "vartype": "string", "parents": ["base"], "desc_short": "First name"}
-{"name": "name_middle", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_middle/", "vartype": "string", "parents": ["base"], "desc_short": "Middle name"}
-{"name": "name_last", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_last/", "vartype": "string", "parents": ["base"], "desc_short": "Last name"}
 {"name": "performed_by", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/performed_by/", "vartype": "user", "parents": ["base"], "desc_short": "Performed by"}
 {"name": "date_occurred", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/date_occurred/", "vartype": "datetime", "parents": ["base"], "desc_short": "Date occurred"}
 {"name": "name_folder", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_folder/", "parents": ["base"], "vartype": "string", "desc_short": "Folder name"}

@@ -207,7 +207,7 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None):
     """
     from_addr, smtphost = emen2.db.config.mailconfig()
     if not (from_addr and smtphost):
-        emen2.db.log.warn("EMAIL: No mail configuration!")
+        # emen2.db.log.warn("EMAIL: No mail configuration!")
         return
     
     ctxt = ctxt or {}
@@ -1719,7 +1719,6 @@ class DB(object):
         :return: Users
         """
         foundusers = None
-        foundrecs = None
         query = filter(None, [i.strip() for i in unicode(query or '').split()])
 
         # If no options specified, find all users
@@ -1727,61 +1726,65 @@ class DB(object):
             foundusers = self.dbenv["user"].filter(None, ctx=ctx, txn=txn)
 
         cs = []
+        for term in ['name_first', 'name_middle', 'name_last', 'email']:
+            if kwargs.get(term):
+                cs.append([[term, 'contains', kwargs.get(term)]])
         for term in query:
-            cs.append([['name_first', 'contains', term], ['name_last', 'contains', term]])
-        for param in ['name_first', 'name_middle', 'name_last']:
-            if kwargs.get(param):
-                cs.append([[param, 'contains', kwargs.get(param)]])
-        for c in cs:
-            # btree.query supports nested constraints,
-            # but I don't have the interface finalized.
-            q = self.dbenv["record"].query(c=c, mode='OR', ctx=ctx, txn=txn)
-            q.run()
-            if q.result is None:
-                pass
-            elif foundrecs is None:
-                foundrecs = q.result
-            else:
-                foundrecs &= q.result
+            c = []
+            c.append(['name_first', 'contains', term])
+            c.append(['name_middle', 'contains', term])
+            c.append(['name_last', 'contains', term])
+            c.append(['email', 'contains', term])
+            cs.append(c)
 
-        # Get 'username' from the found records.
-        if foundrecs:
-            recs = self.dbenv["record"].gets(foundrecs, ctx=ctx, txn=txn)
-            f = set([rec.get('username') for rec in recs])
+        for subquery in cs:
+            q = self.dbenv['user'].query(c=subquery, mode='OR', ctx=ctx, txn=txn)
+            q.run()
             if foundusers is None:
-                foundusers = f
-            else:
-                foundusers &= f
-
-        # Also search for email and name in users
-        cs = []
-        if kwargs.get('email'):
-            cs.append([['email', 'contains', kwargs.get('email')]])
-        if kwargs.get('name'):
-            cs.append([['name', 'contains', kwargs.get('name')]])
-        for c in cs:
-            q = self.dbenv["user"].query(c=c, ctx=ctx, txn=txn)
-            q.run()
-            if q.result is None:
-                pass
-            elif foundusers is None:
                 foundusers = q.result
             else:
                 foundusers &= q.result
 
-        # Find users referenced in a record
-        if record:
-            f = self._findbyvartype(emen2.utils.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
-            if foundusers is None:
-                foundusers = f
-            else:
-                foundusers &= f
-
-        foundusers = sorted(foundusers or [])
-        if count:
-            foundusers = foundusers[:count]
-
         return self.dbenv["user"].gets(foundusers or [], ctx=ctx, txn=txn)
+
+        # Get 'username' from the found records.
+        # if foundrecs:
+        #     recs = self.dbenv["record"].gets(foundrecs, ctx=ctx, txn=txn)
+        #     f = set([rec.get('username') for rec in recs])
+        #     if foundusers is None:
+        #         foundusers = f
+        #     else:
+        #         foundusers &= f
+        # 
+        # # Also search for email and name in users
+        # cs = []
+        # if kwargs.get('email'):
+        #     cs.append([['email', 'contains', kwargs.get('email')]])
+        # if kwargs.get('name'):
+        #     cs.append([['name', 'contains', kwargs.get('name')]])
+        # for c in cs:
+        #     q = self.dbenv["user"].query(c=c, ctx=ctx, txn=txn)
+        #     q.run()
+        #     if q.result is None:
+        #         pass
+        #     elif foundusers is None:
+        #         foundusers = q.result
+        #     else:
+        #         foundusers &= q.result
+        # 
+        # # Find users referenced in a record
+        # if record:
+        #     f = self._findbyvartype(emen2.utils.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
+        #     if foundusers is None:
+        #         foundusers = f
+        #     else:
+        #         foundusers &= f
+        # 
+        # foundusers = sorted(foundusers or [])
+        # if count:
+        #     foundusers = foundusers[:count]
+        # 
+        # return self.dbenv["user"].gets(foundusers or [], ctx=ctx, txn=txn)
         
     @publicmethod(write=True, admin=True, compat="disableuser")
     @ol('names')

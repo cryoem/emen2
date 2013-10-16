@@ -43,15 +43,7 @@ class RunTests(object):
     def register(cls, c):
         cls.__tests[c.__name__] = c
     
-    def run(self):
-        for k,c in self.__tests.items():
-            self._tests.append(c)
-            test = c(db=self.db)
-            test.run()
-            self._test_ok += test._test_ok
-            self._test_fail += test._test_fail
-            self._test_notimplemented += test._test_notimplemented
-        
+    def printstats(self):
         print "\n====== Test Statistics ======"
         print "Test suites:", len(self._tests)
         print "Total tests:", len(self._test_ok) + len(self._test_fail) + len(self._test_notimplemented)
@@ -59,12 +51,22 @@ class RunTests(object):
         print "Fail:", len(self._test_fail)
         print "Not Implemented:", len(self._test_notimplemented)
     
+    def run(self):
+        for k,c in self.__tests.items():
+            self.runone(cls=c)
+        
     def runone(self, k=None, cls=None):
         if k:
             cls = self.__tests[k]
-        self.__tests[k] = cls
-        # self.run()
-        cls(db=self.db).run()
+
+        self._tests.append(cls)
+        test = cls(db=self.db)
+        test.run()
+        self._test_ok += test._test_ok
+        self._test_fail += test._test_fail
+        self._test_notimplemented += test._test_notimplemented
+
+        # cls(db=self.db).run()
     
     def coverage(self):
         for k,c in self.__tests.items():
@@ -129,7 +131,6 @@ class Test(object):
 
 ######################################
 
-# @register
 class Create(Test):
     def run(self):
         emen2.db.database.setup(db=self.db, rootpw=PASSWORD)
@@ -260,6 +261,7 @@ class User(Test):
 
         users = self.db.user.find(user.name_middle)
         assert user.name in [i.name for i in users]
+        assert len(users) == 1
         self.ok(user.name_middle)
 
         users = self.db.user.find(user.name_last)
@@ -358,7 +360,9 @@ class User(Test):
         user.name_first = "Russell"
         user.name_last = "Lee"
         self.db.user.put(user)
-        assert self.db.user.get(user.name).displayname == "Russell Lee"
+        user = self.db.user.get(user.name)
+        expectedname = "%s %s %s"%(user.name_first, user.name_middle, user.name_last)
+        assert user.displayname == expectedname
         users = self.db.user.find("Russell")
         assert user.name in [i.name for i in users]
     
@@ -1335,5 +1339,7 @@ if __name__ == "__main__":
     else:
         t.run()
     
-    # if dbtmp:
-    #    shutil.rmtree(dbtmp)
+    t.printstats()
+    
+    if dbtmp:
+        shutil.rmtree(dbtmp)

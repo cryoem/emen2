@@ -50,6 +50,9 @@ core_paramdefs = [
 {"name": "privacy", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "desc_short": "User privacy"},
 {"name": "disabled", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Disabled account"},
 {"name": "password", "keytype": "paramdef", "parents": ["core"], "vartype": "password", "desc_short": "Password", "indexed": False},
+{"name": "name_first", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "First name"},
+{"name": "name_middle", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Middle name"},
+{"name": "name_last", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Last name"},
 
 # Record
 {"name": "rectype", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol"},
@@ -72,10 +75,6 @@ core_recorddefs = [
 # For base RecordDefs
 base_paramdefs = [
 {"name": "base", "keytype": "paramdef", "parents": ["root"], "vartype": "none", "desc_short": "Parameters for base protocols"},
-{"name": "name_first", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "First name"},
-{"name": "name_middle", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Middle name"},
-{"name": "name_last", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Last name"},
-
 {"name": "performed_by", "keytype": "paramdef", "parents": ["base"], "vartype": "user", "desc_short": "Performed by"},
 {"name": "date_occurred", "keytype": "paramdef", "parents": ["base"], "vartype": "datetime", "desc_short": "Date occurred"},
 {"name": "name_folder", "keytype": "paramdef", "vartype": "string", "parents": ["base"], "desc_short": "Folder name"},

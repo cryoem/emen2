@@ -35,6 +35,9 @@
 {"name": "privacy", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/privacy/", "vartype": "int", "parents": ["core"], "desc_short": "User privacy"}
 {"name": "disabled", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/disabled/", "vartype": "boolean", "parents": ["core"], "desc_short": "Disabled account"}
 {"name": "password", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/password/", "vartype": "password", "indexed": false, "parents": ["core"], "desc_short": "Password"}
+{"name": "name_first", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_first/", "vartype": "string", "parents": ["core"], "desc_short": "First name"}
+{"name": "name_middle", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_middle/", "vartype": "string", "parents": ["core"], "desc_short": "Middle name"}
+{"name": "name_last", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_last/", "vartype": "string", "parents": ["core"], "desc_short": "Last name"}
 {"name": "rectype", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/rectype/", "vartype": "recorddef", "parents": ["core"], "immutable": true, "desc_short": "Protocol"}
 {"name": "history", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/history/", "vartype": "history", "parents": ["core"], "immutable": true, "desc_short": "History"}
 {"name": "comments", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/comments/", "iter": true, "vartype": "comments", "parents": ["core"], "desc_short": "Comments"}
