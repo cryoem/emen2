@@ -403,22 +403,6 @@ class DB(object):
             getattr(item, method)(*args, **kwargs)
         return self.dbenv[keytype].puts(items, ctx=ctx, txn=txn)
 
-    def _boolmode_collapse(self, rets, boolmode):
-        """(Internal) Perform bool operation on results.
-
-        :param rets: List of sets
-        :param boolmode: AND / OR
-        :return: Reduced sets w/ intersection (AND) or union (OR)
-        """
-        # TODO: Deprecated?
-        if not rets:
-            rets = [set()]
-        if boolmode == 'AND':
-            allret = reduce(set.intersection, rets)
-        elif boolmode == 'OR':
-            allret = reduce(set.union, rets)
-        return allret
-
     def _user_by_email(self, name, ctx=None, txn=None):
         """(Internal) Lookup a user by name or email address.
         
@@ -431,15 +415,14 @@ class DB(object):
             name = found.pop()
         return self.dbenv["user"]._get_data(name, txn=txn)
 
-    def _find(self, keytype, query, defaultparams=None, ctx=None, txn=None, **kwargs):
+    def _find(self, keytype, query=None, defaultparams=None, ctx=None, txn=None, **kwargs):
         query = filter(None, [i.strip() for i in unicode(query or '').split()])
         defaultparams = defaultparams or []
         found = None
 
         cs = []
         for param,term in kwargs.items():
-            if kwargs.get(term):
-                cs.append([[param, 'contains', term]])
+            cs.append([[param, 'contains', term]])
         for term in query:
             c = []
             for param in defaultparams:
@@ -457,142 +440,6 @@ class DB(object):
                 found &= q.result
 
         return self.dbenv[keytype].gets(found or [], ctx=ctx, txn=txn)
-
-    def _findrecorddefnames(self, names, ctx=None, txn=None):
-        """(Internal) Find referenced recorddefs.
-        :param names:
-        :return: RecordDefs
-        """
-        # TODO: Deprecated?
-        recnames, recs, rds = emen2.utils.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
-        rds = set(rds)
-        rds |= set([i.rectype for i in recs])
-        if recnames:
-            grouped = self.record_groupbyrectype(names, ctx=ctx, txn=txn)
-            rds |= set(grouped.keys())
-        return rds
-
-    def _findparamdefnames(self, names, ctx=None, txn=None):
-        """(Internal) Find referenced paramdefs.
-        :param names:
-        :return: ParamDefs
-        """
-        # TODO: Deprecated?
-        recnames, recs, params = emen2.utils.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
-        params = set(params)
-        if recnames:
-            recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
-        for i in recs:
-            params |= set(i.keys())
-        return params
-
-    def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
-        """(Internal) Find referenced users/binaries.
-        
-        :param names: Records
-        :param vartypes:
-        :return: ParamDefs with a given Vartype
-        """
-        # TODO: Deprecated?
-        recnames, recs, values = emen2.utils.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
-        values = set(values)
-        if recnames:
-            recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
-        if not recs:
-            return values
-
-        # get the params we're looking for
-        vt = set()
-        vt_iterable = set()
-        vt_firstitem = set()
-        vt_reduce = set()
-        pds = set()
-        for rec in recs:
-            pds |= set(rec.keys())
-        for pd in self.dbenv["paramdef"].gets(pds, ctx=ctx, txn=txn):
-            if pd.vartype not in vartypes:
-                continue
-            if pd.vartype in ['comments', 'history']:
-                vt_firstitem.add(pd.name)
-            elif pd.vartype in ['acl']:
-                vt_reduce.add(pd.name)
-            elif pd.iter:
-                vt_iterable.add(pd.name)
-            else:
-                vt.add(pd.name)
-
-        for rec in recs:
-            for param in vt_reduce:
-                for j in rec.get(param, []):
-                    values |= set(j)
-
-            for param in vt_firstitem:
-                values |= set([i[0] for i in rec.get(param,[])])
-
-            for param in vt_iterable:
-                values |= set(rec.get(param, []))
-
-            for param in vt:
-                if rec.get(param):
-                    values.add(rec.get(param))
-
-        return values
-
-    def _find_pdrd_vartype(self, vartype, items):
-        """(Internal) Find RecordDef based on vartype.
-        
-        :param vartype:
-        :param items:
-        :return: ParamDefs
-        """
-        # TODO: Deprecated?
-        ret = set()
-        vartype = emen2.utils.check_iterable(vartype)
-        for item in items:
-            if item.vartype in vartype:
-                ret.add(item.name)
-        return ret
-
-    # todo: This should just use the query system.
-    def _find_pdrd(self, cb, query=None, childof=None, keytype="paramdef", record=None, vartype=None, ctx=None, txn=None, **qp):
-        """(Internal) Find ParamDefs or RecordDefs based on **qp constraints.
-        
-        Ugly old method.
-        
-        :param cb:
-        :keyword query:
-        :keyword childof:
-        :keyword keytype:
-        :keyword record:
-        :keyword vartype:
-        :keyword qp: Query parameters
-        :return: ParamDefs or RecordDefs.
-        """
-        # TODO: Deprecated?
-        rets = []
-        # This can still be done much better
-        names, items = zip(*self.dbenv[keytype].items(ctx=ctx, txn=txn))
-        ditems = emen2.utils.dictbykey(items, 'name')
-
-        query = unicode(query or '').split()
-        for q in query:
-            ret = set()
-            # Search some text-y fields
-            for param in ['name', 'desc_short', 'desc_long', 'mainview']:
-                for item in items:
-                    if q in (item.get(param) or ''):
-                        ret.add(item.name)
-            rets.append(ret)
-
-        if vartype is not None:
-            rets.append(self._find_pdrd_vartype(vartype, items))
-
-        if record is not None:
-            rets.append(cb(emen2.utils.check_iterable(record), ctx=ctx, txn=txn))
-
-        allret = self._boolmode_collapse(rets, boolmode='AND')
-        ret = map(ditems.get, allret)
-        return ret
 
     def _view_kv(self, params):
         """(Internal) Create an HTML table for rendering.
@@ -708,7 +555,6 @@ class DB(object):
         # Let older attempts fall off.
         LOGIN_RATES[name] = [i for i in attempts if i >= (now - rate)]
         return True
-            
 
     @publicmethod(write=True, compat="login")
     def auth_login(self, username, password, host=None, ctx=None, txn=None):
@@ -1446,6 +1292,39 @@ class DB(object):
 
     ##### Relationships #####
 
+    @publicmethod()
+    @ol('names', output=False)
+    def rel_find(self, names, keytype='record', ctx=None, txn=None, **kwargs):
+        recs = self.dbenv['record'].gets(names, ctx=ctx, txn=txn, filt=None)
+        found = set()
+        allparams = set()
+        for rec in recs:
+            allparams |= set(rec.keys())
+
+        if keytype == 'paramdef':
+            found = allparams
+        else:
+            params = self.dbenv['paramdef'].gets(allparams, ctx=ctx, txn=txn)
+            params = [param for param in params if param.vartype == keytype]
+            for param in params:
+                for rec in recs:
+                    value = rec.get(param.name)
+                    # print "->", param, rec, value
+                    if value is None:
+                        continue
+                    if param.iter:
+                        for i in value:
+                            found.add(i)
+                    else:
+                        found.add(value)
+
+        if kwargs:
+            second = self._find(keytype, ctx=ctx, txn=txn, **kwargs)
+            second = set([i.name for i in second])
+            found &= second
+
+        return found
+
     @publicmethod(write=True, compat="pclink")
     def rel_pclink(self, parent, child, keytype='record', ctx=None, txn=None):
         """Link a parent object with a child
@@ -1625,25 +1504,18 @@ class DB(object):
 
         Examples:
 
-        >>> db.paramdef.find(query='temperature')
+        >>> db.paramdef.find('temperature')
         [<ParamDef temperature>, <ParamDef temperature_ambient>, <ParamDef temperature_cryoholder>, ...]
 
-        >>> db.paramdef.find(vartype=binary, record='136*')
-        [<ParamDef file_binary>, <ParamDef file_binary_image>, <ParamDef person_photo>, ...]
-
         :param query: Contained in any item below
-        :keyword name: ... contains in name (* for recursive)
         :keyword desc_short: ... contains in short description
         :keyword desc_long: ... contains in long description
         :keyword vartype: ... is of vartype(s)
-        :keyword record: Referenced in Record name(s)
-        :keyword limit: Limit number of results
-        :keyword boolmode: AND / OR for each search constraint
+        :keyword count: Limit number of results
         :return: RecordDefs
         """
         defaultparams = ['desc_short', 'desc_long', 'vartype']
         return self._find('paramdef', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
-        # return self._find_pdrd(self._findparamdefnames, keytype='paramdef', *args, **kwargs)
         
     @publicmethod(compat="getpropertynames")
     def paramdef_properties(self, ctx=None, txn=None):
@@ -1728,7 +1600,7 @@ class DB(object):
 
         Examples:
 
-        >>> db.user.find(name_last='rees')
+        >>> db.user.find('rees')
         [<User ian>, <User kay>, ...]
 
         :keyword query: Contained in name_first, name_middle, name_last, or email
@@ -1741,22 +1613,6 @@ class DB(object):
         """
         defaultparams = ['name_first', 'name_middle', 'name_last', 'email']
         return self._find('user', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
-        # # Also search for email and name in users
-        # cs = []
-        # if kwargs.get('email'):
-        #     cs.append([['email', 'contains', kwargs.get('email')]])
-        # if kwargs.get('name'):
-        #     cs.append([['name', 'contains', kwargs.get('name')]])
-        # for c in cs:
-        #     q = self.dbenv["user"].query(c=c, ctx=ctx, txn=txn)
-        #     q.run()
-        #     if q.result is None:
-        #         pass
-        #     elif foundusers is None:
-        #         foundusers = q.result
-        #     else:
-        #         foundusers &= q.result
-        # 
         # # Find users referenced in a record
         # if record:
         #     f = self._findbyvartype(emen2.utils.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
@@ -1764,12 +1620,6 @@ class DB(object):
         #         foundusers = f
         #     else:
         #         foundusers &= f
-        # 
-        # foundusers = sorted(foundusers or [])
-        # if count:
-        #     foundusers = foundusers[:count]
-        # 
-        # return self.dbenv["user"].gets(foundusers or [], ctx=ctx, txn=txn)
         
     @publicmethod(write=True, admin=True, compat="disableuser")
     @ol('names')
@@ -2109,10 +1959,12 @@ class DB(object):
         return self.dbenv["newuser"].filter(names, ctx=ctx, txn=txn)
         
     @publicmethod(admin=True)
-    def newuser_find(self, names=None, ctx=None, txn=None):
+    def newuser_find(self, query=None, count=100, ctx=None, txn=None, **kwargs):
         if not ctx.checkadmin():
             raise PermissionsError("Only an administrator may perform this action.")
-        return self.dbenv["newuser"].filter(names, ctx=ctx, txn=txn)
+        defaultparams = ['name_first', 'name_middle', 'name_last', 'email']
+        return self._find('user', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
+        # return self.dbenv["newuser"].filter(names, ctx=ctx, txn=txn)
         
     @publicmethod(write=True, admin=True, compat="approveuser")
     @ol('names')
@@ -2264,7 +2116,7 @@ class DB(object):
         return self.dbenv["group"].filter(names, ctx=ctx, txn=txn)
 
     @publicmethod(compat="findgroup")
-    def group_find(self, query=None, record=None, count=100, ctx=None, txn=None):
+    def group_find(self, query=None, count=100, ctx=None, txn=None):
         """Find a group.
 
         Examples:
@@ -2272,46 +2124,12 @@ class DB(object):
         >>> db.group.find('admin')
         [<Group admin>, <Group readonlyadmin>]
 
-        >>> db.group.find(record='136')
-        [<Group authenticated>, <Group ncmiusers>]
-
-        :keyword query: Find in Group's name or displayname
-        :keyword record: Referenced in Record name(s)
+        :keyword query: Find in Group's displayname
         :keyword count: Limit number of results
-        :keyword boolmode: AND / OR for each search constraint
         :return: Groups
         """
-        # Todo: Use general query system.
-        # Just get everything and sort directly.
-        items = self.dbenv["group"].gets(self.dbenv["group"].filter(None, ctx=ctx, txn=txn), ctx=ctx, txn=txn)
-        ditems = emen2.utils.dictbykey(items, 'name')
-
-        rets = []
-        query = unicode(query or '').split()
-
-        # If query is empty, match everything. Do this only for group.find, for now.
-        if not query:
-            query = ['']
-
-        for q in query:
-            ret = set()
-            for item in items:
-                # Search these params
-                for param in ['name', 'displayname']:
-                    if q in item.get(param, ''):
-                        ret.add(item.name)
-            rets.append(ret)
-
-        if record:
-            ret = self._findbyvartype(emen2.utils.check_iterable(record), ['groups'], ctx=ctx, txn=txn)
-            rets.append(set(ret))
-
-        allret = self._boolmode_collapse(rets, boolmode='AND')
-        ret = map(ditems.get, allret)
-
-        if count:
-            return ret[:count]
-        return ret
+        defaultparams = ['displayname']
+        return self._find('group', query, defaultparams=defaultparams, ctx=ctx, txn=txn)
 
     ##### RecordDef #####
 
@@ -2334,37 +2152,26 @@ class DB(object):
         return self.dbenv["recorddef"].filter(names, ctx=ctx, txn=txn)
 
     @publicmethod(compat="findrecorddef")
-    def recorddef_find(self, *args, **kwargs):
+    def recorddef_find(self, query=None, count=100, ctx=None, txn=None, **kwargs):
         """Find a RecordDef, by general search string, or by searching attributes.
 
         Examples:
 
-        >>> db.recorddef.find(query='CCD')
+        >>> db.recorddef.find('CCD')
         [<RecordDef ccd>, <RecordDef image_capture>]
-
-        >>> db.recorddef.find(name='image_capture*')
-        [<RecordDef ccd>, <RecordDef scan>, <RecordDef micrograph>, ...]
 
         >>> db.recorddef.find(mainview='freezing apparatus')
         [<RecordDef freezing], <RecordDef vitrobot>, <RecordDef gatan_cp3>, ...]
 
-        >>> db.recorddef.find(record=['1','2','3'])
-        [<RecordDef folder>, <RecordDef project>]
-
-        >>> db.recorddef.find(name='project*', record='136*')
-        [<RecordDef folder>, <RecordDef project>, <RecordDef subproject>, ...]
-
         :keyword query: Matches any of the following:
-        :keyword name: ... contained in name (* for recursive)
         :keyword desc_short: ... contained in short description
         :keyword desc_long: ... contained in long description
         :keyword mainview: ... contained in mainview
-        :keyword record: Referenced in Record name(s)
-        :keyword limit: Limit number of results
-        :keyword boolmode: AND / OR for each search constraint
+        :keyword count: Limit number of results
         :return: RecordDefs
         """
-        return self._find_pdrd(self._findrecorddefnames, keytype='recorddef', *args, **kwargs)
+        defaultparams = ['desc_short', 'desc_long', 'mainview']
+        return self._find('recorddef', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
 
     ##### Records #####
 
@@ -3089,7 +2896,7 @@ class DB(object):
 
     # Warning: This can be SLOW!
     @publicmethod(compat="findbinary")
-    def binary_find(self, query=None, filename=None, md5=None, record=None, count=100, ctx=None, txn=None):
+    def binary_find(self, query=None, count=100, ctx=None, txn=None, **kwargs):
         """Find a binary by filename.
 
         Keywords can be combined.
@@ -3105,42 +2912,11 @@ class DB(object):
         :keyword query: Contained in filename, md5
         :keyword filename:
         :keyword md5:
-        :keyword record: Referenced in Record name(s)
         :keyword count: Limit number of results
         :return: Binaries
         """
         defaultparams = ['filename', 'md5']
-        return self._find('binary', query, defaultparams=defaultparams, filename=filename, md5=md5, ctx=ctx, txn=txn)
-        # def searchfilenames(filename, txn):
-        #     ind = self.dbenv['binary'].getindex('filename', txn=txn)
-        #     ret = set()
-        #     keys = (f for f in ind.keys(txn=txn) if filename in f)
-        #     for key in keys:
-        #         ret |= ind.get(key, txn=txn)
-        #     return ret
-        # 
-        # rets = []
-        # # This would probably work better if we used the sequencedb keys as a first step
-        # if query or kwargs.get('name'):
-        #     names = self.dbenv["binary"].filter(None, ctx=ctx, txn=txn)
-        # 
-        # query = unicode(query or '').split()
-        # for q in query:
-        #     ret = set()
-        #     ret |= set(name for name in names if q in name)
-        #     ret |= searchfilenames(q, txn=txn)
-        # if kwargs.get('filename'):
-        #     rets.append(searchfilenames(kwargs.get('filename'), txn=txn))
-        # if kwargs.get('name'):
-        #     rets.append(set(name for name in names if q in name))
-        # if record is not None:
-        #     ret = self._findbyvartype(emen2.utils.check_iterable(record), ['binary'], ctx=ctx, txn=txn)
-        #     rets.append(ret)
-        # allret = self._boolmode_collapse(rets, boolmode='AND')
-        # ret = self.dbenv["binary"].gets(allret, ctx=ctx, txn=txn)
-        # if count:
-        #     return ret[:count]
-        # return ret
+        return self._find('binary', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
         
     @publicmethod(write=True, compat="binaryaddreference")
     def binary_addreference(self, record, param, name, ctx=None, txn=None):

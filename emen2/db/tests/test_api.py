@@ -1296,6 +1296,91 @@ class Binary(Test):
         assert hashlib.md5(data).hexdigest() == filedata_md5 == bdo.md5
         self.ok()
 
+
+######################################
+
+@register
+class RelFind(Test):
+    @test
+    def api_rel_find(self):
+        # Create some test items.
+        rd = self.db.recorddef.put(dict(mainview="Test", desc_short="Test paramdef"))
+        pd = self.db.paramdef.put(dict(vartype="user", desc_short="Test user"))
+        pd_iter = self.db.paramdef.put(dict(vartype="user", desc_short="Test user", iter=True))
+        
+        user = self.db.newuser.request(dict(password=randword(), email="%s@summit.example.com"%randword(), name_first="Edmund", name_last="Hillary"))
+        user = self.db.newuser.approve(user.name)
+        user_iter = self.db.newuser.request(dict(password=randword(), email="%s@summit.example.com"%randword(), name_first="Tenzing", name_last="Norgay"))
+        user_iter = self.db.newuser.approve(user_iter.name)
+
+        # Create some records
+        rec = self.db.record.new(rectype=rd.name)
+        rec[pd.name] = user.name
+        rec[pd_iter.name] = [user_iter.name]
+        rec = self.db.record.put(rec)
+        rec2 = self.db.record.new(rectype='root')
+        rec2 = self.db.record.put(rec2)
+        self.db.rel.pclink(rec.name, rec2.name)
+
+        # Run the test
+        found = self.db.rel.find(rec.name, 'paramdef')
+        expect = set(rec.keys())
+        assert not found ^ expect
+        self.ok('paramdef', len(found))
+
+        found = self.db.rel.find(rec.name, 'recorddef')
+        expect = set([rd.name])
+        assert not found ^ expect
+        self.ok('recorddef', len(found))
+
+        found = self.db.rel.find([rec.name, rec2.name], 'recorddef')
+        expect = set([rd.name, 'root'])
+        assert not found ^ expect
+        self.ok('recorddef multiple', len(found))
+
+        found = self.db.rel.find(rec2.name, 'user')
+        expect = set(['root'])
+        assert not found ^ expect
+        self.ok('user', len(found))
+
+        found = self.db.rel.find([rec.name, rec2.name], 'user')
+        expect = set(['root', user.name, user_iter.name])
+        assert not found ^ expect
+        self.ok('user multiple', len(found))
+
+        found = self.db.rel.find(rec.name, 'link')
+        expect = set([rec2.name])
+        assert not found ^ expect
+        self.ok('link child', len(found))
+
+        found = self.db.rel.find(rec2.name, 'link')
+        expect = set([rec.name])
+        assert not found ^ expect
+        self.ok('link parent', len(found))
+
+        found = self.db.rel.find(rec.name, 'paramdef', vartype='user')
+        expect = set(['creator', 'modifyuser', pd.name, pd_iter.name])
+        assert not found ^ expect
+        self.ok('secondary search 1 -- paramdef[vartype=user]', len(found))
+
+        found = self.db.rel.find(rec.name, 'paramdef', vartype='datetime')
+        expect = set(['creationtime', 'modifytime'])
+        assert not found ^ expect
+        self.ok('secondary search 2 -- paramdef[vartype=datetime]', len(found))
+
+        found = self.db.rel.find(rec.name, 'user', name_first='Edmund')
+        expect = set([user.name])
+        assert not found ^ expect
+        self.ok('secondary search 3 -- user[name_first=Edmund]', len(found))
+
+        # TODO
+        found = self.db.rel.find(rec.name, 'binary')
+        expect = set()
+        assert not found ^ expect
+        self.ok('binary', len(found))
+
+
+
 ######################################
 
 @register
