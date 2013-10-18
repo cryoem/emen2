@@ -60,7 +60,7 @@ class Context(emen2.db.dataobject.PrivateDBO):
         self.data = {}
 
         # Context UUID
-        self.data['name'] = emen2.db.database.getnewid()
+        self.data['name'] = emen2.db.database.getrandomid()
 
         # Context user information
         self.data['username'] = username

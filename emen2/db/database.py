@@ -94,14 +94,16 @@ publicmethod = emen2.db.proxy.publicmethod
 
 ##### Utility methods #####
 
+def getrandomid():
+    """Generate a random string."""
+    length = 16
+    return os.urandom(length).encode('hex')
+
 def getnewid():
-    """Generate an ID (UUID4 string)
-    :return: UUID4 string
+    """Generate an ID (UUID1 string)
+    :return: UUID1 string
     """
-    # name = name or ''
-    # if name:
-    #     return hashlib.md5(unicode(name)).hexdigest()
-    return uuid.uuid4().hex
+    return uuid.uuid1().hex
 
 def getctime():
     """Current database time, as float in seconds since the UNIX epoch.

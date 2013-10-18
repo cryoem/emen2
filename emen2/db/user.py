@@ -73,7 +73,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     :attr password: Hashed password.
     """
 
-    public = emen2.db.dataobject.BaseDBObject.public | set(['email', 'password', 'name_first', 'name_middle', 'name_last', 'displayname'])
+    public = emen2.db.dataobject.BaseDBObject.public | set(['email', 'password', 'name_first', 'name_middle', 'name_last', 'displayname', 'secret'])
 
     def init(self, d):
         super(BaseUser, self).init(d)
@@ -182,6 +182,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             pass
         elif self.checkpassword(password):
             pass
+        elif self.checkadmin():
+            pass
         else:
             raise self.error(e=emen2.db.exceptions.AuthenticationError)
 
@@ -194,6 +196,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         
     def checkpassword(self, password):
         """Check the user password."""
+        if getattr(self, 'ctx', None):
+            if self.ctx.checkadmin():
+                return True
         auth = emen2.db.auth.PasswordAuth()
         return auth.check(password, self.password)
 
@@ -212,8 +217,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
     def _set_email(self, key, value):
         self.setemail(value)
-        # """Can't set email this way. Use user.setemail()."""
-        # return
     
     def _validate_email(self, value):
         # After a long discussion in #python, it is impossible to validate
@@ -258,36 +261,20 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
     ##### Secrets for account password resets #####
 
-    def _makesecret(self):
-        # Use uuid4 as the secret.
-        return uuid.uuid4().hex
-
     def checksecret(self, action, args, secret):
-        try:
-            if self.ctx.checkadmin():
-                return True
-        except Exception, e:
-            pass
-
-        if not hasattr(self, 'secret'):
-            self.data['secret'] = None
-
-        # This should check expiration time...
-        if action and secret and getattr(self, 'secret', None):
-            if action == self.secret[0] and args == self.secret[1] and secret == self.secret[2]:
+        secretattr = self.data.get('secret', None)
+        if action and secret and secretattr:
+            # Maximum age is 1 day.
+            age = time.time()-secretattr[3]
+            if age >= (60 * 60 * 24):
+                return False
+            if action == secretattr[0] and args == secretattr[1] and secret == secretattr[2]:
                 return True
         return False
 
     def _setsecret(self, action, args):
-        if not hasattr(self, 'secret'):
-            self.data['secret'] = None
-
-        if self.secret:
-            if action == self.secret[0] and args == self.secret[1]:
-                return
-
         # Generate random secret.
-        secret = self._makesecret()
+        secret = emen2.db.database.getrandomid()
         self.data['secret'] = (action, args, secret, time.time())
 
     def _delsecret(self):

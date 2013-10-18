@@ -43,6 +43,7 @@ class Hasher(object):
     def check(self, password, hashed, algorithm=None):
         """Check a password."""
         algorithm = algorithm or self.parse(hashed)[0]
+        password = password or ""
         return self.hash(password, salt=hashed, algorithm=algorithm) == hashed
 
     def hash(self, password, algorithm, salt=None):

@@ -267,15 +267,17 @@ class User(Test):
         assert user.name in [i.name for i in users]
         self.ok(user.name_first)
 
+        users = self.db.user.find(user.name_last)
+        assert user.name in [i.name for i in users]
+        self.ok(user.name_last)
+
+        # Unique middle name
         users = self.db.user.find(user.name_middle)
         assert user.name in [i.name for i in users]
         assert len(users) == 1
         self.ok(user.name_middle)
 
-        users = self.db.user.find(user.name_last)
-        assert user.name in [i.name for i in users]
-        self.ok(user.name_last)
-
+        # Email
         users = self.db.user.find(user.email)
         assert user.name in [i.name for i in users]
         self.ok(user.email)
@@ -348,10 +350,10 @@ class User(Test):
         except emen2.db.exceptions.EmailError:
             return
         # Get secret.
-        user = self.db._db.dbenv['user']._get_data(user.name)
+        user = self.db._db.dbenv['user']._get_data(user.name, txn=self.db._txn)
         secret = user.data.get('secret')
         newpassword = PASSWORD[::-1]
-        self.db.user.resetpassword(password=newpassword, secret=secret)
+        self.db.user.setpassword(user.name, password=newpassword, secret=secret)
         self.ok()
     
     @test
@@ -376,7 +378,29 @@ class User(Test):
     
     @test
     def test_secret(self):
-        raise TestNotImplemented
+        user = self._make()
+
+        # First, check it works.
+        user.resetpassword()
+        secret = user.data['secret']
+        assert user.checksecret(secret[0], secret[1], secret[2])
+        self.ok("checksecret")
+        
+        # Check that it can't be set directly...
+        user = self.db.user.put(user)
+        assert not user.get('secret')
+        self.ok("prevents direct edit")
+ 
+        # Check that it's stripped out by setContext
+        self.db.user.setemail(user.name, '%s@reset.example.com'%randword())
+        user = self.db.user.get(user.name)
+        assert not user.get('secret')
+        self.ok("prevents direct read")
+        
+        # user = self.db._db.dbenv['user']._get_data(user.name, txn=self.db._txn)
+        # print user.data
+        # assert user.get('secret')
+        # self.ok("stored correctly")
 
 ######################################
 
@@ -1306,8 +1330,7 @@ class RelFind(Test):
         # Create some test items.
         rd = self.db.recorddef.put(dict(mainview="Test", desc_short="Test paramdef"))
         pd = self.db.paramdef.put(dict(vartype="user", desc_short="Test user"))
-        pd_iter = self.db.paramdef.put(dict(vartype="user", desc_short="Test user", iter=True))
-        
+        pd_iter = self.db.paramdef.put(dict(vartype="user", desc_short="Test user", iter=True))        
         user = self.db.newuser.request(dict(password=randword(), email="%s@summit.example.com"%randword(), name_first="Edmund", name_last="Hillary"))
         user = self.db.newuser.approve(user.name)
         user_iter = self.db.newuser.request(dict(password=randword(), email="%s@summit.example.com"%randword(), name_first="Tenzing", name_last="Norgay"))
@@ -1374,10 +1397,10 @@ class RelFind(Test):
         self.ok('secondary search 3 -- user[name_first=Edmund]', len(found))
 
         # TODO
-        found = self.db.rel.find(rec.name, 'binary')
-        expect = set()
-        assert not found ^ expect
-        self.ok('binary', len(found))
+        # found = self.db.rel.find(rec.name, 'binary')
+        # expect = set()
+        # assert not found ^ expect
+        # self.ok('binary', len(found))
 
 
 
