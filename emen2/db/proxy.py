@@ -171,10 +171,11 @@ class DBProxy(object):
     def __enter__(self):
         # print "--> ENTER"
         if self._txn:
-            # raise Exception, "DBProxy: Existing open transaction."
+            raise Exception, "DBProxy: Existing open transaction."
             pass
         else:
-            self._txn = self._db.dbenv.txncheck(txn=self._txn)
+            self._txn = self._db.dbenv.newtxn()
+            # self._txn = self._db.dbenv.txncheck(txn=self._txn)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):

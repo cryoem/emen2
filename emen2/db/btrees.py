@@ -36,15 +36,26 @@ try:
 except ImportError, inst:
     bulk = None
 
-# ian: todo: move this to EMEN2DBEnv
+# Don't touch these!
 DB_CONFIG = """\
-# Don't touch these
-set_data_dir data
-set_lg_dir journal
-set_lg_regionmax 1048576
-set_lg_max 8388608
-set_lg_bsize 2097152
 """
+# # Don't touch these
+# set_data_dir data
+# set_lg_dir journal
+# set_lg_regionmax 1048576
+# set_lg_max 8388608
+# set_lg_bsize 2097152
+
+def indexkey(key, data, param=None):    
+    value = pickle.loads(data).data.get(param)
+    if hasattr(value, "__iter__"):
+        ret = [unicode(i).encode('utf-8') for i in value if value is not None]
+    elif value is None:
+        ret = None
+    else:
+        ret = unicode(value).encode('utf-8')
+    print "index:", param, key, value, "->", ret
+    return ret
 
 ##### EMEN2 Database Environment #####
 
@@ -55,7 +66,6 @@ class EMEN2DBEnv(object):
         :keyword path: Directory containing environment.
         :keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
         """
-        
         # Database environment directory
         self.path = path or emen2.db.config.get('home')
         self.snapshot = snapshot or (not emen2.db.config.get('bdb.snapshot'))
@@ -96,9 +106,7 @@ class EMEN2DBEnv(object):
         """Open the Database Environment."""
         emen2.db.log.info("BDB: Opening database environment: %s"%self.path)
         dbenv = bsddb3.db.DBEnv()
-
-        if self.snapshot:
-            dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
+        dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
         
         txncount = (self.cachesize / 4096) * 2
         if txncount > 1024*128:
@@ -153,12 +161,12 @@ class EMEN2DBEnv(object):
         :keyword write: Transaction will be likely to write data; turns off Berkeley DB Snapshot
         :return: New transaction
         """
-        flags = bsddb3.db.DB_TXN_SNAPSHOT
+        write = True
         if write:
-            flags = 0
-
-        txn = self.dbenv.txn_begin(flags=flags)
-        emen2.db.log.debug("TXN: start: %s flags %s"%(txn, flags))
+            txn = self.dbenv.txn_begin()
+        else:
+            txn = self.dbenv.txn_begin(flags=bsddb3.db.DB_TXN_SNAPSHOT)
+        emen2.db.log.debug("TXN: start: %s"%(txn))
         return txn
 
     def txncheck(self, txn=None, write=False):
@@ -289,11 +297,8 @@ class BaseDB(object):
     :attr filename: Filename of BDB on disk
     :attr dbenv: EMEN2 Database Environment
     :attr bdb: Berkeley DB instance
-    :attr DBOPENFLAGS: Berkeley DB flags for opening database
-    :attr DBSETFLAGS: Additional flags
     """
-
-    def __init__(self, filename, keyformat='str', dataformat='str', dataclass=None, dbenv=None, extension='bdb'):
+    def __init__(self, filename, keyformat='str', dataformat='str', dataclass=None, dbenv=None, extension='bdb', param=None):
         """Create and open the DB.
         
         :param filename: Base filename to use
@@ -305,74 +310,20 @@ class BaseDB(object):
         
         # EMEN2DBEnv
         self.dbenv = dbenv
-
-        # What are we storing?
-        # This sets formatters and types for keys and data.
-        self._setkeyformat(keyformat)
-        self._setdataformat(dataformat, dataclass)
-
         # BDB handle and open flags.
         self.bdb = None
-        self.DBOPENFLAGS = bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE
-        self.DBSETFLAGS = []
+        # Indexes
+        self.indexes = {}
+
+        # What are we storing?
+        self._setkeyformat(keyformat)
+        self._setdataformat(dataformat, dataclass)
 
         # Init and open.
         self.init()
         self.open()
 
-    def init(self):
-        """Subclass init hook."""
-        pass
-
-    ##### DB methods #####
-
-    def open(self):
-        """Open the DB. This uses an implicit open transaction."""
-        if self.bdb:
-            raise Exception, "DB already open"
-
-        # Create the DB handle and set flags
-        self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
-
-        # Set DB flags, e.g. duplicate keys allowed
-        for flag in self.DBSETFLAGS:
-            self.bdb.set_flags(flag)
-
-        # Open the DB with the correct flags.
-        emen2.db.log.debug("BDB: %s open"%self.filename)
-        fn = '%s.%s'%(self.filename, self.extension)
-        self.bdb.open(filename=fn, dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
-
-    def close(self):
-        """Close the DB."""
-        emen2.db.log.debug("BDB: %s close"%self.filename)
-        self.bdb.close()
-        self.bdb = None
-
-    # Dangerous!
-    def truncate(self, txn=None):
-        """Truncate BDB (e.g. 'drop table'). Transaction required.
-        :keyword txn: Transaction
-        """
-        # todo: Do more checking before performing a dangerous operation.
-        emen2.db.log.debug("BDB: %s truncate"%self.filename)
-        self.bdb.truncate(txn=txn)
-    
     ##### load/dump methods for keys and data #####
-
-    # DO NOT TOUCH THIS!!!!
-    def _cfunc_numeric(self, k1, k2):
-        # Numeric comparison function, for key sorting.
-        if not k1:
-            k1 = 0
-        else:
-            k1 = self.keyload(k1)
-
-        if not k2:
-            k2 = 0
-        else:
-            k2 = self.keyload(k2)
-        return cmp(k1, k2)
 
     def _setkeyformat(self, keyformat):
         # Set the DB key type. This will bind the correct
@@ -423,219 +374,45 @@ class BaseDB(object):
             raise Exception, "Invalid data format: %s. Supported: str, int, float, pickle"%dataformat
         self.dataformat = dataformat
 
-class IndexDB(BaseDB):
-    '''EMEN2DB optimized for indexes.
-
-    Security is not checked here, so do not expose indexes directly to 
-    untrusted clients. A user could query values they could not otherwise
-    access.
-
-    IndexDB uses the Berkeley DB mechanism for storing multiple values for a
-    single key (DB_DUPSORT). The Berkeley DB API has a method for
-    quickly reading these multiple values.
-
-    This class is intended for use with an OPTIONAL C module, _bulk.so, that
-    accelerates reading from the index. The Berkeley DB bulk reading mode
-    is not fully implemented in the bsddb3 package; the C module does the bulk
-    reading in a single function call, greatly speeding up performance, and
-    returns the correct native Python type. The C module is totally optional
-    and is transparent; the only change is read speed.
-
-    Index references are added using addrefs() and removerefs(). These both
-    take a single key, and a list of references to add or remove.
-
-    Extends or overrides the following methods:
-        init        Checks bulk mode
-        get         Returns all values found.
-        keys        Index keys
-        items       Index items; (key, [value1, value2, ...])
-        iteritems   Index iteritems
-
-    Adds the following indexing methods:
-        addrefs        Add (key, [values]) references to the index
-        removerefs    Remove (key, [values]) references from the index
-    '''
-
     def init(self):
-        """Open DB with support for duplicate keys."""
-        self.DBSETFLAGS = [bsddb3.db.DB_DUPSORT]
-        self._setbulkmode(True)
-        super(IndexDB, self).init()
+        """Subclass init hook."""
+        pass
 
-    def _setbulkmode(self, bulkmode):
-        # Use acceleration C module if available
-        self._get_method = self._get_method_nonbulk
-        if bulk:
-            if bulkmode:
-                self._get_method = emen2.db.bulk.get_dup_bulk
-            else:
-                self._get_method = emen2.db.bulk.get_dup_notbulk
+    ##### DB methods #####
 
-    def _get_method_nonbulk(self, cursor, key, dt):
-        # Get without C module. Uses an already open cursor.
-        n = cursor.set(key)
-        r = set() #[]
-        m = cursor.next_dup
-        while n:
-            r.add(n[1])
-            n = m()
-        return set(self.dataload(x) for x in r)
+    def open(self):
+        """Open the DB. This uses an implicit open transaction."""
+        if self.bdb:
+            raise Exception, "DB already open"
 
-    # Default get method used by get()
-    _get_method = _get_method_nonbulk
+        emen2.db.log.debug("BDB: %s open"%self.filename)
+        fn = '%s.%s'%(self.filename, self.extension)
+        flags = 0
+        flags |= bsddb3.db.DB_AUTO_COMMIT 
+        flags |= bsddb3.db.DB_CREATE 
+        flags |= bsddb3.db.DB_THREAD
+        flags |= bsddb3.db.DB_MULTIVERSION
+        self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
+        self.bdb.open(filename=fn, dbtype=bsddb3.db.DB_BTREE, flags=flags)
 
-    def get(self, key, default=None, cursor=None, txn=None):
-        """Return all the values for this key.
+    def close(self):
+        """Close the DB."""
+        emen2.db.log.debug("BDB: %s close"%self.filename)
+        self.bdb.close()
+        self.bdb = None
+        for v in self.indexes.values():
+            v.close()
 
-        Can be passed an already open cursor, or open one if necessary.
-        Requires a transaction. The real get method is _get_method, which
-        is set during init based on availability of the C module.
-
-        :param key: Key
-        :keyword default: Default value if key not found
-        :keyword cursor: Use this cursor
-        :keyword txn: Transaction
-        :return: Values for key
-        """
-        emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
-        if cursor:
-            r = self._get_method(cursor, self.keydump(key), self.dataformat)
-        else:
-            cursor = self.bdb.cursor(txn=txn)
-            r = self._get_method(cursor, self.keydump(key), self.dataformat)
-            cursor.close()
-        if bulk and self.dataformat == 'pickle':
-            r = set(self.dataload(x) for x in r)
-        return r
-
-    # ian: todo: allow min/max
-    def keys(self, minkey=None, maxkey=None, txn=None):
-        """Keys. Transaction required.
-
+    # Dangerous!
+    def truncate(self, txn=None):
+        """Truncate BDB (e.g. 'drop table'). Transaction required.
         :keyword txn: Transaction
         """
-        keys = set(map(self.keyload, self.bdb.keys(txn)))
-        return list(keys)
-
-    # ian: todo: allow min/max
-    def items(self, minkey=None, maxkey=None, txn=None):
-        """Accelerated items. Transaction required.
-
-        :keyword txn: Transaction
-        """
-        ret = []
-        cursor = self.bdb.cursor(txn=txn)
-        pair = cursor.first()
-        while pair != None:
-            data = self._get_method(cursor, pair[0], self.dataformat)
-            if bulk and self.dataformat == "pickle":
-                data = set(map(self.dataload, data))
-            ret.append((self.keyload(pair[0]), data))
-            pair = cursor.next_nodup()
-        cursor.close()
-        return ret
-
-    def iteritems(self, minkey=None, maxkey=None, txn=None):
-        """Iteritems. Transaction required.
-
-        :keyword minkey: Minimum key
-        :keyword maxkey: Maximum key
-        :keyword txn: Transaction
-        :yield: (key, value)
-        """
-        ret = []
-        cursor = self.bdb.cursor(txn=txn)
-        pair = cursor.first()
-
-        # Start a minimum key.
-        # This only works well if the keys are sorted properly.
-        if minkey is not None:
-            pair = cursor.set_range(self.keydump(minkey))
-        while pair != None:
-            data = self._get_method(cursor, pair[0], self.dataformat)
-            k = self.keyload(pair[0])
-            if bulk and self.dataformat == "pickle":
-                data = set(map(self.dataload, data))
-            yield (k, data)
-            pair = cursor.next_nodup()
-            if maxkey is not None and k > maxkey:
-                pair = None
-        cursor.close()
-
-    ##### Write Methods #####
-
-    def removerefs(self, key, items, txn=None):
-        '''Remove references.
-
-        :param key: Key
-        :param items: References to remove
-        :keyword txn: Transaction
-        :return: Keys that no longer have any references
-        '''
-        if not items: return []
-        emen2.db.log.debug("BDB: %s removerefs: %s -> %s"%(self.filename, key, items))
-        delindexitems = []
-
-        try:
-            key = self.keyclass(key)
-            dkey = self.keydump(key)
-            ditems = [self.datadump(self.dataclass(i)) for i in items]
-        except:
-            emen2.db.log.debug("BDB: Could not reindex due to encoding errors!!")
-            return []
-
-        cursor = self.bdb.cursor(txn=txn)
-        
-        for ditem in ditems:
-            if cursor.set_both(dkey, ditem):
-                cursor.delete()
-
-        if not cursor.set(dkey):
-            delindexitems.append(key)
-
-        cursor.close()
-        return delindexitems
-
-    def addrefs(self, key, items, txn=None):
-        """Add references.
-
-        A list of keys that are new to this index are returned. This can be
-        used to maintain other indexes.
-
-        :param key: Key
-        :param items: References to add
-        :keyword txn: Transaction
-        :return: Keys that are new to this index
-
-        """
-        if not items:
-            return []
-        emen2.db.log.debug("BDB: %s addrefs: %s -> %s"%(self.filename, key, items))
-        addindexitems = []
-
-        try:
-            key = self.keyclass(key)
-            dkey = self.keydump(key)
-            ditems = [self.datadump(self.dataclass(i)) for i in items]
-        except:
-            emen2.db.log.debug("BDB: Could not reindex due to encoding errors!!")
-            return []
-        
-        cursor = self.bdb.cursor(txn=txn)
-
-        if not cursor.set(dkey):
-            addindexitems.append(key)
-
-        for ditem in ditems:
-            try:
-                cursor.put(dkey, ditem, flags=bsddb3.db.DB_KEYFIRST)
-            except bsddb3.db.DBKeyExistError, e:
-                pass
-
-        cursor.close()
-
-        return addindexitems
-
+        return
+        # todo: Do more checking before performing a dangerous operation.
+        emen2.db.log.debug("BDB: %s truncate"%self.filename)
+        self.bdb.truncate(txn=txn)
+    
 # Context-aware DB for Database Objects.
 # These support a single DB and a single data class.
 # Supports sequenced items.
@@ -686,7 +463,6 @@ class CollectionDB(BaseDB):
     Index methods:
         getindex         Open an index
         _reindex         Calculate index updates
-        _reindex_*       Write index updates
     
     Relationship methods:
         parents          Returns parents
@@ -702,18 +478,7 @@ class CollectionDB(BaseDB):
         # Change the filename slightly
         dataclass = kwargs.get('dataclass')
         dbenv = kwargs.get('dbenv')
-        self.keytype = (kwargs.pop('keytype', None) or dataclass.__name__).lower()
-        
-        # Sequences
-        self.sequencedb = None
-        
-        # Relationships
-        self.rels = {}
-        
-        # Indexes
-        self.indexes = {}
-        self._truncate_index = False
-
+        self.keytype = (kwargs.pop('keytype', None) or dataclass.__name__).lower()        
         filename = os.path.join(self.keytype, self.keytype)
         d1 = os.path.join(dbenv.path, 'data', self.keytype)
         d2 = os.path.join(dbenv.path, 'data', self.keytype, 'index')
@@ -722,23 +487,7 @@ class CollectionDB(BaseDB):
             except: pass  
         return super(CollectionDB, self).__init__(filename, *args, **kwargs)
 
-    def open(self):
-        """Open DB, and sequence."""
-        super(CollectionDB, self).open()
-        self.sequencedb = bsddb3.db.DB(self.dbenv.dbenv)
-        self.sequencedb.open(os.path.join('%s.sequence.bdb'%self.filename), dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
-
-    def close(self):
-        """Close DB, sequence, and indexes."""
-        super(CollectionDB, self).close()
-        self.sequencedb.close()
-        self.sequencedb = None
-        for k,v in self.indexes.items():
-            if v:
-                ind.close()
-        self.indexes = {}
-
-    ##### New items.. #####
+    ##### New items... #####
 
     def new(self, **kwargs):
         """Returns new DBO. Requires ctx and txn.
@@ -748,7 +497,6 @@ class CollectionDB(BaseDB):
         :keyword txn: Transaction
         :return: New DBO
         :exception ExistingKeyError:
-        
         """
         # Clean up kwargs.
         txn = kwargs.pop('txn', None)
@@ -766,22 +514,20 @@ class CollectionDB(BaseDB):
             item['parents'].append(i.name)
 
         # Acquire a write lock on this name.
-        if self.exists(item.name, txn=txn, flags=bsddb3.db.DB_RMW):
+        if self.exists(item.name, txn=txn):
             raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%item.name
-
         return item
 
     ##### Exists #####
     
     def exists(self, key, ctx=None, txn=None, flags=0):
         """Check if a key exists."""
-        # Names that are None or a negative int will be automatically assigned.
-        # In this case, return immediately and don't acquire any locks.
         # Note: this method does not check permissions; you could use it to check
         #     if a key exists or not, even if you can't read the value.
         emen2.db.log.debug("BDB: %s exists: %s"%(self.filename, key))
-        if key < 0 or key is None:
+        if key is None or key < 0:
             return False
+        flags = bsddb3.db.DB_RMW
         return self.bdb.exists(self.keydump(key), txn=txn, flags=flags)
         
     ##### Keys, values, items #####
@@ -793,7 +539,6 @@ class CollectionDB(BaseDB):
         :keyword ctx: Context
         :keyword txn: Transaction
         :return: Set of keys that are accessible by the Context
-
         """
         if names is not None:
             if ctx.checkreadadmin():
@@ -803,11 +548,11 @@ class CollectionDB(BaseDB):
         return set(self.keys(txn=txn))
     
     def keys(self, ctx=None, txn=None):
-        # emen2.db.log.info("BDB: %s keys: Deprecated method!"%self.filename)
+        emen2.db.log.info("BDB: %s keys: Deprecated method!"%self.filename)
         return map(self.keyload, self.bdb.keys(txn))
     
     def items(self, ctx=None, txn=None):
-        # emen2.db.log.info("BDB: %s items: Deprecated method!"%self.filename)
+        emen2.db.log.info("BDB: %s items: Deprecated method!"%self.filename)
         ret = []
         for k,v in self.bdb.items(txn):
             i = self.dataload(v)
@@ -840,7 +585,6 @@ class CollectionDB(BaseDB):
         :return: DBOs with bound Context
         :exception KeyError:
         :exception PermissionsError:
-
         """
         if filt == True:
             filt = (emen2.db.exceptions.PermissionsError, KeyError)
@@ -857,8 +601,7 @@ class CollectionDB(BaseDB):
         
     def _get_data(self, key, txn=None):
         emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
-        kd = self.keydump(key)
-        d = self.dataload(self.bdb.get(kd, txn=txn))
+        d = self.dataload(self.bdb.get(self.keydump(key), txn=txn))
         if d:
             return d
         raise KeyError, "No such key %s"%(key)    
@@ -886,7 +629,6 @@ class CollectionDB(BaseDB):
         :exception KeyError:
         :exception PermissionsError:
         :exception ValidationError:
-
         """
         # Updated items
         crecs = []
@@ -894,7 +636,7 @@ class CollectionDB(BaseDB):
             name = updrec.get('name')
             
             # Get the existing item or create a new one.
-            if self.exists(name, txn=txn, flags=bsddb3.db.DB_RMW):
+            if self.exists(name, txn=txn):
                 # Get the existing item.
                 orec = self._get_data(name, txn=txn)
                 # May raise a PermissionsError if you can't read it.
@@ -931,13 +673,11 @@ class CollectionDB(BaseDB):
         for item in items:
             self._put_data(item.name, item, txn=txn)
 
-        # Write index updates
-        self._reindex_write(ind, ctx=ctx, txn=txn)
         emen2.db.log.debug("BDB: Committed %s items"%(len(items)))
         return items
 
     def _put_data(self, name, item, txn=None):
-        emen2.db.log.debug("BDB: %s put: %s --> %s"%(self.filename, name, item.data))
+        emen2.db.log.debug("BDB: %s put: %s -> %s"%(self.filename, name, item.data))
         self.bdb.put(self.keydump(name), self.datadump(item), txn=txn)
     
     def delete(self, name, ctx=None, txn=None):
@@ -954,166 +694,45 @@ class CollectionDB(BaseDB):
     ##### Changes to indexes #####
     
     def _reindex(self, items, reindex=False, txn=None):
-        """Update indexes.
-
-        The original items will be retrieved and compared to the updated
-        items. A set of index changes will be calculated, and then handed off
-        to the _reindex_* methods. In some cases, these will be overridden
-        or extended to handle special indexes -- such as parent/child
-        relationships in RelateDB.
-        
-        :param items: Updated DBOs
-        :keyword reindex:
-        :keyword ctx: Context
-        :keyword txn: Transaction
-
-        """
         # Updated indexes
-        ind = collections.defaultdict(list)
-
-        # Get changes as param:([name, newvalue, oldvalue], ...)
+        keys = set()
         for item in items:
-            # Get the current record for comparison of updated values.
-            # Use an empty dict for new records so all keys
-            # will seen as new (or if reindexing)
-            if item.isnew() or reindex:
-                orec = {}
-            else:
-                orec = self._get_data(item.name, txn=txn) or {}
-
-            for param in item.changed(orec):
-                ind[param].append((item.name, item.get(param), orec.get(param)))
-
-        # Return the index changes.
-        return ind
-
-    # .... the actual items need to be written ^^^ between these two vvv steps for relationships to be updated ....
-
-    def _reindex_write(self, ind, ctx=None, txn=None):
-        """(Internal) Write index updates."""
-        # Parent/child relationships are a special case.
-        # The other side of the relationship needs to be updated. 
-        # Calculate the correct changes here, but do not
-        # update the indexes yet. 
-        # Update the parent child relationships.
-        
-        parents = ind.pop('parents', None)
-        children = ind.pop('children', None)
-        self._reindex_relink(parents, children, txn=txn)
-
-        # Now, Update indexes.
-        for k,v in ind.items():
-            self._reindex_param(k, v, ctx=ctx, txn=txn)
-
-    def _reindex_param(self, param, changes, ctx=None, txn=None):
-        """(Internal) Reindex changes to a single parameter."""
-        # If nothing changed, skip.
-        if not changes:
-            return
-
-        # If we can't access the index, skip. (Raise Exception?)
-        ind = self.getindex(param, txn=txn)
-        # indkeywords = self.getindex('keywords', txn=txn)
-        if ind == None:
-            return
-
-        # Check the cache for the param
-        hit, pd = ctx.cache.check(('paramdef', param))
-        if not hit:
-            pd = self.dbenv['paramdef']._get_data(param, txn=txn)
-            ctx.cache.store(('paramdef', param), pd)
-        vt = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=ctx.db, cache=ctx.cache)
-
-        # Process the changes into index addrefs / removerefs
-        try:
-            addrefs, removerefs = vt.reindex(changes)
-            # addkeywords, removekeywords = vt.reindex_keywords(changes)
-        except Exception, e:
-           print "Could not reindex param %s: %s"%(pd.name, e)
-           return
-
-        # Write!
-        for oldval, recs in removerefs.items():
-            ind.removerefs(oldval, recs, txn=txn)
-        for newval,recs in addrefs.items():
-            ind.addrefs(newval, recs, txn=txn)
-        # for oldval, recs in removekeywords.items():
-        #     indkeywords.removerefs(oldval, recs, txn=txn)
-        # for newval,recs in addkeywords.items():
-        #     indkeywords.addrefs(newval, recs, txn=txn)
+            keys |= set(item.data.keys())
+        for key in keys:
+            self.getindex(key, txn=txn)
 
     ##### Manage indexes. #####
 
+    def find(self, param, term, op='==', count=100, ctx=None, txn=None):
+        index = self.getindex(param, txn=txn)
+        if not index:
+            return set()
+        return set()
+
     def getindex(self, param, txn=None):
-        """Open a parameter index. Requires txn.
-
-        A successfully opened IndexDB will be cached in self.indexes[param] and
-        reused on subsequent calls.
-
-        If an index for a parameter isn't returned by this method, the reindex
-        method will just skip it.
-
-        :param param: Parameter
-        :param txn: Transaction
-        :return: IndexDB
-
-        """
         if param in self.indexes:
             return self.indexes.get(param)
 
-        # Check the paramdef to see if it's indexed.
-        try:
-            pd = self.dbenv["paramdef"]._get_data(param, txn=txn)
-        except KeyError:
-            self.indexes[param] = None
-            return None
-        
-        # Check the key format.
-        vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd)
-        tp = vartype.keyformat
-        if not pd.indexed or not tp:
-            self.indexes[param] = None
-            return None
-            
-        # Open the index
-        indname = os.path.join(self.keytype, 'index', param)
-        ind = emen2.db.btrees.IndexDB(filename=indname, extension='index', keyformat=tp, dataformat=self.keyformat, dbenv=self.dbenv)
+        fn = '%s.%s.index'%(self.filename, param)
+        print "OPENING INDEX:", param, fn
 
-        # Cache the open index.
-        self.indexes[param] = ind
+        flags = 0
+        flags |= bsddb3.db.DB_AUTO_COMMIT 
+        flags |= bsddb3.db.DB_CREATE 
+        flags |= bsddb3.db.DB_THREAD
+        flags |= bsddb3.db.DB_MULTIVERSION
+        indexfunc = functools.partial(indexkey, param=param)
         
-        # Careful; truncate all indexes if this is set. Used for rebuilding all indexes.
-        if self._truncate_index and ind:
-           ind.truncate(txn=txn) 
-
-        return ind
+        index = bsddb3.db.DB(self.dbenv.dbenv)
+        index.set_flags(bsddb3.db.DB_DUP)
+        index.set_flags(bsddb3.db.DB_DUPSORT)
+        index.open(filename=fn, dbtype=bsddb3.db.DB_BTREE, flags=flags)
+        self.bdb.associate(index, indexfunc)
+        self.indexes[param] = index
+        return index
 
     def rebuild_indexes(self, ctx=None, txn=None):
-        # Use our own txn
-        txn2 = self.dbenv.newtxn(write=True)
-
-        emen2.db.log.info("BDB: Rebuilding indexes: Start")
-        # ugly hack..
-        self._truncate_index = True
-        for k in self.indexes.keys():
-            if self.indexes[k]:
-                self.indexes[k].close()
-            del self.indexes[k]
-
-        keys = sorted(map(self.keyload, self.bdb.keys(txn2)), reverse=True)
-        self.dbenv.txncommit(txn2)
-
-        for chunk in emen2.utils.chunk(keys, 1000):
-            txn3 = self.dbenv.newtxn(write=True)
-            if chunk:
-                emen2.db.log.info("BDB: Rebuilding indexes: %s ... %s"%(chunk[0], chunk[-1]))
-            items = [self._get_data(i, txn=txn3) for i in chunk]
-            ind = self._reindex(items, reindex=True, txn=txn3)
-            self._reindex_write(ind, ctx=ctx, txn=txn3)
-            self.dbenv.txncommit(txn3)
-
-        self._truncate_index = False
-        emen2.db.log.info("BDB: Rebuilding indexes: Done")
+        return
 
     ##### Sequences #####
 
@@ -1134,7 +753,7 @@ class CollectionDB(BaseDB):
                 except:
                     raise Exception, "Invalid name: %s"%newname
                 # Check the name is still available, and acquire lock.
-                if self.exists(newname, txn=txn, flags=bsddb3.db.DB_RMW):
+                if self.exists(newname, txn=txn):
                     raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%newname
                 # Update the item's name.
                 item.data['name'] = newname
@@ -1149,32 +768,6 @@ class CollectionDB(BaseDB):
     def _key_generator(self, item, txn=None):
         # Set name policy in this method.
         return unicode(item.name or emen2.db.database.getnewid())
-
-    def _incr_sequence(self, key='sequence', txn=None):
-        # Update a sequence key. Requires txn.
-        # The Sequence DB can handle multiple keys -- e.g., for
-        # binaries, each day has its own sequence key.
-        delta = 1
-        
-        val = self.sequencedb.get(key, txn=txn, flags=bsddb3.db.DB_RMW)
-        if val == None:
-            val = 0
-        val = int(val)
-        
-        self.sequencedb.put(key, str(val+delta), txn=txn)
-        emen2.db.log.debug("BDB: %s sequence: %s -> %s"%(self.filename, val, val+delta))
-        return val
-
-    def _get_max(self, key="sequence", txn=None):
-        """Return the current maximum item in the sequence. Requires txn.
-
-        :keyword txn: Transaction
-        """
-        sequence = self.sequencedb.get(key, txn=txn)
-        if sequence == None:
-            sequence = 0
-        val = int(sequence)
-        return val
 
     ##### Relationship methods #####
 
@@ -1216,7 +809,6 @@ class CollectionDB(BaseDB):
         This will return a dict of parents to the specified recursion depth.
 
         :return: Dict with names as keys, and their parents as values
-
         """
         return self.rel(names, recurse=recurse, rel='parents', ctx=ctx, txn=txn)
 
@@ -1226,7 +818,6 @@ class CollectionDB(BaseDB):
         This will return a dict of children to the specified recursion depth.
 
         :return: Dict with names as keys, and their children as values
-
         """
         return self.rel(names, recurse=recurse, rel='children', ctx=ctx, txn=txn)
 
@@ -1238,7 +829,6 @@ class CollectionDB(BaseDB):
         :keyword ctx: Context
         :keyword txn: Transaction
         :return: Set of siblings
-
         """
         parents = self.rel([name], rel='parents', ctx=ctx, txn=txn)
         allparents = set()
@@ -1295,7 +885,6 @@ class CollectionDB(BaseDB):
         :keyword ctx: Context
         :keyword txn: Transaction
         :return: Return an adjacency list if tree=True, otherwise a set
-
         """
         result = {}
         visited = {}
@@ -1338,7 +927,6 @@ class CollectionDB(BaseDB):
         :param child: Child
         :keyword ctx: Context
         :keyword txn: Transaction
-
         """
         self._putrel(parent, child, mode='addrefs', ctx=ctx, txn=txn)
 
@@ -1354,7 +942,6 @@ class CollectionDB(BaseDB):
         :param child: Child
         :keyword ctx: Context
         :keyword txn: Transaction
-
         """
         self._putrel(parent, child, mode='removerefs', ctx=ctx, txn=txn)
 
@@ -1379,130 +966,11 @@ class CollectionDB(BaseDB):
             children -= remove[item.name]
             children |= add[item.name]
             item.children = sorted(children)
-
         return self.puts(items, ctx=ctx, txn=txn)
 
     def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
-        # (Internal) Add or remove a relationship.
-        # Mode is addrefs or removerefs; it maps to the IndexDB method.
-
-        # Check that we have enough permissions to write to one item
-        # Use raw get; manually setContext. Allow KeyErrors to raise.
-        p = self._get_data(parent, txn=txn) # , flags=bsddb3.db.DB_RMW
-        c = self._get_data(child, txn=txn) # , flags=bsddb3.db.DB_RMW
-        perm = []
-
-        # Both items must exist, and we need to be able to write to one
-        try:
-            p.setContext(ctx)
-            perm.append(p.writable())
-        except emen2.db.exceptions.PermissionsError:
-            pass
-
-        try:
-            c.setContext(ctx)
-            perm.append(c.writable())
-        except emen2.db.exceptions.PermissionsError:
-            pass
-
-        if not any(perm):
-            raise emen2.db.exceptions.PermissionsError("Insufficient permissions to add/remove relationship")
-
-        # Transform into the right format for _reindex_relink..
-        children = set(p.children)
-        newvalue = set() | children # copy
-        if mode == 'addrefs':
-            newvalue |= set([c.name])
-        elif mode == 'removerefs':
-            newvalue -= set([c.name])
-
-        # The values will actually be set on the records
-        #  during the relinking method..
-        self._reindex_relink([], [[p.name, newvalue, children]], txn=txn)
-
-    # Handle the reindexing...
-    def _reindex_relink(self, parents, children, txn=None):
-        # (Internal) Relink relationships
-        # This method will grab both items, and add or remove the rels from
-        # each item, and then update the parents/children IndexDBs.
-        indc = self.getindex('children', txn=txn)
-        indp = self.getindex('parents', txn=txn)
-        if not indc or not indp:
-            emen2.db.log.debug("BDB: No index for parents or children!")
-            return
-
-        # The names of new items.
-        names = []
-
-        # Process change sets into new and removed links
-        add = []
-        remove = []
-        for name, new, old in (parents or []):
-            old = set(old or [])
-            new = set(new or [])
-            for i in new - old:
-                add.append((i, name))
-            for i in old - new:
-                remove.append((i, name))
-            names.append(name)
-
-        for name, new, old in (children or []):
-            old = set(old or [])
-            new = set(new or [])
-            for i in new - old:
-                add.append((name, i))
-            for i in old - new:
-                remove.append((name, i))
-            names.append(name)
-
-        p_add = collections.defaultdict(set)
-        p_remove = collections.defaultdict(set)
-        c_add = collections.defaultdict(set)
-        c_remove = collections.defaultdict(set)
-
-        for p,c in add:
-            p_add[c].add(p)
-            c_add[p].add(c)
-        for p,c in remove:
-            p_remove[c].add(p)
-            c_remove[p].add(c)
-
-        # Go and fetch other items that we need to update
-        names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
-        # print "All affected items:", names
-        # Get and modify the item directly w/o Context:
-        # Linking only requires write permissions
-        # on ONE of the items.
-        for name in names:
-            try:
-                rec = self._get_data(name, txn=txn)
-            except:
-                continue
-            parents = set(rec.data['parents'])
-            parents -= p_remove[rec.name]
-            parents |= p_add[rec.name]
-            rec.data['parents'] = sorted(parents)
-            
-            children = set(rec.data['children'])
-            children -= c_remove[rec.name]
-            children |= c_add[rec.name]
-            rec.data['children'] = sorted(children)
-            
-            self._put_data(rec.name, rec, txn=txn)
-        for k,v in p_remove.items():
-            if v:
-                indp.removerefs(k, v, txn=txn)
-        for k,v in p_add.items():
-            if v:
-                indp.addrefs(k, v, txn=txn)
-        for k,v in c_remove.items():
-            if v:
-                indc.removerefs(k, v, txn=txn)
-        for k,v in c_add.items():
-            if v:
-                indc.addrefs(k, v, txn=txn)
         return
-
+ 
     ##### Search relationship indexes (e.g. parents/children) #####
 
     def _bfs(self, key, rel='children', recurse=1, ctx=None, txn=None):
@@ -1521,7 +989,7 @@ class CollectionDB(BaseDB):
             emen2.db.log.debug("BDB: No index for parents or children!")
             return {}, set()
             
-        cursor = rel.bdb.cursor(txn=txn)
+        cursor = rel.cursor(txn=txn)
 
         # Starting items
         new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) #
@@ -1566,13 +1034,10 @@ class RecordDB(CollectionDB):
                     m = self._get_max(txn=txn)
                     return set(map(unicode, range(0, m)))
                 return set(self.keys(txn=txn))  
-            ind = self.getindex("permissions", txn=txn)
-            indc = self.getindex('creator', txn=txn)
-            indg = self.getindex("groups", txn=txn)
-            ret = ind.get(ctx.username, set(), txn=txn)
-            ret |= indc.get(ctx.username, set(), txn=txn)
+            ret = self.find('permissions', ctx.username, txn=txn)
+            ret |= self.find('creator', ctx.username, txn=txn) 
             for group in sorted(ctx.groups, reverse=True):
-                ret |= indg.get(group, set(), txn=txn)
+                ret |= self.find('groups', group, txn=txn)
             return ret            
 
         names = set(names)
@@ -1589,15 +1054,11 @@ class RecordDB(CollectionDB):
         find = copy.copy(names)
 
         # Use the permissions/groups index
-        ind = self.getindex('permissions', txn=txn)
-        indc = self.getindex('creator', txn=txn)
-        indg = self.getindex('groups', txn=txn)
-
-        find -= ind.get(ctx.username, set(), txn=txn)
-        find -= indc.get(ctx.username, set(), txn=txn)
+        find -= self.find('permissions', ctx.username, txn=txn)
+        find -= self.find('creator', ctx.username, txn=txn) 
         for group in sorted(ctx.groups):
             if find:
-                find -= indg.get(group, set(), txn=txn)
+                find -= self.find('groups', group, txn=txn)
 
         return names - find
 
@@ -1609,8 +1070,7 @@ class UserDB(CollectionDB):
         user = super(UserDB, self).new(*args, **kwargs)
 
         # Check  if this email already exists
-        indemail = self.getindex('email', txn=txn)
-        if indemail.get(user.email, txn=txn):
+        if self.find('email', user.email, txn=txn):
             raise emen2.db.exceptions.ExistingKeyError
 
         return user
@@ -1632,15 +1092,11 @@ class NewUserDB(CollectionDB):
         newuser = super(NewUserDB, self).new(*args, **kwargs)
 
         # Check  if this email already exists
-        indemail = self.getindex('email', txn=txn)
-        if not indemail:
-            raise Exception, "No email index!"
-        if indemail.get(newuser.email, txn=txn):
+        if self.find('email', newuser.email, txn=txn):
             raise emen2.db.exceptions.ExistingKeyError
 
         # Check if this email already exists
-        indemail = self.dbenv["user"].getindex('email', txn=txn)
-        if self.dbenv["user"].exists(newuser.name, txn=txn) or indemail.get(newuser.email, txn=txn):
+        if self.dbenv["user"].exists(newuser.name, txn=txn) or self.dbenv['user'].find('email', newuser.email, txn=txn):
             raise emen2.db.exceptions.ExistingKeyError
 
         return newuser

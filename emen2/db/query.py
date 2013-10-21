@@ -70,7 +70,7 @@ class Constraint(object):
     def __init__(self, param, op=None, term=None):
         # The constraint
         self.param = param
-        self.op = op or 'contains'
+        self.op = op or '=='
         self.term = term or ''
 
         # Parent query group
@@ -97,10 +97,6 @@ class Constraint(object):
         if self.op == 'noop':
             # If op is 'noop', return None (no constraint)
             return None
-        # This is too expensive.
-        # elif self.op == 'none':
-        #     names = self.p.btree.filter(None, ctx=self.p.ctx, txn=self.p.txn)
-        #     f = names - (f or set())
         return f
 
     def _run(self):
@@ -115,7 +111,7 @@ class IndexedConstraint(Constraint):
         try:
             self.paramdef = self.p.btree.dbenv['paramdef'].get(self.param, filt=False, ctx=self.p.ctx, txn=self.p.txn)            
             self.index = self.p.btree.getindex(self.param, txn=self.p.txn)
-            nkeys = self.index.bdb.stat(txn=self.p.txn)['ndata'] or 1 # avoid div by zero
+            nkeys = 1 # self.index.bdb.stat(txn=self.p.txn)['ndata'] or 1 # avoid div by zero
             self.priority = 1.0 - (1.0/nkeys)
         except Exception, e:
             # print "Error opening %s index:"%self.param, e
@@ -145,7 +141,8 @@ class ParamConstraint(IndexedConstraint):
     def _run_index(self):
         f = []
         # Convert the term to the right type
-        term = keyformatconvert(self.index.keyformat, self.term)
+        keyformat = 's' # self.index.keyformat
+        term = keyformatconvert(keyformat, self.term)
         
         # If we're just looking for a single value
         if self.op == '==':

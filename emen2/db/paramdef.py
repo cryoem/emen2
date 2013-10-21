@@ -101,6 +101,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         'defaultunits', 'property', 'indexed'])
 
     def init(self, d):
+        super(ParamDef, self).init(d)        
         # Data type. 
         self.data['vartype'] = None
 

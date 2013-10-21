@@ -100,10 +100,10 @@ def getrandomid():
     return os.urandom(length).encode('hex')
 
 def getnewid():
-    """Generate an ID (UUID1 string)
-    :return: UUID1 string
+    """Generate an ID (UUID4 string)
+    :return: UUID4 string
     """
-    return uuid.uuid1().hex
+    return uuid.uuid4().hex
 
 def getctime():
     """Current database time, as float in seconds since the UNIX epoch.
@@ -358,10 +358,7 @@ class DB(object):
         # Fetch group memberships.
         grouplevels = {}
         if context.username != 'anonymous':
-            indg = self.dbenv["group"].getindex('permissions', txn=txn)
-            if not indg:
-                raise Exception, "Could not access group index!"
-            groups = indg.get(context.username, set(), txn=txn)
+            groups = self.dbenv['group'].find('permissions', context.username, txn=txn)
             grouplevels = {}
             for group in groups:
                 group = self.dbenv["group"]._get_data(group, txn=txn)
@@ -412,7 +409,7 @@ class DB(object):
         :return: User (no bound Context)
         """
         name = unicode(name or '').strip().lower()
-        found = self.dbenv["user"].getindex('email', txn=txn).get(name, txn=txn)
+        found = self.dbenv['user'].find('email', name, txn=txn)
         if found:
             name = found.pop()
         return self.dbenv["user"]._get_data(name, txn=txn)
@@ -421,25 +418,25 @@ class DB(object):
         query = filter(None, [i.strip() for i in unicode(query or '').split()])
         defaultparams = defaultparams or []
         found = None
+        op = "is"
 
         cs = []
         for param,term in kwargs.items():
-            cs.append([[param, 'contains', term]])
+            cs.append([[param, op, term]])
         for term in query:
             c = []
             for param in defaultparams:
-                c.append([param, 'contains', term])
+                c.append([param, op, term])
             cs.append(c)
 
-        for subquery in cs:
-            q = self.dbenv[keytype].query(c=subquery, mode='OR', ctx=ctx, txn=txn)
-            q.run()
-            if not q.result:
-                return []
+        for c in cs:
+            r = set()
+            for param, op, term in c:
+                r |= self.dbenv[keytype].find(param, term, op=op, txn=txn)
             if found is None:
-                found = q.result
+                found = r
             else:
-                found &= q.result
+                found &= r
 
         return self.dbenv[keytype].gets(found or [], ctx=ctx, txn=txn)
 
@@ -1728,8 +1725,7 @@ class DB(object):
         # 4. Email address is updated and reindexed
         
         # Check that no other user is currently using this email.
-        ind = self.dbenv["user"].getindex('email', txn=txn)
-        if ind.get(email, txn=txn):
+        if self.dbenv['user'].find('email', email, txn=txn):
             time.sleep(2)
             raise ExistingKeyError("The email address %s is already in use"%(email))
 
@@ -2612,10 +2608,9 @@ class DB(object):
         :exception PermissionsError: Unable to access RecordDef
         """
         rds = self.dbenv['recorddef'].expand(names, ctx=ctx, txn=txn)
-        ind = self.dbenv["record"].getindex('rectype', txn=txn)
         ret = set()
         for i in rds:
-            ret |= ind.get(i, txn=txn)
+            ret |= self.dbenv['record'].find('rectype', rds, txn=txn)
         return ret
 
     @publicmethod(compat="findvalue")
@@ -2709,12 +2704,9 @@ class DB(object):
             # Get the records directly
             recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
         elif rectypes:
-            ind = self.dbenv['record'].getindex('rectype', txn=txn)
             for i in rectypes:
-                ret[i] = ind.get(i, txn=txn) & names
+                ret[i] = self.dbenv['record'].find('rectype', i, txn=txn) & names
         else:
-            # Use the index for larger sets
-            ind = self.dbenv["record"].getindex('rectype', txn=txn)
             # Filter permissions
             names = self.dbenv["record"].filter(recnames, ctx=ctx, txn=txn)
             while names:
@@ -2722,7 +2714,7 @@ class DB(object):
                 rid = names.pop()
                 rec = self.dbenv["record"]._get_data(rid, txn=txn)
                 # get the set of all records with this recorddef
-                ret[rec.rectype] = ind.get(rec.rectype, txn=txn) & names
+                ret[rec.rectype] = self.dbenv['record'].find('rectype', rec.rectype, txn=txn) & names
                 # remove the results from our list since we have now classified them
                 names -= ret[rec.rectype]
                 # add back the initial record to the set

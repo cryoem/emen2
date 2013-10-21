@@ -5,6 +5,7 @@ import string
 import inspect
 import tempfile
 import shutil
+import time
 import traceback
 import hashlib
 
@@ -167,12 +168,39 @@ class Ping(Test):
     def api_ping(self):
         self.db.ping()
         self.ok()
+
+
+######################################
         
 @register
-class BasicAPI(Test):
-    keytypes = ['record', 'paramdef', 'recorddef', 'binary', 'user']
-    
+class DebugDeadlock(Test):
+    @test
+    def debugdeadlock1(self):
+        rec = self.db.paramdef.put(dict(vartype="string", desc_short=randword()))
+    @test
+    def debugdeadlock2(self):
+        keys = self.db._db.dbenv['paramdef'].bdb.keys(self.db._txn)
+        # for key in keys:
+        #     self.db.paramdef.get(key)
+        print "keys:", len(keys)
 
+    # @test
+    # def debugdeadlock3(self):
+    #     found = self.db.paramdef.find(self.desc_short)
+    #     assert self.name in [i.name for i in found]
+    #     self.ok(self.name)
+
+@register
+class DebugIndex(Test):
+    @test
+    def debugindex(self):
+        pd = self.db.paramdef.new(vartype="string", desc_short=randword())
+        pd = self.db.paramdef.put(pd)
+        for i in range(10):
+            pd['desc_short'] = randword()
+            pd = self.db.paramdef.put(pd)
+        self.ok(pd.name)
+        
 ######################################
 
 @register
@@ -449,7 +477,7 @@ class Group(Test):
         """Testing group member editing"""
         # Add users
         group = self._make()
-        users = self.db.group.filter()
+        users = self.db._db.dbenv['user'].bdb.keys() # self.db.group.filter()
         users = random.sample(users, 4)
         for i in users:
             group.adduser(i)
@@ -1021,11 +1049,10 @@ class Record(Test):
     @test
     def api_record_put(self):
         """Testing record.put()"""
-        rec = self.db.record.new(rectype='root', inherit=['root'])
+        rec = self.db.record.new(rectype='root')
         rec = self.db.record.put(rec)
         assert rec.name
         assert rec.rectype == 'root'
-        assert 'root' in rec.parents
         self.ok()
     
     @test
@@ -1443,6 +1470,7 @@ if __name__ == "__main__":
     opts.add_argument("--tmp", help="Use temporary database and run all tests.", action="store_true")
     opts.add_argument("--create", help="Run database setup before test.", action="store_true")
     opts.add_argument("--test", help="Test to run. Default is all.", action="append")
+    opts.add_argument("--repeat", help="Repeat", action="store_true")
     args = opts.parse_args()
     
     dbtmp = None
@@ -1454,11 +1482,19 @@ if __name__ == "__main__":
     t = RunTests(db=db)
     if args.tmp or args.create:
         t.runone(cls=Create)
-    if args.test:
-        for i in args.test:
-            t.runone(i)
-    else:
-        t.run()
+    iteration = 0
+    while True:
+        if args.test:
+            for i in args.test:
+                t.runone(i)
+        else:
+            t.run()
+
+        iteration += 1
+        if not args.repeat:
+            break
+        else:
+            print "======= ITERATION: %s =========="%iteration
     
     t.printstats()
     
