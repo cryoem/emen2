@@ -38,13 +38,13 @@ except ImportError, inst:
 
 # Don't touch these!
 DB_CONFIG = """\
+# Don't touch these
+set_data_dir data
+set_lg_dir journal
+set_lg_regionmax 1048576
+set_lg_max 8388608
+set_lg_bsize 2097152
 """
-# # Don't touch these
-# set_data_dir data
-# set_lg_dir journal
-# set_lg_regionmax 1048576
-# set_lg_max 8388608
-# set_lg_bsize 2097152
 
 def indexkey(key, data, param=None):    
     value = pickle.loads(data).data.get(param)
@@ -117,6 +117,9 @@ class EMEN2DBEnv(object):
         dbenv.set_lk_max_locks(300000)
         dbenv.set_lk_max_lockers(300000)
         dbenv.set_lk_max_objects(300000)
+        dbenv.set_lk_detect(bsddb3.db.DB_LOCK_MINWRITE)
+        dbenv.set_timeout(1000000, flags=bsddb3.db.DB_SET_LOCK_TIMEOUT)
+        dbenv.set_timeout(120000000, flags=bsddb3.db.DB_SET_TXN_TIMEOUT)
 
         flags = 0
         flags |= bsddb3.db.DB_CREATE
@@ -166,7 +169,7 @@ class EMEN2DBEnv(object):
             txn = self.dbenv.txn_begin()
         else:
             txn = self.dbenv.txn_begin(flags=bsddb3.db.DB_TXN_SNAPSHOT)
-        emen2.db.log.debug("TXN: start: %s"%(txn))
+        emen2.db.log.debug("TXN: start: %s, id: %s"%(txn, txn.id()))
         return txn
 
     def txncheck(self, txn=None, write=False):
@@ -306,11 +309,10 @@ class BaseDB(object):
         """
         # Filename
         self.filename = filename
-        self.extension = extension
         
         # EMEN2DBEnv
         self.dbenv = dbenv
-        # BDB handle and open flags.
+        # BDB handle
         self.bdb = None
         # Indexes
         self.indexes = {}
@@ -384,9 +386,8 @@ class BaseDB(object):
         """Open the DB. This uses an implicit open transaction."""
         if self.bdb:
             raise Exception, "DB already open"
-
         emen2.db.log.debug("BDB: %s open"%self.filename)
-        fn = '%s.%s'%(self.filename, self.extension)
+        fn = '%s.%s'%(self.filename, 'bdb')
         flags = 0
         flags |= bsddb3.db.DB_AUTO_COMMIT 
         flags |= bsddb3.db.DB_CREATE 
@@ -520,15 +521,14 @@ class CollectionDB(BaseDB):
 
     ##### Exists #####
     
-    def exists(self, key, ctx=None, txn=None, flags=0):
+    def exists(self, key, ctx=None, txn=None):
         """Check if a key exists."""
         # Note: this method does not check permissions; you could use it to check
         #     if a key exists or not, even if you can't read the value.
         emen2.db.log.debug("BDB: %s exists: %s"%(self.filename, key))
         if key is None or key < 0:
             return False
-        flags = bsddb3.db.DB_RMW
-        return self.bdb.exists(self.keydump(key), txn=txn, flags=flags)
+        return self.bdb.exists(self.keydump(key), txn=txn, flags=bsddb3.db.DB_RMW)
         
     ##### Keys, values, items #####
     
@@ -705,7 +705,7 @@ class CollectionDB(BaseDB):
 
     def find(self, param, term, op='==', count=100, ctx=None, txn=None):
         index = self.getindex(param, txn=txn)
-        if not index:
+        if index is None:
             return set()
         return set()
 
@@ -985,7 +985,7 @@ class CollectionDB(BaseDB):
 
         # Get the index, and create a cursor here (slightly faster)
         rel = self.getindex(rel, txn=txn)
-        if not rel:
+        if rel is None:
             emen2.db.log.debug("BDB: No index for parents or children!")
             return {}, set()
             

@@ -123,7 +123,7 @@ class ParamConstraint(IndexedConstraint):
     def _run(self):
         r = self.p.result
         m = self.p.mode
-        if (m == 'AND' and r and len(r) < INDEXMIN) or not self.index:
+        if (m == 'AND' and r and len(r) < INDEXMIN) or self.index is None:
             return self._run_items()
         return self._run_index()
 

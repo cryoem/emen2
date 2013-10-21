@@ -4,6 +4,7 @@ import sys
 import uuid
 import json
 import functools
+import random
 
 HOME = sys.argv[1]
 
@@ -28,6 +29,9 @@ def open(path, cachesize=512):
     dbenv.set_lk_max_locks(300000)
     dbenv.set_lk_max_lockers(300000)
     dbenv.set_lk_max_objects(300000)
+    dbenv.set_lk_detect(bsddb3.db.DB_LOCK_MINWRITE)
+    dbenv.set_timeout(1000000, flags=bsddb3.db.DB_SET_LOCK_TIMEOUT)
+    dbenv.set_timeout(120000000, flags=bsddb3.db.DB_SET_TXN_TIMEOUT)
 
     flags = 0
     flags |= bsddb3.db.DB_CREATE
@@ -53,7 +57,7 @@ def opendb(dbenv, filename):
     db.open(filename="%s.bdb"%filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
 
     indexes = {}
-    for param in ['name', 'hello', 'time']:
+    for param in ['name', 'hello', 'time'] + ['test_%s'%i for i in range(10)]:
         index = bsddb3.db.DB(dbenv)
         index.set_flags(bsddb3.db.DB_DUP)
         index.set_flags(bsddb3.db.DB_DUPSORT)
@@ -70,7 +74,9 @@ count = 0
 
 while True:
     print "\n\n========== Count: %s"%count
-    rec = {"name":"test_index", "hello":"goodbye", "time":time.time()}
+    rec = {"name":uuid.uuid1().hex, "hello":"goodbye", "time":time.time()}
+    for i in range(10):
+        rec['test_%s'%i] = random.random()
     s = bsddb3.db.DB_TXN_SNAPSHOT
 
     print "Start PUT"
@@ -79,11 +85,10 @@ while True:
     print db.get(rec['name'], txn=txn, flags=bsddb3.db.DB_RMW)
     db.put(rec['name'], json.dumps(rec), txn=txn)
     print indexes['name'].get(rec['name'], txn=txn)
-    time.sleep(1)
     txn.commit()
 
     print "Start GET"
-    txn = dbenv.txn_begin() #  flags=s
+    txn = dbenv.txn_begin(flags=s) #  flags=s
     keys = db.keys(txn)
     print "keys: %s"%len(keys)
     assert rec['name'] in keys

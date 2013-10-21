@@ -177,18 +177,12 @@ class DebugDeadlock(Test):
     @test
     def debugdeadlock1(self):
         rec = self.db.paramdef.put(dict(vartype="string", desc_short=randword()))
+
     @test
     def debugdeadlock2(self):
         keys = self.db._db.dbenv['paramdef'].bdb.keys(self.db._txn)
-        # for key in keys:
-        #     self.db.paramdef.get(key)
         print "keys:", len(keys)
 
-    # @test
-    # def debugdeadlock3(self):
-    #     found = self.db.paramdef.find(self.desc_short)
-    #     assert self.name in [i.name for i in found]
-    #     self.ok(self.name)
 
 @register
 class DebugIndex(Test):
