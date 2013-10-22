@@ -113,17 +113,17 @@ class Hasher(object):
     def md5(self, password, salt):
         salt = self.get_salt(salt) or self.gen_salt()
         h = hashlib.md5(salt+password).digest().encode('base_64')[:-3]
-        return self.format_password('md5', 0, salt, h)
+        return self.format_password('MD5', 0, salt, h)
 
     def sha1(self, password, salt):
         salt = self.get_salt(salt) or self.gen_salt()
         h = hashlib.sha1(salt+password).digest().encode('base_64')[:-3]
-        return self.format_password('sha1', 0, salt, h)
+        return self.format_password('SHA-1', 0, salt, h)
 
     def sha2(self, password, salt):
         salt = self.get_salt(salt) or self.gen_salt()
         h = hashlib.sha512(salt+password).digest().encode('base_64')[:-3]
-        return self.format_password('sha2', 0, salt, h)
+        return self.format_password('SHA-2', 0, salt, h)
 
     def bcrypt(self, password, salt):
         if not bcrypt:

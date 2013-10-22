@@ -1201,6 +1201,7 @@ class Record(Test):
         # Test
         for k,v in recs.items():
             found = self.db.record.findbyrectype(k)
+            print "found:", found
             assert not (v ^ found)
         self.ok()
         

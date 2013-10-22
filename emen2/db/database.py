@@ -2603,7 +2603,7 @@ class DB(object):
         rds = self.dbenv['recorddef'].expand(names, ctx=ctx, txn=txn)
         ret = set()
         for i in rds:
-            ret |= self.dbenv['record'].find('rectype', rds, txn=txn)
+            ret |= self.dbenv['record'].find('rectype', i, txn=txn)
         return ret
 
     @publicmethod(compat="findvalue")

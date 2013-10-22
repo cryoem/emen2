@@ -719,7 +719,7 @@ class CollectionDB(BaseDB):
 
     ##### Manage indexes. #####
 
-    def find(self, param, key, maxkey=None, op='starts', count=100, ctx=None, txn=None, cursor=None):
+    def find(self, param, key, maxkey=None, op='==', count=100, ctx=None, txn=None, cursor=None):
         # This is the neat new index search. A work in progress; only works for strings now.
         # This doesn't filter for security.
         emen2.db.log.debug("BDB: %s %s index %s %s"%(self.filename, param, op, key))        
