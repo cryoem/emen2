@@ -93,7 +93,6 @@ class Config(object):
         return root
 
     def set(self, key, value):
-        print "setting...", key, value
         path = self._key_path(key)
         root = self.data
         for k in path[:-1]:

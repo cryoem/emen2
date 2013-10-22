@@ -1112,7 +1112,7 @@ class DB(object):
             for i in recs:
                 keys |= set(i.keys())
             # Except these keys...
-            keys -= set(['permissions', 'history', 'comments', 'parents', 'children'])
+            keys -= set(['permissions', 'history', 'comments'])
         
         # Process keys.
         regex_k = re.compile(VIEW_REGEX_P, re.VERBOSE)
@@ -2018,8 +2018,6 @@ class DB(object):
                 rec.update(newuser.signupinfo)
                 rec.adduser(user.name, level=2)
                 rec.addgroup("authenticated")
-                rec.parents = set()
-                rec.children = set()
                 rec = self.dbenv["record"].put(rec, ctx=ctx, txn=txn)
 
                 # Update the User with the Record name and put again
@@ -2030,8 +2028,6 @@ class DB(object):
                 for childrec in childrecs:
                     crec = self.record_new(rectype=childrec.get('rectype'), ctx=ctx, txn=txn)
                     crec.update(childrec)
-                    crec.children = set()
-                    crec.parents = set()
                     crec.parents.add(rec.name)
                     crec.adduser(user.name, level=3)
                     crec = self.dbenv["record"].put(crec, ctx=ctx, txn=txn)
@@ -2230,21 +2226,25 @@ class DB(object):
         for rec in recs:
             rec.setpermissions([[],[],[],[]])
             rec.setgroups([])
-            if rec.parents and rec.children:
-                rec["comments"] = "Record hidden by unlinking from parents %s and children %s"%(", ".join([unicode(x) for x in rec.parents]), ", ".join([unicode(x) for x in rec.children]))
-            elif rec.parents:
-                rec["comments"] = "Record hidden by unlinking from parents %s"%", ".join([unicode(x) for x in rec.parents])
-            elif rec.children:
-                rec["comments"] = "Record hidden by unlinking from children %s"%", ".join([unicode(x) for x in rec.children])
+            children = self.dbenv['record'].children(rec.name, ctx=ctx, txn=txn)
+            parents = self.dbenv['record'].parents(rec.name, ctx=ctx, txn=txn)
+            if parents and children:
+                rec["comments"] = "Record hidden by unlinking from parents %s and children %s"%(", ".join([unicode(x) for x in parents]), ", ".join([unicode(x) for x in children]))
+            elif parents:
+                rec["comments"] = "Record hidden by unlinking from parents %s"%", ".join([unicode(x) for x in parents])
+            elif children:
+                rec["comments"] = "Record hidden by unlinking from children %s"%", ".join([unicode(x) for x in children])
             else:
                 rec["comments"] = "Record hidden"
 
             rec.hidden = True
-            rec.children = set()
-            rec.parents = set()
             crecs.append(rec)
+            for i in children:
+                self.dbenv['record'].pcunlink(rec.name, i, ctx=ctx, txn=txn)
+            for i in parents:
+                self.dbenv['record'].pcunlink(i, rec.name, ctx=ctx, txn=txn)
 
-        return self.dbenv["record"].puts(crecs, ctx=ctx, txn=txn)
+        ret = self.dbenv["record"].puts(crecs, ctx=ctx, txn=txn)
 
     @publicmethod(write=True, compat="putrecordvalues")
     @ol('names')

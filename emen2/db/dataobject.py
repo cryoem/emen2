@@ -25,8 +25,7 @@ class BaseDBObject(object):
     commits. The 'uri' parameter can be set to indicate an item was imported
     from an external source; presence of the uri parameter will generally mark
     an item as read-only. The 'parents' and 'children' parameters are treated 
-    specially when an item is committed: both the parent and the child will 
-    be updated.
+    specially when an item is committed.
 
     Parameters are stored in the self.data dictionary, and this is saved when
     the DBO is committed.
@@ -70,7 +69,7 @@ class BaseDBObject(object):
     :classattr public: Public (exported) keys
     """
     
-    public = set(['children', 'parents', 'keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
+    public = set(['keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
 
     def __init__(self, **kwargs):
         """Initialize a new DBO."""
@@ -96,8 +95,6 @@ class BaseDBObject(object):
         data['creationtime'] = self.ctx.utcnow
         data['modifyuser'] = self.ctx.username
         data['modifytime'] = self.ctx.utcnow
-        data['children'] = []
-        data['parents'] = []
         self.data = data
         
     def load(self, d, ctx=None):
@@ -236,7 +233,7 @@ class BaseDBObject(object):
         self.data[key] = value
 
         # Only permissions, groups, and links do not trigger a modifytime update
-        if key not in ['permissions', 'groups', 'parents', 'children'] and not self.isnew():
+        if key not in ['permissions', 'groups'] and not self.isnew():
             self.data['modifytime'] = self.ctx.utcnow
             self.data['modifyuser'] = self.ctx.username
 
@@ -252,18 +249,18 @@ class BaseDBObject(object):
     def _set_uri(self, key, value):
         self._set(key, value, self.isnew())
 
-    ##### Update parents / children #####
-
-    def _set_children(self, key, value):
-        self._setrel(key, value)
-
-    def _set_parents(self, key, value):
-        self._setrel(key, value)
-
-    def _setrel(self, key, value):
-        """Set a relationship."""
-        value = sorted(map(self._strip, emen2.utils.check_iterable(value)))
-        self._set(key, value, self.writable())
+    # ##### Update parents / children #####
+    # 
+    # def _set_children(self, key, value):
+    #     self._setrel(key, value)
+    # 
+    # def _set_parents(self, key, value):
+    #     self._setrel(key, value)
+    # 
+    # def _setrel(self, key, value):
+    #     """Set a relationship."""
+    #     value = sorted(map(self._strip, emen2.utils.check_iterable(value)))
+    #     self._set(key, value, self.writable())
 
     ##### Pickle / serialize methods #####
 

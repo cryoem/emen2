@@ -356,13 +356,11 @@
                 var summary = $('<div />');
                 var sum2 = $('<p />').text('This record has '+this.bdos.length+' attachments.');
                 var rec = emen2.cache.get(this.options.name);
-                if (rec['children'].length) {
-                    sum2.append(' There may be additional attachments in child records: ');
-                    var a = $('<a />')
-                    a.attr('href', emen2.template.uri(['record', this.options.name, 'query', 'attachments']))
-                    a.text('view all attachments in child records.');
-                    a.appendTo(sum2);
-                }
+                sum2.append(' There may be additional attachments in child records: ');
+                var a = $('<a />')
+                a.attr('href', emen2.template.uri(['record', this.options.name, 'query', 'attachments']))
+                a.text('view all attachments in child records.');
+                a.appendTo(sum2);
                 summary.append(sum2);
                 this.element.append(summary);
             }

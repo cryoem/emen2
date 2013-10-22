@@ -855,11 +855,6 @@ class CollectionDB(BaseDB):
                 # Update the item's name.
                 item.data['name'] = newname
                 namemap[item.name] = newname
-
-        # Update all the record's links
-        for item in items:
-            item.data['parents'] = sorted([namemap.get(i,i) for i in item.get('parents', [])])
-            item.data['children'] = sorted([namemap.get(i,i) for i in item.get('children', [])])
         return namemap
 
     def _key_generator(self, item, txn=None):
@@ -1045,26 +1040,6 @@ class CollectionDB(BaseDB):
     def relink(self, removerels=None, addrels=None, ctx=None, txn=None):
         """Add and remove a number of parent-child relationships at once."""
         return []
-        # removerels = removerels or {}
-        # addrels = addrels or {}
-        # remove = collections.defaultdict(set)
-        # add = collections.defaultdict(set)
-        # ci = emen2.utils.check_iterable
-        # for k,v in removerels.items():
-        #     for v2 in ci(v):
-        #         remove[self.keyclass(k)].add(self.keyclass(v2))
-        # for k,v in addrels.items():
-        #     for v2 in ci(v):
-        #         add[self.keyclass(k)].add(self.keyclass(v2))
-        # 
-        # items = set(remove.keys()) | set(add.keys())
-        # items = self.gets(items, ctx=ctx, txn=txn)
-        # for item in items:
-        #     children = set(item.children)
-        #     children -= remove[item.name]
-        #     children |= add[item.name]
-        #     item.children = sorted(children)
-        # return self.puts(items, ctx=ctx, txn=txn)
 
     def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
         indp = self._getrel('parents', txn=txn)
@@ -1086,7 +1061,6 @@ class CollectionDB(BaseDB):
                 cursorp.delete()
             if cursorc.set_both(self.keydump(recp.name), self.keydump(recc.name)):
                 cursorc.delete()
-
         cursorp.close()
         cursorc.close()
         
@@ -1094,7 +1068,6 @@ class CollectionDB(BaseDB):
 
     def _bfs(self, key, rel='children', recurse=1, ctx=None, txn=None):
         # (Internal) Relationships
-        
         # Check max recursion depth
         maxrecurse = emen2.db.config.get('params.maxrecurse')
         if recurse < 0:

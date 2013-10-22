@@ -35,7 +35,6 @@ class Tree(View):
         if action=="expand" or recurse == -1:
             recurse = -3
 
-        parents = set()
 
         # add 2 to recurse to get enough info to draw the next level
         if mode == "children":
@@ -44,6 +43,8 @@ class Tree(View):
             parents = self.db.rel.parents(root, keytype=keytype)
         else:
             tree = self.db.rel.rel([root], rel="parents", recurse=recurse+2, keytype=keytype, tree=True)
+            parents = set()
+
         # if collapse_rectype:
         #    collapsed |= self.db.rel.children(root, recurse=-1, rectype=collapse_rectype)
 
