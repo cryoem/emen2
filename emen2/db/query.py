@@ -110,7 +110,7 @@ class IndexedConstraint(Constraint):
         self.priority = 1.0
         try:
             self.paramdef = self.p.btree.dbenv['paramdef'].get(self.param, filt=False, ctx=self.p.ctx, txn=self.p.txn)            
-            self.index = self.p.btree.getindex(self.param, txn=self.p.txn)
+            self.index = self.p.btree._getindex(self.param, txn=self.p.txn)
             nkeys = 1 # self.index.bdb.stat(txn=self.p.txn)['ndata'] or 1 # avoid div by zero
             self.priority = 1.0 - (1.0/nkeys)
         except Exception, e:

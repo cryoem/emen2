@@ -66,6 +66,15 @@ def indexkey(key, data, param=None):
             ret.add(i.lower().encode('utf-8'))    
     return sorted(ret)
 
+def readindex(cursor, key):
+    r = set()
+    n = cursor.set(key)
+    m = cursor.next_dup
+    while n:
+        r.add(n[1])
+        n = m()
+    return r
+
 ##### EMEN2 Database Environment #####
 
 class EMEN2DBEnv(object):
@@ -325,6 +334,8 @@ class BaseDB(object):
         self.bdb = None
         # Indexes
         self.indexes = {}
+        # Relationships
+        self.rels = {}
 
         # What are we storing?
         self._setkeyformat(keyformat)
@@ -410,8 +421,11 @@ class BaseDB(object):
         emen2.db.log.debug("BDB: %s close"%self.filename)
         self.bdb.close()
         self.bdb = None
+        for v in self.rels.values():
+            v.close()
         for v in self.indexes.values():
             v.close()
+        
 
     # Dangerous!
     def truncate(self, txn=None):
@@ -471,7 +485,8 @@ class CollectionDB(BaseDB):
         _get_max
 
     Index methods:
-        getindex         Open an index
+        _getindex         Open an index
+        _getrel           Open a relationship index
     
     Relationship methods:
         parents          Returns parents
@@ -678,7 +693,7 @@ class CollectionDB(BaseDB):
         for item in items:
             keys |= set(item.data.keys())
         for key in keys:
-            self.getindex(key, txn=txn)
+            self._getindex(key, txn=txn)
 
         # Write the items "for real."
         for item in items:
@@ -708,7 +723,7 @@ class CollectionDB(BaseDB):
         # This is the neat new index search. A work in progress; only works for strings now.
         # This doesn't filter for security.
         emen2.db.log.debug("BDB: %s %s index %s %s"%(self.filename, param, op, key))        
-        index = self.getindex(param, txn=txn)
+        index = self._getindex(param, txn=txn)
         if index is None:
             return set()
         key = unicode(key).lower().encode('utf-8')
@@ -779,24 +794,38 @@ class CollectionDB(BaseDB):
         cursor.close()
         return r
 
-    def getindex(self, param, txn=None):
+    def _getindex(self, param, txn=None):
         if param in self.indexes:
             return self.indexes.get(param)
-
         fn = '%s.%s.index'%(self.filename, param)
         flags = 0
         flags |= bsddb3.db.DB_AUTO_COMMIT 
         flags |= bsddb3.db.DB_CREATE 
         flags |= bsddb3.db.DB_THREAD
-        flags |= bsddb3.db.DB_MULTIVERSION
-        indexfunc = functools.partial(indexkey, param=param)
-        
+        flags |= bsddb3.db.DB_MULTIVERSION        
         index = bsddb3.db.DB(self.dbenv.dbenv)
         index.set_flags(bsddb3.db.DB_DUP)
         index.set_flags(bsddb3.db.DB_DUPSORT)
         index.open(filename=fn, dbtype=bsddb3.db.DB_BTREE, flags=flags)
-        self.bdb.associate(index, indexfunc)
         self.indexes[param] = index
+        indexfunc = functools.partial(indexkey, param=param)
+        self.bdb.associate(index, indexfunc)
+        return index
+
+    def _getrel(self, param, txn=None):
+        if param in self.rels:
+            return self.rels.get(param)
+        fn = '%s.%s.rel'%(self.filename, param)
+        flags = 0
+        flags |= bsddb3.db.DB_AUTO_COMMIT 
+        flags |= bsddb3.db.DB_CREATE 
+        flags |= bsddb3.db.DB_THREAD
+        flags |= bsddb3.db.DB_MULTIVERSION
+        index = bsddb3.db.DB(self.dbenv.dbenv)
+        index.set_flags(bsddb3.db.DB_DUP)
+        index.set_flags(bsddb3.db.DB_DUPSORT)
+        index.open(filename=fn, dbtype=bsddb3.db.DB_BTREE, flags=flags)
+        self.rels[param] = index
         return index
 
     def rebuild_indexes(self, ctx=None, txn=None):
@@ -1015,30 +1044,52 @@ class CollectionDB(BaseDB):
 
     def relink(self, removerels=None, addrels=None, ctx=None, txn=None):
         """Add and remove a number of parent-child relationships at once."""
-        removerels = removerels or {}
-        addrels = addrels or {}
-        remove = collections.defaultdict(set)
-        add = collections.defaultdict(set)
-        ci = emen2.utils.check_iterable
-        for k,v in removerels.items():
-            for v2 in ci(v):
-                remove[self.keyclass(k)].add(self.keyclass(v2))
-        for k,v in addrels.items():
-            for v2 in ci(v):
-                add[self.keyclass(k)].add(self.keyclass(v2))
-
-        items = set(remove.keys()) | set(add.keys())
-        items = self.gets(items, ctx=ctx, txn=txn)
-        for item in items:
-            children = set(item.children)
-            children -= remove[item.name]
-            children |= add[item.name]
-            item.children = sorted(children)
-        return self.puts(items, ctx=ctx, txn=txn)
+        return []
+        # removerels = removerels or {}
+        # addrels = addrels or {}
+        # remove = collections.defaultdict(set)
+        # add = collections.defaultdict(set)
+        # ci = emen2.utils.check_iterable
+        # for k,v in removerels.items():
+        #     for v2 in ci(v):
+        #         remove[self.keyclass(k)].add(self.keyclass(v2))
+        # for k,v in addrels.items():
+        #     for v2 in ci(v):
+        #         add[self.keyclass(k)].add(self.keyclass(v2))
+        # 
+        # items = set(remove.keys()) | set(add.keys())
+        # items = self.gets(items, ctx=ctx, txn=txn)
+        # for item in items:
+        #     children = set(item.children)
+        #     children -= remove[item.name]
+        #     children |= add[item.name]
+        #     item.children = sorted(children)
+        # return self.puts(items, ctx=ctx, txn=txn)
 
     def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
-        return
- 
+        indp = self._getrel('parents', txn=txn)
+        indc = self._getrel('children', txn=txn)
+        recp = self.get(parent, ctx=ctx, txn=txn)
+        recc = self.get(child, ctx=ctx, txn=txn)
+        if not (recp.writable() or recc.writable()):
+            raise emen2.db.exceptions.SecurityError, "Insufficient permissions to edit relationship!"
+
+        cursorp = indp.cursor(txn=txn)
+        cursorc = indc.cursor(txn=txn)
+        if mode == 'addrefs':
+            if not cursorp.set_both(self.keydump(recc.name), self.keydump(recp.name)):
+                cursorp.put(self.keydump(recc.name), self.keydump(recp.name), flags=bsddb3.db.DB_KEYFIRST)
+            if not cursorc.set_both(self.keydump(recp.name), self.keydump(recc.name)):
+                cursorc.put(self.keydump(recp.name), self.keydump(recc.name), flags=bsddb3.db.DB_KEYFIRST)
+        elif mode == 'removerefs':
+            if cursorp.set_both(self.keydump(recc.name), self.keydump(recp.name)):
+                cursorp.delete()
+            if cursorc.set_both(self.keydump(recp.name), self.keydump(recc.name)):
+                cursorc.delete()
+
+        cursorp.close()
+        cursorc.close()
+        
     ##### Search relationship indexes (e.g. parents/children) #####
 
     def _bfs(self, key, rel='children', recurse=1, ctx=None, txn=None):
@@ -1052,15 +1103,15 @@ class CollectionDB(BaseDB):
             recurse = maxrecurse
 
         # Get the index, and create a cursor here (slightly faster)
-        rel = self.getindex(rel, txn=txn)
+        rel = self._getrel(rel, txn=txn)
         if rel is None:
             emen2.db.log.debug("BDB: No index for parents or children!")
             return {}, set()
-            
-        cursor = rel.cursor(txn=txn)
 
         # Starting items
-        new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) #
+        # new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) #
+        cursor = rel.cursor(txn=txn)
+        new = readindex(cursor, self.keydump(key))
 
         tovisit = [new]
         result = {key: new}
@@ -1072,7 +1123,8 @@ class CollectionDB(BaseDB):
                 break
             tovisit.append(set())
             for key in tovisit[x] - visited:
-                new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) 
+                # new = rel._get_method(cursor, rel.keydump(key), rel.dataformat) 
+                new = readindex(cursor, self.keydump(key))
                 if new:
                     tovisit[x+1] |= new
                     result[key] = new
