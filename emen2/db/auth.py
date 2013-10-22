@@ -19,7 +19,6 @@ import emen2.db.config
 SALT_BYTES = 22
 HASH_TYPES = ['SHA-1', 'SHA-2', 'bcrypt', '2', '2a', 'PBKDF2', 'MD5', 'legacy']
 
-
 class Hasher(object):
     """Manage password hashes.
     

@@ -8,9 +8,9 @@ HOST = "http://ncmidb.bcm.edu"
 USER = raw_input("Username: ")
 PW = getpass.getpass("Password: ")
 WRITE = False
+ADMIN = False
 
-# Root record and an example project
-ROOT = 0
+# Example project.
 PROJECT = 137
 
 
@@ -32,7 +32,7 @@ ctxid = db.login(USER, PW)
 ####################################
 
 # Get a record
-rec = db.record.get(ROOT)
+rec = db.record.get(PROJECT)
 print "Root record:"
 print rec
 
@@ -50,14 +50,14 @@ print "Records: ", [i.get('name') for i in recs]
 #################################
 
 # Find the children of a record.
-children = db.rel.children(ROOT)
+children = db.rel.children(PROJECT)
 
 # Get the child records.
 children = db.record.get(children)
 print "Got %s child records"%(len(children))
 
 # Get the children, recursively. This returns record IDs.
-children = db.rel.children(ROOT, recurse=2)
+children = db.rel.children(PROJECT, recurse=2)
 print "Found %s children (recurse=2)"%len(children)
 
 # Use recurse=-1 to find all children
@@ -104,29 +104,26 @@ projdefaultview = db.record.render(PROJECT, viewname="defaultview")
 ##### New records and writing records #####
 ###########################################
 
-# Create a new record
-newrecord = db.record.new(rectype='folder')
 if WRITE:
+    # Create a new record
+    newrecord = db.record.new(rectype='folder')
+
     newrecord = db.putrecord(newrecord)
 
-if WRITE:
     # Hide a record
     db.record.hide(newrecord.get('name'))
 
-if WRITE:
     # Edit an existing record
-    editrec = db.record.get(PROJECT)
+    editrec = db.record.get(newrecord.get('name'))
     editrec["comments"] = "This is a new comment."
     editrec["name_first"] = "Funny name"
     # editrec = db.putrecord(editrec)
 
-
-if WRITE:
     # Like most calls, you can also edit multiple items at once.
-    editrecs = db.record.get([0,1,2,3,4])
-    for i in editrecs:
-    	i["name_first"] = "counter: %s"%i
-    # db.putrecord(editrecs)
+    # editrecs = db.record.get([0,1,2,3,4])
+    # for i in editrecs:
+    #	i["name_first"] = "counter: %s"%i
+    # db.record.put(editrecs)
 
 
 
@@ -139,7 +136,7 @@ if WRITE:
 
 # Get your user profile
 user = db.user.get(USER)
-# The display name is made from your profile record.
+# The display name is made from your profile.
 print "User name: %s, display name: %s"%(user.get('name'), user.get('displayname'))
 
 # Check privileges.
@@ -191,14 +188,18 @@ print "RecordDef:", recorddef
 paramdef = db.paramdef.get('name_first')
 print "ParamDef:", paramdef
 
-newparamdef = db.paramdef.new(name='test_paramdef', vartype='string')
-# newparamdef = db.putparamdef(newparamdef)
-
 # Find a ParamDef
 paramdefs = db.paramdef.find(vartype='user')
 print "User ParamDefs:", [i.get('name') for i in paramdefs]
 
+paramdefs = db.paramdef.find('vitrobot')
+print "Vitrobot ParamDefs:", [i.get('name') for i in paramdefs]
 
+
+if WRITE:
+    newparamdef = db.paramdef.new(name='test_paramdef', vartype='string')
+    # newparamdef = db.putparamdef(newparamdef)
+    
 
 
 
