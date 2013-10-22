@@ -410,7 +410,7 @@ class CollectionDB(BaseDB):
         cur.close()
         return result
         
-    def query(self, c=None, mode='AND', subset=None, keywords=None, ctx=None, txn=None):
+    def query(self, c=None, mode='AND', subset=None, ctx=None, txn=None):
         return {}
 
     def getindex(self, param, txn=None):

@@ -46,16 +46,25 @@ set_lg_max 8388608
 set_lg_bsize 2097152
 """
 
+# This is the new BerkeleyDB-native secondary indexing system.
+# It could use a proper index term extraction function.
+CACHE_VARTYPE = {}
+CACHE_ITER = {}
 def indexkey(key, data, param=None):    
     value = pickle.loads(data).data.get(param)
+    ret = set()
     if hasattr(value, "__iter__"):
-        ret = [unicode(i).encode('utf-8') for i in value if value is not None]
-    elif value is None:
-        ret = None
+        for v in value:
+            if v is None:
+                continue
+            for i in unicode(v).split(" "):
+                ret.add(i.lower().encode('utf-8'))
     else:
-        ret = unicode(value).encode('utf-8')
-    print "index:", param, key, value, "->", ret
-    return ret
+        if value is None:
+            return
+        for i in unicode(value).split(" "):
+            ret.add(i.lower().encode('utf-8'))    
+    return sorted(ret)
 
 ##### EMEN2 Database Environment #####
 
@@ -463,7 +472,6 @@ class CollectionDB(BaseDB):
 
     Index methods:
         getindex         Open an index
-        _reindex         Calculate index updates
     
     Relationship methods:
         parents          Returns parents
@@ -660,14 +668,17 @@ class CollectionDB(BaseDB):
         return self._puts([item], ctx=ctx, txn=txn)[0]
         
     def _puts(self, items, ctx=None, txn=None):
-        # Skip security checks and validation
-        # TODO: ctx used only for cache.
+        # Skips security checks and validation
         # Assign names for new items.
         # This will also update any relationships to uncommitted records.
         self._update_names(items, txn=txn)
 
-        # Now that names are assigned, calculate the index updates.
-        ind = self._reindex(items, txn=txn)
+        # Make sure the secondary indexes are open and associated.
+        keys = set()
+        for item in items:
+            keys |= set(item.data.keys())
+        for key in keys:
+            self.getindex(key, txn=txn)
 
         # Write the items "for real."
         for item in items:
@@ -683,39 +694,96 @@ class CollectionDB(BaseDB):
     def delete(self, name, ctx=None, txn=None):
         return
         
-    def query(self, c=None, mode='AND', subset=None, keywords=None, ctx=None, txn=None):
+    def query(self, c=None, mode='AND', subset=None, ctx=None, txn=None):
         """Return a Query Constraint Group.
 
         You will need to call constraint.run() to execute the query,
         and constraint.sort() to sort the values.
         """
-        return emen2.db.query.Query(constraints=c, mode=mode, subset=subset, keywords=keywords, ctx=ctx, txn=txn, btree=self)
-
-    ##### Changes to indexes #####
-    
-    def _reindex(self, items, reindex=False, txn=None):
-        # Updated indexes
-        keys = set()
-        for item in items:
-            keys |= set(item.data.keys())
-        for key in keys:
-            self.getindex(key, txn=txn)
+        return emen2.db.query.Query(constraints=c, mode=mode, subset=subset, ctx=ctx, txn=txn, btree=self)
 
     ##### Manage indexes. #####
 
-    def find(self, param, term, op='==', count=100, ctx=None, txn=None):
+    def find(self, param, key, maxkey=None, op='starts', count=100, ctx=None, txn=None, cursor=None):
+        # This is the neat new index search. A work in progress; only works for strings now.
+        # This doesn't filter for security.
+        emen2.db.log.debug("BDB: %s %s index %s %s"%(self.filename, param, op, key))        
         index = self.getindex(param, txn=txn)
         if index is None:
             return set()
-        return set()
+        key = unicode(key).lower().encode('utf-8')
+        maxkey = unicode(maxkey).lower().encode('utf-8')
+        r = set()
+        cursor = index.cursor(txn=txn)
+        
+        # I don't like "case switches", but it will do.
+        if op == 'starts':
+            c = cursor.pget(key, flags=bsddb3.db.DB_SET_RANGE)
+            while c and c[0].startswith(key):
+                r.add(c[1])
+                c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+
+        elif op == 'range':
+            c = cursor.pget(key, flags=bsddb3.db.DB_SET_RANGE)
+            while c and c[0] <= maxkey:
+                r.add(c[1])
+                c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+            
+        elif op == '>=':
+            c = cursor.pget(key, flags=bsddb3.db.DB_SET_RANGE)
+            while c:
+                r.add(c[1])
+                c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+
+        elif op == '>':
+            c = cursor.pget(key, flags=bsddb3.db.DB_SET_RANGE)
+            while c:
+                if c[1] > key:
+                    r.add(c[1])
+                c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+
+        elif op == '<=':
+            c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+            while c and c[0] <= key:
+                r.add(c[1])
+                c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+
+        elif op == '<':
+            c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+            while c and c[0] < key:
+                r.add(c[1])
+                c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+        
+        elif op == '==':
+            c = cursor.pget(key, flags=bsddb3.db.DB_SET)
+            while c:
+                r.add(c[1])
+                c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
+
+        elif op == '!=':
+            c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+            while c:
+                if c[0] != key:
+                    r.add(c[1])
+                c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
+        
+        elif op == 'any':
+            c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+            while c:
+                r.add(c[1])
+                c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
+        
+        else:
+            raise Exception, "Unsupported operator for index searches."
+                
+        cursor.close()
+        return r
 
     def getindex(self, param, txn=None):
         if param in self.indexes:
             return self.indexes.get(param)
 
         fn = '%s.%s.index'%(self.filename, param)
-        print "OPENING INDEX:", param, fn
-
         flags = 0
         flags |= bsddb3.db.DB_AUTO_COMMIT 
         flags |= bsddb3.db.DB_CREATE 

@@ -461,7 +461,7 @@ class Group(Test):
         word = randword()
         group.displayname = "Random Group %s"%(word)
         group = self.db.group.put(group)
-        for i in ['Random', 'Group', word, group.name]:
+        for i in ['Random', 'Group', word]:
             groups = self.db.group.find(i)
             assert group.name in [i.name for i in groups]
         self.ok()

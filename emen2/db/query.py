@@ -39,7 +39,7 @@ def getop(op):
         "<=":   lambda y,x: x <= y,
         'any':  lambda y,x: x != None,
         'noop': lambda y,x: True,
-        'contains': lambda y,x: unicode(y).lower() in unicode(x).lower(),
+        'starts': lambda y,x: unicode(y).lower() in unicode(x).lower(),
     }
     return ops[synonyms.get(op, op)]
 
@@ -244,16 +244,13 @@ class MacroConstraint(Constraint):
         return f
 
 class Query(object):
-    def __init__(self, constraints, mode='AND', subset=None, keywords=None, ctx=None, txn=None, btree=None):
+    def __init__(self, constraints, mode='AND', subset=None, ctx=None, txn=None, btree=None):
         self.time = 0.0
         self.maxtime = MAXTIME
         self.starttime = time.time()
         
         # Subset
         self.subset = subset
-        
-        # Keywords
-        self.keywords = keywords
         
         # None or set() of query result
         self.result = None 
@@ -277,11 +274,7 @@ class Query(object):
         self.priority = 1
 
         # Make constraints
-        self.constraints = []
-        if self.keywords:
-            for keyword in self.keywords.split(" "):
-                self.constraints.append(self._makeconstraint('keywords','==',keyword.lower()))
-        
+        self.constraints = []        
         for c in constraints:
             self.constraints.append(self._makeconstraint(*c))
             
@@ -454,8 +447,6 @@ class Query(object):
             constraint = RelConstraint(param, op, term)
         elif param == 'rectype':
             constraint = RectypeConstraint(param, op, term)
-        elif param == 'keywords':
-            constraint = KeywordsConstraint(param, '==', term)
         else:
             constraint = ParamConstraint(param, op, term)
         constraint.init(self)

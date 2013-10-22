@@ -201,10 +201,6 @@ class Vartype(object):
     
     ##### Indexing #####
 
-    def reindex_keywords(self, items):
-        """Generate the list of keywords."""
-        return {}, {}
-
     def reindex(self, items):
         if not self.keyformat:
             return {}, {}
@@ -410,43 +406,9 @@ class vt_boolean(Vartype):
             Markup("".join(choices))
             )
 
-@Vartype.register('keywords')
-class vt_keywords(Vartype):
-    pass
-
 @Vartype.register('string')
 class vt_string(Vartype):
     """String."""
-    _indexwords = re.compile('[a-zA-Z0-9]{3,}')
-    def _getindexwords(self, value):
-        """(Internal) Split up a text param into components"""
-        # print "-> reindex", self.pd.name, self.pd.vartype, self._indexwords.findall(value)
-        if value == None: return set()
-        value = unicode(value).lower()
-        return set(x for x in self._indexwords.findall(value))
-
-    def reindex_keywords(self, items):
-        addrefs = collections.defaultdict(list)
-        delrefs = collections.defaultdict(list)
-        for item in items:
-            if item[1]==item[2]:
-                continue
-            for i in self._getindexwords(item[1]):
-                addrefs[i].append(item[0])
-            for i in self._getindexwords(item[2]):
-                delrefs[i].append(item[0])
-
-        allwords = set(addrefs.keys() + delrefs.keys())
-        addrefs2 = {}
-        delrefs2 = {}
-        for i in allwords:
-            addrefs2[i] = set(addrefs.get(i,[]))
-            delrefs2[i] = set(delrefs.get(i,[]))
-            u = addrefs2[i] & delrefs2[i]
-            addrefs2[i] -= u
-            delrefs2[i] -= u
-        return addrefs2, delrefs2
-
     def validate(self, value):
         return self._rci([unicode(x).strip() for x in ci(value)])
 
@@ -482,9 +444,6 @@ class vt_choice(vt_string):
 class vt_text(vt_string):
     """Freeform text, with word indexing."""
     elem = 'div'
-    def reindex(self, items):
-        return self.reindex_keywords(items)
-
     def _html(self, value):
         if value is None:
             return ''
@@ -604,17 +563,6 @@ class vt_uri(Vartype):
                 raise ValidationError, "Invalid URI: %s"%value
         return self._rci(value)
 
-# JSON
-@Vartype.register('json')
-class vt_json(Vartype):
-    """JSON."""
-    keyformat = None
-    def validate(self, value):
-        if not value:
-            return None
-        return json.dumps(json.loads(value))
-
-
 # Mapping types
 @Vartype.register('dict')
 class vt_dict(Vartype):
@@ -625,20 +573,6 @@ class vt_dict(Vartype):
             return None
         r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
         return dict(r)
-
-@Vartype.register('dictlist')
-class vt_dictlist(vt_dict):
-    """Dictionary with string keys and list values."""
-    keyformat = None
-    def validate(self, value):
-        if not value:
-            return None        
-        ret = {}
-        for k,v in value.items():
-            k = unicode(k)
-            v = [unicode(i) for i in v]
-            ret[k] = v
-        return ret
 
 # Binary vartypes
 #    Not indexed.

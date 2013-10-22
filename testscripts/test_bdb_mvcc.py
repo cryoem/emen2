@@ -72,11 +72,15 @@ dbenv = open(HOME)
 db, indexes = opendb(dbenv, "test")
 count = 0
 
-while True:
+TERMS = sorted(['a', 'b', 'bear', 'bobcat', 'beef', 'beets', 'bees', 'buffalo', 'c', 'cougar', 'cat', 'd', 'deer'])
+
+
+for i in range(1000):
     print "\n\n========== Count: %s"%count
-    rec = {"name":uuid.uuid1().hex, "hello":"goodbye", "time":time.time()}
+    rec = {"name":uuid.uuid1().hex, "time":time.time()}
     for i in range(10):
         rec['test_%s'%i] = random.random()
+    rec['hello'] = random.sample(TERMS, 1)[0]
     s = bsddb3.db.DB_TXN_SNAPSHOT
 
     print "Start PUT"

@@ -117,7 +117,7 @@ def CollectionDB(BaseDB):
     def delete(self, name): 
         raise rni
 
-    def query(self, c=None, mode='AND', subset=None, keywords=None): 
+    def query(self, c=None, mode='AND', subset=None): 
         raise rni
 
     def getindex(self, param): 

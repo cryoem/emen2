@@ -25,7 +25,6 @@ core_paramdefs = [
 {"name": "modifyuser", "immutable": True, "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record"},
 {"name": "uri", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "uri", "desc_short": "Resource location", "desc_long": "Resource location of an imported object"},
 {"name": "permissions", "keytype": "paramdef","parents": ["core"], "vartype": "acl", "desc_short": "Permissions"},
-{"name": "keywords", "keytype": "paramdef","parents": ["core"], "vartype": "keywords", "desc_short": "Keywords"},
 {"name": "hidden", "keytype": "paramdef", "vartype": "boolean", "parents": ["core"], "desc_short": "Hidden"},
 
 # ParamDef

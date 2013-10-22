@@ -418,8 +418,7 @@ class DB(object):
         query = filter(None, [i.strip() for i in unicode(query or '').split()])
         defaultparams = defaultparams or []
         found = None
-        op = "is"
-
+        op = "starts"
         cs = []
         for param,term in kwargs.items():
             cs.append([[param, op, term]])
@@ -428,7 +427,6 @@ class DB(object):
             for param in defaultparams:
                 c.append([param, op, term])
             cs.append(c)
-
         for c in cs:
             r = set()
             for param, op, term in c:
@@ -437,7 +435,6 @@ class DB(object):
                 found = r
             else:
                 found &= r
-
         return self.dbenv[keytype].gets(found or [], ctx=ctx, txn=txn)
 
     def _view_kv(self, params):
@@ -770,7 +767,7 @@ class DB(object):
     #     return self.query(c, keytype=keytype, ctx=ctx, txn=txn)['names']
 
     @publicmethod()
-    def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keywords=None, keytype="record", ctx=None, txn=None, **kwargs):
+    def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", ctx=None, txn=None, **kwargs):
         """General query.
 
         Constraints are provided in the following format:
@@ -787,14 +784,14 @@ class DB(object):
             lte       or      <=
             any
             none
-            contains
+            starts
             noop
             name
 
         Examples constraints:
             ['creator', 'is', 'ian']
             ['rectype', 'is', 'image_capture*']
-            [['modifytime', '>=', '2011'], ['name_pi', 'contains', 'steve']]
+            [['modifytime', '>=', '2011'], ['name_pi', 'starts', 'steve']]
 
         For record names, parameter names, and protocol names, a '*' can be used to also match children, e.g:
             [['children', 'name', '136*'], ['rectype', '==', 'image_capture*']]
@@ -824,7 +821,6 @@ class DB(object):
         :keyparam count: Return a limited number of results
         :keyparam reverse: Reverse sorting
         :keyparam subset: Restrict to names
-        :keyparam keywords: Search for keywords
         :keyparam keytype: Key type
         :return: A dictionary containing the original query arguments, and the result in the 'names' key
         :exception KeyError:
@@ -843,10 +839,9 @@ class DB(object):
             stats={},
             keytype=keytype,
             subset=subset,
-            keywords=keywords
         )
         # Run the query
-        q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
+        q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
         q.run()
         ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
         ret['stats']['length'] = len(q.result)
@@ -854,7 +849,7 @@ class DB(object):
         return ret
 
     @publicmethod()
-    def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, checkbox=False, viewdef=None, keywords=None, keytype="record", view=None, ctx=None, txn=None, **kwargs):
+    def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, checkbox=False, viewdef=None, keytype="record", view=None, ctx=None, txn=None, **kwargs):
         """Query results in table format.
         
         This method extends query() to include rendered values in the results.
@@ -915,11 +910,10 @@ class DB(object):
             keytype=keytype,
             subset=subset,
             checkbox=checkbox,
-            keywords=keywords,
         )
 
         # Run the query
-        q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
+        q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
         q.run()
         names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse, rendered=True)
 
@@ -990,7 +984,7 @@ class DB(object):
         return ret
 
     @publicmethod()
-    def plot(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keywords=None, keytype="record", x=None, y=None, z=None, ctx=None, txn=None, **kwargs):
+    def plot(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", x=None, y=None, z=None, ctx=None, txn=None, **kwargs):
         """Query results suitable for plotting.
 
         This method extends query() to help generate a plot. The results are
@@ -1050,7 +1044,6 @@ class DB(object):
             stats={},
             keytype=keytype,
             subset=subset,
-            keywords=keywords
         )
 
         qparams = [i[0] for i in c]
@@ -1060,7 +1053,7 @@ class DB(object):
                 c.append([axis, 'any', None])
                 
         # Run the query
-        q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
+        q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
         q.run()
 
         ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
@@ -1070,7 +1063,7 @@ class DB(object):
         return ret
     
     # @publicmethod()
-    # def groupby(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keywords=None, keytype="record", ctx=None, txn=None, **kwargs):
+    # def groupby(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", ctx=None, txn=None, **kwargs):
     #   pass
 
     @publicmethod()
@@ -1507,8 +1500,8 @@ class DB(object):
         [<ParamDef temperature>, <ParamDef temperature_ambient>, <ParamDef temperature_cryoholder>, ...]
 
         :param query: Contained in any item below
-        :keyword desc_short: ... contains in short description
-        :keyword desc_long: ... contains in long description
+        :keyword desc_short: ... in short description
+        :keyword desc_long: ... in long description
         :keyword vartype: ... is of vartype(s)
         :keyword count: Limit number of results
         :return: RecordDefs
@@ -1722,7 +1715,7 @@ class DB(object):
         # 2. An email will be sent to the new account specified,
         #     containing an auth token
         # 3. The user comes back and calls the method with this token
-        # 4. Email address is updated and reindexed
+        # 4. Email address is updated
         
         # Check that no other user is currently using this email.
         if self.dbenv['user'].find('email', email, txn=txn):
@@ -2640,7 +2633,7 @@ class DB(object):
         """
 
         # Use db.plot because it returns the matched values.
-        c = [[param, 'contains', query]]
+        c = [[param, 'starts', query]]
         q = self.plot(c=c, ctx=ctx, txn=txn)
 
         # Group the values by items.

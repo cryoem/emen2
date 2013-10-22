@@ -11,7 +11,7 @@ from emen2.web.view import View
 cmp_order = [
     ".is.",
     ".not.",
-    ".contains.",
+    ".starts.",
     ".gte.",
     ".lte.",
     ".gt.",
