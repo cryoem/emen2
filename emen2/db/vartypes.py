@@ -176,7 +176,6 @@ class Vartype(object):
             changed = True
 
         for i in value:       
-            i = self.db._db.dbenv[keytype].keyclass(i) # ugly hack :(
             if i in found:
                 ret.append(i)
             elif self.db.exists(i, keytype=keytype):

@@ -60,8 +60,6 @@ class ParamDef(View):
 
         self.main(name=name)
         self.template = '/pages/paramdef.new'
-        self.paramdef.parents = set([self.paramdef.name])
-        self.paramdef.children = set()
         self.ctxt['edit'] = True
         self.ctxt['new'] = True
         self.title = 'New Parameter based on: %s'%self.paramdef.desc_short

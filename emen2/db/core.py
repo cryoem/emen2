@@ -7,8 +7,6 @@ core_paramdefs = [
 {"name": "core", "keytype": "paramdef", "parents": ["root"], "vartype": "none", "desc_short": "Core parameters"},
 
 # Links
-{"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "link", "iter": True, "desc_short": "Parents"},
-{"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "link", "iter": True, "desc_short": "Children"},
 {"name": "record", "keytype": "paramdef", "parents": ["core"], "vartype": "record", "desc_short": "Record"},
 {"name": "paramdef", "keytype": "paramdef", "parents": ["core"], "vartype": "paramdef", "desc_short": "Parameter"},
 {"name": "user", "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "User"},

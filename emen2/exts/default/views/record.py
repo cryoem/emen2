@@ -50,7 +50,7 @@ class Record(View):
         parentmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='parents', recurse=-1, expandable=False)
 
         # Children
-        children = self.db.record.get(self.rec.children)
+        children = self.db.record.get(self.rel.children(rec.name))
         children_groups = collections.defaultdict(set)
         for i in children:
             children_groups[i.rectype].add(i)

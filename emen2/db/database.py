@@ -2028,10 +2028,10 @@ class DB(object):
                 for childrec in childrecs:
                     crec = self.record_new(rectype=childrec.get('rectype'), ctx=ctx, txn=txn)
                     crec.update(childrec)
-                    crec.parents.add(rec.name)
                     crec.adduser(user.name, level=3)
                     crec = self.dbenv["record"].put(crec, ctx=ctx, txn=txn)
-
+                    self.dbenv['record'].pclink(rec.name, crec.name, ctx=ctx, txn=txn)
+                    
             cusers.append(user)
 
         # Send the 'account approved' emails
@@ -2226,8 +2226,8 @@ class DB(object):
         for rec in recs:
             rec.setpermissions([[],[],[],[]])
             rec.setgroups([])
-            children = self.dbenv['record'].children(rec.name, ctx=ctx, txn=txn)
-            parents = self.dbenv['record'].parents(rec.name, ctx=ctx, txn=txn)
+            children = self.dbenv['record'].find('children', rec.name, ctx=ctx, txn=txn)
+            parents = self.dbenv['record'].find('parents', rec.name, ctx=ctx, txn=txn)
             if parents and children:
                 rec["comments"] = "Record hidden by unlinking from parents %s and children %s"%(", ".join([unicode(x) for x in parents]), ", ".join([unicode(x) for x in children]))
             elif parents:
@@ -2239,6 +2239,7 @@ class DB(object):
 
             rec.hidden = True
             crecs.append(rec)
+            print "parents/children", parents, children
             for i in children:
                 self.dbenv['record'].pcunlink(rec.name, i, ctx=ctx, txn=txn)
             for i in parents:

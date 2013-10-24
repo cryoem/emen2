@@ -26,8 +26,6 @@ class RecordDef(View):
                 
         self.main(name=name)
         self.template = '/pages/recorddef'
-        self.recorddef.parents = set([self.recorddef.name])
-        self.recorddef.children = set()
         self.ctxt['edit'] = True
         self.ctxt['new'] = True
         self.title = 'New Protocol based on: %s'%self.recorddef.desc_short

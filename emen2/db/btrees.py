@@ -414,6 +414,8 @@ class Index(object):
         cursor.close()
         return r
 
+    ##### Begin a bunch of repetitive code to iterate through cursor in various ways #####
+    
     def get(self, key, txn=None):
         cursor = index.cursor(txn=txn)        
         r = set()
@@ -1086,8 +1088,6 @@ class CollectionDB(object):
                 cursorc.delete()
         cursorp.close()
         cursorc.close()
-        
-
 
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
