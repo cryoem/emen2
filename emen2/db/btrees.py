@@ -123,7 +123,7 @@ class EMEN2DBEnv(object):
     def init(self):
         # Authentication. These are not public.
         self._context = CollectionDB(dataclass=emen2.db.context.Context, dbenv=self)
-        # For FIPS-140 Compliance.
+        # For password policy.
         self._user_history = CollectionDB(dataclass=emen2.db.dataobject.History, keytype='user_history', dbenv=self)
         # These are public dbs.
         self.keytypes['paramdef']  = CollectionDB(dataclass=emen2.db.paramdef.ParamDef, dbenv=self)
@@ -150,7 +150,7 @@ class EMEN2DBEnv(object):
     def newtxn(self, write=False):
         """Start a new transaction.
         
-        :keyword write: Transaction will be likely to write data; turns off Berkeley DB Snapshot
+        :keyword write: Write transaction; turns off Berkeley DB Snapshot
         :return: New transaction
         """
         write = True
@@ -290,18 +290,15 @@ class CollectionDB(object):
     '''Database for items supporting the DBO interface (mapping
     interface, setContext, writable, etc. See BaseDBObject.)
 
-    You may consider terms collection, bucket, keytype, and table to be
-    interchangeable.
-
     Most methods require a transaction. Additionally, because
     this class manages DBOs, most methods also require a Context.
 
-    Extends the following methods:
+    Methods:
         __init__         Opens DBs in a specific directory
         open             Also opens sequencedb
         close            Also cloes sequencdb and indexes
 
-    And adds the following methods that require a context:
+    The following methods that require a context:
         new              New item
         get              Get a single item
         gets             Get items
@@ -312,7 +309,16 @@ class CollectionDB(object):
         validate         Validate an item
         exists           Check if an item exists already
 
-    May be deprecated, since they're unbounded:
+    Relationship methods:
+        parents          Returns parents
+        children         Returns children
+        siblings         Item siblings
+        rel              General relationship method
+        pclink           Add a parent/child relationship
+        pcunlink         Remove a parent/child relationship
+        relink           Add and remove several relationships
+
+    May be deprecated at some point:
         keys
         values
         items
@@ -333,15 +339,6 @@ class CollectionDB(object):
     Index methods:
         _getindex         Open an index
         _getrel           Open a relationship index
-    
-    Relationship methods:
-        parents          Returns parents
-        children         Returns children
-        siblings         Item siblings
-        rel              General relationship method
-        pclink           Add a parent/child relationship
-        pcunlink         Remove a parent/child relationship
-        relink           Add and remove several relationships
     '''
     
     def __init__(self, filename=None, keytype=None, dataclass=None, dbenv=None):
@@ -350,7 +347,6 @@ class CollectionDB(object):
         :param filename: Base filename to use
         :keyword dbenv: Database environment
         """
-
         # EMEN2DBEnv and BDB handle
         self.dbenv = dbenv
         self.bdb = None
@@ -401,14 +397,13 @@ class CollectionDB(object):
             v.close()
         
     # Dangerous!
-    def truncate(self, txn=None):
-        """Truncate BDB (e.g. 'drop table'). Transaction required.
-        :keyword txn: Transaction
-        """
-        return
-        # todo: Do more checking before performing a dangerous operation.
-        emen2.db.log.debug("BDB: %s truncate"%self.filename)
-        self.bdb.truncate(txn=txn)
+    # def truncate(self, txn=None):
+    #     """Truncate BDB (e.g. 'drop table'). Transaction required.
+    #     :keyword txn: Transaction
+    #     """
+    #     # TODO: Do more checking before performing a dangerous operation.
+    #     emen2.db.log.debug("BDB: %s truncate"%self.filename)
+    #     self.bdb.truncate(txn=txn)
 
     ##### Indexes #####
 
@@ -450,7 +445,7 @@ class CollectionDB(object):
     def new(self, **kwargs):
         """Returns new DBO. Requires ctx and txn.
 
-        All the method args and keywords will be passed to the constructor.
+        All keyword args will be passed to the constructor.
 
         :keyword txn: Transaction
         :return: New DBO
@@ -463,7 +458,7 @@ class CollectionDB(object):
         item = self.dataclass(**kwargs)
 
         for i in inherit:
-            # Allow to raise an exception if does not exist or cannot read.
+            # Raise an exception if does not exist or cannot read.
             i = self.get(i, filt=False, ctx=ctx, txn=txn)
             if i.get('permissions'):
                 item.addumask(i.get('permissions'))
@@ -650,8 +645,11 @@ class CollectionDB(object):
         """
         return emen2.db.query.Query(constraints=c, mode=mode, subset=subset, ctx=ctx, txn=txn, btree=self)
     
-    def find(self, param, key, maxkey=None, op='==', count=100, ctx=None, txn=None, cursor=None):
-        return self._getindex(param).find(key=key, maxkey=maxkey, op=op, txn=txn)
+    def find(self, param, key, maxkey=None, op='==', count=100, ctx=None, txn=None):
+        index = self._getindex(param) 
+        if index is None:
+            return None
+        return index.find(key=key, maxkey=maxkey, op=op, txn=txn)
 
     def rebuild_indexes(self, ctx=None, txn=None):
         return
@@ -991,7 +989,7 @@ class Index(object):
             self.keyload = float
         else:
             raise Exception, "Unknown keyformat: %s"%self.vtc.keyformat
-        print "vartype:", vartype, vartype_iter, self.vtc, self.vtc.keyformat
+        # print "vartype:", vartype, vartype_iter, self.vtc, self.vtc.keyformat
 
         self.open()    
 
@@ -1009,7 +1007,7 @@ class Index(object):
         self.bdb.set_flags(bsddb3.db.DB_DUP)
         self.bdb.set_flags(bsddb3.db.DB_DUPSORT)
         if self.vtc.keyformat in ['float', 'int']:
-            print "setting comparison function for %s: %s"%(self.param, self.vtc.keyformat)
+            # print "setting comparison function for %s: %s"%(self.param, self.vtc.keyformat)
             self.bdb.set_bt_compare(self._cmpfunc)
         self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
 
@@ -1029,9 +1027,12 @@ class Index(object):
         else:
             parent.bdb.associate(self.bdb, self._indexfunc_str)
 
+    # These could be in the Vartypes, but they are too critical
+    # and sensitive, so I'll put them here in the driver.
+    
     def _cmpfunc(self, k1, k2):
         # Numeric comparison function, for BTree key comparison.
-        print "... comparing:", k1, k2
+        # print "... comparing:", k1, k2
         return cmp(self.keyload(k1 or '0'), self.keyload(k2 or '0'))
 
     def _indexfunc_str(self, key, data):
@@ -1042,18 +1043,18 @@ class Index(object):
             return
         for i in unicode(value).split(" "):
             ret.add(self.keydump(i))
-        print "... indexfunc_str %s: %s -> %s"%(self.param, value, list(ret))
+        # print "... indexfunc_str %s: %s -> %s"%(self.param, value, list(ret))
         return list(ret)
 
     def _indexfunc_iter(self, key, data):
         value = pickle.loads(data).data.get(self.param)
         ret = set()
+        if value is None:
+            return
         for v in value:
-            if v is None:
-                continue
             for i in unicode(v).split(" "):
                 ret.add(self.keydump(i))
-        print "... indexfunc_iter %s: %s -> %s"%(self.param, value, list(ret))
+        # print "... indexfunc_iter %s: %s -> %s"%(self.param, value, list(ret))
         return list(ret)
         
     def _indexfunc_acl(self, key, data):
@@ -1064,7 +1065,7 @@ class Index(object):
         for i in value:
             for j in i:
                 ret.add(self.keydump(j))
-        print "... indexfunc_acl %s: %s -> %s"%(self.param, value, list(ret))
+        # print "... indexfunc_acl %s: %s -> %s"%(self.param, value, list(ret))
         return list(ret)
 
     def addrefs(self):
@@ -1124,9 +1125,9 @@ class Index(object):
         elif op == '<':
             r = self._pget_lt(key, cursor)            
         elif op == '==':
-            r = self._pget_eq(key, cursor)
+            r = self._pget_is(key, cursor)
         elif op == '!=':
-            r = self._pget_noteq(key, cursor)        
+            r = self._pget_not(key, cursor)        
         elif op == 'any':
             r = self._pget_any(key, cursor)
         else:
@@ -1156,7 +1157,7 @@ class Index(object):
             c = m()
         return r
 
-    def _pget_eq(self, key, cursor):
+    def _pget_is(self, key, cursor):
         r = set()
         c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET)
         while c:
@@ -1168,7 +1169,8 @@ class Index(object):
         r = set()
         # This only works with strings.
         c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
-        while c and c[0].startswith(key):
+        k = self.keydump(key)
+        while c and c[0].startswith(k):
             r.add(c[1])
             c = cursor.pget(flags=bsddb3.db.DB_NEXT)
         return r
@@ -1214,11 +1216,12 @@ class Index(object):
             c = cursor.pget(flags=bsddb3.db.DB_NEXT)
         return r
     
-    def _pget_noteq(self, key, cursor):
+    def _pget_not(self, key, cursor):
         r = set()
         c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+        kd = self.keydump(key)
         while c:
-            if self.keyload(c[0]) != key:
+            if c[0] != kd:
                 r.add(c[1])
             c = cursor.pget(flags=bsddb3.db.DB_NEXT)
         return r

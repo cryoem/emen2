@@ -8,6 +8,7 @@ import shutil
 import time
 import traceback
 import hashlib
+import uuid
 
 def randword(length=10):
     s = string.lowercase + string.digits
@@ -15,6 +16,7 @@ def randword(length=10):
     return ''.join(data)
 
 PASSWORD = randword()
+print "Using password:", PASSWORD
 
 ######################################
 from emen2.db.exceptions import *
@@ -1379,21 +1381,21 @@ class RelFind(Test):
         assert not found ^ expect
         self.ok('link parent', len(found))
 
-        found = self.db.rel.find(rec.name, 'paramdef', vartype='user')
-        expect = set(['creator', 'modifyuser', pd.name, pd_iter.name])
-        assert not found ^ expect
-        self.ok('secondary search 1 -- paramdef[vartype=user]', len(found))
-
-        found = self.db.rel.find(rec.name, 'paramdef', vartype='datetime')
-        expect = set(['creationtime', 'modifytime'])
-        assert not found ^ expect
-        self.ok('secondary search 2 -- paramdef[vartype=datetime]', len(found))
-
-        found = self.db.rel.find(rec.name, 'user', name_first='Edmund')
-        expect = set([user.name])
-        assert not found ^ expect
-        self.ok('secondary search 3 -- user[name_first=Edmund]', len(found))
-
+        # found = self.db.rel.find(rec.name, vartype='paramdef', vartype='user')
+        # expect = set(['creator', 'modifyuser', pd.name, pd_iter.name])
+        # assert not found ^ expect
+        # self.ok('secondary search 1 -- paramdef[vartype=user]', len(found))
+        # 
+        # found = self.db.rel.find(rec.name, 'paramdef', vartype='datetime')
+        # expect = set(['creationtime', 'modifytime'])
+        # assert not found ^ expect
+        # self.ok('secondary search 2 -- paramdef[vartype=datetime]', len(found))
+        # 
+        # found = self.db.rel.find(rec.name, 'user', name_first='Edmund')
+        # expect = set([user.name])
+        # assert not found ^ expect
+        # self.ok('secondary search 3 -- user[name_first=Edmund]', len(found))
+        # 
         # TODO
         # found = self.db.rel.find(rec.name, 'binary')
         # expect = set()
@@ -1447,6 +1449,82 @@ class Render(Test):
 
 @register
 class DebugIndex(Test):
+    """Verify the secondary indexes and search are working."""
+    def check(self, found, expect):
+        for i,j in zip(sorted(found), sorted(expect)):
+            # print i, "==", j
+            assert i == j
+
+    def check_ops(self, param, recs):
+        values = sorted(recs.keys())
+        spotcheck = [
+            min(values), 
+            max(values), 
+            values[1], 
+            values[-2], 
+            values[int(len(values)*0.25)], 
+            values[int(len(values)*0.5)], 
+            values[int(len(values)*0.75)]
+            ]
+        spotcheck = sorted(spotcheck)
+        
+        for spot in spotcheck:
+            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='>', txn=self.db._txn)
+            expect = [i for i in values if i > spot]
+            found = [i[param] for i in self.db.record.get(r)]
+            self.check(found, expect)
+        self.ok("gt")
+
+        for spot in spotcheck:
+            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='>=', txn=self.db._txn)
+            expect = [i for i in values if i >= spot]
+            found = [i[param] for i in self.db.record.get(r)]
+            self.check(found, expect)
+        self.ok("gte")
+
+        for spot in spotcheck:
+            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='<', txn=self.db._txn)
+            expect = [i for i in values if i < spot]
+            found = [i[param] for i in self.db.record.get(r)]
+            self.check(found, expect)
+        self.ok("lt")
+
+        for spot in spotcheck:
+            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='<=', txn=self.db._txn)
+            expect = [i for i in values if i <= spot]
+            found = [i[param] for i in self.db.record.get(r)]
+            self.check(found, expect)
+        self.ok("lte")
+
+        for spot in spotcheck:
+            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='==', txn=self.db._txn)
+            expect = [i for i in values if i == spot]
+            found = [i[param] for i in self.db.record.get(r)]
+            self.check(found, expect)
+        self.ok("is")
+
+        for spot in spotcheck:
+            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='!=', txn=self.db._txn)
+            expect = [i for i in values if i != spot]
+            found = [i[param] for i in self.db.record.get(r)]
+            self.check(found, expect)
+        self.ok("not")
+
+        for spot1, spot2 in zip(spotcheck[:-1], spotcheck[1:]):
+            r = self.db._db.dbenv['record'].find(param=param, key=spot1, maxkey=spot2, op='range', txn=self.db._txn)
+            expect = [i for i in values if spot1 <= i <= spot2]
+            found = [i[param] for i in self.db.record.get(r)]
+            self.check(found, expect)
+        self.ok("range")        
+
+        for spot in spotcheck:
+            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='any', txn=self.db._txn)
+            expect = [i for i in values]
+            found = [i[param] for i in self.db.record.get(r)]
+            self.check(found, expect)
+        self.ok("any")
+
+
     @test
     def debugindex1(self):
         pd = self.db.paramdef.new(vartype="string", desc_short=randword())
@@ -1457,69 +1535,52 @@ class DebugIndex(Test):
         self.ok(pd.name)
     
     @test
-    def debugindex2(self):
+    def debugindex_int(self):
         pd = self.db.paramdef.new(vartype='int', desc_short=randword())
         pd = self.db.paramdef.put(pd)
         recs = {}
-        for i in range(100):
+        for i in range(-100, 100):
+            rec = self.db.record.new(rectype='root')
+            rec[pd.name] = i
+            rec = self.db.record.put(rec)
+            recs[i] = rec
+        self.check_ops(pd.name, recs)
+
+    @test
+    def debugindex_float(self):
+        pd = self.db.paramdef.new(vartype='float', desc_short=randword())
+        pd = self.db.paramdef.put(pd)
+        recs = {}
+        for i in range(-100, 100):
+            i = i * 0.25
+            rec = self.db.record.new(rectype='root')
+            rec[pd.name] = i
+            rec = self.db.record.put(rec)
+            recs[i] = rec
+        self.check_ops(pd.name, recs)
+
+    @test
+    def debugindex_string(self):
+        pd = self.db.paramdef.new(vartype='string', desc_short=randword())
+        pd = self.db.paramdef.put(pd)
+        recs = {}
+        for i in range(200):
+            i = randword()
             rec = self.db.record.new(rectype='root')
             rec[pd.name] = i
             rec = self.db.record.put(rec)
             recs[i] = rec
 
-        print "GT 50"
-        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='>', txn=self.db._txn)
-        found = [i[pd.name] for i in self.db.record.get(r)]
-        assert min(found) == 51
-        assert max(found) == 99
-        assert len(found) == 49
-
-        print "GTE 50"
-        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='>=', txn=self.db._txn)
-        found = [i[pd.name] for i in self.db.record.get(r)]
-        assert min(found) == 50
-        assert max(found) == 99
-        assert len(found) == 50
-
-        print "LT 50"
-        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='<', txn=self.db._txn)
-        found = [i[pd.name] for i in self.db.record.get(r)]
-        print found
-        assert min(found) == 0
-        assert max(found) == 49
-        assert len(found) == 50
-
-        print "LTE 50"
-        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='<=', txn=self.db._txn)
-        found = [i[pd.name] for i in self.db.record.get(r)]
-        assert min(found) == 0
-        assert max(found) == 50
-        assert len(found) == 51
-
-        print "25 < x < 75"
-        r = self.db._db.dbenv['record'].find(param=pd.name, key=25, maxkey=75, op='range', txn=self.db._txn)
-        found = [i[pd.name] for i in self.db.record.get(r)]
-        print sorted(found), len(found)
-        assert min(found) == 25
-        assert max(found) == 75
-        assert len(found) == 51
-
-        print "x != 50"
-        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='!=', txn=self.db._txn)
-        found = [i[pd.name] for i in self.db.record.get(r)]
-        print found
-        assert min(found) == 0
-        assert max(found) == 99
-        assert len(found) == 99
-
-        print "x == 50"
-        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='==', txn=self.db._txn)
-        found = [i[pd.name] for i in self.db.record.get(r)]
-        print found
-        assert min(found) == 50
-        assert max(found) == 50
-        assert len(found) == 1
-
+        self.check_ops(pd.name, recs)
+            
+        import string
+        for spot in string.lowercase:
+            r = self.db._db.dbenv['record'].find(param=pd.name, key=spot, op='starts', txn=self.db._txn)
+            expect = [i for i in recs.keys() if i.startswith(spot)]
+            found = [i[pd.name] for i in self.db.record.get(r)]
+            self.check(found, expect)
+        self.ok("starts")
+            
 
 
 ######################################

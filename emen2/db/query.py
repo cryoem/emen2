@@ -16,7 +16,7 @@ ITEMSMAX = 1000000
 MAXTIME = 180.0
 
 # Synonyms
-synonyms = {
+SYNONYMS = {
     "is": "==",
     "not": "!=",
     "gte": ">=",
@@ -41,7 +41,7 @@ def getop(op):
         'noop': lambda y,x: True,
         'starts': lambda y,x: unicode(y).lower() in unicode(x).lower(),
     }
-    return ops[synonyms.get(op, op)]
+    return ops[SYNONYMS.get(op, op)]
 
 def keyformatconvert(keyformat, term):
     try:
@@ -65,161 +65,71 @@ class QueryMaxItems(Exception):
     pass
 
 class Constraint(object):
-    """Base Constraint"""
-    
+    """Base Constraint."""
     def __init__(self, param, op=None, term=None):
         # The constraint
         self.param = param
         self.op = op or '=='
-        self.term = term or ''
-
+        self.term = term
         # Parent query group
         self.p = None
         self.priority = 10
+        self.init()
 
-        # Param details
-        self.paramdef = None
-        self.index = None
+    def init(self):
+        pass
 
-                
-    def init(self, p):
-        """Bind the parent query group."""
+    def setparent(self, p):
         self.p = p
-
+    
     def run(self):        
-        # Run the constraint
-        # print "\nrunning:", self.param, self.op, self.term, '(ind:%s)'%self.index, '(prev found:%s)'%len(self.p.result or [])
-        # t = time.time()
-        f = self._run()
-        # print "-> found: %s in %s"%(len(f or []), time.time()-t)
-
-        # Check for negative operators
-        if self.op == 'noop':
-            # If op is 'noop', return None (no constraint)
-            return None
-        return f
-
-    def _run(self):
+        return None
+        
+class NoopConstraint(Constraint):
+    def run(self):
         return None
 
-class IndexedConstraint(Constraint):
-    """Constraint that has an index."""
-    
-    def init(self, p):
-        super(IndexedConstraint, self).init(p)
-        self.priority = 1.0
-        try:
-            self.paramdef = self.p.btree.dbenv['paramdef'].get(self.param, filt=False, ctx=self.p.ctx, txn=self.p.txn)            
-            self.index = self.p.btree._getindex(self.param, txn=self.p.txn)
-            nkeys = 1 # self.index.bdb.stat(txn=self.p.txn)['ndata'] or 1 # avoid div by zero
-            self.priority = 1.0 - (1.0/nkeys)
-        except Exception, e:
-            # print "Error opening %s index:"%self.param, e
-            pass
-            
-class ParamConstraint(IndexedConstraint):
-    """Constraint based on a ParamDef"""
-    
-    def _run(self):
-        r = self.p.result
-        m = self.p.mode
-        if (m == 'AND' and r and len(r) < INDEXMIN) or self.index is None:
-            return self._run_items()
-        return self._run_index()
-
-    def _run_items(self):
-        self.p._cacheitems()
-        f = set()
-        cfunc = getop(self.op)
-        for item in self.p.items:
-            value = item.get(self.param)
-            if cfunc(self.term, value):
-                f.add(item.name)
-                self.p.cache[item.name][self.param] = value
-        return f
-    
-    def _run_index(self):
-        f = []
-        # Convert the term to the right type
-        keyformat = 's' # self.index.keyformat
-        term = keyformatconvert(keyformat, self.term)
-        
-        # If we're just looking for a single value
-        if self.op == '==':
-            items = self.index.get(term, txn=self.p.txn)
-            f.extend(items)
-            for i in items:
-                self.p.cache[i][self.param] = term
-            return set(f)
-
-        # Otherwise check constraint against all indexed values
-
-        # If the op is gt or gte, only check those keys..
-        # It is not necessary to pass more complicated instructions
-        # to iteritems because the returned keys will still be checked
-        # with the comparison function.
-        minkey = None
-        maxkey = None
-        if self.op in ['>', '>=']:
-            minkey = term
-        elif self.op in ['<', '<=']:
-            maxkey = term
-
-        cfunc = getop(self.op)
-        for key, items in self.index.iteritems(minkey=minkey, maxkey=maxkey, txn=self.p.txn):
-            if cfunc(term, key):
-                f.extend(items)
-                for i in items:
-                    self.p.cache[i][self.param] = key
-        if f is None:
-            return f
-        return set(f or [])
-
-class KeywordsConstraint(ParamConstraint):
-    def _run(self):
-        return self._run_index()    
-
-class RectypeConstraint(ParamConstraint):
-    """Rectype constraints."""
-
-    def _run(self):
-        f = None
-        terms = [self.term]
-        if self.term.endswith('*'):
-            terms = self.p.btree.dbenv['recorddef'].expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
-
-        for i in terms:
-            self.term = i # ugly; pass as argument in the future
-            f2 = super(RectypeConstraint, self)._run()
-            if f is None and f2:
-                f = list(f2)
-            elif f2:
-                f.extend(f2)
-        return set(f or [])
-
-class RelConstraint(IndexedConstraint):
+class RelConstraint(Constraint):
     """Relationship constraints."""
+    def init(self):
+        self.priority = 0 # run first
     
-    def init(self, p):
-        super(RelConstraint, self).init(p)
-        self.priority = -1 # run first
-    
-    def _run(self):
+    def run(self):
         # Relationships
         recurse = 1
         term = unicode(self.term)
         if term.endswith('*'):
             term = term.replace('*', '')
-            recurse = -1            
-
-        term = keyformatconvert(self.p.btree.keyformat, term)
+            recurse = -1 
         rel = self.p.btree.rel([term], recurse=recurse, ctx=self.p.ctx, txn=self.p.txn)
         return rel.get(term, set())
 
+class ParamConstraint(Constraint):
+    """Constraint based on a ParamDef."""
+    def init(self):
+        self.priority = 1
+
+    def run(self):
+        return self.p.btree.find(self.param, self.term, op=self.op)
+
+class RectypeConstraint(Constraint):
+    """Rectype constraints."""
+    def init(self):
+        self.priority = 2
+        
+    def run(self):
+        f = set()
+        recorddefs = [self.term]
+        term = unicode(self.term)
+        if term.endswith('*'):
+            recorddefs = self.p.btree.dbenv['recorddef'].expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
+        for recorddef in recorddefs:
+            f |= self.p.btree.find('rectype', recorddef, txn=self.p.txn)
+        return f
+
 class MacroConstraint(Constraint):
     """Macro constraints"""
-    
-    def _run(self):
+    def run(self):
         # Execute a macro
         f = set()
         # Fetch the items we need in the parent group.
@@ -250,14 +160,11 @@ class Query(object):
         self.starttime = time.time()
         
         # Subset
-        self.subset = subset
-        
+        self.subset = subset    
         # None or set() of query result
         self.result = None 
-              
         # boolean AND / OR
         self.mode = mode        
-
         # Items that were fetched for non-indexed constraints
         self.items = []            
         # Cache to hold values from constraint results
@@ -269,22 +176,17 @@ class Query(object):
         self.btree = btree
 
         # Constraint Groups can contain sub-groups: see also init(), run()
-        self.index = True        
         self.param = None    
         self.priority = 1
-
         # Make constraints
         self.constraints = []        
         for c in constraints:
             self.constraints.append(self._makeconstraint(*c))
             
-    def init(self, p):
-        pass
-        
     def run(self):
         # Start the clock
         t = time.time()
-
+        
         if self.subset is not None:
             # print "Restricting to subset:", self.subset
             self.result = self.btree.filter(set(self.subset), ctx=self.ctx, txn=self.txn)
@@ -296,13 +198,12 @@ class Query(object):
 
         # Filter by permissions
         if self.subset is None and not self.constraints:
-            self.result = self.btree.filter(None, ctx=self.ctx, txn=self.txn)
+            self.result = set()
         else:
             self.result = self.btree.filter(self.result or set(), ctx=self.ctx, txn=self.txn)
 
         # After all constraints have run, tidy up cache/items
-        self._prunecache()
-        self._pruneitems()        
+        self._prune()
 
         # Update the approx. running time.
         self.time += time.time() - t    
@@ -377,7 +278,7 @@ class Query(object):
         self.time += time.time() - t
         return result
 
-    ##### Results/Cache methods #####
+    ##### Results / Cache methods #####
     
     def _bool(self, f):
         # Add/remove items from results 
@@ -392,27 +293,23 @@ class Query(object):
         else:
             raise QuerySyntaxError, "Unknown boolean mode %s"%self.mode
 
-    def _prunecache(self):
+    def _prune(self):
         # Prune items from the cache that aren't in result set.
         if self.result is None:
             return
+
         keys = self.cache.keys()
         for key in keys:
             self.cache[key]['name'] = key
             if key not in self.result:
                 del self.cache[key]
-            
-    def _pruneitems(self):        
-        # Prune items that aren't in the result set.
-        if self.result is None:
-            return
+
         self.items = [i for i in self.items if i.name in self.result]
 
     def _cacheitems(self):
         # Get and cache items for direct comparison constraints.
-        # In OR constraints, self.items will be the domain of all possible matches
         if self.result is None and not self.items:
-            toget = self.btree.filter(None, ctx=self.ctx, txn=self.txn)
+            toget = set()
         else:
             toget = set() | self.result # copy
 
@@ -420,7 +317,7 @@ class Query(object):
         toget -= current
 
         if len(toget) > ITEMSMAX:
-            raise QueryMaxItems, "This type of constraint has a limit of 100000 items; tried to get %s. Try narrowing the search by adding additional parameters."%(len(toget))
+            raise QueryMaxItems, "This type of constraint has a limit of %s items; tried to get %s. Try narrowing the search by adding additional parameters."%(ITEMSMAX, len(toget))
 
         if toget:
             items = self.btree.gets(toget, ctx=self.ctx, txn=self.txn)
@@ -437,7 +334,7 @@ class Query(object):
         self.items.extend(items)
         
     def _makeconstraint(self, param, op='noop', term=''):
-        op = synonyms.get(op, op)
+        op = SYNONYMS.get(op, op)
         constraint = None
         # if param.startswith('$@'):
         if param.endswith(')'): # hacky
@@ -449,5 +346,5 @@ class Query(object):
             constraint = RectypeConstraint(param, op, term)
         else:
             constraint = ParamConstraint(param, op, term)
-        constraint.init(self)
+        constraint.setparent(self)
         return constraint

@@ -6,6 +6,8 @@
 {"name": "group", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/group/", "vartype": "group", "parents": ["core"], "desc_short": "Group"}
 {"name": "groups", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/groups/", "iter": true, "vartype": "group", "parents": ["core"], "desc_short": "Groups"}
 {"name": "binary", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/binary/", "vartype": "binary", "parents": ["core"], "desc_short": "Binary"}
+{"name": "parents", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/parents/", "vartype": "link", "parents": ["core"], "desc_short": "Parents"}
+{"name": "children", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/children/", "vartype": "link", "parents": ["core"], "desc_short": "Children"}
 {"parents": ["core"], "name": "keytype", "indexed": false, "vartype": "string", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/keytype/", "immutable": true, "desc_short": "Type", "desc_long": "Object type"}
 {"parents": ["core"], "name": "name", "indexed": false, "vartype": "string", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name/", "immutable": true, "desc_short": "ID", "desc_long": "Object ID"}
 {"name": "creator", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/creator/", "vartype": "user", "parents": ["core"], "immutable": true, "desc_short": "Created by", "desc_long": "The user that originally created the record"}

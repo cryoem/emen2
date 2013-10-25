@@ -418,14 +418,13 @@ class DB(object):
         query = filter(None, [i.strip() for i in unicode(query or '').split()])
         defaultparams = defaultparams or []
         found = None
-        op = "starts"
         cs = []
         for param,term in kwargs.items():
-            cs.append([[param, op, term]])
+            cs.append([[param, '==', term]])
         for term in query:
             c = []
             for param in defaultparams:
-                c.append([param, op, term])
+                c.append([param, 'starts', term])
             cs.append(c)
         for c in cs:
             r = set()
@@ -1286,18 +1285,28 @@ class DB(object):
 
     @publicmethod()
     @ol('names', output=False)
-    def rel_find(self, names, keytype='record', ctx=None, txn=None, **kwargs):
-        recs = self.dbenv['record'].gets(names, ctx=ctx, txn=txn, filt=None)
+    def rel_find(self, names, vartype='record', keytype='record', ctx=None, txn=None, **kwargs):
+        recs = self.dbenv[keytype].gets(names, ctx=ctx, txn=txn, filt=None)
         found = set()
         allparams = set()
         for rec in recs:
             allparams |= set(rec.keys())
 
-        if keytype == 'paramdef':
+        if vartype == 'paramdef':
             found = allparams
+        elif vartype == 'link':
+            # This is a hack _vv_
+            # Since they're no longer keys in the actual record...
+            # If you can access a record, you can read it's rel's
+            rn = [i.name for i in recs]
+            print "RN:", rn
+            for k,v in self.dbenv[keytype].children(rn, ctx=ctx, txn=txn).items():
+                found |= v
+            for k,v in self.dbenv[keytype].parents(rn, ctx=ctx, txn=txn).items():
+                found |= v
         else:
             params = self.dbenv['paramdef'].gets(allparams, ctx=ctx, txn=txn)
-            params = [param for param in params if param.vartype == keytype]
+            params = [param for param in params if param.vartype == vartype]
             for param in params:
                 for rec in recs:
                     value = rec.get(param.name)
@@ -1310,10 +1319,11 @@ class DB(object):
                     else:
                         found.add(value)
 
-        if kwargs:
-            second = self._find(keytype, ctx=ctx, txn=txn, **kwargs)
-            second = set([i.name for i in second])
-            found &= second
+        # Not sure about this...
+        # if kwargs:
+        #     second = self._find(vartype, ctx=ctx, txn=txn, **kwargs)
+        #     second = set([i.name for i in second])
+        #     found &= second
 
         return found
 

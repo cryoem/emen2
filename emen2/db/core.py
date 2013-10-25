@@ -13,6 +13,8 @@ core_paramdefs = [
 {"name": "group", "keytype": "paramdef","parents": ["core"], "vartype": "group", "desc_short": "Group"},
 {"name": "groups", "keytype": "paramdef","parents": ["core"], "vartype": "group", "iter": True, "desc_short": "Groups"},
 {"name": "binary", "keytype": "paramdef","parents": ["core"], "vartype": "binary", "desc_short": "Binary"},
+{"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "link", "desc_short": "Parents"},
+{"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "link", "desc_short": "Children"},
 
 # Common
 {"name": "keytype", "immutable": True, "keytype": "paramdef", "parents": ["core"], "indexed": False, "vartype": "string", "desc_short": "Type", "desc_long": "Object type"},
