@@ -79,8 +79,6 @@ base_paramdefs = [
 {"name": "date_occurred", "keytype": "paramdef", "parents": ["base"], "vartype": "datetime", "desc_short": "Date occurred"},
 {"name": "name_folder", "keytype": "paramdef", "vartype": "string", "parents": ["base"], "desc_short": "Folder name"},
 {"name": "folder_description", "keytype": "paramdef", "vartype": "string", "parents": ["base"], "desc_short": "Description"},
-{"name": "person_photo", "keytype": "paramdef", "vartype": "binary", "parents": ["base"], "desc_short": "Profile photo"},
-
 {'desc_short': 'Project title', 'keytype': 'paramdef', 'name': 'name_project', 'parents': ['base'], 'vartype': 'string'},
 
 {'choices': ['Rejected',
@@ -145,6 +143,7 @@ base_paramdefs = [
 'vartype': 'text'
 },
 
+{"name": "person_photo", "keytype": "paramdef", "vartype": "binary", "parents": ["base"], "desc_short": "Profile photo"},
 {"name": "name_group", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Group name"},
 {"name": "department", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Department"},
 {"name": "institution", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Institution"},

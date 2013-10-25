@@ -1198,7 +1198,9 @@ class DB(object):
                 key = '%s(%s)'%(match.group('name'), match.group('args') or '')
             # Replace the values.
             for name, rec in recs.items():
-                ret[name] = ret[name].replace(match.groups()[0], rec.get(key, ''))
+                print name, rec, match.groups()[0], key, ret[name]
+                v = unicode(rec.get(key, ''))
+                ret[name] = ret[name].replace(match.groups()[0], v)
         return ret
 
     @publicmethod()

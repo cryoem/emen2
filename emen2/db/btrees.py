@@ -700,7 +700,7 @@ class CollectionDB(object):
         for key in names:
             if key.endswith('*'):
                 key = key.replace('*','')
-                add |= self.rel([key], rel='children', recurse=-1, ctx=ctx, txn=txn).get(key, set())
+                keys |= self.rel([key], rel='children', recurse=-1, ctx=ctx, txn=txn).get(key, set())
             keys.add(key)
         return keys
 
