@@ -50,6 +50,7 @@ core_paramdefs = [
 {"name": "name_first", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "First name"},
 {"name": "name_middle", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Middle name"},
 {"name": "name_last", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Last name"},
+{"name": "displayname", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Display name"},
 
 # Record
 {"name": "rectype", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol"},

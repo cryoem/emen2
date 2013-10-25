@@ -2182,7 +2182,8 @@ class DB(object):
 
     @publicmethod()
     def record_find(self, **kwargs):
-        raise NotImplementedError
+        defaultparams = ['rectype']
+        return self._find('record', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
 
     @publicmethod(write=True, compat="hiderecord")
     @ol('names')
@@ -2226,8 +2227,8 @@ class DB(object):
         for rec in recs:
             rec.setpermissions([[],[],[],[]])
             rec.setgroups([])
-            children = self.dbenv['record'].find('children', rec.name, ctx=ctx, txn=txn)
-            parents = self.dbenv['record'].find('parents', rec.name, ctx=ctx, txn=txn)
+            children = self.dbenv['record'].children([rec.name], ctx=ctx, txn=txn)[rec.name]
+            parents = self.dbenv['record'].parents([rec.name], ctx=ctx, txn=txn)[rec.name]
             if parents and children:
                 rec["comments"] = "Record hidden by unlinking from parents %s and children %s"%(", ".join([unicode(x) for x in parents]), ", ".join([unicode(x) for x in children]))
             elif parents:

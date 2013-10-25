@@ -48,7 +48,7 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
         super(Group, self).init(d)
         self.data['disabled'] = False
         self.data['displayname'] = None
-        self.data['privacy'] = True
+        self.data['privacy'] = 0
 
     # Groups are readable by anyone.
     def readable(self):

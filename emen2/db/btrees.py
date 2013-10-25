@@ -283,234 +283,6 @@ class EMEN2DBEnv(object):
             v.rebuild_indexes(ctx=ctx, txn=txn)
 
 
-class Index(object):
-    # A secondary index. Also used for relationships.
-    def __init__(self, filename=None, keytype=None, param=None, vartype=None, vartype_iter=None, dbenv=None):
-        # Indexed parameter details
-        self.keytype = keytype
-        self.param = param
-        self.vartype = vartype
-        self.vartype_iter = vartype_iter
-        self.keydump = lambda x:unicode(x).lower().encode('utf-8')
-        self.keyload = lambda x:x.decode('utf-8')
-        self.dataload = lambda x:x.decode('utf-8')
-
-        # Filename, DBENV, BDB handle.
-        self.filename = filename or os.path.join(self.keytype, '%s.%s.index'%(keytype, param))
-        self.dbenv = dbenv
-        self.bdb = None
-        self.open()    
-
-    def open(self):
-        """Open the DB. This uses an implicit open transaction."""
-        if self.bdb:
-            raise Exception, "DB already open."
-        emen2.db.log.debug("BDB: %s open"%self.filename)
-        flags = 0
-        flags |= bsddb3.db.DB_AUTO_COMMIT 
-        flags |= bsddb3.db.DB_CREATE 
-        flags |= bsddb3.db.DB_THREAD
-        flags |= bsddb3.db.DB_MULTIVERSION        
-        self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
-        self.bdb.set_flags(bsddb3.db.DB_DUP)
-        self.bdb.set_flags(bsddb3.db.DB_DUPSORT)
-        self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
-
-    def close(self):
-        """Close the DB."""
-        emen2.db.log.debug("BDB: %s close"%self.filename)
-        self.bdb.close()
-        self.bdb = None
-        
-    def associate(self, parent):
-        # if not self.bdb:
-        #     raise Exception, "DB must be open before association."
-        parent.bdb.associate(self.bdb, self.indexfunc)
-
-    def indexfunc(self, key, data):
-        value = pickle.loads(data).data.get(self.param)
-        ret = set()
-        # if self.vartype_iter:
-        if hasattr(value, "__iter__"):
-            for v in value:
-                if v is None:
-                    continue
-                for i in unicode(v).split(" "):
-                    ret.add(self.keydump(i))
-        else:
-            if value is None:
-                return
-            for i in unicode(value).split(" "):
-                ret.add(self.keydump(i))
-        print "... indexed %s: %s -> %s"%(self.param, value, ret)
-        return list(ret)
-
-    def addrefs(self):
-        pass
-    
-    def removerefs(self):
-        pass
-
-    def bfs(self, key, recurse=1, txn=None):
-        # (Internal) Relationships
-        # Check max recursion depth
-        maxrecurse = emen2.db.config.get('params.maxrecurse')
-        if recurse < 0:
-            recurse = maxrecurse
-        if recurse > maxrecurse:
-            recurse = maxrecurse
-
-        # Starting items
-        cursor = self.bdb.cursor(txn=txn)
-        new = self._get_cursor(key, cursor)
-        tovisit = [new]
-        result = {key: new}
-        visited = set()
-        lookups = []
-        for x in xrange(recurse-1):
-            if not tovisit[x]:
-                break
-            tovisit.append(set())
-            for key in tovisit[x] - visited:
-                new = self._get_cursor(key, cursor)
-                if new:
-                    tovisit[x+1] |= new
-                    result[key] = new
-            visited |= tovisit[x]
-
-        visited |= tovisit[-1]
-        cursor.close()
-        return result, visited        
-
-    def find(self, key, maxkey=None, op='==', count=100, txn=None):
-        # This is the neat new index search.
-        # This doesn't filter for security.
-        emen2.db.log.debug("BDB: %s %s index %s %s"%(self.filename, self.param, op, key))        
-        key = unicode(key).lower()
-
-        # I don't like "case switches", but it will do.
-        r = set()
-        cursor = self.bdb.cursor(txn=txn)
-        if op == 'starts':
-            r = self._pget_starts(key, cursor)
-        elif op == 'range':
-            r = self._pget_range(key, maxkey, cursor)
-        elif op == '>=':
-            r = self._pget_gte(key, cursor)            
-        elif op == '>':
-            r = self._pget_gt(key, cursor)            
-        elif op == '<=':
-            r = self._pget_lte(key, cursor)            
-        elif op == '<':
-            r = self._pget_gt(key, cursor)            
-        elif op == '==':
-            r = self._pget_eq(key, cursor)
-        elif op == '!=':
-            r = self._pget_noteq(key, cursor)        
-        elif op == 'any':
-            r = self._pget_any(key, cursor)
-        else:
-            raise Exception, "Unsupported operator for index searches."                
-        cursor.close()
-        return r
-
-    ##### Begin a bunch of repetitive code to iterate through cursor in various ways #####
-    
-    def get(self, key, txn=None):
-        cursor = index.cursor(txn=txn)        
-        r = set()
-        c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
-        m = cursor.next_dup
-        while c:
-            r.add(c[1])
-            n = m()
-        cursor.close()
-        return r
-
-    def _get_cursor(self, key, cursor):        
-        r = set()
-        c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
-        m = cursor.next_dup
-        while c:
-            r.add(c[1])
-            c = m()
-        return r
-
-    def _pget_eq(self, key, cursor):
-        r = set()
-        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET)
-        while c:
-            r.add(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
-        return r
-    
-    def _pget_starts(self, key, cursor):
-        r = set()
-        # This only works with strings.
-        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
-        while c and c[0].startswith(key):
-            r.add(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
-        return r
-        
-    def _pget_range(self, minkey, maxkey, cursor):
-        r = set()
-        c = cursor.pget(self.keydump(minkey), flags=bsddb3.db.DB_SET_RANGE)
-        while c and self.keyload(c[0]) <= maxkey:
-            r.add(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
-        return r
-
-    def _pget_gte(self, key, cursor):
-        r = set()
-        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
-        while c:
-            r.add(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
-        return r
-
-    def _pget_gt(self, key, cursor):
-        r = set()
-        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
-        while c:
-            if self.keyload(c[0]) > key:
-                r.add(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
-        return r
-
-    def _pget_lte(self, key, cursor):
-        r = set()
-        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
-        while c and self.keyload(c[0]) <= key:
-            r.add(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
-        return r
-
-    def _pget_lt(self, key, cursor):
-        r = set()
-        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
-        while c and self.keyload(c[0]) < key:
-            r.add(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
-        return r
-    
-    def _pget_noteq(self, key, cursor):
-        r = set()
-        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
-        while c:
-            if self.keyload(c[0]) != key:
-                r.add(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
-        return r
-
-    def _pget_any(self, key, cursor):
-        r = set()
-        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
-        while c:
-            r.add(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
-        return r
-
 # Context-aware DB for Database Objects.
 # These support a single DB and a single data class.
 # Supports sequenced items.
@@ -643,6 +415,9 @@ class CollectionDB(object):
     def _getrel(self, param, txn=None):
         if param in self.rels:
             return self.rels.get(param)
+        if param not in ['parents', 'children']:
+            self.rels[param] = None
+            return None
         index = Index(keytype=self.keytype, param=param, dbenv=self.dbenv)
         self.rels[param] = index
         return index
@@ -650,7 +425,22 @@ class CollectionDB(object):
     def _getindex(self, param, txn=None):
         if param in self.indexes:
             return self.indexes.get(param)
-        index = Index(keytype=self.keytype, param=param, dbenv=self.dbenv)
+            
+        # Check that it's an indexed vartype...
+        try:
+            pd = self.dbenv["paramdef"]._get_data(param, txn=txn)
+        except KeyError:
+            # Leave the opportunity to try and open again later...
+            # self.indexes[param] = None
+            return None
+        vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd)
+        tp = vartype.keyformat
+        if not pd.indexed or not tp:
+            self.indexes[param] = None
+            return None
+
+        # Open and associate the secondary index.
+        index = Index(keytype=self.keytype, param=param, dbenv=self.dbenv, vartype=pd.vartype, vartype_iter=pd.iter)
         index.associate(self)
         self.indexes[param] = index
         return index
@@ -861,8 +651,7 @@ class CollectionDB(object):
         return emen2.db.query.Query(constraints=c, mode=mode, subset=subset, ctx=ctx, txn=txn, btree=self)
     
     def find(self, param, key, maxkey=None, op='==', count=100, ctx=None, txn=None, cursor=None):
-        index = self._getindex(param)
-        return index.find(key=key, maxkey=maxkey, op=op, txn=txn)
+        return self._getindex(param).find(key=key, maxkey=maxkey, op=op, txn=txn)
 
     def rebuild_indexes(self, ctx=None, txn=None):
         return
@@ -1173,4 +962,272 @@ class NewUserDB(CollectionDB):
         if not ctx or not ctx.checkadmin():
             raise emen2.db.exceptions.PermissionsError("Admin rights needed to view user queue")
         return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
+
+
+
+
+class Index(object):
+    # A secondary index. Also used for relationships.
+    def __init__(self, filename=None, keytype=None, param=None, vartype='str', vartype_iter=False, dbenv=None):
+        # Filename, DBENV, BDB handle.
+        self.keytype = keytype
+        self.param = param
+        self.filename = filename or os.path.join(self.keytype, '%s.%s.index'%(keytype, param))
+        self.dbenv = dbenv
+        self.bdb = None
+
+        # Index settings.
+        self.vartype = vartype
+        self.vartype_iter = vartype_iter
+        self.vtc = emen2.db.vartypes.Vartype.get_vartype(vartype)
+        if self.vtc.keyformat == 'str':
+            self.keydump = lambda x:unicode(x).lower().encode('utf-8')
+            self.keyload = lambda x:x.decode('utf-8')
+        elif self.vtc.keyformat == 'int':
+            self.keydump = str
+            self.keyload = int
+        elif self.vtc.keyformat == 'float':
+            self.keydump = str
+            self.keyload = float
+        else:
+            raise Exception, "Unknown keyformat: %s"%self.vtc.keyformat
+        print "vartype:", vartype, vartype_iter, self.vtc, self.vtc.keyformat
+
+        self.open()    
+
+    def open(self):
+        """Open the DB. This uses an implicit open transaction."""
+        if self.bdb:
+            raise Exception, "DB already open."
+        emen2.db.log.debug("BDB: %s open"%self.filename)
+        flags = 0
+        flags |= bsddb3.db.DB_AUTO_COMMIT 
+        flags |= bsddb3.db.DB_CREATE 
+        flags |= bsddb3.db.DB_THREAD
+        flags |= bsddb3.db.DB_MULTIVERSION        
+        self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
+        self.bdb.set_flags(bsddb3.db.DB_DUP)
+        self.bdb.set_flags(bsddb3.db.DB_DUPSORT)
+        if self.vtc.keyformat in ['float', 'int']:
+            print "setting comparison function for %s: %s"%(self.param, self.vtc.keyformat)
+            self.bdb.set_bt_compare(self._cmpfunc)
+        self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
+
+    def close(self):
+        """Close the DB."""
+        emen2.db.log.debug("BDB: %s close"%self.filename)
+        self.bdb.close()
+        self.bdb = None
+        
+    def associate(self, parent):
+        # if not self.bdb:
+        #     raise Exception, "DB must be open before association."
+        if self.vartype == 'acl':
+            parent.bdb.associate(self.bdb, self._indexfunc_acl)
+        elif self.vartype_iter:
+            parent.bdb.associate(self.bdb, self._indexfunc_iter)                   
+        else:
+            parent.bdb.associate(self.bdb, self._indexfunc_str)
+
+    def _cmpfunc(self, k1, k2):
+        # Numeric comparison function, for BTree key comparison.
+        print "... comparing:", k1, k2
+        return cmp(self.keyload(k1 or '0'), self.keyload(k2 or '0'))
+
+    def _indexfunc_str(self, key, data):
+        # Return indexed keys.
+        value = pickle.loads(data).data.get(self.param)
+        ret = set()
+        if value is None:
+            return
+        for i in unicode(value).split(" "):
+            ret.add(self.keydump(i))
+        print "... indexfunc_str %s: %s -> %s"%(self.param, value, list(ret))
+        return list(ret)
+
+    def _indexfunc_iter(self, key, data):
+        value = pickle.loads(data).data.get(self.param)
+        ret = set()
+        for v in value:
+            if v is None:
+                continue
+            for i in unicode(v).split(" "):
+                ret.add(self.keydump(i))
+        print "... indexfunc_iter %s: %s -> %s"%(self.param, value, list(ret))
+        return list(ret)
+        
+    def _indexfunc_acl(self, key, data):
+        value = pickle.loads(data).data.get(self.param)
+        ret = set()
+        if value is None:
+            return
+        for i in value:
+            for j in i:
+                ret.add(self.keydump(j))
+        print "... indexfunc_acl %s: %s -> %s"%(self.param, value, list(ret))
+        return list(ret)
+
+    def addrefs(self):
+        pass
+    
+    def removerefs(self):
+        pass
+
+    def bfs(self, key, recurse=1, txn=None):
+        # (Internal) Relationships
+        # Check max recursion depth
+        maxrecurse = emen2.db.config.get('params.maxrecurse')
+        if recurse < 0:
+            recurse = maxrecurse
+        if recurse > maxrecurse:
+            recurse = maxrecurse
+
+        # Starting items
+        cursor = self.bdb.cursor(txn=txn)
+        new = self._get_cursor(key, cursor)
+        tovisit = [new]
+        result = {key: new}
+        visited = set()
+        lookups = []
+        for x in xrange(recurse-1):
+            if not tovisit[x]:
+                break
+            tovisit.append(set())
+            for key in tovisit[x] - visited:
+                new = self._get_cursor(key, cursor)
+                if new:
+                    tovisit[x+1] |= new
+                    result[key] = new
+            visited |= tovisit[x]
+
+        visited |= tovisit[-1]
+        cursor.close()
+        return result, visited        
+
+    def find(self, key, maxkey=None, op='==', count=100, txn=None):
+        # This is the neat new index search.
+        # This doesn't filter for security.
+        emen2.db.log.debug("BDB: %s %s index %s %s"%(self.filename, self.param, op, key))        
+        # I don't like "case switches", but it will do.
+        r = set()
+        cursor = self.bdb.cursor(txn=txn)
+        if op == 'starts':
+            r = self._pget_starts(key, cursor)
+        elif op == 'range':
+            r = self._pget_range(key, maxkey, cursor)
+        elif op == '>=':
+            r = self._pget_gte(key, cursor)            
+        elif op == '>':
+            r = self._pget_gt(key, cursor)            
+        elif op == '<=':
+            r = self._pget_lte(key, cursor)            
+        elif op == '<':
+            r = self._pget_lt(key, cursor)            
+        elif op == '==':
+            r = self._pget_eq(key, cursor)
+        elif op == '!=':
+            r = self._pget_noteq(key, cursor)        
+        elif op == 'any':
+            r = self._pget_any(key, cursor)
+        else:
+            raise Exception, "Unsupported operator for index searches."                
+        cursor.close()
+        return r
+
+    ##### Begin a bunch of repetitive code to iterate through cursor in various ways #####
+    
+    def get(self, key, txn=None):
+        cursor = index.cursor(txn=txn)        
+        r = set()
+        c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
+        m = cursor.next_dup
+        while c:
+            r.add(c[1])
+            n = m()
+        cursor.close()
+        return r
+
+    def _get_cursor(self, key, cursor):        
+        r = set()
+        c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
+        m = cursor.next_dup
+        while c:
+            r.add(c[1])
+            c = m()
+        return r
+
+    def _pget_eq(self, key, cursor):
+        r = set()
+        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET)
+        while c:
+            r.add(c[1])
+            c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
+        return r
+    
+    def _pget_starts(self, key, cursor):
+        r = set()
+        # This only works with strings.
+        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
+        while c and c[0].startswith(key):
+            r.add(c[1])
+            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+        return r
+        
+    def _pget_range(self, minkey, maxkey, cursor):
+        r = set()
+        c = cursor.pget(self.keydump(minkey), flags=bsddb3.db.DB_SET_RANGE)
+        while c and self.keyload(c[0]) <= maxkey:
+            r.add(c[1])
+            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+        return r
+
+    def _pget_gte(self, key, cursor):
+        r = set()
+        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
+        while c:
+            r.add(c[1])
+            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+        return r
+
+    def _pget_gt(self, key, cursor):
+        r = set()
+        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
+        while c:
+            if self.keyload(c[0]) > key:
+                r.add(c[1])
+            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+        return r
+
+    def _pget_lte(self, key, cursor):
+        r = set()
+        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+        while c and self.keyload(c[0]) <= key:
+            r.add(c[1])
+            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+        return r
+
+    def _pget_lt(self, key, cursor):
+        r = set()
+        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+        while c and self.keyload(c[0]) < key:
+            r.add(c[1])
+            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+        return r
+    
+    def _pget_noteq(self, key, cursor):
+        r = set()
+        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+        while c:
+            if self.keyload(c[0]) != key:
+                r.add(c[1])
+            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+        return r
+
+    def _pget_any(self, key, cursor):
+        r = set()
+        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+        while c:
+            r.add(c[1])
+            c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
+        return r
 

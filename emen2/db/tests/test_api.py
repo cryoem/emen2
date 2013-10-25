@@ -170,30 +170,6 @@ class Ping(Test):
         self.ok()
 
 ######################################
-        
-# @register
-# class DebugDeadlock(Test):
-#     @test
-#     def debugdeadlock1(self):
-#         rec = self.db.paramdef.put(dict(vartype="string", desc_short=randword()))
-# 
-#     @test
-#     def debugdeadlock2(self):
-#         keys = self.db._db.dbenv['paramdef'].bdb.keys(self.db._txn)
-#         print "keys:", len(keys)
-
-# @register
-# class DebugIndex(Test):
-#     @test
-#     def debugindex(self):
-#         pd = self.db.paramdef.new(vartype="string", desc_short=randword())
-#         pd = self.db.paramdef.put(pd)
-#         for i in range(10):
-#             pd['desc_short'] = randword()
-#             pd = self.db.paramdef.put(pd)
-#         self.ok(pd.name)
-        
-######################################
 
 @register
 class NewUser(Test):
@@ -1457,6 +1433,97 @@ class Render(Test):
         raise TestNotImplemented
 
 ######################################
+        
+# @register
+# class DebugDeadlock(Test):
+#     @test
+#     def debugdeadlock1(self):
+#         rec = self.db.paramdef.put(dict(vartype="string", desc_short=randword()))
+# 
+#     @test
+#     def debugdeadlock2(self):
+#         keys = self.db._db.dbenv['paramdef'].bdb.keys(self.db._txn)
+#         print "keys:", len(keys)
+
+@register
+class DebugIndex(Test):
+    @test
+    def debugindex1(self):
+        pd = self.db.paramdef.new(vartype="string", desc_short=randword())
+        pd = self.db.paramdef.put(pd)
+        for i in range(10):
+            pd['desc_short'] = randword()
+            pd = self.db.paramdef.put(pd)
+        self.ok(pd.name)
+    
+    @test
+    def debugindex2(self):
+        pd = self.db.paramdef.new(vartype='int', desc_short=randword())
+        pd = self.db.paramdef.put(pd)
+        recs = {}
+        for i in range(100):
+            rec = self.db.record.new(rectype='root')
+            rec[pd.name] = i
+            rec = self.db.record.put(rec)
+            recs[i] = rec
+
+        print "GT 50"
+        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='>', txn=self.db._txn)
+        found = [i[pd.name] for i in self.db.record.get(r)]
+        assert min(found) == 51
+        assert max(found) == 99
+        assert len(found) == 49
+
+        print "GTE 50"
+        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='>=', txn=self.db._txn)
+        found = [i[pd.name] for i in self.db.record.get(r)]
+        assert min(found) == 50
+        assert max(found) == 99
+        assert len(found) == 50
+
+        print "LT 50"
+        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='<', txn=self.db._txn)
+        found = [i[pd.name] for i in self.db.record.get(r)]
+        print found
+        assert min(found) == 0
+        assert max(found) == 49
+        assert len(found) == 50
+
+        print "LTE 50"
+        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='<=', txn=self.db._txn)
+        found = [i[pd.name] for i in self.db.record.get(r)]
+        assert min(found) == 0
+        assert max(found) == 50
+        assert len(found) == 51
+
+        print "25 < x < 75"
+        r = self.db._db.dbenv['record'].find(param=pd.name, key=25, maxkey=75, op='range', txn=self.db._txn)
+        found = [i[pd.name] for i in self.db.record.get(r)]
+        print sorted(found), len(found)
+        assert min(found) == 25
+        assert max(found) == 75
+        assert len(found) == 51
+
+        print "x != 50"
+        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='!=', txn=self.db._txn)
+        found = [i[pd.name] for i in self.db.record.get(r)]
+        print found
+        assert min(found) == 0
+        assert max(found) == 99
+        assert len(found) == 99
+
+        print "x == 50"
+        r = self.db._db.dbenv['record'].find(param=pd.name, key=50, op='==', txn=self.db._txn)
+        found = [i[pd.name] for i in self.db.record.get(r)]
+        print found
+        assert min(found) == 50
+        assert max(found) == 50
+        assert len(found) == 1
+
+
+
+######################################
+
 
 if __name__ == "__main__":
     import emen2.db
@@ -1487,6 +1554,8 @@ if __name__ == "__main__":
 
         iteration += 1
         if not args.repeat:
+            break
+        elif iteration > 10:
             break
         else:
             print "======= ITERATION: %s =========="%iteration

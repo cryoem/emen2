@@ -196,36 +196,7 @@ class Vartype(object):
         """If the parameter is not iterable, return a single value."""
         if value and not self.pd.iter:
             return value.pop()
-        return value or None
-    
-    ##### Indexing #####
-
-    def reindex(self, items):
-        if not self.keyformat:
-            return {}, {}
-            
-        addrefs = collections.defaultdict(set)
-        delrefs = collections.defaultdict(set)
-        for name, new, old in items:
-            if new == old:
-                continue
-            if not self.pd.iter:
-                new=[new]
-                old=[old]
-
-            new = set(new or [])
-            old = set(old or [])
-            for n in new-old:
-                addrefs[n].add(name)
-            for o in old-new:
-                delrefs[o].add(name)
-
-        if None in addrefs:
-            del addrefs[None]
-        if None in delrefs:
-            del delrefs[None]
-
-        return addrefs, delrefs
+        return value or None    
 
     ##### Rendering #####
 
@@ -369,7 +340,6 @@ class vt_coordinate(Vartype):
 @Vartype.register('boolean')
 class vt_boolean(Vartype):
     """Boolean value. Accepts 0/1, True/False, T/F, Yes/No, Y/N, None."""
-    keyformat = 'int'
     def validate(self, value):
         t = ['t', 'y', 'yes', 'true', '1']
         f = ['f', 'n', 'no', 'false', 'none', '0']
@@ -807,25 +777,6 @@ class vt_acl(Vartype):
         users = reduce(lambda x,y:x+y, value)
         self._validate_reference(users, keytype='user')
         return value
-
-    def reindex(self, items):
-        addrefs = collections.defaultdict(list)
-        delrefs = collections.defaultdict(list)
-        for name, new, old in items:
-            nperms = set()
-            for i in new or []:
-                nperms |= set(i)
-            operms = set()
-            for i in old or []:
-                operms |= set(i)
-
-            for user in nperms - operms:
-                addrefs[user].append(name)
-
-            for user in operms - nperms:
-                delrefs[user].append(name)
-
-        return addrefs, delrefs
 
     def _form(self, value):
         return self._html(value)
