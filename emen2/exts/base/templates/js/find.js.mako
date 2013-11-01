@@ -46,7 +46,9 @@
 					names: this.options.name
           	  	}, 
 				function(item) {
-					emen2.caches[item.keytype][item.name] = item;
+					if (item) {
+                        emen2.caches[item.keytype][item.name] = item
+                    };
 					self._build();
 				}
 			);
@@ -55,12 +57,13 @@
         _build: function() {
             var self = this;
 			var item = emen2.caches[this.options.keytype][this.options.name];
-            if (!item) {
-                return
+            if (item) {
+    			// Run the builder.
+    			this['_build_'+this.options.keytype](item);
+            } else {
+    			this['_build_unknown'](item);            
             }
 
-			// Run the builder.
-			this['_build_'+this.options.keytype](item);
             
             // Set the box properties.
             this.element.addClass('e2-infobox');
@@ -119,7 +122,13 @@
 
             // Put it all together..
             this.options.built();
-        },        
+        },
+        
+        _build_unknown: function(item) {
+            // Item not found
+            this.options.title = this.options.name;
+            this.options.body = " ";
+        },
         
 		_build_user: function(item) {
             this.options.title = this.options.title || item.displayname || item.name;

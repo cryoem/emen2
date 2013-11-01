@@ -5,6 +5,7 @@ import collections
 import operator
 import hashlib
 import UserDict
+import json
 
 import emen2.utils
 import emen2.db.exceptions
@@ -69,12 +70,16 @@ class BaseDBObject(object):
     :classattr public: Public (exported) keys
     """
     
-    public = set(['keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name'])
+    public = set(['keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name', 'parents', 'children'])
 
     def __init__(self, **kwargs):
         """Initialize a new DBO."""
         self.data = {}
         self.new = True
+        # Backwards compat.
+        self.parents = []
+        self.children = []
+        # Init
         self.ctx = kwargs.pop('ctx', None)
         if kwargs:
             self.init(kwargs)
@@ -97,11 +102,11 @@ class BaseDBObject(object):
         data['modifytime'] = self.ctx.utcnow
         self.data = data
         
-    def load(self, d, ctx=None):
+    def load(self, d):
         """Load directly from JSON / dict."""
         self.new = False
         self.data = d
-        self.setContext(ctx)
+        return self
 
     def validate(self):
         """Validate."""
@@ -170,7 +175,6 @@ class BaseDBObject(object):
         return self.data.items()
 
     def update(self, update):
-        """Returns a set of keys that were updated."""
         for k,v in update.items():
             self.__setitem__(k, v)
         
@@ -250,18 +254,13 @@ class BaseDBObject(object):
         self._set(key, value, self.isnew())
 
     # ##### Update parents / children #####
-    # 
-    # def _set_children(self, key, value):
-    #     self._setrel(key, value)
-    # 
-    # def _set_parents(self, key, value):
-    #     self._setrel(key, value)
-    # 
-    # def _setrel(self, key, value):
-    #     """Set a relationship."""
-    #     value = sorted(map(self._strip, emen2.utils.check_iterable(value)))
-    #     self._set(key, value, self.writable())
-
+    # Backwards compat...
+    def _set_children(self, key, value):
+        self.data['children'] = sorted(map(self._strip, emen2.utils.check_iterable(value)))
+    
+    def _set_parents(self, key, value):
+        self.data['parents'] = sorted(map(self._strip, emen2.utils.check_iterable(value)))
+        
     ##### Pickle / serialize methods #####
 
     def __setstate__(self, data):
@@ -441,7 +440,7 @@ class PermissionsDBObject(BaseDBObject):
 
     def members(self):
         """Get all users with read permissions."""
-        return set(reduce(operator.concat, self.permissions))
+        return reduce(operator.concat, self.permissions)
 
     def owners(self):
         """Get all users with ownership permissions."""
@@ -555,6 +554,10 @@ class PermissionsDBObject(BaseDBObject):
 class PrivateDBO(object):
     def setContext(self, ctx=None):
         raise emen2.db.exceptions.PermissionsError("Private item.")
+    def load(self, d):
+        self.data = d
+        self.new = False
+        return self
 
 # History
 class History(PrivateDBO):

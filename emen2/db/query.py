@@ -110,7 +110,7 @@ class ParamConstraint(Constraint):
         self.priority = 1
 
     def run(self):
-        return self.p.btree.find(self.param, self.term, op=self.op)
+        return self.p.btree.find(self.param, self.term, op=self.op, txn=self.p.txn)
 
 class RectypeConstraint(Constraint):
     """Rectype constraints."""
@@ -133,26 +133,27 @@ class MacroConstraint(Constraint):
         # Execute a macro
         f = set()
         # Fetch the items we need in the parent group.
-        self.p._cacheitems()
+        items = self.p.btree.gets(self.p.result, ctx=self.p.ctx, txn=self.p.txn)
+        
         # Parse the macro and get the Macro class
         regex_k = re.compile(emen2.db.database.VIEW_REGEX_P, re.VERBOSE)
         k = regex_k.search(self.param)
         macro = emen2.db.macros.Macro.get_macro(k.group('name'), db=self.p.ctx.db, cache=self.p.ctx.cache)
         # Preprocess
-        macro.preprocess(k.group('args') or '', self.p.items)
+        macro.preprocess(k.group('args') or '', items)
         # Convert the term to the right type
         keyformat = macro.keyformat
         term = keyformatconvert(keyformat, self.term)
         # Run the comparison
         cfunc = getop(self.op)
-        for item in self.p.items:
+        for item in items:
             # Run the macro
             value = macro.process(k.group('args') or '', item)
             if cfunc(term, value):
                 f.add(item.name)
-                self.p.cache[item.name][self.param] = value
+                self.p.vcache[item.name][self.param] = value
         return f
-
+        
 class Query(object):
     def __init__(self, constraints, mode='AND', subset=None, ctx=None, txn=None, btree=None):
         self.time = 0.0
@@ -165,10 +166,8 @@ class Query(object):
         self.result = None 
         # boolean AND / OR
         self.mode = mode        
-        # Items that were fetched for non-indexed constraints
-        self.items = []            
         # Cache to hold values from constraint results
-        self.cache = collections.defaultdict(dict)
+        self.vcache = collections.defaultdict(dict)
 
         # Database details
         self.ctx = ctx
@@ -202,17 +201,14 @@ class Query(object):
         else:
             self.result = self.btree.filter(self.result or set(), ctx=self.ctx, txn=self.txn)
 
-        # After all constraints have run, tidy up cache/items
-        self._prune()
-
         # Update the approx. running time.
         self.time += time.time() - t    
         return self.result
 
     def sort(self, sortkey='name', reverse=False, pos=0, count=0, rendered=False):
         reverse = bool(reverse)
+        # Shortcut.
         if sortkey == 'name':
-            # Shortcut.
             sequence = emen2.db.config.get('record.sequence')
             if self.btree.keytype == 'record' and sequence:
                 result = sorted(self.result, reverse=reverse, key=lambda x:int(x))
@@ -225,52 +221,25 @@ class Query(object):
         # print "Sorting by: %s"%sortkey
         t = time.time()
 
-        # Make sure we have the values for sorting
+        # We don't have a constraint that matched the sortkey
+        # This does not change the constraint, just gets values.
         params = [i.param for i in self.constraints]
         if sortkey not in params:
-            # We don't have a constraint that matched the sortkey
-            # This does not change the constraint, just gets values.
             c = self._makeconstraint(sortkey, op='noop')
             c.run()
-            
-        # If the param is iterable, we need to get the actual values.
+
+        sortfunc = lambda x:self.vcache.get(x)
         pd = self.btree.dbenv['paramdef'].get(sortkey, ctx=self.ctx, txn=self.txn)
-        if pd and pd.iter:
-            self._checkitems(sortkey)
-
-        # Make a copy of the results
-        result = set() | (self.result or set())
-
-        # Sort function
-        sortvalues = {}
-        sortfunc = sortvalues.get
-        for i in result:
-            sortvalues[i] = self.cache[i].get(sortkey)
-
-        # Remove Nones
-        nones = set([i for i in result if sortvalues[i] is None])
-        result -= nones
-
-        # Get the data type of the paramdef..
-        if rendered and pd:
-            # Case-insensitive sort
-            vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype)  # don't need db/cache; just checking keytype
-            if vartype.keyformat == 'str':
-                for i in result:
-                    vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self.ctx.db, cache=self.ctx.cache, options={'lnf':1})
-                    sortvalues[i] = vartype.render(sortvalues[i])
-                sortfunc = lambda x:sortvalues[x].lower()
-                    
-        # Todo: Sort by the rendered value or the raw actual value?
-        result = sorted(result, key=sortfunc, reverse=reverse)        
-        
-        # Add Nones back in
-        nones = sorted(nones, reverse=reverse)
-        if reverse:
-            nones.extend(result)
-            result = nones
+        if pd:
+            # Fetch all the items... fix this.
+            # Also, fix lowercase.
+            items = self.btree.gets(self.result, ctx=self.ctx, txn=self.txn)
+            for i in items:
+                self.vcache[i.name][sortkey] = i.get(sortkey)
         else:
-            result.extend(nones)
+            # Macro?
+            pass
+        result = sorted(self.result, key=sortfunc, reverse=reverse)        
 
         if count > 0:
             result = result[pos:pos+count]
@@ -292,46 +261,6 @@ class Query(object):
             self.result |= f
         else:
             raise QuerySyntaxError, "Unknown boolean mode %s"%self.mode
-
-    def _prune(self):
-        # Prune items from the cache that aren't in result set.
-        if self.result is None:
-            return
-
-        keys = self.cache.keys()
-        for key in keys:
-            self.cache[key]['name'] = key
-            if key not in self.result:
-                del self.cache[key]
-
-        self.items = [i for i in self.items if i.name in self.result]
-
-    def _cacheitems(self):
-        # Get and cache items for direct comparison constraints.
-        if self.result is None and not self.items:
-            toget = set()
-        else:
-            toget = set() | self.result # copy
-
-        current = set([i.name for i in self.items])
-        toget -= current
-
-        if len(toget) > ITEMSMAX:
-            raise QueryMaxItems, "This type of constraint has a limit of %s items; tried to get %s. Try narrowing the search by adding additional parameters."%(ITEMSMAX, len(toget))
-
-        if toget:
-            items = self.btree.gets(toget, ctx=self.ctx, txn=self.txn)
-            self.items.extend(items)
-        
-    def _checkitems(self, param):
-        # params where the indexed value is not 1:1 with the item's value
-        # (e.g. indexes for iterable params)
-        if param == 'name':
-            return
-        checkitems = set([k for k,v in self.cache.items() if (param in v)])
-        items = set([i.name for i in self.items])
-        items = self.btree.gets(checkitems - items, ctx=self.ctx, txn=self.txn)
-        self.items.extend(items)
         
     def _makeconstraint(self, param, op='noop', term=''):
         op = SYNONYMS.get(op, op)

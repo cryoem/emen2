@@ -8,6 +8,7 @@ import shutil
 import time
 import traceback
 import cPickle as pickle
+import json
 
 # Berkeley DB
 # Note: the 'bsddb' module is not sufficient.
@@ -360,8 +361,10 @@ class CollectionDB(object):
         self.keydump = lambda x:unicode(x).encode('utf-8')
         self.keyload = lambda x:x.decode('utf-8')
         self.dataclass = dataclass
-        self.datadump = lambda x:pickle.dumps(x)
-        self.dataload = lambda x:pickle.loads(x or 'N.')
+        # self.datadump = lambda x:pickle.dumps(x)
+        # self.dataload = lambda x:pickle.loads(x or 'N.')
+        self.datadump = lambda x:json.dumps(x.data)
+        self.dataload = lambda x:json.loads(x)
 
         # Make sure the directory exists...
         self.filename = filename or os.path.join(self.keytype, '%s.bdb'%self.keytype)
@@ -395,15 +398,6 @@ class CollectionDB(object):
             v.close()
         for v in self.indexes.values():
             v.close()
-        
-    # Dangerous!
-    # def truncate(self, txn=None):
-    #     """Truncate BDB (e.g. 'drop table'). Transaction required.
-    #     :keyword txn: Transaction
-    #     """
-    #     # TODO: Do more checking before performing a dangerous operation.
-    #     emen2.db.log.debug("BDB: %s truncate"%self.filename)
-    #     self.bdb.truncate(txn=txn)
 
     ##### Indexes #####
 
@@ -464,6 +458,11 @@ class CollectionDB(object):
                 item.addumask(i.get('permissions'))
             if i.get('groups'):
                 item.addgroup(i.get('groups'))
+            # Backwards compat.
+            if item.data.get('parents'):
+                item.data['parents'].append(i.name)
+            else:
+                item.data['parents'] = [i.name]
                 
         # Acquire a write lock on this name.
         if self.exists(item.name, txn=txn):
@@ -502,14 +501,14 @@ class CollectionDB(object):
         emen2.db.log.info("BDB: %s keys: Deprecated method!"%self.filename)
         return map(self.keyload, self.bdb.keys(txn))
     
-    def items(self, ctx=None, txn=None):
-        emen2.db.log.info("BDB: %s items: Deprecated method!"%self.filename)
-        ret = []
-        for k,v in self.bdb.items(txn):
-            i = self.dataload(v)
-            i.setContext(ctx)
-            ret.append((self.keyload(k), i))
-        return ret
+    # def items(self, ctx=None, txn=None):
+    #     emen2.db.log.info("BDB: %s items: Deprecated method!"%self.filename)
+    #     ret = []
+    #     for k,v in self.bdb.items(txn):
+    #         i = self.dataload(v)
+    #         i.setContext(ctx)
+    #         ret.append((self.keyload(k), i))
+    #     return ret
         
     def values(self, ctx=None, txn=None):
         raise NotImplementedError
@@ -552,10 +551,10 @@ class CollectionDB(object):
         
     def _get_data(self, key, txn=None):
         emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
-        d = self.dataload(self.bdb.get(self.keydump(key), txn=txn))
-        if d:
-            return d
-        raise KeyError, "No such key %s"%(key)    
+        d = self.bdb.get(self.keydump(key), txn=txn)
+        if d is None:
+            raise KeyError, "No such key %s"%(key)    
+        return self.dataclass().load(json.loads(d))
 
     ##### Write methods #####
 
@@ -611,10 +610,15 @@ class CollectionDB(object):
         return self._puts([item], ctx=ctx, txn=txn)[0]
         
     def _puts(self, items, ctx=None, txn=None):
-        # Skips security checks and validation
         # Assign names for new items.
-        # This will also update any relationships to uncommitted records.
-        self._update_names(items, txn=txn)
+        namemap = self._update_names(items, txn=txn)
+
+        # Temporary fix for backwards compatibility
+        parents = {}
+        children = {}
+        for item in items:
+            parents[item.name] = [namemap.get(i,i) for i in item.data.pop('parents', [])]
+            children[item.name] = [namemap.get(i,i) for i in item.data.pop('children', [])]
 
         # Make sure the secondary indexes are open and associated.
         keys = set()
@@ -626,6 +630,14 @@ class CollectionDB(object):
         # Write the items "for real."
         for item in items:
             self._put_data(item.name, item, txn=txn)
+
+        for k,v in parents.items():
+            for v2 in v:
+                self._putrel(v2, k, ctx=ctx, txn=txn)
+        for k,v in children.items():
+            for v2 in v:
+                self._putrel(k, v2, ctx=ctx, txn=txn)
+            
 
         emen2.db.log.debug("BDB: Committed %s items"%(len(items)))
         return items
@@ -646,10 +658,10 @@ class CollectionDB(object):
         return emen2.db.query.Query(constraints=c, mode=mode, subset=subset, ctx=ctx, txn=txn, btree=self)
     
     def find(self, param, key, maxkey=None, op='==', count=100, ctx=None, txn=None):
-        index = self._getindex(param) 
+        index = self._getindex(param, txn=txn) 
         if index is None:
             return None
-        return index.find(key=key, maxkey=maxkey, op=op, txn=txn)
+        return index.find(key=key, maxkey=maxkey, op=op, txn=txn) 
 
     def rebuild_indexes(self, ctx=None, txn=None):
         return
@@ -674,6 +686,8 @@ class CollectionDB(object):
                 # Update the item's name.
                 item.data['name'] = newname
                 namemap[item.name] = newname
+            else:
+                namemap[item.name] = item.name                
         return namemap
 
     def _key_generator(self, item, txn=None):
@@ -876,6 +890,10 @@ class CollectionDB(object):
         cursorp.close()
         cursorc.close()
 
+
+
+
+
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
         # Set name policy in this method.
@@ -960,9 +978,11 @@ class NewUserDB(CollectionDB):
         if not ctx or not ctx.checkadmin():
             raise emen2.db.exceptions.PermissionsError("Admin rights needed to view user queue")
         return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
-
-
-
+        
+        
+        
+        
+        
 
 class Index(object):
     # A secondary index. Also used for relationships.
@@ -1037,7 +1057,7 @@ class Index(object):
 
     def _indexfunc_str(self, key, data):
         # Return indexed keys.
-        value = pickle.loads(data).data.get(self.param)
+        value = json.loads(data).get(self.param)
         ret = set()
         if value is None:
             return
@@ -1047,7 +1067,7 @@ class Index(object):
         return list(ret)
 
     def _indexfunc_iter(self, key, data):
-        value = pickle.loads(data).data.get(self.param)
+        value = json.loads(data).get(self.param)
         ret = set()
         if value is None:
             return
@@ -1058,7 +1078,7 @@ class Index(object):
         return list(ret)
         
     def _indexfunc_acl(self, key, data):
-        value = pickle.loads(data).data.get(self.param)
+        value = json.loads(data).get(self.param)
         ret = set()
         if value is None:
             return
@@ -1085,7 +1105,7 @@ class Index(object):
 
         # Starting items
         cursor = self.bdb.cursor(txn=txn)
-        new = self._get_cursor(key, cursor)
+        new = set(self._get_cursor(key, cursor))
         tovisit = [new]
         result = {key: new}
         visited = set()
@@ -1095,7 +1115,7 @@ class Index(object):
                 break
             tovisit.append(set())
             for key in tovisit[x] - visited:
-                new = self._get_cursor(key, cursor)
+                new = set(self._get_cursor(key, cursor))
                 if new:
                     tovisit[x+1] |= new
                     result[key] = new
@@ -1106,11 +1126,11 @@ class Index(object):
         return result, visited        
 
     def find(self, key, maxkey=None, op='==', count=100, txn=None):
-        # This is the neat new index search.
         # This doesn't filter for security.
         emen2.db.log.debug("BDB: %s %s index %s %s"%(self.filename, self.param, op, key))        
-        # I don't like "case switches", but it will do.
-        r = set()
+        if key is None:
+            return set()
+        r = []
         cursor = self.bdb.cursor(txn=txn)
         if op == 'starts':
             r = self._pget_starts(key, cursor)
@@ -1130,107 +1150,110 @@ class Index(object):
             r = self._pget_not(key, cursor)        
         elif op == 'any':
             r = self._pget_any(key, cursor)
+        elif op == 'noop':
+            pass
         else:
             raise Exception, "Unsupported operator for index searches."                
         cursor.close()
-        return r
+        print "--", op, key, maxkey, r
+        return set(r)
 
     ##### Begin a bunch of repetitive code to iterate through cursor in various ways #####
     
     def get(self, key, txn=None):
         cursor = index.cursor(txn=txn)        
-        r = set()
+        r = []
         c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
         m = cursor.next_dup
         while c:
-            r.add(c[1])
+            r.append(c[1])
             n = m()
         cursor.close()
         return r
 
     def _get_cursor(self, key, cursor):        
-        r = set()
+        r = []
         c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
         m = cursor.next_dup
         while c:
-            r.add(c[1])
+            r.append(c[1])
             c = m()
         return r
 
     def _pget_is(self, key, cursor):
-        r = set()
+        r = []
         c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET)
         while c:
-            r.add(c[1])
+            r.append(c[1])
             c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
         return r
     
     def _pget_starts(self, key, cursor):
-        r = set()
+        r = []
         # This only works with strings.
         c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
         k = self.keydump(key)
         while c and c[0].startswith(k):
-            r.add(c[1])
+            r.append(c[1])
             c = cursor.pget(flags=bsddb3.db.DB_NEXT)
         return r
         
     def _pget_range(self, minkey, maxkey, cursor):
-        r = set()
+        r = []
         c = cursor.pget(self.keydump(minkey), flags=bsddb3.db.DB_SET_RANGE)
         while c and self.keyload(c[0]) <= maxkey:
-            r.add(c[1])
+            r.append(c[1])
             c = cursor.pget(flags=bsddb3.db.DB_NEXT)
         return r
 
     def _pget_gte(self, key, cursor):
-        r = set()
+        r = []
         c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
         while c:
-            r.add(c[1])
+            r.append(c[1])
             c = cursor.pget(flags=bsddb3.db.DB_NEXT)
         return r
 
     def _pget_gt(self, key, cursor):
-        r = set()
+        r = []
         c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
         while c:
             if self.keyload(c[0]) > key:
-                r.add(c[1])
+                r.append(c[1])
             c = cursor.pget(flags=bsddb3.db.DB_NEXT)
         return r
 
     def _pget_lte(self, key, cursor):
-        r = set()
+        r = []
         c = cursor.pget(flags=bsddb3.db.DB_FIRST)
         while c and self.keyload(c[0]) <= key:
-            r.add(c[1])
+            r.append(c[1])
             c = cursor.pget(flags=bsddb3.db.DB_NEXT)
         return r
 
     def _pget_lt(self, key, cursor):
-        r = set()
+        r = []
         c = cursor.pget(flags=bsddb3.db.DB_FIRST)
         while c and self.keyload(c[0]) < key:
-            r.add(c[1])
+            r.append(c[1])
             c = cursor.pget(flags=bsddb3.db.DB_NEXT)
         return r
     
     def _pget_not(self, key, cursor):
-        r = set()
+        r = []
         c = cursor.pget(flags=bsddb3.db.DB_FIRST)
         kd = self.keydump(key)
         while c:
             if c[0] != kd:
-                r.add(c[1])
+                r.append(c[1])
             c = cursor.pget(flags=bsddb3.db.DB_NEXT)
         return r
 
     def _pget_any(self, key, cursor):
-        r = set()
+        r = []
         c = cursor.pget(flags=bsddb3.db.DB_FIRST)
         while c:
-            r.add(c[1])
+            r.append(c[1])
             c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
         return r
 

@@ -107,7 +107,6 @@ def summary_map(pubmed_pub):
 
 # Email address to give to PUBMED
 if __name__ == "__main__":
-    
     parser = argparse.ArgumentParser(description='Print or update publications')
     parser.add_argument('commands', nargs=1, help='Command: print or update')
     parser.add_argument('--host', '-H', help="Hostname", default="http://ncmidb.bcm.edu")
@@ -161,8 +160,11 @@ if __name__ == "__main__":
             print "\n===== (%s / %s) %s ====="%(count+1, len(publications), pub['pmid'])
 
             # This returns the record from PubMed publication with the passed pmid to map it with the recond from pubmed DB
-            pubmed_pub = medline_find(pub['pmid']) 
-            if not pubmed_pub:
+            try:
+                pubmed_pub = medline_find(pub['pmid']) 
+                if not pubmed_pub:
+                    raise Exception
+            except:
                 print "Did not find PUBMED record for:", pub['pmid']
                 continue
         
@@ -176,7 +178,12 @@ if __name__ == "__main__":
             commit.append(pub)
             
         # Write results
-        db.record.put(commit)
+        for rec in commit:
+            print "SAVING:", commit
+            try:
+                db.record.put(rec)
+            except Exception, e:
+                print "Couldnt save: ", e
     
     
     

@@ -391,6 +391,9 @@ class User(BaseUser):
         admin = self.ctx.checkreadadmin()
         ctxuser = self.ctx.username
 
+        # Backwards compat...
+        self.__dict__['userrec'] = {}
+
         # secret is never made available through normal get().
         self.data.pop('secret', None)
 

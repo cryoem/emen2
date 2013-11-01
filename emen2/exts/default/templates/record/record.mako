@@ -79,6 +79,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     tab.TabControl('setcb', 'new', function(page) {
         page.NewRecordChooserControl({
             parent: rec.name,
+            rectype: rec.rectype,
             controls: page,
             help: true,
             summary: true

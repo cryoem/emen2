@@ -129,7 +129,7 @@
             var rd = emen2.caches['recorddef'][this.options.rectype];
             if (this.options.mode == 'new') {
                 // RecordDef description
-                $('<p class="e2l-shadow-drop" />').text(rd.desc_long).appendTo(this.dialog);
+                $('<p class="e2l-shadow-drop" />').text(rd.desc_long || '').appendTo(this.dialog);
                 // Add the parent for a new record
                 form.attr('data-name', 'None');
                 $('<input type="hidden" name="parents" />').val(this.options.parent).appendTo(form);
@@ -189,19 +189,19 @@
             this.element.append(emen2.template.spinner(true));
             
             // Get the RecordDef for typicalchildren and prettier display
-            emen2.db("recorddef.find", {'record':[this.options.parent]}, function(rd) {
+            emen2.db("recorddef.get", [this.options.rectype], function(rd) {
                 var typicalchld = [];
-                $.each(rd, function() {
-                    self.options.rectype = this.name;
-                    emen2.caches['recorddef'][this.name] = this;
-                    typicalchld = this.typicalchld;                    
-                });
-                emen2.db("recorddef.get", [typicalchld], function(rd2) {
-                    $.each(rd2, function() {
-                        emen2.caches['recorddef'][this.name] = this;
+                emen2.caches['recorddef'][rd.name] = rd;
+                if (rd.typicalchld) {
+                    emen2.db("recorddef.get", [rd.typicalchld], function(rds2) {
+                        $.each(rds2, function(rd2) {
+                            emen2.caches['recorddef'][rd2.name] = rd2;
+                        })
+                        self._build();
                     })
+                } else {
                     self._build();
-                })
+                }
             });            
         },
         
@@ -231,8 +231,10 @@
             }
             
             // Children suggested by RecordDef.typicalchld
-            if (rd.typicalchld.length) {
+            if (rd.typicalchld && rd.typicalchld.length) {
                 this.element.append(this.build_level('Suggested protocols', 'typicalchld', rd.typicalchld))
+            } else {
+                $('<p>There are no suggested protocols, please <span class="e2l-a e2-newrecord-other">search for a different protocol</span>.</p>').appendTo(this.element);                
             }
             
             $('.e2-newrecord-other', this.element).FindControl({

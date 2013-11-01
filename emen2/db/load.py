@@ -40,10 +40,13 @@ class Loader(object):
         for item in self.readfile(infile=infile, keytype=keytype):
             keytype = item.get('keytype')
             name = item.get('name')
-            children[name] = set(item.pop('children', []))
-            parents[name] = set(item.pop('parents', []))
+            children[name] = set(item.pop('children', []) or [])
+            parents[name] = set(item.pop('parents', []) or [])
             print "Load: put:", keytype, name
-            dbenv[keytype].puts([item], ctx=ctx, txn=txn)
+            try:
+                dbenv[keytype].puts([item], ctx=ctx, txn=txn)
+            except Exception, e:
+                print "Couldn't load %s %s:"%(keytype, name), e
             count += 1
             
         keys = set(dbenv[keytype].filter(ctx=ctx, txn=txn))
@@ -95,21 +98,28 @@ class RawLoader(Loader):
         for item in self.readfile(infile=infile, keytype=keytype):
             keytype = item.get('keytype')
             name = item.get('name')
-            children[name] = set(item.pop('children', []))
-            parents[name] = set(item.pop('parents', []))
-            r = dbenv[keytype].new(ctx=ctx, txn=txn)
-            r.data.update(item)
-            dbenv[keytype]._put(r, ctx=ctx, txn=txn)
+            children[name] = item.pop('children', []) or []
+            parents[name] = item.pop('parents', []) or []
+            try:
+                r = dbenv[keytype].new(ctx=ctx, txn=txn)
+                r.data.update(item)
+                dbenv[keytype]._put(r, ctx=ctx, txn=txn)
+            except Exception, e:
+                print "Couldn't load...", e
             count += 1
             
-        keys = set(dbenv[keytype].filter(ctx=ctx, txn=txn))
-        
         for k,v in children.items():
-            for v2 in v & keys:
-                dbenv[keytype].pclink(k, v2, ctx=ctx, txn=txn)
+            for v2 in v:
+                try:
+                    dbenv[keytype].pclink(k, v2, ctx=ctx, txn=txn)
+                except Exception, e:
+                    print "Couldn't link:", k, v2
         for k,v in parents.items():
-            for v2 in v & keys:
-                dbenv[keytype].pclink(v2, k, ctx=ctx, txn=txn)
+            for v2 in v:
+                try:
+                    dbenv[keytype].pclink(v2, k, ctx=ctx, txn=txn)
+                except Exception, e:
+                    print "Couldn't link:", v2, k
 
         t = time.time()-t
         s = float(count) / t

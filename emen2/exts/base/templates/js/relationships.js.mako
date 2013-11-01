@@ -11,6 +11,8 @@
         },
 
         _create: function() {
+            this.parents = {}
+            this.children = {}
             this.built = 0;
             var self = this;
 			emen2.util.checkopts(this, ['name', 'keytype', 'edit', 'summary']);
@@ -30,29 +32,58 @@
             this.element.empty();
             this.element.addClass('e2-relationships');
             this.element.append(emen2.template.spinner(true));
-            
+        
             // Load all the parents and children
-            var item = emen2.caches[this.options.keytype][this.options.name];
-            var names = item.children.concat(item.parents);
-            names = emen2.cache.check(this.options.keytype, names);
+            // var item = emen2.caches[this.options.keytype][this.options.name];
+            // var names = item.children.concat(item.parents);
+            // names = emen2.cache.check(this.options.keytype, names);
+
+            emen2.db('rel.parents', {names:[self.options.name], keytype:self.options.keytype}, function(parents) {
+                emen2.db('rel.children', {names:[self.options.name], keytype:self.options.keytype}, function(children) {
+                    $.each(parents, function(k,v){self.parents[k] = v});
+                    $.each(children, function(k,v){self.children[k] = v});
+                    var toget = [];
+                    toget = toget.concat(self.parents[self.options.name]);
+                    toget = toget.concat(self.children[self.options.name]);
+                    toget.push(self.options.name);
+                    
+                    emen2.db('get', {names:toget, keytype:self.options.keytype}, function(items) {
+                       emen2.cache.update(items);
+                       self._build();
+                       // var found = $.map(items, function(k){return k.name});
+                       // // 2a. Records need a second callback for pretty rendered text
+                       // if (self.options.keytype == 'record') {
+                       //     emen2.db('view', [found], function(recnames) {
+                       //         $.each(recnames, function(k,v) {emen2.caches['recnames'][k] = v})
+                       //         self._build();
+                       //     });
+                       // } else {
+                       //     // 2b. No additional items needed.
+                       //     self._build();
+                       // }
+                    });
+
+                });
+            });
+
             
             // Cache rendered views for all the items
             // 1. Get the related items
-            emen2.db('get', {names:names, keytype:this.options.keytype}, function(items) {
-                emen2.cache.update(items)
-                var found = $.map(items, function(k){return k.name});
-                
-                // 2a. Records need a second callback for pretty rendered text
-                if (self.options.keytype == 'record') {
-                    emen2.db('view', [found], function(recnames) {
-                        $.each(recnames, function(k,v) {emen2.caches['recnames'][k] = v})
-                        self._build();
-                    });
-                } else {
-                    // 2b. No additional items needed.
-                    self._build();
-                }
-            });
+            // emen2.db('get', {names:names, keytype:this.options.keytype}, function(items) {
+            //     emen2.cache.update(items)
+            //     var found = $.map(items, function(k){return k.name});
+            //     
+            //     // 2a. Records need a second callback for pretty rendered text
+            //     if (self.options.keytype == 'record') {
+            //         emen2.db('view', [found], function(recnames) {
+            //             $.each(recnames, function(k,v) {emen2.caches['recnames'][k] = v})
+            //             self._build();
+            //         });
+            //     } else {
+            //         // 2b. No additional items needed.
+            //         self._build();
+            //     }
+            // });
         }, 
         
         _build: function() {
@@ -63,8 +94,8 @@
             
             // Get the parents and children from cache
             var rec = emen2.caches[this.options.keytype][this.options.name];
-            var parents = rec.parents;
-            var children = rec.children;
+            var parents = this.parents[this.options.name];
+            var children = this.children[this.options.name];
             
             if (this.options.summary || this.options.help) {
                 $('<h2 class="e2l-cf">Relationships</h2>').appendTo(this.element);

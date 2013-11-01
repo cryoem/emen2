@@ -111,7 +111,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         self.data['params'] = {}
 
         # Required parameters (will throw exception on record commit if empty)
-        self.data['paramsR'] = set()
+        self.data['paramsR'] = []
 
     # ian: todo: Important!! If we can access a record with the recorddef...
     def setContext(self, ctx):
@@ -174,6 +174,6 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
             for j in t2:
                 # ian: fix for: empty default value in a view unsets default value specified in mainview
                 d.setdefault(j, d2.get(j))
-        self.data['params'] = d
-        self.data['paramsR'] = r
+        self.data['params'] = sorted(d)
+        self.data['paramsR'] = sorted(r)
 

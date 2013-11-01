@@ -116,19 +116,12 @@ class NewUser(View):
         if self.request_method != 'post':
             return
                 
-        # Always required new user parameters.
-        REQUIRED = set(['name_last', 'name_first'])
-
-        # Note: other parameters can be marked as required at the FORM level,
-        # using HTML5 'required' attribute. However, industrious users
-        # or those using older browsers could easily bypass :)
-                
         # Snap off the base user parameters
         email = user.get('email', '').strip()
         password = user.get('password', None)
         
         try:
-            user = self.db.newuser.new(password=password, email=email)
+            user = self.db.newuser.new(**user)
             user.setsignupinfo(userrec)
             self.db.newuser.request(user)
         except Exception, e:

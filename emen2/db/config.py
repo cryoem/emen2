@@ -79,8 +79,6 @@ class Config(object):
     
     def get(self, key, default=None):
         # Get a config value.
-        # if not self.home:
-        #    raise ValueError("No EMEN2DBHOME directory.")
         path = self._key_path(key)
         root = self.data
         for k in path:
@@ -235,7 +233,7 @@ class DBOptions(argparse.ArgumentParser):
     def parse_args(self, *args, **kwargs):
         """Convenience to insert home/ext/debug/etc into the configuration."""
         opts = super(DBOptions, self).parse_args(*args, **kwargs)
-
+        opts.home = opts.home or os.getenv('EMEN2DBHOME')
         if opts.home:
             config.sethome(opts.home)
 

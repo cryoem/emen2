@@ -921,29 +921,9 @@ class DB(object):
 
         # Build the view
         defaultview = "{{recname()}} {{rectype}} {{name}}"
-        rectypes = set(q.cache[i].get('rectype') for i in q.result)
-        rectypes -= set([None])
-
-        if not view and not rectypes:
-            view = defaultview
-        elif not view:
-            # Check which views we need to fetch
-            toget = []
-            for i in q.result:
-                if not q.cache[i].get('rectype'):
-                    toget.append(i)
-
-            if toget:
-                rt = self.record_groupbyrectype(toget, ctx=ctx, txn=txn)
-                for k,v in rt.items():
-                    for name in v:
-                        q.cache[name]['rectype'] = k
-
-            # Update
-            rectypes = set(q.cache[i].get('rectype') for i in q.result)
-            rectypes -= set([None])
-
-            # Get the view
+        if not view:
+            rt = self.record_groupbyrectype(q.result, ctx=ctx, txn=txn)
+            rectypes = rt.keys()
             if len(rectypes) == 1:
                 rd = self.dbenv["recorddef"].get(rectypes.pop(), ctx=ctx, txn=txn)
                 view = rd.views.get('tabularview', defaultview)
@@ -1058,7 +1038,7 @@ class DB(object):
         ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
         ret['stats']['length'] = len(q.result)
         ret['stats']['time'] = q.time
-        ret['recs'] = q.cache.values()
+        ret['recs'] = q.vcache.values()
         return ret
     
     # @publicmethod()
@@ -1198,7 +1178,7 @@ class DB(object):
                 key = '%s(%s)'%(match.group('name'), match.group('args') or '')
             # Replace the values.
             for name, rec in recs.items():
-                print name, rec, match.groups()[0], key, ret[name]
+                # print name, rec, match.groups()[0], key, ret[name]
                 v = unicode(rec.get(key, ''))
                 ret[name] = ret[name].replace(match.groups()[0], v)
         return ret
@@ -1301,7 +1281,6 @@ class DB(object):
             # Since they're no longer keys in the actual record...
             # If you can access a record, you can read it's rel's
             rn = [i.name for i in recs]
-            print "RN:", rn
             for k,v in self.dbenv[keytype].children(rn, ctx=ctx, txn=txn).items():
                 found |= v
             for k,v in self.dbenv[keytype].parents(rn, ctx=ctx, txn=txn).items():
@@ -1598,7 +1577,7 @@ class DB(object):
 
     @publicmethod(compat="finduser")
     def user_find(self, query=None, count=100, ctx=None, txn=None, **kwargs):
-        """Find a user, by general search string, or by name_first/name_middle/name_last/email/name.
+        """Find a user.
 
         Keywords can be combined.
 
@@ -2252,7 +2231,7 @@ class DB(object):
 
             rec.hidden = True
             crecs.append(rec)
-            print "parents/children", parents, children
+            # print "parents/children", parents, children
             for i in children:
                 self.dbenv['record'].pcunlink(rec.name, i, ctx=ctx, txn=txn)
             for i in parents:

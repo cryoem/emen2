@@ -14,7 +14,7 @@
 {"name": "creationtime", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/creationtime/", "vartype": "datetime", "parents": ["core"], "immutable": true, "desc_short": "Creation time", "desc_long": "Timestamp of original record creation"}
 {"name": "modifytime", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/modifytime/", "vartype": "datetime", "parents": ["core"], "immutable": true, "desc_short": "Modification time", "desc_long": "Timestamp of last modification"}
 {"name": "modifyuser", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/modifyuser/", "vartype": "user", "parents": ["core"], "immutable": true, "desc_short": "Modified by", "desc_long": "The user that last changed the record"}
-{"name": "uri", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/uri/", "vartype": "uri", "parents": ["core"], "immutable": true, "desc_short": "Resource location", "desc_long": "Resource location of an imported object"}
+{"name": "uri", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/uri/", "vartype": "uri", "parents": ["core"], "immutable": true, "desc_short": "URI", "desc_long": "Resource location of an imported object"}
 {"name": "permissions", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/permissions/", "vartype": "acl", "parents": ["core"], "desc_short": "Permissions"}
 {"name": "hidden", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/hidden/", "parents": ["core"], "vartype": "boolean", "desc_short": "Hidden"}
 {"name": "vartype", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/vartype/", "vartype": "string", "parents": ["core"], "immutable": true, "desc_short": "Value type"}

@@ -1436,16 +1436,40 @@ class Render(Test):
 
 ######################################
         
-# @register
-# class DebugDeadlock(Test):
-#     @test
-#     def debugdeadlock1(self):
-#         rec = self.db.paramdef.put(dict(vartype="string", desc_short=randword()))
-# 
-#     @test
-#     def debugdeadlock2(self):
-#         keys = self.db._db.dbenv['paramdef'].bdb.keys(self.db._txn)
-#         print "keys:", len(keys)
+@register
+class DebugMisc(Test): 
+    @test      
+    def check_inherit(self):
+        rec1 = self.db.record.new(rectype='root')
+        rec1 = self.db.record.put(rec1)
+        rec2 = self.db.record.new(rectype='root', inherit=[rec1.name])
+        rec2.parents = [rec1.name]
+        rec2 = self.db.record.put(rec2)
+
+        parents = self.db.rel.parents(rec1.name)
+        children = self.db.rel.children(rec1.name)
+        print "rec1:", rec1, parents, children
+        assert not parents
+        assert rec2.name in children
+
+        parents = self.db.rel.parents(rec2.name)
+        children = self.db.rel.children(rec2.name)
+        print "rec2:", rec2, parents, children
+        assert rec1.name in parents
+        assert not children
+        
+        self.ok()
+        
+@register
+class DebugDeadlock(Test):
+    @test
+    def debugdeadlock1(self):
+        rec = self.db.paramdef.put(dict(vartype="string", desc_short=randword()))
+
+    @test
+    def debugdeadlock2(self):
+        keys = self.db._db.dbenv['paramdef'].bdb.keys(self.db._txn)
+        print "keys:", len(keys)
 
 @register
 class DebugIndex(Test):

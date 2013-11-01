@@ -64,7 +64,7 @@ class Context(emen2.db.dataobject.PrivateDBO):
 
         # Context user information
         self.data['username'] = username
-        self.data['groups'] = groups or set()
+        self.data['groups'] = groups or []
         self.data['grouplevels'] = grouplevels or {}
 
         # Client IP
@@ -106,7 +106,7 @@ class Context(emen2.db.dataobject.PrivateDBO):
         self.user = {}
         self.data['grouplevels']["anon"] = 0
         self.data['grouplevels']["authenticated"] = self.data['grouplevels'].get('authenticated', 0)
-        self.data['groups'] = set(self.grouplevels.keys())
+        self.data['groups'] = self.grouplevels.keys()
 
     def checkadmin(self):
         return "admin" in self.groups
@@ -126,7 +126,7 @@ class SpecialRootContext(Context):
         data['username'] = username or 'root'
         data['time'] = emen2.db.database.getctime()
         data['utcnow'] = emen2.db.database.utcnow()
-        data['groups'] = set(["admin"])
+        data['groups'] = ["admin"]
         data['grouplevels'] = {"admin":3}
         self.data.update(data)
 
@@ -139,7 +139,7 @@ class AnonymousContext(Context):
         data['username'] = 'anonymous'
         data['time'] = emen2.db.database.getctime()
         data['utcnow'] = emen2.db.database.utcnow()
-        data['groups'] = set(["anon"])
+        data['groups'] = ["anon"]
         data['grouplevels'] = {"anon":0}
         self.data.update(data)
 

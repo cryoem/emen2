@@ -28,60 +28,31 @@
     });    
 </%def>
 
-<%def name="newuser(user)">
-    <table class="e2l-kv">    
-        <tbody>        
-            <tr>
-                <td>Email:</td>
-                <td><input name="user.email" type="email" value="${user.get('email','')}" required autocomplete="off" /></td>
-            </tr>
-
-            <tr>
-                <td>Password:</td>
-                <td>
-                    <input name="password" type="password" required />
-                    <span class="e2l-small">Minimum 8 characters</span>
-                </td>
-            </tr>
-
-            <tr>
-                <td>Confirm Password:</td>
-                <td>
-                    <input name="user.password" type="password" required />
-                    <span id="e2-newuser-passwordmatch" class="e2l-small"></span>                    
-                </td>
-            </tr>
-        </tbody>
-    </table>
-</%def>
-
 <%def name="profile(user=None, userrec=None, edit=False, prefix='userrec.')">
     % if edit:
-    
         <table class="e2l-kv">    
             <tbody>                    
                 <tr>
                     <td>First Name:</td>
-                    <td><input name="${prefix}name_first" type="text" value="${userrec.get('name_first','')}" required /></td>
+                    <td><input name="name_first" type="text" value="${userrec.get('name_first','')}" required /></td>
                 </tr>
                 <tr>
                     <td>Middle Name:</td>
-                    <td><input name="${prefix}name_middle" type="text" value="${userrec.get('name_middle','')}" /></td>
+                    <td><input name="name_middle" type="text" value="${userrec.get('name_middle','')}" /></td>
                 </tr>
                 <tr>
                     <td>Last Name:</td>
-                    <td><input name="${prefix}name_last" type="text" value="${userrec.get('name_last','')}" required /></td>
+                    <td><input name="name_last" type="text" value="${userrec.get('name_last','')}" required /></td>
                 </tr>
-
-                <tr>
-                    <td>Phone:</td>
-                    <td><input name="${prefix}phone" type="text" value="${userrec.get('phone','')}"></td>
-                </tr>
-                <tr>
-                    <td>Web page:</td>
-                    <td><input name="${prefix}website" type="text" value="${userrec.get('website','')}"></td>
-                </tr>
-
+                
+                ## <tr>
+                ##    <td>Phone:</td>
+                ##    <td><input name="${prefix}phone" type="text" value="${userrec.get('phone','')}"></td>
+                ## </tr>
+                ## <tr>
+                ##    <td>Web page:</td>
+                ##    <td><input name="${prefix}website" type="text" value="${userrec.get('website','')}"></td>
+                ## </tr>
                 ## <tr>
                 ##    <td>Fax:</td>
                 ##    <td><input name="${prefix}phone_fax" type="text" value="${userrec.get('phone_fax','')}"></td>
@@ -157,7 +128,7 @@
                 </tr>
                 <tr>
                     <td>Phone:</td>
-                    <td>${user.get('phone_voice', '')}</td>
+                    <td>${userrec.get('phone_voice', '')}</td>
                 </tr>
                 <tr>
                     <td>Web:</td>
