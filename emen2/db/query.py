@@ -228,19 +228,20 @@ class Query(object):
             c = self._makeconstraint(sortkey, op='noop')
             c.run()
 
-        sortfunc = lambda x:self.vcache.get(x)
         pd = self.btree.dbenv['paramdef'].get(sortkey, ctx=self.ctx, txn=self.txn)
         if pd:
+            if pd.vartype == 'string':
+                sortfunc = lambda x:unicode(self.vcache.get(x, '')).lower()
             # Fetch all the items... fix this.
             # Also, fix lowercase.
             items = self.btree.gets(self.result, ctx=self.ctx, txn=self.txn)
             for i in items:
-                self.vcache[i.name][sortkey] = i.get(sortkey)
+                self.vcache[i.name][sortkey] = i.get(sortkey, '')
         else:
             # Macro?
             pass
-        result = sorted(self.result, key=sortfunc, reverse=reverse)        
 
+        result = sorted(self.result, key=sortfunc, reverse=reverse)
         if count > 0:
             result = result[pos:pos+count]
 

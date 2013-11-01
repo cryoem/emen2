@@ -1155,7 +1155,7 @@ class Index(object):
         else:
             raise Exception, "Unsupported operator for index searches."                
         cursor.close()
-        print "--", op, key, maxkey, r
+        # print "--", op, key, maxkey, r
         return set(r)
 
     ##### Begin a bunch of repetitive code to iterate through cursor in various ways #####
