@@ -56,7 +56,7 @@ class DBPool(object):
         """Disconnect a database connection."""
         tid = self.threadID()
         if db is not self.dbs.get(tid):
-            raise Exception('Wrong connection for thread')
+            raise Exception('Wrong connection for thread.')
         if db:
             # db.close()
             del self.dbs[tid]
@@ -187,7 +187,7 @@ def standalone(service='web'):
     elif service == 'rpc':
         service = EMEN2RPCServer
     else:
-        raise ValuError, "Unknown service"
+        raise ValuError("Unknown service.")
     server = service()
     emen2.db.log.info("Service started: %s"%service)
     server.start()

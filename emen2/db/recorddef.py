@@ -52,7 +52,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
     RecordDefs may have parent/child relationships, similar to Records.
 
-    RecordDefs can be marked as private by setting the 'private' parameter. If
+    RecordDefs can be marked as private by setting the 'privacy' parameter. If
     private, you must be admin or able to read a record of this type to access
     the RecordDef
     
@@ -70,14 +70,14 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
     :property desc_long: Long description. Shown as help in new record page.
     :property mainview: Default protocol view.
     :property views: Dictionary of additional views.
-    :property private: Mark this RecordDef as private.
+    :property privacy: Mark this RecordDef as private.
     :property typicalchld: A list of RecordDefs that are generally seen as children.
     :property params: Dictionary of all params found in all views (keys), with any default values specified (as value) (read-only).
     :property paramsR: Parameters that are required for a Record of this RecordDef to validate (read-only).
     :property owner: Current owner of RecordDef. May be different than creator. Gives permission to edit views.
     """
 
-    public = emen2.db.dataobject.BaseDBObject.public | set(["mainview", "views", "private", "typicalchld", "desc_long", "desc_short"])
+    public = emen2.db.dataobject.BaseDBObject.public | set(["mainview", "views", "privacy", "typicalchld", "desc_long", "desc_short"])
 
     def init(self, d):
         super(RecordDef, self).init(d)
@@ -91,7 +91,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
         # If this is True, this RecordDef may only be retrieved by its owner
         # or by someone with read access to a record of this type
-        self.data['private'] = False
+        self.data['privacy'] = 0
 
         # A list of RecordDef names of typical child records for this RecordDef
         self.data['typicalchld'] = []
@@ -116,7 +116,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
     # ian: todo: Important!! If we can access a record with the recorddef...
     def setContext(self, ctx):
         super(RecordDef, self).setContext(ctx=ctx)
-        if not self.private:
+        if not self.privacy:
             return
         # Private RecordDef...
         if self.ctx.checkreadadmin():
@@ -148,8 +148,8 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         self._set('views', views, self.isowner())
         self._findparams()
 
-    def _set_private(self, key, value):
-        self._set('private', bool(value), self.isowner())
+    def _set_privacy(self, key, value):
+        self._set('privacy', int(value), self.isowner())
 
     def _set_typicalchld(self, key, value):
         value = map(self._strip, emen2.utils.check_iterable(value))

@@ -110,16 +110,16 @@ def iso8601duration(d):
 class Vartype(object):
     '''Base class for Vartypes.
     
-    :attr keyformat: Index format
-    :attr iterable: Allow iterable
-    :attr sort_render: Sort using rendered values?
+    :attr keyclass: Key class
     '''
-    keyformat = 'str'
-    iterable = True
-    sort_render = False
+    keyclass = unicode
 
-    def __init__(self, pd=None, cache=None, db=None, options=None):
-        self.pd = pd
+    def __init__(self, vartype=None, param=None, iter_=None, choices=None, defaultunits=None, cache=None, db=None, options=None):
+        self.vartype = vartype
+        self.param = param
+        self.iter = iter_
+        self.choices = choices or []
+        self.defaultunits = defaultunits or ''
         self.cache = cache
         self.db = db
         self.options = options or {}
@@ -138,20 +138,27 @@ class Vartype(object):
         return f
 
     @classmethod
-    def get_vartype(cls, name, *args, **kwargs):
+    def get_vartype(cls, vartype, pd=None, *args, **kwargs):
         """Get a registered Vartype."""
-        return cls.registered.get(name, Vartype)(*args, **kwargs)
+        kwargs['vartype'] = vartype
+        if pd:
+            kwargs['param'] = pd.name
+            kwargs['iter_'] = pd.iter
+            kwargs['choices'] = pd.choices
+            kwargs['defaultunits'] = pd.defaultunits
+        return cls.registered.get(vartype, Vartype)(*args, **kwargs)
+
+    ##### Indexing #####
+
+    def reindex(self, value):
+        """Return the indexed terms for a value.
+        
+        :param value: Index this value.
+        :return: A set of indexed terms.
+        """
+        raise NotImplementedError
 
     ##### Validation #####
-
-    # def validate(self, pd, value):
-    #     if value in NONE_VALUES:
-    #         return None
-    # 
-    #     if pd.property:
-    #         value = self.properties[pd.property]().validate(self, pd, value, self.db)
-    # 
-    #     return self.vartypes[pd.vartype](cache=self.cache, db=self.db, pd=pd).validate(value)
 
     def validate(self, value):
         """Validate a parameter value using this vartype.
@@ -163,8 +170,16 @@ class Vartype(object):
         :param value: Validate this value.
         :return: The validated value.
         """
-        raise ValidationError, "%s is an internal or organizational parameter, and is not intended to be used."%self.pd.name
+        raise ValidationError("%s is an internal or organizational parameter, and is not intended to be used."%self.param)
 
+    # def validate(self, pd, value):
+    #     if value in NONE_VALUES:
+    #         return None
+    #     if pd.property:
+    #         value = self.properties[pd.property]().validate(self, pd, value, self.db)
+    #     return self.vartypes[pd.vartype](cache=self.cache, db=self.db, pd=pd).validate(value)
+
+    # Validation helpers.
     def _validate_reference(self, value, keytype=None):
         # Validate a reference to another database object.
         ret = []
@@ -183,10 +198,10 @@ class Vartype(object):
                 found.add(i)
                 changed = True
             elif ALLOW_MISSING:
-                emen2.db.log.warn("Validation: Could not find, but allowing: %s (parameter %s)"%(i, self.pd.name))
+                emen2.db.log.warn("Validation: Could not find, but allowing: %s (parameter %s)"%(i, self.param))
                 ret.append(i)
             else:
-                raise ValidationError, "Could not find: %s (parameter %s)"%(i, self.pd.name)
+                raise ValidationError("Could not find: %s (parameter %s)."%(i, self.param))
         
         if changed:
             self.cache.store(key, found)    
@@ -194,7 +209,7 @@ class Vartype(object):
 
     def _rci(self, value):
         """If the parameter is not iterable, return a single value."""
-        if value and not self.pd.iter:
+        if value and not self.iter:
             return value.pop()
         return value or None    
 
@@ -216,7 +231,7 @@ class Vartype(object):
         """Render unicode values."""
         if value is None:
             return ''
-        if self.pd.iter:
+        if self.iter:
             return ", ".join(self._unicode(i) for i in value)
         return self._unicode(value)
     
@@ -224,14 +239,12 @@ class Vartype(object):
         """Render HTML formatted values. All values MUST be escaped."""
         if value is None:
             return ''
-        if self.pd.iter:
+        if self.iter:
             return self._li_wrap([self._html(i) for i in value])
         return self._html(value)
 
     def render_form(self, value):
-        if self.pd.immutable:
-            return self._html(value)
-        if self.pd.iter:
+        if self.iter:
             elem = self._li_wrap(
                 [self._form(i) for i in (value or [])],
                 hidden=self._form(None),
@@ -247,18 +260,18 @@ class Vartype(object):
     def _html(self, value):
         if value is None:
             return ''
-        elem = Markup("""<span class="e2-edit" data-paramdef="%s">%s</span>""")%(self.pd.name, self._unicode(value))
+        elem = Markup("""<span class="e2-edit" data-paramdef="%s">%s</span>""")%(self.param, self._unicode(value))
         return elem
         
     def _form(self, value):
         if value is None:
             value = ''
         elem = Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><input type="text" data-paramdef="%s" data-vartype="%s" name="%s" value="%s" /></span>""")%(
-            self.pd.name,
-            self.pd.vartype,
-            self.pd.name,
-            self.pd.vartype,
-            self.pd.name,
+            self.param,
+            self.vartype,
+            self.param,
+            self.vartype,
+            self.param,
             value
         )
         return elem
@@ -274,71 +287,144 @@ class Vartype(object):
             lis.append("""<li>%s</li>"""%add)
         return """<ul>%s</ul>"""%"".join(lis)
 
-
-class vt_unindexed(Vartype):
-    keyformat = None
+##### Unindexed. #####
 
 @Vartype.register('password')
 class vt_password(Vartype):
-    keyformat = None
+    pass
 
 @Vartype.register('none')
 class vt_none(Vartype):
     pass
 
+##### Simple indexed. #####
+
+class vt_base(Vartype):
+    def reindex(self, value):
+        if value is None:
+            return set()
+        if self.iter:
+            return set(value)
+        else:
+            return set([value])
+
+##### Text vartypes. #####
+
+@Vartype.register('string')
+class vt_string(vt_base):
+    """String."""
+    def reindex(self, value):
+        regex = re.compile(r'[\w\-\+\.]+\b')
+        if value is None:
+            return set()
+        if not self.iter:
+            value = [value]
+        ret = set()
+        for i in value:
+            ret |= set(regex.findall(unicode(i).lower()))
+        print "reindex:", value, ret
+        return ret            
+    
+    def validate(self, value):
+        return self._rci([unicode(x).strip() for x in ci(value)])
+
+@Vartype.register('choice')
+class vt_choice(vt_string):
+    """One value from a defined list of choices."""
+    def validate(self, value):
+        value = [unicode(i).strip() for i in ci(value)]
+        for v in value:
+            if v not in self.choices:
+                raise ValidationError("Invalid choice: %s"%v)
+        return self._rci(value)
+
+    def _form(self, value):
+        choices = []
+        if value is None:
+            value = ''
+        for choice in ['']+self.choices:
+            if choice == value:
+                elem = Markup("""<option value="%s" selected="selected">%s</option>""")%(choice, choice)
+            else:
+                elem = Markup("""<option value="%s">%s</option>""")%(choice, choice)
+            choices.append(elem)
+            
+        return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><select name="%s">%s</select></span>""")%(
+            self.param,
+            self.vartype,
+            self.param,
+            Markup("".join(choices))
+            )
+
+@Vartype.register('text')
+class vt_text(vt_string):
+    """Freeform text, with word indexing."""
+    elem = 'div'
+    def _html(self, value):
+        if value is None:
+            return ''
+        value = Markup(markdown.markdown(unicode(value), safe_mode='escape'))
+        elem = Markup("""<div class="e2-edit" data-paramdef="%s">%s</div>""")%(self.param, value)
+        return elem
+
+    def _form(self, value):
+        if value is None:
+            value = ''
+        return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s"><textarea name="%s">%s</textarea></div>""")%(
+            self.param,
+            self.vartype,
+            self.param,
+            value
+            )
+
+##### Numerical vartypes. #####
+
+@Vartype.register('int')
+class vt_int(vt_base):
+    """Integer."""
+    keyclass = int
+    def validate(self, value):
+        return self._rci(map(int, ci(value)))
+
 @Vartype.register('float')
-class vt_float(Vartype):
+class vt_float(vt_base):
     """Floating-point number."""
-    keyformat = 'float'
+    keyclass = float
     def validate(self, value):
         return self._rci(map(float, ci(value)))
 
     def _unicode(self, value):
-        u = self.pd.defaultunits or ''
+        u = self.defaultunits or ''
         return '%g %s'%(value, u)
 
     def _form(self, value):    
         if value is None:
             value = ''
-        units = self.pd.defaultunits or ''
+        units = self.defaultunits or ''
         return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><input type="text" name="%s" value="%s" /> %s</span>""")%(
-            self.pd.name,
-            self.pd.vartype,
-            self.pd.name,
+            self.param,
+            self.vartype,
+            self.param,
             value,
             units
-        )
+            )
 
 @Vartype.register('percent')
-class vt_percent(Vartype):
+class vt_percent(vt_base):
     """Percentage. 0 <= x <= 1."""
-    keyformat = 'float'
+    keyclass = float
     def validate(self, value):
         value = map(float, ci(value))
         for i in value:
             if not 0 <= i <= 1.0:
-                raise ValidationError, "Range for percentage is 0 <= value <= 1.0; value was: %s"%i
+                raise ValidationError("Range for percentage is 0 <= value <= 1.0; value was: %s."%i)
         return self._rci(value)
 
     def _unicode(self, value):
         return '%0.0f'%(i*100.0)
 
-@Vartype.register('int')
-class vt_int(Vartype):
-    """Integer."""
-    keyformat = 'int'
-    def validate(self, value):
-        return self._rci(map(int, ci(value)))
-
-@Vartype.register('coordinate')
-class vt_coordinate(Vartype):
-    """Coordinates; tuples of floats."""
-    keyformat = None
-    def validate(self, value):
-        return [(float(x), float(y)) for x,y in ci(value)]
-
 @Vartype.register('boolean')
-class vt_boolean(Vartype):
+class vt_boolean(vt_base):
     """Boolean value. Accepts 0/1, True/False, T/F, Yes/No, Y/N, None."""
     def validate(self, value):
         t = ['t', 'y', 'yes', 'true', '1']
@@ -351,7 +437,7 @@ class vt_boolean(Vartype):
             elif i in f:
                 i = False
             else:
-                raise ValidationError, "Invalid boolean: %s"%unicode(value)
+                raise ValidationError("Invalid boolean: %s."%unicode(value))
             ret.append(i)
         return self._rci(ret)
 
@@ -370,68 +456,15 @@ class vt_boolean(Vartype):
             choices.append("""<option>True</option>""")
             choices.append("""<option checked="checked" >False</option>""")
         return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><select>%s</select></span>""")%(
-            self.pd.name, 
-            self.pd.vartype,
+            self.param, 
+            self.vartype,
             Markup("".join(choices))
             )
 
-@Vartype.register('string')
-class vt_string(Vartype):
-    """String."""
-    def validate(self, value):
-        return self._rci([unicode(x).strip() for x in ci(value)])
-
-@Vartype.register('choice')
-class vt_choice(vt_string):
-    """One value from a defined list of choices."""
-    def validate(self, value):
-        value = [unicode(i).strip() for i in ci(value)]
-        for v in value:
-            if v not in self.pd.choices:
-                raise ValidationError, "Invalid choice: %s"%v
-        return self._rci(value)
-
-    def _form(self, value):
-        choices = []
-        if value is None:
-            value = ''
-        for choice in ['']+self.pd.choices:
-            if choice == value:
-                elem = Markup("""<option value="%s" selected="selected">%s</option>""")%(choice, choice)
-            else:
-                elem = Markup("""<option value="%s">%s</option>""")%(choice, choice)
-            choices.append(elem)
-            
-        return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><select name="%s">%s</select></span>""")%(
-            self.pd.name,
-            self.pd.vartype,
-            self.pd.name,
-            Markup("".join(choices))
-            )
-
-@Vartype.register('text')
-class vt_text(vt_string):
-    """Freeform text, with word indexing."""
-    elem = 'div'
-    def _html(self, value):
-        if value is None:
-            return ''
-        value = Markup(markdown.markdown(unicode(value), safe_mode='escape'))
-        elem = Markup("""<div class="e2-edit" data-paramdef="%s">%s</div>""")%(self.pd.name, value)
-        return elem
-
-    def _form(self, value):
-        if value is None:
-            value = ''
-        return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s"><textarea name="%s">%s</textarea></div>""")%(
-            self.pd.name,
-            self.pd.vartype,
-            self.pd.name,
-            value
-            )
+##### Date and time vartypes. #####
 
 @Vartype.register('datetime')
-class vt_datetime(Vartype):
+class vt_datetime(vt_base):
     """ISO 8601 Date time."""
 
     fmt = [
@@ -450,7 +483,7 @@ class vt_datetime(Vartype):
             if i:
                 t = dateutil.parser.parse(i)
                 # if not t.tzinfo:
-                #    raise ValidationError, "No UTC offset: %s"%i
+                #    raise ValidationError("No UTC offset: %s"%i)
                 ret.append(t.isoformat())
         return self._rci(ret)
         
@@ -489,7 +522,7 @@ class vt_datetime(Vartype):
             local_time = raw_time
             
         return Markup("""<time class="e2-edit" data-paramdef="%s" datetime="%s" title="Raw value: %s \nUTC time: %s \nLocal time: %s">%s</time>""")%(
-            self.pd.name,
+            self.param,
             raw_time.isoformat(),
             value,
             raw_utc.isoformat(),
@@ -519,34 +552,152 @@ class vt_time(vt_datetime):
                 ret.append(i)
         return self._rci(ret)
 
-# Reference vartypes.
-#    Indexed as keyformat 'str'
+##### Reference vartypes. #####
+
 @Vartype.register('uri')
-class vt_uri(Vartype):
+class vt_uri(vt_base):
     """URI"""
     # ian: todo: parse with urlparse
     def validate(self, value):
         value = [unicode(i).strip() for i in ci(value)]
         for v in value:
             if not v.startswith("http://"):
-                raise ValidationError, "Invalid URI: %s"%value
+                raise ValidationError("Invalid URI: %s"%value)
         return self._rci(value)
 
-# Mapping types
-@Vartype.register('dict')
-class vt_dict(Vartype):
-    """Dictionary with string keys and values."""
-    keyformat = None
+@Vartype.register('md5')
+class vt_md5(vt_base):
+    """MD5 Checksum"""
     def validate(self, value):
-        if not value:
-            return None
-        r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
-        return dict(r)
+        return self._rci([unicode(x).strip() for x in ci(value)])
 
-# Binary vartypes
-#    Not indexed.
+##### Link vartypes. #####
+
+@Vartype.register('record')
+class vt_record(vt_base):
+    """References to other Records."""
+    def validate(self, value):
+        value = self._validate_reference(ci(value), keytype='record')
+        return self._rci(value)
+
+@Vartype.register('link')
+class vt_link(vt_base):
+    """Reference."""
+    def validate(self, value):
+        value = self._validate_reference(ci(value), keytype='record') # Ugly hack :(
+        return self._rci(value)
+
+@Vartype.register('recorddef')
+class vt_recorddef(vt_base):
+    """RecordDef name."""
+    def validate(self, value):
+        value = self._validate_reference(ci(value), keytype='recorddef')
+        return self._rci(value)
+
+    def _unicode(self, value):
+        update_recorddef_cache(self.cache, self.db, [value])
+        key = ('recorddef', value)
+        hit, rd = self.cache.check(key)
+        if rd:
+            return rd.desc_short
+        return value
+        
+@Vartype.register('paramdef')
+class vt_paramdef(vt_base):
+    """ParamDef name."""
+    def validate(self, value):
+        value = self._validate_reference(ci(value), keytype='paramdef')
+        return self._rci(value)
+
+    def _unicode(self, value):
+        update_recorddef_cache(self.cache, self.db, [value])
+        key = ('paramdef', value)
+        hit, rd = self.cache.check(key)
+        if rd:
+            return rd.desc_short
+        return value        
+
+@Vartype.register('user')
+class vt_user(vt_base):
+    """Users."""
+    def validate(self, value):
+        value = self._validate_reference(ci(value), keytype='user')
+        return self._rci(value)
+
+    def _unicode(self, value):
+        update_user_cache(self.cache, self.db, [value])
+        key = ('user', value)
+        hit, user = self.cache.check(key)
+        if user:
+            return user.getdisplayname(lnf=self.options.get('lnf'))
+        return value
+
+    def _add(self):
+        label = "Change"
+        iter_ = ""
+        if self.iter:
+            label = "+"
+            iter_ = "true"
+        # The first hidden input is to clear the value if others are unchecked.
+        return Markup("""
+            <input type="hidden" value="" name="%s" />
+            <input type="button" value="%s" class="e2-edit-add-find" data-keytype="user" data-paramdef="%s" data-iter="%s" />
+            """)%(
+            self.param,
+            label,
+            self.param,
+            iter_
+            )
+
+    def _form(self, value):
+        if value is None:
+            return ""
+        update_user_cache(self.cache, self.db, [value])
+        key = ('user', value)
+        hit, user = self.cache.check(key)
+        displayname = value
+        src = "/static/images/user.png"
+        email = ""
+        if user:
+            displayname = user.getdisplayname()     
+            email = user.email
+            if user.userrec.get('person_photo'):
+                src = "/download/%s/user.jpg?size=thumb"%(user.userrec.get('person_photo'))
+
+        elem = Markup("""
+            <div class="e2-infobox" data-name="%s" data-keytype="user">
+                <input type="checkbox" name="%s" value="%s" checked="checked" />
+                <img src="%s" class="e2l-thumbnail" alt="Photo" />
+                <h4>%s</h4>
+                <p class="e2l-small">%s</p>                
+            </div>
+            """)%(
+                value,
+                self.param,
+                value,
+                src,
+                displayname,
+                email
+            )
+        
+        # Show a 'Change' button...
+        if not self.iter:
+            elem += self._add()
+        return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s">%s</div>""")%(
+            self.param,
+            self.vartype,
+            elem
+            )
+
+@Vartype.register('group')
+class vt_group(vt_base):
+    """Group."""
+    def validate(self, value):
+        value = self._validate_reference(ci(value), keytype='group')
+        return self._rci(value)
+
 @Vartype.register('binary')
-class vt_binary(Vartype):
+class vt_binary(vt_base):
     """File Attachment"""
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='binary')
@@ -562,12 +713,12 @@ class vt_binary(Vartype):
     def _add(self):
         label = "Change"
         multiple = ""
-        if self.pd.iter:
+        if self.iter:
             label = "Add attachments"
             multiple = "multiple"
         return Markup("""%s <input type="file" name="%s" multiple="%s" />""")%(
             label,
-            self.pd.name,
+            self.param,
             multiple
             )
             
@@ -585,7 +736,7 @@ class vt_binary(Vartype):
                 </a>
             </span>
             """)%(
-                self.pd.name,
+                self.param,
                 bdo.name,
                 bdo.filename,
                 bdo.name,
@@ -609,7 +760,7 @@ class vt_binary(Vartype):
                     <p class="e2l-small">%s</p>                
                 </div>""")%(
                     bdo.name,
-                    self.pd.name,
+                    self.param,
                     bdo.name,
                     src,
                     bdo.filename,
@@ -617,139 +768,16 @@ class vt_binary(Vartype):
                 )
         
         # Show a 'Change' button...
-        if not self.pd.iter:
+        if not self.iter:
             elem += self._add()
             
         return Markup("""<div class="e2-edit" %s>%s</div>""")%(
-            self.pd.name,
+            self.param,
             elem
             )
-
-@Vartype.register('md5')
-class vt_md5(Vartype):
-    """MD5 Checksum"""
-    def validate(self, value):
-        return self._rci([unicode(x).strip() for x in ci(value)])
-
-@Vartype.register('record')
-class vt_record(Vartype):
-    """References to other Records."""
-    def validate(self, value):
-        value = self._validate_reference(ci(value), keytype='record')
-        return self._rci(value)
-
-@Vartype.register('link')
-class vt_link(Vartype):
-    """Reference."""
-    def validate(self, value):
-        value = self._validate_reference(ci(value), keytype='record') # Ugly hack :(
-        return self._rci(value)
-
-@Vartype.register('recorddef')
-class vt_recorddef(Vartype):
-    """RecordDef name."""
-    def validate(self, value):
-        value = self._validate_reference(ci(value), keytype='recorddef')
-        return self._rci(value)
-
-    def _unicode(self, value):
-        update_recorddef_cache(self.cache, self.db, [value])
-        key = ('recorddef', value)
-        hit, rd = self.cache.check(key)
-        if rd:
-            return rd.desc_short
-        return value
-        
-@Vartype.register('paramdef')
-class vt_paramdef(Vartype):
-    """ParamDef name."""
-    def validate(self, value):
-        value = self._validate_reference(ci(value), keytype='paramdef')
-        return self._rci(value)
-
-    def _unicode(self, value):
-        update_recorddef_cache(self.cache, self.db, [value])
-        key = ('paramdef', value)
-        hit, rd = self.cache.check(key)
-        if rd:
-            return rd.desc_short
-        return value        
-
-@Vartype.register('user')
-class vt_user(Vartype):
-    """Users."""
-    def validate(self, value):
-        value = self._validate_reference(ci(value), keytype='user')
-        return self._rci(value)
-
-    def _unicode(self, value):
-        update_user_cache(self.cache, self.db, [value])
-        key = ('user', value)
-        hit, user = self.cache.check(key)
-        if user:
-            return user.getdisplayname(lnf=self.options.get('lnf'))
-        return value
-
-    def _add(self):
-        label = "Change"
-        iter_ = ""
-        if self.pd.iter:
-            label = "+"
-            iter_ = "true"
-        # The first hidden input is to clear the value if others are unchecked.
-        return Markup("""
-            <input type="hidden" value="" name="%s" />
-            <input type="button" value="%s" class="e2-edit-add-find" data-keytype="user" data-paramdef="%s" data-iter="%s" />
-            """)%(
-            self.pd.name,
-            label,
-            self.pd.name,
-            iter_
-            )
-
-    def _form(self, value):
-        if value is None:
-            return ""
-
-        update_user_cache(self.cache, self.db, [value])
-        key = ('user', value)
-        hit, user = self.cache.check(key)
-
-        displayname = value
-        src = "/static/images/user.png"
-        email = ""
-        if user:
-            displayname = user.getdisplayname()     
-            email = user.email
-            if user.userrec.get('person_photo'):
-                src = "/download/%s/user.jpg?size=thumb"%(user.userrec.get('person_photo'))
-
-        elem = Markup("""
-            <div class="e2-infobox" data-name="%s" data-keytype="user">
-                <input type="checkbox" name="%s" value="%s" checked="checked" />
-                <img src="%s" class="e2l-thumbnail" alt="Photo" />
-                <h4>%s</h4>
-                <p class="e2l-small">%s</p>                
-            </div>
-            """)%(
-                value,
-                self.pd.name,
-                value,
-                src,
-                displayname,
-                email
-            )
-        
-        # Show a 'Change' button...
-        if not self.pd.iter:
-            elem += self._add()
             
-        return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s">%s</div>""")%(
-            self.pd.name,
-            self.pd.vartype,
-            elem
-            )
-
+##### Complex vartypes. #####
+            
 @Vartype.register('acl')
 class vt_acl(Vartype):
     """Permissions access control list; nested lists of users."""
@@ -768,30 +796,22 @@ class vt_acl(Vartype):
 
         for i in value:
             if not hasattr(i, '__iter__'):
-                raise ValidationError, "Invalid permissions format: %s"%(value)
+                raise ValidationError("Invalid permissions format: %s"%value)
 
         value = [[unicode(y) for y in x] for x in value]
         if len(value) != 4:
-            raise ValidationError, "Invalid permissions format: ", value
+            raise ValidationError("Invalid permissions format: %s"%value)
 
         users = reduce(lambda x,y:x+y, value)
         self._validate_reference(users, keytype='user')
         return value
 
     def _form(self, value):
-        return self._html(value)
-
-@Vartype.register('group')
-class vt_group(Vartype):
-    """Group."""
-    def validate(self, value):
-        value = self._validate_reference(ci(value), keytype='group')
-        return self._rci(value)
+        return self._html(value)            
 
 @Vartype.register('comments')
 class vt_comments(Vartype):
     """Comments."""
-    keyformat = None
     # ian: todo... sort this out.
     def validate(self, value):
         return value
@@ -809,10 +829,25 @@ class vt_comments(Vartype):
             )
 
     def render_form(self, value):
-        return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s"><textarea placeholder="Add additional comments"></textarea></div>""")%(self.pd.name, self.pd.vartype)
+        return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s"><textarea placeholder="Add additional comments"></textarea></div>""")%(self.param, self.vartype)
 
 @Vartype.register('history')
 class vt_history(Vartype):
     """History."""    
-    keyformat = None
+    pass
+    
+@Vartype.register('coordinate')
+class vt_coordinate(Vartype):
+    """Coordinates; tuples of floats."""
+    def validate(self, value):
+        return [(float(x), float(y)) for x,y in ci(value)]
+
+@Vartype.register('dict')
+class vt_dict(Vartype):
+    """Dictionary with string keys and values."""
+    def validate(self, value):
+        if not value:
+            return None
+        r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
+        return dict(r)
 

@@ -9,6 +9,7 @@ import time
 import traceback
 import cPickle as pickle
 import json
+import re
 
 # Berkeley DB
 # Note: the 'bsddb' module is not sufficient.
@@ -103,7 +104,7 @@ class EMEN2DBEnv(object):
             txncount = 1024*128
             
         dbenv.set_cachesize(0, self.cachesize)
-        dbenv.set_tx_max(txncount)
+        dbenv.set_tx_max(int(txncount))
         dbenv.set_lk_max_locks(300000)
         dbenv.set_lk_max_lockers(300000)
         dbenv.set_lk_max_objects(300000)
@@ -204,9 +205,9 @@ class EMEN2DBEnv(object):
     def txncb(self, txn, action, args=None, kwargs=None, condition='commit', when='before'):
         # Add a pre- or post-commit hook.
         if when not in ['before', 'after']:
-            raise ValueError, "Transaction callback 'when' must be before or after"
+            raise ValueError("Transaction callback 'when' must be before or after.")
         if condition not in ['commit', 'abort']:
-            raise ValueError, "Transaction callback 'condition' must be commit or abort"
+            raise ValueError("Transaction callback 'condition' must be commit or abort.")
         item = [condition, when, action, args or [], kwargs or {}]
         self._txncbs[txn.id()].append(item)
 
@@ -277,13 +278,6 @@ class EMEN2DBEnv(object):
 
         return outpaths     
 
-    ##### Rebuild indexes #####
-    
-    def rebuild_indexes(self, ctx=None, txn=None):
-        for k,v in self.keytypes.items():
-            v.rebuild_indexes(ctx=ctx, txn=txn)
-
-
 # Context-aware DB for Database Objects.
 # These support a single DB and a single data class.
 # Supports sequenced items.
@@ -325,14 +319,14 @@ class CollectionDB(object):
         items
 
     Some internal methods:
-        _get_data
+        _get
         _put
         _puts
         _put_data
         _exists
 
     Sequence methods:
-        _update_names    Update items with new names from sequence
+        _update_name    Update items with new names from sequence
         _key_generator
         _incr_sequence
         _get_max
@@ -357,7 +351,6 @@ class CollectionDB(object):
 
         # What are we storing?
         self.keytype = (keytype or dataclass.__name__).lower()        
-        self.keyclass = unicode
         self.keydump = lambda x:unicode(x).encode('utf-8')
         self.keyload = lambda x:x.decode('utf-8')
         self.dataclass = dataclass
@@ -379,7 +372,7 @@ class CollectionDB(object):
     def open(self):
         """Open the DB. This uses an implicit open transaction."""
         if self.bdb:
-            raise Exception, "DB already open"
+            raise Exception("DB already open.")
         emen2.db.log.debug("BDB: %s open"%self.filename)
         flags = 0
         flags |= bsddb3.db.DB_AUTO_COMMIT 
@@ -407,7 +400,8 @@ class CollectionDB(object):
         if param not in ['parents', 'children']:
             self.rels[param] = None
             return None
-        index = Index(keytype=self.keytype, param=param, dbenv=self.dbenv)
+        vtc = emen2.db.vartypes.Vartype.get_vartype('link')
+        index = Index(keytype=self.keytype, vtc=vtc, param=param, dbenv=self.dbenv)
         self.rels[param] = index
         return index
 
@@ -415,22 +409,27 @@ class CollectionDB(object):
         if param in self.indexes:
             return self.indexes.get(param)
             
-        # Check that it's an indexed vartype...
+        # Check if it's an indexed param.
         try:
-            pd = self.dbenv["paramdef"]._get_data(param, txn=txn)
+            pd = self.dbenv["paramdef"]._get(param, txn=txn)
         except KeyError:
             # Leave the opportunity to try and open again later...
             # self.indexes[param] = None
             return None
-        vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd)
-        tp = vartype.keyformat
-        if not pd.indexed or not tp:
+        if not pd.indexed:
             self.indexes[param] = None
             return None
 
+        # Check if it's an indexed vartype.
+        vtc = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd)
+        try:
+            vtc.reindex(None)
+        except NotImplementedError:
+            self.indexes[param] = None
+            return None
+        
         # Open and associate the secondary index.
-        index = Index(keytype=self.keytype, param=param, dbenv=self.dbenv, vartype=pd.vartype, vartype_iter=pd.iter)
-        index.associate(self)
+        index = Index(keytype=self.keytype, vtc=vtc, param=param, dbenv=self.dbenv)
         self.indexes[param] = index
         return index
 
@@ -466,7 +465,7 @@ class CollectionDB(object):
                 
         # Acquire a write lock on this name.
         if self.exists(item.name, txn=txn):
-            raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%item.name
+            raise emen2.db.exceptions.ExistingKeyError("%s already exists."%item.name)
         return item
 
     ##### Exists #####
@@ -538,114 +537,92 @@ class CollectionDB(object):
         """
         if filt == True:
             filt = (emen2.db.exceptions.PermissionsError, KeyError)
-
         ret = []
         for key in keys:
             try:
-                d = self._get_data(key, txn=txn)
+                d = self._get(key, txn=txn)
                 d.setContext(ctx)
                 ret.append(d)
             except filt, e:
                 pass
         return ret
         
-    def _get_data(self, key, txn=None):
+    def _get(self, key, txn=None):
         emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
         d = self.bdb.get(self.keydump(key), txn=txn)
         if d is None:
-            raise KeyError, "No such key %s"%(key)    
+            raise KeyError("No such key: %s"%(key))
         return self.dataclass().load(json.loads(d))
 
     ##### Write methods #####
 
-    def validate(self, items, ctx=None, txn=None):
-        return self.puts(items, commit=False, ctx=ctx, txn=txn)
+    def validate(self, item, ctx=None, txn=None):
+        # Get the existing item or create a new one.
+        name = item.get('name')
+        if self.exists(name, txn=txn):
+            # Get the existing item.
+            orec = self._get(name, txn=txn)
+            # May raise a PermissionsError if you can't read it.
+            orec.setContext(ctx)
+            orec.update(item)
+        else:
+            # Create a new item.
+            orec = self.new(ctx=ctx, txn=txn, **item)
+        # Update the item.
+        orec.validate()
+        return orec
 
-    def put(self, item, commit=True, ctx=None, txn=None):
-        """See puts(). This works the same, but for a single DBO."""
-        ret = self.puts([item], commit=commit, ctx=ctx, txn=txn)
-        if not ret:
-            return None
-        return ret[0]
-        
-    def puts(self, items, commit=True, ctx=None, txn=None):
+    def put(self, item, ctx=None, txn=None):
         """Update DBOs. Requires ctx and txn.
 
-        :param item: DBOs, or similar (e.g. dict)
-        :keyword commit: Actually commit (e.g. for validation only)
+        :param item: DBO, or similar (e.g. dict)
         :keyword ctx: Context
         :keyword txn: Transaction
-        :return: Updated DBOs
+        :return: Updated DBO
         :exception KeyError:
         :exception PermissionsError:
         :exception ValidationError:
         """
-        # Updated items
-        crecs = []
-        for updrec in items:
-            name = updrec.get('name')
-            
-            # Get the existing item or create a new one.
-            if self.exists(name, txn=txn):
-                # Get the existing item.
-                orec = self._get_data(name, txn=txn)
-                # May raise a PermissionsError if you can't read it.
-                orec.setContext(ctx)
-                orec.update(updrec)
-            else:
-                # Create a new item.
-                orec = self.new(ctx=ctx, txn=txn, **updrec)
-
-            # Update the item.
-            orec.validate()
-            crecs.append(orec)
-
-        # If we just wanted to validate the changes, 
-        #      return without writing changes.
-        if commit:
-            return self._puts(crecs, ctx=ctx, txn=txn)
-        return crecs
-
-    def _put(self, item, ctx=None, txn=None):
-        return self._puts([item], ctx=ctx, txn=txn)[0]
-        
-    def _puts(self, items, ctx=None, txn=None):
-        # Assign names for new items.
-        namemap = self._update_names(items, txn=txn)
-
-        # Temporary fix for backwards compatibility
-        parents = {}
-        children = {}
-        for item in items:
-            parents[item.name] = [namemap.get(i,i) for i in item.data.pop('parents', [])]
-            children[item.name] = [namemap.get(i,i) for i in item.data.pop('children', [])]
-
-        # Make sure the secondary indexes are open and associated.
-        keys = set()
-        for item in items:
-            keys |= set(item.data.keys())
-        for key in keys:
-            self._getindex(key, txn=txn)
-
-        # Write the items "for real."
-        for item in items:
-            self._put_data(item.name, item, txn=txn)
-
-        for k,v in parents.items():
-            for v2 in v:
-                self._putrel(v2, k, ctx=ctx, txn=txn)
-        for k,v in children.items():
-            for v2 in v:
-                self._putrel(k, v2, ctx=ctx, txn=txn)
-            
-
-        emen2.db.log.debug("BDB: Committed %s items"%(len(items)))
-        return items
-
-    def _put_data(self, name, item, txn=None):
-        emen2.db.log.debug("BDB: %s put: %s -> %s"%(self.filename, name, item.data))
-        self.bdb.put(self.keydump(name), self.datadump(item), txn=txn)
+        return self._put(self.validate(item, ctx=ctx, txn=txn), ctx=ctx, txn=txn)
     
+    def puts(self, items, ctx=None, txn=None):
+        return [self.put(item, ctx=ctx, txn=txn) for item in items]    
+        
+    def _put(self, item, ctx=None, txn=None):
+        namemap = self._update_name(item, txn=txn)
+        parents = item.data.pop('parents', [])
+        children = item.data.pop('children', [])
+
+        try:
+            old = self._get(item.name, txn=txn)
+        except:
+            old = {}
+            
+        # Put
+        self.bdb.put(self.keydump(item.name), self.datadump(item), txn=txn)
+
+        # Reindex
+        okw = set()
+        nkw = set()
+        for k in set(item.keys() + old.keys()) - set(['keywords']):
+            ind = self._getindex(k, txn=txn)
+            if ind:
+                a, b = ind.reindex(item.name, old.get(k), item.get(k), txn=txn)
+                okw |= a
+                nkw |= b
+        print "KW:", okw ^ nkw
+        # ind = self._getindex('keywords', txn=txn)
+        # if ind:
+        #     ind.removerefs(item.name, okw, txn=txn)
+        #     ind.addrefs(item.name, nkw, txn=txn)        
+        
+        # Link
+        for k in parents:
+            self._putrel(k, item.name, ctx=ctx, txn=txn)
+        for k in children:
+            self._putrel(item.name, k, ctx=ctx, txn=txn)
+        return item
+        
     def delete(self, name, ctx=None, txn=None):
         return
         
@@ -663,31 +640,27 @@ class CollectionDB(object):
             return None
         return index.find(key=key, maxkey=maxkey, op=op, txn=txn) 
 
-    def rebuild_indexes(self, ctx=None, txn=None):
-        return
-
     ##### Sequences #####
 
     # Todo: Simplify this. Maybe move it somewhere else.
-    def _update_names(self, items, txn=None):
+    def _update_name(self, item, txn=None):
         """Update items with new names. Requires txn.
 
         :param items: Items to update.
         :keyword txn: Transaction.
         """
         namemap = {}
-        for item in items:
-            if not self.exists(item.name, txn=txn):
-                # Get a new name.
-                newname = self._key_generator(item, txn=txn)
-                # Check the name is still available, and acquire lock.
-                if self.exists(newname, txn=txn):
-                    raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%newname
-                # Update the item's name.
-                item.data['name'] = newname
-                namemap[item.name] = newname
-            else:
-                namemap[item.name] = item.name                
+        if not self.exists(item.name, txn=txn):
+            # Get a new name.
+            newname = self._key_generator(item, txn=txn)
+            # Check the name is still available, and acquire lock.
+            if self.exists(newname, txn=txn):
+                raise emen2.db.exceptions.ExistingKeyError("%s already exists."%newname)
+            # Update the item's name.
+            item.data['name'] = newname
+            namemap[item.name] = newname
+        else:
+            namemap[item.name] = item.name                
         return namemap
 
     def _key_generator(self, item, txn=None):
@@ -870,29 +843,16 @@ class CollectionDB(object):
     def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
         indp = self._getrel('parents', txn=txn)
         indc = self._getrel('children', txn=txn)
-        recp = self.get(parent, ctx=ctx, txn=txn)
-        recc = self.get(child, ctx=ctx, txn=txn)
+        parent = self.get(parent, ctx=ctx, txn=txn)
+        child = self.get(child, ctx=ctx, txn=txn)
         if not (recp.writable() or recc.writable()):
-            raise emen2.db.exceptions.SecurityError, "Insufficient permissions to edit relationship!"
-            
-        cursorp = indp.bdb.cursor(txn=txn)
-        cursorc = indc.bdb.cursor(txn=txn)
-        if mode == 'addrefs':
-            if not cursorp.set_both(self.keydump(recc.name), self.keydump(recp.name)):
-                cursorp.put(self.keydump(recc.name), self.keydump(recp.name), flags=bsddb3.db.DB_KEYFIRST)
-            if not cursorc.set_both(self.keydump(recp.name), self.keydump(recc.name)):
-                cursorc.put(self.keydump(recp.name), self.keydump(recc.name), flags=bsddb3.db.DB_KEYFIRST)
-        elif mode == 'removerefs':
-            if cursorp.set_both(self.keydump(recc.name), self.keydump(recp.name)):
-                cursorp.delete()
-            if cursorc.set_both(self.keydump(recp.name), self.keydump(recc.name)):
-                cursorc.delete()
-        cursorp.close()
-        cursorc.close()
-
-
-
-
+            raise emen2.db.exceptions.SecurityError("Insufficient permissions to edit relationship.")
+        if mode == 'removerefs':
+            indp.removerefs(child.name, [parent.name], txn=txn)
+            indc.removerefs(parent.name, [child.name], txn=txn)
+        elif mode == 'addrefs':
+            indp.addrefs(child.name, [parent.name], txn=txn)    
+            indp.addrefs(parent.name, [child.name], txn=txn)    
 
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
@@ -976,17 +936,12 @@ class NewUserDB(CollectionDB):
     def filter(self, names=None, ctx=None, txn=None):
         # This requires admin access
         if not ctx or not ctx.checkadmin():
-            raise emen2.db.exceptions.PermissionsError("Admin rights needed to view user queue")
+            raise emen2.db.exceptions.PermissionsError("Admin rights needed to view user queue.")
         return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
-        
-        
-        
-        
-        
 
 class Index(object):
     # A secondary index. Also used for relationships.
-    def __init__(self, filename=None, keytype=None, param=None, vartype='str', vartype_iter=False, dbenv=None):
+    def __init__(self, filename=None, keytype=None, param=None, vtc=None, dbenv=None):
         # Filename, DBENV, BDB handle.
         self.keytype = keytype
         self.param = param
@@ -995,28 +950,15 @@ class Index(object):
         self.bdb = None
 
         # Index settings.
-        self.vartype = vartype
-        self.vartype_iter = vartype_iter
-        self.vtc = emen2.db.vartypes.Vartype.get_vartype(vartype)
-        if self.vtc.keyformat == 'str':
-            self.keydump = lambda x:unicode(x).lower().encode('utf-8')
-            self.keyload = lambda x:x.decode('utf-8')
-        elif self.vtc.keyformat == 'int':
-            self.keydump = str
-            self.keyload = int
-        elif self.vtc.keyformat == 'float':
-            self.keydump = str
-            self.keyload = float
-        else:
-            raise Exception, "Unknown keyformat: %s"%self.vtc.keyformat
-        # print "vartype:", vartype, vartype_iter, self.vtc, self.vtc.keyformat
-
+        self.vtc = vtc
+        self.keydump = lambda x:unicode(x).lower().encode('utf-8')
+        self.keyload = lambda x:self.vtc.keyclass(x)
         self.open()    
 
     def open(self):
         """Open the DB. This uses an implicit open transaction."""
         if self.bdb:
-            raise Exception, "DB already open."
+            raise Exception("DB already open.")
         emen2.db.log.debug("BDB: %s open"%self.filename)
         flags = 0
         flags |= bsddb3.db.DB_AUTO_COMMIT 
@@ -1026,8 +968,9 @@ class Index(object):
         self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
         self.bdb.set_flags(bsddb3.db.DB_DUP)
         self.bdb.set_flags(bsddb3.db.DB_DUPSORT)
-        if self.vtc.keyformat in ['float', 'int']:
-            # print "setting comparison function for %s: %s"%(self.param, self.vtc.keyformat)
+        # A little magicky but works.
+        if self.vtc.keyclass in [float, int]:
+            # print "setting comparison function for %s: %s"%(self.param, self.vtc.keyclass)
             self.bdb.set_bt_compare(self._cmpfunc)
         self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
 
@@ -1036,63 +979,41 @@ class Index(object):
         emen2.db.log.debug("BDB: %s close"%self.filename)
         self.bdb.close()
         self.bdb = None
-        
-    def associate(self, parent):
-        # if not self.bdb:
-        #     raise Exception, "DB must be open before association."
-        if self.vartype == 'acl':
-            parent.bdb.associate(self.bdb, self._indexfunc_acl)
-        elif self.vartype_iter:
-            parent.bdb.associate(self.bdb, self._indexfunc_iter)                   
-        else:
-            parent.bdb.associate(self.bdb, self._indexfunc_str)
-
-    # These could be in the Vartypes, but they are too critical
-    # and sensitive, so I'll put them here in the driver.
     
+    def reindex(self, key, old, new, txn=None):
+        key = str(key)
+        old = self.vtc.reindex(old)
+        new = self.vtc.reindex(new)
+        print "old/new:", old, new
+        self.removerefs(key, old - new, txn=txn)
+        self.addrefs(key, new - old, txn=txn)
+        return old, new
+    
+    def addrefs(self, key, values, txn=None):
+        if not values:
+            return
+        key = unicode(key).encode('utf-8')
+        cursor = self.bdb.cursor(txn=txn)
+        for i in values:
+            # print "add:", self.param, key, i
+            cursor.put(self.keydump(i), key, flags=bsddb3.db.DB_KEYFIRST)
+        cursor.close()
+            
+    def removerefs(self, key, values, txn=None):
+        if not values:
+            return
+        key = unicode(key).encode('utf-8')
+        cursor = self.bdb.cursor(txn=txn)
+        for i in values:
+            if cursor.set_both(self.keydump(i), key):
+                # print "delete:", self.param, key, i
+                cursor.delete()       
+        cursor.close()
+
     def _cmpfunc(self, k1, k2):
         # Numeric comparison function, for BTree key comparison.
         # print "... comparing:", k1, k2
         return cmp(self.keyload(k1 or '0'), self.keyload(k2 or '0'))
-
-    def _indexfunc_str(self, key, data):
-        # Return indexed keys.
-        value = json.loads(data).get(self.param)
-        ret = set()
-        if value is None:
-            return
-        for i in unicode(value).split(" "):
-            ret.add(self.keydump(i))
-        # print "... indexfunc_str %s: %s -> %s"%(self.param, value, list(ret))
-        return list(ret)
-
-    def _indexfunc_iter(self, key, data):
-        value = json.loads(data).get(self.param)
-        ret = set()
-        if value is None:
-            return
-        for v in value:
-            for i in unicode(v).split(" "):
-                ret.add(self.keydump(i))
-        # print "... indexfunc_iter %s: %s -> %s"%(self.param, value, list(ret))
-        return list(ret)
-        
-    def _indexfunc_acl(self, key, data):
-        value = json.loads(data).get(self.param)
-        ret = set()
-        if value is None:
-            return
-        for i in value:
-            for j in i:
-                ret.add(self.keydump(j))
-        # print "... indexfunc_acl %s: %s -> %s"%(self.param, value, list(ret))
-        return list(ret)
-
-    def addrefs(self):
-        pass
-    
-    def removerefs(self):
-        pass
 
     def bfs(self, key, recurse=1, txn=None):
         # (Internal) Relationships
@@ -1133,29 +1054,29 @@ class Index(object):
         r = []
         cursor = self.bdb.cursor(txn=txn)
         if op == 'starts':
-            r = self._pget_starts(key, cursor)
+            r = self._get_starts(key, cursor)
         elif op == 'range':
-            r = self._pget_range(key, maxkey, cursor)
+            r = self._get_range(key, maxkey, cursor)
         elif op == '>=':
-            r = self._pget_gte(key, cursor)            
+            r = self._get_gte(key, cursor)            
         elif op == '>':
-            r = self._pget_gt(key, cursor)            
+            r = self._get_gt(key, cursor)            
         elif op == '<=':
-            r = self._pget_lte(key, cursor)            
+            r = self._get_lte(key, cursor)            
         elif op == '<':
-            r = self._pget_lt(key, cursor)            
+            r = self._get_lt(key, cursor)            
         elif op == '==':
-            r = self._pget_is(key, cursor)
+            r = self._get_is(key, cursor)
         elif op == '!=':
-            r = self._pget_not(key, cursor)        
+            r = self._get_not(key, cursor)        
         elif op == 'any':
-            r = self._pget_any(key, cursor)
+            r = self._get_any(key, cursor)
         elif op == 'noop':
             pass
         else:
-            raise Exception, "Unsupported operator for index searches."                
+            raise Exception("Unsupported operator.")
         cursor.close()
-        # print "--", op, key, maxkey, r
+        print "--", op, key, maxkey, r
         return set(r)
 
     ##### Begin a bunch of repetitive code to iterate through cursor in various ways #####
@@ -1180,80 +1101,80 @@ class Index(object):
             c = m()
         return r
 
-    def _pget_is(self, key, cursor):
+    def _get_is(self, key, cursor):
         r = []
-        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET)
+        c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
         while c:
             r.append(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
+            c = cursor.get(flags=bsddb3.db.DB_NEXT_DUP)
         return r
     
-    def _pget_starts(self, key, cursor):
+    def _get_starts(self, key, cursor):
         r = []
         # This only works with strings.
-        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
+        c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
         k = self.keydump(key)
         while c and c[0].startswith(k):
             r.append(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+            c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
         
-    def _pget_range(self, minkey, maxkey, cursor):
+    def _get_range(self, minkey, maxkey, cursor):
         r = []
-        c = cursor.pget(self.keydump(minkey), flags=bsddb3.db.DB_SET_RANGE)
+        c = cursor.get(self.keydump(minkey), flags=bsddb3.db.DB_SET_RANGE)
         while c and self.keyload(c[0]) <= maxkey:
             r.append(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+            c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
 
-    def _pget_gte(self, key, cursor):
+    def _get_gte(self, key, cursor):
         r = []
-        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
+        c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
         while c:
             r.append(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+            c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
 
-    def _pget_gt(self, key, cursor):
+    def _get_gt(self, key, cursor):
         r = []
-        c = cursor.pget(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
+        c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
         while c:
             if self.keyload(c[0]) > key:
                 r.append(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+            c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
 
-    def _pget_lte(self, key, cursor):
+    def _get_lte(self, key, cursor):
         r = []
-        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+        c = cursor.get(flags=bsddb3.db.DB_FIRST)
         while c and self.keyload(c[0]) <= key:
             r.append(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+            c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
 
-    def _pget_lt(self, key, cursor):
+    def _get_lt(self, key, cursor):
         r = []
-        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+        c = cursor.get(flags=bsddb3.db.DB_FIRST)
         while c and self.keyload(c[0]) < key:
             r.append(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+            c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
     
-    def _pget_not(self, key, cursor):
+    def _get_not(self, key, cursor):
         r = []
-        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+        c = cursor.get(flags=bsddb3.db.DB_FIRST)
         kd = self.keydump(key)
         while c:
             if c[0] != kd:
                 r.append(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT)
+            c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
 
-    def _pget_any(self, key, cursor):
+    def _get_any(self, key, cursor):
         r = []
-        c = cursor.pget(flags=bsddb3.db.DB_FIRST)
+        c = cursor.get(flags=bsddb3.db.DB_FIRST)
         while c:
             r.append(c[1])
-            c = cursor.pget(flags=bsddb3.db.DB_NEXT_DUP)
+            c = cursor.get(flags=bsddb3.db.DB_NEXT_DUP)
         return r
 

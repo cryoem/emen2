@@ -28,7 +28,7 @@ with db:
             print 'Already had filesize:', bin.get('filesize')
         
         if bin.get('record'):
-            rec = db._db.dbenv["record"]._get_data(record, txn=txn)
+            rec = db._db.dbenv["record"]._get(record, txn=txn)
             creator = rec['creator']
             creationtime = rec['creationtime']
             if creator.startswith('http'):

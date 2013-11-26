@@ -43,18 +43,6 @@ def getop(op):
     }
     return ops[SYNONYMS.get(op, op)]
 
-def keyformatconvert(keyformat, term):
-    try:
-        if keyformat == 'int':
-            term = int(term)
-        elif keyformat == 'float':
-            term = float(term)
-        elif keyformat == 'str':
-            term = unicode(term)
-    except:
-        pass
-    return term
-
 class QueryTimeOut(Exception):
     pass
 
@@ -142,8 +130,7 @@ class MacroConstraint(Constraint):
         # Preprocess
         macro.preprocess(k.group('args') or '', items)
         # Convert the term to the right type
-        keyformat = macro.keyformat
-        term = keyformatconvert(keyformat, self.term)
+        term = macro.keyclass(self.term) 
         # Run the comparison
         cfunc = getop(self.op)
         for item in items:
@@ -261,7 +248,7 @@ class Query(object):
         elif self.mode == 'OR':
             self.result |= f
         else:
-            raise QuerySyntaxError, "Unknown boolean mode %s"%self.mode
+            raise QuerySyntaxError("Unknown boolean mode %s."%self.mode)
         
     def _makeconstraint(self, param, op='noop', term=''):
         op = SYNONYMS.get(op, op)

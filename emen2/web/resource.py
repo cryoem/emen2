@@ -55,7 +55,7 @@ class RoutedResource(object):
         This may do things like disable snapshot transactions.
         '''
         if not matchers:
-            raise ValueError, 'A view must have at least one matcher'
+            raise ValueError('A view must have at least one matcher')
 
         # Default name (this is usually the method name)
         def check_name(name):
@@ -525,7 +525,7 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
     def callmethod(self, request, rpcrequest, db=None, ctxid=None, **kw):
         # Lookup the method and call
         if not db:
-            raise Exception, "No DBProxy"
+            raise Exception("No DBProxy.")
 
         # Hack to log username and ctxid
         request._log_username = None
@@ -533,7 +533,7 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 
         methodresult = None
         if rpcrequest.method.startswith('_'):
-            raise emen2.web.responsecodes.ForbiddenError, 'Method not accessible'
+            raise emen2.web.responsecodes.ForbiddenError('Method not accessible.')
 
         elif rpcrequest.method in db._publicmethods:
             # Start the DB with a write transaction

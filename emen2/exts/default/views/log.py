@@ -46,7 +46,8 @@ class Reverser(object):
         self.stopped = result
         return result
     def next(self):
-            if self.stopped: raise StopIteration
+            if self.stopped:
+                raise StopIteration
             line = []
             line.insert(0, self._file.read(1))
             if line[0] == '\n':
@@ -64,7 +65,8 @@ class Reverser(object):
         try:
             while True:
                 yield self.next()
-        except EOFError: raise StopIteration
+        except EOFError:
+            raise StopIteration
 
 # class TableJS(emen2.web.templating.BaseJS):
 #     def main(self):

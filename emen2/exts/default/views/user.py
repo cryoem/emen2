@@ -35,7 +35,7 @@ class User(View):
         # Security is of course is checked by the database, 
         # this just hides the form itself.
         if self.db.auth.check.context()[0] != user.name and not self.ctxt['ADMIN']:
-            raise emen2.db.exceptions.PermissionsError, "You may only edit your own user page"
+            raise emen2.db.exceptions.PermissionsError("You may only edit your own user page.")
 
         msgs = {
             "password":"Password updated.", 

@@ -15,7 +15,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     
     Provides the following parameters:
         desc_short, desc_long, vartype, choices, defaultunits, property, 
-        indexed, iter, immutable, property, indexed
+        indexed, iter, property, indexed
     
     Please be aware that several parameters are effectively immutable, and
     cannot be easily changed after a ParamDef is created because it would
@@ -77,10 +77,6 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     frequently, you might turn off indexing. This cannot be easily changed
     after creation; doing so requires rebuilding the index.
     
-    Finally, the 'immutable' parameter is used to lock an parameter value. If 
-    set, no ParamDef of this type can be edited. This can be turned on/off after
-    creation, within reason.
-        
     The following methods are overridden:
         init        Initialize ParamDef
         validate    Check the vartype and property are valid
@@ -93,10 +89,9 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     :property property: Physical property
     :property indexed: Values are indexed
     :property iter: Values can be iterable
-    :property immutable: ParamDef is locked
     """
     
-    public = emen2.db.dataobject.BaseDBObject.public | set(['immutable', 
+    public = emen2.db.dataobject.BaseDBObject.public | set([ 
         'iter', 'desc_long', 'desc_short', 'choices', 'vartype',
         'defaultunits', 'property', 'indexed'])
 
@@ -120,9 +115,6 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         # choices for choice and string vartypes, a tuple
         self.data['choices'] = []
 
-        # Immutable
-        self.data['immutable'] = False
-        
         # Iterable. This can be False, True (list), list, set, dict.
         self.data['iter'] = False
 
@@ -156,12 +148,6 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
     def _set_desc_long(self, key, value):
         self._set(key, self._strip(value), self.isowner())
-
-    def _set_immutable(self, key, value):
-        value = bool(value)
-        if value != self.immutable and not self.isnew():
-            raise self.error("Cannot change immutable from %s to %s."%(self.immutable, value))
-        self._set(key, value, self.isowner())
 
     def _set_iter(self, key, value):
         value = bool(value)

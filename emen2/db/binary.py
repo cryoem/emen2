@@ -69,7 +69,7 @@ def writetmp(filedata=None, fileobj=None, filedir=None, suffix="upload"):
     if filedata:
         fileobj = cStringIO.StringIO(filedata)
     if not fileobj:
-        raise ValueError, "No data to write to temporary file."
+        raise ValueError("No data to write to temporary file.")
 
     # Seek to the beginning of the fileobj.
     fileobj.seek(0)
@@ -160,7 +160,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
     def validate(self):
         # Validate
         if not all([self.filename, self.md5, self.filesize is not None]):
-            raise emen2.db.exceptions.ValidationError, "filename, filesize, and MD5 checksum are required"
+            raise emen2.db.exceptions.ValidationError("filename, filesize, and MD5 checksum are required.")
 
     ##### Setters #####
     
@@ -168,17 +168,17 @@ class Binary(emen2.db.dataobject.BaseDBObject):
     # new Binary, before commit
     def _set_md5(self, key, value):
         if not self.isnew():
-            raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+            raise emen2.db.exceptions.ValidationError("Cannot change a Binary's file attachment.")
         self._set(key, self._strip(value), self.isowner())
 
     def _set_compress(self, key, value):
         if not self.isnew():
-            raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+            raise emen2.db.exceptions.ValidationError("Cannot change a Binary's file attachment.")
         self._set(key, self._strip(value), self.isowner())
 
     def _set_filesize(self, key, value):
         if not self.isnew():
-            raise emen2.db.exceptions.ValidationError, "Cannot change a Binary's file attachment"
+            raise emen2.db.exceptions.ValidationError("Cannot change a Binary's file attachment.")
         self._set(key, int(value), self.isowner())
 
     # These can be changed normally

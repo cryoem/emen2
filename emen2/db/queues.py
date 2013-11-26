@@ -60,11 +60,11 @@ class ProcessQueue(Queue.LifoQueue):
             task = tuple(task)
 
         if priority < -100 or priority > 100:
-            raise ValueError, "Highest priority is -100, lowest priority is 100"
+            raise ValueError("Highest priority is -100, lowest priority is 100.")
 
         if name in [i[1] for i in self.queue]:
 		priority = 0
-        #    raise ValueError, "Task name already in queue: %s"%name
+        #    raise ValueError("Task name already in queue: %s"%name)
 
         emen2.db.log.info("ProcessQueue: Adding task %s with priority %s to queue: %s"%(name, priority, task))
         return self.put((priority, name, task))

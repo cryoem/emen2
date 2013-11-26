@@ -52,7 +52,7 @@ def parse_args(args):
 ##### Macro #####
 
 class Macro(object):
-    keyformat = 'str'
+    keyclass = unicode
 
     def __init__(self, cache=None, db=None):
         self.cache = cache
@@ -117,7 +117,7 @@ class macro_recname(Macro):
 @Macro.register('childcount')
 class macro_childcount(Macro):
     """childcount macro"""
-    keyformat = 'int'
+    keyclass = int
 
     def preprocess(self, params, recs):
         rectypes = filter(None, params.split(","))

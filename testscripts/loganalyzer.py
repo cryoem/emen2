@@ -210,7 +210,7 @@ class AccessLogLine(object, UserDict.DictMixin):
         return self._d[key]
     def __setitem__(self, key, value):
         if self._locked == True:
-            raise NotImplementedError, 'read only'
+            raise NotImplementedError('read only')
         else:
             self._d[key] = value
     def __getattr__(self, name):

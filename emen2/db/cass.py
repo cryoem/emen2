@@ -120,7 +120,6 @@ CREATE TABLE paramdef (
     property text,
     indexed boolean,
     iter boolean,
-    immutable boolean,
     choices list<text>,
     PRIMARY KEY (id)
 );
@@ -281,15 +280,15 @@ class CollectionDB(BaseDB):
         ret = []
         for key in keys:
             try:
-                d = self._get_data(key, txn=txn)
+                d = self._get(key, txn=txn)
                 d.setContext(ctx)
                 ret.append(d)
             except filt, e:
                 pass
         return ret
         
-    def _get_data(self, key, txn=None):
-        emen2.db.log.info("C*: _get_data: %s"%key)
+    def _get(self, key, txn=None):
+        emen2.db.log.info("C*: _get: %s"%key)
         q = """SELECT id, ts, user, param, value FROM record WHERE id=:id ORDER BY ts ASC"""
         cur = self.dbenv.cursor()
         cur.execute(q, {'id':key})
@@ -305,7 +304,7 @@ class CollectionDB(BaseDB):
         cur.close()
         return r
         
-    def _get_data2(self, keys):
+    def _get2(self, keys):
         j = "('%s')"%"','".join(map(str, keys))        
         q = """SELECT id, ts, user, param, value FROM record WHERE id in %s ORDER BY ts ASC"""%j
         ret = {}
@@ -324,7 +323,6 @@ class CollectionDB(BaseDB):
         cur.close()
         return ret
         
-        
     def validate(self, items, ctx=None, txn=None):
         return self.puts(items, commit=False, ctx=ctx, txn=txn)
 
@@ -334,19 +332,6 @@ class CollectionDB(BaseDB):
             return None
         return ret[0]
         
-    def puts(self, items, commit=True, ctx=None, txn=None):
-        if not commit:
-            return items
-        return self._put_data(items, ctx=ctx, txn=txn)
-        
-    def _put(self, item, ctx=None, txn=None):
-        return self._puts([item], ctx=ctx, txn=txn)[0]
-
-    def _puts(self, items, ctx=None, txn=None):
-        for item in items:
-            self._put_data(item.name, item, txn=txn)
-        return items
-
     def _cass_insert(self, key, stream):
         cur = self.dbenv.cursor()
         for ts, user, param, value in stream:

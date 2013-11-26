@@ -106,7 +106,7 @@ class Record(View):
         # Check write permissions first, so we won't waste time, 
         #   e.g. trying to upload files before failing.
         if not self.rec.writable():
-            raise emen2.db.exceptions.PermissionsError, "No write permission for record %s"%self.rec.name
+            raise emen2.db.exceptions.PermissionsError("No write permission for record %s."%self.rec.name)
 
         # Update the record
         if kwargs:

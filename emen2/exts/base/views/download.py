@@ -100,7 +100,7 @@ class Download(View):
             
             else:
                 # This will trigger render_eb if the file is not found
-                raise IOError, "Could not access file"
+                raise IOError("Could not access file.")
 
         # Check for files that have the same name...
         seen = []

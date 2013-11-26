@@ -350,7 +350,7 @@ class User(Test):
         except emen2.db.exceptions.EmailError:
             return
         # Get secret.
-        user = self.db._db.dbenv['user']._get_data(user.name, txn=self.db._txn)
+        user = self.db._db.dbenv['user']._get(user.name, txn=self.db._txn)
         secret = user.data.get('secret')
         newpassword = PASSWORD[::-1]
         self.db.user.setpassword(user.name, password=newpassword, secret=secret)
@@ -397,7 +397,7 @@ class User(Test):
         assert not user.get('secret')
         self.ok("prevents direct read")
         
-        # user = self.db._db.dbenv['user']._get_data(user.name, txn=self.db._txn)
+        # user = self.db._db.dbenv['user']._get(user.name, txn=self.db._txn)
         # print user.data
         # assert user.get('secret')
         # self.ok("stored correctly")
@@ -579,6 +579,7 @@ class ParamDef(Test):
         pd = self._make()
         for word in pd.desc_short.split(" "):
             pds = self.db.paramdef.find(word)
+            print "Found:", pds
             assert pd.name in [i.name for i in pds]
             self.ok(word)
     

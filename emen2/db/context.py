@@ -90,11 +90,11 @@ class Context(emen2.db.dataobject.PrivateDBO):
 
     def refresh(self, grouplevels=None, host=None, db=None):
         if host != self.host:
-            raise emen2.db.exceptions.SessionError, "Session expired"
+            raise emen2.db.exceptions.SessionError("Session expired.")
 
         t = emen2.db.database.getctime()
         if t > (self.time + self.maxidle):
-            raise emen2.db.exceptions.SessionError, "Session expired"
+            raise emen2.db.exceptions.SessionError("Session expired")
 
         self.data['time'] = t
         self.data['utcnow'] = emen2.db.database.utcnow()

@@ -17,46 +17,44 @@ core_paramdefs = [
 {"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "link", "desc_short": "Children"},
 
 # Common
-{"name": "keytype", "immutable": True, "keytype": "paramdef", "parents": ["core"], "indexed": False, "vartype": "string", "desc_short": "Type", "desc_long": "Object type"},
-{"name": "name", "immutable": True, "keytype": "paramdef", "parents": ["core"], "indexed": False, "vartype": "string", "desc_short": "ID", "desc_long": "Object ID"},
-{"name": "creator", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "Created by", "desc_long": "The user that originally created the record"},
-{"name": "creationtime", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Creation time", "desc_long": "Timestamp of original record creation"},
-{"name": "modifytime", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Modification time", "desc_long": "Timestamp of last modification"},
-{"name": "modifyuser", "immutable": True, "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record"},
-{"name": "uri", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "uri", "desc_short": "URI", "desc_long": "Resource location of an imported object"},
+{"name": "keytype", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Type", "desc_long": "Object type"},
+{"name": "name", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "ID", "desc_long": "Object ID"},
+{"name": "creator", "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "Created by", "desc_long": "The user that originally created the record"},
+{"name": "creationtime", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Creation time", "desc_long": "Timestamp of original record creation"},
+{"name": "modifytime", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Modification time", "desc_long": "Timestamp of last modification"},
+{"name": "modifyuser", "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record"},
+{"name": "uri", "keytype": "paramdef","parents": ["core"], "vartype": "uri", "desc_short": "URI", "desc_long": "Resource location of an imported object"},
 {"name": "permissions", "keytype": "paramdef","parents": ["core"], "vartype": "acl", "desc_short": "Permissions"},
 {"name": "hidden", "keytype": "paramdef", "vartype": "boolean", "parents": ["core"], "desc_short": "Hidden"},
 
 # ParamDef
-{"name": "vartype", "immutable": True, "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Value type"},
-{"name": "immutable", "immutable": True, "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Default units"},
-{"name": "iter", "immutable": True, "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Iterable"},
-{"name": "desc_short", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Short description"},
-{"name": "desc_long", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Long description"},
+{"name": "vartype", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Value type"},
+{"name": "iter", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Iterable"},
 {"name": "property", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Physical property"},
 {"name": "defaultunits", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Default units"},
 {"name": "indexed", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Indexed"},
 {"name": "choices", "iter": True, "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Choices"},
+{"name": "desc_short", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Short description"},
+{"name": "desc_long", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Long description"},
+{"name": "privacy", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "desc_short": "User privacy"},
 
 # RecordDef
 {"name": "views", "keytype": "paramdef", "parents": ["core"], "vartype": "dict", "desc_short": "Views"},
 {"name": "mainview", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Main view"},
-{"name": "private", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Private"},
 {"name": "typicalchld", "iter": True, "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Typical children"},
 
 # User
 {"name": "email", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Email"},
-{"name": "privacy", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "desc_short": "User privacy"},
 {"name": "disabled", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Disabled account"},
-{"name": "password", "keytype": "paramdef", "parents": ["core"], "vartype": "password", "desc_short": "Password", "indexed": False},
+{"name": "password", "keytype": "paramdef", "parents": ["core"], "vartype": "password", "desc_short": "Password"},
 {"name": "name_first", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "First name"},
 {"name": "name_middle", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Middle name"},
 {"name": "name_last", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Last name"},
 {"name": "displayname", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Display name"},
 
 # Record
-{"name": "rectype", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol"},
-{"name": "history", "immutable": True, "keytype": "paramdef","parents": ["core"], "vartype": "history", "desc_short": "History"},
+{"name": "rectype", "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol"},
+{"name": "history", "keytype": "paramdef","parents": ["core"], "vartype": "history", "desc_short": "History"},
 {"name": "comments", "keytype": "paramdef","parents": ["core"], "vartype": "comments", "desc_short": "Comments", "iter": True},
 
 # Binary
@@ -149,7 +147,7 @@ base_paramdefs = [
 {"name": "institution", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Institution"},
 {"name": "name_contact", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Contact person"},
 {"name": "phone", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Phone"},
-{"name": "website", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Website"},
+{"name": "website", "keytype": "paramdef", "parents": ["base"], "vartype": "uri", "desc_short": "Website"},
 ]
 
 base_recorddefs = [

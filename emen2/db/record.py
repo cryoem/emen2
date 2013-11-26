@@ -150,7 +150,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         if self.isnew():
             return
         if not param:
-            raise Exception, "Unable to add item to history log"
+            raise Exception("Unable to add item to history log.")
         if self.data.get('history') is None:
             self.data['history'] = []            
         self.data['history'].append((unicode(self.ctx.username), unicode(self.ctx.utcnow), unicode(param), self.data.get(param)))
@@ -161,7 +161,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         :param value: The comment to be added
         """
         if not self.commentable():
-            raise self.error('Insufficient permissions to add comment', e=emen2.db.exceptions.PermissionsError)
+            raise self.error('Insufficient permissions to add comment.', e=emen2.db.exceptions.PermissionsError)
 
         if not value:
             return
@@ -188,7 +188,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
             if d.has_key("comments"):
                 # Always abort
-                raise self.error("Cannot set comments inside a comment", warning=False)
+                raise self.error("Cannot set comments inside a comment.", warning=False)
 
             # Now update the values of any embedded params
             for i,j in d.items():

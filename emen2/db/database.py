@@ -58,7 +58,7 @@ BACKEND = "bdb"
 if BACKEND == "bdb":
     import emen2.db.btrees as backend
 else:
-    raise ImportError, "Unsupported EMEN2 backend: %s"%backend
+    raise ImportError("Unsupported EMEN2 backend: %s"%backend)
 
 # This is just for initial configuration...
 # TODO: Handle better.
@@ -161,7 +161,7 @@ def ol(name, output=True):
                 args = list(args)
                 args[olpos] = olvalue
             else:
-                raise TypeError, 'function %r did not get argument %s' % (f, name)
+                raise TypeError('function %r did not get argument %s' % (f, name))
 
             result = f(*args, **kwargs)
             if output and olreturn:
@@ -230,9 +230,9 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None):
             msg = emen2.db.config.templates.render_template(template, ctxt)
         except Exception, e:
             emen2.db.log.warn('EMAIL: Could not render mail template %s: %s'%(template, e))
-            raise ValueError, "Could not render mail template."
+            raise ValueError("Could not render mail template.")
     else:
-        raise ValueError, "No message to send!"
+        raise ValueError("No message to send.")
 
     # Actually send the message
     s = smtplib.SMTP(smtphost)
@@ -286,8 +286,8 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
         loader.load(keytype='recorddef')
     
     # Rebuild the paramdef indexes.
-    with db:
-        db._db.dbenv['paramdef'].rebuild_indexes(ctx=db._ctx, txn=db._txn)    
+    # with db:
+    #     db._db.dbenv['paramdef'].rebuild_indexes(ctx=db._ctx, txn=db._txn)    
 
     with db:
         # Create a root user
@@ -344,16 +344,16 @@ class DB(object):
             if ctxid in self.contexts_cache:
                 context = self.contexts_cache.get(ctxid)
             try:
-                context = self.dbenv._context._get_data(ctxid, txn=txn)
+                context = self.dbenv._context._get(ctxid, txn=txn)
             except KeyError:
-                raise SessionError, "Session expired"
+                raise SessionError("Session expired.")
         else:
             # If no ctxid was provided, make an Anonymous Context.
             context = emen2.db.context.AnonymousContext(host=host)
             
         # If no ctxid was found, it's an invalid or expired Context.
         if not context:
-            raise SessionError, "Session expired"
+            raise SessionError("Session expired.")
 
         # Fetch group memberships.
         grouplevels = {}
@@ -361,7 +361,7 @@ class DB(object):
             groups = self.dbenv['group'].find('permissions', context.username, txn=txn)
             grouplevels = {}
             for group in groups:
-                group = self.dbenv["group"]._get_data(group, txn=txn)
+                group = self.dbenv["group"]._get(group, txn=txn)
                 grouplevels[group.name] = group.getlevel(context.username)
 
         # Sets the database reference, user record, display name, 
@@ -412,7 +412,7 @@ class DB(object):
         found = self.dbenv['user'].find('email', name, txn=txn)
         if found:
             name = found.pop()
-        return self.dbenv["user"]._get_data(name, txn=txn)
+        return self.dbenv["user"]._get(name, txn=txn)
 
     def _find(self, keytype, query=None, defaultparams=None, ctx=None, txn=None, **kwargs):
         query = filter(None, [i.strip() for i in unicode(query or '').split()])
@@ -591,7 +591,7 @@ class DB(object):
 
         # Now that we have a user name, get the events log.
         try:
-            events = self.dbenv._user_history._get_data(user.name, txn=txn)
+            events = self.dbenv._user_history._get(user.name, txn=txn)
         except KeyError:
             events = self.dbenv._user_history.new(name=user.name, txn=txn)
             
@@ -615,12 +615,12 @@ class DB(object):
         newcontext = emen2.db.context.Context(username=user.name, host=host)
 
         # Put the Context.
-        self.dbenv._context._put_data(newcontext.name, newcontext, txn=txn)
+        self.dbenv._context._put(newcontext, txn=txn)
         
         # Add the last login to the user's history.
         events.prunehistory(param='context', limit=1)
         events.addhistory(utcnow(), user.name, 'context', newcontext.name)
-        self.dbenv._user_history._put_data(events.name, events, txn=txn)
+        self.dbenv._user_history._put(events, txn=txn)
 
         emen2.db.log.security("Login succeeded: %s -> %s" % (newcontext.username, newcontext.name))
         return newcontext.name
@@ -639,7 +639,7 @@ class DB(object):
         if self.dbenv._context.bdb.exists(ctx.name, txn=txn):
             self.dbenv._context.bdb.delete(ctx.name, txn=txn)
         else:
-            raise SessionError, "Session expired"
+            raise SessionError("Session expired.")
         emen2.db.log.security("Logout succeeded: %s" % (ctx.name))
 
     @publicmethod(compat="checkcontext")
@@ -1564,7 +1564,7 @@ class DB(object):
 
     @publicmethod()
     def user_new(self, *args, **kwargs):
-        raise NotImplementedError, "Use newuser.request() to create new users."
+        raise NotImplementedError("Use newuser.request() to create new users.")
     
     @publicmethod(write=True, compat="putuser")
     @ol('items')
@@ -1714,7 +1714,7 @@ class DB(object):
             raise ExistingKeyError("The email address %s is already in use"%(email))
 
         # Do not use get; it will strip out the secret.
-        user = self.dbenv["user"]._get_data(name, txn=txn)
+        user = self.dbenv["user"]._get(name, txn=txn)
         user_secret = getattr(user, 'secret', None)
         user.setContext(ctx)
         if user_secret:
@@ -1743,7 +1743,7 @@ class DB(object):
         if user.email == oldemail:
             # Need to verify email address change by receiving secret.
             emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, email))
-            self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
+            self.dbenv["user"]._puts([user], ctx=ctx, txn=txn)
 
             # Send the verify email containing the auth token
             ctxt['secret'] = user_secret[2]
@@ -1752,7 +1752,7 @@ class DB(object):
         else:
             # Verified with secret.
             emen2.db.log.security("Changing email for user %s to %s"%(user.name, user.email))
-            self.dbenv['user']._put(user, ctx=ctx, txn=txn)
+            self.dbenv['user']._puts([user], ctx=ctx, txn=txn)
             # Send the user an email to acknowledge the change
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/email.verified', 'ctxt':ctxt})
 
@@ -1766,7 +1766,7 @@ class DB(object):
         # This will force them to set a new password upon logging in.
         user = self._user_by_email(name, ctx=ctx, txn=txn)
         try:
-            events = self.dbenv._user_history._get_data(user.name, txn=txn)
+            events = self.dbenv._user_history._get(user.name, txn=txn)
         except KeyError:
             events = self.dbenv._user_history.new(name=user.name, txn=txn)    
 
@@ -1776,8 +1776,8 @@ class DB(object):
         events.addhistory('1900-01-01T00:00:00Z+00:00', 'password', user.name, user.password)
 
         emen2.db.log.security("Expiring password for %s"%user.name)
-        self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
-        self.dbenv._user_history._put_data(user.name, events, txn=txn)
+        self.dbenv["user"]._puts([user], ctx=ctx, txn=txn)
+        self.dbenv._user_history._put(events, txn=txn)
 
     @publicmethod(write=True, compat="setpassword")
     def user_setpassword(self, name, newpassword, password=None, secret=None, ctx=None, txn=None):
@@ -1813,7 +1813,7 @@ class DB(object):
 
         # Get the user's events.
         try:
-            events = self.dbenv._user_history._get_data(user.name, txn=txn)
+            events = self.dbenv._user_history._get(user.name, txn=txn)
         except KeyError:
             events = self.dbenv._user_history.new(name=user.name, txn=txn)
 
@@ -1827,13 +1827,13 @@ class DB(object):
 
         # Save the user. Don't use regular .put(), it will fail on setting pw.
         emen2.db.log.security("Changing password for %s"%user.name)
-        self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
+        self.dbenv["user"]._puts([user], ctx=ctx, txn=txn)
 
         # Save the user events.
         recycle = emen2.db.config.get('security.password_recycle') or 0
         events.prunehistory(param='password', limit=recycle)
         events.addhistory(utcnow(), ctx.username, 'password', user.password)
-        self.dbenv._user_history._put_data(user.name, events, txn=txn)
+        self.dbenv._user_history._put(events, txn=txn)
 
         # Send an email on successful commit.
         self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/password.changed'})
@@ -1862,13 +1862,13 @@ class DB(object):
         
         from_addr, smtphost = emen2.db.config.mailconfig()
         if not (from_addr and smtphost):
-            raise emen2.db.exceptions.EmailError, "Mail server is not configured; contact the administrator for help resetting a password."
+            raise emen2.db.exceptions.EmailError("Mail server is not configured; contact the administrator for help resetting a password.")
         
         user = self._user_by_email(name, ctx=ctx, txn=txn)
         user.resetpassword()
 
         # Use direct put to preserve the secret
-        self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
+        self.dbenv["user"]._puts([user], ctx=ctx, txn=txn)
 
         # Absolutely never reveal the secret via any mechanism
         # but email to registered address
@@ -1896,7 +1896,7 @@ class DB(object):
     @publicmethod(write=True)
     @ol('items')
     def newuser_put(self, items, ctx=None, txn=None):
-        raise NotImplementedError, "Use newuser.request() to create new users."
+        raise NotImplementedError("Use newuser.request() to create new users.")
 
     @publicmethod(write=True)
     @ol('items')
@@ -1996,7 +1996,7 @@ class DB(object):
                 user[i] = newuser.get(i)
             # Manually copy the password hash.
             user.data['password'] = newuser.password
-            user = self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
+            user = self.dbenv["user"]._puts([user], ctx=ctx, txn=txn)
 
             # Create a user profile record.
             if newuser.signupinfo:            
@@ -2698,7 +2698,7 @@ class DB(object):
             while names:
                 # get a random record's rectype
                 rid = names.pop()
-                rec = self.dbenv["record"]._get_data(rid, txn=txn)
+                rec = self.dbenv["record"]._get(rid, txn=txn)
                 # get the set of all records with this recorddef
                 ret[rec.rectype] = self.dbenv['record'].find('rectype', rec.rectype, txn=txn) & names
                 # remove the results from our list since we have now classified them
@@ -2905,7 +2905,7 @@ class DB(object):
         pd = self.dbenv["paramdef"].get(param, ctx=ctx, txn=txn)
 
         if pd.vartype != 'binary':
-            raise KeyError, "ParamDef %s does not accept binary references"%pd.name
+            raise KeyError("ParamDef %s does not accept binary references."%pd.name)
 
         if pd.iter:
             v = rec.get(pd.name) or []

@@ -159,7 +159,7 @@ class _Router(emen2.web.registry.Registry):
         """
 
         if (not path and not name) or (path and name):
-            raise ValueError, "You must specify either a path or a name"
+            raise ValueError("You must specify either a path or a name.")
 
         # Return a callback and found arguments
         result = None, None
@@ -285,9 +285,9 @@ class MatchChecker(object):
             value, test_regex = self.args.next(), grouped
 
         if value is None:
-            raise NoReverseMatch('Not enough arguments passed in')
+            raise NoReverseMatch('Not enough arguments passed in.')
         if not re.match(test_regex + '$', value, re.UNICODE):
-            raise NoReverseMatch("Value %r didn't match regular expression %r" % (value, test_regex))
+            raise NoReverseMatch("Value %r didn't match regular expression %r."%(value, test_regex))
         return force_unicode(value)
 
 class _IndexedListIterator(object):

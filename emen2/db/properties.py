@@ -327,7 +327,7 @@ class Property(object):
     def register(cls, name):
         def f(o):
             if name in cls.registered:
-                raise ValueError("""%s is already registered""" % name)
+                raise ValueError("""%s is already registered"""%name)
             cls.registered[name] = o
             return o
         return f
@@ -356,7 +356,7 @@ class Property(object):
         try:
             r = q.match(value).groups()
         except Exception, e:
-            raise ValueError, "Unable to parse '%s' for units"%(value)
+            raise ValueError("Unable to parse '%s' for units."%(value))
 
         value = float(r[0])
         
@@ -379,7 +379,7 @@ class Property(object):
         equivs = equivs.get(units, units)
         allowed = [equivs.get(i,i) for i in allowed]
         if units not in allowed:
-            raise ValueError, "Units %s not allowed for this property. Allowed units: %s"%(units, ", ".join(allowed))
+            raise ValueError("Units %s not allowed for this property. Allowed units: %s."%(units, ", ".join(allowed)))
             
     def convert(self, value, units, target):
         units = equivs.get(units, units)
@@ -409,7 +409,7 @@ class Property(object):
         return ValueError("Couldn't convert %s to %s: %s"%(units, target, msg or ''))
 
     def unknown(self, units, target):
-        raise ValueError, "Don't know how to convert %s to %s"%(units, target)
+        raise ValueError("Don't know how to convert %s to %s."%(units, target))
 
 @Property.register('transmittance')
 class prop_transmittance(Property):
@@ -457,7 +457,7 @@ class prop_pH(Property):
     units = ['pH']
     def check_bounds(self, value, target):
         if (target == 'pH' and (value < 0 or value > 14)):
-            raise ValueError, "pH must be between 0 and 14"
+            raise ValueError("pH must be between 0 and 14.")
 
 @Property.register('concentration')
 class prop_concentration(Property):
@@ -495,7 +495,7 @@ class prop_temperature(Property):
     def check_bounds(self, value, target):
         # Check absolute zero
         if (target == 'degC' and value < -273.15) or (target == 'K' and value < 0) or (target == 'degF' and value < -459.67):
-            raise ValueError, "Cannot set a temperature below absolute zero"
+            raise ValueError("Cannot set a temperature below absolute zero.")
 
     def _convert(self, value, units, target):
         # C / K
@@ -514,7 +514,7 @@ class prop_temperature(Property):
         elif units == 'degF' and target == 'degC':
             value = (value - 32) * (5.0 / 9.0)
         else:
-            raise ValueError, "Don't know how to convert %s to %s"%(units, target)
+            raise ValueError("Don't know how to convert %s to %s."%(units, target))
         return value
     
 @Property.register('area')

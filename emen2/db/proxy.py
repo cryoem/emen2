@@ -60,7 +60,7 @@ class MethodTree(object):
         '''
 
         if original_name in self.children:
-            raise ValueError, "namespace conflict, cannot alias %r to %r" %(original_name, new_name)
+            raise ValueError("namespace conflict, cannot alias %r to %r."%(original_name, new_name))
         self.aliases[original_name] = new_name
 
     def get_alias(self, name):
@@ -109,7 +109,8 @@ class MethodTree(object):
         child = self.children.get(head)
 
         if child is None:
-            if tail: raise AttributeError, "method %r not found"%name
+            if tail: 
+                raise AttributeError("method %r not found."%name)
             else:
                 result = self
                 if name == 'help':
@@ -132,7 +133,7 @@ class _Method(object):
         return _Method(self._proxy, "%s.%s" % (self._name, name))
 
     def __call__(self, *args):
-        raise AttributeError, "No public method %s"%self._name
+        raise AttributeError("No public method %s."%self._name)
 
 class DBProxy(object):
     """A proxy that provides access to database public methods and handles low level details, such as Context and transactions.
@@ -171,7 +172,7 @@ class DBProxy(object):
     def __enter__(self):
         # print "--> ENTER"
         if self._txn:
-            # raise Exception, "DBProxy: Existing open transaction."
+            # raise Exception("DBProxy: Existing open transaction.")
             pass
         else:
             self._txn = self._db.dbenv.newtxn()
@@ -181,7 +182,7 @@ class DBProxy(object):
     def __exit__(self, exc_type, exc_value, traceback):
         # print "--> EXIT:", exc_type
         if not self._txn:
-            raise Exception, "DBProxy: No transaction to close."
+            raise Exception("DBProxy: No transaction to close.")
         if exc_type is None:
             self._txn = self._db.dbenv.txncommit(txn=self._txn)
         else:
@@ -280,7 +281,7 @@ class DBProxy(object):
             # print "\t<-", args, kwcopy
 
             if getattr(func, 'admin', False) and not self._ctx.checkadmin():
-                raise Exception, "This method requires administrator level access."
+                raise Exception("This method requires administrator level access.")
 
             # Make sure the DB is bound to the Context
             self._ctx.setdb(self)

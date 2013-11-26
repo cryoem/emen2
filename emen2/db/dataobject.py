@@ -195,7 +195,7 @@ class BaseDBObject(object):
         return self.data.get(key, default)
 
     def __delitem__(self, key):
-        raise AttributeError, 'Key deletion not allowed.'
+        raise AttributeError('Key deletion not allowed.')
 
     def __setitem__(self, key, value):
         # If a "_set_<key>" method exists, that will always be used for setting.
@@ -289,10 +289,6 @@ class BaseDBObject(object):
                 self.ctx.cache.store(('paramdef', key), pd)
             except KeyError:
                 raise self.error('Parameter %s does not exist.'%key)
-
-        # Is it an immutable param?
-        if pd.get('immutable') and not self.isnew():
-            raise self.error('Cannot change immutable parameter: %s'%pd.name)
 
         # Validate
         vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self.ctx.db, cache=self.ctx.cache)
@@ -462,7 +458,7 @@ class PermissionsDBObject(BaseDBObject):
             value = v
         permissions = [[self._strip(y) for y in x] for x in value]
         if len(permissions) != 4:
-            raise ValueError, "Invalid permissions format"
+            raise ValueError("Invalid permissions format.")
         return permissions
 
     def setpermissions(self, value):
@@ -484,7 +480,7 @@ class PermissionsDBObject(BaseDBObject):
 
         level = int(level)
         if not 0 <= level <= 3:
-            raise Exception, "Invalid permissions level. 0 = Read, 1 = Comment, 2 = Write, 3 = Owner"
+            raise Exception("Invalid permissions level. 0 = Read, 1 = Comment, 2 = Write, 3 = Owner.")
 
         p = [set(x) for x in self.permissions]
         users = set(users) 
@@ -570,7 +566,7 @@ class History(PrivateDBO):
         """Add a value to the history."""
         v = (timestamp, user, param, value)
         if v in self.data:
-            raise ValueError, "This event is already present."
+            raise ValueError("This event is already present.")
         self.data.append(v)
     
     def gethistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
