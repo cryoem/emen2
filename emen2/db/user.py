@@ -73,21 +73,16 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     :attr password: Hashed password.
     """
 
-    public = emen2.db.dataobject.BaseDBObject.public | set(['email', 'password', 'name_first', 'name_middle', 'name_last', 'displayname', 'secret'])
-
-    def init(self, d):
-        super(BaseUser, self).init(d)
-
+    def init(self):
+        super(BaseUser, self).init()
         # Email and password
         self.data['email'] = None
         self.data['password'] = None        
-
         # Names
         self.data['name_first'] = ''
         self.data['name_middle'] = ''
         self.data['name_last'] = ''
         self.data['displayname'] = ''
-
         # Secret takes the format:
         # action type, args, ctime for when the token is set, and secret
         self.data['secret'] = None
@@ -108,7 +103,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
     def isowner(self):
         """Always allow the user to modify their own user DBO."""
-        if self.name == self.ctx.username:
+        if self.name == self.ctx.user:
             return True
         return super(BaseUser, self).isowner()
 
@@ -306,7 +301,6 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             return self.name
         return uname
 
-
 class NewUser(BaseUser):
     """New User.
     
@@ -318,10 +312,8 @@ class NewUser(BaseUser):
     
     :attr signupinfo: Dictionary containing signup information.
     """
-    public = BaseUser.public | set(['signupinfo'])
-
-    def init(self, d):
-        super(NewUser, self).init(d)
+    def init(self):
+        super(NewUser, self).init()
         # New users store signup info in a dict,
         #     which is committed as a 'person' record when approved
         self.data['signupinfo'] = {}
@@ -375,21 +367,19 @@ class User(BaseUser):
     :property displayname: User "display name"; set by database when accessed
     """
     
-    public = BaseUser.public | set(['privacy', 'disabled', 'record'])
-
-    def init(self, d):
-        super(User, self).init(d)
+    def init(self):
+        super(User, self).init()
+        self.groups = set()
+        self.userrec = {}
         # Enabled/disabled, privacy level, and record ID pointer
         self.data['disabled'] = False
         self.data['privacy'] = 0
         self.data['record'] = None
-        self.groups = set()
-        self.userrec = {}
 
     def setContext(self, ctx, hide=True):
         super(User, self).setContext(ctx)
         admin = self.ctx.checkreadadmin()
-        ctxuser = self.ctx.username
+        ctxuser = self.ctx.user
 
         # Backwards compat...
         self.__dict__['userrec'] = {}
@@ -431,7 +421,7 @@ class User(BaseUser):
         """Disable the user."""
         # Only admin can change enabled/disabled
         state = bool(state)
-        if self.name == self.ctx.username and state:
+        if self.name == self.ctx.user and state:
             raise self.error("Cannot disable self!")
         self._set('disabled', state, self.ctx.checkadmin())
 
@@ -443,3 +433,63 @@ class User(BaseUser):
             raise self.error("User privacy setting may be 0, 1, or 2.")
         self._set('privacy', privacy, self.isowner())
 
+
+# History
+class History(emen2.db.dataobject.PrivateDBO):
+    """Manage previously used values."""
+    def init(self):
+        super(History, self).init()
+        # History
+        self.data['history'] = []
+    
+    def addhistory(self, timestamp, user, param, value):
+        """Add a value to the history."""
+        return
+        v = (timestamp, user, param, value)
+        if v in self.data:
+            raise ValueError("This event is already present.")
+        self.data.append(v)
+    
+    def _addhistory(self, param):
+        """Add an entry to the history log."""
+        t = emen2.db.database.utcnow()
+        user = self.ctx.user        
+        self.data['history'].append((unicode(self.ctx.user), unicode(emen2.db.database.utcnow()), unicode(param), self.data.get(param)))
+
+    def gethistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
+        """Get :limit: previously used values."""
+        h = sorted(self.data, reverse=True)
+        if timestamp:
+            h = filter(lambda x:x[0] == timestamp, h)
+        if user:
+            h = filter(lambda x:x[1] == user, h)
+        if param:
+            h = filter(lambda x:x[2] == param, h)
+        if value:
+            h = filter(lambda x:x[3] == value, h)
+        if limit is not None:
+            h = h[:limit]
+        return h
+
+    def checkhistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
+        """Check if an param or value is in the past :limit: items."""
+        if self.gethistory(timestamp=timestamp, user=user, param=param, value=value, limit=limit):
+            return True
+        return False
+
+    def prunehistory(self, user=None, param=None, value=None, limit=None):
+        """Prune the history to :limit: items."""
+        other = []
+        match = []
+        for t, u, p, v in self.data:
+            if u == user or p == param or v == value:
+                match.append((t,u,p,v))
+            else:
+                other.append((t,u,p,v))
+
+        if limit:
+            match = sorted(match, reverse=True)[:limit]
+        else:
+            match = []
+        self.data = sorted(match+other, reverse=True)
+        

@@ -338,9 +338,9 @@ class Property(object):
 
     ##### Validation #####
 
-    def validate(self, engine, pd, value, db):
+    def validate(self, pd, value, db):
         if hasattr(value, "__iter__"):
-            return [self.validate(engine, pd, i, db) for i in value]
+            return [self.validate(pd, i, db) for i in value]
 
         if hasattr(value, "__float__"):
             return float(value)

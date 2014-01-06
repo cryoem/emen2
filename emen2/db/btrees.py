@@ -123,11 +123,6 @@ class EMEN2DBEnv(object):
         return dbenv
 
     def init(self):
-        # Authentication. These are not public.
-        self._context = CollectionDB(dataclass=emen2.db.context.Context, dbenv=self)
-        # For password policy.
-        self._user_history = CollectionDB(dataclass=emen2.db.dataobject.History, keytype='user_history', dbenv=self)
-        # These are public dbs.
         self.keytypes['paramdef']  = CollectionDB(dataclass=emen2.db.paramdef.ParamDef, dbenv=self)
         self.keytypes['recorddef'] = CollectionDB(dataclass=emen2.db.recorddef.RecordDef, dbenv=self)
         self.keytypes['group']     = CollectionDB(dataclass=emen2.db.group.Group, dbenv=self)
@@ -135,10 +130,14 @@ class EMEN2DBEnv(object):
         self.keytypes['user']      = UserDB(dataclass=emen2.db.user.User, dbenv=self)
         self.keytypes['newuser']   = NewUserDB(dataclass=emen2.db.user.NewUser, dbenv=self)
         self.keytypes['binary']    = CollectionDB(dataclass=emen2.db.binary.Binary, dbenv=self)
+        # Private.
+        self._user_history         = CollectionDB(dataclass=emen2.db.user.History, keytype='user_history', dbenv=self)
+        self._context              = CollectionDB(dataclass=emen2.db.context.Context, dbenv=self)
 
     # ian: todo: make this nicer.
     def close(self):
         """Close the Database Environment"""
+        emen2.db.log.info("BDB: Closing database environment: %s"%self.path)        
         for k,v in self.keytypes.items():
             v.close()
         self.dbenv.close()
@@ -257,7 +256,6 @@ class EMEN2DBEnv(object):
         :keyword checkpoint: Run a checkpoint first; this will allow more files to be archived
         """
         outpath = emen2.db.config.get('paths.journal_archive')
-
         if checkpoint:
             emen2.db.log.info("BDB: Log Archive: Checkpoint")
             self.dbenv.txn_checkpoint()
@@ -265,7 +263,6 @@ class EMEN2DBEnv(object):
         archivefiles = self.dbenv.journal_archive(bsddb3.db.DB_ARCH_ABS)
 
         emen2.db.log.info("BDB: Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
-
         if not os.access(outpath, os.F_OK):
             os.makedirs(outpath)
 
@@ -321,9 +318,6 @@ class CollectionDB(object):
     Some internal methods:
         _get
         _put
-        _puts
-        _put_data
-        _exists
 
     Sequence methods:
         _update_name    Update items with new names from sequence
@@ -345,7 +339,8 @@ class CollectionDB(object):
         # EMEN2DBEnv and BDB handle
         self.dbenv = dbenv
         self.bdb = None
-        # Indexes and relationships
+
+        # Indexes and relationships        
         self.indexes = {}
         self.rels = {}
 
@@ -354,8 +349,6 @@ class CollectionDB(object):
         self.keydump = lambda x:unicode(x).encode('utf-8')
         self.keyload = lambda x:x.decode('utf-8')
         self.dataclass = dataclass
-        # self.datadump = lambda x:pickle.dumps(x)
-        # self.dataload = lambda x:pickle.loads(x or 'N.')
         self.datadump = lambda x:json.dumps(x.data)
         self.dataload = lambda x:json.loads(x)
 
@@ -400,36 +393,35 @@ class CollectionDB(object):
         if param not in ['parents', 'children']:
             self.rels[param] = None
             return None
-        vtc = emen2.db.vartypes.Vartype.get_vartype('link')
-        index = Index(keytype=self.keytype, vtc=vtc, param=param, dbenv=self.dbenv)
+        vtc = emen2.db.vartypes.Vartype.get_vartype(name=param) # Has to be a core param.
+        index = IndexDB(keytype=self.keytype, param=param, extension='rel', vtc=vtc, dbenv=self.dbenv)
         self.rels[param] = index
         return index
 
     def _getindex(self, param, txn=None):
         if param in self.indexes:
-            return self.indexes.get(param)
-            
-        # Check if it's an indexed param.
+            return self.indexes.get(param)   
         try:
-            pd = self.dbenv["paramdef"]._get(param, txn=txn)
+            # Check if we've cached the param details
+            vtc = emen2.db.vartypes.Vartype.get_vartype(name=param)
         except KeyError:
-            # Leave the opportunity to try and open again later...
-            # self.indexes[param] = None
-            return None
-        if not pd.indexed:
-            self.indexes[param] = None
-            return None
-
-        # Check if it's an indexed vartype.
-        vtc = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd)
+            # Otherwise get the param details.
+            try:
+                pd = self.dbenv['paramdef']._get(param, txn=txn)
+            except KeyError:
+                raise KeyError("Unknown param: %s"%param)
+            vtc = emen2.db.vartypes.Vartype.get_vartype(**pd.data)
+        
+        # Check if it's indexed.
         try:
             vtc.reindex(None)
         except NotImplementedError:
+            print "Not indexed!!", param
             self.indexes[param] = None
-            return None
-        
-        # Open and associate the secondary index.
-        index = Index(keytype=self.keytype, vtc=vtc, param=param, dbenv=self.dbenv)
+            return
+                    
+        # Open the secondary index.
+        index = IndexDB(keytype=self.keytype, param=param, vtc=vtc, dbenv=self.dbenv)
         self.indexes[param] = index
         return index
 
@@ -446,10 +438,11 @@ class CollectionDB(object):
         """
         # Clean up kwargs.
         txn = kwargs.pop('txn', None)
-        ctx = kwargs.get('ctx', None)
+        ctx = kwargs.pop('ctx', None)
         inherit = kwargs.pop('inherit', [])
-        item = self.dataclass(**kwargs)
-
+        item = self.dataclass.new(ctx=ctx, **kwargs)
+        print item.__dict__
+        
         for i in inherit:
             # Raise an exception if does not exist or cannot read.
             i = self.get(i, filt=False, ctx=ctx, txn=txn)
@@ -479,8 +472,6 @@ class CollectionDB(object):
             return False
         return self.bdb.exists(self.keydump(key), txn=txn, flags=bsddb3.db.DB_RMW)
         
-    ##### Keys, values, items #####
-    
     def filter(self, names=None, ctx=None, txn=None):
         """Filter a set of keys for read permission.
 
@@ -496,18 +487,14 @@ class CollectionDB(object):
             return set([i.name for i in items])
         return set(self.keys(txn=txn))
     
+    ##### Keys, values, items #####
+    
     def keys(self, ctx=None, txn=None):
         emen2.db.log.info("BDB: %s keys: Deprecated method!"%self.filename)
         return map(self.keyload, self.bdb.keys(txn))
     
-    # def items(self, ctx=None, txn=None):
-    #     emen2.db.log.info("BDB: %s items: Deprecated method!"%self.filename)
-    #     ret = []
-    #     for k,v in self.bdb.items(txn):
-    #         i = self.dataload(v)
-    #         i.setContext(ctx)
-    #         ret.append((self.keyload(k), i))
-    #     return ret
+    def items(self, ctx=None, txn=None):
+        raise NotImplementedError
         
     def values(self, ctx=None, txn=None):
         raise NotImplementedError
@@ -515,7 +502,7 @@ class CollectionDB(object):
     ##### Filtered context gets.. #####
 
     def get(self, key, filt=True, ctx=None, txn=None):
-        """See cgets(). This works the same, but for a single key."""
+        """Get a single item, with a Context. Requires ctx and txn."""
         r = self.gets([key], txn=txn, ctx=ctx, filt=filt)
         if not r:
             return None
@@ -552,7 +539,7 @@ class CollectionDB(object):
         d = self.bdb.get(self.keydump(key), txn=txn)
         if d is None:
             raise KeyError("No such key: %s"%(key))
-        return self.dataclass().load(json.loads(d))
+        return self.dataclass.load(json.loads(d))
 
     ##### Write methods #####
 
@@ -573,7 +560,7 @@ class CollectionDB(object):
         return orec
 
     def put(self, item, ctx=None, txn=None):
-        """Update DBOs. Requires ctx and txn.
+        """Update a single item. Requires ctx and txn.
 
         :param item: DBO, or similar (e.g. dict)
         :keyword ctx: Context
@@ -586,13 +573,14 @@ class CollectionDB(object):
         return self._put(self.validate(item, ctx=ctx, txn=txn), ctx=ctx, txn=txn)
     
     def puts(self, items, ctx=None, txn=None):
+        """Update a list of items. Requires ctx and txn."""
         return [self.put(item, ctx=ctx, txn=txn) for item in items]    
         
     def _put(self, item, ctx=None, txn=None):
+        emen2.db.log.debug("BDB: %s put: %s"%(self.filename, item.data))        
         namemap = self._update_name(item, txn=txn)
         parents = item.data.pop('parents', [])
         children = item.data.pop('children', [])
-
         try:
             old = self._get(item.name, txn=txn)
         except:
@@ -604,17 +592,19 @@ class CollectionDB(object):
         # Reindex
         okw = set()
         nkw = set()
-        for k in set(item.keys() + old.keys()) - set(['keywords']):
+        for k in set(old.keys() + item.keys()):
             ind = self._getindex(k, txn=txn)
-            if ind:
-                a, b = ind.reindex(item.name, old.get(k), item.get(k), txn=txn)
+            if not ind:
+                continue
+            a, b = ind.reindex(item.name, old.get(k), item.get(k), txn=txn)
+            if ind.param not in ['creationtime', 'modifytime']:
                 okw |= a
                 nkw |= b
-        print "KW:", okw ^ nkw
-        # ind = self._getindex('keywords', txn=txn)
-        # if ind:
-        #     ind.removerefs(item.name, okw, txn=txn)
-        #     ind.addrefs(item.name, nkw, txn=txn)        
+
+        ind = self._getindex('keywords', txn=txn)
+        if ind:
+            ind.removerefs(item.name, okw - nkw, txn=txn)
+            ind.addrefs(item.name, nkw - okw, txn=txn)        
         
         # Link
         for k in parents:
@@ -622,9 +612,6 @@ class CollectionDB(object):
         for k in children:
             self._putrel(item.name, k, ctx=ctx, txn=txn)
         return item
-        
-    def delete(self, name, ctx=None, txn=None):
-        return
         
     def query(self, c=None, mode='AND', subset=None, ctx=None, txn=None):
         """Return a Query Constraint Group.
@@ -841,28 +828,31 @@ class CollectionDB(object):
         return []
 
     def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
-        indp = self._getrel('parents', txn=txn)
-        indc = self._getrel('children', txn=txn)
+        emen2.db.log.debug("BDB: %s _putrel %s: %s %s "%(self.filename, mode, parent, child))        
         parent = self.get(parent, ctx=ctx, txn=txn)
         child = self.get(child, ctx=ctx, txn=txn)
-        if not (recp.writable() or recc.writable()):
+        if not (parent.writable() or child.writable()):
             raise emen2.db.exceptions.SecurityError("Insufficient permissions to edit relationship.")
-        if mode == 'removerefs':
-            indp.removerefs(child.name, [parent.name], txn=txn)
-            indc.removerefs(parent.name, [child.name], txn=txn)
-        elif mode == 'addrefs':
-            indp.addrefs(child.name, [parent.name], txn=txn)    
-            indp.addrefs(parent.name, [child.name], txn=txn)    
+
+        ind_parents = self._getrel('parents', txn=txn)
+        ind_children = self._getrel('children', txn=txn)
+        if mode == 'addrefs':
+            ind_parents.addrefs(parent.name, [child.name], txn=txn)    
+            ind_children.addrefs(child.name, [parent.name], txn=txn)    
+        elif mode == 'removerefs':
+            ind_parents.removerefs(parent.name, [child.name], txn=txn)
+            ind_children.removerefs(child.name, [parent.name], txn=txn)
 
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
-        # Set name policy in this method.
         if emen2.db.config.get('record.sequence'):
             return unicode(self._incr_sequence(txn=txn))
         return unicode(item.name or emen2.db.database.getnewid())
 
-    # Todo: integrate with main filter method, since this works
-    # for all permission-defined items.
+    def _incr_sequence(self, txn=None):
+        raise NotImplementedError
+        
+    # Todo: integrate with main filter method.
     def filter(self, names=None, ctx=None, txn=None):
         """Filter for permissions.
         :param names: Record name(s).
@@ -874,8 +864,8 @@ class RecordDB(CollectionDB):
                     m = self._get_max(txn=txn)
                     return set(map(unicode, range(0, m)))
                 return set(self.keys(txn=txn))  
-            ret = self.find('permissions', ctx.username, txn=txn)
-            ret |= self.find('creator', ctx.username, txn=txn) 
+            ret = self.find('permissions', ctx.user, txn=txn)
+            ret |= self.find('creator', ctx.user, txn=txn) 
             for group in sorted(ctx.groups, reverse=True):
                 ret |= self.find('groups', group, txn=txn)
             return ret            
@@ -890,8 +880,8 @@ class RecordDB(CollectionDB):
         # Make a copy
         find = copy.copy(names)
         # Use the permissions/groups index
-        find -= self.find('permissions', ctx.username, txn=txn)
-        find -= self.find('creator', ctx.username, txn=txn) 
+        find -= self.find('permissions', ctx.user, txn=txn)
+        find -= self.find('creator', ctx.user, txn=txn) 
         for group in sorted(ctx.groups):
             if find:
                 find -= self.find('groups', group, txn=txn)
@@ -899,17 +889,16 @@ class RecordDB(CollectionDB):
 
 class UserDB(CollectionDB):
     def new(self, *args, **kwargs):
-        # DB.new. This will check the main bdb for an existing name.
+        # Check  if this email already exists.
         txn = kwargs.get('txn', None)
         user = super(UserDB, self).new(*args, **kwargs)
-        # Check  if this email already exists
         if self.find('email', user.email, txn=txn):
             raise emen2.db.exceptions.ExistingKeyError
         return user
     
     def filter(self, names=None, ctx=None, txn=None):
         # You need to be logged in to view this.
-        if not ctx or ctx.username == 'anonymous':
+        if not ctx or ctx.user == 'anonymous':
             return set()
         return super(UserDB, self).filter(names, ctx=ctx, txn=txn)
 
@@ -920,17 +909,13 @@ class NewUserDB(CollectionDB):
         self.bdb.delete(self.keydump(key), txn=txn)
 
     def new(self, *args, **kwargs):
+        # Check  if this email already exists.
         txn = kwargs.get('txn', None)
         newuser = super(NewUserDB, self).new(*args, **kwargs)
-
-        # Check  if this email already exists
         if self.find('email', newuser.email, txn=txn):
             raise emen2.db.exceptions.ExistingKeyError
-
-        # Check if this email already exists
         if self.dbenv["user"].exists(newuser.name, txn=txn) or self.dbenv['user'].find('email', newuser.email, txn=txn):
             raise emen2.db.exceptions.ExistingKeyError
-
         return newuser
 
     def filter(self, names=None, ctx=None, txn=None):
@@ -939,13 +924,13 @@ class NewUserDB(CollectionDB):
             raise emen2.db.exceptions.PermissionsError("Admin rights needed to view user queue.")
         return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
 
-class Index(object):
+class IndexDB(object):
     # A secondary index. Also used for relationships.
-    def __init__(self, filename=None, keytype=None, param=None, vtc=None, dbenv=None):
+    def __init__(self, filename=None, keytype=None, param=None, extension='index', vtc=None, dbenv=None):
         # Filename, DBENV, BDB handle.
         self.keytype = keytype
         self.param = param
-        self.filename = filename or os.path.join(self.keytype, '%s.%s.index'%(keytype, param))
+        self.filename = filename or os.path.join(self.keytype, '%s.%s.%s'%(keytype, param, extension))
         self.dbenv = dbenv
         self.bdb = None
 
@@ -984,7 +969,6 @@ class Index(object):
         key = str(key)
         old = self.vtc.reindex(old)
         new = self.vtc.reindex(new)
-        print "old/new:", old, new
         self.removerefs(key, old - new, txn=txn)
         self.addrefs(key, new - old, txn=txn)
         return old, new
@@ -992,27 +976,27 @@ class Index(object):
     def addrefs(self, key, values, txn=None):
         if not values:
             return
-        key = unicode(key).encode('utf-8')
+        emen2.db.log.debug(u"BDB: %s addrefs: %s %s"%(self.filename, key, values))
         cursor = self.bdb.cursor(txn=txn)
         for i in values:
-            # print "add:", self.param, key, i
-            cursor.put(self.keydump(i), key, flags=bsddb3.db.DB_KEYFIRST)
+            try:
+                cursor.put(self.keydump(i), unicode(key).encode('utf-8'), flags=bsddb3.db.DB_KEYFIRST)
+            except bsddb3.db.DBKeyExistError, e:
+                pass
         cursor.close()
             
     def removerefs(self, key, values, txn=None):
         if not values:
             return
-        key = unicode(key).encode('utf-8')
+        emen2.db.log.debug(u"BDB: %s removerefs: %s %s"%(self.filename, key, values))
         cursor = self.bdb.cursor(txn=txn)
         for i in values:
-            if cursor.set_both(self.keydump(i), key):
-                # print "delete:", self.param, key, i
+            if cursor.set_both(self.keydump(i), unicode(key).encode('utf-8')):
                 cursor.delete()       
         cursor.close()
 
     def _cmpfunc(self, k1, k2):
-        # Numeric comparison function, for BTree key comparison.
-        # print "... comparing:", k1, k2
+        # Numeric comparison function, for BTree sorting.
         return cmp(self.keyload(k1 or '0'), self.keyload(k2 or '0'))
 
     def bfs(self, key, recurse=1, txn=None):
@@ -1076,7 +1060,6 @@ class Index(object):
         else:
             raise Exception("Unsupported operator.")
         cursor.close()
-        print "--", op, key, maxkey, r
         return set(r)
 
     ##### Begin a bunch of repetitive code to iterate through cursor in various ways #####

@@ -42,13 +42,11 @@ class Group(emen2.db.dataobject.PermissionsDBObject):
     :property privacy: 
 
     """
-    public = emen2.db.dataobject.PermissionsDBObject.public | set(['privacy', 'disabled', 'displayname'])
-
-    def init(self, d):
-        super(Group, self).init(d)
+    def init(self):
+        super(Group, self).init()
+        self.data['privacy'] = 0
         self.data['disabled'] = False
         self.data['displayname'] = None
-        self.data['privacy'] = 0
 
     # Groups are readable by anyone.
     def readable(self):

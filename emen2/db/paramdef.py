@@ -91,33 +91,22 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
     :property iter: Values can be iterable
     """
     
-    public = emen2.db.dataobject.BaseDBObject.public | set([ 
-        'iter', 'desc_long', 'desc_short', 'choices', 'vartype',
-        'defaultunits', 'property', 'indexed'])
-
-    def init(self, d):
-        super(ParamDef, self).init(d)        
+    def init(self):
+        super(ParamDef, self).init()
         # Data type. 
         self.data['vartype'] = None
-
         # This is a very short description for use in forms
         self.data['desc_short'] = None
-
         # A complete description of the meaning of this variable
         self.data['desc_long'] = None
-
         # Physical property represented by this field, List in 'properties'
         self.data['property'] = None
-
         # Default units (optional)
         self.data['defaultunits'] = None
-
         # choices for choice and string vartypes, a tuple
         self.data['choices'] = []
-
-        # Iterable. This can be False, True (list), list, set, dict.
+        # Iterable. Boolean.
         self.data['iter'] = False
-
         # turn indexing on/off, if vartype allows for it
         self.data['indexed'] = True
 
@@ -135,6 +124,18 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         # if value not in prop.units:
         #     raise self.error("Invalid defaultunits %s for property %s. 
         #         Allowed: %s"%(value, self.property, ", ".join(prop.units)))
+
+    def get_vartype(self):
+        vtc = emen2.db.vartypes.Vartype.get_vartype(
+            name=self.data['name'],
+            vartpe=self.data['vartype'],
+            iter=self.data['iter'],
+            choices=self.data['choices'],
+            defaultunits=self.data['defaultunits'],
+            db=self.ctx.db,
+            cache=self.ctx.cache
+        )
+        return vtc
 
     ##### Setters #####
 

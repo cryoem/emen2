@@ -365,7 +365,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         with self.db._newtxn(write=write):
             # Bind the ctxid/host to the DBProxy
             self.db._setContext(ctxid, host)
-            self._log_username = self.db._ctx.username
+            self._log_username = self.db._ctx.user
             
             # Any View init method is run inside the transaction
             self.init()
@@ -540,7 +540,7 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
             # db._starttxn(write=db._checkwrite(rpcrequest.method))
             with db:
                 db._setContext(self.ctxid, self.host)
-                request._log_username = db._ctx.username
+                request._log_username = db._ctx.user
                 
                 _method = rpcrequest.method.rpartition('.')[2]
                 if _method == 'login':

@@ -98,7 +98,7 @@ class Binary(emen2.db.dataobject.BaseDBObject):
     """Binary file stored on disk and managed by EMEN2.
 
     Provides following parameters:
-        filename, record, md5, filesize, compress, filepath
+        filename, record, md5, filesize, compress
 
     The filename parameter is the original name of the uploaded file. The
     filesize parameter is the size of the file, and the md5 parameter is the
@@ -137,16 +137,14 @@ class Binary(emen2.db.dataobject.BaseDBObject):
     :property filepath: Path to the file on disk
     """
 
-    public = emen2.db.dataobject.BaseDBObject.public | set(["filepath", "filename", "record", "compress", "filesize", "md5"])
-
-    def init(self, d):
-        super(Binary, self).init(d)        
+    def init(self):
+        super(Binary, self).init()
+        self.filepath = None
         self.data['filename'] = None
         self.data['record'] = None
-        self.data['md5'] = None
-        self.data['filesize'] = None
         self.data['compress'] = False
-        self.filepath = None
+        self.data['filesize'] = None
+        self.data['md5'] = None
 
     def setContext(self, ctx):
         super(Binary, self).setContext(ctx=ctx)

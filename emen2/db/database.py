@@ -83,7 +83,7 @@ VIEW_REGEX_P = '''
 VIEW_REGEX_CLASSIC = '''(\$[\$\@\#\!]%s(?P<sep>[\W])?)'''%VIEW_REGEX_P
 VIEW_REGEX_M = '''(\{\{[\#\^\/]?%s\}\})'''%VIEW_REGEX_P
 
-# Rate limits!!
+# Rate limits!
 # This is a temporary solution.
 # Keys are account names. Values are time.time() of 
 #   unsuccesful logins.
@@ -264,8 +264,9 @@ def opendb(name=None, password=None, admin=False, db=None):
     if name:
         proxy._login(name, password)
     elif admin:
-        ctx = emen2.db.context.SpecialRootContext()
-        ctx.refresh(db=proxy)
+        ctx = emen2.db.context.SpecialRootContext.new()
+        ctx.refresh()
+        ctx.setdb(proxy)
         proxy._ctx = ctx
     return proxy
 
@@ -284,10 +285,6 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
         loader = emen2.db.load.Loader(db=db, infile=infile)
         loader.load(keytype='paramdef')
         loader.load(keytype='recorddef')
-    
-    # Rebuild the paramdef indexes.
-    # with db:
-    #     db._db.dbenv['paramdef'].rebuild_indexes(ctx=db._ctx, txn=db._txn)    
 
     with db:
         # Create a root user
@@ -414,18 +411,14 @@ class DB(object):
             name = found.pop()
         return self.dbenv["user"]._get(name, txn=txn)
 
-    def _find(self, keytype, query=None, defaultparams=None, ctx=None, txn=None, **kwargs):
-        query = filter(None, [i.strip() for i in unicode(query or '').split()])
-        defaultparams = defaultparams or []
+    def _find(self, keytype, keywords=None, ctx=None, txn=None, **kwargs):
         found = None
         cs = []
+        keywords = filter(None, [i.strip() for i in unicode(keywords or '').split()])
+        for term in keywords:
+            cs.append([['keywords', 'starts', term]])
         for param,term in kwargs.items():
             cs.append([[param, '==', term]])
-        for term in query:
-            c = []
-            for param in defaultparams:
-                c.append([param, 'starts', term])
-            cs.append(c)
         for c in cs:
             r = set()
             for param, op, term in c:
@@ -434,6 +427,7 @@ class DB(object):
                 found = r
             else:
                 found &= r
+        print "_find:", keywords, kwargs, found
         return self.dbenv[keytype].gets(found or [], ctx=ctx, txn=txn)
 
     def _view_kv(self, params):
@@ -653,7 +647,7 @@ class DB(object):
 
         :return: (Context User name, set of Context groups)
         """
-        return ctx.username, ctx.groups
+        return ctx.user, ctx.groups
 
     @publicmethod(compat="checkadmin")
     def auth_check_admin(self, ctx=None, txn=None):
@@ -1126,8 +1120,8 @@ class DB(object):
             r = {}
             for key in params:
                 pd = pds[key]
-                vt = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=ctx.db, cache=ctx.cache, options=options)
-                r[key] = vt.render(rec.get(key))
+                vtc = pd.get_vartype(options=options)
+                r[key] = vtc.render(rec.get(key))
             for key in descs:
                 r[key+'?'] = pds[key].desc_short
             for key,macro,args in macros:
@@ -1299,13 +1293,6 @@ class DB(object):
                             found.add(i)
                     else:
                         found.add(value)
-
-        # Not sure about this...
-        # if kwargs:
-        #     second = self._find(vartype, ctx=ctx, txn=txn, **kwargs)
-        #     second = set([i.name for i in second])
-        #     found &= second
-
         return found
 
     @publicmethod(write=True, compat="pclink")
@@ -1482,7 +1469,7 @@ class DB(object):
         return self.dbenv["paramdef"].filter(names, ctx=ctx, txn=txn)
         
     @publicmethod(compat="findparamdef")
-    def paramdef_find(self, query, count=100, ctx=None, txn=None, **kwargs):
+    def paramdef_find(self, query=None, count=100, ctx=None, txn=None, **kwargs):
         """Find a ParamDef, by general search string, or by searching attributes.
 
         Examples:
@@ -1497,8 +1484,7 @@ class DB(object):
         :keyword count: Limit number of results
         :return: RecordDefs
         """
-        defaultparams = ['desc_short', 'desc_long', 'vartype']
-        return self._find('paramdef', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
+        return self._find('paramdef', query, ctx=ctx, txn=txn, **kwargs)
         
     @publicmethod(compat="getpropertynames")
     def paramdef_properties(self, ctx=None, txn=None):
@@ -1594,8 +1580,7 @@ class DB(object):
         :keyword count: Limit number of results
         :return: Users
         """
-        defaultparams = ['name_first', 'name_middle', 'name_last', 'email']
-        return self._find('user', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
+        return self._find('user', query, ctx=ctx, txn=txn, **kwargs)
         # # Find users referenced in a record
         # if record:
         #     f = self._findbyvartype(emen2.utils.check_iterable(record), ['user', 'acl', 'comments', 'history'], ctx=ctx, txn=txn)
@@ -1743,7 +1728,7 @@ class DB(object):
         if user.email == oldemail:
             # Need to verify email address change by receiving secret.
             emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, email))
-            self.dbenv["user"]._puts([user], ctx=ctx, txn=txn)
+            self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
 
             # Send the verify email containing the auth token
             ctxt['secret'] = user_secret[2]
@@ -1752,7 +1737,7 @@ class DB(object):
         else:
             # Verified with secret.
             emen2.db.log.security("Changing email for user %s to %s"%(user.name, user.email))
-            self.dbenv['user']._puts([user], ctx=ctx, txn=txn)
+            self.dbenv['user']._put(user, ctx=ctx, txn=txn)
             # Send the user an email to acknowledge the change
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/email.verified', 'ctxt':ctxt})
 
@@ -1770,13 +1755,11 @@ class DB(object):
         except KeyError:
             events = self.dbenv._user_history.new(name=user.name, txn=txn)    
 
-        h = events.gethistory(param='password')
         events.prunehistory(param='password')
-        # for i in h:
         events.addhistory('1900-01-01T00:00:00Z+00:00', 'password', user.name, user.password)
 
         emen2.db.log.security("Expiring password for %s"%user.name)
-        self.dbenv["user"]._puts([user], ctx=ctx, txn=txn)
+        self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
         self.dbenv._user_history._put(events, txn=txn)
 
     @publicmethod(write=True, compat="setpassword")
@@ -1808,7 +1791,7 @@ class DB(object):
         # Get the user directly; .get() strips out password in most cases.
         user = self._user_by_email(name, ctx=ctx, txn=txn)
         # if not secret:
-        if ctx and ctx.username != 'anonymous':
+        if ctx and ctx.user != 'anonymous':
             user.setContext(ctx)
 
         # Get the user's events.
@@ -1827,12 +1810,12 @@ class DB(object):
 
         # Save the user. Don't use regular .put(), it will fail on setting pw.
         emen2.db.log.security("Changing password for %s"%user.name)
-        self.dbenv["user"]._puts([user], ctx=ctx, txn=txn)
+        self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
 
         # Save the user events.
         recycle = emen2.db.config.get('security.password_recycle') or 0
         events.prunehistory(param='password', limit=recycle)
-        events.addhistory(utcnow(), ctx.username, 'password', user.password)
+        events.addhistory(utcnow(), ctx.user, 'password', user.password)
         self.dbenv._user_history._put(events, txn=txn)
 
         # Send an email on successful commit.
@@ -1868,7 +1851,7 @@ class DB(object):
         user.resetpassword()
 
         # Use direct put to preserve the secret
-        self.dbenv["user"]._puts([user], ctx=ctx, txn=txn)
+        self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
 
         # Absolutely never reveal the secret via any mechanism
         # but email to registered address
@@ -1944,8 +1927,7 @@ class DB(object):
     def newuser_find(self, query=None, count=100, ctx=None, txn=None, **kwargs):
         if not ctx.checkadmin():
             raise PermissionsError("Only an administrator may perform this action.")
-        defaultparams = ['name_first', 'name_middle', 'name_last', 'email']
-        return self._find('user', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
+        return self._find('user', query, ctx=ctx, txn=txn, **kwargs)
         # return self.dbenv["newuser"].filter(names, ctx=ctx, txn=txn)
         
     @publicmethod(write=True, admin=True, compat="approveuser")
@@ -1996,7 +1978,7 @@ class DB(object):
                 user[i] = newuser.get(i)
             # Manually copy the password hash.
             user.data['password'] = newuser.password
-            user = self.dbenv["user"]._puts([user], ctx=ctx, txn=txn)
+            user = self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
 
             # Create a user profile record.
             if newuser.signupinfo:            
@@ -2094,7 +2076,7 @@ class DB(object):
         return self.dbenv["group"].filter(names, ctx=ctx, txn=txn)
 
     @publicmethod(compat="findgroup")
-    def group_find(self, query=None, count=100, ctx=None, txn=None):
+    def group_find(self, query=None, count=100, ctx=None, txn=None, **kwargs):
         """Find a group.
 
         Examples:
@@ -2106,8 +2088,7 @@ class DB(object):
         :keyword count: Limit number of results
         :return: Groups
         """
-        defaultparams = ['displayname']
-        return self._find('group', query, defaultparams=defaultparams, ctx=ctx, txn=txn)
+        return self._find('group', query, ctx=ctx, txn=txn, **kwargs)
 
     ##### RecordDef #####
 
@@ -2148,8 +2129,7 @@ class DB(object):
         :keyword count: Limit number of results
         :return: RecordDefs
         """
-        defaultparams = ['desc_short', 'desc_long', 'mainview']
-        return self._find('recorddef', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
+        return self._find('recorddef', query, ctx=ctx, txn=txn, **kwargs)
 
     ##### Records #####
 
@@ -2172,9 +2152,9 @@ class DB(object):
         return self.dbenv["record"].filter(names, ctx=ctx, txn=txn)
 
     @publicmethod()
-    def record_find(self, **kwargs):
-        defaultparams = ['rectype']
-        return self._find('record', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
+    def record_find(self, query=None, count=100, ctx=None, txn=None, **kwargs):
+        """Find a record."""
+        return self._find('record', query, ctx=ctx, txn=txn, **kwargs)
 
     @publicmethod(write=True, compat="hiderecord")
     @ol('names')
@@ -2289,7 +2269,7 @@ class DB(object):
         :exception PermissionsError:
         :exception ValidationError:
         """
-        return self.dbenv["record"].validate(items, ctx=ctx, txn=txn)
+        return [self.dbenv['record'].validate(item, ctx=ctx, txn=txn) for item in items]
 
     # These map to the normal Record methods
     @publicmethod(write=True, compat="addpermission")
@@ -2554,7 +2534,6 @@ class DB(object):
         :exception PermissionsError:
         """
         recs = self.dbenv["record"].gets(names, filt=filt, ctx=ctx, txn=txn)
-
         ret = []
         # This filters out a couple "history" types of comments
         for rec in recs:
@@ -2565,7 +2544,6 @@ class DB(object):
             cp = filter(lambda x:"Validation error: " not in x[2], cp)
             for c in cp:
                 ret.append([rec.name]+list(c))
-
         return sorted(ret, key=lambda x:x[2])
         
     @publicmethod(compat="getindexbyrectype")
@@ -2895,8 +2873,7 @@ class DB(object):
         :keyword count: Limit number of results
         :return: Binaries
         """
-        defaultparams = ['filename', 'md5']
-        return self._find('binary', query, defaultparams=defaultparams, ctx=ctx, txn=txn, **kwargs)
+        return self._find('binary', query, ctx=ctx, txn=txn, **kwargs)
         
     @publicmethod(write=True, compat="binaryaddreference")
     def binary_addreference(self, record, param, name, ctx=None, txn=None):

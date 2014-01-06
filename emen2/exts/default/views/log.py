@@ -159,7 +159,7 @@ class LogAnalysis(View):#AdminView):
 
         ctx = self.db._getctx()
         if not ctx.checkadmin():
-            linefilter['username'] = set([ctx.username])
+            linefilter['username'] = set([ctx.user])
 
         logfile, errors = self._getlines('access.log', AccessLogFile, start, end, reverse=reverse, index=index)
 

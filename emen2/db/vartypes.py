@@ -16,6 +16,8 @@ import dateutil.parser
 import dateutil.tz
 import dateutil.rrule
 
+import email.utils
+
 # Markdown and Markupsafe are required now.
 import markdown
 from markupsafe import Markup, escape
@@ -35,6 +37,14 @@ ALLOW_MISSING = True
 
 # Text values equivalent to "None"
 NONE_VALUES = [None, "", "N/A", "n/a", "None"]
+
+# ParamDef / Vartype cache.
+# Load EMEN2 Core ParamDefs...
+import emen2.db.core
+VARTYPE_CACHE = {}
+for i in emen2.db.core.core:
+    if i.get('keytype') == 'paramdef':
+        VARTYPE_CACHE[i['name']] = i
 
 ##### Helper methods #####
 
@@ -108,16 +118,16 @@ def iso8601duration(d):
 ##### Vartypes #####
 
 class Vartype(object):
-    '''Base class for Vartypes.
+    '''Base class for Vartypes. You must implement validate() and optionally reindex().
     
     :attr keyclass: Key class
     '''
     keyclass = unicode
 
-    def __init__(self, vartype=None, param=None, iter_=None, choices=None, defaultunits=None, cache=None, db=None, options=None):
+    def __init__(self, vartype=None, name=None, iter=None, choices=None, defaultunits=None, cache=None, db=None, options=None, **kwargs):
         self.vartype = vartype
-        self.param = param
-        self.iter = iter_
+        self.name = name
+        self.iter = iter
         self.choices = choices or []
         self.defaultunits = defaultunits or ''
         self.cache = cache
@@ -136,17 +146,25 @@ class Vartype(object):
             cls.registered[name] = o
             return o
         return f
-
+        
     @classmethod
-    def get_vartype(cls, vartype, pd=None, *args, **kwargs):
+    def get_vartype(cls, vartype=None, name=None, iter=None, choices=None, defaultunits=None, cache=None, db=None, options=None, **kwargs):
         """Get a registered Vartype."""
-        kwargs['vartype'] = vartype
-        if pd:
-            kwargs['param'] = pd.name
-            kwargs['iter_'] = pd.iter
-            kwargs['choices'] = pd.choices
-            kwargs['defaultunits'] = pd.defaultunits
-        return cls.registered.get(vartype, Vartype)(*args, **kwargs)
+        c = {}
+        if name in VARTYPE_CACHE:
+            c = VARTYPE_CACHE[name]
+        elif name and vartype:
+            c = {
+                'vartype': vartype,
+                'name': name,
+                'iter': iter,
+                'choices': choices,
+                'defaultunits': defaultunits
+            }
+            VARTYPE_CACHE[name] = c
+        else:
+            raise KeyError("Can't get Vartype.")
+        return cls.registered[c['vartype']](cache=cache, db=db, options=options, **c)
 
     ##### Indexing #####
 
@@ -156,7 +174,7 @@ class Vartype(object):
         :param value: Index this value.
         :return: A set of indexed terms.
         """
-        raise NotImplementedError
+        raise NotImplementedError("%s is unindexed."%self.name)
 
     ##### Validation #####
 
@@ -170,7 +188,7 @@ class Vartype(object):
         :param value: Validate this value.
         :return: The validated value.
         """
-        raise ValidationError("%s is an internal or organizational parameter, and is not intended to be used."%self.param)
+        raise NotImplementedError("%s is an internal or organizational parameter, and is not intended to be used."%self.name)
 
     # def validate(self, pd, value):
     #     if value in NONE_VALUES:
@@ -198,10 +216,10 @@ class Vartype(object):
                 found.add(i)
                 changed = True
             elif ALLOW_MISSING:
-                emen2.db.log.warn("Validation: Could not find, but allowing: %s (parameter %s)"%(i, self.param))
+                emen2.db.log.warn("Validation: Could not find, but allowing: %s (parameter %s)"%(i, self.name))
                 ret.append(i)
             else:
-                raise ValidationError("Could not find: %s (parameter %s)."%(i, self.param))
+                raise ValidationError("Could not find: %s (parameter %s)."%(i, self.name))
         
         if changed:
             self.cache.store(key, found)    
@@ -260,18 +278,18 @@ class Vartype(object):
     def _html(self, value):
         if value is None:
             return ''
-        elem = Markup("""<span class="e2-edit" data-paramdef="%s">%s</span>""")%(self.param, self._unicode(value))
+        elem = Markup("""<span class="e2-edit" data-paramdef="%s">%s</span>""")%(self.name, self._unicode(value))
         return elem
         
     def _form(self, value):
         if value is None:
             value = ''
         elem = Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><input type="text" data-paramdef="%s" data-vartype="%s" name="%s" value="%s" /></span>""")%(
-            self.param,
+            self.name,
             self.vartype,
-            self.param,
+            self.name,
             self.vartype,
-            self.param,
+            self.name,
             value
         )
         return elem
@@ -297,7 +315,7 @@ class vt_password(Vartype):
 class vt_none(Vartype):
     pass
 
-##### Simple indexed. #####
+##### Indexed base vartypes. #####
 
 class vt_base(Vartype):
     def reindex(self, value):
@@ -308,28 +326,33 @@ class vt_base(Vartype):
         else:
             return set([value])
 
-##### Text vartypes. #####
+    def validate(self, value):
+        return self._rci([unicode(x).strip() for x in ci(value)])
 
-@Vartype.register('string')
-class vt_string(vt_base):
-    """String."""
+class vt_base_keywords(Vartype):
     def reindex(self, value):
-        regex = re.compile(r'[\w\-\+\.]+\b')
         if value is None:
             return set()
+        regex = re.compile(r'[\w\-\+\.]+\b')
         if not self.iter:
             value = [value]
         ret = set()
         for i in value:
             ret |= set(regex.findall(unicode(i).lower()))
-        print "reindex:", value, ret
         return ret            
-    
+
     def validate(self, value):
         return self._rci([unicode(x).strip() for x in ci(value)])
+    
+##### Text vartypes. #####
 
+@Vartype.register('string')
+class vt_string(vt_base_keywords):
+    """String."""
+    pass
+    
 @Vartype.register('choice')
-class vt_choice(vt_string):
+class vt_choice(vt_base_keywords):
     """One value from a defined list of choices."""
     def validate(self, value):
         value = [unicode(i).strip() for i in ci(value)]
@@ -350,32 +373,37 @@ class vt_choice(vt_string):
             choices.append(elem)
             
         return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><select name="%s">%s</select></span>""")%(
-            self.param,
+            self.name,
             self.vartype,
-            self.param,
+            self.name,
             Markup("".join(choices))
             )
 
 @Vartype.register('text')
-class vt_text(vt_string):
+class vt_text(vt_base_keywords):
     """Freeform text, with word indexing."""
     elem = 'div'
     def _html(self, value):
         if value is None:
             return ''
         value = Markup(markdown.markdown(unicode(value), safe_mode='escape'))
-        elem = Markup("""<div class="e2-edit" data-paramdef="%s">%s</div>""")%(self.param, value)
+        elem = Markup("""<div class="e2-edit" data-paramdef="%s">%s</div>""")%(self.name, value)
         return elem
 
     def _form(self, value):
         if value is None:
             value = ''
         return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s"><textarea name="%s">%s</textarea></div>""")%(
-            self.param,
+            self.name,
             self.vartype,
-            self.param,
+            self.name,
             value
             )
+
+@Vartype.register('keywords')
+class vt_keywords(vt_base_keywords):
+  """Keywords."""
+  pass
 
 ##### Numerical vartypes. #####
 
@@ -402,9 +430,9 @@ class vt_float(vt_base):
             value = ''
         units = self.defaultunits or ''
         return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><input type="text" name="%s" value="%s" /> %s</span>""")%(
-            self.param,
+            self.name,
             self.vartype,
-            self.param,
+            self.name,
             value,
             units
             )
@@ -456,7 +484,7 @@ class vt_boolean(vt_base):
             choices.append("""<option>True</option>""")
             choices.append("""<option checked="checked" >False</option>""")
         return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><select>%s</select></span>""")%(
-            self.param, 
+            self.name, 
             self.vartype,
             Markup("".join(choices))
             )
@@ -522,7 +550,7 @@ class vt_datetime(vt_base):
             local_time = raw_time
             
         return Markup("""<time class="e2-edit" data-paramdef="%s" datetime="%s" title="Raw value: %s \nUTC time: %s \nLocal time: %s">%s</time>""")%(
-            self.param,
+            self.name,
             raw_time.isoformat(),
             value,
             raw_utc.isoformat(),
@@ -554,6 +582,19 @@ class vt_time(vt_datetime):
 
 ##### Reference vartypes. #####
 
+@Vartype.register('email')
+class vt_email(vt_base):
+    """String."""
+    def validate(self, value):
+        ret = []
+        for i in ci(value):
+            _, i = email.utils.parseaddr(unicode(i))
+            i = value.strip().lower()
+            if '@' not in i:
+                raise ValidationError("Invalid email: %s"%i)
+            ret.append(i)
+        return self._rci(ret)
+    
 @Vartype.register('uri')
 class vt_uri(vt_base):
     """URI"""
@@ -643,9 +684,9 @@ class vt_user(vt_base):
             <input type="hidden" value="" name="%s" />
             <input type="button" value="%s" class="e2-edit-add-find" data-keytype="user" data-paramdef="%s" data-iter="%s" />
             """)%(
-            self.param,
+            self.name,
             label,
-            self.param,
+            self.name,
             iter_
             )
 
@@ -673,7 +714,7 @@ class vt_user(vt_base):
             </div>
             """)%(
                 value,
-                self.param,
+                self.name,
                 value,
                 src,
                 displayname,
@@ -684,7 +725,7 @@ class vt_user(vt_base):
         if not self.iter:
             elem += self._add()
         return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s">%s</div>""")%(
-            self.param,
+            self.name,
             self.vartype,
             elem
             )
@@ -718,7 +759,7 @@ class vt_binary(vt_base):
             multiple = "multiple"
         return Markup("""%s <input type="file" name="%s" multiple="%s" />""")%(
             label,
-            self.param,
+            self.name,
             multiple
             )
             
@@ -736,7 +777,7 @@ class vt_binary(vt_base):
                 </a>
             </span>
             """)%(
-                self.param,
+                self.name,
                 bdo.name,
                 bdo.filename,
                 bdo.name,
@@ -760,7 +801,7 @@ class vt_binary(vt_base):
                     <p class="e2l-small">%s</p>                
                 </div>""")%(
                     bdo.name,
-                    self.param,
+                    self.name,
                     bdo.name,
                     src,
                     bdo.filename,
@@ -772,7 +813,7 @@ class vt_binary(vt_base):
             elem += self._add()
             
         return Markup("""<div class="e2-edit" %s>%s</div>""")%(
-            self.param,
+            self.name,
             elem
             )
             
@@ -781,6 +822,14 @@ class vt_binary(vt_base):
 @Vartype.register('acl')
 class vt_acl(Vartype):
     """Permissions access control list; nested lists of users."""
+    def reindex(self, value):
+        if value is None:
+            return set()
+        ret = set()
+        for i in value:
+            ret |= set(i)
+        return ret
+
     def validate(self, value):
         if not hasattr(value, '__iter__'):
             value = [[value],[],[],[]]
@@ -813,6 +862,15 @@ class vt_acl(Vartype):
 class vt_comments(Vartype):
     """Comments."""
     # ian: todo... sort this out.
+    def reindex(self, value):
+        if value is None:
+            return set()
+        regex = re.compile(r'[\w\-\+\.]+\b')
+        ret = set()
+        for user, t, comment in value:
+            ret |= set(regex.findall(unicode(comment).lower()))
+        return ret
+
     def validate(self, value):
         return value
       
@@ -829,7 +887,7 @@ class vt_comments(Vartype):
             )
 
     def render_form(self, value):
-        return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s"><textarea placeholder="Add additional comments"></textarea></div>""")%(self.param, self.vartype)
+        return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s"><textarea placeholder="Add additional comments"></textarea></div>""")%(self.name, self.vartype)
 
 @Vartype.register('history')
 class vt_history(Vartype):
@@ -850,4 +908,3 @@ class vt_dict(Vartype):
             return None
         r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
         return dict(r)
-

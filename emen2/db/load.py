@@ -44,7 +44,7 @@ class Loader(object):
             parents[name] = set(item.pop('parents', []) or [])
             print "Load: put:", keytype, name
             try:
-                dbenv[keytype].puts([item], ctx=ctx, txn=txn)
+                dbenv[keytype].put(item, ctx=ctx, txn=txn)
             except Exception, e:
                 print "Couldn't load %s %s:"%(keytype, name), e
             count += 1
@@ -103,7 +103,7 @@ class RawLoader(Loader):
             try:
                 r = dbenv[keytype].new(ctx=ctx, txn=txn)
                 r.data.update(item)
-                dbenv[keytype]._puts([r], ctx=ctx, txn=txn)
+                dbenv[keytype]._put(r, ctx=ctx, txn=txn)
             except Exception, e:
                 print "Couldn't load...", e
             count += 1

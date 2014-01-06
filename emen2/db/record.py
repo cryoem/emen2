@@ -73,23 +73,19 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
     :attr rectype: Associated RecordDef
     """
 
-    #: Attributes readable by the user
-    public = emen2.db.dataobject.PermissionsDBObject.public | set(['comments', 'history', 'rectype', 'hidden'])
-
     def __repr__(self):
         return "<%s %s, %s at %x>" % (self.__class__.__name__, self.name, self.rectype, id(self))
 
-    def init(self, d):
+    def init(self):
         # Call PermissionsDBObject init
-        super(Record, self).init(d)
-
+        super(Record, self).init()
         # rectype is required
         # Access to RecordDef is checked during validation
         self.data['rectype'] = None
-
         # comments, history, and other param values
         self.data['comments'] = []
         self.data['history'] = []
+        self.data['hidden'] = None
 
     def validate(self):
         """Validate the record before committing."""
@@ -125,7 +121,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         """Bind record['comments'] setter"""
         self.addcomment(value)
 
-    def _setoob(self, key, value):
+    def _setitem(self, key, value):
         """Set a parameter value."""
         # Check write permission
         if not self.writable():
@@ -152,8 +148,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         if not param:
             raise Exception("Unable to add item to history log.")
         if self.data.get('history') is None:
-            self.data['history'] = []            
-        self.data['history'].append((unicode(self.ctx.username), unicode(self.ctx.utcnow), unicode(param), self.data.get(param)))
+            self.data['history'] = []
+        self.data['history'].append((unicode(self.ctx.user), unicode(emen2.db.database.utcnow()), unicode(param), self.data.get(param)))
 
     def addcomment(self, value):
         """Add a comment. Any $$param="value" comments will be parsed and set as values.
@@ -195,4 +191,4 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
                 self.__setitem__(i, j)
 
             # Store the comment string itself
-            self.data['comments'].append((unicode(self.ctx.username), unicode(self.ctx.utcnow), unicode(value)))
+            self.data['comments'].append((unicode(self.ctx.user), unicode(emen2.db.database.utcnow()), unicode(value)))

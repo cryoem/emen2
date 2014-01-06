@@ -47,9 +47,6 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         recname            A simple title for each record built from record values
         tabularview        Columns to use in table views
 
-    Some details from the mainview are cached in 'params' (default values) and
-    'paramsR' (required params).
-
     RecordDefs may have parent/child relationships, similar to Records.
 
     RecordDefs can be marked as private by setting the 'privacy' parameter. If
@@ -72,50 +69,38 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
     :property views: Dictionary of additional views.
     :property privacy: Mark this RecordDef as private.
     :property typicalchld: A list of RecordDefs that are generally seen as children.
-    :property params: Dictionary of all params found in all views (keys), with any default values specified (as value) (read-only).
-    :property paramsR: Parameters that are required for a Record of this RecordDef to validate (read-only).
     :property owner: Current owner of RecordDef. May be different than creator. Gives permission to edit views.
     """
 
-    public = emen2.db.dataobject.BaseDBObject.public | set(["mainview", "views", "privacy", "typicalchld", "desc_long", "desc_short"])
-
-    def init(self, d):
-        super(RecordDef, self).init(d)
-
+    def init(self):
+        super(RecordDef, self).init()
         # A string defining the experiment with embedded params
         # this is the primary definition of the contents of the record
         self.data['mainview'] = ''
-
         # Dictionary of additional (named) views for the record
         self.data['views'] = {}
-
         # If this is True, this RecordDef may only be retrieved by its owner
         # or by someone with read access to a record of this type
         self.data['privacy'] = 0
-
         # A list of RecordDef names of typical child records for this RecordDef
         self.data['typicalchld'] = []
-
         # Short description
         self.data['desc_short'] = None
-
         # Long description
         self.data['desc_long'] = None
-
         # The following are automatically generated
         # A dictionary keyed by the names of all params used in any of the views
         # values are the default value for the field.
         # this represents all params that must be defined to have a complete
         # representation of the record. Note, however, that such completeness
         # is NOT REQUIRED to have a valid Record
-        self.data['params'] = {}
-
+        # self.data['params'] = {}
         # Required parameters (will throw exception on record commit if empty)
-        self.data['paramsR'] = []
+        # self.data['paramsR'] = []
 
     # ian: todo: Important!! If we can access a record with the recorddef...
     def setContext(self, ctx):
-        super(RecordDef, self).setContext(ctx=ctx)
+        super(RecordDef, self).setContext(ctx)
         if not self.privacy:
             return
         # Private RecordDef...
@@ -133,7 +118,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
     def _set_mainview(self, key, value):
         """Only an admin may change the mainview"""
-        value = self._strip(textwrap.dedent(value))
+        value = self._strip(value)
         if not self.isnew() and not self.ctx.checkadmin():
             raise self.error("Cannot change mainview.")
         self._set('mainview', value, self.isowner())
@@ -166,14 +151,15 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
     def _findparams(self):
         """This will update the list of params by parsing the views"""
-        t, d, r = parseparmvalues(self.mainview)
-        for i in self.views.values():
-            t2, d2, r2 = parseparmvalues(i)
-            t |= t2
-            r |= r2
-            for j in t2:
-                # ian: fix for: empty default value in a view unsets default value specified in mainview
-                d.setdefault(j, d2.get(j))
-        self.data['params'] = sorted(d)
-        self.data['paramsR'] = sorted(r)
+        return
+        # t, d, r = parseparmvalues(self.mainview)
+        # for i in self.views.values():
+        #     t2, d2, r2 = parseparmvalues(i)
+        #     t |= t2
+        #     r |= r2
+        #     for j in t2:
+        #         # ian: fix for: empty default value in a view unsets default value specified in mainview
+        #         d.setdefault(j, d2.get(j))
+        # self.data['params'] = sorted(d)
+        # self.data['paramsR'] = sorted(r)
 

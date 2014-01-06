@@ -100,7 +100,8 @@ class Test(object):
             kwargs['newline'] = False
         if kwargs.get('newline'):
             print
-        print "\t"+" ".join(map(unicode, msg))
+        msg = map(unicode, msg)
+        print ("\t%s"%" ".join(msg)).encode('utf-8')
     
     def ok(self, *msg):
         self.msg("ok:", *msg, newline=False)
@@ -966,19 +967,19 @@ class RecordDef(Test):
         assert rd.views['recname'] == view
             
     @test
-    def test_private(self):
-        """Testing recorddef private status"""
+    def test_privacy(self):
+        """Testing recorddef privacy status"""
         rd = self._make()
         
-        rd.private = False
+        rd.privacy = 0
         rd = self.db.recorddef.put(rd)
-        assert rd.private == False
-        self.ok(False)
+        assert rd.privacy == 0
+        self.ok(0)
         
-        rd.private = True
+        rd.privacy = 1
         rd = self.db.recorddef.put(rd)
-        assert rd.private == True
-        self.ok(True)
+        assert rd.privacy == 1
+        self.ok(1)
         
     @test
     def test_params(self):
@@ -1132,7 +1133,7 @@ class Record(Test):
     def api_record_addcomment(self):
         """Testing record.addcomment()"""        
         rec = self._make()
-        comments = ['1', '2', '3']
+        comments = ['peace', 'is', 'always', 'beautiful']
         for comment in comments:
             rec = self.db.record.addcomment(rec.name, comment)
             assert comment in [i[2] for i in rec.comments]
@@ -1142,13 +1143,15 @@ class Record(Test):
     def api_record_findcomments(self):
         """Testing record.findcomments()"""        
         rec = self._make()
-        comments = ['hickory', 'dickory', 'dock']
+        comments = ['large', 'contain', 'multitudes']
         for comment in comments:
             crec = self._make()
             crec['comments'] = comment
             crec = self.db.record.put(crec)
             self.db.rel.pclink(rec.name, crec.name)
         children = self.db.rel.children(rec.name)
+        print rec.name
+        print self.db.rel.children(rec.name, recurse=-1)
         found = self.db.record.findcomments(children)
         for comment in comments:
             assert comment in [i[3] for i in found]

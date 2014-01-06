@@ -1,10 +1,22 @@
 import sys
 import emen2.db.dump
 
-core_paramdefs = [
+core = [
 # Core ParamDefs
 {"name": "root", "keytype": "paramdef", "parents": [], "vartype": "none", "desc_short": "Root parameter"},
 {"name": "core", "keytype": "paramdef", "parents": ["root"], "vartype": "none", "desc_short": "Core parameters"},
+{"name": "keytype", "keytype": "paramdef", "parents": ["core"], "vartype": "none", "desc_short": "Type", "desc_long": "Object type"},
+{"name": "name", "keytype": "paramdef", "parents": ["core"], "vartype": "none", "desc_short": "ID", "desc_long": "Object ID"},
+{"name": "keywords", "keytype": "paramdef", "vartype": "keywords", "parents": ["core"], "desc_short": "Keywords"},
+
+# Common
+{"name": "creator", "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "Created by", "desc_long": "The user that originally created the record"},
+{"name": "creationtime", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Creation time", "desc_long": "Timestamp of original record creation"},
+{"name": "modifyuser", "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record"},
+{"name": "modifytime", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Modification time", "desc_long": "Timestamp of last modification"},
+{"name": "uri", "keytype": "paramdef","parents": ["core"], "vartype": "uri", "desc_short": "URI", "desc_long": "Resource location of an imported object"},
+{"name": "permissions", "keytype": "paramdef","parents": ["core"], "vartype": "acl", "desc_short": "Permissions"},
+{"name": "hidden", "keytype": "paramdef", "vartype": "boolean", "parents": ["core"], "desc_short": "Hidden"},
 
 # Links
 {"name": "record", "keytype": "paramdef", "parents": ["core"], "vartype": "record", "desc_short": "Record"},
@@ -15,17 +27,6 @@ core_paramdefs = [
 {"name": "binary", "keytype": "paramdef","parents": ["core"], "vartype": "binary", "desc_short": "Binary"},
 {"name": "parents", "keytype": "paramdef","parents": ["core"], "vartype": "link", "desc_short": "Parents"},
 {"name": "children", "keytype": "paramdef","parents": ["core"], "vartype": "link", "desc_short": "Children"},
-
-# Common
-{"name": "keytype", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Type", "desc_long": "Object type"},
-{"name": "name", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "ID", "desc_long": "Object ID"},
-{"name": "creator", "keytype": "paramdef","parents": ["core"], "vartype": "user", "desc_short": "Created by", "desc_long": "The user that originally created the record"},
-{"name": "creationtime", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Creation time", "desc_long": "Timestamp of original record creation"},
-{"name": "modifytime", "keytype": "paramdef","parents": ["core"], "vartype": "datetime", "desc_short": "Modification time", "desc_long": "Timestamp of last modification"},
-{"name": "modifyuser", "keytype": "paramdef", "parents": ["core"], "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record"},
-{"name": "uri", "keytype": "paramdef","parents": ["core"], "vartype": "uri", "desc_short": "URI", "desc_long": "Resource location of an imported object"},
-{"name": "permissions", "keytype": "paramdef","parents": ["core"], "vartype": "acl", "desc_short": "Permissions"},
-{"name": "hidden", "keytype": "paramdef", "vartype": "boolean", "parents": ["core"], "desc_short": "Hidden"},
 
 # ParamDef
 {"name": "vartype", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Value type"},
@@ -41,37 +42,37 @@ core_paramdefs = [
 # RecordDef
 {"name": "views", "keytype": "paramdef", "parents": ["core"], "vartype": "dict", "desc_short": "Views"},
 {"name": "mainview", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Main view"},
-{"name": "typicalchld", "iter": True, "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Typical children"},
+{"name": "typicalchld", "iter": True, "keytype": "paramdef", "parents": ["core"], "vartype": "paramdef", "desc_short": "Typical children"},
 
 # User
-{"name": "email", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Email"},
+{"name": "email", "keytype": "paramdef","parents": ["core"], "vartype": "email", "desc_short": "Email"},
 {"name": "disabled", "keytype": "paramdef", "parents": ["core"], "vartype": "boolean", "desc_short": "Disabled account"},
 {"name": "password", "keytype": "paramdef", "parents": ["core"], "vartype": "password", "desc_short": "Password"},
 {"name": "name_first", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "First name"},
 {"name": "name_middle", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Middle name"},
 {"name": "name_last", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Last name"},
 {"name": "displayname", "keytype": "paramdef","parents": ["core"], "vartype": "string", "desc_short": "Display name"},
+{"name": "secret", "keytype": "paramdef","parents": ["core"], "vartype": "none", "desc_short": "Hidden"},
+{"name": "signupinfo", "keytype": "paramdef","parents": ["core"], "vartype": "none", "desc_short": "Signup Details"},
 
 # Record
-{"name": "rectype", "keytype": "paramdef","parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol"},
-{"name": "history", "keytype": "paramdef","parents": ["core"], "vartype": "history", "desc_short": "History"},
-{"name": "comments", "keytype": "paramdef","parents": ["core"], "vartype": "comments", "desc_short": "Comments", "iter": True},
+{"name": "rectype", "keytype": "paramdef", "parents": ["core"], "vartype": "recorddef", "desc_short": "Protocol"},
+{"name": "history", "keytype": "paramdef", "parents": ["core"], "vartype": "history", "desc_short": "History"},
+{"name": "comments", "keytype": "paramdef", "parents": ["core"], "vartype": "comments", "desc_short": "Comments"},
 
 # Binary
 {"name": "filename", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Filename"},
 {"name": "filesize", "keytype": "paramdef", "parents": ["core"], "vartype": "int", "property": "bytes", "defaultunits": "B", "desc_short": "Filesize"},
 {"name": "md5", "keytype": "paramdef", "parents": ["core"], "vartype": "md5", "desc_short": "MD5 Checksum"},
 {"name": "file_binary", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "iter": True, "desc_short": "Attachments"},
-{"name": "compress", "keytype": "paramdef", "parents":["core"], "vartype": "string", "desc_short": "Compressed format"}
-]
+{"name": "compress", "keytype": "paramdef", "parents":["core"], "vartype": "string", "desc_short": "Compressed format"},
 
 # Core RecordDefs
-core_recorddefs = [
 {"name":"root", "keytype":"recorddef", "mainview":"# {{desc_short}}  \n{{desc_long}} \n", "views":{"recname":"Root: {{desc_short}}", "banner":"{{desc_long}}"}, "desc_short":"Root protocol"}
 ]
 
 # For base RecordDefs
-base_paramdefs = [
+base = [
 {"name": "base", "keytype": "paramdef", "parents": ["root"], "vartype": "none", "desc_short": "Parameters for base protocols"},
 {"name": "performed_by", "keytype": "paramdef", "parents": ["base"], "vartype": "user", "desc_short": "Performed by"},
 {"name": "date_occurred", "keytype": "paramdef", "parents": ["base"], "vartype": "datetime", "desc_short": "Date occurred"},
@@ -148,9 +149,8 @@ base_paramdefs = [
 {"name": "name_contact", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Contact person"},
 {"name": "phone", "keytype": "paramdef", "parents": ["base"], "vartype": "string", "desc_short": "Phone"},
 {"name": "website", "keytype": "paramdef", "parents": ["base"], "vartype": "uri", "desc_short": "Website"},
-]
 
-base_recorddefs = [
+# Base RecordDefs
 {"name":"base", "keytype":"recorddef", "mainview":"Base protocols.", "desc_short":"Base protocols", "parents":["root"]},
 {"name":"experiments", "keytype":"recorddef", "mainview":"Experimental protocols.", "desc_short":"Experimental protocols", "parents":["root"]},
 
@@ -227,7 +227,7 @@ Description: {{folder_description}}
 ]
 
 if __name__ == "__main__":
-    emen2.db.dump.dump_json('core.json', items=core_paramdefs+core_recorddefs, uri="http://ncmidb.bcm.edu")
-    emen2.db.dump.dump_json('base.json', items=base_paramdefs+base_recorddefs, uri="http://ncmidb.bcm.edu")
+    emen2.db.dump.dump_json('core.json', items=core, uri="http://ncmidb.bcm.edu")
+    emen2.db.dump.dump_json('base.json', items=base, uri="http://ncmidb.bcm.edu")
 
 

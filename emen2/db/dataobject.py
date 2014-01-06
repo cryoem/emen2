@@ -64,53 +64,51 @@ class BaseDBObject(object):
     :property modifyuser: Last user to modify item
     :property modifytime: Time of last modification, ISO 8601 format
     :property uri: Reference to original item if imported
-    :property parents: Parents set
-    :property children: Children set
     :property keytype:
     :classattr public: Public (exported) keys
     """
-    
-    public = set(['keytype', 'creator', 'creationtime', 'modifytime', 'modifyuser', 'uri', 'name', 'parents', 'children'])
 
     def __init__(self, **kwargs):
-        """Initialize a new DBO."""
         self.data = {}
+        self.ctx = None
         self.new = True
-        # Backwards compat.
-        self.parents = []
-        self.children = []
-        # Init
-        self.ctx = kwargs.pop('ctx', None)
-        if kwargs:
-            self.init(kwargs)
-            self.setContext(self.ctx)
-            self.update(kwargs)
+            
+    @classmethod
+    def new(cls, ctx=None, **data):        
+        d = cls()
+        d.init()
+        if ctx:
+            d.initContext(ctx)
+            d.setContext(ctx)
+        d.update(data)
+        return d
+    
+    @classmethod
+    def load(cls, data):
+        d = cls()
+        d.data = data
+        d.new = False
+        return d
 
-    def __repr__(self):
-        return """<%s at %0x: %s>"""%(self.__class__.__name__, id(self), self.name)
-
-    def init(self, d, ctx=None):
+    def init(self):
         """Subclass init."""
-        # Base data
-        data = {}
-        data['name'] = None
-        data['uri'] = None
-        data['keytype'] = unicode(self.__class__.__name__.lower())
-        data['creator'] = self.ctx.username
-        data['creationtime'] = self.ctx.utcnow
-        data['modifyuser'] = self.ctx.username
-        data['modifytime'] = self.ctx.utcnow
-        self.data = data
-        
-    def load(self, d):
-        """Load directly from JSON / dict."""
-        self.new = False
-        self.data = d
-        return self
-
+        t = emen2.db.database.utcnow()
+        self.data['name'] = None
+        self.data['uri'] = None
+        self.data['keytype'] = unicode(self.__class__.__name__.lower())
+        self.data['creator'] = None 
+        self.data['modifyuser'] = None
+        self.data['creationtime'] = t
+        self.data['modifytime'] = t
+    
     def validate(self):
         """Validate."""
         pass
+
+    def initContext(self, ctx):
+        self.ctx = ctx
+        self.data['creator'] = self.ctx.user
+        self.data['modifyuser'] = self.ctx.user
 
     def setContext(self, ctx):
         """Set permissions and bind the context."""
@@ -122,6 +120,9 @@ class BaseDBObject(object):
         """Differences between two DBOs."""
         allkeys = set(self.keys() + item.keys())
         return set(filter(lambda k:self.get(k) != item.get(k), allkeys))
+
+    def __repr__(self):
+        return """<%s at %0x: %s>"""%(self.__class__.__name__, id(self), self.name)
 
     ##### Permissions
     # Two basic permissions are defined: owner and writable
@@ -143,7 +144,7 @@ class BaseDBObject(object):
             return False
         if self.ctx.checkadmin():
             return True
-        if self.ctx.username == getattr(self, 'creator', None):
+        if self.ctx.user == getattr(self, 'creator', None):
             return True
 
     def isnew(self):
@@ -177,49 +178,36 @@ class BaseDBObject(object):
     def update(self, update):
         for k,v in update.items():
             self.__setitem__(k, v)
-        
-    def __setattr__(self, key, value):
-        # Treat keys in self.public as properties.
-        if key in self.public:
-            self.__setitem__(key, value)
+    
+    def _setattr(self, key, value):
         object.__setattr__(self, key, value)
-
+    
+    def __setattr__(self, key, value):
+        getattr(self, '_set_%s'%key, self._setattr)(key, value)
+            
     def __getattr__(self, key):
-        # Treat keys in self.public as properties.
-        if key in self.public:
-            return self.data.get(key)
-        return object.__getattribute__(self, key)
+        # If key is not already an existing attribute, look in self.data.
+        # Otherwise raise AttributeError so getattr() returns default.
+        # print "__getattr__ self.__dict__", key, self.__dict__
+        try:
+            return object.__getattribute__(self, 'data')[key]
+        except KeyError, e:
+            raise AttributeError("No attribute: %s"%key)
+
+    def _setitem(self, key, value):
+        self.error('Cannot set parameter %s in this way'%key, warning=True)
+
+    def __setitem__(self, key, value):
+        # If a "_set_<key>" method exists, use this.
+        # Otherwise, use _setitem as the setter. This will raise an error
+        #    (default) or allow 'out of bounds' attrs (see Record class)
+        if value == self.get(key):
+            return
+        getattr(self, '_set_%s'%key, self._setitem)(key, value)
 
     def __getitem__(self, key, default=None):
         # Behave like dict.get(key) instead of dict[key]
         return self.data.get(key, default)
-
-    def __delitem__(self, key):
-        raise AttributeError('Key deletion not allowed.')
-
-    def __setitem__(self, key, value):
-        # If a "_set_<key>" method exists, that will always be used for setting.
-        # Otherwise, use _setoob as the setter. This will raise an error
-        #    (default) or allow 'out of bounds' attrs (see Record class)
-        if self.data.get(key) == value:
-            return
-
-        # Find a setter method (self._set_<key>)
-        setter = getattr(self, '_set_%s'%key, None)
-        if setter:
-            pass
-        elif key in self.public:
-            # These can't be modified without a setter method defined.
-            # (Return quietly instead of PermissionsError or KeyError)
-            return
-        else:
-            # Setter for parameters that are not explicitly in self.public
-            # Default is to raise KeyError or ValidationError
-            setter = self._setoob            
-
-        # The setter might return multiple items that were updated
-        # For instance, comments can update other params
-        setter(key, value)
 
     ##### Real updates #####
 
@@ -228,22 +216,16 @@ class BaseDBObject(object):
         
         Check must be True; e.g.:
             self._set('key', 'value', self.isowner())
-        This is to encourage the developer to think and explicitly check permissions.
+        This is to encourage the developer to explicitly check permissions.
         """
         if not check:
             msg = 'Insufficient permissions to change parameter: %s'%key
             raise self.error(msg, e=emen2.db.exceptions.PermissionsError)
-
         self.data[key] = value
-
-        # Only permissions, groups, and links do not trigger a modifytime update
+        # Only permissions/groups do not trigger a modifytime update
         if key not in ['permissions', 'groups'] and not self.isnew():
-            self.data['modifytime'] = self.ctx.utcnow
-            self.data['modifyuser'] = self.ctx.username
-
-    def _setoob(self, key, value):
-        """Out-of-bounds."""
-        self.error('Cannot set parameter %s in this way'%key, warning=True)
+            self.data['modifytime'] = emen2.db.database.utcnow()
+            self.data['modifyuser'] = self.ctx.user
 
     ##### Core parameters. #####
     
@@ -253,7 +235,24 @@ class BaseDBObject(object):
     def _set_uri(self, key, value):
         self._set(key, value, self.isnew())
 
-    # ##### Update parents / children #####
+    def _set_keytype(self, key, value):
+        pass
+
+    def _set_keywords(self, key, value):
+        pass
+        
+    def _set_creator(self, key, value):
+        pass
+    
+    def _set_creationtime(self, key, value):
+        pass
+        
+    def _set_modifyuser(self, key, value):
+        pass
+        
+    def _set_modifytime(self, key, value):
+        pass
+
     # Backwards compat...
     def _set_children(self, key, value):
         self.data['children'] = sorted(map(self._strip, emen2.utils.check_iterable(value)))
@@ -291,9 +290,9 @@ class BaseDBObject(object):
                 raise self.error('Parameter %s does not exist.'%key)
 
         # Validate
-        vartype = emen2.db.vartypes.Vartype.get_vartype(pd.vartype, pd=pd, db=self.ctx.db, cache=self.ctx.cache)
+        vtc = pd.get_vartype()
         try:
-            value = vartype.validate(value)
+            value = vtc.validate(value)
         except emen2.db.exceptions.EMEN2Exception, e:
             raise self.error(msg=e.message)
         except Exception, e:
@@ -359,30 +358,23 @@ class PermissionsDBObject(BaseDBObject):
     :property groups: Groups
     """
     
-    # These methods are overridden from BaseDBObject:
-    #    init, setContext, isowner, writable,
-    # The following methods are added to BaseDBObject:
-    #    addumask, addgroup, removegroup, removeuser, 
-    #     adduser, getlevel, ptest, readable, commentable, 
-    #     members, owners, setgroups, setpermissions
-
-    # Changes to permissions and groups, along with parents/children,
-    # are not logged.
-    public = BaseDBObject.public | set(['permissions', 'groups'])
-
-    def init(self, d):
+    def init(self):
         """Initialize the permissions and groups."""
-        super(PermissionsDBObject, self).init(d)
-
+        super(PermissionsDBObject, self).init()
         # Results of security test performed when the context is set
         # correspond to: read, comment, write, and owner permissions,
         self.ptest = [True, True, True, True]
-
         # Setup the base permissions
-        self.data['permissions'] = [[],[],[],[self.ctx.username]]
+        self.data['permissions'] = [[],[],[],[]]
         self.data['groups'] = []
 
     ##### Permissions checking #####
+
+    def initContext(self, ctx):
+        self.ctx = ctx
+        self.data['creator'] = self.ctx.user
+        self.data['modifyuser'] = self.ctx.user
+        self.data['permissions'] = [[], [], [], [self.ctx.user]]
 
     def setContext(self, ctx):
         """Check read permissions and bind Context.
@@ -393,12 +385,12 @@ class PermissionsDBObject(BaseDBObject):
         self.ctx = ctx
 
         # test for owner access in this context.
-        if self.isnew() or self.ctx.checkadmin() or self.creator == self.ctx.username:
+        if self.isnew() or self.ctx.checkadmin() or self.creator == self.ctx.user:
             self.ptest = [True, True, True, True]
             return
 
         # Check if we're listed in each level.
-        self.ptest = [self.ctx.username in level for level in self.permissions]
+        self.ptest = [self.ctx.user in level for level in self.permissions]
 
         # If read admin, set read access.
         if self.ctx.checkreadadmin():
@@ -547,62 +539,9 @@ class PermissionsDBObject(BaseDBObject):
         g = set(self.groups) - set(groups)
         self.setgroups(g)
 
-class PrivateDBO(object):
-    def setContext(self, ctx=None):
-        raise emen2.db.exceptions.PermissionsError("Private item.")
-    def load(self, d):
-        self.data = d
-        self.new = False
-        return self
+class PrivateDBO(BaseDBObject):
+    pass
+    # def setContext(self, ctx=None):
+    #     raise emen2.db.exceptions.PermissionsError("Private item.")
 
-# History
-class History(PrivateDBO):
-    """Manage previously used values."""
-    def __init__(self, name=None, *args, **kwargs):
-        self.name = name
-        self.data = []
 
-    def addhistory(self, timestamp, user, param, value):
-        """Add a value to the history."""
-        v = (timestamp, user, param, value)
-        if v in self.data:
-            raise ValueError("This event is already present.")
-        self.data.append(v)
-    
-    def gethistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
-        """Get :limit: previously used values."""
-        h = sorted(self.data, reverse=True)
-        if timestamp:
-            h = filter(lambda x:x[0] == timestamp, h)
-        if user:
-            h = filter(lambda x:x[1] == user, h)
-        if param:
-            h = filter(lambda x:x[2] == param, h)
-        if value:
-            h = filter(lambda x:x[3] == value, h)
-        if limit is not None:
-            h = h[:limit]
-        return h
-
-    def checkhistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
-        """Check if an param or value is in the past :limit: items."""
-        if self.gethistory(timestamp=timestamp, user=user, param=param, value=value, limit=limit):
-            return True
-        return False
-
-    def prunehistory(self, user=None, param=None, value=None, limit=None):
-        """Prune the history to :limit: items."""
-        other = []
-        match = []
-        for t, u, p, v in self.data:
-            if u == user or p == param or v == value:
-                match.append((t,u,p,v))
-            else:
-                other.append((t,u,p,v))
-
-        if limit:
-            match = sorted(match, reverse=True)[:limit]
-        else:
-            match = []
-        self.data = sorted(match+other, reverse=True)
-        

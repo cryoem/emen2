@@ -178,8 +178,6 @@ class PasswordAuth(object):
             return
         
         error = emen2.db.exceptions.RecycledPassword(name=self.name, message="You may not re-use a previously used password.")
-        # if self.check(password, self.password):
-        #    raise error
         for previous in events.gethistory(param='password', limit=recycle):
             if self.check(password, previous[3]):
                 raise error        

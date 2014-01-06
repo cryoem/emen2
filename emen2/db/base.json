@@ -3,7 +3,6 @@
 {"name": "date_occurred", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/date_occurred/", "vartype": "datetime", "parents": ["base"], "desc_short": "Date occurred"}
 {"name": "name_folder", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_folder/", "parents": ["base"], "vartype": "string", "desc_short": "Folder name"}
 {"name": "folder_description", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/folder_description/", "parents": ["base"], "vartype": "string", "desc_short": "Description"}
-{"name": "person_photo", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/person_photo/", "parents": ["base"], "vartype": "binary", "desc_short": "Profile photo"}
 {"name": "name_project", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_project/", "vartype": "string", "parents": ["base"], "desc_short": "Project title"}
 {"name": "project_status", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/project_status/", "choices": ["Rejected", "Indefinite Hold", "Wait for Sample", "Complete", "Screening", "Analysis", "Imaging", "Manuscript Prep."], "parents": ["base"], "vartype": "choice", "desc_short": "Project status", "desc_long": "The current state of this project"}
 {"desc_long": "This person is responsible for the next progress in this project. It should be updated to reflect who is currently responsible for periodic progress updates. This field should not relate to authorship expectations.", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/project_block/", "iter": true, "parents": ["base"], "vartype": "user", "desc_short": "Current workflow", "name": "project_block"}
@@ -12,12 +11,13 @@
 {"name": "project_type", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/project_type/", "choices": ["N/A", "Service", "Collaborative", "Core"], "parents": ["base"], "vartype": "choice", "desc_short": "Project type", "desc_long": "Project type"}
 {"name": "description_goals", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/description_goals/", "vartype": "text", "parents": ["base"], "desc_short": "Project goals"}
 {"name": "description_background", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/description_background/", "vartype": "text", "parents": ["base"], "desc_short": "Background information"}
+{"name": "person_photo", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/person_photo/", "parents": ["base"], "vartype": "binary", "desc_short": "Profile photo"}
 {"name": "name_group", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_group/", "vartype": "string", "parents": ["base"], "desc_short": "Group name"}
 {"name": "department", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/department/", "vartype": "string", "parents": ["base"], "desc_short": "Department"}
 {"name": "institution", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/institution/", "vartype": "string", "parents": ["base"], "desc_short": "Institution"}
 {"name": "name_contact", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_contact/", "vartype": "string", "parents": ["base"], "desc_short": "Contact person"}
 {"name": "phone", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/phone/", "vartype": "string", "parents": ["base"], "desc_short": "Phone"}
-{"name": "website", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/website/", "vartype": "string", "parents": ["base"], "desc_short": "Website"}
+{"name": "website", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/website/", "vartype": "uri", "parents": ["base"], "desc_short": "Website"}
 {"name": "base", "mainview": "Base protocols.", "keytype": "recorddef", "uri": "http://ncmidb.bcm.edu/recorddef/base/", "parents": ["root"], "desc_short": "Base protocols"}
 {"name": "experiments", "mainview": "Experimental protocols.", "keytype": "recorddef", "uri": "http://ncmidb.bcm.edu/recorddef/experiments/", "parents": ["root"], "desc_short": "Experimental protocols"}
 {"name": "person", "views": {"recname": "Person: {{name_first}} {{name_last}}"}, "mainview": "\n# Person\nDo not edit directly. Use the user profile view.\n", "keytype": "recorddef", "uri": "http://ncmidb.bcm.edu/recorddef/person/", "parents": ["base"], "desc_short": "Person", "desc_long": "Contact details for a person. Do not edit directly."}
