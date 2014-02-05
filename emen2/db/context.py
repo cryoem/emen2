@@ -44,8 +44,6 @@ class Context(emen2.db.dataobject.PrivateDBO):
 
     def init(self):
         super(Context, self).init()
-        # Since self.ctx = self, need to do things a
-        # little differently here.
         self.ctx = self
         self.db = None
         self.groups = []

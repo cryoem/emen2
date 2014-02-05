@@ -442,23 +442,18 @@ class History(emen2.db.dataobject.PrivateDBO):
         # History
         self.data['history'] = []
     
-    def addhistory(self, timestamp, user, param, value):
+    def addhistory(self, user=None, timestamp=None, param=None, value=None):
         """Add a value to the history."""
-        return
+        timestamp = timestamp or emen2.db.database.utcnow()
         v = (timestamp, user, param, value)
-        if v in self.data:
+        if v in self.data['history']:
             raise ValueError("This event is already present.")
-        self.data.append(v)
+        print self.data
+        self.data['history'].append(v)
     
-    def _addhistory(self, param):
-        """Add an entry to the history log."""
-        t = emen2.db.database.utcnow()
-        user = self.ctx.user        
-        self.data['history'].append((unicode(self.ctx.user), unicode(emen2.db.database.utcnow()), unicode(param), self.data.get(param)))
-
     def gethistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
         """Get :limit: previously used values."""
-        h = sorted(self.data, reverse=True)
+        h = sorted(self.data['history'], reverse=True)
         if timestamp:
             h = filter(lambda x:x[0] == timestamp, h)
         if user:
@@ -481,15 +476,14 @@ class History(emen2.db.dataobject.PrivateDBO):
         """Prune the history to :limit: items."""
         other = []
         match = []
-        for t, u, p, v in self.data:
+        for t, u, p, v in self.data['history']:
             if u == user or p == param or v == value:
                 match.append((t,u,p,v))
             else:
                 other.append((t,u,p,v))
-
         if limit:
             match = sorted(match, reverse=True)[:limit]
         else:
             match = []
-        self.data = sorted(match+other, reverse=True)
+        self.data['history'] = sorted(match+other, reverse=True)
         

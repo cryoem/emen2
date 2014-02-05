@@ -613,7 +613,7 @@ class DB(object):
         
         # Add the last login to the user's history.
         events.prunehistory(param='context', limit=1)
-        events.addhistory(utcnow(), user.name, 'context', newcontext.name)
+        events.addhistory(user=user.name, param='context', value=newcontext.name)
         self.dbenv._user_history._put(events, txn=txn)
 
         emen2.db.log.security("Login succeeded: %s -> %s" % (newcontext.username, newcontext.name))
@@ -1756,7 +1756,7 @@ class DB(object):
             events = self.dbenv._user_history.new(name=user.name, txn=txn)    
 
         events.prunehistory(param='password')
-        events.addhistory('1900-01-01T00:00:00Z+00:00', 'password', user.name, user.password)
+        events.addhistory(user=user.name, param='password', value=user.password, timestamp='1900-01-01T00:00:00Z+00:00')
 
         emen2.db.log.security("Expiring password for %s"%user.name)
         self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
@@ -1815,7 +1815,7 @@ class DB(object):
         # Save the user events.
         recycle = emen2.db.config.get('security.password_recycle') or 0
         events.prunehistory(param='password', limit=recycle)
-        events.addhistory(utcnow(), ctx.user, 'password', user.password)
+        events.addhistory(user=ctx.user, param='password', value=user.password)
         self.dbenv._user_history._put(events, txn=txn)
 
         # Send an email on successful commit.
