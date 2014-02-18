@@ -416,7 +416,7 @@ class CollectionDB(object):
         try:
             vtc.reindex(None)
         except NotImplementedError:
-            print "Not indexed!!", param
+            # print "Not indexed!", param
             self.indexes[param] = None
             return
                     
@@ -441,8 +441,7 @@ class CollectionDB(object):
         ctx = kwargs.pop('ctx', None)
         inherit = kwargs.pop('inherit', [])
         item = self.dataclass.new(ctx=ctx, **kwargs)
-        print item.__dict__
-        
+        # print item.__dict__
         for i in inherit:
             # Raise an exception if does not exist or cannot read.
             i = self.get(i, filt=False, ctx=ctx, txn=txn)

@@ -163,7 +163,7 @@ class Vartype(object):
             }
             VARTYPE_CACHE[name] = c
         else:
-            raise KeyError("Can't get Vartype.")
+            raise KeyError("Can't get Vartype: %s"%vartype)
         return cls.registered[c['vartype']](cache=cache, db=db, options=options, **c)
 
     ##### Indexing #####

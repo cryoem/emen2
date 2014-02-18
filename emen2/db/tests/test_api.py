@@ -19,6 +19,7 @@ PASSWORD = randword()
 print "Using password:", PASSWORD
 
 ######################################
+import emen2.db.exceptions
 from emen2.db.exceptions import *
 class ExpectException(Exception):
     pass
@@ -1430,12 +1431,12 @@ class Query(Test):
 class Render(Test):
     @test
     def api_render(self):
-        print db.render('root')
+        print self.db.render('root')
         raise TestNotImplemented
     
     @test
     def api_view(self):
-        print db.view('root')
+        print self.db.view('root')
         raise TestNotImplemented
 
 ######################################
@@ -1613,8 +1614,7 @@ class DebugIndex(Test):
 
 ######################################
 
-
-if __name__ == "__main__":
+def main():
     import emen2.db
     import emen2.db.config
     opts = emen2.db.config.DBOptions()
@@ -1624,32 +1624,40 @@ if __name__ == "__main__":
     opts.add_argument("--repeat", help="Repeat", action="store_true")
     args = opts.parse_args()
     
+    alltime = 0.0
     dbtmp = None
     if args.tmp:
         dbtmp = tempfile.mkdtemp(suffix=".db")
         emen2.db.config.config.sethome(dbtmp)
     
     db = emen2.db.opendb(admin=True)
-    t = RunTests(db=db)
+    
+    test = RunTests(db=db)
     if args.tmp or args.create:
-        t.runone(cls=Create)
+        test.runone(cls=Create)
     iteration = 0
     while True:
+        t = time.time()
+        
         if args.test:
             for i in args.test:
-                t.runone(i)
+                test.runone(i)
         else:
-            t.run()
-
+            test.run()
+        
+        t = time.time() - t
+        alltime += t
         iteration += 1
-        if not args.repeat:
-            break
-        elif iteration > 10:
-            break
+        if args.repeat:
+            print "======= ITERATION: %s in %0.2f ms / avg %0.2f =========="%(iteration, t*1000.0, (alltime/iteration)*1000.0)
         else:
-            print "======= ITERATION: %s =========="%iteration
+            break
     
-    t.printstats()
+    test.printstats()
     
     if dbtmp:
         shutil.rmtree(dbtmp)
+
+
+if __name__ == "__main__":
+    main()

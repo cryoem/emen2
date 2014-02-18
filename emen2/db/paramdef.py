@@ -125,7 +125,8 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         #     raise self.error("Invalid defaultunits %s for property %s. 
         #         Allowed: %s"%(value, self.property, ", ".join(prop.units)))
 
-    def get_vartype(self):
+    def get_vartype(self, *args, **kwargs):
+        print "get_vartype:", args, kwargs
         vtc = emen2.db.vartypes.Vartype.get_vartype(
             name=self.data['name'],
             vartpe=self.data['vartype'],
