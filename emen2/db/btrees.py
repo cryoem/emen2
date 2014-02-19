@@ -651,7 +651,7 @@ class CollectionDB(object):
 
     def _key_generator(self, item, txn=None):
         # Set name policy in this method.
-        return unicode(item.name or emen2.db.database.getnewid())
+        return unicode(item.name or emen2.utils.timeuuid())
 
     ##### Relationship methods #####
 
@@ -846,7 +846,7 @@ class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
         if emen2.db.config.get('record.sequence'):
             return unicode(self._incr_sequence(txn=txn))
-        return unicode(item.name or emen2.db.database.getnewid())
+        return unicode(item.name or emen2.utils.timeuuid())
 
     def _incr_sequence(self, txn=None):
         raise NotImplementedError

@@ -581,7 +581,7 @@ class ParamDef(Test):
         pd = self._make()
         for word in pd.desc_short.split(" "):
             pds = self.db.paramdef.find(word)
-            print "Found:", pds
+            # print "Found:", pds
             assert pd.name in [i.name for i in pds]
             self.ok(word)
     
@@ -1151,8 +1151,8 @@ class Record(Test):
             crec = self.db.record.put(crec)
             self.db.rel.pclink(rec.name, crec.name)
         children = self.db.rel.children(rec.name)
-        print rec.name
-        print self.db.rel.children(rec.name, recurse=-1)
+        # print rec.name
+        # print self.db.rel.children(rec.name, recurse=-1)
         found = self.db.record.findcomments(children)
         for comment in comments:
             assert comment in [i[3] for i in found]
@@ -1178,7 +1178,7 @@ class Record(Test):
         # Test
         for k,v in recs.items():
             found = self.db.record.findbyrectype(k)
-            print "found:", found
+            # print "found:", found
             assert not (v ^ found)
         self.ok()
         
@@ -1567,6 +1567,7 @@ class DebugIndex(Test):
     def debugindex_int(self):
         pd = self.db.paramdef.new(vartype='int', desc_short=randword())
         pd = self.db.paramdef.put(pd)
+        print "pd?", pd, pd.__dict__
         recs = {}
         for i in range(-100, 100):
             rec = self.db.record.new(rectype='root')
@@ -1621,6 +1622,7 @@ def main():
     opts.add_argument("--tmp", help="Use temporary database and run all tests.", action="store_true")
     opts.add_argument("--create", help="Run database setup before test.", action="store_true")
     opts.add_argument("--test", help="Test to run. Default is all.", action="append")
+    opts.add_argument("--fastpw", help="Use MD5 password hashing to run test faster.", action="store_true")    
     opts.add_argument("--repeat", help="Repeat", action="store_true")
     args = opts.parse_args()
     
@@ -1629,6 +1631,9 @@ def main():
     if args.tmp:
         dbtmp = tempfile.mkdtemp(suffix=".db")
         emen2.db.config.config.sethome(dbtmp)
+    
+    if args.fastpw:
+        emen2.db.config.set('security.password_algorithm', 'MD5')
     
     db = emen2.db.opendb(admin=True)
     

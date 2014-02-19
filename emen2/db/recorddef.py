@@ -5,6 +5,7 @@ import textwrap
 
 # EMEN2 imports
 import emen2.db.dataobject
+import emen2.db.exceptions
 
 def parseparmvalues(text):
     regex = re.compile(emen2.db.database.VIEW_REGEX_M)
@@ -106,7 +107,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         # Private RecordDef...
         if self.ctx.checkreadadmin():
             return
-        raise PermissionsError("Private RecordDef.")
+        raise emen2.db.exceptions.PermissionsError("Private RecordDef.")
 
     def validate(self):
         # Run findparams one last time before we commit...

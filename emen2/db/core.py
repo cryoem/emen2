@@ -67,6 +67,9 @@ core = [
 {"name": "file_binary", "keytype": "paramdef", "parents": ["core"], "vartype": "binary", "iter": True, "desc_short": "Attachments"},
 {"name": "compress", "keytype": "paramdef", "parents":["core"], "vartype": "string", "desc_short": "Compressed format"},
 
+# Context
+{"name": "host", "keytype": "paramdef", "parents": ["core"], "vartype": "string", "desc_short": "Host"},
+
 # Core RecordDefs
 {"name":"root", "keytype":"recorddef", "mainview":"# {{desc_short}}  \n{{desc_long}} \n", "views":{"recname":"Root: {{desc_short}}", "banner":"{{desc_long}}"}, "desc_short":"Root protocol"}
 ]

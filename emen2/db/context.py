@@ -39,6 +39,8 @@ class Context(emen2.db.dataobject.PrivateDBO):
     """Defines a database context (like a session). After a user is authenticated
     a Context is created, and used for subsequent access."""
 
+    username = property(lambda self:self.data.get('user'))
+
     def setContext(self, ctx):
         self.ctx = self
 
@@ -99,15 +101,15 @@ class Context(emen2.db.dataobject.PrivateDBO):
         return 'admin' in self.groups or 'create' in self.groups
 
 class SpecialRootContext(Context):
-    def refresh(self, grouplevels=None, host=None):
+    def refresh(self, grouplevels=None, host=None, db=None):
         super(SpecialRootContext, self).refresh()
         self.user = 'root'
         self.grouplevels = {'admin':3}
         self.groups = ['admin']
 
 class AnonymousContext(Context):
-    def refresh(self, grouplevels=None, host=None):
-        super(SpecialRootContext, self).refresh()
+    def refresh(self, grouplevels=None, host=None, db=None):
+        super(AnonymousContext, self).refresh()
         self.user = 'anon'
         self.grouplevels = {'anon':0}
         self.groups = ['anon']

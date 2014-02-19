@@ -99,12 +99,6 @@ def getrandomid():
     length = 16
     return os.urandom(length).encode('hex')
 
-def getnewid():
-    """Generate an ID (UUID4 string)
-    :return: UUID4 string
-    """
-    return uuid.uuid4().hex
-
 def getctime():
     """Current database time, as float in seconds since the UNIX epoch.
     :return: Time as float in seconds since the UNIX epoch.
@@ -346,7 +340,7 @@ class DB(object):
                 raise SessionError("Session expired.")
         else:
             # If no ctxid was provided, make an Anonymous Context.
-            context = emen2.db.context.AnonymousContext(host=host)
+            context = emen2.db.context.AnonymousContext.new()
             
         # If no ctxid was found, it's an invalid or expired Context.
         if not context:
@@ -427,7 +421,7 @@ class DB(object):
                 found = r
             else:
                 found &= r
-        print "_find:", keywords, kwargs, found
+        # print "_find:", keywords, kwargs, found
         return self.dbenv[keytype].gets(found or [], ctx=ctx, txn=txn)
 
     def _view_kv(self, params):
@@ -606,8 +600,10 @@ class DB(object):
             raise AuthenticationError
 
         # Create the Context for this user/host
-        newcontext = emen2.db.context.Context(username=user.name, host=host)
-
+        # newcontext = emen2.db.context.Context(username=user.name, host=host)
+        newcontext = self.dbenv._context.new(ctx=ctx, txn=txn) 
+        print newcontext, newcontext.__dict__
+        print "========"
         # Put the Context.
         self.dbenv._context._put(newcontext, txn=txn)
         

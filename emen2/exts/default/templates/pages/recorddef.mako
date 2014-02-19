@@ -83,9 +83,9 @@
             <td>Private:</td>
             <td>
                 % if edit:
-                    <input type="checkbox" value="True" name="private" ${forms.ifchecked(recorddef.private)} />
+                    <input type="checkbox" value="True" name="privacy" ${forms.ifchecked(recorddef.privacy)} />
                 % else:
-                    ${recorddef.private}
+                    ${recorddef.privacy}
                 % endif
             </td>
         </tr>
