@@ -15,6 +15,10 @@ def untime(timestamp):
 
 
 def test():
+    print "Ten IDs:"
+    for i in range(10):
+        print timeuuid()
+
     # Check that the current time can be converted.
     now = time.time()
     tnow = timeuuid(now)
