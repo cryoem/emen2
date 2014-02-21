@@ -300,7 +300,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         return '-'.join(x.capitalize() for x in name.split('-'))
 
     def _set_ctxid(self, request, ctxid):
-        request.addCookie("ctxid", ctxid, path='/')
+        request.addCookie("ctxid", str(ctxid), path='/')
 
     ##### Resource interface #####
 
@@ -417,8 +417,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
     def render_result(self, result, request):
         """Write the result to the client and close the request."""
         # if result is not None:
-        length = len(result)
-        request.setHeader("Content-Length", length)
+        request.setHeader("Content-Length", len(result))
         request.write(result)
         
         # Close the request and write to log

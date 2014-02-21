@@ -55,6 +55,9 @@ class Context(emen2.db.dataobject.PrivateDBO):
         self.data['user'] = None
         self.data['host'] = None
 
+    def _set_time(self, key, value):
+        self.data['time'] = value
+
     def _set_user(self, key, value):
         self.data['user'] = value
 
@@ -70,12 +73,13 @@ class Context(emen2.db.dataobject.PrivateDBO):
         self.db = db
 
     def checkhost(self, host):
+        print "checkhost:", self, self.data, host
         if host != self.host:
             raise emen2.db.exceptions.SessionError("Session expired.")
     
     def checktime(self, t):
         if t > (self.time + self.maxidle):
-            raise emen2.db.exceptions.SessionError("Session expired")
+            raise emen2.db.exceptions.SessionError("Session expired.")
 
     def refresh(self, grouplevels=None, host=None, db=None):
         t = emen2.db.database.getctime()

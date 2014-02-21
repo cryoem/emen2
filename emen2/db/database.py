@@ -600,8 +600,8 @@ class DB(object):
             raise AuthenticationError
 
         # Create the Context for this user/host
-        # newcontext = emen2.db.context.Context(username=user.name, host=host)
-        newcontext = self.dbenv._context.new(ctx=ctx, txn=txn) 
+        newcontext = emen2.db.context.Context.new(user=user.name, host=host)
+        print "======== creating context ======"
         print newcontext, newcontext.__dict__
         print "========"
         # Put the Context.
