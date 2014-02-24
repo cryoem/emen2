@@ -68,15 +68,15 @@ class BaseDBObject(object):
     :classattr public: Public (exported) keys
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self):
         self.data = {}
         self.ctx = None
         self.new = True
-            
+        self.init()
+        
     @classmethod
     def new(cls, ctx=None, **data):        
         d = cls()
-        d.init()
         if ctx:
             d.initContext(ctx)
             d.setContext(ctx)
@@ -93,6 +93,7 @@ class BaseDBObject(object):
     def init(self):
         """Subclass init."""
         t = emen2.db.database.utcnow()
+        self.data = {}
         self.data['name'] = None
         self.data['uri'] = None
         self.data['keytype'] = unicode(self.__class__.__name__.lower())
@@ -397,7 +398,7 @@ class PermissionsDBObject(BaseDBObject):
             self.ptest[0] = True
         
         # Apply any group permissions.
-        for group in set(self.groups) & self.ctx.groups:
+        for group in set(self.groups) & set(self.ctx.groups):
             self.ptest[self.ctx.grouplevels[group]] = True
 
         # Now, check if we can read.

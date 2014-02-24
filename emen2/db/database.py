@@ -626,10 +626,9 @@ class DB(object):
         """
         if ctx.name in self.contexts_cache:
             self.contexts_cache.pop(ctx.name, None)
-        if self.dbenv._context.bdb.exists(ctx.name, txn=txn):
-            self.dbenv._context.bdb.delete(ctx.name, txn=txn)
-        else:
-            raise SessionError("Session expired.")
+        ctx = self.dbenv._context.get(ctx.name, txn=txn)
+        ctx.disable()
+        self.dbenv._context.put(ctx, ctx=ctx, txn=txn)
         emen2.db.log.security("Logout succeeded: %s" % (ctx.name))
 
     @publicmethod(compat="checkcontext")
@@ -1110,6 +1109,7 @@ class DB(object):
             macro = emen2.db.macros.Macro.get_macro(macro, db=ctx.db, cache=ctx.cache)
             macro.preprocess(args, recs)
 
+        print 'render options:', options
         # Render.
         ret = {}
         for rec in recs:
@@ -1235,6 +1235,7 @@ class DB(object):
                 views[v] = byrt[recdef.name]
         else:
             views["{{name}}"] = recs
+
         
         # Optional: Apply MarkDown formatting to view before inserting values.
         if options.get('markdown'):

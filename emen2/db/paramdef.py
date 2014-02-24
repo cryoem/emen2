@@ -126,7 +126,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         #         Allowed: %s"%(value, self.property, ", ".join(prop.units)))
 
     def get_vartype(self, *args, **kwargs):
-        print "get_vartype:", args, kwargs, self.data, self.data['vartype']
+        # print "get_vartype:", args, kwargs, self.data, self.data['vartype']
         vtc = emen2.db.vartypes.Vartype.get_vartype(
             name=self.data['name'],
             vartype=self.data['vartype'],
@@ -134,7 +134,8 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
             choices=self.data['choices'],
             defaultunits=self.data['defaultunits'],
             db=self.ctx.db,
-            cache=self.ctx.cache
+            cache=self.ctx.cache,
+            options=kwargs.get('options')
         )
         return vtc
 

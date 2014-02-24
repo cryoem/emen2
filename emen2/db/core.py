@@ -43,6 +43,8 @@ core = [
 {"name": "views", "keytype": "paramdef", "parents": ["core"], "vartype": "dict", "desc_short": "Views"},
 {"name": "mainview", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Main view"},
 {"name": "typicalchld", "iter": True, "keytype": "paramdef", "parents": ["core"], "vartype": "paramdef", "desc_short": "Typical children"},
+# {"name": "recname", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Recname view"},
+# {"name": "tabularview", "keytype": "paramdef", "parents": ["core"], "vartype": "text", "desc_short": "Tabular view"},
 
 # User
 {"name": "email", "keytype": "paramdef","parents": ["core"], "vartype": "email", "desc_short": "Email"},

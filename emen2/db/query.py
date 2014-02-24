@@ -228,6 +228,8 @@ class Query(object):
             # Macro?
             pass
 
+        # ian: todo: fix...
+        sortfunc = lambda x:x
         result = sorted(self.result, key=sortfunc, reverse=reverse)
         if count > 0:
             result = result[pos:pos+count]

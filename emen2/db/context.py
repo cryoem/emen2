@@ -54,15 +54,25 @@ class Context(emen2.db.dataobject.PrivateDBO):
         self.maxidle = 100000
         self.data['user'] = None
         self.data['host'] = None
-
-    def _set_time(self, key, value):
-        self.data['time'] = value
+        self.data['disabled'] = False
 
     def _set_user(self, key, value):
         self.data['user'] = value
 
     def _set_host(self, key, value):
         self.data['host'] = value
+
+    def _set_disabled(self, key, value):
+        if value:
+            self.disable()
+        else:
+            self.enable()
+
+    def disable(self):
+        self.data['disabled'] = True
+    
+    def enable(self):
+        self.data['disabled'] = False        
 
     def setdb(self, db=None):
         """Associate a DB connection with the context."""
@@ -71,29 +81,30 @@ class Context(emen2.db.dataobject.PrivateDBO):
         if not isinstance(db, emen2.db.proxy.DBProxy):
             db = emen2.db.proxy.DBProxy(db=db, ctx=self)
         self.db = db
-
-    def checkhost(self, host):
-        print "checkhost:", self, self.data, host
-        if host != self.host:
-            raise emen2.db.exceptions.SessionError("Session expired.")
-    
-    def checktime(self, t):
-        if t > (self.time + self.maxidle):
-            raise emen2.db.exceptions.SessionError("Session expired.")
-
+      
     def refresh(self, grouplevels=None, host=None, db=None):
         t = emen2.db.database.getctime()
-        self.checkhost(host)
-        self.checktime(t)
-        self.setdb(db=db)
+        expired = False
+        if self.data.get('disabled'):
+            expired = True
+        if host != self.host:
+            expired = True
+        if t > (self.time + self.maxidle):
+            expired = True
+        if expired:
+            raise emen2.db.exceptions.SessionError("Session expired.")  
 
-        self.cache = Cacher()
         self.time = t
+        self.setdb(db=db)
+        self.cache = Cacher()
 
         self.grouplevels = grouplevels or {}
         self.grouplevels["anon"] = 0
         self.grouplevels["authenticated"] = self.grouplevels.get('authenticated', 0)
         self.groups = self.grouplevels.keys()
+
+
+        
         
     def checkadmin(self):
         return 'admin' in self.groups

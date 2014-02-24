@@ -1431,13 +1431,47 @@ class Query(Test):
 class Render(Test):
     @test
     def api_render(self):
-        print self.db.render('root')
-        raise TestNotImplemented
+        rec = self.db.record.new(rectype='root')
+        rec['desc_short'] = 'Test'
+        rec = self.db.record.put(rec)
+        print self.db.render(rec.name)
     
     @test
     def api_view(self):
-        print self.db.view('root')
-        raise TestNotImplemented
+        rd = self.db.recorddef.new()
+        rd['desc_short'] = 'Test'
+        rd['mainview'] = 'mainview {{desc_short}}'
+        rd['views']['recname'] = 'recname {{desc_short}}'
+        rd = self.db.recorddef.put(rd)
+        rec = self.db.record.new(rectype=rd.name)
+        rec['desc_short'] = 'Test'
+        rec = self.db.record.put(rec)        
+
+        view = self.db.view(rec.name)
+        assert view == 'recname Test'
+        self.ok('recname')
+
+        view = self.db.view(rec.name, viewname='mainview')
+        assert view == 'mainview Test'
+        self.ok('mainview')
+
+        view = self.db.view(rec.name, view='custom {{desc_short}}')
+        assert view == 'custom Test'
+        self.ok('custom')
+
+    @test
+    def api_view_edit(self):
+        rd = self.db.recorddef.new()
+        rd['desc_short'] = 'Test'
+        rd['mainview'] = 'mainview {{desc_short}}'
+        rd['views']['recname'] = 'recname {{desc_short}}'
+        rd = self.db.recorddef.put(rd)
+        rec = self.db.record.new(rectype=rd.name)
+        rec['desc_short'] = 'Test'
+        rec = self.db.record.put(rec)        
+        print "edit?"
+        print self.db.view(rec.name, viewname='mainview', options={'output':'form', 'markdown':True})
+
 
 ######################################
         
