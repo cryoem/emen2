@@ -755,7 +755,7 @@ class DB(object):
     #     return self.query(c, keytype=keytype, ctx=ctx, txn=txn)['names']
 
     @publicmethod()
-    def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", ctx=None, txn=None, **kwargs):
+    def query(self, c=None, keywords=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", ctx=None, txn=None, **kwargs):
         """General query.
 
         Constraints are provided in the following format:
@@ -827,9 +827,10 @@ class DB(object):
             stats={},
             keytype=keytype,
             subset=subset,
+            keywords=keywords,
         )
         # Run the query
-        q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
+        q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
         q.run()
         ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
         ret['stats']['length'] = len(q.result)
@@ -837,7 +838,7 @@ class DB(object):
         return ret
 
     @publicmethod()
-    def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, checkbox=False, viewdef=None, keytype="record", view=None, ctx=None, txn=None, **kwargs):
+    def table(self, c=None, keywords=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, checkbox=False, viewdef=None, keytype="record", view=None, ctx=None, txn=None, **kwargs):
         """Query results in table format.
         
         This method extends query() to include rendered values in the results.
@@ -889,6 +890,7 @@ class DB(object):
         c = c or []
         ret = dict(
             c=c[:], # copy
+            keywords=keywords,
             mode=mode,
             sortkey=sortkey,
             pos=pos,
@@ -901,7 +903,7 @@ class DB(object):
         )
 
         # Run the query
-        q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
+        q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
         q.run()
         names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse, rendered=True)
 
@@ -952,7 +954,7 @@ class DB(object):
         return ret
 
     @publicmethod()
-    def plot(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", x=None, y=None, z=None, ctx=None, txn=None, **kwargs):
+    def plot(self, c=None, keywords=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", x=None, y=None, z=None, ctx=None, txn=None, **kwargs):
         """Query results suitable for plotting.
 
         This method extends query() to help generate a plot. The results are
@@ -1012,6 +1014,7 @@ class DB(object):
             stats={},
             keytype=keytype,
             subset=subset,
+            keywords=keywords,
         )
 
         qparams = [i[0] for i in c]
@@ -1021,7 +1024,7 @@ class DB(object):
                 c.append([axis, 'any', None])
                 
         # Run the query
-        q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
+        q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
         q.run()
 
         ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)

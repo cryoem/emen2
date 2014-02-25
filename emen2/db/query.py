@@ -142,7 +142,7 @@ class MacroConstraint(Constraint):
         return f
         
 class Query(object):
-    def __init__(self, constraints, mode='AND', subset=None, ctx=None, txn=None, btree=None):
+    def __init__(self, constraints, keywords=None, mode='AND', subset=None, ctx=None, txn=None, btree=None):
         self.time = 0.0
         self.maxtime = MAXTIME
         self.starttime = time.time()
@@ -166,6 +166,8 @@ class Query(object):
         self.priority = 1
         # Make constraints
         self.constraints = []        
+        if keywords:
+            self.constraints.append(self._makeconstraint('keywords','starts',keywords))
         for c in constraints:
             self.constraints.append(self._makeconstraint(*c))
             

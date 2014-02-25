@@ -322,8 +322,6 @@ class CollectionDB(object):
     Sequence methods:
         _update_name    Update items with new names from sequence
         _key_generator
-        _incr_sequence
-        _get_max
 
     Index methods:
         _getindex         Open an index
@@ -343,6 +341,7 @@ class CollectionDB(object):
         # Indexes and relationships        
         self.indexes = {}
         self.rels = {}
+        self.sequence = None
 
         # What are we storing?
         self.keytype = (keytype or dataclass.__name__).lower()        
@@ -374,16 +373,29 @@ class CollectionDB(object):
         flags |= bsddb3.db.DB_MULTIVERSION
         self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
         self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
+        self._getseq()
 
     def close(self):
         """Close the DB."""
         emen2.db.log.debug("BDB: %s close"%self.filename)
-        self.bdb.close()
-        self.bdb = None
+        if self.bdb:
+            self.bdb.close()
+            self.bdb = None
+        if self.sequence:
+            self.sequence.close()
+            self.sequence = None
         for v in self.rels.values():
             v.close()
         for v in self.indexes.values():
             v.close()
+
+    ##### Sequence #####
+
+    def _getseq(self, txn=None):
+        if self.sequence:
+            return self.sequence
+        self.sequence = SequenceDB(keytype=self.keytype, dbenv=self.dbenv)
+        return self.sequence
 
     ##### Indexes #####
 
@@ -612,13 +624,13 @@ class CollectionDB(object):
             self._putrel(item.name, k, ctx=ctx, txn=txn)
         return item
         
-    def query(self, c=None, mode='AND', subset=None, ctx=None, txn=None):
+    def query(self, c=None, keywords=None, mode='AND', subset=None, ctx=None, txn=None):
         """Return a Query Constraint Group.
 
         You will need to call constraint.run() to execute the query,
         and constraint.sort() to sort the values.
         """
-        return emen2.db.query.Query(constraints=c, mode=mode, subset=subset, ctx=ctx, txn=txn, btree=self)
+        return emen2.db.query.Query(constraints=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn, btree=self)
     
     def find(self, param, key, maxkey=None, op='==', count=100, ctx=None, txn=None):
         index = self._getindex(param, txn=txn) 
@@ -844,13 +856,11 @@ class CollectionDB(object):
 
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
-        if emen2.db.config.get('record.sequence'):
-            return unicode(self._incr_sequence(txn=txn))
+        # if emen2.db.config.get('record.sequence'):
+        seq = self._getseq()
+        return unicode(seq.next(txn=txn))
         return unicode(item.name or emen2.utils.timeuuid())
 
-    def _incr_sequence(self, txn=None):
-        raise NotImplementedError
-        
     # Todo: integrate with main filter method.
     def filter(self, names=None, ctx=None, txn=None):
         """Filter for permissions.
@@ -922,6 +932,63 @@ class NewUserDB(CollectionDB):
         if not ctx or not ctx.checkadmin():
             raise emen2.db.exceptions.PermissionsError("Admin rights needed to view user queue.")
         return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
+
+class SequenceDB(object):
+    # Sequences.
+    def __init__(self, filename=None, keytype=None, dbenv=None):
+        # Filename, DBENV, BDB handle.
+        self.keytype = keytype
+        self.filename = filename or os.path.join(self.keytype, '%s.sequence'%keytype)
+        self.dbenv = dbenv
+        self.bdb = None
+        self.open()    
+
+    def open(self):
+        """Open the DB. This uses an implicit open transaction."""
+        if self.bdb:
+            raise Exception("DB already open.")
+        emen2.db.log.debug("BDB: %s open"%self.filename)
+        flags = 0
+        flags |= bsddb3.db.DB_AUTO_COMMIT 
+        flags |= bsddb3.db.DB_CREATE 
+        flags |= bsddb3.db.DB_THREAD
+        flags |= bsddb3.db.DB_MULTIVERSION        
+        self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
+        self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
+
+    def close(self):
+        """Close the DB."""
+        emen2.db.log.debug("BDB: %s close"%self.filename)
+        self.bdb.close()
+        self.bdb = None
+        
+    def next(self, key='sequence', txn=None):
+        # Update a sequence key. Requires txn.
+        # The Sequence DB can handle multiple keys -- e.g., for
+        # binaries, each day has its own sequence key.
+        delta = 1
+        
+        val = self.bdb.get(key, txn=txn, flags=bsddb3.db.DB_RMW)
+        if val == None:
+            val = 0
+        val = int(val)
+        
+        self.bdb.put(key, str(val+delta), txn=txn)
+        emen2.db.log.debug("BDB: %s sequence: %s -> %s"%(self.filename, val, val+delta))
+        return val
+
+    def max(self, key="sequence", txn=None):
+        """Return the current maximum item in the sequence. Requires txn.
+
+        :keyword txn: Transaction
+        """
+        sequence = self.bdb.get(key, txn=txn)
+        if sequence == None:
+            sequence = 0
+        val = int(sequence)
+        return val
+        
+        
 
 class IndexDB(object):
     # A secondary index. Also used for relationships.
