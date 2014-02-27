@@ -1439,8 +1439,10 @@ class Query(Test):
             rec = self.db.record.put(rec)
             recs.append(rec)
 
-        q = self.db.table(c=[[pd.name, '>', 0]], sortkey=pd.name)
-        print "q2:", q
+        q = self.db.plot(c=[[pd.name, '>', 0]], sortkey=pd.name)        
+        print "q:", q
+        for i in q['recs']:
+            print i
             
     @test
     def api_table(self):

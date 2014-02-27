@@ -1131,15 +1131,12 @@ class IndexDB(object):
         elif op == 'any':
             r = self._get_any(key, cursor)
         elif op == 'noop':
-            pass
+            r = self._get_any(key, cursor)
         else:
             raise Exception("Unsupported operator.")
         cursor.close()
-        print "find_both:", self.param, key, maxkey, op, count
-        print "pre-r:", r
-        ret = list((self.keyload(i[0]), i[1]) for i in r)
-        print ret
-        return ret
+        # print "find_both: param %s, key %s, maxkey %s, op %s, count %s"%(self.param, key, maxkey, op, count)
+        return [(self.keyload(i[0]), i[1]) for i in r]
     
     def get(self, key, txn=None):
         cursor = index.cursor(txn=txn)        
@@ -1237,6 +1234,6 @@ class IndexDB(object):
         c = cursor.get(flags=bsddb3.db.DB_FIRST)
         while c:
             r.append(c)
-            c = cursor.get(flags=bsddb3.db.DB_NEXT_DUP)
+            c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
 

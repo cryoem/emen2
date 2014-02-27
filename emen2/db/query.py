@@ -99,7 +99,7 @@ class ParamConstraint(Constraint):
 
     def run(self):
         r = self.p.btree.find_both(self.param, self.term, op=self.op, txn=self.p.txn)
-        for value,name in r:
+        for value, name in r:
             self.p.vcache[name][self.param] = value
         return set(i[1] for i in r)
 
@@ -116,7 +116,7 @@ class RectypeConstraint(Constraint):
             recorddefs = self.p.btree.dbenv['recorddef'].expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
         for recorddef in recorddefs:
             r = self.p.btree.find_both('rectype', recorddef, txn=self.p.txn)
-            for value,name in r:
+            for value, name in r:
                 self.p.vcache[name][self.param] = value
             f |= set(i[1] for i in r)
         return f
@@ -220,27 +220,32 @@ class Query(object):
         # This does not change the constraint, just gets values.
         params = [i.param for i in self.constraints]
         if sortkey not in params:
+            print "sortkey constraint:", sortkey
             c = self._makeconstraint(sortkey, op='noop')
             c.run()
 
-        sortfunc = lambda x:x
+        sortfunc = lambda x:self.vcache[x].get(sortkey)
         pd = self.btree.dbenv['paramdef'].get(sortkey, ctx=self.ctx, txn=self.txn)
-        if pd:
-            if pd.vartype == 'string':
-                sortfunc = lambda x:unicode(self.vcache.get(x, '')).lower()
-            # Fetch all the items... fix this.
-            # Also, fix lowercase.
-            # items = self.btree.gets(self.result, ctx=self.ctx, txn=self.txn)
-            # for i in items:
-            #    self.vcache[i.name][sortkey] = i.get(sortkey, '')
-        else:
-            # Macro?
-            pass
+        # if pd:
+        #     if pd.vartype == 'string':
+        #         sortfunc = lambda x:unicode(self.vcache.get(x, '')).lower()
+        #     # Fetch all the items... fix this.
+        #     # Also, fix lowercase.
+        #     # items = self.btree.gets(self.result, ctx=self.ctx, txn=self.txn)
+        #     # for i in items:
+        #     #    self.vcache[i.name][sortkey] = i.get(sortkey, '')
+        # else:
+        #     # Macro?
+        #     pass
 
         print "vcache??:", self.vcache
 
         # ian: todo: fix...
         result = sorted(self.result, key=sortfunc, reverse=reverse)
+        print "sort?"
+        for i, j in zip(self.result, result):
+            print i, j, sortfunc(i), sortfunc(j)
+
         if count > 0:
             result = result[pos:pos+count]
 

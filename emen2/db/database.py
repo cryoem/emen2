@@ -1030,7 +1030,10 @@ class DB(object):
         ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
         ret['stats']['length'] = len(q.result)
         ret['stats']['time'] = q.time
-        ret['recs'] = q.vcache.values()
+        # ret['recs'] = q.vcache.values()
+        for k in q.vcache:
+            q.vcache[k]['name'] = k
+        ret['recs'] = [q.vcache[k] for k in ret['names']] 
         return ret
     
     # @publicmethod()
