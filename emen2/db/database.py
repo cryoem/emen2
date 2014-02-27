@@ -1,5 +1,4 @@
 """Main database module."""
-
 import os
 import re
 import sys
@@ -73,6 +72,7 @@ VERSIONS = {
 
 # Regular expression to parse Protocol views.
 # New style
+# This is the template {{string(arg)}}
 VIEW_REGEX_P = '''
         (?P<name>[\w\-\?\*]+)
         (?:="(?P<default>.+)")?
@@ -303,8 +303,10 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
             db.group.put(v)
 
         # Create an initial record
-        rec = {'name':'root', 'rectype':'root', 'groups':['authenticated']}
-        db.record.put(rec)
+        root = db.rel.root(keytype='record')
+        if not db.record.get(root):
+            rec = {'name':root, 'rectype':'root', 'groups':['authenticated']}
+            db.record.put(rec)
 
 ##### Main Database Class #####
 
@@ -626,9 +628,10 @@ class DB(object):
         """
         if ctx.name in self.contexts_cache:
             self.contexts_cache.pop(ctx.name, None)
-        ctx = self.dbenv._context.get(ctx.name, txn=txn)
-        ctx.disable()
-        self.dbenv._context.put(ctx, ctx=ctx, txn=txn)
+        if self.dbenv._context.bdb.exists(ctx.name, txn=txn):
+            self.dbenv._context.bdb.delete(ctx.name, txn=txn)
+        else:
+            raise SessionError("Session expired.")
         emen2.db.log.security("Logout succeeded: %s" % (ctx.name))
 
     @publicmethod(compat="checkcontext")
@@ -755,7 +758,7 @@ class DB(object):
     #     return self.query(c, keytype=keytype, ctx=ctx, txn=txn)['names']
 
     @publicmethod()
-    def query(self, c=None, keywords=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", ctx=None, txn=None, **kwargs):
+    def query(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", ctx=None, txn=None, **kwargs):
         """General query.
 
         Constraints are provided in the following format:
@@ -827,10 +830,9 @@ class DB(object):
             stats={},
             keytype=keytype,
             subset=subset,
-            keywords=keywords,
         )
         # Run the query
-        q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
+        q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
         q.run()
         ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
         ret['stats']['length'] = len(q.result)
@@ -838,7 +840,7 @@ class DB(object):
         return ret
 
     @publicmethod()
-    def table(self, c=None, keywords=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, checkbox=False, viewdef=None, keytype="record", view=None, ctx=None, txn=None, **kwargs):
+    def table(self, c=None, mode='AND', sortkey='name', pos=0, count=100, reverse=None, subset=None, checkbox=False, viewdef=None, keytype="record", view=None, ctx=None, txn=None, **kwargs):
         """Query results in table format.
         
         This method extends query() to include rendered values in the results.
@@ -890,7 +892,6 @@ class DB(object):
         c = c or []
         ret = dict(
             c=c[:], # copy
-            keywords=keywords,
             mode=mode,
             sortkey=sortkey,
             pos=pos,
@@ -903,7 +904,7 @@ class DB(object):
         )
 
         # Run the query
-        q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
+        q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
         q.run()
         names = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse, rendered=True)
 
@@ -954,7 +955,7 @@ class DB(object):
         return ret
 
     @publicmethod()
-    def plot(self, c=None, keywords=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", x=None, y=None, z=None, ctx=None, txn=None, **kwargs):
+    def plot(self, c=None, mode='AND', sortkey='name', pos=0, count=0, reverse=None, subset=None, keytype="record", x=None, y=None, z=None, ctx=None, txn=None, **kwargs):
         """Query results suitable for plotting.
 
         This method extends query() to help generate a plot. The results are
@@ -1014,7 +1015,6 @@ class DB(object):
             stats={},
             keytype=keytype,
             subset=subset,
-            keywords=keywords,
         )
 
         qparams = [i[0] for i in c]
@@ -1024,7 +1024,7 @@ class DB(object):
                 c.append([axis, 'any', None])
                 
         # Run the query
-        q = self.dbenv[keytype].query(c=c, keywords=keywords, mode=mode, subset=subset, ctx=ctx, txn=txn)
+        q = self.dbenv[keytype].query(c=c, mode=mode, subset=subset, ctx=ctx, txn=txn)
         q.run()
 
         ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
@@ -1112,7 +1112,6 @@ class DB(object):
             macro = emen2.db.macros.Macro.get_macro(macro, db=ctx.db, cache=ctx.cache)
             macro.preprocess(args, recs)
 
-        print 'render options:', options
         # Render.
         ret = {}
         for rec in recs:
@@ -1238,7 +1237,6 @@ class DB(object):
                 views[v] = byrt[recdef.name]
         else:
             views["{{name}}"] = recs
-
         
         # Optional: Apply MarkDown formatting to view before inserting values.
         if options.get('markdown'):
@@ -1447,6 +1445,14 @@ class DB(object):
     @ol('names')
     def rel_rel(self, names, recurse=1, tree=False, rel='children', keytype="record", ctx=None, txn=None):
         return self.dbenv[keytype].rel(names, recurse=recurse, tree=tree, rel=rel, ctx=ctx, txn=txn)
+
+    @publicmethod()
+    def rel_root(self, keytype="record", ctx=None, txn=None):
+        root = 'root'
+        if keytype == 'record' and emen2.db.config.get('record.sequence'):
+            root = '0'
+        return root
+
 
     ##### ParamDef #####
 
@@ -2480,13 +2486,14 @@ class DB(object):
         return self._mapput('record', names, 'addcomment', ctx, txn, comment)
 
     @publicmethod(compat="findorphans")
-    def record_findorphans(self, names, root=0, keytype='record', ctx=None, txn=None):
+    def record_findorphans(self, names, root=None, keytype='record', ctx=None, txn=None):
         """Find orphaned items that would occur if names were hidden.
         
         @param name Return orphans that would result from deletion of these items
         @return Orphaned items
         """
         names = set(names)
+        root = root or self.rel_root(keytype=keytype)
 
         children = self.rel_rel(names, rel='children', tree=True, recurse=-1, ctx=ctx, txn=txn)
         allchildren = set()

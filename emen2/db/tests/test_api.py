@@ -1019,8 +1019,9 @@ class Record(Test):
     def api_record_new(self):
         """Testing record.new()"""
         # New record test
+        root = self.db.rel.root(keytype='record')
         rec = self.db.record.new(rectype='root')
-        rec = self.db.record.new(rectype='root', inherit=['root'])
+        rec = self.db.record.new(rectype='root', inherit=[root])
         self.ok()
     
     @test
@@ -1413,10 +1414,34 @@ class RelFind(Test):
 
 @register
 class Query(Test):
+    # @test
+    # def api_query(self):
+    #     r = randword()
+    #     recs = []
+    #     for i in range(100):
+    #         rec = self.db.record.new(rectype='root')
+    #         rec['desc_short'] = '%s_%s'%(r, i)
+    #         rec = self.db.record.put(rec)
+    #         recs.append(rec)
+    #     # q = self.db.query(c=[['desc_short', 'starts', r]])
+    #     # print "q1:", q
+    #     q = self.db.table(c=[['desc_short', 'starts', r]], sortkey='desc_short', reverse=True)
+    #     print "q2:", q
+        
     @test
-    def api_query(self):
-        raise TestNotImplemented
-    
+    def api_query_floats(self):
+        pd = self.db.paramdef.new(vartype='float')
+        pd = self.db.paramdef.put(pd)
+        recs = []
+        for i in range(100):
+            rec = self.db.record.new(rectype='root')
+            rec[pd.name] = random.random()
+            rec = self.db.record.put(rec)
+            recs.append(rec)
+
+        q = self.db.table(c=[[pd.name, '>', 0]], sortkey=pd.name)
+        print "q2:", q
+            
     @test
     def api_table(self):
         raise TestNotImplemented

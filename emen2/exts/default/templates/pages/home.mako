@@ -40,7 +40,7 @@ import collections
     </ul>
 
 	% if ADMIN:
-    	<a class="e2-button e2-record-new" href="${ctxt.root}/record/root/new/${default_group.name}/" data-parent="root" data-rectype="${default_group.name}">${buttons.image('new.png')} New ${default_group.desc_short}</a>
+    	<a class="e2-button e2-record-new" href="${ctxt.root}/record/root/new/${default_group.name}/" data-parent="${rel_root}" data-rectype="${default_group.name}">${buttons.image('new.png')} New ${default_group.desc_short}</a>
 	% endif
     
 </div>

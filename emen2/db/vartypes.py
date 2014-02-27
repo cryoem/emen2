@@ -176,6 +176,11 @@ class Vartype(object):
         """
         raise NotImplementedError("%s is unindexed."%self.name)
 
+    # If the index is substantially different than the actual value,
+    # you'll need to get the original record to sort or plot in this way.
+    # If True, you can sort/plot with the indexed value.
+    unindex = False
+
     ##### Validation #####
 
     def validate(self, value):
@@ -340,6 +345,8 @@ class vt_base_keywords(Vartype):
         for i in value:
             ret |= set(regex.findall(unicode(i).lower()))
         return ret            
+
+    unindex = True
 
     def validate(self, value):
         return self._rci([unicode(x).strip() for x in ci(value)])
@@ -870,6 +877,8 @@ class vt_comments(Vartype):
         for user, t, comment in value:
             ret |= set(regex.findall(unicode(comment).lower()))
         return ret
+
+    unindex = True
 
     def validate(self, value):
         return value

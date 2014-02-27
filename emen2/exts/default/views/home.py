@@ -54,6 +54,9 @@ class Home(View):
             )            
         self.ctxt['recent_activity'] = q
 
+        # Root
+        self.ctxt['rel_root'] = self.db.rel.root(keytype='record')
+        
         # Table
         q_table = self.routing.execute('Query/embed', db=self.db, q={'count':20, 'subset':q['names']}, controls=False)
         self.ctxt['recent_activity_table'] = q_table

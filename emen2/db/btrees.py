@@ -373,7 +373,6 @@ class CollectionDB(object):
         flags |= bsddb3.db.DB_MULTIVERSION
         self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
         self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
-        self._getseq()
 
     def close(self):
         """Close the DB."""
@@ -638,6 +637,12 @@ class CollectionDB(object):
             return None
         return index.find(key=key, maxkey=maxkey, op=op, txn=txn) 
 
+    def find_both(self, param, key, maxkey=None, op='==', count=100, ctx=None, txn=None):
+        index = self._getindex(param, txn=txn) 
+        if index is None:
+            return None
+        return index.find_both(key=key, maxkey=maxkey, op=op, txn=txn)
+
     ##### Sequences #####
 
     # Todo: Simplify this. Maybe move it somewhere else.
@@ -856,9 +861,9 @@ class CollectionDB(object):
 
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
-        # if emen2.db.config.get('record.sequence'):
-        seq = self._getseq()
-        return unicode(seq.next(txn=txn))
+        if emen2.db.config.get('record.sequence'):
+            seq = self._getseq()
+            return unicode(seq.next(txn=txn))
         return unicode(item.name or emen2.utils.timeuuid())
 
     # Todo: integrate with main filter method.
@@ -1003,7 +1008,7 @@ class IndexDB(object):
         # Index settings.
         self.vtc = vtc
         self.keydump = lambda x:unicode(x).lower().encode('utf-8')
-        self.keyload = lambda x:self.vtc.keyclass(x)
+        self.keyload = self.vtc.keyclass # lambda x:self.vtc.keyclass(x)
         self.open()    
 
     def open(self):
@@ -1097,7 +1102,11 @@ class IndexDB(object):
         return result, visited        
 
     def find(self, key, maxkey=None, op='==', count=100, txn=None):
-        # This doesn't filter for security.
+        r = self.find_both(key=key, maxkey=maxkey, op=op, count=count, txn=txn)
+        return set(i[1] for i in r)
+    
+    def find_both(self, key, maxkey=None, op='==', count=100, txn=None):
+        # I don't like this method name, but whatevs.
         emen2.db.log.debug("BDB: %s %s index %s %s"%(self.filename, self.param, op, key))        
         if key is None:
             return set()
@@ -1126,9 +1135,11 @@ class IndexDB(object):
         else:
             raise Exception("Unsupported operator.")
         cursor.close()
-        return set(r)
-
-    ##### Begin a bunch of repetitive code to iterate through cursor in various ways #####
+        print "find_both:", self.param, key, maxkey, op, count
+        print "pre-r:", r
+        ret = list((self.keyload(i[0]), i[1]) for i in r)
+        print ret
+        return ret
     
     def get(self, key, txn=None):
         cursor = index.cursor(txn=txn)        
@@ -1136,17 +1147,19 @@ class IndexDB(object):
         c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
         m = cursor.next_dup
         while c:
-            r.append(c[1])
+            r.append(c)
             n = m()
         cursor.close()
         return r
+    
+    ##### Begin a bunch of repetitive code to iterate through cursor in various ways #####
 
     def _get_cursor(self, key, cursor):        
         r = []
         c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
         m = cursor.next_dup
         while c:
-            r.append(c[1])
+            r.append(c[1]) # Just want values here.
             c = m()
         return r
 
@@ -1154,7 +1167,7 @@ class IndexDB(object):
         r = []
         c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
         while c:
-            r.append(c[1])
+            r.append(c)
             c = cursor.get(flags=bsddb3.db.DB_NEXT_DUP)
         return r
     
@@ -1164,7 +1177,7 @@ class IndexDB(object):
         c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
         k = self.keydump(key)
         while c and c[0].startswith(k):
-            r.append(c[1])
+            r.append(c)
             c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
         
@@ -1172,7 +1185,7 @@ class IndexDB(object):
         r = []
         c = cursor.get(self.keydump(minkey), flags=bsddb3.db.DB_SET_RANGE)
         while c and self.keyload(c[0]) <= maxkey:
-            r.append(c[1])
+            r.append(c)
             c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
 
@@ -1180,7 +1193,7 @@ class IndexDB(object):
         r = []
         c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
         while c:
-            r.append(c[1])
+            r.append(c)
             c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
 
@@ -1189,7 +1202,7 @@ class IndexDB(object):
         c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET_RANGE)
         while c:
             if self.keyload(c[0]) > key:
-                r.append(c[1])
+                r.append(c)
             c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
 
@@ -1197,7 +1210,7 @@ class IndexDB(object):
         r = []
         c = cursor.get(flags=bsddb3.db.DB_FIRST)
         while c and self.keyload(c[0]) <= key:
-            r.append(c[1])
+            r.append(c)
             c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
 
@@ -1205,7 +1218,7 @@ class IndexDB(object):
         r = []
         c = cursor.get(flags=bsddb3.db.DB_FIRST)
         while c and self.keyload(c[0]) < key:
-            r.append(c[1])
+            r.append(c)
             c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
     
@@ -1215,7 +1228,7 @@ class IndexDB(object):
         kd = self.keydump(key)
         while c:
             if c[0] != kd:
-                r.append(c[1])
+                r.append(c)
             c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
 
@@ -1223,7 +1236,7 @@ class IndexDB(object):
         r = []
         c = cursor.get(flags=bsddb3.db.DB_FIRST)
         while c:
-            r.append(c[1])
+            r.append(c)
             c = cursor.get(flags=bsddb3.db.DB_NEXT_DUP)
         return r
 

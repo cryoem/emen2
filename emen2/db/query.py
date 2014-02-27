@@ -98,7 +98,10 @@ class ParamConstraint(Constraint):
         self.priority = 1
 
     def run(self):
-        return self.p.btree.find(self.param, self.term, op=self.op, txn=self.p.txn)
+        r = self.p.btree.find_both(self.param, self.term, op=self.op, txn=self.p.txn)
+        for value,name in r:
+            self.p.vcache[name][self.param] = value
+        return set(i[1] for i in r)
 
 class RectypeConstraint(Constraint):
     """Rectype constraints."""
@@ -112,7 +115,10 @@ class RectypeConstraint(Constraint):
         if term.endswith('*'):
             recorddefs = self.p.btree.dbenv['recorddef'].expand([self.term], ctx=self.p.ctx, txn=self.p.txn)
         for recorddef in recorddefs:
-            f |= self.p.btree.find('rectype', recorddef, txn=self.p.txn)
+            r = self.p.btree.find_both('rectype', recorddef, txn=self.p.txn)
+            for value,name in r:
+                self.p.vcache[name][self.param] = value
+            f |= set(i[1] for i in r)
         return f
 
 class MacroConstraint(Constraint):
@@ -217,21 +223,23 @@ class Query(object):
             c = self._makeconstraint(sortkey, op='noop')
             c.run()
 
+        sortfunc = lambda x:x
         pd = self.btree.dbenv['paramdef'].get(sortkey, ctx=self.ctx, txn=self.txn)
         if pd:
             if pd.vartype == 'string':
                 sortfunc = lambda x:unicode(self.vcache.get(x, '')).lower()
             # Fetch all the items... fix this.
             # Also, fix lowercase.
-            items = self.btree.gets(self.result, ctx=self.ctx, txn=self.txn)
-            for i in items:
-                self.vcache[i.name][sortkey] = i.get(sortkey, '')
+            # items = self.btree.gets(self.result, ctx=self.ctx, txn=self.txn)
+            # for i in items:
+            #    self.vcache[i.name][sortkey] = i.get(sortkey, '')
         else:
             # Macro?
             pass
 
+        print "vcache??:", self.vcache
+
         # ian: todo: fix...
-        sortfunc = lambda x:x
         result = sorted(self.result, key=sortfunc, reverse=reverse)
         if count > 0:
             result = result[pos:pos+count]

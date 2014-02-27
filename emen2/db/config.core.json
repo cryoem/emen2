@@ -142,7 +142,7 @@
     },
     
     "record": {
-        "sequence": false,
+        "sequence": true,
         "root": "root"
     },
 
