@@ -70,7 +70,6 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
     :property views: Dictionary of additional views.
     :property privacy: Mark this RecordDef as private.
     :property typicalchld: A list of RecordDefs that are generally seen as children.
-    :property owner: Current owner of RecordDef. May be different than creator. Gives permission to edit views.
     """
 
     def init(self):

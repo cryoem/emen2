@@ -191,16 +191,6 @@
             </td>
         </tr>
 
-        <tr>
-            <td>Immutable:</td>
-            <td>
-                % if new:
-                    <input type="checkbox" name="immutable" value="True" ${forms.ifchecked(paramdef.get('immutable'))} />
-                % else:
-                    ${bool(paramdef.get('immutable'))}
-                % endif
-            </td>
-        </tr>
     </table>
 </%def>
 

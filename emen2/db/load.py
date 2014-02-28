@@ -132,6 +132,8 @@ if __name__ == "__main__":
     opts.add_argument('files', nargs='+')
     args = opts.parse_args()
     
+    keytypes = ['paramdef', 'recorddef', 'user', 'group', 'binary', 'record']
+
     lc = Loader
     if args.raw:
         lc = RawLoader
@@ -141,6 +143,6 @@ if __name__ == "__main__":
     for f in args.files:
         with db:
             loader = lc(db=db, infile=f)
-            for keytype in ['paramdef', 'recorddef', 'user', 'group', 'binary', 'record']:
+            for keytype in keytypes:
                 loader.load(keytype=keytype)
         

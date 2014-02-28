@@ -992,8 +992,6 @@ class SequenceDB(object):
             sequence = 0
         val = int(sequence)
         return val
-        
-        
 
 class IndexDB(object):
     # A secondary index. Also used for relationships.

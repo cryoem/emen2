@@ -1409,27 +1409,62 @@ class RelFind(Test):
         # self.ok('binary', len(found))
 
 
+@register
+class Macro(Test):
+    @test
+    def macro(self):
+        raise TestNotImplemented
 
 ######################################
 
 @register
 class Query(Test):
-    # @test
-    # def api_query(self):
-    #     r = randword()
-    #     recs = []
-    #     for i in range(100):
-    #         rec = self.db.record.new(rectype='root')
-    #         rec['desc_short'] = '%s_%s'%(r, i)
-    #         rec = self.db.record.put(rec)
-    #         recs.append(rec)
-    #     # q = self.db.query(c=[['desc_short', 'starts', r]])
-    #     # print "q1:", q
-    #     q = self.db.table(c=[['desc_short', 'starts', r]], sortkey='desc_short', reverse=True)
-    #     print "q2:", q
+    # The individual index operators are checked in another test.
+    
+    # Check plotting, sorting.
+    @test
+    def api_plot_string(self):
+        pd = self.db.paramdef.new(vartype='string')
+        pd = self.db.paramdef.put(pd)
+        recs = []
+        for i in range(100):
+            rec = self.db.record.new(rectype='root')
+            rec[pd.name] = randword()
+            rec = self.db.record.put(rec)
+            recs.append(rec)
+
+        expect = [i.name for i in sorted(recs, key=lambda x:x.get(pd.name))]
+        q = self.db.plot(c=[[pd.name, 'any']], sortkey=pd.name)        
+        for i,j in zip(expect, q['names']):
+            assert i,j
+        self.ok('plot string')
+        
+        # Just check reverse in this test. Assume it'll work elsewhere.
+        expect = [i.name for i in sorted(recs, key=lambda x:x.get(pd.name), reverse=True)]
+        q = self.db.plot(c=[[pd.name, 'any']], sortkey=pd.name, reverse=True)        
+        for i,j in zip(expect, q['names']):
+            assert i,j
+        self.ok('plot string reverse')
+
+    @test
+    def api_plot_int(self):
+        pd = self.db.paramdef.new(vartype='int')
+        pd = self.db.paramdef.put(pd)
+        recs = []
+        for i in range(100):
+            rec = self.db.record.new(rectype='root')
+            rec[pd.name] = int(random.random()*1000.0)
+            rec = self.db.record.put(rec)
+            recs.append(rec)
+
+        expect = [i.name for i in sorted(recs, key=lambda x:x.get(pd.name))]
+        q = self.db.plot(c=[[pd.name, 'any']], sortkey=pd.name)        
+        for i,j in zip(expect, q['names']):
+            assert i,j
+        self.ok('plot int')
         
     @test
-    def api_query_floats(self):
+    def api_plot_float(self):
         pd = self.db.paramdef.new(vartype='float')
         pd = self.db.paramdef.put(pd)
         recs = []
@@ -1439,17 +1474,73 @@ class Query(Test):
             rec = self.db.record.put(rec)
             recs.append(rec)
 
-        q = self.db.plot(c=[[pd.name, '>', 0]], sortkey=pd.name)        
-        print "q:", q
-        for i in q['recs']:
-            print i
+        expect = [i.name for i in sorted(recs, key=lambda x:x.get(pd.name))]
+        q = self.db.plot(c=[[pd.name, 'any']], sortkey=pd.name)        
+        for i,j in zip(expect, q['names']):
+            assert i,j
+        self.ok('plot float')
+        
+    @test
+    def api_plot_macro(self):
+        pd = self.db.paramdef.new(vartype='string')
+        pd = self.db.paramdef.put(pd)
+
+        rd = self.db.recorddef.new()
+        rd.mainview = 'test %s'%pd.name
+        rd.views['recname'] = 'test {{%s}}'%pd.name
+        rd = self.db.recorddef.put(rd)
+
+        recs = []
+        for i in range(100):
+            rec = self.db.record.new(rectype=rd.name)
+            rec[pd.name] = randword()
+            rec = self.db.record.put(rec)
+            recs.append(rec)
+
+        expect = [i.name for i in sorted(recs, key=lambda x:x.get(pd.name))]
+        q = self.db.plot(c=[[pd.name, 'any'], ['recname()']], sortkey='recname()')        
+        recs = sorted(recs, key=lambda x:x.get(pd.name))
+        for rec,i in zip(recs, q['recs']):
+            assert i.get('recname()') == 'test %s'%(rec.get(pd.name))
+        self.ok('macro render / sort')
             
     @test
     def api_table(self):
-        raise TestNotImplemented
+        rd = self.db.recorddef.new()
+        rd.mainview = 'test {{desc_short}}'
+        rd.views['recname'] = 'test {{desc_short}}'
+        rd.views['tabularview'] = '{{desc_short}} {{rectype}} {{creator}} {{creationtime}}'
+        rd = self.db.recorddef.put(rd)
+        recs = []
+        for i in range(100):
+            rec = self.db.record.new(rectype=rd.name)
+            rec['desc_short'] = randword()
+            rec = self.db.record.put(rec)
+            recs.append(rec)
+        
+        q = self.db.table(c=[['rectype','is',rd.name]], sortkey='desc_short')
+        recs = sorted(recs, key=lambda x:x.get('desc_short'))
+        for rec,i in zip(recs, q['names']):
+            assert i == rec.name
+            assert q['rendered'][i].get('desc_short') == rec.get('desc_short')
+        self.ok('basics...')
+
+        q = self.db.table(c=[['rectype','is',rd.name]], sortkey='desc_short', count=10)
+        recs2 = sorted(recs, key=lambda x:x.get('desc_short'))[:10]
+        for rec,i in zip(recs, q['names']):
+            assert i == rec.name
+            assert q['rendered'][i].get('desc_short') == rec.get('desc_short')
+        self.ok('rows...')
+
+        q = self.db.table(c=[['rectype','is',rd.name]], sortkey='desc_short', count=10, pos=10)
+        recs2 = sorted(recs, key=lambda x:x.get('desc_short'))[10:20]
+        for rec,i in zip(recs2, q['names']):
+            assert i == rec.name
+            assert q['rendered'][i].get('desc_short') == rec.get('desc_short')
+        self.ok('pos...')
     
     @test
-    def api_plot(self):
+    def api_query(self):
         raise TestNotImplemented
 
 ######################################

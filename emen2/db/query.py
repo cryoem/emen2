@@ -220,7 +220,6 @@ class Query(object):
         # This does not change the constraint, just gets values.
         params = [i.param for i in self.constraints]
         if sortkey not in params:
-            print "sortkey constraint:", sortkey
             c = self._makeconstraint(sortkey, op='noop')
             c.run()
 
@@ -238,14 +237,7 @@ class Query(object):
         #     # Macro?
         #     pass
 
-        print "vcache??:", self.vcache
-
-        # ian: todo: fix...
         result = sorted(self.result, key=sortfunc, reverse=reverse)
-        print "sort?"
-        for i, j in zip(self.result, result):
-            print i, j, sortfunc(i), sortfunc(j)
-
         if count > 0:
             result = result[pos:pos+count]
 

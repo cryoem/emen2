@@ -196,7 +196,8 @@ class BaseDBObject(object):
             raise AttributeError("No attribute: %s"%key)
 
     def _setitem(self, key, value):
-        self.error('Cannot set parameter %s in this way'%key, warning=True)
+        self.error('Cannot set parameter "%s" in this way.'%(key), warning=True)
+        print value
 
     def __setitem__(self, key, value):
         # If a "_set_<key>" method exists, use this.
@@ -314,7 +315,7 @@ class BaseDBObject(object):
         if not msg:
             msg = e.__doc__
         if warning:
-            emen2.db.log.warn("Warning: %s"%e(msg))
+            emen2.db.log.warn("Warning: %s %s: %s"%(self.keytype, self.name, e(msg)))
             pass
         return e(msg)
 
