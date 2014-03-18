@@ -157,8 +157,9 @@ class Binary(emen2.db.dataobject.BaseDBObject):
 
     def validate(self):
         # Validate
-        if not all([self.filename, self.md5, self.filesize is not None]):
-            raise emen2.db.exceptions.ValidationError("filename, filesize, and MD5 checksum are required.")
+        if not all([self.filename, self.filesize is not None]):
+            print self.filename, self.filesize
+            raise emen2.db.exceptions.ValidationError("Cannot upload empty file, or a file without a name.")
 
     ##### Setters #####
     
