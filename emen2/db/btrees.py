@@ -875,8 +875,8 @@ class RecordDB(CollectionDB):
         if names is None:
             if ctx.checkreadadmin():
                 if emen2.db.config.get('record.sequence'):
-                    m = self._get_max(txn=txn)
-                    return set(map(unicode, range(0, m)))
+                    seq = self._getseq()
+                    return set(map(unicode, range(0, seq.max(txn=txn))))
                 return set(self.keys(txn=txn))  
             ret = self.find('permissions', ctx.user, txn=txn)
             ret |= self.find('creator', ctx.user, txn=txn) 
