@@ -42,9 +42,8 @@ NONE_VALUES = [None, "", "N/A", "n/a", "None"]
 # Load EMEN2 Core ParamDefs...
 import emen2.db.core
 VARTYPE_CACHE = {}
-for i in emen2.db.core.core:
-    if i.get('keytype') == 'paramdef':
-        VARTYPE_CACHE[i['name']] = i
+for i in emen2.db.core.core_paramdefs:
+    VARTYPE_CACHE[i['name']] = i
 
 ##### Helper methods #####
 

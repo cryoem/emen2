@@ -14,9 +14,10 @@ import random
 import collections
 import getpass
 import json
-import jsonrpc.jsonutil
+import codecs
 
 # EMEN2 imports
+import jsonrpc.jsonutil
 import emen2.db.config
 
 class Loader(object):
@@ -42,6 +43,7 @@ class Loader(object):
             name = item.get('name')
             children[name] = set(item.pop('children', []) or [])
             parents[name] = set(item.pop('parents', []) or [])
+            history = item.pop('history', None)
             # print "Load: put:", keytype, name
             try:
                 r = dbenv[keytype].put(item, ctx=ctx, txn=txn)
@@ -75,7 +77,7 @@ class Loader(object):
         infile = infile or self.infile
         if not os.path.exists(infile):
             yield
-        with open(infile) as f:
+        with codecs.open(infile, 'r', 'utf-8') as f:
             for item in f:
                 item = item.strip()
                 if item and not item.startswith('/'):
@@ -97,6 +99,7 @@ class RawLoader(Loader):
         parents = collections.defaultdict(set)
 
         for item in self.readfile(infile=infile, keytype=keytype):
+            print "Starting:", keytype
             keytype = item.get('keytype')
             name = item.get('name')
             children[name] = item.pop('children', []) or []
@@ -131,10 +134,13 @@ if __name__ == "__main__":
     import emen2.db.config
     opts = emen2.db.config.DBOptions()
     opts.add_argument('--raw', action='store_true', help='Raw load; no validation.')
+    opts.add_argument('--keytype', action='append')
     opts.add_argument('files', nargs='+')
     args = opts.parse_args()
     
     keytypes = ['paramdef', 'recorddef', 'user', 'group', 'binary', 'record']
+    if args.keytype:
+        keytypes = args.keytype
 
     lc = Loader
     if args.raw:
