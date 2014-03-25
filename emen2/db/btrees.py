@@ -348,7 +348,7 @@ class CollectionDB(object):
         self.keydump = lambda x:unicode(x).encode('utf-8')
         self.keyload = lambda x:x.decode('utf-8')
         self.dataclass = dataclass
-        self.datadump = lambda x:json.dumps(x.data)
+        self.datadump = lambda x:json.dumps(x)
         self.dataload = lambda x:json.loads(x)
 
         # Make sure the directory exists...
@@ -597,7 +597,7 @@ class CollectionDB(object):
             old = {}
             
         # Put
-        self.bdb.put(self.keydump(item.name), self.datadump(item), txn=txn)
+        self.bdb.put(self.keydump(item.name), self.datadump(item.data), txn=txn)
 
         # Reindex
         okw = set()
