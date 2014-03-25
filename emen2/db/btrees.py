@@ -500,7 +500,7 @@ class CollectionDB(object):
     ##### Keys, values, items #####
     
     def keys(self, ctx=None, txn=None):
-        emen2.db.log.info("BDB: %s keys: Deprecated method!"%self.filename)
+        # emen2.db.log.info("BDB: %s keys: Deprecated method!"%self.filename)
         return map(self.keyload, self.bdb.keys(txn))
     
     def items(self, ctx=None, txn=None):

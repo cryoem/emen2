@@ -271,6 +271,7 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
     :keyword rootpw: Root Account Password
     :keyword rootemail: Root Account email
     """
+    rootemail = rootemail or 'root@localhost'
     db = db or opendb(db=db, admin=True)
 
     with db:

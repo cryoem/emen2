@@ -80,7 +80,7 @@ for i in users:
             <Academic_Degree>${degree.upper()}</Academic_Degree>        
         % endfor
 
-        ${iftag('Phone_Number', user.userrec.get('phone_voice'))}
+        ${iftag('Phone_Number', user.userrec.get('phone'))}
         ${iftag('Fax_Number', user.userrec.get('phone_fax'))}
         ${iftag('Email_Address', user.email)}
         ${iftag('Department', user.userrec.get('department'))}

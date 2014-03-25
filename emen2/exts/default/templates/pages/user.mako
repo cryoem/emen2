@@ -128,7 +128,7 @@
                 </tr>
                 <tr>
                     <td>Phone:</td>
-                    <td>${userrec.get('phone_voice', '')}</td>
+                    <td>${userrec.get('phone', '')}</td>
                 </tr>
                 <tr>
                     <td>Web:</td>

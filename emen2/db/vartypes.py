@@ -3,6 +3,7 @@
 import operator
 import collections
 import urllib
+import urlparse
 import re
 
 # Working with time is even more fun.
@@ -173,7 +174,7 @@ class Vartype(object):
         :param value: Index this value.
         :return: A set of indexed terms.
         """
-        raise NotImplementedError("%s is unindexed."%self.name)
+        raise self.error("%s is unindexed"%self.name, cls=NotImplementedError)
 
     # If the index is substantially different than the actual value,
     # you'll need to get the original record to sort or plot in this way.
@@ -192,7 +193,11 @@ class Vartype(object):
         :param value: Validate this value.
         :return: The validated value.
         """
-        raise NotImplementedError("%s is an internal or organizational parameter, and is not intended to be used."%self.name)
+        raise self.error("%s is an internal or organizational parameter, and is not intended to be used."%self.name, cls=NotImplementedError)
+
+    def error(self, error, cls=None):
+      cls = cls or ValidationError
+      return cls("%s: %s"%(self.name, error))
 
     # def validate(self, pd, value):
     #     if value in NONE_VALUES:
@@ -220,10 +225,10 @@ class Vartype(object):
                 found.add(i)
                 changed = True
             elif ALLOW_MISSING:
-                emen2.db.log.warn("Validation: Could not find, but allowing: %s (parameter %s)"%(i, self.name))
+                emen2.db.log.warn("Validation: %s: Could not find, but allowing: %s"%(self.name, i))
                 ret.append(i)
             else:
-                raise ValidationError("Could not find: %s (parameter %s)."%(i, self.name))
+                raise self.error("Could not find: %s"%(i))
         
         if changed:
             self.cache.store(key, found)    
@@ -364,7 +369,7 @@ class vt_choice(vt_base_keywords):
         value = [unicode(i).strip() for i in ci(value)]
         for v in value:
             if v not in self.choices:
-                raise ValidationError("Invalid choice: %s"%v)
+                raise self.error("Invalid choice: %s"%(v))
         return self._rci(value)
 
     def _form(self, value):
@@ -451,7 +456,7 @@ class vt_percent(vt_base):
         value = map(float, ci(value))
         for i in value:
             if not 0 <= i <= 1.0:
-                raise ValidationError("Range for percentage is 0 <= value <= 1.0; value was: %s."%i)
+                raise self.error("Range for percentage is 0 <= value <= 1.0; value was: %s"%(i))
         return self._rci(value)
 
     def _unicode(self, value):
@@ -471,7 +476,7 @@ class vt_boolean(vt_base):
             elif i in f:
                 i = False
             else:
-                raise ValidationError("Invalid boolean: %s."%unicode(value))
+                raise self.error("Invalid boolean: %s"%(unicode(value)))
             ret.append(i)
         return self._rci(ret)
 
@@ -597,7 +602,7 @@ class vt_email(vt_base):
             _, i = email.utils.parseaddr(unicode(i))
             i = value.strip().lower()
             if '@' not in i:
-                raise ValidationError("Invalid email: %s"%i)
+                raise self.error("Invalid email: %s"%(i))
             ret.append(i)
         return self._rci(ret)
     
@@ -605,11 +610,21 @@ class vt_email(vt_base):
 class vt_uri(vt_base):
     """URI"""
     # ian: todo: parse with urlparse
+    def _sane_uri(self, value):
+      value = unicode(value).strip()
+      l = urlparse.urlsplit(value)
+      # Default is http://
+      if not l.scheme:
+        l = urlparse.urlsplit("http://"+value)
+      # Check for known, safe schemes.
+      if l.scheme not in ["http", "https", "ftp", "mailto", "svn", "svn+ssh", "git"]:
+        raise self.error("Invalid URI scheme: %s"%(l.scheme))    
+      value = urlparse.urlunsplit(l)
+      value = urllib.quote(value, safe="%/:=&?~#+!$,;'@()*[]")
+      return value
+
     def validate(self, value):
-        value = [unicode(i).strip() for i in ci(value)]
-        for v in value:
-            if not v.startswith("http://"):
-                raise ValidationError("Invalid URI: %s"%value)
+        value = [self._sane_uri(i) for i in ci(value)]
         return self._rci(value)
 
 @Vartype.register('md5')
@@ -851,11 +866,11 @@ class vt_acl(Vartype):
 
         for i in value:
             if not hasattr(i, '__iter__'):
-                raise ValidationError("Invalid permissions format: %s"%value)
+                raise self.error("Invalid permissions format: %s"%(value))
 
         value = [[unicode(y) for y in x] for x in value]
         if len(value) != 4:
-            raise ValidationError("Invalid permissions format: %s"%value)
+            raise self.error("Invalid permissions format: %s"%(value))
 
         users = reduce(lambda x,y:x+y, value)
         self._validate_reference(users, keytype='user')

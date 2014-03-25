@@ -162,7 +162,7 @@
         options: {
             parent: null,
             rectype: null,
-            private: null,
+            privacy: null,
             copy: null,
             show: true,
             help: false,
@@ -171,7 +171,7 @@
         
         _create: function() {
             this.built = 0;
-			emen2.util.checkopts(this, ['rectype', 'parent', 'private', 'copy']);
+			emen2.util.checkopts(this, ['rectype', 'parent', 'privacy', 'copy']);
             if (this.options.show) {
                 this.show();
             }

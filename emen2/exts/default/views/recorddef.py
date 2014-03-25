@@ -16,7 +16,7 @@ class RecordDef(View):
                 if k and v:
                     views[k] = v
             kwargs['views'] = views
-            if kwargs.get('private') == None: kwargs['private'] = False
+            if kwargs.get('privacy') == None: kwargs['privacy'] = 0
             recorddef = self.db.recorddef.new(mainview=mainview, name=name)
             recorddef.update(kwargs)
             rd = self.db.recorddef.put(recorddef)
@@ -40,7 +40,7 @@ class RecordDef(View):
                 if k and v:
                     views[k] = v
             kwargs['views'] = views
-            if kwargs.get('private') == None: kwargs['private'] = False
+            if kwargs.get('privacy') == None: kwargs['privacy'] = 0
             recorddef = self.db.recorddef.get(name)
             recorddef.update(kwargs)
             rd = self.db.recorddef.put(recorddef)

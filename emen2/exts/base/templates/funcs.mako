@@ -126,7 +126,7 @@
                 </p>
 
                 <p>
-                    ph: <em>${extract(child, 'phone_voice', 'Phone')}</em> <br>
+                    ph: <em>${extract(child, 'phone', 'Phone')}</em> <br>
                     fax: <em>${extract(child, 'phone_fax', 'Fax')}</em> <br>
                     web: <em>${extract(child, 'website', 'Website')}</em>
                 </p>

@@ -195,14 +195,16 @@ paramdefs = [
   'property': 'time',
   'vartype': 'int'},
 
- {'choices': ['Data Collection', 'Screening', 'Unknown', 'Other'],'desc_long': 'Type of microscopy session',
+ {'choices': ['Data Collection', 'Screening', 'Unknown', 'Other'],
+  'desc_long': 'Type of microscopy session',
   'desc_short': 'Session type',
   'keytype': 'paramdef',
   'name': 'type_session',
   'parents': ['microscopy'],
   'vartype': 'choice'},
 
- {'choices': ['1', '2', '4', '8', '16'],'desc_long': '',
+ {'choices': ['1', '2', '4', '8', '16'],
+  'desc_long': '',
   'desc_short': 'Hardware Binning X',
   'keytype': 'paramdef',
   'name': 'binning_hardware_x',
@@ -1024,6 +1026,14 @@ paramdefs = [
   'parents': ['identifiers'],
   'vartype': 'string'},
 
+ {'desc_long': 'Micrograph tags',
+  'desc_short': 'Micrograph tags',
+  'keytype': 'paramdef',
+  'name': 'micrograph_tags',
+  'parents': ['identifiers'],
+  'iter': True,
+  'vartype': 'string'},
+
  {'choices': ['EMAN', 'IMAGIC', 'SAVR', 'SPIDER'],'desc_long': 'Low dose method',
   'desc_short': 'Low dose method',
   'keytype': 'paramdef',
@@ -1830,7 +1840,7 @@ paramdefs = [
   'mainview': """This protocol is for organizational purposes, and is not intended to be used.""",
   'name': 'people',
   'parents': ['root'],
-  'private': 0,
+  'privacy': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -2837,7 +2847,7 @@ paramdefs = [
   'desc_long': 'Aliquot concentration in mg/ml',
   'desc_short': 'Aliquot conc mg/ml',
   'keytype': 'paramdef',
-  'name': 'concentration_pf',
+  'name': 'concentration_pfu',
   'parents': ['concentration'],
   'property': 'concentration',
   'vartype': 'float'},
@@ -3474,17 +3484,18 @@ paramdefs = [
   'parents': [],
   'vartype': 'string'},
 
- {'choices': ['Data, Good Quality',
-               'Data, Medium Quality',
-               'Data, Poor Quality',
+ {'choices': [ 'Data, good quality',
+               'Data, medium quality',
+               'Data, poor quality',
                'Diffraction',
                'Em Calibration',
-               'Low Magnification'],'desc_long': 'User-assigned image category',
+               'Low Magnification'],
+  'desc_long': 'User-assigned image category',
   'desc_short': 'Image category',
   'keytype': 'paramdef',
   'name': 'category_image',
   'parents': ['textual_descriptions'],
-  'vartype': 'choice'},
+  'vartype': 'string'},
 
  {'desc_long': 'Volume size Y',
   'desc_short': 'Volume size Y',
@@ -4780,9 +4791,30 @@ recorddefs = [
 """,
   'name': 'microscope_maintenance',
   'parents': ['equipment_maintenance'],
-  'private': 0,
   'typicalchld': [],
   'views': {'recname': """Maintenance: {{service_type}} on {{date_occurred}}"""}},
+
+
+ {'desc_long': '',
+  'desc_short': 'Microscope calibration',
+  'keytype': 'recorddef',
+  'mainview': """
+# Microscope calibration
+{{performed_by?}}: {{performed_by}}  
+{{date_occurred?}}: {{date_occurred}}  
+
+# Service performed  
+{{service_engineer?}}:  {{service_engineer}}  
+{{service_date?}}:  {{service_date}} (if different than the date occurred above)  
+{{service_type?}}:  {{service_type}}  
+{{service_description?}}:  {{service_description}}  
+
+# Attachments  
+{{file_binary}}  
+""",
+  'name': 'microscope_calibration',
+  'parents': ['equipment_maintenance'],
+  'views': {'recname': """Microscope calibration: {{service_type}} on {{date_occurred}}"""}},
 
  {'desc_long': 'A manuscript in preparation',
   'desc_short': 'Manuscript',
@@ -4799,7 +4831,6 @@ recorddefs = [
 """,
   'name': 'manuscript',
   'parents': ['information'],
-  'private': 0,
   'typicalchld': [],
   'views': {'recname': """Manuscript: {{title_publication}}"""}},
 
@@ -4843,7 +4874,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
 {{description_storage?}}: {{description_storage}}""",
   'name': 'freezing_manual',
   'parents': ['freezing'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Freezing session: {{title_freezing}} using {{vitrification_device}} by {{performed_by}} on {{date_occurred}}"""}},
 
@@ -4853,7 +4883,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
   'mainview': """This protocol is for organizational purposes, and is not intended to be used.""",
   'name': 'experiments',
   'parents': ['root'],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -4876,7 +4905,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
 """,
   'name': 'equipment_maintenance',
   'parents': ['equipment'],
-  'private': 0,
   'typicalchld': [],
   'views': {'recname': """Equipment maintenance: {{service_type}} on {{date_occurred}}"""}},
 
@@ -4897,7 +4925,6 @@ Attending: {{author_list}}
 """,
   'name': 'project_meeting',
   'parents': ['information'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Project meeting: {{subject_notebook}} with {{author_list}} on {{date_occurred}}"""}},
 
@@ -4910,7 +4937,6 @@ Attending: {{author_list}}
 """,
   'name': 'bookmarks',
   'parents': [],
-  'private': False,
   'typicalchld': [],
   'views': {'recname': """Bookmarks"""}},
 
@@ -5013,7 +5039,6 @@ Note: this protocol is in the process of being updated.
  """,
   'name': 'alignment',
   'parents': ['tem'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Microscope alignment by {{performed_by}} on {{date_occurred}}""" }},
 
@@ -5023,7 +5048,6 @@ Note: this protocol is in the process of being updated.
   'mainview': """This protocol is for organizational purposes, and is not intended to be used.""",
   'name': 'tem',
   'parents': ['experiments'],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -5036,7 +5060,6 @@ Deprecated; use movie.
 """,
   'name': 'visualization',
   'parents': [],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -5064,7 +5087,6 @@ Note: a PubMed ID or PMCID is sufficient to describe the publication.
 """,
   'name': 'publication',
   'parents': ['information'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Article: {{title_publication}} by {{author_corresponding}}""",
              'tabularview': """{{title_publication}} {{author_first}} {{author_list}} {{journal_date}} {{name_journal}} {{pmid}} {{pmcid}}"""}},
@@ -5090,7 +5112,6 @@ Please use nested projects going forward, instead of subprojects.
 """,
   'name': 'subproject_software',
   'parents': ['project_software'],
-  'private': 0,
   'typicalchld': ['progress_report'],
   'views': { 'recname': """Software project: {{name_project}}""",
              'tabularview': """{{name_project}} {{name_pi}} {{project_investigators}} {{project_type}} {{project_status}} {{project_block}}"""}},
@@ -5126,7 +5147,6 @@ Please use nested projects going forward, instead of subprojects.
 """,
   'name': 'scan',
   'parents': ['image_capture'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Micrograph scan using {{scanner_film}} by {{performed_by}}""",
              'tabularview': """{{scanner_film}} {{scan_average}} {{scanner_cartridge}} {{file_binary_image}} {{scanned_by}}"""}},
@@ -5150,7 +5170,6 @@ Please use nested projects going forward, instead of subprojects.
 """,
   'name': 'camera_maintenance',
   'parents': ['equipment_maintenance'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Camera maintenance: {{service_type}} on {{date_occurred}}"""}},
 
@@ -5169,7 +5188,6 @@ Please use nested projects going forward, instead of subprojects.
 """,
   'name': 'camera',
   'parents': ['equipment'],
-  'private': 0,
   'typicalchld': ['camera_maintenance'],
   'views': { 'recname': """Camera {{ccd_id}}"""}},
 
@@ -5192,7 +5210,6 @@ Please use nested projects going forward, instead of subprojects.
 """,
   'name': 'presentation',
   'parents': ['labnotebook'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Presentation: {{subject_notebook}} by {{author_list}}""",
              'tabularview': """{{subject_notebook}} {{file_binary}} {{author_list}}"""}},
@@ -5210,7 +5227,6 @@ Submit to: {{name_contact}}
 """,
   'name': 'form',
   'parents': ['information'],
-  'private': False,
   'typicalchld': [],
   'views': { 'recname': """Form: {{name_folder}}""",
              'tabularview': """{{name_folder}}"""}},
@@ -5244,7 +5260,6 @@ Store the vessels under the following conditions:
 """,
   'name': 'aliquot',
   'parents': ['purification'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Aliquot: {{id_aliquot}} received by {{name_receiver}} on {{date_received}}""",
              'tabularview': """{{name_receiver}} {{date_received}} {{aliquot_count}} {{volume_aliquot}} {{concentration_solution}} {{id_aliquot}} {{description_aliquot}}"""}},
@@ -5255,7 +5270,6 @@ Store the vessels under the following conditions:
   'mainview': """This protocol is for organizational purposes, and is not intended to be used.""",
   'name': 'freezing',
   'parents': ['tem'],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -5276,7 +5290,6 @@ The structure was completed:
 """,
   'name': 'volume',
   'parents': ['information'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Density map: {{title_structure}}""",
              'tabularview': """{{title_structure}} {{file_binary}}"""}},
@@ -5287,7 +5300,6 @@ The structure was completed:
   'mainview': """Under construction""",
   'name': 'microscopy_2010',
   'parents': ['microscopy'],
-  'private': 0,
   'typicalchld': ['grid_imaging'],
   'views': { 'recname': """JEOL 2010F microscopy session""" }},
 
@@ -5300,7 +5312,6 @@ Deprecated. Use the 'group' protocol.
 """,
   'name': 'all_groups',
   'parents': [],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -5313,7 +5324,6 @@ Deprecated; use project_meeting
 """,
   'name': 'project_discussion',
   'parents': [],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -5323,7 +5333,6 @@ Deprecated; use project_meeting
   'mainview': """This protocol is for organizational purposes, and is not intended to be used.""",
   'name': 'places',
   'parents': ['root'],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -5336,7 +5345,6 @@ Deprecated; use publication_abstract.
 """,
   'name': 'meeting',
   'parents': [],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -5390,7 +5398,6 @@ Use the alignment protocol for the particular microscope to:
 """,
   'name': 'microscopy',
   'parents': ['tem'],
-  'private': 0,
   'typicalchld': ['grid_imaging'],
   'views': { 'recname': """Microscopy: {{parentvalue(tem_name)}} by {{performed_by}} on {{date_start}}: {{description_purpose}}""",
              'tabularview': """{{parentvalue(tem_name)}} {{aperture_condenser}} {{tem_spot_size}} {{aperture_objective}} {{tem_lowdose_method}} {{assess_ice_thick}} {{childcount(image_capture*)}}"""}},
@@ -5455,7 +5462,6 @@ Note: If the vitrobot's humidifier is on, then also set
 """,
   'name': 'grid_cryosection',
   'parents': ['grid_preparation'],
-  'private': False,
   'typicalchld': ['grid_imaging'],
   'views': { 'recname': """Cryo-sectioned grid: {{title_grid}} by {{performed_by}} on {{date_occurred}}""",
              'tabularview': """{{title_grid}} {{vitrobot_time_step}} {{vitrobot_time_blot}} {{vitrobot_blots}} {{vitrobot_blot_offset}} {{vitrobot_humid_on}} {{vitrobot_time_wait}} {{vitrobot_time_drain}} {{vitrobot_level_liquid}}"""}},
@@ -5488,7 +5494,6 @@ Note: If the vitrobot's humidifier is on, then also set
 """,
   'name': 'microscope',
   'parents': ['equipment'],
-  'private': 0,
   'typicalchld': [ 'alignment',
                    'microscope_maintenance',
                    'microscopy'],
@@ -5539,7 +5544,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
 """,
   'name': 'freezing_gatancp3',
   'parents': ['freezing'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Freezing: {{title_freezing}} by {{performed_by}} on {{date_occurred}}"""}},
 
@@ -5578,7 +5582,6 @@ Now use the end of the loading stick to press the grid down on the tip until the
 """,
   'name': 'cryoholder_loading',
   'parents': ['tem'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Cryo-holder loading by {{performed_by}} on {{date_occcurred}}"""}},
 
@@ -5597,7 +5600,6 @@ Note: under construction.
 """,
   'name': 'vitrification_device',
   'parents': ['equipment'],
-  'private': 0,
   'typicalchld': ['vitrobot_maintenance'],
   'views': { 'recname': """Vitrification device"""}},
 
@@ -5610,7 +5612,6 @@ Note: under construction.
 """,
   'name': 'freezing_berriman',
   'parents': ['freezing'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Berriman freezing session"""}},
 
@@ -5633,7 +5634,6 @@ Note: under construction.
 """,
   'name': 'vitrobot_maintenance',
   'parents': ['equipment_maintenance'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Maintenance: {{service_type}} on {{date_occurred}}"""}},
 
@@ -5652,7 +5652,6 @@ Note: under construction.
 """,
   'name': 'scanner',
   'parents': ['equipment'],
-  'private': 0,
   'typicalchld': ['scanner_maintenance'],
   'views': {'recname': """Scanner: {{scanner_film}}"""}},
 
@@ -5684,7 +5683,6 @@ Note: a PubMed ID or PMCID is sufficient to describe the publication.
 """,
   'name': 'reference',
   'parents': ['information'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Reference: {{title_publication}}""",
              'tabularview': """{{title_publication}} {{author_first}} {{author_list}} {{journal_date}} {{name_journal}} {{pmid}} {{pmcid}}"""}},
@@ -5698,7 +5696,6 @@ Deprecated; use stack.
 """,
   'name': 'ccd_tilt_series',
   'parents': [],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -5753,7 +5750,6 @@ This protocol could be improved.
 """,
   'name': 'ccd_james',
   'parents': ['ccd'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """JAMES CCD frame acquired by {{performed_by}} on {{date_occurred}}""",
              'tabularview': """{{dm3_exposure_time}} {{ctf_bfactor}} {{ctf_defocus_measured}} {{tem_magnification_set}}"""}},
@@ -5768,7 +5764,6 @@ Deprecated; use stack.
 """,
   'name': 'ccd_tilt',
   'parents': [],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -5801,7 +5796,6 @@ Note: a PubMed ID or PMCID is sufficient to describe the publication.
 """,
   'name': 'publication_book',
   'parents': ['information', 'publication'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Book: {{name_book}}, {{name_chapter}}""",
              'tabularview': """{{name_chapter}} {{author_first}} {{author_list}} {{name_book}} {{pmid}} {{pmcid}}"""}},
@@ -5859,7 +5853,6 @@ Note: If the vitrobot's humidifier is on, then also set
 """,
   'name': 'grid_preparation',
   'parents': ['tem'],
-  'private': 0,
   'typicalchld': ['grid_imaging'],
   'views': { 'recname': """Grid: {{title_grid}} by {{performed_by}} on {{date_occurred}}""",
              'tabularview': """{{title_grid}} {{vitrobot_time_step}} {{vitrobot_time_blot}} {{vitrobot_blots}} {{vitrobot_blot_offset}} {{vitrobot_humid_on}} {{vitrobot_time_wait}} {{vitrobot_time_drain}} {{vitrobot_level_liquid}}"""}},
@@ -5997,7 +5990,6 @@ Note: If the vitrobot's humidifier is on, then also set
 {{photo_manualexptime?}}:  {{photo_manualexptime}}""",
   'name': 'ccd_jadas',
   'parents': ['ccd'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """JADAS: {{file_binary_image}}""",
              'tabularview': """{{thumbnail()}} {{file_binary_image}} {{ctf_defocus_set}} {{ctf_defocus_measured}} {{tem_magnification_set}} {{ctf_bfactor}} {{time_exposure_tem}} {{tem_dose_rate}} {{assess_image_quality}}"""}},
@@ -6012,7 +6004,6 @@ This protocol is being worked on
 """,
   'name': 'tomography',
   'parents': ['grid_imaging', 'microscopy'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Tomography session""",
              'tabularview': """{{tem_magnification_set}} {{temperature_specimen}} {{ice_type}}"""}},
@@ -6030,7 +6021,6 @@ This protocol is being worked on
 """,
   'name': 'labnotebook',
   'parents': ['information'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Lab notebook: {{subject_notebook}}""",
              'tabularview': """{{subject_notebook}} {{file_binary}}"""}},
@@ -6045,7 +6035,6 @@ Deprecated
 """,
   'name': 'jeoldemo',
   'parents': [],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -6059,7 +6048,6 @@ Deprecated.
 """,
   'name': 'all_microscopes',
   'parents': [],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -6092,7 +6080,6 @@ Obtain blotting paper and puncture it using the puncture tool. Load the blotting
 1. Using the vitrobot tweezers, carefully pick up a treated grid, lock the tweezers and load them into the vitrobot. Load the grid by attaching the tweezers to the vitrobot and then pressing the vitrobot's foot pedal once.  2. Attach a tip to a liquid ethane bottle and pour ethane into the copper circle inside of the vitrobot's rubber holder. Take care that no liquid ethane comes into contact with the liquid nitrogen outside of the copper ring -- contamination may form. 3. Remove the spider and place the rubber holder underneath the vitrobot. Press the foot pedal once for the vitrobot to load the loader. 4. From aliquot, apply {{grid_volume_applied}} ({{grid_volume_applied?}}) sample of in a pipette using the vitrobot's side entry opening.5. Press the foot pedal to have the vitrobot blot the sample. Once blotted, the vitrobot will automatically lower the grid, the tweezers it is attached with, and the rubber holder.6. Remove the tweezers from the vitrobot while keeping the grid submerged in the liquid ethane.  Quickly move the tweezers from the liquid ethane into the liquid nitrogen on the outside of the copper ring.7. Place the grid inside of the grid holder and disengage the tweezers. Remove the loading stick from the {{description_storage}} container and attach the gridholder to it.8. Finally, return the loading stick to the storage container.""",
   'name': 'freezing_vitrobot',
   'parents': ['freezing'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Vitrobot: {{title_freezing}} by {{performed_by}} on {{date_occurred}}""",
              'tabularview': """{{select_technique_freezing}} {{aliquot_used}} {{grids_tem_used}} {{grid_tem_type}} {{vitrification_device}} {{grid_tem_hole_size}} {{id_grid_batch}} {{grid_volume_applied}}"""}},
@@ -6126,7 +6113,6 @@ Obtain blotting paper and puncture it using the puncture tool. Load the blotting
 """,
   'name': 'publication_abstract',
   'parents': ['information', 'publication'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Abstract: {{title_publication}}. {{name_conference}}, {{year_published}}, {{city_conference}}""",
              'tabularview': """{{year_published}} {{author_list}} {{title_publication}} {{name_conference}} {{city_conference}} {{modifytime}}"""}},
@@ -6161,7 +6147,6 @@ For glow discharge, the discharge time is {{time_glowdischarge}}
 {{description_storage?}}: {{description_storage}}""",
   'name': 'freezing_pneumatic',
   'parents': ['freezing'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Pneumatic freezing session: {{title_freezing}} by {{performed_by}} on {{date_occurred}}"""}},
 
@@ -6175,7 +6160,6 @@ Deprecated; use project_meeting
 """,
   'name': 'discussion',
   'parents': [],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -6188,7 +6172,6 @@ Deprecated; use project_meeting
 Description: {{folder_description}}""",
   'name': 'equipment',
   'parents': ['root'],
-  'private': 0,
   'typicalchld': ['equipment_maintenance'],
   'views': { 'recname': """{{name_folder}}"""}},
 
@@ -6212,7 +6195,6 @@ Description: {{folder_description}}""",
 """,
   'name': 'project_software',
   'parents': ['project'],
-  'private': 0,
   'typicalchld': ['progress_report'],
   'views': { 'recname': """Project {{name_project}} ({{name_specimen}})""",
              'tabularview': """{{name_project}} {{name_pi}} {{project_investigators}} {{project_type}} {{project_status}} {{project_block}}"""}},
@@ -6246,7 +6228,6 @@ Additional comments about this reconstruction:
 """,
   'name': 'reconstruction',
   'parents': ['information'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Reconstruction: {{mapname}} ({{resolution_cutoff}})""",
              'tabularview': """{{mapname}} {{comment_reconstruction}} {{angstroms_per_pixel}} {{x_value}} {{y_value}} {{z_value}} {{resolution_cutoff}} {{shell_corr_fourier}}"""}},
@@ -6287,7 +6268,6 @@ Additional comments about this reconstruction:
 {{sequence_protein?}}: {{sequence_protein}} """,
   'name': 'subproject',
   'parents': ['project', 'information'],
-  'private': 0,
   'typicalchld': [ 'project',
                  'labnotebook',
                  'grid_imaging',
@@ -6321,7 +6301,6 @@ This protocol is somewhat deprecated; individual frames are no longer separated 
 """,
   'name': 'stackimage',
   'parents': ['stack'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Slice: tilt angle, {{specimen_tilt}}""",
              'tabularview': """{{thumbnail()}} {{specimen_tilt}} {{stack_data_montage}} {{stack_stagepos}} {{tem_magnification_set}} {{stack_intensity}} {{stack_dose}}"""}},
@@ -6395,7 +6374,6 @@ Remember to deintensify the beam once the ice has been meltedAt this point addit
 """,
   'name': 'ddd',
   'parents': ['image_capture'],
-  'private': False,
   'typicalchld': ['box'],
   'views': { 'recname': """DDD {{creationtime}} by {{creator}}: {{file_binary_image}}""",
              'tabularview': """{{thumbnail(ddd_binary_sum)}} {{ddd_binary_sum}} {{ctf_defocus_set}} {{ctf_defocus_measured}} {{tem_magnification_set}} {{ctf_bfactor}} {{time_exposure_tem}} {{tem_dose_rate}} {{assess_image_quality}}"""}},
@@ -6418,7 +6396,6 @@ Members of this group include:
 """,
   'name': 'working_group',
   'parents': ['information'],
-  'private': 0,
   'typicalchld': ['presentation'],
   'views': { 'recname': """{{comment_purpose}} Working Group""",
              'tabularview': """{{localperson}} {{comment_purpose}}"""}},
@@ -6462,7 +6439,6 @@ Note: If the humidifier is on, then also set
 """,
   'name': 'freezing_gatanmkii',
   'parents': ['freezing'],
-  'private': 0,
   'typicalchld': [],
   'views': {  'recname': """Gatan MkII freezing session: {{title_freezing}} by {{performed_by}} on {{date_occurred}}"""}},
 
@@ -6508,7 +6484,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
 """,
   'name': 'freezing_high_pressure',
   'parents': ['freezing'],
-  'private': False,
   'typicalchld': [],
   'views': { 'recname': """High pressure freezing session: {{title_freezing}} by {{performed_by}} on {{date_occurred}}"""}},
 
@@ -6518,7 +6493,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
   'mainview': """This protocol is for organizational purposes, and is not intended to be used.""",
   'name': 'processing',
   'parents': ['root'],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -6534,7 +6508,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
 """,
   'name': 'progress_report',
   'parents': ['information'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Progress Report by {{performed_by}} on {{date_occurred}}""",
              'tabularview': """{{description_progress}} {{file_binary}}"""}},
@@ -6545,7 +6518,6 @@ Note: If the humidifier is on, then also set{{vitrobot_humidity?}} to {{vitrobot
   'mainview': """This protocol is for organizational purposes, and is not intended to be used.""",
   'name': 'image_capture',
   'parents': ['tem'],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -6559,7 +6531,6 @@ Reserved for future use.
 """,
   'name': 'virus',
   'parents': ['grid_imaging', 'microscopy'],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -6573,7 +6544,6 @@ Reserved for future use
 """,
   'name': 'single_particle',
   'parents': ['grid_imaging', 'microscopy'],
-  'private': 0,
   'typicalchld': [],
   'views': {}},
 
@@ -6598,7 +6568,6 @@ Reserved for future use
 """,
   'name': 'grid_imaging',
   'parents': ['tem'],
-  'private': 0,
   'typicalchld': ['ccd', 'stack', 'micrograph', 'ddd'],
   'views': { 'recname': """Imaging: {{parentvalue(title_grid)}} on {{parentvalue(tem_name,2)}} by {{performed_by}} on {{date_occurred}}: {{childcount(image_capture*)}} images""",
              'tabularview': """{{tem_magnification_set}} {{temperature_specimen}} {{description_purpose}} {{parentvalue(title_freezing)}} {{childcount(image_capture*)}}"""}},
@@ -6679,7 +6648,6 @@ The following values will be harvested from the image stack header.
 """,
   'name': 'stack',
   'parents': ['image_capture', 'tem'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Image Stack: {{stack_size_nx}} x {{stack_size_ny}} x {{stack_size_nz}} ( {{stack_minangle}} : {{stack_maxangle}} )""",
              'tabularview': """{{stack_filename}} {{stack_size_nx}} {{stack_size_ny}} {{stack_size_nz}} {{stack_maxangle}} {{stack_minangle}}"""}},
@@ -6700,7 +6668,6 @@ The following values will be harvested from the image stack header.
 {{file_binary?}}:  {{file_binary}}              """,
   'name': 'structure',
   'parents': ['information'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Structure: {{title_structure}}"""}},
 
@@ -6720,7 +6687,6 @@ Box Coordinates:
 """,
   'name': 'box',
   'parents': ['processing'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """{{box_count}} Boxes""",
              'tabularview': """{{box_size}} {{box_count}}"""}},
@@ -6749,7 +6715,6 @@ Box Coordinates:
 {{agenda}} """,
   'name': 'workshop',
   'parents': ['project'],
-  'private': 0,
   'typicalchld': ['presentation'],
   'views': { 'recname': """{{name_project}} Workshop on {{date_start}}""",
              'tabularview': """{{name_project}} {{date_start}} {{date_end}}"""}},
@@ -6789,7 +6754,6 @@ Box Coordinates:
 """,
   'name': 'purification',
   'parents': ['experiments'],
-  'private': 0,
   'typicalchld': ['aliquot'],
   'views': { 'recname': """Purification: {{title_purification}} by {{creator}} @ {{creationtime}}: {{childcount(aliquot)}} aliquots""",
              'tabularview': """{{date_received}} {{provided_by}} {{name_receiver}} {{title_purification}} {{description_storage_conditions}} {{concentration_solution}} {{childcount(aliquot)}}"""}},
@@ -6811,7 +6775,6 @@ Box Coordinates:
 """,
   'name': 'scanner_maintenance',
   'parents': ['equipment_maintenance'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Scanner maintenance: {{service_type}} on {{service_date}}"""}},
 
@@ -6840,7 +6803,6 @@ Box Coordinates:
 """,
   'name': 'movie',
   'parents': ['information'],
-  'private': 0,
   'typicalchld': [],
   'views': { 'recname': """Visualization: {{visualization_name}} ({{visualization_length}}) by {{performed_by}} (status: {{project_status}})""",
              'tabularview': """{{visualization_name}} {{visualization_length}} {{project_status}} {{date_due}}"""}},
@@ -6910,7 +6872,6 @@ Remember to deintensify the beam once the ice has been meltedAt this point addit
 """,
   'name': 'ccd',
   'parents': ['image_capture'],
-  'private': 0,
   'typicalchld': ['box'],
   'views': { 'defaultview': """
 # CCD Frame
@@ -7015,7 +6976,6 @@ Remember to deintensify the beam once the ice has been meltedAt this point addit
 """,
   'name': 'micrograph',
   'parents': ['image_capture'],
-  'private': 0,
   'typicalchld': ['scan'],
   'views': { 'recname': """Micrograph {{id_micrograph}}""",
              'tabularview': """{{id_micrograph}} {{ctf_defocus_set}} {{ctf_defocus_measured}} {{tem_magnification_set}} {{ctf_bfactor}} {{time_exposure_tem}} {{tem_dose_rate}} {{assess_image_quality}} {{childcount(scan)}}"""}}  
