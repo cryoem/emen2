@@ -406,7 +406,7 @@ class Property(object):
         return v.toval()
 
     def error(self, units, target, msg=None):
-        return ValueError("Couldn't convert %s to %s: %s"%(units, target, msg or ''))
+        return ValueError("Could not convert %s to %s: %s"%(units, target, msg or ''))
 
     def unknown(self, units, target):
         raise ValueError("Don't know how to convert %s to %s."%(units, target))

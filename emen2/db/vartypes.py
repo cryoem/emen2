@@ -27,6 +27,7 @@ from markupsafe import Markup, escape
 import emen2.db.log
 import emen2.db.exceptions
 import emen2.utils
+import emen2.db.config
 
 # Convenience
 tzutc = dateutil.tz.tzutc()
@@ -195,6 +196,9 @@ class Vartype(object):
         """
         raise self.error("%s is an internal or organizational parameter, and is not intended to be used."%self.name, cls=NotImplementedError)
 
+    def warn(self, error):
+        emen2.db.log.warn("Validation: %s: %s"%(self.name, error))
+
     def error(self, error, cls=None):
       cls = cls or ValidationError
       return cls("%s: %s"%(self.name, error))
@@ -209,6 +213,7 @@ class Vartype(object):
     # Validation helpers.
     def _validate_reference(self, value, keytype=None):
         # Validate a reference to another database object.
+        allow_invalid_reference = emen2.db.config.get('validation.allow_invalid_reference'):
         ret = []
         changed = False
         key = ('%s.names'%keytype,)
@@ -224,8 +229,8 @@ class Vartype(object):
                 ret.append(i)
                 found.add(i)
                 changed = True
-            elif ALLOW_MISSING:
-                emen2.db.log.warn("Validation: %s: Could not find, but allowing: %s"%(self.name, i))
+            elif allow_invalid_reference:
+                self.warn("Could not find, but allowing: %s"%(i))
                 ret.append(i)
             else:
                 raise self.error("Could not find: %s"%(i))
@@ -366,11 +371,21 @@ class vt_string(vt_base_keywords):
 class vt_choice(vt_base_keywords):
     """One value from a defined list of choices."""
     def validate(self, value):
+        allow_invalid_choice = emen2.db.config.get('validation.allow_invalid_choice'):
+        ret = []
         value = [unicode(i).strip() for i in ci(value)]
-        for v in value:
-            if v not in self.choices:
-                raise self.error("Invalid choice: %s"%(v))
-        return self._rci(value)
+        for v in ci(value):
+            v = unicode(i).strip()
+            for check in self.choices:
+                if v.lower() == check.lower():
+                    ret.append(check)
+                    break
+            else:
+                if allow_invalid_choice:
+                    self.warn("Invalid choice, but allowing: %s"%(v))
+                else:
+                    raise self.error("Invalid choice: %s"%(v))
+        return self._rci(ret)
 
     def _form(self, value):
         choices = []

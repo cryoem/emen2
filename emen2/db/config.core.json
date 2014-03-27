@@ -145,6 +145,11 @@
         "sequence": true,
         "root": "root"
     },
+    
+    "validation": {
+        "allow_invalid_choice": false,
+        "allow_invalid_reference": false
+    },
 
     // User settings
     "users":{

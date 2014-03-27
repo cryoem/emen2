@@ -48,7 +48,7 @@ class Loader(object):
             try:
               r = dbenv[keytype].put(item, ctx=ctx, txn=txn)
             except Exception, e:
-              print "Couldn't load %s %s:"%(keytype, name), e
+              print "Could not load %s %s:"%(keytype, name), e
             count += 1
             
         keys = set(dbenv[keytype].filter(ctx=ctx, txn=txn))
@@ -109,7 +109,7 @@ class RawLoader(Loader):
                 r = dbenv[keytype]._put(r, ctx=ctx, txn=txn)
                 # print r.data
             except Exception, e:
-                print "Couldn't load...", e
+                print "Could not load...", e
             count += 1
             
         for k,v in children.items():
@@ -117,13 +117,13 @@ class RawLoader(Loader):
                 try:
                     dbenv[keytype].pclink(k, v2, ctx=ctx, txn=txn)
                 except Exception, e:
-                    print "Couldn't link:", k, v2
+                    print "Could not link:", k, v2
         for k,v in parents.items():
             for v2 in v:
                 try:
                     dbenv[keytype].pclink(v2, k, ctx=ctx, txn=txn)
                 except Exception, e:
-                    print "Couldn't link:", v2, k
+                    print "Could not link:", v2, k
 
         t = time.time()-t
         s = float(count) / t

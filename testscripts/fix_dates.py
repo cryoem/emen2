@@ -15,7 +15,7 @@ def parseutc(d):
     try:
         t = dateutil.parser.parse(d, default=default)
     except ValueError, e:
-        print "Couldn't parse:", d, e
+        print "Could not parse:", d, e
         return
     if not t.tzinfo:
         t = t.replace(tzinfo=tzlocal)
@@ -27,7 +27,7 @@ def parselocal(d):
     try:
         t = dateutil.parser.parse(d, default=default)
     except ValueError, e:
-        print "Couldn't parse:", d, e
+        print "Could not parse:", d, e
         return
     if not t.tzinfo:
         t = t.replace(tzinfo=tzlocal)

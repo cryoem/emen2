@@ -726,7 +726,8 @@ paramdefs = [
   'property': 'count',
   'vartype': 'int'},
 
- {'choices': ['Gain Normalized', 'Dark Subtracted', 'Unprocessed'],'desc_long': 'Frame type',
+ {'choices': ['Gain Normalized', 'Dark Subtracted', 'Unprocessed'],
+  'desc_long': 'Frame type',
   'desc_short': 'Frame type',
   'keytype': 'paramdef',
   'name': 'type_frame',

@@ -82,7 +82,7 @@ class EMDataBuilder(object):
             # print "Removing tmpdir:", self.tmpdir
             os.rmdir(self.tmpdir)
         except:
-            # print "Couldn't remove tmpdir: ", self.tmpdir
+            # print "Could not remove tmpdir: ", self.tmpdir
             pass
         
         # print ret

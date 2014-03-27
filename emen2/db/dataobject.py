@@ -101,6 +101,7 @@ class BaseDBObject(object):
         self.data['modifyuser'] = None
         self.data['creationtime'] = t
         self.data['modifytime'] = t
+        self.data['hidden'] = None
     
     def validate(self):
         """Validate."""
@@ -236,6 +237,9 @@ class BaseDBObject(object):
         
     def _set_uri(self, key, value):
         self._set(key, value, self.isnew())
+
+    def _set_hidden(self, key, value):
+        self._set(key, value, self.isowner())
 
     def _set_keytype(self, key, value):
         pass

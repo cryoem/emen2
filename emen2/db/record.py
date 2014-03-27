@@ -85,7 +85,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         # comments, history, and other param values
         self.data['comments'] = []
         self.data['history'] = []
-        self.data['hidden'] = None
 
     def validate(self):
         """Validate the record before committing."""
@@ -101,7 +100,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
             except KeyError:
                 raise self.error('No such protocol: %s'%self.rectype)
             self.ctx.cache.store(cachekey, rd)
-
         # for param in rd.paramsR:
         #     if self.get(param) is None:
         #         raise self.error("Required parameter: %s"%(param))
@@ -109,12 +107,9 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
     ##### Setters #####
     
-    def _set_hidden(self, key, value):
-        self._set(key, value, self.isowner())
-    
     def _set_rectype(self, key, value):
         if not self.isnew():
-            raise self.error("Cannot change rectype from %s to %s."%(self.rectype, value))
+            raise self.error("Cannot change protocol from %s to %s."%(self.rectype, value))
         self._set(key, self._strip(value), self.isowner())
         
     def _set_comments(self, key, value):
@@ -127,13 +122,10 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         if not self.writable():
             msg = "Insufficient permissions to change param %s"%key
             raise self.error(msg, e=emen2.db.exceptions.PermissionsError)
-
         value = self._validate(key, value)
-
         # No change
         if self.data.get(key) == value:
             return
-
         # Really set the value
         self._addhistory(key)
         self.data[key] = value
@@ -158,7 +150,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         """
         if not self.commentable():
             raise self.error('Insufficient permissions to add comment.', e=emen2.db.exceptions.PermissionsError)
-
         if not value:
             return
         
@@ -175,20 +166,15 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
             if c and c not in existing:
                 newcomments.append(unicode(c))
 
-        # newcomments2 = []
-        # updvalues = {}
         for value in newcomments:
             d = {}
             if not value.startswith("LOG"): # legacy fix..
                 d = emen2.db.recorddef.parseparmvalues(value)[1]
-
             if d.has_key("comments"):
                 # Always abort
                 raise self.error("Cannot set comments inside a comment.", warning=False)
-
             # Now update the values of any embedded params
             for i,j in d.items():
                 self.__setitem__(i, j)
-
             # Store the comment string itself
             self.data['comments'].append((unicode(self.ctx.user), unicode(emen2.db.database.utcnow()), unicode(value)))

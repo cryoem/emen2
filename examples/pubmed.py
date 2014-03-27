@@ -60,7 +60,7 @@ def medline_map(pubmed_pub):
                 }
         ret['journal_date'] = "%04d-%02d-%02dT00:00:00+00:00"%(int(d.get('Year', 1)), int(d_month.get(d.get('Month'), 1)), int(d.get('Day',1)))
     except Exception, e:
-        print "Couldn't find the date, because evil:", e
+        print "Could not find the date, because evil:", e
     
     if article.get('Journal'):
         ret['name_journal'] = article['Journal'].get('Title')
@@ -150,7 +150,7 @@ if __name__ == "__main__":
             try: 
                 print format_pub(pub)
             except Exception, e:
-                print "Couldn't print %s: "%pub.get('name'), e
+                print "Could not print %s: "%pub.get('name'), e
                 print "\tRecord ->", pub
 
     if "update" in args.commands:
@@ -171,7 +171,7 @@ if __name__ == "__main__":
             try:
                 r = medline_map(pubmed_pub)
             except Exception, e:
-                print "Couldn't map %s:"%pub['pmid'], e
+                print "Could not map %s:"%pub['pmid'], e
                 continue
             
             pub.update(r)

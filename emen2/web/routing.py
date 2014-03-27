@@ -188,7 +188,7 @@ class _Router(emen2.web.registry.Registry):
             try:
                 makot = emen2.db.config.templates.get_template(template)
             except Exception, e:
-                emen2.db.log.error("Couldn't render template %s: %s"%(template, e))
+                emen2.db.log.error("Could not render template %s: %s"%(template, e))
             route = cls.registry.get('TemplateRender/main')
             f = partial(route.method, template=template)
             return route.cls, f

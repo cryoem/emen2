@@ -229,19 +229,19 @@ class EMEN2DBEnv(object):
         try:
             shutil.move(source, dest)
         except Exception, e:
-            emen2.db.log.error("TXN CB: Couldn't rename file %s -> %s"%(source, dest))
+            emen2.db.log.error("TXN CB: Could not rename file %s -> %s"%(source, dest))
 
     def _txncb_email(self, *args, **kwargs):
         try:
             emen2.db.database.sendmail(*args, **kwargs)
         except Exception, e:
-            emen2.db.log.error("TXN CB: Couldn't send email: %s"%e)
+            emen2.db.log.error("TXN CB: Could not send email: %s"%e)
             
     def _txncb_thumbnail(self, bdo):
         try:
             emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
         except Exception, e:
-            emen2.db.log.error("TXN CB: Couldn't start thumbnail builder")
+            emen2.db.log.error("TXN CB: Could not start thumbnail builder")
     
     ##### Log archive #####
 

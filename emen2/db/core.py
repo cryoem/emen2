@@ -93,6 +93,7 @@ base_paramdefs = [
     {"name": "address_street", "vartype": "string", "keytype": "paramdef", "parents": ["base"], "desc_short": "Street address"},
     {"name": "address_street2", "vartype": "string", "keytype": "paramdef", "parents": ["base"], "desc_short": "Street address (2)"},
     {"name": "address_zipcode", "vartype": "string", "keytype": "paramdef", "parents": ["base"], "desc_short": "Zip code"},
+    {"name": "address_international", "vartype": "string", "keytype": "paramdef", "parents": ["base"], "desc_short": "International address"},
     {"name": "date_end", "vartype": "datetime", "keytype": "paramdef", "parents": ["base"], "desc_short": "Date ended"},
     {"name": "date_occurred", "vartype": "datetime", "keytype": "paramdef", "parents": ["base"], "desc_short": "Date occurred"},
     {"name": "date_start", "vartype": "datetime", "keytype": "paramdef", "parents": ["base"], "desc_short": "Date started"},
@@ -113,7 +114,7 @@ base_paramdefs = [
     {"name": "project_block", "desc_long": "This person is responsible for the next progress in this project. It should be updated to reflect who is currently responsible for periodic progress updates. This field should not relate to authorship expectations.", "keytype": "paramdef", "iter": True, "parents": ["base"], "vartype": "user", "desc_short": "Current workflow"},
     {"name": "project_investigators", "desc_long": "Project Investigators", "keytype": "paramdef", "iter": True, "parents": ["base"], "vartype": "user", "desc_short": "Investigators"},
     {"name": "project_status", "keytype": "paramdef", "parents": ["base"], "vartype": "choice", "desc_short": "Project status", "desc_long": "The current state of this project", "choices": ["Rejected", "Indefinite Hold", "Wait for Sample", "Complete", "Screening", "Analysis", "Imaging", "Manuscript Prep.", "In Progress"]},
-    {"name": "project_type", "keytype": "paramdef", "choices": ["N/A", "Service", "Collaborative", "Core"], "parents": ["base"], "vartype": "choice", "desc_short": "Project type", "desc_long": "Project type"},
+    {"name": "project_type", "keytype": "paramdef", "choices": ["N/A", "Service", "Collaborative", "Core", "Unkown"], "parents": ["base"], "vartype": "choice", "desc_short": "Project type", "desc_long": "Project type"},
     {"name": "website", "vartype": "uri", "keytype": "paramdef", "parents": ["base"], "desc_short": "Website"},
 ]
 
