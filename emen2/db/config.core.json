@@ -148,7 +148,8 @@
     
     "validation": {
         "allow_invalid_choice": false,
-        "allow_invalid_reference": false
+        "allow_invalid_reference": false,
+        "allow_invalid_email": false
     },
 
     // User settings

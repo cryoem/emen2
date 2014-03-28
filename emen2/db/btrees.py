@@ -981,7 +981,7 @@ class SequenceDB(object):
         val = int(val)
         
         self.bdb.put(key, str(val+delta), txn=txn)
-        emen2.db.log.debug("BDB: %s sequence: %s -> %s"%(self.filename, val, val+delta))
+        emen2.db.log.debug("BDB: %s sequence: %s: %s -> %s"%(self.filename, val, key, val+delta))
         return val
 
     def max(self, key="sequence", txn=None):
@@ -994,6 +994,14 @@ class SequenceDB(object):
             sequence = 0
         val = int(sequence)
         return val
+    
+    def set(self, key="sequence", value=None, txn=None):
+        """Manually update."""
+        value = str(int(value)+1)
+        self.bdb.put(key, value, txn=txn)
+        emen2.db.log.debug("BDB: %s set sequence: %s: %s"%(self.filename, key, value))
+        return value
+        
 
 class IndexDB(object):
     # A secondary index. Also used for relationships.

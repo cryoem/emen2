@@ -134,7 +134,8 @@ if __name__ == "__main__":
     opts = emen2.db.config.DBOptions()
     opts.add_argument('--raw', action='store_true', help='Raw load; no validation.')
     opts.add_argument('--keytype', action='append')
-    opts.add_argument('files', nargs='+')
+    opts.add_argument('--update_record_max', action='store_true')    
+    opts.add_argument('files', nargs='*')
     args = opts.parse_args()
     
     keytypes = ['paramdef', 'recorddef', 'user', 'group', 'binary', 'record']
@@ -152,4 +153,15 @@ if __name__ == "__main__":
             loader = lc(db=db, infile=f)
             for keytype in keytypes:
                 loader.load(keytype=keytype)
+    
+    if args.update_record_max:
+        # Hacky... :(
+        with db:
+            keys = db._db.dbenv['record'].keys(txn=db._txn)
+            ki = []
+            for key in keys:
+                try: ki.append(int(key))
+                except: pass
+            print "Max key?", max(ki)
+            db._db.dbenv['record']._getseq(txn=db._txn).set('sequence', max(ki))
         

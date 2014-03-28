@@ -5,6 +5,8 @@
 {"name": "address_street", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/address_street/", "parents": ["base"], "vartype": "string", "desc_short": "Street address"}
 {"name": "address_street2", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/address_street2/", "parents": ["base"], "vartype": "string", "desc_short": "Street address (2)"}
 {"name": "address_zipcode", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/address_zipcode/", "parents": ["base"], "vartype": "string", "desc_short": "Zip code"}
+{"name": "address_international", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/address_international/", "parents": ["base"], "vartype": "string", "desc_short": "International address"}
+{"name": "country", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/country/", "parents": ["base"], "vartype": "string", "desc_short": "Country"}
 {"name": "date_end", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/date_end/", "parents": ["base"], "vartype": "datetime", "desc_short": "Date ended"}
 {"name": "date_occurred", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/date_occurred/", "parents": ["base"], "vartype": "datetime", "desc_short": "Date occurred"}
 {"name": "date_start", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/date_start/", "parents": ["base"], "vartype": "datetime", "desc_short": "Date started"}
@@ -25,7 +27,7 @@
 {"name": "project_block", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/project_block/", "iter": true, "vartype": "user", "parents": ["base"], "desc_short": "Current workflow", "desc_long": "This person is responsible for the next progress in this project. It should be updated to reflect who is currently responsible for periodic progress updates. This field should not relate to authorship expectations."}
 {"name": "project_investigators", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/project_investigators/", "iter": true, "vartype": "user", "parents": ["base"], "desc_short": "Investigators", "desc_long": "Project Investigators"}
 {"name": "project_status", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/project_status/", "choices": ["Rejected", "Indefinite Hold", "Wait for Sample", "Complete", "Screening", "Analysis", "Imaging", "Manuscript Prep.", "In Progress"], "vartype": "choice", "parents": ["base"], "desc_short": "Project status", "desc_long": "The current state of this project"}
-{"name": "project_type", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/project_type/", "choices": ["N/A", "Service", "Collaborative", "Core"], "vartype": "choice", "parents": ["base"], "desc_short": "Project type", "desc_long": "Project type"}
+{"name": "project_type", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/project_type/", "choices": ["N/A", "Service", "Collaborative", "Core", "Unkown"], "vartype": "choice", "parents": ["base"], "desc_short": "Project type", "desc_long": "Project type"}
 {"name": "website", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/website/", "parents": ["base"], "vartype": "uri", "desc_short": "Website"}
 {"name": "base", "mainview": "Base protocols.", "keytype": "recorddef", "uri": "http://ncmidb.bcm.edu/recorddef/base/", "parents": ["root"], "desc_short": "Base protocols"}
 {"name": "experiments", "mainview": "Experimental protocols.", "keytype": "recorddef", "uri": "http://ncmidb.bcm.edu/recorddef/experiments/", "parents": ["root"], "desc_short": "Experimental protocols"}

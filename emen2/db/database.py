@@ -589,13 +589,13 @@ class DB(object):
         try:
             user.login(password, events=events)
         except DisabledUserError, e:
-            emen2.db.log.security("LOGIN: Login failed: Disabled user: %s"%(user.name))
+            emen2.db.log.security("Login failed: Disabled user: %s"%(user.name))
             raise DisabledUserError
         except InactiveAccount, e:
-            emen2.db.log.security("LOGIN: Login failed: Inactive user: %s"%(user.name))
+            emen2.db.log.security("Login failed: Inactive user: %s"%(user.name))
             raise InactiveAccount
         except AuthenticationError, e:
-            emen2.db.log.security("LOGIN: Login failed: Bad password: %s"%(user.name))                
+            emen2.db.log.security("Login failed: Bad password: %s"%(user.name))                
             # Block based on the attempted login name, not user.name;
             #   prevents cross-checking of user name and email.
             self._auth_login_addrate(username)
@@ -614,7 +614,7 @@ class DB(object):
         events.addhistory(user=user.name, param='context', value=newcontext.name)
         self.dbenv._user_history._put(events, txn=txn)
 
-        emen2.db.log.security("LOGIN: Login succeeded: %s -> %s" % (newcontext.username, newcontext.name))
+        emen2.db.log.security("Login succeeded: %s -> %s" % (newcontext.username, newcontext.name))
         return newcontext.name
 
     @publicmethod(write=True, compat="logout")
@@ -632,7 +632,7 @@ class DB(object):
             self.dbenv._context.bdb.delete(ctx.name, txn=txn)
         else:
             raise SessionError("Session expired.")
-        emen2.db.log.security("LOGIN: Logout succeeded: %s" % (ctx.name))
+        emen2.db.log.security("Logout succeeded: %s" % (ctx.name))
 
     @publicmethod(compat="checkcontext")
     def auth_check_context(self, ctx=None, txn=None):
@@ -1719,7 +1719,7 @@ class DB(object):
             user.setemail(email, secret=secret, password=password)
             user_secret = getattr(user, 'secret', None)
         except SecurityError, e:
-            emen2.db.log.security('SETEMAIL: Failed to change email for %s: %s'%(user.name, e))
+            emen2.db.log.security('Failed to change email for %s: %s'%(user.name, e))
             raise e
 
         # If there is no mail server configured, go ahead and set email.
@@ -1735,7 +1735,7 @@ class DB(object):
         # Send out confirmation or verification email.
         if user.email == oldemail:
             # Need to verify email address change by receiving secret.
-            emen2.db.log.security("SETEMAIL: Sending email verification for user %s to %s"%(user.name, email))
+            emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, email))
             self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
 
             # Send the verify email containing the auth token
@@ -1744,7 +1744,7 @@ class DB(object):
 
         else:
             # Verified with secret.
-            emen2.db.log.security("SETEMAIL: Changing email for user %s to %s"%(user.name, user.email))
+            emen2.db.log.security("Changing email for user %s to %s"%(user.name, user.email))
             self.dbenv['user']._put(user, ctx=ctx, txn=txn)
             # Send the user an email to acknowledge the change
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/email.verified', 'ctxt':ctxt})
@@ -1766,7 +1766,7 @@ class DB(object):
         events.prunehistory(param='password')
         events.addhistory(user=user.name, param='password', value=user.password, timestamp='1900-01-01T00:00:00Z+00:00')
 
-        emen2.db.log.security("EXPIREPASSWORD: Expiring password for %s"%user.name)
+        emen2.db.log.security("Expiring password for %s"%user.name)
         self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
         self.dbenv._user_history._put(events, txn=txn)
 
@@ -1813,11 +1813,11 @@ class DB(object):
         try:
             user.setpassword(newpassword, password=password, secret=secret, events=events)
         except SecurityError, e:
-            emen2.db.log.security('SETPASSWORD: Failed to change password for %s: %s'%(user.name, e))
+            emen2.db.log.security('Failed to change password for %s: %s'%(user.name, e))
             raise e
 
         # Save the user. Don't use regular .put(), it will fail on setting pw.
-        emen2.db.log.security("SETPASSWORD: Changing password for %s"%user.name)
+        emen2.db.log.security("Changing password for %s"%user.name)
         self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
 
         # Save the user events.
@@ -1867,7 +1867,7 @@ class DB(object):
         ctxt['secret'] =  user.secret[2]
         ctxt['name'] = user.name
         self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/password.reset', 'ctxt':ctxt})
-        emen2.db.log.security("RESETPASSWORD: Setting resetpassword secret for %s"%user.name)        
+        emen2.db.log.security("Setting resetpassword secret for %s"%user.name)        
         return self.dbenv["user"].get(user.name, ctx=ctx, txn=txn)
 
     ##### New Users #####

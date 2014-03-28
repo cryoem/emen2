@@ -42,9 +42,9 @@ NONE_VALUES = [None, "", "N/A", "n/a", "None"]
 
 # ParamDef / Vartype cache.
 # Load EMEN2 Core ParamDefs...
-import emen2.db.core
+import emen2.db.core_schema
 VARTYPE_CACHE = {}
-for i in emen2.db.core.core_paramdefs:
+for i in emen2.db.core_schema.core_paramdefs:
     VARTYPE_CACHE[i['name']] = i
 
 ##### Helper methods #####
@@ -612,11 +612,12 @@ class vt_time(vt_datetime):
 class vt_email(vt_base):
     """String."""
     def validate(self, value):
+        allow_invalid_email = emen2.db.config.get('validation.allow_invalid_email')
         ret = []
         for i in ci(value):
             _, i = email.utils.parseaddr(unicode(i))
             i = value.strip().lower()
-            if '@' not in i:
+            if '@' not in i and not allow_invalid_email:
                 raise self.error("Invalid email: %s"%(i))
             ret.append(i)
         return self._rci(ret)
