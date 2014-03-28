@@ -213,7 +213,7 @@ class Vartype(object):
     # Validation helpers.
     def _validate_reference(self, value, keytype=None):
         # Validate a reference to another database object.
-        allow_invalid_reference = emen2.db.config.get('validation.allow_invalid_reference'):
+        allow_invalid_reference = emen2.db.config.get('validation.allow_invalid_reference')
         ret = []
         changed = False
         key = ('%s.names'%keytype,)
@@ -371,7 +371,7 @@ class vt_string(vt_base_keywords):
 class vt_choice(vt_base_keywords):
     """One value from a defined list of choices."""
     def validate(self, value):
-        allow_invalid_choice = emen2.db.config.get('validation.allow_invalid_choice'):
+        allow_invalid_choice = emen2.db.config.get('validation.allow_invalid_choice')
         ret = []
         value = [unicode(i).strip() for i in ci(value)]
         for v in ci(value):
@@ -382,7 +382,7 @@ class vt_choice(vt_base_keywords):
                     break
             else:
                 if allow_invalid_choice:
-                    self.warn("Invalid choice, but allowing: %s"%(v))
+                    self.warn    ("Invalid choice, but allowing: %s"%(v))
                 else:
                     raise self.error("Invalid choice: %s"%(v))
         return self._rci(ret)

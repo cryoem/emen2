@@ -600,6 +600,7 @@ class CollectionDB(object):
         self.bdb.put(self.keydump(item.name), self.datadump(item.data), txn=txn)
 
         # Reindex
+        exclude_keywords = ['creationtime', 'modifytime', 'creator', 'modifyuser', 'name', 'uri', 'keytype', 'hidden', 'permissions', 'groups']
         okw = set()
         nkw = set()
         for k in set(old.keys() + item.keys()):
@@ -607,7 +608,8 @@ class CollectionDB(object):
             if not ind:
                 continue
             a, b = ind.reindex(item.name, old.get(k), item.get(k), txn=txn)
-            if ind.param not in ['creationtime', 'modifytime']:
+            # Exclude most of the base parameters from keywords...
+            if ind.param not in exclude_keywords:
                 okw |= a
                 nkw |= b
 
@@ -1137,15 +1139,36 @@ class IndexDB(object):
         return [(self.keyload(i[0]), i[1]) for i in r]
     
     def get(self, key, txn=None):
-        cursor = index.cursor(txn=txn)        
-        r = []
-        c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
-        m = cursor.next_dup
-        while c:
-            r.append(c)
-            n = m()
+        cursor = self.bdb.cursor(txn=txn)        
+        r = self._get_cursor(key, cursor)
         cursor.close()
         return r
+        
+    def _keys(self, txn=None):    
+        cursor = self.bdb.cursor(txn=txn)
+        c = cursor.get(flags=bsddb3.db.DB_FIRST)
+        key = c[0]
+        while c:
+            if c[0] != key:
+                yield key
+                key = c[0]
+            c = cursor.get(flags=bsddb3.db.DB_NEXT)
+        cursor.close()  
+    
+    def _items(self, txn=None):
+        cursor = self.bdb.cursor(txn=txn)
+        c = cursor.get(flags=bsddb3.db.DB_FIRST)
+        key = c[0]
+        v = []
+        while c:
+            if c[0] == key:
+                v.append(c[1])
+            else:
+                yield key, v
+                key = c[0]
+                v = [c[1]]
+            c = cursor.get(flags=bsddb3.db.DB_NEXT)
+        cursor.close()  
     
     ##### Begin a bunch of repetitive code to iterate through cursor in various ways #####
 

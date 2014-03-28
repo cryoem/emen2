@@ -94,6 +94,7 @@ base_paramdefs = [
     {"name": "address_street2", "vartype": "string", "keytype": "paramdef", "parents": ["base"], "desc_short": "Street address (2)"},
     {"name": "address_zipcode", "vartype": "string", "keytype": "paramdef", "parents": ["base"], "desc_short": "Zip code"},
     {"name": "address_international", "vartype": "string", "keytype": "paramdef", "parents": ["base"], "desc_short": "International address"},
+    {"name": "country", "vartype": "string", "keytype": "paramdef", "parents": ["base"], "desc_short": "Country"},
     {"name": "date_end", "vartype": "datetime", "keytype": "paramdef", "parents": ["base"], "desc_short": "Date ended"},
     {"name": "date_occurred", "vartype": "datetime", "keytype": "paramdef", "parents": ["base"], "desc_short": "Date occurred"},
     {"name": "date_start", "vartype": "datetime", "keytype": "paramdef", "parents": ["base"], "desc_short": "Date started"},
