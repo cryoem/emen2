@@ -34,8 +34,7 @@ class Tree(View):
         # Expand all nodes. -3 turns into -1...
         if action=="expand" or recurse == -1:
             recurse = -3
-
-
+            
         # add 2 to recurse to get enough info to draw the next level
         if mode == "children":
             tree = self.db.rel.rel([root], rel="children", recurse=recurse+2, keytype=keytype, tree=True)

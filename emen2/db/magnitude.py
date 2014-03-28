@@ -912,8 +912,7 @@ class Magnitude:
         1.4142 m0.5 / s0.5
         """
         return self ** 0.5
-        
-    
+            
 # Some helper functions
 
 def mg(v, unit='', ounit=''):

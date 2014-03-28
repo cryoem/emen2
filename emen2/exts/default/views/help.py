@@ -7,5 +7,4 @@ class Help(View):
     def main(self, **kwargs):
         self.title = "Help"
         self.template = "/pages/help"
-        
-        
+            

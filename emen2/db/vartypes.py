@@ -200,8 +200,8 @@ class Vartype(object):
         emen2.db.log.warn("Validation: %s: %s"%(self.name, error))
 
     def error(self, error, cls=None):
-      cls = cls or ValidationError
-      return cls("%s: %s"%(self.name, error))
+        cls = cls or ValidationError
+        return cls("%s: %s"%(self.name, error))
 
     # def validate(self, pd, value):
     #     if value in NONE_VALUES:

@@ -183,8 +183,7 @@ class EMDataBuilder(object):
                 header['fixed'][f] = self.build_fixed(img, tilesize=f, nz=nz, index=index)
 
         return header
-        
-        
+            
     def build_tiles(self, img, nz=1, index=0, tilesize=256):
         '''Build tiles for a 2D slice.'''
         # Work with a copy of the EMData
@@ -218,8 +217,7 @@ class EMDataBuilder(object):
             img2.process_inplace("math.meanshrink",{"n":2})
 
         return tile_dict
-
-        
+            
     def build_fixed(self, img, tilesize=256, nz=1, index=0):
         """Build a thumbnail of a 2D EMData."""
         # Output files
@@ -253,8 +251,7 @@ class EMDataBuilder(object):
             img2.write_image(self.copyout[tilesize])
 
         return [fsp, None, 'jpg', img2.get_xsize(), img2.get_ysize()]
-
-    
+            
     def build_pspec(self, img, tilesize=512, nz=1, index=0):
         """Build a 2D FFT and 1D rotationally averaged power spectrum of a 2D EMData."""
         
@@ -334,5 +331,4 @@ class MicrographHandler(EMDataHandler):
 # IMPORTANT -- Do not change this.
 if __name__ == "__main__":
     emen2.db.handlers.main(globals())
-
-    
+            

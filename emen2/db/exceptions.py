@@ -12,15 +12,11 @@ class EMEN2Exception(Exception):
 class SecurityError(EMEN2Exception):
     """Security error."""
     code = 401
-
-
-
+            
 ##### Permissions error. #####
 class PermissionsError(SecurityError):
     """Insufficient permissions."""
-
-
-
+            
 ##### Authentication errors. #####
 class AuthenticationError(SecurityError):
     """Invalid account name or password."""
@@ -38,9 +34,7 @@ class InactiveAccount(AuthenticationError):
 
 class DisabledUserError(AuthenticationError):
     """Disabled user."""
-
-    
-
+            
 ##### Password setting errors. #####
 class PasswordReset(SecurityError):
     """Invalid password."""
@@ -53,23 +47,18 @@ class ExpiredPassword(PasswordReset):
 
 class RecycledPassword(PasswordReset):
     """Recycled password."""
-    
-    
-    
+            
 ##### Validation Errors #####
 class ValidationError(EMEN2Exception):
     """Validation error."""
 
 class ExistingKeyError(EMEN2Exception):
     """This account name or email is already in use."""
-
-
-
+            
 ##### Time out #####
 class TimeOutError(EMEN2Exception):
     """Operation timed out."""
-
-
+            
 ##### Email #####
 class EmailError(EMEN2Exception):
     """There was a problem sending an email."""

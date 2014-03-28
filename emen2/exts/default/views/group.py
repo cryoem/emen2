@@ -68,5 +68,4 @@ class Group(View):
         group = self.db.group.put(group)
         self.ctxt['group'] = group
         self.redirect('/group/%s/'%group.name)
-
-        
+            

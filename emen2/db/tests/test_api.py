@@ -75,8 +75,7 @@ class RunTests(object):
     def coverage(self):
         for k,c in self.__tests.items():
             print c(db=self.db)._tests()
-
-
+            
 register = RunTests.register
 test = RunTests.test
 
@@ -1407,8 +1406,7 @@ class RelFind(Test):
         # expect = set()
         # assert not found ^ expect
         # self.ok('binary', len(found))
-
-
+            
 @register
 class Macro(Test):
     @test
@@ -1589,8 +1587,7 @@ class Render(Test):
         rec = self.db.record.put(rec)        
         print "edit?"
         print self.db.view(rec.name, viewname='mainview', options={'output':'form', 'markdown':True})
-
-
+            
 ######################################
         
 @register
@@ -1704,8 +1701,7 @@ class DebugIndex(Test):
             found = [i[param] for i in self.db.record.get(r)]
             self.check(found, expect)
         self.ok("any")
-
-
+            
     @test
     def debugindex1(self):
         pd = self.db.paramdef.new(vartype="string", desc_short=randword())
@@ -1763,8 +1759,6 @@ class DebugIndex(Test):
             self.check(found, expect)
         self.ok("starts")
             
-
-
 ######################################
 
 def main():
@@ -1814,7 +1808,6 @@ def main():
     
     if dbtmp:
         shutil.rmtree(dbtmp)
-
-
+            
 if __name__ == "__main__":
     main()

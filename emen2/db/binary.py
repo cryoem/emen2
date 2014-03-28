@@ -91,7 +91,7 @@ def writetmp(filedata=None, fileobj=None, filedir=None, suffix="upload"):
             m.update(line)
             filesize += len(line)
     md5sum = m.hexdigest()
-    emen2.db.log.info("Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfile, filesize, md5sum))
+    emen2.db.log.info("Binary: Wrote file: %s, filesize: %s, md5sum: %s"%(tmpfile, filesize, md5sum))
     return filesize, md5sum, tmpfile
 
 class Binary(emen2.db.dataobject.BaseDBObject):

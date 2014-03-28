@@ -11,8 +11,7 @@ import emen2.db.admin
 
 PROJECT  = EMAN2.db_open_dict("bdb:project")
 APIX = PROJECT.get('global.apix')
-
-    
+            
 def open_refine_classes(refine, classes, prefix=None, mappings=None, db=None):
     if not mappings:
         mappings = {}
@@ -36,8 +35,7 @@ def open_refine_classes(refine, classes, prefix=None, mappings=None, db=None):
     for i in range(0,input_set['maxrec']+1):
         src = input_set.get_header(i).get('data_source')
         ptcl_source[src].add(i)
-        
-    
+            
     print "Reading refinement classes (%s classes)"%classes['maxrec']
     for i in range(0,classes['maxrec']+1):
         included |= set(classes[i].get_attr_default('class_ptcl_idxs') or [])
@@ -88,8 +86,7 @@ def open_refine_classes(refine, classes, prefix=None, mappings=None, db=None):
     # 
     # if putrecs:
     #     db.record.put(putrecs)
-
-        
+            
     # print source_map
     if prefix:
         f = open("test_%s.json"%prefix, 'w')
@@ -117,10 +114,7 @@ def plot_processed_snr(prefix="ctfp", db=None, apix=None):
             for x,y in peaks(source_ctf[v2], apix=APIX):
                 outfile.write("%s\t%s\n"%(x,y))
         outfile.close()
-
-        
-    
-    
+            
 def peaks(y, apix=1.0):
     # get x axis
     dx = 1.0 / (2.0 * apix * (len(y)+1))
@@ -132,9 +126,7 @@ def peaks(y, apix=1.0):
             p.append((x[i], y[i]))
     
     return p
-    
-        
-    
+            
 def make_plots(source, prefix=None):
     for k,v in source.items():
         print "\n=== Processing GI", k

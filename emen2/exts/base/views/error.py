@@ -38,5 +38,4 @@ class Error(View):
         self.title = 'Error'
         self.ctxt["error"] = error
         self.ctxt['location'] = location
-
-        
+            

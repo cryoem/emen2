@@ -4794,8 +4794,7 @@ recorddefs = [
   'parents': ['equipment_maintenance'],
   'typicalchld': [],
   'views': {'recname': """Maintenance: {{service_type}} on {{date_occurred}}"""}},
-
-
+            
  {'desc_long': '',
   'desc_short': 'Microscope calibration',
   'keytype': 'recorddef',

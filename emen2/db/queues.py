@@ -39,14 +39,14 @@ class ProcessWorker(object):
                 self.queue.add_task(None)
                 return
             desc = ' '.join(map(str, task))
-            emen2.db.log.info("ProcessWorker run: %s"%(desc))
+            emen2.db.log.info("ProcessWorker: run: %s"%(desc))
             # a = subprocess.Popen(task)
             # returncode = a.wait()
             try:
                 # ret = subprocess.check_output(task, stderr=subprocess.STDOUT)
                 run(task)
             except Exception, e:
-                emen2.db.log.error("Could not build tile: %s"%e)
+                emen2.db.log.error("ProcessWorker: Could not build tile: %s"%e)
             finally:
                 self.queue.task_done()
 

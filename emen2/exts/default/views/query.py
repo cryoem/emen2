@@ -24,8 +24,7 @@ cmp_order = [
 
 def query_to_path(q):
     pass
-
-
+            
 class TooManyFiles(Exception):
     pass
 

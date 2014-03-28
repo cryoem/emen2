@@ -172,7 +172,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
                 d = emen2.db.recorddef.parseparmvalues(value)[1]
             if d.has_key("comments"):
                 # Always abort
-                raise self.error("Cannot set comments inside a comment.", warning=False)
+                raise self.error("Cannot set comments inside a comment.")
             # Now update the values of any embedded params
             for i,j in d.items():
                 self.__setitem__(i, j)

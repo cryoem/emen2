@@ -79,9 +79,7 @@ core_paramdefs = [
 core_recorddefs = [
     {"name":"root", "keytype":"recorddef", "mainview":"# {{desc_short}}  \n{{desc_long}} \n", "views":{"recname":"Root: {{desc_short}}", "banner":"{{desc_long}}"}, "desc_short":"Root protocol"}   
 ]
-
-
-
+            
 #######################################
 # Base
 #######################################
@@ -118,8 +116,7 @@ base_paramdefs = [
     {"name": "project_type", "keytype": "paramdef", "choices": ["N/A", "Service", "Collaborative", "Core", "Unkown"], "parents": ["base"], "vartype": "choice", "desc_short": "Project type", "desc_long": "Project type"},
     {"name": "website", "vartype": "uri", "keytype": "paramdef", "parents": ["base"], "desc_short": "Website"},
 ]
-
-
+            
 base_recorddefs = [
     # Base RecordDefs
     {"name":"base", "keytype":"recorddef", "mainview":"Base protocols.", "desc_short":"Base protocols", "parents":["root"]},
@@ -194,5 +191,4 @@ base_recorddefs = [
 if __name__ == "__main__":
     emen2.db.dump.dump_json("core.json", items=core_paramdefs+core_recorddefs, uri="http://ncmidb.bcm.edu")
     emen2.db.dump.dump_json("base.json", items=base_paramdefs+base_recorddefs, uri="http://ncmidb.bcm.edu")
-
-
+            

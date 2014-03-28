@@ -111,9 +111,7 @@ def main(g):
     # Get the handler and build the thumbnail.
     handler = g[handler](filepath=filepath, filename=filename)
     handler.thumbnail(previewpath=options.previewpath, force=options.force)
-    
-    
-    
+            
 ##### Exceptions and Options #####    
 
 class ThumbnailError(Exception):
@@ -289,7 +287,7 @@ class BinaryHandler(object):
             try:
                 self._thumbnail_build(workfile)
             except Exception, e:
-                emen2.db.log.error("Could not build tiles: %s"%e)
+                emen2.db.log.error("BinaryHandler: Could not build tiles: %s"%e)
                 pass
             os.remove(workfile)
         else:
@@ -353,11 +351,7 @@ class BinaryHandler(object):
             
         handler = cls._handlers.get(handler, cls)
         return handler(**kwargs)
-    
-    
-    
-    
-    
+            
 @BinaryHandler.register(['jpg', 'jpeg', 'png', 'gif', 'bmp', 'ai', 'pdf', 'eps', 'mpeg'])
 class ImageHandler(BinaryHandler):
     def build_scale(self, img, outfile, tilesize=256):
@@ -392,12 +386,7 @@ class ImageHandler(BinaryHandler):
         self.build_scale(workfile, self._outfile('thumb.jpg'), tilesize=128)
         self.build_scale(workfile, self._outfile('small.jpg'), tilesize=512)
         self.build_scale(workfile, self._outfile('medium.jpg'), tilesize=1024)
-
-    
-        
-        
+            
 if __name__ == "__main__":
     main(globals())
-        
-        
-        
+            

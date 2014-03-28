@@ -86,8 +86,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # Secret takes the format:
         # action type, args, ctime for when the token is set, and secret
         self.data['secret'] = None
-
-        
+            
     def setContext(self, ctx, hide=True):
         # Hide the secret during setContext.
         super(BaseUser, self).setContext(ctx)
@@ -326,7 +325,7 @@ class NewUser(BaseUser):
         childrecs = [self._validate_signupinfo(i) for i in childrecs]        
         # Validate this dict
         if not rec.get('rectype'):
-            self.error(msg='No rectype specified!')
+            raise self.error('No rectype specified!')
         for param, value in rec.items():
             try:
                 value = self._validate(param, value)
@@ -432,8 +431,7 @@ class User(BaseUser):
         if privacy not in [0,1,2]:
             raise self.error("User privacy setting may be 0, 1, or 2.")
         self._set('privacy', privacy, self.isowner())
-
-
+            
 # History
 class History(emen2.db.dataobject.PrivateDBO):
     """Manage previously used values."""

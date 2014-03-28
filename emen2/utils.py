@@ -7,8 +7,7 @@ import collections
 import itertools
 from UserDict import DictMixin
 from functools import partial
-
-
+            
 # There are 12219292800000 ms between the UUID epoch and UNIX epoch.
 EPOCH_OFFSET = 0x0b1d069b5400
 
@@ -24,9 +23,7 @@ def timeuuid(t=None):
 
 def untimeuuid(timestamp):
     return (int(timestamp[0:12], 16) - EPOCH_OFFSET) / 1000.0
-    
-    
-
+            
 # Temporary fix --
 import jsonrpc.jsonutil
 def jsonencode(*args, **kwargs):
@@ -122,11 +119,7 @@ def oltolist(d, dtype=None):
     if not isinstance(d, dtype):
         d = dtype(d)
     return ol, d
-    
-    
-    
-    
-
+            
 def test():
     print "Ten IDs:"
     for i in range(10):

@@ -45,8 +45,7 @@ class ParamDef(View):
         self.template = '/pages/paramdef.edit'
         self.ctxt['edit'] = True
         self.title = 'Edit Parameter: %s'%self.paramdef.desc_short
-        
-        
+            
     @View.add_matcher(r'^/paramdef/(?P<name>[^/]*)/new/$')
     def new(self, name, **kwargs):
         if self.request_method == 'post':
@@ -116,8 +115,7 @@ class ParamDefs(View):
     @View.add_matcher(r'^/paramdefs/property/$')
     def property(self, *args, **kwargs):
         return self.main(action='property', *args, **kwargs)
-        
-        
+            
     @View.add_matcher(r'^/paramdefs/name/$')
     def name(self, *args, **kwargs):
         return self.main(action='name', *args, **kwargs)

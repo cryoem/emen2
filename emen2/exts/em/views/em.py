@@ -82,8 +82,8 @@ class EMAN2Convert(View):
         a.start()
 
         try:
-            emen2.db.log.info("Removing temporary file: %s"%filepath)
+            emen2.db.log.info("EMAN2Convert: Removing temporary file: %s"%filepath)
             os.remove(filepath)
         except:
-            emen2.db.log.error("Could not remove temporary file: %s"%filepath)
+            emen2.db.log.error("EMAN2Convert: Could not remove temporary file: %s"%filepath)
             

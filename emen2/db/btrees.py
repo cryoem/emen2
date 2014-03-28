@@ -34,7 +34,7 @@ import emen2.db.group
 try:
     import emen2.db.bulk
     bulk = emen2.db.bulk
-    # emen2.db.log.info("Note: using EMEN2-BerkeleyDB bulk access module")
+    # emen2.db.log.info("NOTE: using EMEN2-BerkeleyDB bulk access module")
 except ImportError, inst:
     bulk = None
 

@@ -197,8 +197,7 @@ class BaseDBObject(object):
             raise AttributeError("No attribute: %s"%key)
 
     def _setitem(self, key, value):
-        self.error('Cannot set parameter "%s" in this way.'%(key), warning=True)
-        print value
+        self.warn('Cannot set parameter "%s" in this way.'%(key))
 
     def __setitem__(self, key, value):
         # If a "_set_<key>" method exists, use this.
@@ -310,6 +309,9 @@ class BaseDBObject(object):
     def _strip(self, value):
         return unicode(value or '').strip() or None
 
+    def warn(self, msg='', e=None):
+        self.error(msg=msg, e=e, warning=True)
+
     def error(self, msg='', e=None, warning=False):
         """Raise a ValidationError exception.
         If warning=True, pass the exception, but make a note in the log.
@@ -319,7 +321,7 @@ class BaseDBObject(object):
         if not msg:
             msg = e.__doc__
         if warning:
-            emen2.db.log.warn("Warning: %s %s: %s"%(self.keytype, self.name, e(msg)))
+            emen2.db.log.warn("Warning: %s: %s"%(self.name, e(msg)))
             pass
         return e(msg)
 
@@ -549,5 +551,4 @@ class PrivateDBO(BaseDBObject):
     pass
     # def setContext(self, ctx=None):
     #     raise emen2.db.exceptions.PermissionsError("Private item.")
-
-
+            

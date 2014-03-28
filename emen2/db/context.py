@@ -102,10 +102,7 @@ class Context(emen2.db.dataobject.PrivateDBO):
         self.grouplevels["anon"] = 0
         self.grouplevels["authenticated"] = self.grouplevels.get('authenticated', 0)
         self.groups = self.grouplevels.keys()
-
-
-        
-        
+            
     def checkadmin(self):
         return 'admin' in self.groups
 
