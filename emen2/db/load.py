@@ -28,49 +28,33 @@ class Loader(object):
 
     def load(self, infile=None, keytype=None):
         t = time.time()
-        count = 0
         dbenv = self.db._db.dbenv
         ctx = self.db._ctx
         txn = self.db._txn
-        
-        # Pull out parents/children so relationships will
-        # be added additively.
-        children = collections.defaultdict(set)
-        parents = collections.defaultdict(set)
-        
+
+        count = 0        
         for item in self.readfile(infile=infile, keytype=keytype):
             keytype = item.get('keytype')
             name = item.get('name')
-            children[name] = set(item.pop('children', []) or [])
-            parents[name] = set(item.pop('parents', []) or [])
-            history = item.pop('history', None)
             print "Load: put:", keytype, name
             try:
               r = dbenv[keytype].put(item, ctx=ctx, txn=txn)
             except Exception, e:
               print "Could not load %s %s:"%(keytype, name), e
             count += 1
-            
-        keys = set(dbenv[keytype].filter(ctx=ctx, txn=txn))
 
-        for k,v in children.items():
-            missing = v-keys
-            if missing:
-                print "Missing keys:", missing
-                v -= missing
-            for v2 in v:
-                dbenv[keytype].pclink(k, v2, ctx=ctx, txn=txn)
-        for k,v in parents.items():
-            missing = v-keys
-            if missing:
-                print "Missing keys:", missing
-                v -= missing
-            for v2 in v:
-                dbenv[keytype].pclink(v2, k, ctx=ctx, txn=txn)
+        for item in self.readrels(infile=infile, keytype=keytype):
+            print "Load: rels:", item
+            
+        for item in self.readhistory(infile=infile, keytype=keytype):
+            print "Load: history:", item
 
         t = time.time()-t
         s = float(count) / t
         print "Load: total time: %0.2f, %0.2f put/sec"%(t, s)
+
+    def readrels(self, infile=None, keytype=None):
+        pass
 
     def readfile(self, infile=None, keytype=None):
         infile = infile or self.infile
@@ -87,47 +71,47 @@ class Loader(object):
                     else:
                         yield item
                         
-class RawLoader(Loader):
-    def load(self, infile=None, keytype=None):
-        t = time.time()
-        count = 0
-        dbenv = self.db._db.dbenv
-        ctx = self.db._ctx
-        txn = self.db._txn
-        children = collections.defaultdict(set)
-        parents = collections.defaultdict(set)
-
-        for item in self.readfile(infile=infile, keytype=keytype):
-            print "Starting:", keytype
-            keytype = item.get('keytype')
-            name = item.get('name')
-            children[name] = item.pop('children', []) or []
-            parents[name] = item.pop('parents', []) or []
-            try:
-                r = dbenv[keytype].new(ctx=ctx, txn=txn)
-                r.data.update(item)
-                r = dbenv[keytype]._put(r, ctx=ctx, txn=txn)
-                # print r.data
-            except Exception, e:
-                print "Could not load...", e
-            count += 1
-            
-        for k,v in children.items():
-            for v2 in v:
-                try:
-                    dbenv[keytype].pclink(k, v2, ctx=ctx, txn=txn)
-                except Exception, e:
-                    print "Could not link:", k, v2
-        for k,v in parents.items():
-            for v2 in v:
-                try:
-                    dbenv[keytype].pclink(v2, k, ctx=ctx, txn=txn)
-                except Exception, e:
-                    print "Could not link:", v2, k
-
-        t = time.time()-t
-        s = float(count) / t
-        print "Load: total time: %0.2f, %0.2f put/sec"%(t, s)
+# class RawLoader(Loader):
+#     def load(self, infile=None, keytype=None):
+#         t = time.time()
+#         count = 0
+#         dbenv = self.db._db.dbenv
+#         ctx = self.db._ctx
+#         txn = self.db._txn
+#         children = collections.defaultdict(set)
+#         parents = collections.defaultdict(set)
+# 
+#         for item in self.readfile(infile=infile, keytype=keytype):
+#             print "Starting:", keytype
+#             keytype = item.get('keytype')
+#             name = item.get('name')
+#             children[name] = item.pop('children', []) or []
+#             parents[name] = item.pop('parents', []) or []
+#             try:
+#                 r = dbenv[keytype].new(ctx=ctx, txn=txn)
+#                 r.data.update(item)
+#                 r = dbenv[keytype]._put(r, ctx=ctx, txn=txn)
+#                 # print r.data
+#             except Exception, e:
+#                 print "Could not load...", e
+#             count += 1
+#             
+#         for k,v in children.items():
+#             for v2 in v:
+#                 try:
+#                     dbenv[keytype].pclink(k, v2, ctx=ctx, txn=txn)
+#                 except Exception, e:
+#                     print "Could not link:", k, v2
+#         for k,v in parents.items():
+#             for v2 in v:
+#                 try:
+#                     dbenv[keytype].pclink(v2, k, ctx=ctx, txn=txn)
+#                 except Exception, e:
+#                     print "Could not link:", v2, k
+# 
+#         t = time.time()-t
+#         s = float(count) / t
+#         print "Load: total time: %0.2f, %0.2f put/sec"%(t, s)
 
 if __name__ == "__main__":
     import emen2.db.config

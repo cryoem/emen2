@@ -175,7 +175,7 @@ class Vartype(object):
         :param value: Index this value.
         :return: A set of indexed terms.
         """
-        raise self.error("%s is unindexed"%self.name, cls=NotImplementedError)
+        raise NotImplementedError("%s is unindexed"%self.name)
 
     # If the index is substantially different than the actual value,
     # you'll need to get the original record to sort or plot in this way.
@@ -194,7 +194,7 @@ class Vartype(object):
         :param value: Validate this value.
         :return: The validated value.
         """
-        raise self.error("%s is an internal or organizational parameter, and is not intended to be used."%self.name, cls=NotImplementedError)
+        raise NotImplementedError("%s is an internal or organizational parameter, and is not intended to be used."%self.name)
 
     def warn(self, error):
         emen2.db.log.warn("Validation: %s: %s"%(self.name, error))
@@ -382,7 +382,7 @@ class vt_choice(vt_base_keywords):
                     break
             else:
                 if allow_invalid_choice:
-                    self.warn    ("Invalid choice, but allowing: %s"%(v))
+                    self.warn("Invalid choice, but allowing: %s"%(v))
                 else:
                     raise self.error("Invalid choice: %s"%(v))
         return self._rci(ret)
@@ -617,7 +617,8 @@ class vt_email(vt_base):
         for i in ci(value):
             _, i = email.utils.parseaddr(unicode(i))
             i = value.strip().lower()
-            if '@' not in i and not allow_invalid_email:
+            if ('@' not in i) and (not allow_invalid_email):
+                print "EMAIL???", email, allow_invalid_email
                 raise self.error("Invalid email: %s"%(i))
             ret.append(i)
         return self._rci(ret)

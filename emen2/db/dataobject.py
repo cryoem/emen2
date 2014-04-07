@@ -258,12 +258,18 @@ class BaseDBObject(object):
     def _set_modifytime(self, key, value):
         pass
 
-    # Backwards compat...
+    # Reserved keys.
+    def _set_history(self, key, value):
+        pass
+
+    def _set_rels(self, key, value):
+        pass
+
     def _set_children(self, key, value):
-        self.data['children'] = sorted(map(self._strip, emen2.utils.check_iterable(value)))
-    
+        pass
+
     def _set_parents(self, key, value):
-        self.data['parents'] = sorted(map(self._strip, emen2.utils.check_iterable(value)))
+        pass
         
     ##### Pickle / serialize methods #####
 
