@@ -425,7 +425,6 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
     def render_eb(self, failure, request, t=0, **_):
         # This method accepts either a regular Exception or Twisted Failure
-        print failure
         e, data = '', ''
         headers = {}
 

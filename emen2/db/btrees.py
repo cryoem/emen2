@@ -352,12 +352,10 @@ class CollectionDB(object):
         self.dataload = lambda x:json.loads(x)
 
         # Make sure the directory exists...
-        self.filename = filename or os.path.join(self.keytype, '%s.bdb'%self.keytype)
         try:
             os.makedirs(os.path.join(dbenv.path, 'data', self.keytype))
         except:
             pass
-
         # Open.
         self.open()
 
@@ -405,7 +403,7 @@ class CollectionDB(object):
             self.rels[param] = None
             return None
         vtc = emen2.db.vartypes.Vartype.get_vartype(name=param) # Has to be a core param.
-        index = IndexDB(keytype=self.keytype, param=param, extension='rel', vtc=vtc, dbenv=self.dbenv)
+        index = RelDB(keytype=self.keytype, param=param, extension='rel', vtc=vtc, dbenv=self.dbenv)
         self.rels[param] = index
         return index
 
@@ -568,7 +566,11 @@ class CollectionDB(object):
         # Update the item.
         orec.validate()
         return orec
-
+    
+    def puts(self, items, ctx=None, txn=None):
+        """Update a list of items. Requires ctx and txn."""
+        return [self.put(item, ctx=ctx, txn=txn) for item in items]    
+        
     def put(self, item, ctx=None, txn=None):
         """Update a single item. Requires ctx and txn.
 
@@ -580,13 +582,6 @@ class CollectionDB(object):
         :exception PermissionsError:
         :exception ValidationError:
         """
-        return self._put(self.validate(item, ctx=ctx, txn=txn), ctx=ctx, txn=txn)
-    
-    def puts(self, items, ctx=None, txn=None):
-        """Update a list of items. Requires ctx and txn."""
-        return [self.put(item, ctx=ctx, txn=txn) for item in items]    
-        
-    def _put(self, item, ctx=None, txn=None):
         emen2.db.log.debug("BDB: %s put: %s"%(self.filename, item.data))        
         namemap = self._update_name(item, txn=txn)
         parents = item.data.pop('parents', [])
@@ -612,12 +607,11 @@ class CollectionDB(object):
             if ind.param not in exclude_keywords:
                 okw |= a
                 nkw |= b
-
+        # Keywords
         ind = self._getindex('keywords', txn=txn)
         if ind:
             ind.removerefs(item.name, okw - nkw, txn=txn)
-            ind.addrefs(item.name, nkw - okw, txn=txn)        
-        
+            ind.addrefs(item.name, nkw - okw, txn=txn)                
         # Link
         for k in parents:
             self._putrel(k, item.name, ctx=ctx, txn=txn)
@@ -942,10 +936,10 @@ class NewUserDB(CollectionDB):
 
 class SequenceDB(object):
     # Sequences.
-    def __init__(self, filename=None, keytype=None, dbenv=None):
+    def __init__(self, filename=None, keytype=None, extension='sequence', dbenv=None):
         # Filename, DBENV, BDB handle.
         self.keytype = keytype
-        self.filename = filename or os.path.join(self.keytype, '%s.sequence'%keytype)
+        self.filename = filename or os.path.join(self.keytype, '%s.%s'%(keytype, sequence))
         self.dbenv = dbenv
         self.bdb = None
         self.open()    
@@ -1001,7 +995,6 @@ class SequenceDB(object):
         self.bdb.put(key, value, txn=txn)
         emen2.db.log.debug("BDB: %s set sequence: %s: %s"%(self.filename, key, value))
         return value
-        
 
 class IndexDB(object):
     # A secondary index. Also used for relationships.
@@ -1030,7 +1023,6 @@ class IndexDB(object):
         flags |= bsddb3.db.DB_THREAD
         flags |= bsddb3.db.DB_MULTIVERSION        
         self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
-        self.bdb.set_flags(bsddb3.db.DB_DUP)
         self.bdb.set_flags(bsddb3.db.DB_DUPSORT)
         # A little magicky but works.
         if self.vtc.keyclass in [float, int]:
@@ -1077,37 +1069,6 @@ class IndexDB(object):
     def _cmpfunc(self, k1, k2):
         # Numeric comparison function, for BTree sorting.
         return cmp(self.keyload(k1 or '0'), self.keyload(k2 or '0'))
-
-    def bfs(self, key, recurse=1, txn=None):
-        # (Internal) Relationships
-        # Check max recursion depth
-        maxrecurse = emen2.db.config.get('params.maxrecurse')
-        if recurse < 0:
-            recurse = maxrecurse
-        if recurse > maxrecurse:
-            recurse = maxrecurse
-
-        # Starting items
-        cursor = self.bdb.cursor(txn=txn)
-        new = set(self._get_cursor(key, cursor))
-        tovisit = [new]
-        result = {key: new}
-        visited = set()
-        lookups = []
-        for x in xrange(recurse-1):
-            if not tovisit[x]:
-                break
-            tovisit.append(set())
-            for key in tovisit[x] - visited:
-                new = set(self._get_cursor(key, cursor))
-                if new:
-                    tovisit[x+1] |= new
-                    result[key] = new
-            visited |= tovisit[x]
-
-        visited |= tovisit[-1]
-        cursor.close()
-        return result, visited        
 
     def find(self, key, maxkey=None, op='==', count=100, txn=None):
         r = self.find_both(key=key, maxkey=maxkey, op=op, count=count, txn=txn)
@@ -1265,4 +1226,170 @@ class IndexDB(object):
             r.append(c)
             c = cursor.get(flags=bsddb3.db.DB_NEXT)
         return r
+
+class RelDB(IndexDB):
+    def bfs(self, key, recurse=1, txn=None):
+        # (Internal) Relationships
+        # Check max recursion depth
+        maxrecurse = emen2.db.config.get('params.maxrecurse')
+        if recurse < 0:
+            recurse = maxrecurse
+        if recurse > maxrecurse:
+            recurse = maxrecurse
+
+        # Starting items
+        cursor = self.bdb.cursor(txn=txn)
+        new = set(self._get_cursor(key, cursor))
+        tovisit = [new]
+        result = {key: new}
+        visited = set()
+        lookups = []
+        for x in xrange(recurse-1):
+            if not tovisit[x]:
+                break
+            tovisit.append(set())
+            for key in tovisit[x] - visited:
+                new = set(self._get_cursor(key, cursor))
+                if new:
+                    tovisit[x+1] |= new
+                    result[key] = new
+            visited |= tovisit[x]
+
+        visited |= tovisit[-1]
+        cursor.close()
+        return result, visited     
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+####### NEW ##########
+
+class BaseDB(object):
+    def __init__(self, filename, dbenv):
+        """Create and open the DB."""
+        # EMEN2DBEnv and BDB handle
+        self.filename = filename
+        self.dbenv = dbenv
+        self.bdb = None
+        self.open()
+        
+    # Just open and close
+    def open(self):
+        """Open the DB. This uses an implicit open transaction."""
+        if self.bdb:
+            raise Exception("DB already open.")
+        emen2.db.log.debug("BDB: %s open"%self.filename)
+        flags = 0
+        flags |= bsddb3.db.DB_AUTO_COMMIT 
+        flags |= bsddb3.db.DB_CREATE 
+        flags |= bsddb3.db.DB_THREAD
+        flags |= bsddb3.db.DB_MULTIVERSION
+        bdb = bsddb3.db.DB(self.dbenv.dbenv)
+        self.bdb = self.open_set_flags(bdb)
+        self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
+
+    def open_set_flags(self, bdb):
+        return bdb
+
+    def close(self):
+        """Close the DB."""
+        if self.bdb is None:
+            raise Exception("DB already closed.")
+        emen2.db.log.debug("BDB: %s close"%self.filename)
+        self.bdb.close()
+        self.bdb = None
+    
+class JSONDB(object):
+    keydump = lambda x:unicode(x).encode('utf-8')
+    keyload = lambda x:x.decode('utf-8')
+    datadump = lambda x:json.dumps(x)
+    dataload = lambda x:json.loads(x)
+    
+    def put(self, item, txn=None):
+        emen2.db.log.debug("BDB: %s put: %s"%(self.filename, key))
+        self.bdb.put(self.keydump(item.name), self.datadump(item.data), txn=txn)
+
+    def exists(self, key, ctx=None, txn=None):
+        emen2.db.log.debug("BDB: %s exists: %s"%(self.filename, key))
+        if key is None or key < 0:
+            return False
+        return self.bdb.exists(self.keydump(key), txn=txn, flags=bsddb3.db.DB_RMW)
+    
+    def get(self, key, txn=None):
+        emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
+        d = self.bdb.get(self.keydump(key), txn=txn)
+        if d is None:
+            raise KeyError("No such key: %s"%(key))
+        return self.dataload(d)
+
+    def keys(self, txn=None):
+        emen2.db.log.debug("BDB: %s keys"%(self.filename))        
+        return (self.keyload(x) for x in self.bdb.keys(txn))
+        
+    def values(self, txn=None):
+        emen2.db.log.debug("BDB: %s values"%(self.filename))        
+        return (self.dataload(x) for x in self.bdb.values(txn))
+    
+    def items(self, txn=None):
+        emen2.db.log.debug("BDB: %s items"%(self.filename))        
+        return ((self.keyload(x), self.dataload(y)) for x,y in self.bdb.items(txn))
+
+class DupDB(BaseDB):
+    def open_set_flags(self):
+        """Open the DB. This uses an implicit open transaction."""
+        if self.bdb:
+            raise Exception("DB already open.")
+        emen2.db.log.debug("BDB: %s open"%self.filename)
+        flags = 0
+        flags |= bsddb3.db.DB_AUTO_COMMIT 
+        flags |= bsddb3.db.DB_CREATE 
+        flags |= bsddb3.db.DB_THREAD
+        flags |= bsddb3.db.DB_MULTIVERSION        
+        self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
+        self.bdb.set_flags(bsddb3.db.DB_DUPSORT)
+        # A little magicky but works.
+        if self.vtc.keyclass in [float, int]:
+            # print "setting comparison function for %s: %s"%(self.param, self.vtc.keyclass)
+            self.bdb.set_bt_compare(self._cmpfunc)
+        self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
+    
+        
+class HistoryDB(JSONDB):
+    # Logs
+    pass    
+
+class SequenceDB(BaseDB):
+    def next(self):
+        pass
+    def max(self):
+        pass
+    def set(self):
+        pass
+    
+class IndexDB(BaseDB):
+    def addrefs(self):
+        pass
+    def removerefs(self):
+        pass
+    def find(self):
+        pass
+    def find_both(self):
+        pass
+    def get(self):
+        pass
+    
+class RelDB(IndexDB):
+    def bfs(self):
+        pass
 
