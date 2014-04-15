@@ -275,124 +275,48 @@ class EMEN2DBEnv(object):
 
         return outpaths     
 
-# Context-aware DB for Database Objects.
-# These support a single DB and a single data class.
-# Supports sequenced items.
+##### Context-aware DBs for Database Objects #####
+
 class CollectionDB(object):
-    '''Database for items supporting the DBO interface (mapping
-    interface, setContext, writable, etc. See BaseDBObject.)
-
-    Most methods require a transaction. Additionally, because
-    this class manages DBOs, most methods also require a Context.
-
-    Methods:
-        __init__         Opens DBs in a specific directory
-        open             Also opens sequencedb
-        close            Also cloes sequencdb and indexes
-
-    The following methods that require a context:
-        new              New item
-        get              Get a single item
-        gets             Get items
-        put              Put a single item
-        puts             Put items
-        filter           Context-aware keys
-        query            Query
-        validate         Validate an item
-        exists           Check if an item exists already
-
-    Relationship methods:
-        parents          Returns parents
-        children         Returns children
-        siblings         Item siblings
-        rel              General relationship method
-        pclink           Add a parent/child relationship
-        pcunlink         Remove a parent/child relationship
-        relink           Add and remove several relationships
-
-    May be deprecated at some point:
-        keys
-        values
-        items
-
-    Some internal methods:
-        _get
-        _put
-
-    Sequence methods:
-        _update_name    Update items with new names from sequence
-        _key_generator
-
-    Index methods:
-        _getindex         Open an index
-        _getrel           Open a relationship index
-    '''
-    
-    def __init__(self, filename=None, keytype=None, dataclass=None, dbenv=None):
-        """Create and open the DB.
-        
-        :param filename: Base filename to use
-        :keyword dbenv: Database environment
-        """
-        # EMEN2DBEnv and BDB handle
+    def __init__(self, keytype=None, dataclass=None, dbenv=None):
+        """Create and open the DB."""
+        # EMEN2DBEnv
         self.dbenv = dbenv
-        self.bdb = None
-
+        self.dataclass = dataclass
+        self.keytype = keytype or dataclass.__class__.__name__.lower()
+        
         # Indexes and relationships        
+        self.data = None
+        self.sequence = None
         self.indexes = {}
         self.rels = {}
-        self.sequence = None
-
-        # What are we storing?
-        self.keytype = (keytype or dataclass.__name__).lower()        
-        self.keydump = lambda x:unicode(x).encode('utf-8')
-        self.keyload = lambda x:x.decode('utf-8')
-        self.dataclass = dataclass
-        self.datadump = lambda x:json.dumps(x)
-        self.dataload = lambda x:json.loads(x)
-
+        
         # Make sure the directory exists...
         try:
             os.makedirs(os.path.join(dbenv.path, 'data', self.keytype))
         except:
             pass
+
         # Open.
         self.open()
 
     def open(self):
         """Open the DB. This uses an implicit open transaction."""
-        if self.bdb:
-            raise Exception("DB already open.")
-        emen2.db.log.debug("BDB: %s open"%self.filename)
-        flags = 0
-        flags |= bsddb3.db.DB_AUTO_COMMIT 
-        flags |= bsddb3.db.DB_CREATE 
-        flags |= bsddb3.db.DB_THREAD
-        flags |= bsddb3.db.DB_MULTIVERSION
-        self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
-        self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
+        self.data = JSONDB(filename='%s.bdb'%self.keytype, dbenv=self.dbenv.dbenv)
+        self.sequence = SequenceDB(filename='%s.sequence'%self.keytype, dbenv=self.dbenv.dbenv)
 
     def close(self):
         """Close the DB."""
-        emen2.db.log.debug("BDB: %s close"%self.filename)
-        if self.bdb:
-            self.bdb.close()
-            self.bdb = None
-        if self.sequence:
-            self.sequence.close()
-            self.sequence = None
+        self.data.close()
+        self.data = None
+        self.sequence.close()
+        self.sequence = None
         for v in self.rels.values():
             v.close()
+        self.rels = {}
         for v in self.indexes.values():
             v.close()
-
-    ##### Sequence #####
-
-    def _getseq(self, txn=None):
-        if self.sequence:
-            return self.sequence
-        self.sequence = SequenceDB(keytype=self.keytype, dbenv=self.dbenv)
-        return self.sequence
+        self.indexes = {}
 
     ##### Indexes #####
 
@@ -403,7 +327,7 @@ class CollectionDB(object):
             self.rels[param] = None
             return None
         vtc = emen2.db.vartypes.Vartype.get_vartype(name=param) # Has to be a core param.
-        index = RelDB(keytype=self.keytype, param=param, extension='rel', vtc=vtc, dbenv=self.dbenv)
+        index = RelDB(filename='%s.%s.rel'%(self.keytype, param), vtc=vtc, dbenv=self.dbenv.dbenv)
         self.rels[param] = index
         return index
 
@@ -420,17 +344,17 @@ class CollectionDB(object):
             except KeyError:
                 raise KeyError("Unknown param: %s"%param)
             vtc = emen2.db.vartypes.Vartype.get_vartype(**pd.data)
-        
+
         # Check if it's indexed.
         try:
             vtc.reindex(None)
         except NotImplementedError:
             # print "Not indexed!", param
             self.indexes[param] = None
-            return
-                    
+            return            
+
         # Open the secondary index.
-        index = IndexDB(keytype=self.keytype, param=param, vtc=vtc, dbenv=self.dbenv)
+        index = IndexDB(filename='%s.%s.index'%(self.keytype, param), vtc=vtc, dbenv=self.dbenv.dbenv)
         self.indexes[param] = index
         return index
 
@@ -450,7 +374,6 @@ class CollectionDB(object):
         ctx = kwargs.pop('ctx', None)
         inherit = kwargs.pop('inherit', [])
         item = self.dataclass.new(ctx=ctx, **kwargs)
-        # print item.__dict__
         for i in inherit:
             # Raise an exception if does not exist or cannot read.
             i = self.get(i, filt=False, ctx=ctx, txn=txn)
@@ -462,8 +385,8 @@ class CollectionDB(object):
             if item.data.get('parents'):
                 item.data['parents'].append(i.name)
             else:
-                item.data['parents'] = [i.name]
-                
+                item.data['parents'] = [i.name] 
+                               
         # Acquire a write lock on this name.
         if self.exists(item.name, txn=txn):
             raise emen2.db.exceptions.ExistingKeyError("%s already exists."%item.name)
@@ -473,12 +396,7 @@ class CollectionDB(object):
     
     def exists(self, key, ctx=None, txn=None):
         """Check if a key exists."""
-        # Note: this method does not check permissions; you could use it to check
-        #     if a key exists or not, even if you can't read the value.
-        emen2.db.log.debug("BDB: %s exists: %s"%(self.filename, key))
-        if key is None or key < 0:
-            return False
-        return self.bdb.exists(self.keydump(key), txn=txn, flags=bsddb3.db.DB_RMW)
+        return self.data.exists(key, txn=txn, flags=bsddb3.db.DB_RMW)
         
     def filter(self, names=None, ctx=None, txn=None):
         """Filter a set of keys for read permission.
@@ -498,8 +416,8 @@ class CollectionDB(object):
     ##### Keys, values, items #####
     
     def keys(self, ctx=None, txn=None):
-        # emen2.db.log.info("BDB: %s keys: Deprecated method!"%self.filename)
-        return map(self.keyload, self.bdb.keys(txn))
+        print "Warning! Keys is deprecated!"
+        return self.data.keys(txn)
     
     def items(self, ctx=None, txn=None):
         raise NotImplementedError
@@ -535,28 +453,21 @@ class CollectionDB(object):
         ret = []
         for key in keys:
             try:
-                d = self._get(key, txn=txn)
+                d = self.data.get(key, txn=txn)
                 d.setContext(ctx)
                 ret.append(d)
             except filt, e:
                 pass
         return ret
         
-    def _get(self, key, txn=None):
-        emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
-        d = self.bdb.get(self.keydump(key), txn=txn)
-        if d is None:
-            raise KeyError("No such key: %s"%(key))
-        return self.dataclass.load(json.loads(d))
-
     ##### Write methods #####
 
     def validate(self, item, ctx=None, txn=None):
         # Get the existing item or create a new one.
         name = item.get('name')
-        if self.exists(name, txn=txn):
+        if self.data.exists(name, txn=txn):
             # Get the existing item.
-            orec = self._get(name, txn=txn)
+            orec = self.data.get(name, txn=txn)
             # May raise a PermissionsError if you can't read it.
             orec.setContext(ctx)
             orec.update(item)
@@ -582,17 +493,18 @@ class CollectionDB(object):
         :exception PermissionsError:
         :exception ValidationError:
         """
-        emen2.db.log.debug("BDB: %s put: %s"%(self.filename, item.data))        
-        namemap = self._update_name(item, txn=txn)
-        parents = item.data.pop('parents', [])
-        children = item.data.pop('children', [])
+        # Backwards compat
+        parents = item.data.pop('parents', []) 
+        children = item.data.pop('children', []) 
         try:
-            old = self._get(item.name, txn=txn)
+            old = self.get(item.name, txn=txn)
         except:
-            old = {}
-            
+            old = self.new(txn=txn, **item)
+
+        namemap = self._update_name(item, txn=txn)
+
         # Put
-        self.bdb.put(self.keydump(item.name), self.datadump(item.data), txn=txn)
+        self.data.put(item.name, item.data, txn=txn)
 
         # Reindex
         exclude_keywords = ['creationtime', 'modifytime', 'creator', 'modifyuser', 'name', 'uri', 'keytype', 'hidden', 'permissions', 'groups']
@@ -607,11 +519,13 @@ class CollectionDB(object):
             if ind.param not in exclude_keywords:
                 okw |= a
                 nkw |= b
+
         # Keywords
         ind = self._getindex('keywords', txn=txn)
         if ind:
             ind.removerefs(item.name, okw - nkw, txn=txn)
             ind.addrefs(item.name, nkw - okw, txn=txn)                
+
         # Link
         for k in parents:
             self._putrel(k, item.name, ctx=ctx, txn=txn)
@@ -649,11 +563,11 @@ class CollectionDB(object):
         :keyword txn: Transaction.
         """
         namemap = {}
-        if not self.exists(item.name, txn=txn):
+        if not self.data.exists(item.name, txn=txn):
             # Get a new name.
             newname = self._key_generator(item, txn=txn)
             # Check the name is still available, and acquire lock.
-            if self.exists(newname, txn=txn):
+            if self.data.exists(newname, txn=txn):
                 raise emen2.db.exceptions.ExistingKeyError("%s already exists."%newname)
             # Update the item's name.
             item.data['name'] = newname
@@ -840,12 +754,11 @@ class CollectionDB(object):
         return []
 
     def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
-        emen2.db.log.debug("BDB: %s _putrel %s: %s %s "%(self.filename, mode, parent, child))        
+        emen2.db.log.debug("BDB: %s _putrel %s: %s %s "%(self.keytype, mode, parent, child))        
         parent = self.get(parent, ctx=ctx, txn=txn)
         child = self.get(child, ctx=ctx, txn=txn)
         if not (parent.writable() or child.writable()):
             raise emen2.db.exceptions.SecurityError("Insufficient permissions to edit relationship.")
-
         ind_parents = self._getrel('parents', txn=txn)
         ind_children = self._getrel('children', txn=txn)
         if mode == 'addrefs':
@@ -858,8 +771,7 @@ class CollectionDB(object):
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
         if emen2.db.config.get('record.sequence'):
-            seq = self._getseq()
-            return unicode(seq.next(txn=txn))
+            return unicode(self.sequence.next(txn=txn))
         return unicode(item.name or emen2.utils.timeuuid())
 
     # Todo: integrate with main filter method.
@@ -871,14 +783,13 @@ class RecordDB(CollectionDB):
         if names is None:
             if ctx.checkreadadmin():
                 if emen2.db.config.get('record.sequence'):
-                    seq = self._getseq()
-                    return set(map(unicode, range(0, seq.max(txn=txn))))
+                    return set(map(unicode, range(0, self.sequence.max(txn=txn))))
                 return set(self.keys(txn=txn))  
             ret = self.find('permissions', ctx.user, txn=txn)
             ret |= self.find('creator', ctx.user, txn=txn) 
             for group in sorted(ctx.groups, reverse=True):
                 ret |= self.find('groups', group, txn=txn)
-            return ret            
+            return ret        
 
         names = set(names)
         if ctx.checkreadadmin():
@@ -916,7 +827,7 @@ class NewUserDB(CollectionDB):
     def delete(self, key, ctx=None, txn=None):
         if not ctx.checkadmin():
             raise emen2.db.exceptions.PermissionsError("Only admin can delete keys.")
-        self.bdb.delete(self.keydump(key), txn=txn)
+        self.data.delete(key, txn=txn)
 
     def new(self, *args, **kwargs):
         # Check  if this email already exists.
@@ -934,55 +845,128 @@ class NewUserDB(CollectionDB):
             raise emen2.db.exceptions.PermissionsError("Admin rights needed to view user queue.")
         return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
 
-class SequenceDB(object):
-    # Sequences.
-    def __init__(self, filename=None, keytype=None, extension='sequence', dbenv=None):
-        # Filename, DBENV, BDB handle.
-        self.keytype = keytype
-        self.filename = filename or os.path.join(self.keytype, '%s.%s'%(keytype, sequence))
-        self.dbenv = dbenv
-        self.bdb = None
-        self.open()    
 
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+####### Databases ##########
+
+class BaseDB(object):
+    def __init__(self, filename, dbenv, **kwargs):
+        """Create and open the DB."""
+        # EMEN2DBEnv and BDB handle
+        self.filename = filename
+        self.bdb = bsddb3.db.DB(dbenv)
+        self.init(**kwargs)
+        self.open()
+        
+    def init(self):
+        pass
+        
+    # Just open and close
     def open(self):
         """Open the DB. This uses an implicit open transaction."""
-        if self.bdb:
-            raise Exception("DB already open.")
+        if not self.filename:
+            raise Exception("No filename!")
         emen2.db.log.debug("BDB: %s open"%self.filename)
         flags = 0
         flags |= bsddb3.db.DB_AUTO_COMMIT 
         flags |= bsddb3.db.DB_CREATE 
         flags |= bsddb3.db.DB_THREAD
-        flags |= bsddb3.db.DB_MULTIVERSION        
-        self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
+        flags |= bsddb3.db.DB_MULTIVERSION
+        self.open_set_flags()
         self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
+
+    def open_set_flags(self):
+        pass
 
     def close(self):
         """Close the DB."""
         emen2.db.log.debug("BDB: %s close"%self.filename)
         self.bdb.close()
-        self.bdb = None
+
+class JSONDB(BaseDB):
+    def init(self):
+        keydump = lambda x:unicode(x).encode('utf-8')
+        keyload = lambda x:x.decode('utf-8')
+        datadump = lambda x:json.dumps(x)
+        dataload = lambda x:json.loads(x)
+    
+    def put(self, key, item, txn=None):
+        emen2.db.log.debug("BDB: %s put: %s"%(self.filename, key))
+        self.bdb.put(self.keydump(key), self.datadump(item), txn=txn)
+
+    def exists(self, key, ctx=None, txn=None):
+        emen2.db.log.debug("BDB: %s exists: %s"%(self.filename, key))
+        if key is None or key < 0:
+            return False
+        return self.bdb.exists(self.keydump(key), txn=txn, flags=bsddb3.db.DB_RMW)
+    
+    def get(self, key, txn=None):
+        emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
+        d = self.bdb.get(self.keydump(key), txn=txn)
+        if d is None:
+            raise KeyError("No such key: %s"%(key))
+        return self.dataload(d)
+
+    def keys(self, txn=None):
+        emen2.db.log.debug("BDB: %s keys"%(self.filename))        
+        return (self.keyload(x) for x in self.bdb.keys(txn))
         
+    def values(self, txn=None):
+        emen2.db.log.debug("BDB: %s values"%(self.filename))        
+        return (self.dataload(x) for x in self.bdb.values(txn))
+    
+    def items(self, txn=None):
+        emen2.db.log.debug("BDB: %s items"%(self.filename))        
+        return ((self.keyload(x), self.dataload(y)) for x,y in self.bdb.items(txn))
+
+# class JSONDupDB(BaseDB):
+#     def _dupcomp(self):
+#         pass
+#     
+#     def open_set_flags(self):
+#         self.bdb.set_flags(bsddb3.db.DB_DUPSORT)
+#         self.bdb.set_bt_compare(self._dupcomp)
+#         
+#     def add(self, item, txn=None):
+#         pass
+# 
+#     def get(self, key, txn=None):
+#         pass
+#     
+# class HistoryDB(JSONDupDB):
+#     pass
+# 
+# class CommentsDB(JSONDupDB):
+#     pass
+
+class SequenceDB(BaseDB):    
     def next(self, key='sequence', txn=None):
         # Update a sequence key. Requires txn.
         # The Sequence DB can handle multiple keys -- e.g., for
         # binaries, each day has its own sequence key.
         delta = 1
-        
         val = self.bdb.get(key, txn=txn, flags=bsddb3.db.DB_RMW)
         if val == None:
             val = 0
         val = int(val)
-        
         self.bdb.put(key, str(val+delta), txn=txn)
         emen2.db.log.debug("BDB: %s sequence: %s: %s -> %s"%(self.filename, val, key, val+delta))
         return val
 
     def max(self, key="sequence", txn=None):
-        """Return the current maximum item in the sequence. Requires txn.
-
-        :keyword txn: Transaction
-        """
+        """Return the current maximum item in the sequence. Requires txn."""
         sequence = self.bdb.get(key, txn=txn)
         if sequence == None:
             sequence = 0
@@ -996,45 +980,21 @@ class SequenceDB(object):
         emen2.db.log.debug("BDB: %s set sequence: %s: %s"%(self.filename, key, value))
         return value
 
-class IndexDB(object):
-    # A secondary index. Also used for relationships.
-    def __init__(self, filename=None, keytype=None, param=None, extension='index', vtc=None, dbenv=None):
-        # Filename, DBENV, BDB handle.
-        self.keytype = keytype
-        self.param = param
-        self.filename = filename or os.path.join(self.keytype, '%s.%s.%s'%(keytype, param, extension))
-        self.dbenv = dbenv
-        self.bdb = None
-
-        # Index settings.
+class IndexDB(BaseDB):
+    def init(self, vtc):
         self.vtc = vtc
         self.keydump = lambda x:unicode(x).lower().encode('utf-8')
-        self.keyload = self.vtc.keyclass # lambda x:self.vtc.keyclass(x)
-        self.open()    
+        self.keyload = self.vtc.keyclass
 
-    def open(self):
-        """Open the DB. This uses an implicit open transaction."""
-        if self.bdb:
-            raise Exception("DB already open.")
-        emen2.db.log.debug("BDB: %s open"%self.filename)
-        flags = 0
-        flags |= bsddb3.db.DB_AUTO_COMMIT 
-        flags |= bsddb3.db.DB_CREATE 
-        flags |= bsddb3.db.DB_THREAD
-        flags |= bsddb3.db.DB_MULTIVERSION        
-        self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
+    def _keycomp(self, k1, k2):
+        # Numeric comparison function, for BTree sorting.
+        return cmp(self.keyload(k1 or '0'), self.keyload(k2 or '0'))
+    
+    def open_set_flags(self):
         self.bdb.set_flags(bsddb3.db.DB_DUPSORT)
-        # A little magicky but works.
-        if self.vtc.keyclass in [float, int]:
-            # print "setting comparison function for %s: %s"%(self.param, self.vtc.keyclass)
-            self.bdb.set_bt_compare(self._cmpfunc)
-        self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
-
-    def close(self):
-        """Close the DB."""
-        emen2.db.log.debug("BDB: %s close"%self.filename)
-        self.bdb.close()
-        self.bdb = None
+        # A little hacky...
+        if self.keyload in [float, int]:
+            self.bdb.set_bt_compare(self._keycomp)
     
     def reindex(self, key, old, new, txn=None):
         key = str(key)
@@ -1066,9 +1026,6 @@ class IndexDB(object):
                 cursor.delete()       
         cursor.close()
 
-    def _cmpfunc(self, k1, k2):
-        # Numeric comparison function, for BTree sorting.
-        return cmp(self.keyload(k1 or '0'), self.keyload(k2 or '0'))
 
     def find(self, key, maxkey=None, op='==', count=100, txn=None):
         r = self.find_both(key=key, maxkey=maxkey, op=op, count=count, txn=txn)
@@ -1229,7 +1186,6 @@ class IndexDB(object):
 
 class RelDB(IndexDB):
     def bfs(self, key, recurse=1, txn=None):
-        # (Internal) Relationships
         # Check max recursion depth
         maxrecurse = emen2.db.config.get('params.maxrecurse')
         if recurse < 0:
@@ -1257,139 +1213,5 @@ class RelDB(IndexDB):
 
         visited |= tovisit[-1]
         cursor.close()
-        return result, visited     
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-####### NEW ##########
-
-class BaseDB(object):
-    def __init__(self, filename, dbenv):
-        """Create and open the DB."""
-        # EMEN2DBEnv and BDB handle
-        self.filename = filename
-        self.dbenv = dbenv
-        self.bdb = None
-        self.open()
-        
-    # Just open and close
-    def open(self):
-        """Open the DB. This uses an implicit open transaction."""
-        if self.bdb:
-            raise Exception("DB already open.")
-        emen2.db.log.debug("BDB: %s open"%self.filename)
-        flags = 0
-        flags |= bsddb3.db.DB_AUTO_COMMIT 
-        flags |= bsddb3.db.DB_CREATE 
-        flags |= bsddb3.db.DB_THREAD
-        flags |= bsddb3.db.DB_MULTIVERSION
-        bdb = bsddb3.db.DB(self.dbenv.dbenv)
-        self.bdb = self.open_set_flags(bdb)
-        self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
-
-    def open_set_flags(self, bdb):
-        return bdb
-
-    def close(self):
-        """Close the DB."""
-        if self.bdb is None:
-            raise Exception("DB already closed.")
-        emen2.db.log.debug("BDB: %s close"%self.filename)
-        self.bdb.close()
-        self.bdb = None
-    
-class JSONDB(object):
-    keydump = lambda x:unicode(x).encode('utf-8')
-    keyload = lambda x:x.decode('utf-8')
-    datadump = lambda x:json.dumps(x)
-    dataload = lambda x:json.loads(x)
-    
-    def put(self, item, txn=None):
-        emen2.db.log.debug("BDB: %s put: %s"%(self.filename, key))
-        self.bdb.put(self.keydump(item.name), self.datadump(item.data), txn=txn)
-
-    def exists(self, key, ctx=None, txn=None):
-        emen2.db.log.debug("BDB: %s exists: %s"%(self.filename, key))
-        if key is None or key < 0:
-            return False
-        return self.bdb.exists(self.keydump(key), txn=txn, flags=bsddb3.db.DB_RMW)
-    
-    def get(self, key, txn=None):
-        emen2.db.log.debug("BDB: %s get: %s"%(self.filename, key))        
-        d = self.bdb.get(self.keydump(key), txn=txn)
-        if d is None:
-            raise KeyError("No such key: %s"%(key))
-        return self.dataload(d)
-
-    def keys(self, txn=None):
-        emen2.db.log.debug("BDB: %s keys"%(self.filename))        
-        return (self.keyload(x) for x in self.bdb.keys(txn))
-        
-    def values(self, txn=None):
-        emen2.db.log.debug("BDB: %s values"%(self.filename))        
-        return (self.dataload(x) for x in self.bdb.values(txn))
-    
-    def items(self, txn=None):
-        emen2.db.log.debug("BDB: %s items"%(self.filename))        
-        return ((self.keyload(x), self.dataload(y)) for x,y in self.bdb.items(txn))
-
-class DupDB(BaseDB):
-    def open_set_flags(self):
-        """Open the DB. This uses an implicit open transaction."""
-        if self.bdb:
-            raise Exception("DB already open.")
-        emen2.db.log.debug("BDB: %s open"%self.filename)
-        flags = 0
-        flags |= bsddb3.db.DB_AUTO_COMMIT 
-        flags |= bsddb3.db.DB_CREATE 
-        flags |= bsddb3.db.DB_THREAD
-        flags |= bsddb3.db.DB_MULTIVERSION        
-        self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
-        self.bdb.set_flags(bsddb3.db.DB_DUPSORT)
-        # A little magicky but works.
-        if self.vtc.keyclass in [float, int]:
-            # print "setting comparison function for %s: %s"%(self.param, self.vtc.keyclass)
-            self.bdb.set_bt_compare(self._cmpfunc)
-        self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
-    
-        
-class HistoryDB(JSONDB):
-    # Logs
-    pass    
-
-class SequenceDB(BaseDB):
-    def next(self):
-        pass
-    def max(self):
-        pass
-    def set(self):
-        pass
-    
-class IndexDB(BaseDB):
-    def addrefs(self):
-        pass
-    def removerefs(self):
-        pass
-    def find(self):
-        pass
-    def find_both(self):
-        pass
-    def get(self):
-        pass
-    
-class RelDB(IndexDB):
-    def bfs(self):
-        pass
+        return result, visited
 

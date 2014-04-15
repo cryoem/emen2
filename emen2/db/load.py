@@ -37,24 +37,15 @@ class Loader(object):
             keytype = item.get('keytype')
             name = item.get('name')
             print "Load: put:", keytype, name
-            try:
-              r = dbenv[keytype].put(item, ctx=ctx, txn=txn)
-            except Exception, e:
-              print "Could not load %s %s:"%(keytype, name), e
+            # try:
+            r = dbenv[keytype].put(item, ctx=ctx, txn=txn)
+            # except Exception, e:
+            #   print "Could not load %s %s:"%(keytype, name), e
             count += 1
-
-        for item in self.readrels(infile=infile, keytype=keytype):
-            print "Load: rels:", item
-            
-        for item in self.readhistory(infile=infile, keytype=keytype):
-            print "Load: history:", item
 
         t = time.time()-t
         s = float(count) / t
         print "Load: total time: %0.2f, %0.2f put/sec"%(t, s)
-
-    def readrels(self, infile=None, keytype=None):
-        pass
 
     def readfile(self, infile=None, keytype=None):
         infile = infile or self.infile
