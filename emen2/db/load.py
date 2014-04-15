@@ -55,7 +55,7 @@ class Loader(object):
             for item in f:
                 item = item.strip()
                 if item and not item.startswith('/'):
-                    item = jsonrpc.jsonutil.decode(item)
+                    item = json.loads(item)
                     if keytype:
                         if keytype == item.get('keytype'):
                             yield item
@@ -81,7 +81,7 @@ class Loader(object):
 #             try:
 #                 r = dbenv[keytype].new(ctx=ctx, txn=txn)
 #                 r.data.update(item)
-#                 r = dbenv[keytype]._put(r, ctx=ctx, txn=txn)
+#                 r = dbenv[keytype]._put(r, txn=txn)
 #                 # print r.data
 #             except Exception, e:
 #                 print "Could not load...", e

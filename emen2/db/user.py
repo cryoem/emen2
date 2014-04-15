@@ -266,6 +266,10 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
                 return True
         return False
 
+    def _set_secret(self, key, value):
+        print "dont set secret this way!"
+        return
+
     def _setsecret(self, action, args):
         # Generate random secret.
         secret = emen2.db.database.getrandomid()

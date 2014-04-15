@@ -48,6 +48,15 @@ set_lg_max 8388608
 set_lg_bsize 2097152
 """
 
+class DummyDBO(object):
+    def __init__(self, name, data):
+        self.name = name
+        self.data = data
+    def keys(self):
+        return []
+    def get(self, key, default=None):
+        return None
+
 ##### EMEN2 Database Environment #####
 
 class EMEN2DBEnv(object):
@@ -123,16 +132,16 @@ class EMEN2DBEnv(object):
         return dbenv
 
     def init(self):
-        self.keytypes['paramdef']  = CollectionDB(dataclass=emen2.db.paramdef.ParamDef, dbenv=self)
-        self.keytypes['recorddef'] = CollectionDB(dataclass=emen2.db.recorddef.RecordDef, dbenv=self)
-        self.keytypes['group']     = CollectionDB(dataclass=emen2.db.group.Group, dbenv=self)
-        self.keytypes['record']    = RecordDB(dataclass=emen2.db.record.Record, dbenv=self)
-        self.keytypes['user']      = UserDB(dataclass=emen2.db.user.User, dbenv=self)
-        self.keytypes['newuser']   = NewUserDB(dataclass=emen2.db.user.NewUser, dbenv=self)
-        self.keytypes['binary']    = CollectionDB(dataclass=emen2.db.binary.Binary, dbenv=self)
+        self.keytypes['paramdef']  = CollectionDB(keytype='paramdef', dataclass=emen2.db.paramdef.ParamDef, dbenv=self)
+        self.keytypes['recorddef'] = CollectionDB(keytype='recorddef', dataclass=emen2.db.recorddef.RecordDef, dbenv=self)
+        self.keytypes['group']     = CollectionDB(keytype='group', dataclass=emen2.db.group.Group, dbenv=self)
+        self.keytypes['record']    = RecordDB(keytype='record', dataclass=emen2.db.record.Record, dbenv=self)
+        self.keytypes['user']      = UserDB(keytype='user', dataclass=emen2.db.user.User, dbenv=self)
+        self.keytypes['newuser']   = NewUserDB(keytype='newuser', dataclass=emen2.db.user.NewUser, dbenv=self)
+        self.keytypes['binary']    = CollectionDB(keytype='binary', dataclass=emen2.db.binary.Binary, dbenv=self)
         # Private.
-        self._user_history         = CollectionDB(dataclass=emen2.db.user.History, keytype='user_history', dbenv=self)
-        self._context              = CollectionDB(dataclass=emen2.db.context.Context, dbenv=self)
+        self._user_history         = CollectionDB(keytype='user_history', dataclass=emen2.db.user.History, dbenv=self)
+        self._context              = CollectionDB(keytype='context', dataclass=emen2.db.context.Context, dbenv=self)
 
     # ian: todo: make this nicer.
     def close(self):
@@ -278,7 +287,7 @@ class EMEN2DBEnv(object):
 ##### Context-aware DBs for Database Objects #####
 
 class CollectionDB(object):
-    def __init__(self, keytype=None, dataclass=None, dbenv=None):
+    def __init__(self, keytype, dataclass, dbenv):
         """Create and open the DB."""
         # EMEN2DBEnv
         self.dbenv = dbenv
@@ -327,7 +336,7 @@ class CollectionDB(object):
             self.rels[param] = None
             return None
         vtc = emen2.db.vartypes.Vartype.get_vartype(name=param) # Has to be a core param.
-        index = RelDB(filename='%s.%s.rel'%(self.keytype, param), vtc=vtc, dbenv=self.dbenv.dbenv)
+        index = RelDB(filename='%s.%s.rel'%(self.keytype, param), param=param, vtc=vtc, dbenv=self.dbenv.dbenv)
         self.rels[param] = index
         return index
 
@@ -354,7 +363,7 @@ class CollectionDB(object):
             return            
 
         # Open the secondary index.
-        index = IndexDB(filename='%s.%s.index'%(self.keytype, param), vtc=vtc, dbenv=self.dbenv.dbenv)
+        index = IndexDB(filename='%s.%s.index'%(self.keytype, param), param=param, vtc=vtc, dbenv=self.dbenv.dbenv)
         self.indexes[param] = index
         return index
 
@@ -396,7 +405,7 @@ class CollectionDB(object):
     
     def exists(self, key, ctx=None, txn=None):
         """Check if a key exists."""
-        return self.data.exists(key, txn=txn, flags=bsddb3.db.DB_RMW)
+        return self.data.exists(key, txn=txn)
         
     def filter(self, names=None, ctx=None, txn=None):
         """Filter a set of keys for read permission.
@@ -453,13 +462,17 @@ class CollectionDB(object):
         ret = []
         for key in keys:
             try:
-                d = self.data.get(key, txn=txn)
+                d = self.dataclass.load(self.data.get(key, txn=txn))
                 d.setContext(ctx)
                 ret.append(d)
             except filt, e:
                 pass
         return ret
-        
+    
+    def _get(self, key, txn=None):
+        """Get."""
+        return self.dataclass.load(self.data.get(key, txn=txn))
+    
     ##### Write methods #####
 
     def validate(self, item, ctx=None, txn=None):
@@ -467,14 +480,16 @@ class CollectionDB(object):
         name = item.get('name')
         if self.data.exists(name, txn=txn):
             # Get the existing item.
-            orec = self.data.get(name, txn=txn)
+            data = self.data.get(name, txn=txn)
+            orec = self.dataclass.load(data)
             # May raise a PermissionsError if you can't read it.
             orec.setContext(ctx)
+            # Update the item.
             orec.update(item)
         else:
             # Create a new item.
             orec = self.new(ctx=ctx, txn=txn, **item)
-        # Update the item.
+        # Validate.
         orec.validate()
         return orec
     
@@ -493,17 +508,36 @@ class CollectionDB(object):
         :exception PermissionsError:
         :exception ValidationError:
         """
-        # Backwards compat
-        parents = item.data.pop('parents', []) 
-        children = item.data.pop('children', []) 
+        name = item.get('name')
+        
+        # Check if it exists, update, validate, etc.
+        item = self.validate(item, ctx=ctx, txn=txn)
+        
+        self._update_name(item, txn=txn)
+        parents = item.data.pop('parents', [])
+        children = item.data.pop('children', [])
+
+        self._put(item, txn=txn)
+        
+        # Link
+        for k in parents:
+            self._putrel(k, item.name, ctx=ctx, txn=txn)
+        for k in children:
+            self._putrel(item.name, k, ctx=ctx, txn=txn)
+        return item
+        
+    def _put(self, item, txn=None):
+        """Put, and reindex."""
+        # Sanity check
+        assert item.name 
+        
+        # Get old value for index updates.
         try:
-            old = self.get(item.name, txn=txn)
+            old = self.data.get(item.name, txn=txn)
         except:
-            old = self.new(txn=txn, **item)
-
-        namemap = self._update_name(item, txn=txn)
-
-        # Put
+            old = {}
+        
+        # Put item.
         self.data.put(item.name, item.data, txn=txn)
 
         # Reindex
@@ -525,14 +559,24 @@ class CollectionDB(object):
         if ind:
             ind.removerefs(item.name, okw - nkw, txn=txn)
             ind.addrefs(item.name, nkw - okw, txn=txn)                
-
-        # Link
-        for k in parents:
-            self._putrel(k, item.name, ctx=ctx, txn=txn)
-        for k in children:
-            self._putrel(item.name, k, ctx=ctx, txn=txn)
+    
         return item
-        
+    
+    def delete(self, key, ctx=None, txn=None):
+        if not ctx.checkadmin():
+            raise emen2.db.exceptions.PermissionsError("Only admin can delete items!")
+        # Zero out the indexes
+        item = DummyDBO(name=key, data={})
+        self._put(item, txn=txn)
+        # Delete relationships
+        pass # TODO
+        # Add deleted marker to history
+        pass # TODO
+        # Delete the item.
+        self.data.delete(key, txn=txn)
+    
+    ##### Query #####
+    
     def query(self, c=None, keywords=None, mode='AND', subset=None, ctx=None, txn=None):
         """Return a Query Constraint Group.
 
@@ -754,7 +798,6 @@ class CollectionDB(object):
         return []
 
     def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
-        emen2.db.log.debug("BDB: %s _putrel %s: %s %s "%(self.keytype, mode, parent, child))        
         parent = self.get(parent, ctx=ctx, txn=txn)
         child = self.get(child, ctx=ctx, txn=txn)
         if not (parent.writable() or child.writable()):
@@ -824,11 +867,6 @@ class UserDB(CollectionDB):
         return super(UserDB, self).filter(names, ctx=ctx, txn=txn)
 
 class NewUserDB(CollectionDB):
-    def delete(self, key, ctx=None, txn=None):
-        if not ctx.checkadmin():
-            raise emen2.db.exceptions.PermissionsError("Only admin can delete keys.")
-        self.data.delete(key, txn=txn)
-
     def new(self, *args, **kwargs):
         # Check  if this email already exists.
         txn = kwargs.get('txn', None)
@@ -844,20 +882,6 @@ class NewUserDB(CollectionDB):
         if not ctx or not ctx.checkadmin():
             raise emen2.db.exceptions.PermissionsError("Admin rights needed to view user queue.")
         return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
-
-
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
         
 ####### Databases ##########
 
@@ -878,13 +902,13 @@ class BaseDB(object):
         """Open the DB. This uses an implicit open transaction."""
         if not self.filename:
             raise Exception("No filename!")
-        emen2.db.log.debug("BDB: %s open"%self.filename)
         flags = 0
         flags |= bsddb3.db.DB_AUTO_COMMIT 
         flags |= bsddb3.db.DB_CREATE 
         flags |= bsddb3.db.DB_THREAD
         flags |= bsddb3.db.DB_MULTIVERSION
         self.open_set_flags()
+        emen2.db.log.debug("BDB: %s open"%self.filename)
         self.bdb.open(filename=self.filename, dbtype=bsddb3.db.DB_BTREE, flags=flags)
 
     def open_set_flags(self):
@@ -897,19 +921,19 @@ class BaseDB(object):
 
 class JSONDB(BaseDB):
     def init(self):
-        keydump = lambda x:unicode(x).encode('utf-8')
-        keyload = lambda x:x.decode('utf-8')
-        datadump = lambda x:json.dumps(x)
-        dataload = lambda x:json.loads(x)
+        self.keydump = lambda x:unicode(x).encode('utf-8')
+        self.keyload = lambda x:x.decode('utf-8')
+        self.datadump = lambda x:json.dumps(x)
+        self.dataload = lambda x:json.loads(x)
     
     def put(self, key, item, txn=None):
         emen2.db.log.debug("BDB: %s put: %s"%(self.filename, key))
         self.bdb.put(self.keydump(key), self.datadump(item), txn=txn)
 
     def exists(self, key, ctx=None, txn=None):
-        emen2.db.log.debug("BDB: %s exists: %s"%(self.filename, key))
         if key is None or key < 0:
             return False
+        emen2.db.log.debug("BDB: %s exists: %s"%(self.filename, key))
         return self.bdb.exists(self.keydump(key), txn=txn, flags=bsddb3.db.DB_RMW)
     
     def get(self, key, txn=None):
@@ -930,6 +954,10 @@ class JSONDB(BaseDB):
     def items(self, txn=None):
         emen2.db.log.debug("BDB: %s items"%(self.filename))        
         return ((self.keyload(x), self.dataload(y)) for x,y in self.bdb.items(txn))
+
+    def delete(self, key, txn=None):
+        emen2.db.log.debug("BDB: %s delete: %s"%(self.filename, key))
+        self.bdb.delete(self.keydump(key), txn=txn)
 
 # class JSONDupDB(BaseDB):
 #     def _dupcomp(self):
@@ -961,12 +989,13 @@ class SequenceDB(BaseDB):
         if val == None:
             val = 0
         val = int(val)
-        self.bdb.put(key, str(val+delta), txn=txn)
         emen2.db.log.debug("BDB: %s sequence: %s: %s -> %s"%(self.filename, val, key, val+delta))
+        self.bdb.put(key, str(val+delta), txn=txn)
         return val
 
     def max(self, key="sequence", txn=None):
         """Return the current maximum item in the sequence. Requires txn."""
+        emen2.db.log.debug("BDB: %s max: %s"%(self.filename, key))
         sequence = self.bdb.get(key, txn=txn)
         if sequence == None:
             sequence = 0
@@ -975,14 +1004,15 @@ class SequenceDB(BaseDB):
     
     def set(self, key="sequence", value=None, txn=None):
         """Manually update."""
-        value = str(int(value)+1)
-        self.bdb.put(key, value, txn=txn)
-        emen2.db.log.debug("BDB: %s set sequence: %s: %s"%(self.filename, key, value))
-        return value
+        val = str(int(value)+1)
+        emen2.db.log.debug("BDB: %s set sequence: %s: %s -> %s"%(self.filename, key, value, val))
+        self.bdb.put(key, val, txn=txn)
+        return val
 
 class IndexDB(BaseDB):
-    def init(self, vtc):
+    def init(self, vtc, param):
         self.vtc = vtc
+        self.param = param
         self.keydump = lambda x:unicode(x).lower().encode('utf-8')
         self.keyload = self.vtc.keyclass
 
@@ -1026,14 +1056,13 @@ class IndexDB(BaseDB):
                 cursor.delete()       
         cursor.close()
 
-
     def find(self, key, maxkey=None, op='==', count=100, txn=None):
         r = self.find_both(key=key, maxkey=maxkey, op=op, count=count, txn=txn)
         return set(i[1] for i in r)
     
     def find_both(self, key, maxkey=None, op='==', count=100, txn=None):
         # I don't like this method name, but whatevs.
-        emen2.db.log.debug("BDB: %s %s index %s %s"%(self.filename, self.param, op, key))        
+        emen2.db.log.debug("BDB: %s find: %s %s %s"%(self.filename, self.param, op, key))        
         if key is None:
             return set()
         r = []

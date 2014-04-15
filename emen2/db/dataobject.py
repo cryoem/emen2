@@ -181,20 +181,31 @@ class BaseDBObject(object):
         for k,v in update.items():
             self.__setitem__(k, v)
     
+    ##### Magic #####
+    
     def _setattr(self, key, value):
         object.__setattr__(self, key, value)
     
     def __setattr__(self, key, value):
-        getattr(self, '_set_%s'%key, self._setattr)(key, value)
+        # If we have a setter method defined, use that.
+        try:
+            setter = object.__getattribute__(self, '_set_%s'%key)
+        except AttributeError:
+            setter = self._setattr
+        setter(key, value)
             
     def __getattr__(self, key):
         # If key is not already an existing attribute, look in self.data.
-        # Otherwise raise AttributeError so getattr() returns default.
-        # print "__getattr__ self.__dict__", key, self.__dict__
         try:
-            return object.__getattribute__(self, 'data')[key]
-        except KeyError, e:
-            raise AttributeError("No attribute: %s"%key)
+            setter = object.__getattribute__(self, '_set_%s'%key)
+        except AttributeError:
+            raise
+        return self.data.get(key)
+        # try:
+        #     data = object.__getattribute__(self, 'data')
+        # except AttributeError:
+        #     data = {}
+        # return data.get(key)
 
     def _setitem(self, key, value):
         self.warn('Cannot set parameter "%s" in this way.'%(key))
@@ -209,7 +220,7 @@ class BaseDBObject(object):
 
     def __getitem__(self, key, default=None):
         # Behave like dict.get(key) instead of dict[key]
-        return self.data.get(key, default)
+        return self.data[key]
 
     ##### Real updates #####
 
@@ -229,7 +240,7 @@ class BaseDBObject(object):
             self.data['modifytime'] = emen2.db.database.utcnow()
             self.data['modifyuser'] = self.ctx.user
 
-    ##### Core parameters. #####
+    ##### Setters for core parameters. #####
     
     def _set_name(self, key, value):
         self._set(key, value, self.isnew())

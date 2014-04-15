@@ -135,6 +135,24 @@ def getpw(pw=None):
             pw = getpass.getpass("Password: ")
     return pw
 
+def first_or_none(items):
+    """Return the first item from a list, or None."""
+    if not items:
+        return None
+    if hasattr(items, 'values'):
+        result = items.values()[0]
+    else:
+        result = iter(items).next()
+    return result
+
+def oltolist(d):
+    if isinstance(d, (list, set)):
+        ol = False
+    else:
+        ol = True
+        d = [d]
+    return ol, d
+            
 def ol(name, output=True):
     """Decorator function to return a list if function arg 'name' was a list, 
     or return the first element if function arg 'name' was not a list.
@@ -143,25 +161,14 @@ def ol(name, output=True):
     """
     # This will be easier in Python 2.7 using inspect.getcallargs.
     def wrap(f):
-        olpos = inspect.getargspec(f).args.index(name)
-
         @functools.wraps(f)
         def wrapped_f(*args, **kwargs):
-            if kwargs.has_key(name):
-                olreturn, olvalue = emen2.utils.oltolist(kwargs[name])
-                kwargs[name] = olvalue
-            elif (olpos-1) <= len(args):
-                olreturn, olvalue = emen2.utils.oltolist(args[olpos])
-                args = list(args)
-                args[olpos] = olvalue
-            else:
-                raise TypeError('function %r did not get argument %s' % (f, name))
-
-            result = f(*args, **kwargs)
+            args = inspect.getcallargs(f, *args, **kwargs)
+            olreturn, args[name] = oltolist(args.get(name))
+            result = f(**args)
             if output and olreturn:
-                return emen2.utils.first_or_none(result)
+                return first_or_none(result)
             return result
-            
         return wrapped_f
     return wrap
 
@@ -603,6 +610,7 @@ class DB(object):
 
         # Create the Context for this user/host
         newcontext = emen2.db.context.Context.new(user=user.name, host=host)
+        newcontext.name = emen2.utils.timeuuid()
         print "======== creating context ======"
         print newcontext, newcontext.__dict__
         print "========"
@@ -1736,7 +1744,7 @@ class DB(object):
         if user.email == oldemail:
             # Need to verify email address change by receiving secret.
             emen2.db.log.security("Sending email verification for user %s to %s"%(user.name, email))
-            self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
+            self.dbenv["user"]._put(user, txn=txn)
 
             # Send the verify email containing the auth token
             ctxt['secret'] = user_secret[2]
@@ -1745,7 +1753,7 @@ class DB(object):
         else:
             # Verified with secret.
             emen2.db.log.security("Changing email for user %s to %s"%(user.name, user.email))
-            self.dbenv['user']._put(user, ctx=ctx, txn=txn)
+            self.dbenv['user']._put(user, txn=txn)
             # Send the user an email to acknowledge the change
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':user.email, 'template':'/email/email.verified', 'ctxt':ctxt})
 
@@ -1767,7 +1775,7 @@ class DB(object):
         events.addhistory(user=user.name, param='password', value=user.password, timestamp='1900-01-01T00:00:00Z+00:00')
 
         emen2.db.log.security("Expiring password for %s"%user.name)
-        self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
+        self.dbenv["user"]._put(user, txn=txn)
         self.dbenv._user_history._put(events, txn=txn)
 
     @publicmethod(write=True, compat="setpassword")
@@ -1818,7 +1826,7 @@ class DB(object):
 
         # Save the user. Don't use regular .put(), it will fail on setting pw.
         emen2.db.log.security("Changing password for %s"%user.name)
-        self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
+        self.dbenv["user"]._put(user, txn=txn)
 
         # Save the user events.
         recycle = emen2.db.config.get('security.password_recycle') or 0
@@ -1859,7 +1867,7 @@ class DB(object):
         user.resetpassword()
 
         # Use direct put to preserve the secret
-        self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
+        self.dbenv["user"]._put(user, txn=txn)
 
         # Absolutely never reveal the secret via any mechanism
         # but email to registered address
@@ -1986,7 +1994,7 @@ class DB(object):
                 user[i] = newuser.get(i)
             # Manually copy the password hash.
             user.data['password'] = newuser.password
-            user = self.dbenv["user"]._put(user, ctx=ctx, txn=txn)
+            user = self.dbenv["user"]._put(user, txn=txn)
 
             # Create a user profile record.
             if newuser.signupinfo:            
@@ -2012,7 +2020,7 @@ class DB(object):
                     crec.adduser(user.name, level=3)
                     crec = self.dbenv["record"].put(crec, ctx=ctx, txn=txn)
                     self.dbenv['record'].pclink(rec.name, crec.name, ctx=ctx, txn=txn)
-                    
+                                        
             cusers.append(user)
 
         # Send the 'account approved' emails
