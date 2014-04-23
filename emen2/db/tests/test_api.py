@@ -1137,8 +1137,10 @@ class Record(Test):
         rec = self._make()
         comments = ['peace', 'is', 'always', 'beautiful']
         for comment in comments:
-            rec = self.db.record.addcomment(rec.name, comment)
-            assert comment in [i[2] for i in rec.comments]
+            self.db.record.addcomment(rec.name, comment)
+            c = self.db.record.findcomments(rec.name)
+            assert comment in [i.get('value') for i in c]
+            self.ok(comment)
         self.ok()
         
     @test
@@ -1148,17 +1150,30 @@ class Record(Test):
         comments = ['large', 'contain', 'multitudes']
         for comment in comments:
             crec = self._make()
-            crec['comments'] = comment
             crec = self.db.record.put(crec)
+            self.db.record.addcomment(crec.name, comment)
             self.db.rel.pclink(rec.name, crec.name)
         children = self.db.rel.children(rec.name)
-        # print rec.name
-        # print self.db.rel.children(rec.name, recurse=-1)
+
         found = self.db.record.findcomments(children)
         for comment in comments:
-            assert comment in [i[3] for i in found]
+            assert comment in [i.get('value') for i in found]
+            self.ok(comment)
         self.ok()
     
+    @test
+    def api_record_gethistory(self):
+        """Testing record.gethistory()"""
+        rec = self._make()
+        for i in ['e', 'i', 'o']:
+            rec['desc_short'] = i
+            rec = self.db.record.put(rec)
+        h = self.db.record.gethistory(rec.name)
+        for history in ['e', 'i', None]:
+            assert history in [i.get('value') for i in h]
+            self.ok(history)
+        self.ok()
+        
     @test
     def api_record_findorphans(self):
         """Testing record.findorphans()"""        

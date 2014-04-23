@@ -267,7 +267,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         return False
 
     def _set_secret(self, key, value):
-        print "dont set secret this way!"
+        print "Dont set secret this way!"
         return
 
     def _setsecret(self, action, args):

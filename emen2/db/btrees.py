@@ -52,6 +52,8 @@ class DummyDBO(object):
     def __init__(self, name, data):
         self.name = name
         self.data = data
+        self.history = []
+        self.comments = []
     def keys(self):
         return []
     def get(self, key, default=None):
@@ -296,6 +298,8 @@ class CollectionDB(object):
         
         # Indexes and relationships        
         self.data = None
+        self.history = None
+        self.comments = None
         self.sequence = None
         self.indexes = {}
         self.rels = {}
@@ -312,20 +316,20 @@ class CollectionDB(object):
     def open(self):
         """Open the DB. This uses an implicit open transaction."""
         self.data = JSONDB(filename='%s.bdb'%self.keytype, dbenv=self.dbenv.dbenv)
+        self.history = JSONDupDB(filename='%s.history'%self.keytype, dbenv=self.dbenv.dbenv)
+        self.comments = JSONDupDB(filename='%s.comments'%self.keytype, dbenv=self.dbenv.dbenv)
         self.sequence = SequenceDB(filename='%s.sequence'%self.keytype, dbenv=self.dbenv.dbenv)
 
     def close(self):
         """Close the DB."""
         self.data.close()
-        self.data = None
+        self.history.close()
+        self.comments.close()
         self.sequence.close()
-        self.sequence = None
         for v in self.rels.values():
             v.close()
-        self.rels = {}
         for v in self.indexes.values():
             v.close()
-        self.indexes = {}
 
     ##### Indexes #####
 
@@ -472,7 +476,27 @@ class CollectionDB(object):
     def _get(self, key, txn=None):
         """Get."""
         return self.dataclass.load(self.data.get(key, txn=txn))
+
+    ##### Comments and history #####
+
+    def addcomment(self, key, comment, ctx=None, txn=None):
+        item = self.get(key, ctx=ctx, txn=txn, filt=False)
+        if item:
+            item.addcomment(comment)
+            self._put(item, txn=txn)
     
+    def getcomments(self, key, filt=True, ctx=None, txn=None):
+        r = self.get(key, filt=True, ctx=ctx, txn=txn)
+        if r:
+            return self.comments.get(r.name, txn=txn)
+        return []
+
+    def gethistory(self, key, filt=True, ctx=None, txn=None):
+        r = self.get(key, filt=filt, ctx=ctx, txn=txn)
+        if r:
+            return self.history.get(r.name, txn=txn)
+        return []
+
     ##### Write methods #####
 
     def validate(self, item, ctx=None, txn=None):
@@ -525,7 +549,7 @@ class CollectionDB(object):
         for k in children:
             self._putrel(item.name, k, ctx=ctx, txn=txn)
         return item
-        
+    
     def _put(self, item, txn=None):
         """Put, and reindex."""
         # Sanity check
@@ -538,10 +562,28 @@ class CollectionDB(object):
             old = {}
         
         # Put item.
+        print "....data:", item.data
+        for i in item.history:
+            print "....history:", i
+            self.history.add(item.name, i, txn=txn)
+        for i in item.comments:
+            print "....comments:", i
+            self.comments.add(item.name, i, txn=txn)
         self.data.put(item.name, item.data, txn=txn)
 
         # Reindex
-        exclude_keywords = ['creationtime', 'modifytime', 'creator', 'modifyuser', 'name', 'uri', 'keytype', 'hidden', 'permissions', 'groups']
+        exclude_keywords = [
+            'creationtime', 
+            'modifytime', 
+            'creator', 
+            'modifyuser', 
+            'name', 
+            'uri', 
+            'keytype', 
+            'hidden', 
+            'permissions', 
+            'groups'
+        ]
         okw = set()
         nkw = set()
         for k in set(old.keys() + item.keys()):
@@ -557,8 +599,8 @@ class CollectionDB(object):
         # Keywords
         ind = self._getindex('keywords', txn=txn)
         if ind:
-            ind.removerefs(item.name, okw - nkw, txn=txn)
-            ind.addrefs(item.name, nkw - okw, txn=txn)                
+            ind.remove(item.name, okw - nkw, txn=txn)
+            ind.add(item.name, nkw - okw, txn=txn)                
     
         return item
     
@@ -776,7 +818,7 @@ class CollectionDB(object):
         :keyword ctx: Context
         :keyword txn: Transaction
         """
-        self._putrel(parent, child, mode='addrefs', ctx=ctx, txn=txn)
+        self._putrel(parent, child, mode='add', ctx=ctx, txn=txn)
 
     def pcunlink(self, parent, child, ctx=None, txn=None):
         """Remove parent-child relationship. Requires ctx and txn.
@@ -791,25 +833,25 @@ class CollectionDB(object):
         :keyword ctx: Context
         :keyword txn: Transaction
         """
-        self._putrel(parent, child, mode='removerefs', ctx=ctx, txn=txn)
+        self._putrel(parent, child, mode='remove', ctx=ctx, txn=txn)
 
     def relink(self, removerels=None, addrels=None, ctx=None, txn=None):
         """Add and remove a number of parent-child relationships at once."""
         return []
 
-    def _putrel(self, parent, child, mode='addrefs', ctx=None, txn=None):
+    def _putrel(self, parent, child, mode='add', ctx=None, txn=None):
         parent = self.get(parent, ctx=ctx, txn=txn)
         child = self.get(child, ctx=ctx, txn=txn)
         if not (parent.writable() or child.writable()):
             raise emen2.db.exceptions.SecurityError("Insufficient permissions to edit relationship.")
         ind_parents = self._getrel('parents', txn=txn)
         ind_children = self._getrel('children', txn=txn)
-        if mode == 'addrefs':
-            ind_parents.addrefs(parent.name, [child.name], txn=txn)    
-            ind_children.addrefs(child.name, [parent.name], txn=txn)    
-        elif mode == 'removerefs':
-            ind_parents.removerefs(parent.name, [child.name], txn=txn)
-            ind_children.removerefs(child.name, [parent.name], txn=txn)
+        if mode == 'add':
+            ind_parents.add(parent.name, [child.name], txn=txn)    
+            ind_children.add(child.name, [parent.name], txn=txn)    
+        elif mode == 'remove':
+            ind_parents.remove(parent.name, [child.name], txn=txn)
+            ind_children.remove(child.name, [parent.name], txn=txn)
 
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
@@ -959,19 +1001,36 @@ class JSONDB(BaseDB):
         emen2.db.log.debug("BDB: %s delete: %s"%(self.filename, key))
         self.bdb.delete(self.keydump(key), txn=txn)
 
-# class JSONDupDB(BaseDB):
-#     def _dupcomp(self):
-#         pass
-#     
-#     def open_set_flags(self):
-#         self.bdb.set_flags(bsddb3.db.DB_DUPSORT)
-#         self.bdb.set_bt_compare(self._dupcomp)
-#         
-#     def add(self, item, txn=None):
-#         pass
-# 
-#     def get(self, key, txn=None):
-#         pass
+class JSONDupDB(BaseDB):
+    def init(self):
+        self.keydump = lambda x:unicode(x).encode('utf-8')
+        self.keyload = lambda x:x.decode('utf-8')
+        self.datadump = lambda x:json.dumps(x)
+        self.dataload = lambda x:json.loads(x)
+    
+    def open_set_flags(self):
+        self.bdb.set_flags(bsddb3.db.DB_DUP)
+        
+    def add(self, key, value, txn=None):
+        emen2.db.log.debug(u"BDB: %s add: %s %s"%(self.filename, key, value))
+        cursor = self.bdb.cursor(txn=txn)
+        try:
+            cursor.put(self.keydump(key), self.datadump(value), flags=bsddb3.db.DB_KEYFIRST)
+        except bsddb3.db.DBKeyExistError, e:
+            pass
+        cursor.close()
+
+    def get(self, key, txn=None):
+        cursor = self.bdb.cursor(txn=txn)        
+        r = []
+        c = cursor.get(self.keydump(key), flags=bsddb3.db.DB_SET)
+        m = cursor.next_dup
+        while c:
+            r.append(self.dataload(c[1]))
+            c = m()
+        cursor.close()
+        return r
+
 #     
 # class HistoryDB(JSONDupDB):
 #     pass
@@ -1030,26 +1089,26 @@ class IndexDB(BaseDB):
         key = str(key)
         old = self.vtc.reindex(old)
         new = self.vtc.reindex(new)
-        self.removerefs(key, old - new, txn=txn)
-        self.addrefs(key, new - old, txn=txn)
+        self.remove(key, old - new, txn=txn)
+        self.add(key, new - old, txn=txn)
         return old, new
     
-    def addrefs(self, key, values, txn=None):
+    def add(self, key, values, txn=None):
         if not values:
             return
-        emen2.db.log.debug(u"BDB: %s addrefs: %s %s"%(self.filename, key, values))
+        emen2.db.log.debug(u"BDB: %s add: %s %s"%(self.filename, key, values))
         cursor = self.bdb.cursor(txn=txn)
         for i in values:
             try:
-                cursor.put(self.keydump(i), unicode(key).encode('utf-8'), flags=bsddb3.db.DB_KEYFIRST)
+                cursor.put(self.keydump(i), unicode(key).encode('utf-8'), flags=bsddb3.db.DB_NODUPDATA)
             except bsddb3.db.DBKeyExistError, e:
                 pass
         cursor.close()
             
-    def removerefs(self, key, values, txn=None):
+    def remove(self, key, values, txn=None):
         if not values:
             return
-        emen2.db.log.debug(u"BDB: %s removerefs: %s %s"%(self.filename, key, values))
+        emen2.db.log.debug(u"BDB: %s remove: %s %s"%(self.filename, key, values))
         cursor = self.bdb.cursor(txn=txn)
         for i in values:
             if cursor.set_both(self.keydump(i), unicode(key).encode('utf-8')):

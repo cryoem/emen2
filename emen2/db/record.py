@@ -68,8 +68,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         init        Init the rectype, comments, and history
         keys        Add parameter keys
 
-    :attr history: History log
-    :attr comments: Comments log
     :attr rectype: Associated RecordDef
     """
 
@@ -77,14 +75,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         return "<%s %s, %s at %x>" % (self.__class__.__name__, self.name, self.rectype, id(self))
 
     def init(self):
-        # Call PermissionsDBObject init
         super(Record, self).init()
-        # rectype is required
-        # Access to RecordDef is checked during validation
         self.data['rectype'] = None
-        # comments, history, and other param values
-        self.data['comments'] = []
-        self.data['history'] = []
 
     def validate(self):
         """Validate the record before committing."""
@@ -100,10 +92,6 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
             except KeyError:
                 raise self.error('No such protocol: %s'%self.rectype)
             self.ctx.cache.store(cachekey, rd)
-        # for param in rd.paramsR:
-        #     if self.get(param) is None:
-        #         raise self.error("Required parameter: %s"%(param))
-        self.data['rectype'] = self._strip(rd.name)
 
     ##### Setters #####
     
@@ -112,69 +100,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
             raise self.error("Cannot change protocol from %s to %s."%(self.rectype, value))
         self._set(key, self._strip(value), self.isowner())
         
-    def _set_comments(self, key, value):
-        """Bind record['comments'] setter"""
-        self.addcomment(value)
-
     def _setitem(self, key, value):
         """Set a parameter value."""
-        # Check write permission
-        if not self.writable():
-            msg = "Insufficient permissions to change param %s"%key
-            raise self.error(msg, e=emen2.db.exceptions.PermissionsError)
         value = self._validate(key, value)
-        # No change
-        if self.data.get(key) == value:
-            return
-        # Really set the value
-        self._addhistory(key)
-        self.data[key] = value
-
-    ##### Comments and history #####
-
-    def _addhistory(self, param):
-        """Add an entry to the history log."""
-        # Changes aren't logged on uncommitted records
-        if self.isnew():
-            return
-        if not param:
-            raise Exception("Unable to add item to history log.")
-        if self.data.get('history') is None:
-            self.data['history'] = []
-        self.data['history'].append((unicode(self.ctx.user), unicode(emen2.db.database.utcnow()), unicode(param), self.data.get(param)))
-
-    def addcomment(self, value):
-        """Add a comment. Any $$param="value" comments will be parsed and set as values.
-
-        :param value: The comment to be added
-        """
-        if not self.commentable():
-            raise self.error('Insufficient permissions to add comment.', e=emen2.db.exceptions.PermissionsError)
-        if not value:
-            return
-        
-        # Grumble...
-        if self.data.get('comments') is None:
-            self.data['comments'] = []
-        newcomments = []
-        existing = [i[2] for i in self.comments]
-        if not hasattr(value, "__iter__"):
-            value = [value]
-        for c in value:
-            if hasattr(c, "__iter__"):
-                c = c[-1]
-            if c and c not in existing:
-                newcomments.append(unicode(c))
-
-        for value in newcomments:
-            d = {}
-            if not value.startswith("LOG"): # legacy fix..
-                d = emen2.db.recorddef.parseparmvalues(value)[1]
-            if d.has_key("comments"):
-                # Always abort
-                raise self.error("Cannot set comments inside a comment.")
-            # Now update the values of any embedded params
-            for i,j in d.items():
-                self.__setitem__(i, j)
-            # Store the comment string itself
-            self.data['comments'].append((unicode(self.ctx.user), unicode(emen2.db.database.utcnow()), unicode(value)))
+        self._set(key, value, self.writable())

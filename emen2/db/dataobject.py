@@ -28,7 +28,7 @@ class BaseDBObject(object):
     an item as read-only. The 'parents' and 'children' parameters are treated 
     specially when an item is committed.
 
-    Parameters are stored in the self.data dictionary, and this is saved when
+    Parameters are stored in the self.data dict, and this is saved when
     the DBO is committed.
 
     In addition to implementing the mapping interface, the following methods
@@ -70,6 +70,9 @@ class BaseDBObject(object):
 
     def __init__(self):
         self.data = {}
+        # ugh..
+        self.__dict__['history'] = [] 
+        self.__dict__['comments'] = []
         self.ctx = None
         self.new = True
         self.init()
@@ -136,12 +139,18 @@ class BaseDBObject(object):
         """Check read permissions."""
         return True
 
+    def commentable(self):
+        """Does user have permission to comment (level 1)?"""
+        return self.isowner()
+
     def writable(self, key=None):
         """Check write permissions."""
         return self.isowner()
 
     def isowner(self):
         """Check ownership permissions."""
+        if self.isnew():
+            return True
         if not getattr(self, 'ctx', None):
             return False
         if self.ctx.checkadmin():
@@ -195,17 +204,12 @@ class BaseDBObject(object):
         setter(key, value)
             
     def __getattr__(self, key):
-        # If key is not already an existing attribute, look in self.data.
+        # If we have a setter method, look in self.data.
         try:
             setter = object.__getattribute__(self, '_set_%s'%key)
         except AttributeError:
             raise
         return self.data.get(key)
-        # try:
-        #     data = object.__getattribute__(self, 'data')
-        # except AttributeError:
-        #     data = {}
-        # return data.get(key)
 
     def _setitem(self, key, value):
         self.warn('Cannot set parameter "%s" in this way.'%(key))
@@ -219,7 +223,6 @@ class BaseDBObject(object):
         getattr(self, '_set_%s'%key, self._setitem)(key, value)
 
     def __getitem__(self, key, default=None):
-        # Behave like dict.get(key) instead of dict[key]
         return self.data[key]
 
     ##### Real updates #####
@@ -229,16 +232,24 @@ class BaseDBObject(object):
         
         Check must be True; e.g.:
             self._set('key', 'value', self.isowner())
-        This is to encourage the developer to explicitly check permissions.
+        This is to encourage the explicit permissions checking.
         """
+        # No change
+        if self.data.get(key) == value:
+            return
+        # If the permissions check is not true.
         if not check:
             msg = 'Insufficient permissions to change parameter: %s'%key
             raise self.error(msg, e=emen2.db.exceptions.PermissionsError)
-        self.data[key] = value
-        # Only permissions/groups do not trigger a modifytime update
-        if key not in ['permissions', 'groups'] and not self.isnew():
+        # Update the history log with the key and old value.
+        # Only permissions/groups do not trigger a modifytime update.
+        if not self.isnew() and key not in ['permissions', 'groups']:
             self.data['modifytime'] = emen2.db.database.utcnow()
             self.data['modifyuser'] = self.ctx.user
+            self._addhistory(key, self.data.get(key))
+        # Set the value.
+        # print "set...", self.name, key, value, self.data.get(key)
+        self.data[key] = value
 
     ##### Setters for core parameters. #####
     
@@ -270,6 +281,9 @@ class BaseDBObject(object):
         pass
 
     # Reserved keys.
+    def _set_comments(self, key, value):
+        self.addcomment(value)
+    
     def _set_history(self, key, value):
         pass
 
@@ -282,20 +296,6 @@ class BaseDBObject(object):
     def _set_parents(self, key, value):
         pass
         
-    ##### Pickle / serialize methods #####
-
-    def __setstate__(self, data):
-        if 'data' not in data:
-            data['keytype'] = unicode(self.__class__.__name__.lower())
-            params = data.pop('params', {})
-            params.update(data)
-            data = {'data':params}
-        self.__dict__.update(data)
-        
-    def __getstate__(self):
-        """Pickle just the data; ignore context and other temporary information."""
-        return {'data':self.data}
-
     ##### Validation and error control #####
 
     def _validate(self, key, value):
@@ -341,6 +341,52 @@ class BaseDBObject(object):
             emen2.db.log.warn("Warning: %s: %s"%(self.name, e(msg)))
             pass
         return e(msg)
+
+    ##### Comments and history #####
+
+    def _addhistory(self, key, old):
+        """Add an entry to the history log."""
+        # Changes aren't logged on uncommitted records
+        # if self.isnew():
+        #     return
+        c = {
+            'name': self.name,
+            'keytype': self.keytype,
+            'user': unicode(self.ctx.user),
+            'time': unicode(emen2.db.database.utcnow()),
+            'key': unicode(key),
+            'value': old
+        }
+        # print "HISTORY:", c
+        self.history.append(c)
+
+    def addcomment(self, value):
+        """Add a comment."""
+        if not self.commentable():
+            raise self.error('Insufficient permissions to add comment.', e=emen2.db.exceptions.PermissionsError)
+        if not value:
+            return
+        # Allow setting values inside comments.
+        # d = {}
+        # if not value.startswith("LOG"): # legacy fix..
+        #     d = emen2.db.recorddef.parseparmvalues(value)[1]
+        # if d.has_key("comments"):
+        #     # Always abort
+        #     raise self.error("Cannot set comments inside a comment.")
+        # Now update the values of any embedded params
+        # for i,j in d.items():
+        #     self.__setitem__(i, j)
+        # Store the comment string itself
+        c = {
+            'name': self.name,
+            'keytype': self.keytype,
+            'user': unicode(self.ctx.user),
+            'time': unicode(emen2.db.database.utcnow()),
+            'key': 'comments',
+            'value': unicode(value)
+        }
+        # print "COMMENT:", c
+        self.comments.append(c)
 
 # A class for dbo's that have detailed ACL permissions.
 class PermissionsDBObject(BaseDBObject):

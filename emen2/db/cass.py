@@ -239,10 +239,10 @@ class IndexDB(BaseDB):
     def items(self, minkey=None, maxkey=None, txn=None):
         return []
 
-    def removerefs(self, key, items, txn=None):
+    def remove(self, key, items, txn=None):
         return []
 
-    def addrefs(self, key, items, txn=None):
+    def add(self, key, items, txn=None):
         return []
 
 class CollectionDB(BaseDB):

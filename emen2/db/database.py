@@ -611,9 +611,6 @@ class DB(object):
         # Create the Context for this user/host
         newcontext = emen2.db.context.Context.new(user=user.name, host=host)
         newcontext.name = emen2.utils.timeuuid()
-        print "======== creating context ======"
-        print newcontext, newcontext.__dict__
-        print "========"
         # Put the Context.
         self.dbenv._context._put(newcontext, txn=txn)
         
@@ -2467,9 +2464,17 @@ class DB(object):
 
         return self.dbenv["record"].puts(crecs, ctx=ctx, txn=txn)
 
+    @publicmethod()
+    @ol('names', output=False)    
+    def record_gethistory(self, names, ctx=None, txn=None):
+        ret = []
+        for name in names:
+            h = self.dbenv['record'].gethistory(name, ctx=ctx, txn=txn)
+            ret.extend(h)
+        return sorted(ret, key=lambda x:x.get('time'))
+
     @publicmethod(write=True, compat="addcomment")
-    @ol('names')
-    def record_addcomment(self, names, comment, filt=True, ctx=None, txn=None):
+    def record_addcomment(self, name, comment, ctx=None, txn=None):
         """Add comment to a record.
 
         Requires comment permissions on that Record.
@@ -2477,7 +2482,6 @@ class DB(object):
         Examples:
 
         >>> db.record.addcomment('136', 'Test comment')
-        <Record 136, group>
 
         >>> db.record.addcomment('137', 'No comment permissions!?')
         PermissionsError
@@ -2485,15 +2489,15 @@ class DB(object):
         >>> db.record.addcomment('12345', 'Record does not exist')
         KeyError
 
-        :param name: Record name(s)
+        :param name: Record name
         :param comment: Comment text
         :keyparam filt: Ignore failures
-        :return: Updated Record(s)
+        :return: None
         :exception KeyError:
         :exception PermissionsError:
         :exception ValidationError:
         """
-        return self._mapput('record', names, 'addcomment', ctx, txn, comment)
+        self.dbenv['record'].addcomment(name, comment, ctx=ctx, txn=txn)
 
     @publicmethod(compat="findorphans")
     def record_findorphans(self, names, root=None, keytype='record', ctx=None, txn=None):
@@ -2535,33 +2539,22 @@ class DB(object):
 
         Note: This method always returns a list of items, even if only one record
             is specified, or only one comment is found.
-
-        Examples:
-
-        >>> db.record.findcomments('1')
-        [['1', u'root', u'2010/07/19 14:43:03', u'Record marked for deletion and unlinked from parents: 270940']]
-
-        >>> db.record.findcomments(['1', '138'])
-        [['1', u'root', u'2010/07/19 14:43:03', u'Record marked...'], ['138', u'ianrees', u'2011/10/01 02:28:51', u'New comment']]
-
-        :param names: Record name(s)
-        :keyword filt: Ignore failures
-        :return: A list of comments, with the Record ID as the first item@[[record name, username, time, comment], ...]
-        :exception KeyError:
-        :exception PermissionsError:
         """
-        recs = self.dbenv["record"].gets(names, filt=filt, ctx=ctx, txn=txn)
+        keytype = 'record'
         ret = []
-        # This filters out a couple "history" types of comments
-        for rec in recs:
-            cp = rec.get("comments")
-            if not cp:
-                continue
-            cp = filter(lambda x:"LOG: " not in x[2], cp)
-            cp = filter(lambda x:"Validation error: " not in x[2], cp)
-            for c in cp:
-                ret.append([rec.name]+list(c))
-        return sorted(ret, key=lambda x:x[2])
+        for i in names:
+            comments = self.dbenv[keytype].getcomments(i, filt=filt, ctx=ctx, txn=txn)
+            ret.extend(comments)
+        return sorted(ret, key=lambda x:x.get('time'))
+        # for rec in recs:
+        #     cp = rec.get("comments")
+        #     if not cp:
+        #         continue
+        #     cp = filter(lambda x:"LOG: " not in x[2], cp)
+        #     cp = filter(lambda x:"Validation error: " not in x[2], cp)
+        #     for c in cp:
+        #         ret.append([rec.name]+list(c))
+        # return sorted(ret, key=lambda x:x[2])
         
     @publicmethod(compat="getindexbyrectype")
     @ol('names', output=False)
