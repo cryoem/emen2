@@ -340,7 +340,7 @@ class CollectionDB(BaseDB):
             cur.execute(q, d)
         cur.close()
 
-    def _cass_putrel(self, source, param, target):
+    def _cass_getrel(self, source, param, target):
         cur = self.dbenv.cursor()
         q = """INSERT INTO record_rel (source, param, target) VALUES (:source, :param, :target)"""
         d = {'source':source, 'param':param, 'target':target}

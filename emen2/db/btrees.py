@@ -54,6 +54,7 @@ class DummyDBO(object):
         self.data = data
         self.history = []
         self.comments = []
+        self.rels = []
     def keys(self):
         return []
     def get(self, key, default=None):
@@ -497,6 +498,37 @@ class CollectionDB(object):
             return self.history.get(r.name, txn=txn)
         return []
 
+    ##### Load / dump methods #####
+
+    def dump(self, key, txn=None):
+        r = self.data.get(key, txn=txn)
+        r['history'] = self.history.get(key, txn=txn)
+        r['comments'] = self.comments.get(key, txn=txn)
+        r['rels'] = []
+        p = self._getrel('parents', txn=txn)
+        for i in p.get(key, txn=txn):
+            r['rels'].append({
+                'name': key,
+                'keytype': self.keytype,
+                'user': None,
+                'time': None,
+                'key': 'parents',
+                'value': i
+            })
+        return r
+    
+    def load(self, data, txn=None):
+        name = data.get('name')
+        history = data.pop('history', [])
+        comments = data.pop('comments', [])
+        rels = data.pop('rels', [])
+        # Specially create the DBO.
+        item = self.dataclass.load(data)
+        item.__dict__['history'] = history
+        item.__dict__['comments'] = comments
+        item.__dict__['rels'] = rels
+        self._put(item, txn=txn)
+
     ##### Write methods #####
 
     def validate(self, item, ctx=None, txn=None):
@@ -532,22 +564,10 @@ class CollectionDB(object):
         :exception PermissionsError:
         :exception ValidationError:
         """
-        name = item.get('name')
-        
         # Check if it exists, update, validate, etc.
-        item = self.validate(item, ctx=ctx, txn=txn)
-        
+        item = self.validate(item, ctx=ctx, txn=txn)        
         self._update_name(item, txn=txn)
-        parents = item.data.pop('parents', [])
-        children = item.data.pop('children', [])
-
         self._put(item, txn=txn)
-        
-        # Link
-        for k in parents:
-            self._putrel(k, item.name, ctx=ctx, txn=txn)
-        for k in children:
-            self._putrel(item.name, k, ctx=ctx, txn=txn)
         return item
     
     def _put(self, item, txn=None):
@@ -569,6 +589,13 @@ class CollectionDB(object):
         for i in item.comments:
             print "....comments:", i
             self.comments.add(item.name, i, txn=txn)
+        for i in item.rels:
+            print "...rels:", i
+            if i.get('key') == 'parents':
+                self._pclink(i['value'], item.name, txn=txn)
+            elif i.get('key') == 'children':
+                self._pclink(item.name, i['value'], txn=txn)
+
         self.data.put(item.name, item.data, txn=txn)
 
         # Reindex
@@ -818,7 +845,11 @@ class CollectionDB(object):
         :keyword ctx: Context
         :keyword txn: Transaction
         """
-        self._putrel(parent, child, mode='add', ctx=ctx, txn=txn)
+        parent = self.get(parent, ctx=ctx, txn=txn)
+        child = self.get(child, ctx=ctx, txn=txn)
+        if not (parent.writable() or child.writable()):
+            raise emen2.db.exceptions.SecurityError("Insufficient permissions to edit relationship.")
+        self._pclink(parent.name, child.name, txn=txn)
 
     def pcunlink(self, parent, child, ctx=None, txn=None):
         """Remove parent-child relationship. Requires ctx and txn.
@@ -833,26 +864,28 @@ class CollectionDB(object):
         :keyword ctx: Context
         :keyword txn: Transaction
         """
-        self._putrel(parent, child, mode='remove', ctx=ctx, txn=txn)
+        parent = self.get(parent, ctx=ctx, txn=txn)
+        child = self.get(child, ctx=ctx, txn=txn)
+        if not (parent.writable() or child.writable()):
+            raise emen2.db.exceptions.SecurityError("Insufficient permissions to edit relationship.")
+        self._pcunlink(parent.name, child.name, txn=txn)
 
     def relink(self, removerels=None, addrels=None, ctx=None, txn=None):
         """Add and remove a number of parent-child relationships at once."""
         return []
 
-    def _putrel(self, parent, child, mode='add', ctx=None, txn=None):
-        parent = self.get(parent, ctx=ctx, txn=txn)
-        child = self.get(child, ctx=ctx, txn=txn)
-        if not (parent.writable() or child.writable()):
-            raise emen2.db.exceptions.SecurityError("Insufficient permissions to edit relationship.")
+    def _pclink(self, parent, child, txn=None):
         ind_parents = self._getrel('parents', txn=txn)
         ind_children = self._getrel('children', txn=txn)
-        if mode == 'add':
-            ind_parents.add(parent.name, [child.name], txn=txn)    
-            ind_children.add(child.name, [parent.name], txn=txn)    
-        elif mode == 'remove':
-            ind_parents.remove(parent.name, [child.name], txn=txn)
-            ind_children.remove(child.name, [parent.name], txn=txn)
-
+        ind_parents.add(parent, [child], txn=txn)    
+        ind_children.add(child, [parent], txn=txn)    
+    
+    def _pcunlink(self, parent, child, txn=None):
+        ind_parents = self._getrel('parents', txn=txn)
+        ind_children = self._getrel('children', txn=txn)
+        ind_parents.remove(parent, [child], txn=txn)
+        ind_children.remove(child, [parent], txn=txn)
+        
 class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
         if emen2.db.config.get('record.sequence'):

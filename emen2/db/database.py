@@ -284,9 +284,9 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
     with db:
         # Initialize the core parameters and recorddefs
         infile = emen2.db.config.get_filename('emen2', 'db/core.json')
-        loader = emen2.db.load.Loader(db=db, infile=infile)
-        loader.load(keytype='paramdef')
-        loader.load(keytype='recorddef')
+        loader = emen2.db.load.Loader(db=db)
+        loader.load(infile=infile, keytype='paramdef')
+        loader.load(infile=infile, keytype='recorddef')
 
     with db:
         # Create a root user

@@ -6,15 +6,15 @@ python -m emen2.db.load --debug \
     ~/Dropbox/src/ext_ncmi/json/ncmi.json
 
 python -m emen2.db.load --debug \
-    --set validation.allow_invalid_email \
+    --set validation.allow_invalid_email=true \
     ~/data/import/json/user.json \
     ~/data/import/json/group.json 
 
 python -m emen2.db.load --debug \
-    --set validation.allow_invalid_email \
-    --set validation.allow_invalid_choice=True \
-    --set validation.allow_invalid_reference=True \
-    --set record.sequence=False \
+    --set validation.allow_invalid_email=true \
+    --set validation.allow_invalid_choice=true \
+    --set validation.allow_invalid_reference=true \
+    --set record.sequence=false \
     --update_record_max \
     --keytype=record \
     ~/data/import/json/record.json

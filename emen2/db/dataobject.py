@@ -73,6 +73,7 @@ class BaseDBObject(object):
         # ugh..
         self.__dict__['history'] = [] 
         self.__dict__['comments'] = []
+        self.__dict__['rels'] = []
         self.ctx = None
         self.new = True
         self.init()
@@ -282,7 +283,7 @@ class BaseDBObject(object):
 
     # Reserved keys.
     def _set_comments(self, key, value):
-        self.addcomment(value)
+        pass
     
     def _set_history(self, key, value):
         pass
