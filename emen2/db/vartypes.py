@@ -864,37 +864,38 @@ class vt_acl(Vartype):
         if value is None:
             return set()
         ret = set()
-        for i in value:
+        for i in value.values():
             ret |= set(i)
         return ret
 
     def validate(self, value):
-        if not hasattr(value, '__iter__'):
-            value = [[value],[],[],[]]
-
-        if hasattr(value, 'items'):
-            v = [[],[],[],[]]
-            ci = emen2.utils.check_iterable
-            v[0] = ci(value.get('read'))
-            v[1] = ci(value.get('comment'))
-            v[2] = ci(value.get('write'))
-            v[3] = ci(value.get('admin'))
-            value = v
-
-        for i in value:
-            if not hasattr(i, '__iter__'):
-                raise self.error("Invalid permissions format: %s"%(value))
-
-        value = [[unicode(y) for y in x] for x in value]
-        if len(value) != 4:
-            raise self.error("Invalid permissions format: %s"%(value))
-
-        users = reduce(lambda x,y:x+y, value)
+        ci = emen2.utils.check_iterable
+        p = {}
+        users = set()
+        for k,v in value.items():
+            p[k] = [i.strip(i) for i in ci(v)]
+            users |= set(p[k])
+        if set(p.keys()) - set(['read', 'comment', 'write', 'owner']):
+            raise ValueError("Invalid permissions format.")
         self._validate_reference(users, keytype='user')
-        return value
+        return p
 
     def _form(self, value):
         return self._html(value)            
+
+@Vartype.register('aclgroups')
+class vt_aclgroups(vt_acl):
+    def validate(self, value):
+        ci = emen2.utils.check_iterable
+        p = {}
+        users = set()
+        for k,v in value.items():
+            p[k] = [i.strip(i) for i in ci(v)]
+            users |= set(p[k])
+        if set(p.keys()) - set(['read', 'comment', 'write', 'owner']):
+            raise ValueError("Invalid permissions format.")
+        self._validate_reference(users, keytype='group')
+        return p
 
 @Vartype.register('comments')
 class vt_comments(Vartype):

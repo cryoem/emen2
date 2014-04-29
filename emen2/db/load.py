@@ -27,29 +27,23 @@ class Loader(object):
 
     def load(self, infile=None, keytype=None):
         t = time.time()
-        dbenv = self.db._db.dbenv
-        ctx = self.db._ctx
-        txn = self.db._txn
         count = 0
-        for item in self.readfile(infile=infile):
-            keytype = item.get('keytype')
-            name = item.get('name')
-            print "Load: put:", keytype, name
-            r = dbenv[keytype].put(item, ctx=ctx, txn=txn)
+        for item in self.readfile(infile=infile, keytype=keytype):
+            print "Load: put:", item
+            r = self.db._db.dbenv[item.get('keytype')].load(item, txn=self.db._txn)
             count += 1
-            
         t = time.time()-t
         s = float(count) / t
         print "Load: total time: %0.2f, %0.2f put/sec"%(t, s)
 
-    def readfile(self, infile):
-        if not os.path.exists(infile):
-            yield
+    def readfile(self, infile, keytype):
         with codecs.open(infile, 'r', 'utf-8') as f:
             for item in f:
                 item = item.strip()
                 if item and not item.startswith('/'):
-                    yield json.loads(item)
+                    item = json.loads(item)
+                    if item.get('keytype') == keytype:
+                        yield item
 
 if __name__ == "__main__":
     import emen2.db.config
@@ -74,7 +68,7 @@ if __name__ == "__main__":
         with db:
             loader = lc(db=db)
             for keytype in keytypes:
-                loader.load(infile=f, keytype=keytype)
+                    loader.load(infile=f, keytype=keytype)
     
     if args.update_record_max:
         # Hacky... :(

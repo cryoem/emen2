@@ -521,6 +521,8 @@ class CollectionDB(object):
         name = data.get('name')
         history = data.pop('history', [])
         comments = data.pop('comments', [])
+        data.pop('parents', [])
+        data.pop('children', [])
         rels = data.pop('rels', [])
         # Specially create the DBO.
         item = self.dataclass.load(data)

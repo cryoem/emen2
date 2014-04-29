@@ -301,7 +301,7 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
 
         # Create default groups
         groups = {}
-        groups['admin'] = {'displayname':'Administrators', 'permissions':[[],[],[],['root']]}
+        groups['admin'] = {'displayname':'Administrators', 'permissions':{'owner':['root']}}
         groups['readadmin'] = {'displayname':'Read-only'}
         groups['create'] = {'displayname':'Create records'}
         groups['authenticated'] = {'displayname':'Authenticated users'}
@@ -313,7 +313,7 @@ def setup(db=None, rootpw=None, rootemail='root@localhost'):
         # Create an initial record
         root = db.rel.root(keytype='record')
         if not db.record.get(root):
-            rec = {'name':root, 'rectype':'root', 'groups':['authenticated']}
+            rec = {'name':root, 'rectype':'root', 'groups':{'read':['authenticated']}}
             db.record.put(rec)
 
 ##### Main Database Class #####
@@ -357,18 +357,13 @@ class DB(object):
             raise SessionError("Session expired.")
 
         # Fetch group memberships.
-        grouplevels = {}
         if context.username != 'anonymous':
-            groups = self.dbenv['group'].find('permissions', context.username, txn=txn)
-            grouplevels = {}
-            for group in groups:
-                group = self.dbenv["group"]._get(group, txn=txn)
-                grouplevels[group.name] = group.getlevel(context.username)
+            groups = set(self.dbenv['group'].find('permissions', context.username, txn=txn))
 
         # Sets the database reference, user record, display name, 
         # groups, and updates context access time. 
         # This will raise a SessionError if the host has changed.
-        context.refresh(grouplevels=grouplevels, host=host, db=self)
+        context.refresh(groups=groups, host=host, db=self)
         
         # Cache Context.
         self.contexts_cache[ctxid] = context
@@ -1091,7 +1086,7 @@ class DB(object):
             for i in recs:
                 keys |= set(i.keys())
             # Except these keys...
-            keys -= set(['permissions', 'history', 'comments'])
+            keys -= set(['permissions', 'groups'])
         
         # Process keys.
         regex_k = re.compile(VIEW_REGEX_P, re.VERBOSE)
@@ -2209,8 +2204,8 @@ class DB(object):
         recs = self.dbenv["record"].gets(names, ctx=ctx, txn=txn)
         crecs = []
         for rec in recs:
-            rec.setpermissions([[],[],[],[]])
-            rec.setgroups([])
+            rec.setpermissions({})
+            rec.setgroups({})
             children = self.dbenv['record'].children([rec.name], ctx=ctx, txn=txn)[rec.name]
             parents = self.dbenv['record'].parents([rec.name], ctx=ctx, txn=txn)[rec.name]
             if parents and children:

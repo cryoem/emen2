@@ -1,9 +1,9 @@
 python -m emen2.db.create --debug --rootpw=asdf1234
 
 python -m emen2.db.load --debug \
-    ~/Dropbox/src/emen2/emen2/db/base.json \
-    ~/Dropbox/src/emen2/emen2/exts/em/json/em.json \
-    ~/Dropbox/src/ext_ncmi/json/ncmi.json
+    ~/src/emen2/emen2/db/base.json \
+    ~/src/emen2/emen2/exts/em/json/em.json \
+    ~/src/ext_ncmi/json/ncmi.json
 
 python -m emen2.db.load --debug \
     --set validation.allow_invalid_email=true \

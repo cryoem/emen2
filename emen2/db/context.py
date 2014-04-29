@@ -48,8 +48,7 @@ class Context(emen2.db.dataobject.PrivateDBO):
         super(Context, self).init()
         self.ctx = self
         self.db = None
-        self.groups = []
-        self.grouplevels = {}
+        self.groups = set()
         self.time = time.time()
         self.maxidle = 100000
         self.data['user'] = None
@@ -82,7 +81,7 @@ class Context(emen2.db.dataobject.PrivateDBO):
             db = emen2.db.proxy.DBProxy(db=db, ctx=self)
         self.db = db
       
-    def refresh(self, grouplevels=None, host=None, db=None):
+    def refresh(self, groups=None, host=None, db=None):
         t = emen2.db.database.getctime()
         expired = False
         if self.data.get('disabled'):
@@ -93,15 +92,10 @@ class Context(emen2.db.dataobject.PrivateDBO):
             expired = True
         if expired:
             raise emen2.db.exceptions.SessionError("Session expired.")  
-
         self.time = t
         self.setdb(db=db)
         self.cache = Cacher()
-
-        self.grouplevels = grouplevels or {}
-        self.grouplevels["anon"] = 0
-        self.grouplevels["authenticated"] = self.grouplevels.get('authenticated', 0)
-        self.groups = self.grouplevels.keys()
+        self.groups = set(groups or []) | set(['anon', 'authenticated'])
             
     def checkadmin(self):
         return 'admin' in self.groups
@@ -113,15 +107,13 @@ class Context(emen2.db.dataobject.PrivateDBO):
         return 'admin' in self.groups or 'create' in self.groups
 
 class SpecialRootContext(Context):
-    def refresh(self, grouplevels=None, host=None, db=None):
+    def refresh(self, groups=None, host=None, db=None):
         super(SpecialRootContext, self).refresh()
         self.user = 'root'
-        self.grouplevels = {'admin':3}
-        self.groups = ['admin']
+        self.groups = set(['admin', 'anon', 'authenticated'])
 
 class AnonymousContext(Context):
-    def refresh(self, grouplevels=None, host=None, db=None):
+    def refresh(self, groups=None, host=None, db=None):
         super(AnonymousContext, self).refresh()
         self.user = 'anon'
-        self.grouplevels = {'anon':0}
-        self.groups = ['anon']
+        self.groups = set(['anon'])

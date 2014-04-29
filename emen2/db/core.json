@@ -14,7 +14,7 @@
 {"name": "paramdef", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/paramdef/", "vartype": "paramdef", "parents": ["core"], "desc_short": "Parameter"}
 {"name": "user", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/user/", "vartype": "user", "parents": ["core"], "desc_short": "User"}
 {"name": "group", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/group/", "vartype": "group", "parents": ["core"], "desc_short": "Group"}
-{"name": "groups", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/groups/", "iter": true, "vartype": "group", "parents": ["core"], "desc_short": "Groups"}
+{"name": "groups", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/groups/", "iter": true, "vartype": "aclgroups", "parents": ["core"], "desc_short": "Groups"}
 {"name": "binary", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/binary/", "vartype": "binary", "parents": ["core"], "desc_short": "Binary"}
 {"name": "parents", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/parents/", "vartype": "link", "parents": ["core"], "desc_short": "Parents"}
 {"name": "children", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/children/", "vartype": "link", "parents": ["core"], "desc_short": "Children"}

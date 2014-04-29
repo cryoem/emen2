@@ -131,10 +131,6 @@ class BaseDBObject(object):
         return """<%s at %0x: %s>"""%(self.__class__.__name__, id(self), self.name)
 
     ##### Permissions
-    # Two basic permissions are defined: owner and writable
-    # By default, everyone can read an object.
-    # PermissionsDBObject has a more complete permissions model
-    # Lack of read access is handled in setContext (raise PermissionsError)
 
     def readable(self):
         """Check read permissions."""
@@ -404,17 +400,10 @@ class PermissionsDBObject(BaseDBObject):
     The 'permissions' parameter is of the "acl" vartype. It is a list comprised of four
     lists or user names, denoting the following levels of permissions:
 
-    Level 0 - Read
-        Permission to read the item
-
-    Level 1 - Comment
-        Permission to add comments, if the item supports it
-
-    Level 2 - Write
-        Permission to change record
-
-    Level 3 - Owner
-        Permission to change the item's permissions and groups
+    Read: Permission to read the item
+    Comment: Permission to add comments, if the item supports it
+    Write: Permission to change record
+    Owner: Permission to change the item's permissions and groups
 
     The 'groups' parameter is a set of group names. The permissions of
     each group will be overlaid on top of the item's permissions. For instance,
@@ -437,8 +426,8 @@ class PermissionsDBObject(BaseDBObject):
         # correspond to: read, comment, write, and owner permissions,
         self.ptest = [True, True, True, True]
         # Setup the base permissions
-        self.data['permissions'] = [[],[],[],[]]
-        self.data['groups'] = []
+        self.data['permissions'] = {}
+        self.data['groups'] = {}
 
     ##### Permissions checking #####
 
@@ -446,7 +435,7 @@ class PermissionsDBObject(BaseDBObject):
         self.ctx = ctx
         self.data['creator'] = self.ctx.user
         self.data['modifyuser'] = self.ctx.user
-        self.data['permissions'] = [[], [], [], [self.ctx.user]]
+        self.data['permissions'] = {'owner':[self.ctx.user]}
 
     def setContext(self, ctx):
         """Check read permissions and bind Context.
@@ -462,25 +451,19 @@ class PermissionsDBObject(BaseDBObject):
             return
 
         # Check if we're listed in each level.
-        self.ptest = [self.ctx.user in level for level in self.permissions]
+        self.ptest = []
+        for level in ['read', 'comment', 'write', 'owner']:
+            access = self.ctx.user in self.permissions.get(level)
+            access = access or set(self.groups.get(level, [])) & self.ctx.groups
+            self.ptest.append(access)
 
         # If read admin, set read access.
         if self.ctx.checkreadadmin():
             self.ptest[0] = True
         
-        # Apply any group permissions.
-        for group in set(self.groups) & set(self.ctx.groups):
-            self.ptest[self.ctx.grouplevels[group]] = True
-
         # Now, check if we can read.
         if not self.readable():
             raise emen2.db.exceptions.PermissionsError("Permission denied: %s"%(self.name))
-
-    def getlevel(self, user):
-        """Get the user's permission level (0-3) for this object."""
-        for level in range(3, -1, -1):
-            if user in self.permissions[level]:
-                return level
 
     def isowner(self):
         """Is the current user the owner?"""
@@ -500,11 +483,7 @@ class PermissionsDBObject(BaseDBObject):
 
     def members(self):
         """Get all users with read permissions."""
-        return reduce(operator.concat, self.permissions)
-
-    def owners(self):
-        """Get all users with ownership permissions."""
-        return self.data['permissions'][3]
+        return reduce(operator.concat, self.permissions.values())
 
     ##### Permissions #####
 
@@ -512,104 +491,68 @@ class PermissionsDBObject(BaseDBObject):
         self.setpermissions(value)
 
     def _validate_permissions(self, value):
-        if hasattr(value, 'items'):
-            v = [[],[],[],[]]
-            ci = emen2.utils.check_iterable
-            v[0] = ci(value.get('read'))
-            v[1] = ci(value.get('comment'))
-            v[2] = ci(value.get('write'))
-            v[3] = ci(value.get('admin'))
-            value = v
-        permissions = [[self._strip(y) for y in x] for x in value]
-        if len(permissions) != 4:
+        ci = emen2.utils.check_iterable
+        p = {}
+        for k,v in value.items():
+            p[k] = [i.strip() for i in ci(v)]
+        if set(p.keys()) - set(['read', 'comment', 'write', 'owner']):
             raise ValueError("Invalid permissions format.")
-        return permissions
+        print "_validate_permissions:", value, p
+        return p
+
+    def _permissions_merge(self, base, add):
+        p = set()
+        for i in add.values():
+            p |= set(i)
+        out = {}
+        for level in ['read', 'comment', 'write', 'owner']:
+            p = (set(base.get(level, [])) - users) | set(add.get(level, []))
+            if p:
+                out[level] = list(p)
+        return out
 
     def setpermissions(self, value):
         """Set the permissions."""
         value = self._validate_permissions(value)
         self._set('permissions', value, self.isowner())
 
-    def adduser(self, users, level=0, reassign=True):
-        """Add a user to the record's permissions.
+    def adduser(self, users, level='read'):
+        """Add a user to the record's permissions."""
+        value = {level: set(emen2.utils.check_iterable(users))}
+        value = self._permissions_merge(self.permissions, value)
+        self.setpermissions(value)
 
-        :param users: A list of users to be added to the permissions
-        :param level: The permission level to give to the users
-        :param reassign: Allow for lowering of permission level.
-        """
-        if not users:
-            return
-        if not hasattr(users,"__iter__"):
-            users = [users]
-
-        level = int(level)
-        if not 0 <= level <= 3:
-            raise Exception("Invalid permissions level. 0 = Read, 1 = Comment, 2 = Write, 3 = Owner.")
-
-        p = [set(x) for x in self.permissions]
-        users = set(users) 
-        if reassign:
-            p = [i-users for i in p]
-
-        p[level] |= users
-        p[0] -= p[1] | p[2] | p[3]
-        p[1] -= p[2] | p[3]
-        p[2] -= p[3]
-        self.setpermissions(p)
-
-    def addumask(self, value, reassign=False):
-        """Set permissions for users in several different levels at once.
-
-        :param value: The list of users
-        :param reassign: Whether or not the users added should be reassigned. (default False)
-        """
-        umask = self._validate_permissions(value)
-        p = [set(x) for x in self.permissions]
-        umask = [set(x) for x in umask]
-        users = reduce(set.union, umask)
-        if reassign:
-            p = [i-users for i in p ]
-
-        p = [j|k for j,k in zip(p,umask)]
-        p[0] -= p[1] | p[2] | p[3]
-        p[1] -= p[2] | p[3]
-        p[2] -= p[3]
-        self.setpermissions(p)
+    def addumask(self, value):
+        """Set permissions for users in several different levels at once."""
+        value = self._permissions_merge(self.permissions, value)
+        self.setpermissions(value)
 
     def removeuser(self, users):
         """Remove users from permissions."""
-        if not users:
-            return
-        p = [set(x) for x in self.permissions]
-        if not hasattr(users, "__iter__"):
-            users = [users]
-        users = set(users)
-        p = [i-users for i in p]
-        self.setpermissions(p)
+        value = {None: set(emen2.utils.check_iterable(users))}
+        value = self._permissions_merge(self.permissions, value)
+        del value[None]
+        self.setpermissions(value)
 
     ##### Groups #####
 
     def _set_groups(self, key, value):
         self.setgroups(value)
 
-    def setgroups(self, groups):
-        """Set the object's groups."""
-        groups = sorted(map(self._strip, emen2.utils.check_iterable(groups)))
-        self._set('groups', groups, self.isowner())
+    def setgroups(self, value):
+        value = self._validate_permissions(value)
+        self._set('groups', value, self.isowner())
 
-    def addgroup(self, groups):
-        """Add a group to the record."""
-        if not hasattr(groups, "__iter__"):
-            groups = [groups]        
-        g = set(self.groups) | set(groups)
-        self.setgroups(g)
+    def addgroup(self, groups, level='read'):
+        value = {level: set(emen2.utils.check_iterable(groups))}
+        value = self._permissions_merge(self.permissions, value)
+        self.setgroups(value)
 
     def removegroup(self, groups):
-        """Remove a group from the record."""
-        if not hasattr(groups, "__iter__"):
-            groups = [groups]
-        g = set(self.groups) - set(groups)
-        self.setgroups(g)
+        value = {None: set(emen2.utils.check_iterable(groups))}
+        value = self._permissions_merge(self.permissions, value)
+        del value[None]
+        self.setgroups(value)
 
 class PrivateDBO(BaseDBObject):
     pass
