@@ -1,3 +1,6 @@
+# To dump NCMIDB:
+# PYTHONPATH=~/src/emen2.prod:$PYTHONPATH python ~/src/emen2.prod/testscripts/dump_json.py -h ~/data/import/ncmi.db
+
 python -m emen2.db.create --debug --rootpw=asdf1234
 
 python -m emen2.db.load --debug \
@@ -8,7 +11,7 @@ python -m emen2.db.load --debug \
 python -m emen2.db.load --debug \
     --set validation.allow_invalid_email=true \
     ~/data/import/json/user.json \
-    ~/data/import/json/group.json 
+    ~/data/import/json/group.json
 
 python -m emen2.db.load --debug \
     --set validation.allow_invalid_email=true \

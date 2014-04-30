@@ -2,5 +2,5 @@
 
 def opendb(**kwargs):
     """Open a database. Shorter alias to emen2.db.database.opendb."""
-    import emen2.db.database
-    return emen2.db.database.opendb(**kwargs)
+    import emen2.db.proxy
+    return emen2.db.proxy.opendb(**kwargs)

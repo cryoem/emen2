@@ -229,8 +229,8 @@ other_equivs = {
     'moles': 'mol',
     
     # Currency
-    'dollar': '$',
-    'dollars': '$',
+    'dollar': 'US$',
+    'dollars': 'US$',
 
     # Length
     u'Ångstrom': u'Å',
@@ -429,7 +429,7 @@ class prop_energy(Property):
 @Property.register('resistance')
 class prop_resistance(Property):
     defaultunits = 'ohm'
-    units = ['microohm', 'milliohm', 'ohm']
+    units = ['uohm', 'mohm', 'ohm']
 
 @Property.register('dose')
 class prop_dose(Property):
@@ -443,8 +443,8 @@ class prop_exposure(Property):
 
 @Property.register('currency')
 class prop_currency(Property):
-    defaultunits = 'dollar'
-    units = ['dollar']
+    defaultunits = 'US$'
+    units = ['US$']
 
 @Property.register('voltage')
 class prop_voltage(Property):

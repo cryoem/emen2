@@ -127,7 +127,7 @@ class MacroConstraint(Constraint):
         # Execute a macro
         f = set()
         # Fetch the items we need in the parent group.
-        items = self.p.btree.gets(self.p.result, ctx=self.p.ctx, txn=self.p.txn)
+        items = [self.p.btree.get(i, ctx=self.p.ctx, txn=self.p.txn) for i in self.p.result]
         
         # Parse the macro and get the Macro class
         regex_k = re.compile(emen2.db.database.VIEW_REGEX_P, re.VERBOSE)

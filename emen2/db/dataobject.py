@@ -453,7 +453,7 @@ class PermissionsDBObject(BaseDBObject):
         # Check if we're listed in each level.
         self.ptest = []
         for level in ['read', 'comment', 'write', 'owner']:
-            access = self.ctx.user in self.permissions.get(level)
+            access = self.ctx.user in self.permissions.get(level, [])
             access = access or set(self.groups.get(level, [])) & self.ctx.groups
             self.ptest.append(access)
 
@@ -483,38 +483,45 @@ class PermissionsDBObject(BaseDBObject):
 
     def members(self):
         """Get all users with read permissions."""
-        return reduce(operator.concat, self.permissions.values())
+        return set(reduce(operator.concat, self.permissions.values(), []))
 
     ##### Permissions #####
 
     def _set_permissions(self, key, value):
         self.setpermissions(value)
 
+    def setpermissions(self, value):
+        """Set the permissions."""
+        value = self._validate_permissions(value)
+        self._set('permissions', value, self.isowner())
+
     def _validate_permissions(self, value):
         ci = emen2.utils.check_iterable
         p = {}
         for k,v in value.items():
             p[k] = [i.strip() for i in ci(v)]
-        if set(p.keys()) - set(['read', 'comment', 'write', 'owner']):
-            raise ValueError("Invalid permissions format.")
-        print "_validate_permissions:", value, p
+        if p.has_key(None):
+            del p[None]
+        for k in p.keys():
+            if not p[k]:
+                del p[k]
+            if k not in ['read', 'comment', 'write', 'owner']:
+                raise ValueError("Invalid permissions format.")
         return p
 
     def _permissions_merge(self, base, add):
-        p = set()
+        print "MERGE: base:", base, "add:", add
+        addmembers = set()
         for i in add.values():
-            p |= set(i)
+            addmembers |= set(i)
         out = {}
-        for level in ['read', 'comment', 'write', 'owner']:
-            p = (set(base.get(level, [])) - users) | set(add.get(level, []))
-            if p:
-                out[level] = list(p)
+        print "clear out--", addmembers
+        for level in ['read', 'comment', 'write', 'owner', None]:
+            s = set(base.get(level, [])) - addmembers
+            s |= set(add.get(level, []))
+            out[level] = list(s)
+        print "merged --", out
         return out
-
-    def setpermissions(self, value):
-        """Set the permissions."""
-        value = self._validate_permissions(value)
-        self._set('permissions', value, self.isowner())
 
     def adduser(self, users, level='read'):
         """Add a user to the record's permissions."""
@@ -545,12 +552,12 @@ class PermissionsDBObject(BaseDBObject):
 
     def addgroup(self, groups, level='read'):
         value = {level: set(emen2.utils.check_iterable(groups))}
-        value = self._permissions_merge(self.permissions, value)
+        value = self._permissions_merge(self.groups, value)
         self.setgroups(value)
 
     def removegroup(self, groups):
         value = {None: set(emen2.utils.check_iterable(groups))}
-        value = self._permissions_merge(self.permissions, value)
+        value = self._permissions_merge(self.groups, value)
         del value[None]
         self.setgroups(value)
 

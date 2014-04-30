@@ -30,7 +30,7 @@ class Loader(object):
         count = 0
         for item in self.readfile(infile=infile, keytype=keytype):
             print "Load: put:", item
-            r = self.db._db.dbenv[item.get('keytype')].load(item, txn=self.db._txn)
+            r = self.db._db[item.get('keytype')].load(item, txn=self.db._txn)
             count += 1
         t = time.time()-t
         s = float(count) / t
@@ -73,11 +73,11 @@ if __name__ == "__main__":
     if args.update_record_max:
         # Hacky... :(
         with db:
-            keys = db._db.dbenv['record'].keys(txn=db._txn)
+            keys = db._db['record'].keys(txn=db._txn)
             ki = []
             for key in keys:
                 try: ki.append(int(key))
                 except: pass
             print "Max key?", max(ki)
-            db._db.dbenv['record']._getseq(txn=db._txn).set('sequence', max(ki))
+            db._db['record'].sequence.set('sequence', max(ki))
         

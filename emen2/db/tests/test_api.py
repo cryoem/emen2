@@ -351,7 +351,7 @@ class User(Test):
         except emen2.db.exceptions.EmailError:
             return
         # Get secret.
-        user = self.db._db.dbenv['user']._get(user.name, txn=self.db._txn)
+        user = self.db._db['user']._get(user.name, txn=self.db._txn)
         secret = user.data.get('secret')
         newpassword = PASSWORD[::-1]
         self.db.user.setpassword(user.name, password=newpassword, secret=secret)
@@ -398,7 +398,7 @@ class User(Test):
         assert not user.get('secret')
         self.ok("prevents direct read")
         
-        # user = self.db._db.dbenv['user']._get(user.name, txn=self.db._txn)
+        # user = self.db._db['user']._get(user.name, txn=self.db._txn)
         # print user.data
         # assert user.get('secret')
         # self.ok("stored correctly")
@@ -450,7 +450,7 @@ class Group(Test):
         """Testing group member editing"""
         # Add users
         group = self._make()
-        users = self.db._db.dbenv['user'].data.keys()
+        users = self.db._db['user'].data.keys()
         users = list(users)
         users = random.sample(users, 4)
         for i in users:
@@ -633,7 +633,8 @@ class ParamDef(Test):
     def test_property(self):
         """Testing properties"""
         for prop in self.db.paramdef.properties():
-            pd = self.db.paramdef.new(vartype='float', desc_short='Test property %s'%prop, property=prop)
+            p = emen2.db.properties.Property.get_property(prop)
+            pd = self.db.paramdef.new(vartype='float', desc_short='Test property %s'%prop, property=prop, defaultunits=p.defaultunits)
             pd = self.db.paramdef.put(pd)
             assert pd.property == prop
             self.ok(prop)
@@ -680,6 +681,7 @@ class ParamDef(Test):
             self.msg('Testing property / units:', prop)
             units = self.db.paramdef.units(prop)
             for defaultunits in units:
+                print prop, defaultunits
                 pd = self.db.paramdef.new(vartype='float', property=prop, defaultunits=defaultunits, desc_short='Test property %s units %s'%(prop, units))
                 pd = self.db.paramdef.put(pd)
                 assert pd.vartype == 'float'
@@ -1084,7 +1086,7 @@ class Record(Test):
         """Testing record.adduser()"""        
         rec = self._make()        
         user = 'test'
-        for level in range(4):
+        for level in ['read', 'comment', 'write', 'owner']:
             rec = self.db.record.adduser(rec.name, 'test', level=level)
             assert user in rec['permissions'][level]
             assert user in rec.members()
@@ -1094,11 +1096,14 @@ class Record(Test):
     def api_record_removeuser(self):
         """Testing record.removeuser()"""        
         rec = self._make()
-        for level in range(4):
+        for level in ['read', 'comment', 'write', 'owner']:
             user = 'test%s'%level
             rec = self.db.record.adduser(rec.name, user, level=level)
+            assert user in rec.members()
         for user in rec.members():
+            print "\n========= checking for:", user
             rec = self.db.record.removeuser(rec.name, user)
+            print "members?:", rec.members()
             assert user not in rec.members()
         self.ok()
         
@@ -1109,7 +1114,7 @@ class Record(Test):
         groups = ['authenticated', 'anonymous']
         for group in groups:
             rec = self.db.record.addgroup(rec.name, group)
-            assert group in rec.groups
+            assert group in rec.groups.get('read', [])
         self.ok()
     
     @test
@@ -1119,10 +1124,10 @@ class Record(Test):
         groups = ['authenticated', 'anonymous']
         for group in groups:
             rec = self.db.record.addgroup(rec.name, group)
-            assert group in rec.groups
+            assert group in rec.groups.get('read', [])
         for group in groups:
             rec = self.db.record.removegroup(rec.name, group)
-            assert group not in rec.groups
+            assert group not in rec.groups.get('read', [])
         self.ok()
     
     @test
@@ -1637,7 +1642,7 @@ class DebugDeadlock(Test):
 
     @test
     def debugdeadlock2(self):
-        keys = self.db._db.dbenv['paramdef'].data.keys(self.db._txn)
+        keys = self.db._db['paramdef'].data.keys(self.db._txn)
         keys = list(keys)
         print "keys:", len(keys)
 
@@ -1663,56 +1668,56 @@ class DebugIndex(Test):
         spotcheck = sorted(spotcheck)
         
         for spot in spotcheck:
-            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='>', txn=self.db._txn)
+            r = self.db._db['record'].find(param=param, key=spot, op='>', txn=self.db._txn)
             expect = [i for i in values if i > spot]
             found = [i[param] for i in self.db.record.get(r)]
             self.check(found, expect)
         self.ok("gt")
 
         for spot in spotcheck:
-            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='>=', txn=self.db._txn)
+            r = self.db._db['record'].find(param=param, key=spot, op='>=', txn=self.db._txn)
             expect = [i for i in values if i >= spot]
             found = [i[param] for i in self.db.record.get(r)]
             self.check(found, expect)
         self.ok("gte")
 
         for spot in spotcheck:
-            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='<', txn=self.db._txn)
+            r = self.db._db['record'].find(param=param, key=spot, op='<', txn=self.db._txn)
             expect = [i for i in values if i < spot]
             found = [i[param] for i in self.db.record.get(r)]
             self.check(found, expect)
         self.ok("lt")
 
         for spot in spotcheck:
-            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='<=', txn=self.db._txn)
+            r = self.db._db['record'].find(param=param, key=spot, op='<=', txn=self.db._txn)
             expect = [i for i in values if i <= spot]
             found = [i[param] for i in self.db.record.get(r)]
             self.check(found, expect)
         self.ok("lte")
 
         for spot in spotcheck:
-            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='==', txn=self.db._txn)
+            r = self.db._db['record'].find(param=param, key=spot, op='==', txn=self.db._txn)
             expect = [i for i in values if i == spot]
             found = [i[param] for i in self.db.record.get(r)]
             self.check(found, expect)
         self.ok("is")
 
         for spot in spotcheck:
-            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='!=', txn=self.db._txn)
+            r = self.db._db['record'].find(param=param, key=spot, op='!=', txn=self.db._txn)
             expect = [i for i in values if i != spot]
             found = [i[param] for i in self.db.record.get(r)]
             self.check(found, expect)
         self.ok("not")
 
         for spot1, spot2 in zip(spotcheck[:-1], spotcheck[1:]):
-            r = self.db._db.dbenv['record'].find(param=param, key=spot1, maxkey=spot2, op='range', txn=self.db._txn)
+            r = self.db._db['record'].find(param=param, key=spot1, maxkey=spot2, op='range', txn=self.db._txn)
             expect = [i for i in values if spot1 <= i <= spot2]
             found = [i[param] for i in self.db.record.get(r)]
             self.check(found, expect)
         self.ok("range")        
 
         for spot in spotcheck:
-            r = self.db._db.dbenv['record'].find(param=param, key=spot, op='any', txn=self.db._txn)
+            r = self.db._db['record'].find(param=param, key=spot, op='any', txn=self.db._txn)
             expect = [i for i in values]
             found = [i[param] for i in self.db.record.get(r)]
             self.check(found, expect)
@@ -1769,7 +1774,7 @@ class DebugIndex(Test):
             
         import string
         for spot in string.lowercase:
-            r = self.db._db.dbenv['record'].find(param=pd.name, key=spot, op='starts', txn=self.db._txn)
+            r = self.db._db['record'].find(param=pd.name, key=spot, op='starts', txn=self.db._txn)
             expect = [i for i in recs.keys() if i.startswith(spot)]
             found = [i[pd.name] for i in self.db.record.get(r)]
             self.check(found, expect)

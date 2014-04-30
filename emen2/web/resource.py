@@ -375,9 +375,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
             # otherwise, calls str() on the View.
             if result is None:
                 result = str(self)
-
         self.db = None
-
         return result
 
     ##### Callbacks #####

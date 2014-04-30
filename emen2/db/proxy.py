@@ -19,17 +19,43 @@ import emen2.db.log
 ##############################################################
 ##############################################################
 
+def opendb(name=None, password=None, admin=False, path=None):
+    """Open database.
+
+    Returns a DBProxy, with either a user context (name and password
+    specified), an administrative context (admin is True), or no context.
+
+    :keyparam name: Username
+    :keyparam password: Password
+    :keyparam admin: Open DBProxy with an administrative context
+    :keyparam db: Use an existing DB instance.
+    :return: DBProxy
+    """
+    # Load backend
+    BACKEND = "bdb"
+    if BACKEND == "bdb":
+        import emen2.db.bdb as backend
+    else:
+        raise ImportError("Unsupported EMEN2 backend: %s"%backend)
+    db = backend.DB(path=path)
+    
+    # Create the proxy and login, as a user or admin.
+    proxy = emen2.db.proxy.DBProxy(db=db)
+    if name:
+        proxy._login(name, password)
+    elif admin:
+        ctx = emen2.db.context.SpecialRootContext.new()
+        ctx.refresh()
+        ctx.setdb(proxy)
+        proxy._ctx = ctx
+    return proxy
+
 def publicmethod(*args, **kwargs):
     """Decorator for public admin API database method"""
     def _inner(func):
-        # print "Registering ", func.func_name
         DBProxy._register_publicmethod(func, *args, **kwargs)
         return func
     return _inner
-
-strht = lambda s, c: s.partition(c)[::2]
-def fb():
-    return 'hi'
 
 def help(mt):
     def _inner(*a, **b):
@@ -91,7 +117,6 @@ class MethodTree(object):
         '''
         head, _, tail = name.partition('.') 
         # use partition and not split since it is guaranteed to return a 3-tuple
-
         self.children.setdefault(head, MethodTree())
 
         if tail == '':
@@ -107,7 +132,6 @@ class MethodTree(object):
         name = self.get_alias(name)
         head, _, tail = name.partition('.')
         child = self.children.get(head)
-
         if child is None:
             if tail: 
                 raise AttributeError("method %r not found."%name)
@@ -117,7 +141,6 @@ class MethodTree(object):
                     result = MethodTree(help(self))
         else:
             result = child.get_method(tail)
-
         return result
 
 class _Method(object):
@@ -141,29 +164,13 @@ class DBProxy(object):
     db = DBProxy()
     db._login(name, password)
     """
-
     _publicmethods = {}
     mt = MethodTree()
-
-    @classmethod
-    def _allmethods(cls):
-        return set(cls._publicmethods)
-
-    def _get_publicmethods(self):
-        result = {}
-        for x in self._publicmethods:
-            cur = result
-            for y in x.split('.'):
-                ncur = cur.get(y, {})
-                if ncur is not cur: cur[y] = ncur
-                cur = ncur
-        return result
 
     def __init__(self, db=None, ctx=None, txn=None):
         # it can cause circular imports if this is at the top level of the module
         import database
         db = db or database.DB()
-
         self._db = db
         self._ctx = ctx
         self._txn = txn
@@ -175,8 +182,8 @@ class DBProxy(object):
             # raise Exception("DBProxy: Existing open transaction.")
             pass
         else:
-            self._txn = self._db.dbenv.newtxn()
-            # self._txn = self._db.dbenv.txncheck(txn=self._txn)
+            self._txn = self._db.newtxn()
+            # self._txn = self._db.txncheck(txn=self._txn)
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
@@ -184,14 +191,14 @@ class DBProxy(object):
         if not self._txn:
             raise Exception("DBProxy: No transaction to close.")
         if exc_type is None:
-            self._txn = self._db.dbenv.txncommit(txn=self._txn)
+            self._txn = self._db.txncommit(txn=self._txn)
         else:
-            self._txn = self._db.dbenv.txnabort(txn=self._txn)
+            self._txn = self._db.txnabort(txn=self._txn)
         self._txn = None
     
     # Allow to start with write=true/false
     def _newtxn(self, write=False):
-        self._txn = self._db.dbenv.txncheck(txn=self._txn, write=write)
+        self._txn = self._db.txncheck(txn=self._txn, write=write)
         return self
                 
     def _gettxn(self):
@@ -203,16 +210,8 @@ class DBProxy(object):
         self._ctx.setdb(self)
         return self
 
-    def _clearcontext(self):
-        self._ctx = None
-
     def _getctx(self):
         return self._ctx
-
-    def _ismethod(self, name):
-        if name in self._allmethods():
-            return True
-        return False
 
     @classmethod
     def _register_publicmethod(cls, func, apiname=None, write=False, admin=False, ext=False, compat=None):
@@ -222,20 +221,11 @@ class DBProxy(object):
         setattr(func, 'admin', admin)
         setattr(func, 'ext', ext)
         setattr(func, 'compat', compat)
-
         cls._publicmethods[func.apiname] = func
-        # cls._publicmethods[func.func_name] = func
-        # if compat:
-        #    cls._publicmethods[compat] = func
-
         cls.mt.add_method(apiname, func)
         cls.mt.add_method(func.func_name, func)
-
         if compat:
             cls.mt.add_method(compat, func)
-
-    def _checkwrite(self, method):
-        return getattr(self.mt.get_method(method).func, "write", False)
 
     ##### Wrap DB Public methods #####
 
@@ -250,10 +240,8 @@ class DBProxy(object):
             func = self._publicmethods.get(name)
         else:
             func = self.__getattribute__(name)
-            
         if func:
             return self._wrap(func)
-
         return _Method(self, name)
 
     def _login(self, username, password, host=None):
@@ -274,12 +262,6 @@ class DBProxy(object):
             kwargs['txn'] = self._txn
 
             emen2.db.log.debug("API: start: %s"%(func.func_name))
-            # kwcopy = {}
-            # for k,v in kwargs.items():
-            #    if k not in ['ctx', 'txn']:
-            #        kwcopy[k]=v
-            # print "\t<-", args, kwcopy
-
             if getattr(func, 'admin', False) and not self._ctx.checkadmin():
                 raise Exception("This method requires administrator level access.")
 

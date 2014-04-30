@@ -1,15 +1,11 @@
 """BerkeleyDB Driver."""
-
 import collections
 import copy
-import functools
+import json
 import os
+import re
 import shutil
 import time
-import traceback
-import cPickle as pickle
-import json
-import re
 
 # Berkeley DB
 # Note: the 'bsddb' module is not sufficient.
@@ -31,6 +27,7 @@ import emen2.db.recorddef
 import emen2.db.user
 import emen2.db.context
 import emen2.db.group
+
 try:
     import emen2.db.bulk
     bulk = emen2.db.bulk
@@ -60,19 +57,13 @@ class DummyDBO(object):
     def get(self, key, default=None):
         return None
 
-##### EMEN2 Database Environment #####
+##### Database Environment #####
 
-class EMEN2DBEnv(object):
-    def __init__(self, path=None, snapshot=False):
-        """BerkeleyDB Database Environment.
-        
-        :keyword path: Directory containing environment.
-        :keyword snapshot: Use Berkeley DB Snapshot (Multiversion Concurrency Control) for read transactions
-        """
-        # Database environment directory
-        self.path = path or emen2.db.config.get('home')
-        self.snapshot = snapshot or (not emen2.db.config.get('bdb.snapshot'))
-        self.cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024l
+import emen2.db.database
+class DB(emen2.db.database.DB):
+    def open(self):
+        """Open the Database Environment."""
+        emen2.db.log.info("BDB: Opening BerkeleyDB database environment: %s"%self.path)
 
         # Make sure the data and journal directories exists.
         paths = [
@@ -92,30 +83,17 @@ class EMEN2DBEnv(object):
             f.write(DB_CONFIG)
             f.close()
 
-        # Databases
-        self.keytypes =  {}
-
-        # Pre- and post-commit actions.
-        # These are used for things like renaming files during the commit phase.
-        # TODO: The details of this are highly likely to change,
-        #     or be moved to a different place.
-        self._txncbs = collections.defaultdict(list)
-
-        # Open DBEnv and main tables.
-        self.dbenv = self.open()
-        self.init()
-        
-    def open(self):
-        """Open the Database Environment."""
-        emen2.db.log.info("BDB: Opening database environment: %s"%self.path)
+        # Open the BerkeleyDB Database Environment
         dbenv = bsddb3.db.DBEnv()
         dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
-        
-        txncount = (self.cachesize / 4096) * 2
+
+        cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024l        
+
+        txncount = (cachesize / 4096) * 2
         if txncount > 1024*128:
             txncount = 1024*128
             
-        dbenv.set_cachesize(0, self.cachesize)
+        dbenv.set_cachesize(0, cachesize)
         dbenv.set_tx_max(int(txncount))
         dbenv.set_lk_max_locks(300000)
         dbenv.set_lk_max_lockers(300000)
@@ -132,9 +110,8 @@ class EMEN2DBEnv(object):
         flags |= bsddb3.db.DB_INIT_LOG
         flags |= bsddb3.db.DB_THREAD
         dbenv.open(self.path, flags)
-        return dbenv
+        self.dbenv = dbenv
 
-    def init(self):
         self.keytypes['paramdef']  = CollectionDB(keytype='paramdef', dataclass=emen2.db.paramdef.ParamDef, dbenv=self)
         self.keytypes['recorddef'] = CollectionDB(keytype='recorddef', dataclass=emen2.db.recorddef.RecordDef, dbenv=self)
         self.keytypes['group']     = CollectionDB(keytype='group', dataclass=emen2.db.group.Group, dbenv=self)
@@ -142,9 +119,7 @@ class EMEN2DBEnv(object):
         self.keytypes['user']      = UserDB(keytype='user', dataclass=emen2.db.user.User, dbenv=self)
         self.keytypes['newuser']   = NewUserDB(keytype='newuser', dataclass=emen2.db.user.NewUser, dbenv=self)
         self.keytypes['binary']    = CollectionDB(keytype='binary', dataclass=emen2.db.binary.Binary, dbenv=self)
-        # Private.
-        self._user_history         = CollectionDB(keytype='user_history', dataclass=emen2.db.user.History, dbenv=self)
-        self._context              = CollectionDB(keytype='context', dataclass=emen2.db.context.Context, dbenv=self)
+        self.keytypes['context']   = CollectionDB(keytype='context', dataclass=emen2.db.context.Context, dbenv=self)
 
     # ian: todo: make this nicer.
     def close(self):
@@ -153,10 +128,6 @@ class EMEN2DBEnv(object):
         for k,v in self.keytypes.items():
             v.close()
         self.dbenv.close()
-
-    def __getitem__(self, key, default=None):
-        """Pass dictionary gets to self.keytypes."""
-        return self.keytypes.get(key, default)
 
     ##### Transaction management #####
 
@@ -286,16 +257,16 @@ class EMEN2DBEnv(object):
             outpaths.append(dest)
 
         return outpaths     
+        
 
 ##### Context-aware DBs for Database Objects #####
 
 class CollectionDB(object):
     def __init__(self, keytype, dataclass, dbenv):
         """Create and open the DB."""
-        # EMEN2DBEnv
         self.dbenv = dbenv
         self.dataclass = dataclass
-        self.keytype = keytype or dataclass.__class__.__name__.lower()
+        self.keytype = keytype
         
         # Indexes and relationships        
         self.data = None
@@ -316,10 +287,10 @@ class CollectionDB(object):
 
     def open(self):
         """Open the DB. This uses an implicit open transaction."""
-        self.data = JSONDB(filename='%s.bdb'%self.keytype, dbenv=self.dbenv.dbenv)
-        self.history = JSONDupDB(filename='%s.history'%self.keytype, dbenv=self.dbenv.dbenv)
-        self.comments = JSONDupDB(filename='%s.comments'%self.keytype, dbenv=self.dbenv.dbenv)
-        self.sequence = SequenceDB(filename='%s.sequence'%self.keytype, dbenv=self.dbenv.dbenv)
+        self.data = JSONDB(filename='%s.bdb'%self.keytype, dbenv=self.dbenv)
+        self.history = JSONDupDB(filename='%s.history'%self.keytype, dbenv=self.dbenv)
+        self.comments = JSONDupDB(filename='%s.comments'%self.keytype, dbenv=self.dbenv)
+        self.sequence = SequenceDB(filename='%s.sequence'%self.keytype, dbenv=self.dbenv)
 
     def close(self):
         """Close the DB."""
@@ -335,17 +306,19 @@ class CollectionDB(object):
     ##### Indexes #####
 
     def _getrel(self, param, txn=None):
+        """Get relationship index."""
         if param in self.rels:
             return self.rels.get(param)
         if param not in ['parents', 'children']:
             self.rels[param] = None
             return None
         vtc = emen2.db.vartypes.Vartype.get_vartype(name=param) # Has to be a core param.
-        index = RelDB(filename='%s.%s.rel'%(self.keytype, param), param=param, vtc=vtc, dbenv=self.dbenv.dbenv)
+        index = RelDB(filename='%s.%s.rel'%(self.keytype, param), param=param, vtc=vtc, dbenv=self.dbenv)
         self.rels[param] = index
         return index
 
     def _getindex(self, param, txn=None):
+        """Get index."""
         if param in self.indexes:
             return self.indexes.get(param)   
         try:
@@ -354,7 +327,7 @@ class CollectionDB(object):
         except KeyError:
             # Otherwise get the param details.
             try:
-                pd = self.dbenv['paramdef']._get(param, txn=txn)
+                pd = self.keytypes['paramdef']._get(param, txn=txn)
             except KeyError:
                 raise KeyError("Unknown param: %s"%param)
             vtc = emen2.db.vartypes.Vartype.get_vartype(**pd.data)
@@ -368,7 +341,7 @@ class CollectionDB(object):
             return            
 
         # Open the secondary index.
-        index = IndexDB(filename='%s.%s.index'%(self.keytype, param), param=param, vtc=vtc, dbenv=self.dbenv.dbenv)
+        index = IndexDB(filename='%s.%s.index'%(self.keytype, param), param=param, vtc=vtc, dbenv=self.dbenv)
         self.indexes[param] = index
         return index
 
@@ -488,13 +461,13 @@ class CollectionDB(object):
     
     def getcomments(self, key, filt=True, ctx=None, txn=None):
         r = self.get(key, filt=True, ctx=ctx, txn=txn)
-        if r:
+        if r and r.readable():
             return self.comments.get(r.name, txn=txn)
         return []
 
     def gethistory(self, key, filt=True, ctx=None, txn=None):
         r = self.get(key, filt=filt, ctx=ctx, txn=txn)
-        if r:
+        if r and r.isowner():
             return self.history.get(r.name, txn=txn)
         return []
 
@@ -525,7 +498,12 @@ class CollectionDB(object):
         data.pop('children', [])
         rels = data.pop('rels', [])
         # Specially create the DBO.
-        item = self.dataclass.load(data)
+        if self.data.exists(name, txn=txn):
+            # raise KeyError, "%s already exists!"%name
+            print "Already exists: %s"%name
+            return
+        item = self.dataclass.new()
+        item.data.update(data)
         item.__dict__['history'] = history
         item.__dict__['comments'] = comments
         item.__dict__['rels'] = rels
@@ -584,15 +562,15 @@ class CollectionDB(object):
             old = {}
         
         # Put item.
-        print "....data:", item.data
+        # print "....data:", item.data
         for i in item.history:
-            print "....history:", i
+            # print "....history:", i
             self.history.add(item.name, i, txn=txn)
         for i in item.comments:
-            print "....comments:", i
+            # print "....comments:", i
             self.comments.add(item.name, i, txn=txn)
         for i in item.rels:
-            print "...rels:", i
+            # print "...rels:", i
             if i.get('key') == 'parents':
                 self._pclink(i['value'], item.name, txn=txn)
             elif i.get('key') == 'children':
@@ -660,7 +638,8 @@ class CollectionDB(object):
         index = self._getindex(param, txn=txn) 
         if index is None:
             return None
-        return index.find(key=key, maxkey=maxkey, op=op, txn=txn) 
+        r = index.find(key=key, maxkey=maxkey, op=op, txn=txn) 
+        return r
 
     def find_both(self, param, key, maxkey=None, op='==', count=100, ctx=None, txn=None):
         index = self._getindex(param, txn=txn) 
@@ -959,7 +938,7 @@ class NewUserDB(CollectionDB):
         if not ctx or not ctx.checkadmin():
             raise emen2.db.exceptions.PermissionsError("Admin rights needed to view user queue.")
         return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
-        
+
 ####### Databases ##########
 
 class BaseDB(object):
@@ -967,7 +946,7 @@ class BaseDB(object):
         """Create and open the DB."""
         # EMEN2DBEnv and BDB handle
         self.filename = filename
-        self.bdb = bsddb3.db.DB(dbenv)
+        self.bdb = bsddb3.db.DB(dbenv.dbenv)
         self.init(**kwargs)
         self.open()
         
@@ -1065,13 +1044,6 @@ class JSONDupDB(BaseDB):
             c = m()
         cursor.close()
         return r
-
-#     
-# class HistoryDB(JSONDupDB):
-#     pass
-# 
-# class CommentsDB(JSONDupDB):
-#     pass
 
 class SequenceDB(BaseDB):    
     def next(self, key='sequence', txn=None):
@@ -1337,4 +1309,5 @@ class RelDB(IndexDB):
         visited |= tovisit[-1]
         cursor.close()
         return result, visited
+
 

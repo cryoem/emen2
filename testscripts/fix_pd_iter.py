@@ -27,7 +27,7 @@ with db:
     ctx = db._getctx()
     txn = db._gettxn()
     pds = db.paramdef.get(db.paramdef.find())
-    pds = [i[1] for i in db._db.dbenv['paramdef'].items()]
+    pds = [i[1] for i in db._db['paramdef'].items()]
     byvt = collections.defaultdict(set)
     for i in pds:
         byvt[i.vartype].add(i)
@@ -61,11 +61,11 @@ with db:
         
 
     print "Truncating"
-    db._db.dbenv["paramdef"].truncate(txn=txn)
+    db._db["paramdef"].truncate(txn=txn)
             
     print "Committing"
     for pd in pds:
-        db._db.dbenv["paramdef"]._put_data(pd.name, pd, txn=txn)
-    db._db.dbenv['paramdef'].rebuild_indexes(ctx=ctx, txn=txn)
+        db._db["paramdef"]._put_data(pd.name, pd, txn=txn)
+    db._db['paramdef'].rebuild_indexes(ctx=ctx, txn=txn)
             
     # raise Exception

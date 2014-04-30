@@ -24,24 +24,24 @@ def parseutc(d):
 with db:
     ctx = db._ctx
     txn = db._txn
-    for name, item in db._db.dbenv['record'].items(ctx=ctx, txn=txn):
+    for name, item in db._db['record'].items(ctx=ctx, txn=txn):
         item.__dict__['name'] = unicode(item.__dict__['name'])
         for k in ['parents', 'children']:
             item.__dict__[k] = set(map(unicode, item.__dict__.get(k, [])))        
-        db._db.dbenv['record']._put_data(item.name, item, txn=txn)
+        db._db['record']._put_data(item.name, item, txn=txn)
         
-    for name, item in db._db.dbenv['binary'].items(ctx=ctx, txn=txn):
+    for name, item in db._db['binary'].items(ctx=ctx, txn=txn):
         if item.__dict__.get('record') is not None:
             item.__dict__['record'] = unicode(item.__dict__['record'])
         # These dates weren't properly converted by a previous script.
         item.__dict__['creationtime'] = parseutc(item.__dict__['creationtime'])
         item.__dict__['modifytime'] = parseutc(item.__dict__['modifytime'] or item.__dict__['creationtime'])    
-        db._db.dbenv['binary']._put_data(item.name, item, txn=txn)
+        db._db['binary']._put_data(item.name, item, txn=txn)
     
     
-    for name, item in db._db.dbenv['user'].items(ctx=ctx, txn=txn):
+    for name, item in db._db['user'].items(ctx=ctx, txn=txn):
         if item.__dict__['record'] is not None:
             item.__dict__['record'] = unicode(item.__dict__['record'])
-        db._db.dbenv['user']._put_data(item.name, item, txn=txn)
+        db._db['user']._put_data(item.name, item, txn=txn)
 
     

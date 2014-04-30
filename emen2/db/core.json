@@ -1,51 +1,51 @@
-{"name": "root", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/root/", "vartype": "none", "parents": [], "desc_short": "Root parameter"}
-{"name": "core", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/core/", "vartype": "none", "parents": ["root"], "desc_short": "Core parameters"}
-{"name": "keytype", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/keytype/", "vartype": "none", "parents": ["core"], "desc_short": "Type", "desc_long": "Object type"}
-{"name": "name", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name/", "vartype": "none", "parents": ["core"], "desc_short": "ID", "desc_long": "Object ID"}
-{"name": "keywords", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/keywords/", "parents": ["core"], "vartype": "keywords", "desc_short": "Keywords"}
-{"name": "creator", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/creator/", "vartype": "user", "parents": ["core"], "desc_short": "Created by", "desc_long": "The user that originally created the record"}
-{"name": "creationtime", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/creationtime/", "vartype": "datetime", "parents": ["core"], "desc_short": "Creation time", "desc_long": "Timestamp of original record creation"}
-{"name": "modifyuser", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/modifyuser/", "vartype": "user", "parents": ["core"], "desc_short": "Modified by", "desc_long": "The user that last changed the record"}
-{"name": "modifytime", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/modifytime/", "vartype": "datetime", "parents": ["core"], "desc_short": "Modification time", "desc_long": "Timestamp of last modification"}
-{"name": "uri", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/uri/", "vartype": "uri", "parents": ["core"], "desc_short": "URI", "desc_long": "Resource location of an imported object"}
-{"name": "permissions", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/permissions/", "vartype": "acl", "parents": ["core"], "desc_short": "Permissions"}
-{"name": "hidden", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/hidden/", "parents": ["core"], "vartype": "boolean", "desc_short": "Hidden"}
-{"name": "record", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/record/", "vartype": "record", "parents": ["core"], "desc_short": "Record"}
-{"name": "paramdef", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/paramdef/", "vartype": "paramdef", "parents": ["core"], "desc_short": "Parameter"}
-{"name": "user", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/user/", "vartype": "user", "parents": ["core"], "desc_short": "User"}
-{"name": "group", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/group/", "vartype": "group", "parents": ["core"], "desc_short": "Group"}
-{"name": "groups", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/groups/", "iter": true, "vartype": "aclgroups", "parents": ["core"], "desc_short": "Groups"}
-{"name": "binary", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/binary/", "vartype": "binary", "parents": ["core"], "desc_short": "Binary"}
-{"name": "parents", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/parents/", "vartype": "link", "parents": ["core"], "desc_short": "Parents"}
-{"name": "children", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/children/", "vartype": "link", "parents": ["core"], "desc_short": "Children"}
-{"name": "vartype", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/vartype/", "vartype": "string", "parents": ["core"], "desc_short": "Value type"}
-{"name": "iter", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/iter/", "vartype": "boolean", "parents": ["core"], "desc_short": "Iterable"}
-{"name": "property", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/property/", "vartype": "string", "parents": ["core"], "desc_short": "Physical property"}
-{"name": "defaultunits", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/defaultunits/", "vartype": "string", "parents": ["core"], "desc_short": "Default units"}
-{"name": "indexed", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/indexed/", "vartype": "boolean", "parents": ["core"], "desc_short": "Indexed"}
-{"name": "choices", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/choices/", "iter": true, "vartype": "string", "parents": ["core"], "desc_short": "Choices"}
-{"name": "desc_short", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/desc_short/", "vartype": "string", "parents": ["core"], "desc_short": "Short description"}
-{"name": "desc_long", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/desc_long/", "vartype": "text", "parents": ["core"], "desc_short": "Long description"}
-{"name": "privacy", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/privacy/", "vartype": "int", "parents": ["core"], "desc_short": "User privacy"}
-{"name": "views", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/views/", "vartype": "dict", "parents": ["core"], "desc_short": "Views"}
-{"name": "mainview", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/mainview/", "vartype": "text", "parents": ["core"], "desc_short": "Main view"}
-{"name": "typicalchld", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/typicalchld/", "iter": true, "vartype": "paramdef", "parents": ["core"], "desc_short": "Typical children"}
-{"name": "email", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/email/", "vartype": "email", "parents": ["core"], "desc_short": "Email"}
-{"name": "disabled", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/disabled/", "vartype": "boolean", "parents": ["core"], "desc_short": "Disabled account"}
-{"name": "password", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/password/", "vartype": "password", "parents": ["core"], "desc_short": "Password"}
-{"name": "name_first", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_first/", "vartype": "string", "parents": ["core"], "desc_short": "First name"}
-{"name": "name_middle", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_middle/", "vartype": "string", "parents": ["core"], "desc_short": "Middle name"}
-{"name": "name_last", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_last/", "vartype": "string", "parents": ["core"], "desc_short": "Last name"}
-{"name": "displayname", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/displayname/", "vartype": "string", "parents": ["core"], "desc_short": "Display name"}
-{"name": "secret", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/secret/", "vartype": "none", "parents": ["core"], "desc_short": "Hidden"}
-{"name": "signupinfo", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/signupinfo/", "vartype": "none", "parents": ["core"], "desc_short": "Signup Details"}
-{"name": "rectype", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/rectype/", "vartype": "recorddef", "parents": ["core"], "desc_short": "Protocol"}
-{"name": "history", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/history/", "vartype": "history", "parents": ["core"], "desc_short": "History"}
-{"name": "comments", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/comments/", "vartype": "comments", "parents": ["core"], "desc_short": "Comments"}
-{"name": "filename", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/filename/", "vartype": "string", "parents": ["core"], "desc_short": "Filename"}
-{"name": "filesize", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/filesize/", "defaultunits": "B", "vartype": "int", "parents": ["core"], "property": "bytes", "desc_short": "Filesize"}
-{"name": "md5", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/md5/", "vartype": "md5", "parents": ["core"], "desc_short": "MD5 Checksum"}
-{"name": "file_binary", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/file_binary/", "iter": true, "vartype": "binary", "parents": ["core"], "desc_short": "Attachments"}
-{"name": "compress", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/compress/", "vartype": "string", "parents": ["core"], "desc_short": "Compressed format"}
-{"name": "host", "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/host/", "vartype": "string", "parents": ["core"], "desc_short": "Host"}
+{"keytype": "paramdef", "vartype": "none", "name": "root", "desc_short": "Root parameter", "uri": "http://ncmidb.bcm.edu/paramdef/root/"}
+{"name": "core", "rels": [{"value": "root", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/core/", "vartype": "none", "desc_short": "Core parameters"}
+{"name": "keytype", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/keytype/", "vartype": "none", "desc_short": "Type", "desc_long": "Object type"}
+{"name": "name", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name/", "vartype": "none", "desc_short": "ID", "desc_long": "Object ID"}
+{"name": "keywords", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/keywords/", "vartype": "keywords", "desc_short": "Keywords"}
+{"name": "creator", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/creator/", "vartype": "user", "desc_short": "Created by", "desc_long": "The user that originally created the record"}
+{"name": "creationtime", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/creationtime/", "vartype": "datetime", "desc_short": "Creation time", "desc_long": "Timestamp of original record creation"}
+{"name": "modifyuser", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/modifyuser/", "vartype": "user", "desc_short": "Modified by", "desc_long": "The user that last changed the record"}
+{"name": "modifytime", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/modifytime/", "vartype": "datetime", "desc_short": "Modification time", "desc_long": "Timestamp of last modification"}
+{"name": "uri", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/uri/", "vartype": "uri", "desc_short": "URI", "desc_long": "Resource location of an imported object"}
+{"name": "permissions", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/permissions/", "vartype": "acl", "desc_short": "Permissions"}
+{"name": "groups", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/groups/", "iter": true, "vartype": "aclgroups", "desc_short": "Groups"}
+{"name": "hidden", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/hidden/", "vartype": "boolean", "desc_short": "Hidden"}
+{"name": "record", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/record/", "vartype": "record", "desc_short": "Record"}
+{"name": "paramdef", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/paramdef/", "vartype": "paramdef", "desc_short": "Parameter"}
+{"name": "user", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/user/", "vartype": "user", "desc_short": "User"}
+{"name": "group", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/group/", "vartype": "group", "desc_short": "Group"}
+{"name": "binary", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/binary/", "vartype": "binary", "desc_short": "Binary"}
+{"name": "parents", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/parents/", "vartype": "link", "desc_short": "Parents"}
+{"name": "children", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/children/", "vartype": "link", "desc_short": "Children"}
+{"name": "vartype", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/vartype/", "vartype": "string", "desc_short": "Value type"}
+{"name": "iter", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/iter/", "vartype": "boolean", "desc_short": "Iterable"}
+{"name": "property", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/property/", "vartype": "string", "desc_short": "Physical property"}
+{"name": "defaultunits", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/defaultunits/", "vartype": "string", "desc_short": "Default units"}
+{"name": "indexed", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/indexed/", "vartype": "boolean", "desc_short": "Indexed"}
+{"name": "choices", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/choices/", "iter": true, "vartype": "string", "desc_short": "Choices"}
+{"name": "desc_short", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/desc_short/", "vartype": "string", "desc_short": "Short description"}
+{"name": "desc_long", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/desc_long/", "vartype": "text", "desc_short": "Long description"}
+{"name": "privacy", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/privacy/", "vartype": "int", "desc_short": "Privacy"}
+{"name": "views", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/views/", "vartype": "dict", "desc_short": "Views"}
+{"name": "mainview", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/mainview/", "vartype": "text", "desc_short": "Main view"}
+{"name": "typicalchld", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/typicalchld/", "iter": true, "vartype": "paramdef", "desc_short": "Typical children"}
+{"name": "email", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/email/", "vartype": "email", "desc_short": "Email"}
+{"name": "disabled", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/disabled/", "vartype": "boolean", "desc_short": "Disabled account"}
+{"name": "password", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/password/", "vartype": "password", "desc_short": "Password"}
+{"name": "name_first", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_first/", "vartype": "string", "desc_short": "First name"}
+{"name": "name_middle", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_middle/", "vartype": "string", "desc_short": "Middle name"}
+{"name": "name_last", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/name_last/", "vartype": "string", "desc_short": "Last name"}
+{"name": "displayname", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/displayname/", "vartype": "string", "desc_short": "Display name"}
+{"name": "secret", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/secret/", "vartype": "none", "desc_short": "Hidden"}
+{"name": "signupinfo", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/signupinfo/", "vartype": "none", "desc_short": "Signup Details"}
+{"name": "rectype", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/rectype/", "vartype": "recorddef", "desc_short": "Protocol"}
+{"name": "history", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/history/", "vartype": "history", "desc_short": "History"}
+{"name": "comments", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/comments/", "vartype": "comments", "desc_short": "Comments"}
+{"name": "filename", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/filename/", "vartype": "string", "desc_short": "Filename"}
+{"name": "filesize", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/filesize/", "defaultunits": "B", "vartype": "int", "property": "bytes", "desc_short": "Filesize"}
+{"name": "md5", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/md5/", "vartype": "md5", "desc_short": "MD5 Checksum"}
+{"name": "file_binary", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/file_binary/", "iter": true, "vartype": "binary", "desc_short": "Attachments"}
+{"name": "compress", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/compress/", "vartype": "string", "desc_short": "Compressed format"}
+{"name": "host", "rels": [{"value": "core", "key": "parents"}], "keytype": "paramdef", "uri": "http://ncmidb.bcm.edu/paramdef/host/", "vartype": "string", "desc_short": "Host"}
 {"name": "root", "views": {"recname": "Root: {{desc_short}}", "banner": "{{desc_long}}"}, "mainview": "# {{desc_short}}  \n{{desc_long}} \n", "keytype": "recorddef", "uri": "http://ncmidb.bcm.edu/recorddef/root/", "desc_short": "Root protocol"}

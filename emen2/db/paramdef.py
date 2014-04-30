@@ -115,15 +115,15 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
             raise self.error("Vartype required.")
         if self.vartype not in emen2.db.vartypes.Vartype.registered:
             raise self.error("Vartype %s is not a valid vartype."%self.vartype)
-        # try:
-        #     prop = emen2.db.properties.Property.get_property(self.property)
-        # except KeyError:
-        #     raise self.error("Cannot set defaultunits without a property!")
-        # m = emen2.db.magnitude.mg(0, value)
-        # # raise self.error("Invalid units: %s"%value)
-        # if value not in prop.units:
-        #     raise self.error("Invalid defaultunits %s for property %s. 
-        #         Allowed: %s"%(value, self.property, ", ".join(prop.units)))
+        if self.property or self.defaultunits:
+            try:
+                prop = emen2.db.properties.Property.get_property(self.property)
+            except KeyError:
+                raise self.error("Cannot set defaultunits without a property!")
+            if self.defaultunits not in prop.units:
+                raise self.error("Invalid defaultunits %s for property %s. Allowed: %s"%(self.defaultunits, self.property, ", ".join(prop.units)))
+            # m = emen2.db.magnitude.mg(0, value)
+            # raise self.error("Invalid units: %s"%value)
 
     def get_vartype(self, *args, **kwargs):
         # print "get_vartype:", args, kwargs, self.data, self.data['vartype']
@@ -185,7 +185,8 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
     def _set_defaultunits(self, key, value):
         value = self._strip(value)
-        value = unicode(emen2.db.properties.equivs.get(value, value))
+        # value = unicode(emen2.db.properties.equivs.get(value, value))
+        
         if value != self.defaultunits and not self.isnew():
             raise self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
         self._set('defaultunits', value, self.isowner())

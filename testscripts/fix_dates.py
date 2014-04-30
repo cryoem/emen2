@@ -50,7 +50,7 @@ def updatebt(btree, ctx, txn):
     
 def updaterecs(ctx, txn):
     # for name in range(550000):
-    for count, name in enumerate(db._db.dbenv["record"].keys(txn=txn)):
+    for count, name in enumerate(db._db["record"].keys(txn=txn)):
         if count % 1000 == 0:
             print name
 
@@ -76,8 +76,8 @@ def updaterecs(ctx, txn):
             if rec.params.get(p):
                 rec.params[p] = parselocal(rec.params[p])
 
-        db._db.dbenv["record"]._put_data(rec.name, rec, txn=txn)
-    db._db.dbenv['record'].rebuild_indexes(ctx=ctx, txn=txn)
+        db._db["record"]._put_data(rec.name, rec, txn=txn)
+    db._db['record'].rebuild_indexes(ctx=ctx, txn=txn)
     
     
 with db:    
@@ -88,7 +88,7 @@ with db:
     ctx = db._ctx
     txn = db._txn
     for i in ['user', 'group', 'paramdef', 'recorddef', 'binary']:
-        updatebt(db._db.dbenv[i], ctx=ctx, txn=txn)
+        updatebt(db._db[i], ctx=ctx, txn=txn)
     
     updaterecs(ctx=ctx, txn=txn)
     

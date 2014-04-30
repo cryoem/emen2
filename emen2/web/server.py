@@ -43,12 +43,12 @@ class DBPool(object):
 
     def connect(self):
         """Create a new database connection."""
-        import emen2.db.database
+        import emen2.db
         tid = self.threadID()
         # emen2.db.log.info('DBPool info: # threads: %s -- this thread is %s'%(len(self.dbs), tid))
         db = self.dbs.get(tid)
         if not db:
-            db = emen2.db.database.opendb()
+            db = emen2.db.opendb()
             self.dbs[tid] = db
         return db
 

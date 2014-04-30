@@ -41,7 +41,7 @@ core_paramdefs = [
     {"name": "choices", "iter": True, "keytype": "paramdef", "rels": [{"key":"parents", "value":"core"}], "vartype": "string", "desc_short": "Choices"},
     {"name": "desc_short", "keytype": "paramdef", "rels": [{"key":"parents", "value":"core"}], "vartype": "string", "desc_short": "Short description"},
     {"name": "desc_long", "keytype": "paramdef", "rels": [{"key":"parents", "value":"core"}], "vartype": "text", "desc_short": "Long description"},
-    {"name": "privacy", "keytype": "paramdef", "rels": [{"key":"parents", "value":"core"}], "vartype": "int", "desc_short": "User privacy"},
+    {"name": "privacy", "keytype": "paramdef", "rels": [{"key":"parents", "value":"core"}], "vartype": "int", "desc_short": "Privacy"},
 
     # RecordDef
     {"name": "views", "keytype": "paramdef", "rels": [{"key":"parents", "value":"core"}], "vartype": "dict", "desc_short": "Views"},
