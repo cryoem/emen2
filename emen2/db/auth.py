@@ -178,7 +178,7 @@ class PasswordAuth(object):
             return
         
         error = emen2.db.exceptions.RecycledPassword(name=self.name, message="You may not re-use a previously used password.")
-        for previous in events.gethistory(param='password', limit=recycle):
+        for previous in events.find(key='password', limit=recycle):
             if self.check(password, previous[3]):
                 raise error        
         
@@ -191,9 +191,9 @@ class PasswordAuth(object):
             return
         
         # Check the password hasn't expired; will raise ExpiredPassword.
-        last_password = events.gethistory(param='password', limit=1)
+        last_password = events.find(key='password', limit=1)
         if last_password:
-            last_password = last_password[0][0]
+            last_password = last_password[0].get('time')
         elif expire_initial:
             raise emen2.db.exceptions.ExpiredPassword(name=self.name, message="Please set a new password before your initial login.", title="Initial login")
         else:
@@ -211,7 +211,8 @@ class PasswordAuth(object):
         if not events:
             return
 
-        last_context = events.gethistory(param='context', limit=1)
+        raise NotImplementedError
+        last_context = events.find(key='context', limit=1)
         if not last_context:
             return
 

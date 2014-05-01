@@ -437,55 +437,28 @@ class User(BaseUser):
         self._set('privacy', privacy, self.isowner())
             
 # History
-class History(emen2.db.dataobject.PrivateDBO):
+class History(object):
     """Manage previously used values."""
-    def init(self):
-        super(History, self).init()
-        # History
-        self.data['history'] = []
+    def init(self, data):
+        self.data = data or []
     
-    def addhistory(self, user=None, timestamp=None, param=None, value=None):
-        """Add a value to the history."""
-        timestamp = timestamp or emen2.db.database.utcnow()
-        v = (timestamp, user, param, value)
-        if v in self.data['history']:
-            raise ValueError("This event is already present.")
-        print self.data
-        self.data['history'].append(v)
-    
-    def gethistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
-        """Get :limit: previously used values."""
-        h = sorted(self.data['history'], reverse=True)
-        if timestamp:
-            h = filter(lambda x:x[0] == timestamp, h)
-        if user:
-            h = filter(lambda x:x[1] == user, h)
-        if param:
-            h = filter(lambda x:x[2] == param, h)
+    def find(self, key=None, value=None, user=None, limit=None):
+        h = sorted(self.data, key=lambda x:x.get('time'))
+        if key:
+            h = [i for i in h if i.get('key') == key]
         if value:
-            h = filter(lambda x:x[3] == value, h)
+            h = [i for i in h if i.get('value') == value]
+        if user:
+            h = [i for i in h if i.get('user') == user]
         if limit is not None:
             h = h[:limit]
         return h
-
-    def checkhistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
-        """Check if an param or value is in the past :limit: items."""
-        if self.gethistory(timestamp=timestamp, user=user, param=param, value=value, limit=limit):
+    
+    # def checkhistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
+    def checkfind(self, key=None, value=None, user=None, limit=None):
+        """Check if an key or value is in the past :limit: items."""
+        if self.find(key=key, value=value, user=user, limit=limit):
             return True
         return False
 
-    def prunehistory(self, user=None, param=None, value=None, limit=None):
-        """Prune the history to :limit: items."""
-        other = []
-        match = []
-        for t, u, p, v in self.data['history']:
-            if u == user or p == param or v == value:
-                match.append((t,u,p,v))
-            else:
-                other.append((t,u,p,v))
-        if limit:
-            match = sorted(match, reverse=True)[:limit]
-        else:
-            match = []
-        self.data['history'] = sorted(match+other, reverse=True)
         
