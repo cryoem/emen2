@@ -566,3 +566,29 @@ class PrivateDBO(BaseDBObject):
     # def setContext(self, ctx=None):
     #     raise emen2.db.exceptions.PermissionsError("Private item.")
             
+            
+# History
+class History(object):
+    """Manage previously used values."""
+    def __init__(self, data=None):
+        self.data = data or []
+    
+    def find(self, key=None, value=None, user=None, limit=None):
+        h = sorted(self.data, key=lambda x:x.get('time'))
+        if key:
+            h = [i for i in h if i.get('key') == key]
+        if value:
+            h = [i for i in h if i.get('value') == value]
+        if user:
+            h = [i for i in h if i.get('user') == user]
+        if limit is not None:
+            h = h[:limit]
+        return h
+    
+    # def checkhistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
+    def checkfind(self, key=None, value=None, user=None, limit=None):
+        """Check if an key or value is in the past :limit: items."""
+        if self.find(key=key, value=value, user=user, limit=limit):
+            return True
+        return False
+            
