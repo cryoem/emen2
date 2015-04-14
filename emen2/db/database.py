@@ -576,8 +576,9 @@ class DB(BaseDB):
             raise AuthenticationError
 
         # Check the password and expiration.
+        history = []
         try:
-            user.login(password)
+            user.login(password, history=history)
         except DisabledUserError, e:
             emen2.db.log.security("Login failed: Disabled user: %s"%(user.name))
             raise DisabledUserError
