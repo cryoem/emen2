@@ -155,7 +155,7 @@ class PasswordAuth(object):
     """Check and validate passwords."""
     
     def __init__(self, name=None, history=None, contexts=None):
-        self.hasher = Hasher()
+        self.hasher = HashBCrypt()
         # TODO: Temporary..
         self.name = name
         self.creationtime = 0
