@@ -1,7 +1,4 @@
 """Authentication."""
-# This used to be part of the User class, but it's become
-# large and complicate enough to put in its own module.
-
 import os
 import re
 
@@ -14,12 +11,10 @@ except:
 
 import emen2.db.exceptions
 import emen2.db.config
-# import emen2.timeutil
 
 SALT_BYTES = 22
-HASH_TYPES = ['SHA-1', 'SHA-2', 'bcrypt', '2', '2a', 'PBKDF2', 'MD5', 'legacy']
 
-class Hasher(object):
+class HashType(object):
     """Manage password hashes.
     
     EMEN2 Passwords use a convention similar to bcrypt:
@@ -27,49 +22,80 @@ class Hasher(object):
     
     Example:
 
-    >>> auth = emen2.db.auth.Hasher()    
-    >>> auth.hash('testqwerty', algorithm='sha1')
-    '$sha1$0$L7V7n+K78MOG3JyicTWXIB$F1joLfgwg5YNL9ueMLqN80+S+M'
+    >>> auth = emen2.db.auth.HashSHA1()
+    >>> auth.hashpw('testqwerty')
+    '$SHA-1$0$L7V7n+K78MOG3JyicTWXIB$F1joLfgwg5YNL9ueMLqN80+S+M'
 
-    Here, you can see the algorithm is 'sha1', the rounds are '0', the salt is
+    Here, you can see the algorithm is 'SHA-1', the rounds are '0', the salt is
     'L7V7n+K78MOG3JyicTWXIB', and the SHA-1 hash is
     'F1joLfgwg5YNL9ueMLqN80+S+M'.
     
     Note that I included an extra $ between the salt and hash for simplicity's
     sake; bcrypt omits this.    
     """
+    HASHTYPES = {}
+    algorithm = None
 
-    def check(self, password, hashed, algorithm=None):
-        """Check a password."""
-        algorithm = algorithm or self.parse(hashed)[0]
-        password = password or ""
-        return self.hash(password, salt=hashed, algorithm=algorithm) == hashed
-
-    def hash(self, password, algorithm, salt=None):
-        """Hash the password."""
-        if algorithm not in HASH_TYPES:
-            raise NotImplementedError("Unknown password hashing algorithm: %s"%algorithm)
+    @classmethod
+    def getcls(self, password=None, algorithm=None):
+        password = password or ''
+        p = (password or '').split('$')
+        if len(p) >= 4:
+            algorithm = p[1]
+        elif len(password) == 40:
+            algorithm = 'MD5'
+            
         if algorithm == 'SHA-1':
-            return self.sha1(password, salt)
+            return HashSHA1
         elif algorithm == 'SHA-2':
-            return self.sha2(password, salt)
+            return HashSHA2 
         elif algorithm in ['2', '2a', 'bcrypt']:
-            return self.bcrypt(password, salt)
+            return HashBCrypt
         elif algorithm == 'PBKDF2':
-            return self.pbkdf2(password, salt)
+            return HashPBKDF2
         elif algorithm == 'MD5':
-            return self.md5(password, salt)
+            return HashMD5
         elif algorithm == 'legacy':
-            return self.legacy(password, salt)
+            return HashLegacy
+        else:
+            raise NotImplementedError("Unknown password hashing algorithm: %s"%algorithm)
+
+    def parse(self, password):
+        password = password or ''
+        p = password.split('$')
+        if len(p) == 4:
+            rounds = p[2]
+            salt = p[3][:SALT_BYTES]
+            hashedpassword = p[3][SALT_BYTES:]
+        elif len(p) == 5:
+            rounds = p[2]
+            salt = p[3][:SALT_BYTES]
+            hashedpassword = p[4]
+        elif len(password) == 40:
+            rounds = 0
+            salt = ''
+            hashedpassword = password
+        else:
+            raise ValueError("Could not parse password hash.")
+        return rounds, salt, hashedpassword
+    
+    def format_password(self, rounds, salt, hashedpassword):
+        return """$%s$%s$%s$%s"""%(self.algorithm, rounds, salt, hashedpassword)
+            
+    def check(self, password, hashed):
+        """Check a password."""
+        return self.hashpw(password, salt=hashed) == hashed
+
+    def hashpw(self, password, salt=None):
+        """Hash the password."""
+        raise NotImplementedError
             
     def checkhashed(self, password):
-        ret = False
         try:
             self.parse(password)
-            ret = True
+            return True
         except:
-            pass
-        return ret
+            return False
     
     def gen_salt(self):
         return os.urandom(SALT_BYTES).encode('base_64')[:SALT_BYTES]
@@ -79,52 +105,36 @@ class Hasher(object):
             return None
         return salt.split("$")[3][:SALT_BYTES]
     
-    def parse(self, password):
-        password = password or ''
-        p = password.split('$')
-        if len(p) == 4:
-            algorithm = p[1]
-            rounds = p[2]
-            salt = p[3][:SALT_BYTES]
-            hashedpassword = p[3][SALT_BYTES:]
-        elif len(p) == 5:
-            algorithm = p[1]
-            rounds = p[2]
-            salt = p[3][:SALT_BYTES]
-            hashedpassword = p[4]
-        elif len(password) == 40:
-            algorithm = 'MD5'
-            rounds = 0
-            salt = ''
-            hashedpassword = password
-        else:
-            raise ValueError("Could not parse password hash.")
-        if algorithm not in HASH_TYPES:
-            raise NotImplementedError("Unknown password hashing algorithm: %s"%algorithm)            
-        return algorithm, rounds, salt, hashedpassword
-    
-    def format_password(self, algorithm, rounds, salt, hashedpassword):
-        return """$%s$%s$%s$%s"""%(algorithm, rounds, salt, hashedpassword)
-            
-    def legacy(self, password, salt):
-        return hashlib.sha1(salt+password).hexdigest()    
-        
-    def md5(self, password, salt):
-        salt = self.get_salt(salt) or self.gen_salt()
-        h = hashlib.md5(salt+password).digest().encode('base_64')[:-3]
-        return self.format_password('MD5', 0, salt, h)
-
-    def sha1(self, password, salt):
+class HashSHA1(HashType):
+    algorithm = 'SHA-1'
+    def hashpw(self, password, salt=None):
         salt = self.get_salt(salt) or self.gen_salt()
         h = hashlib.sha1(salt+password).digest().encode('base_64')[:-3]
-        return self.format_password('SHA-1', 0, salt, h)
+        return self.format_password(0, salt, h)
 
-    def sha2(self, password, salt):
+class HashLegacy(HashType):
+    algorithm = 'legacy'
+    def hashpw(self, password, salt=None):
+        salt = ''
+        return hashlib.sha1(salt+password).hexdigest()    
+
+class HashMD5(HashType):
+    algorithm = 'MD5'        
+    def hashpw(self, password, salt=None):
+        salt = self.get_salt(salt) or self.gen_salt()
+        h = hashlib.md5(salt+password).digest().encode('base_64')[:-3]
+        return self.format_password(0, salt, h)
+
+class HashSHA2(HashType):
+    algorithm = 'SHA-2'
+    def hashpw(self, password, salt=None):
         salt = self.get_salt(salt) or self.gen_salt()
         h = hashlib.sha512(salt+password).digest().encode('base_64')[:-3]
-        return self.format_password('SHA-2', 0, salt, h)
+        return self.format_password(0, salt, h)
 
-    def bcrypt(self, password, salt):
+class HashBCrypt(HashType):
+    algorithm = 'bcrypt'
+    def hashpw(self, password, salt=None):
         if not bcrypt:
             raise ImportError('Hash algorithm bcrypt not available')
         # Check that we've been given a valid salt. 
@@ -133,19 +143,27 @@ class Hasher(object):
             salt = bcrypt.gensalt()
         return bcrypt.hashpw(password, salt)
 
-    def pbkdf2(self, password, salt):
+class HashPBKDF2(HashType):
+    algorithm = 'PBKDF2'
+    def hashpw(self, password, salt=None):
         raise NotImplementedError("Hash algorithm PBKDF2 coming soon.")
         
+
+
+
 class PasswordAuth(object):
     """Check and validate passwords."""
     
-    def __init__(self, name=None):
+    def __init__(self, name=None, history=None, contexts=None):
         self.hasher = Hasher()
         # TODO: Temporary..
         self.name = name
         self.creationtime = 0
+        # Password history and past logins
+        self.history = history
+        self.contexts = contexts
     
-    def validate(self, password, events=None):
+    def validate(self, password):
         minlength = emen2.db.config.get('security.password_minlength')
         strength = emen2.db.config.get('security.password_strength')
         algorithm = emen2.db.config.get('security.password_algorithm')
@@ -169,29 +187,30 @@ class PasswordAuth(object):
         """Check a password."""
         return self.hasher.check(password, hashed, algorithm=algorithm)
     
-    def checkrecycle(self, password, events=None):
+    def checkrecycle(self, password):
         # Check we haven't recycled an existing password.
         recycle = emen2.db.config.get('security.password_recycle')
         if not recycle:
             return
-        if not recycle:
+        if not self.history:
             return
+        for previous in self.history.find(key='password', limit=recycle):
+            if self.check(password, previous.get('value')):
+                raise emen2.db.exceptions.RecycledPassword(name=self.name, message="You may not re-use a previously used password.")
         
-        error = emen2.db.exceptions.RecycledPassword(name=self.name, message="You may not re-use a previously used password.")
-        for previous in events.find(key='password', limit=recycle):
-            if self.check(password, previous[3]):
-                raise error        
-        
-    def checkexpired(self, password, events=None):
+    def checkexpired(self, password):
         expire_initial = emen2.db.config.get('security.password_expire_initial')
         expire = emen2.db.config.get('security.password_expire')
         if not (expire or expire_initial):
             return
-        if not events:
+        if not self.history:
             return
         
         # Check the password hasn't expired; will raise ExpiredPassword.
-        last_password = events.find(key='password', limit=1)
+        # Find the time of the last password; 
+        #   if no password change event, and expire_initial, then raise ExpiredPassword
+        #   else, the password change event was account creation.
+        last_password = self.history.find(key='password', limit=1)
         if last_password:
             last_password = last_password[0].get('time')
         elif expire_initial:
@@ -199,26 +218,22 @@ class PasswordAuth(object):
         else:
             last_password = self.creationtime
 
+        # Time since the last password
+        #   if time since last password > expire time, raise ExpiredPassword
         password_diff = emen2.db.database.utcdifference(last_password)
         if password_diff > expire:
             emen2.db.log.security("Login failed: expired password for %s, password age was %s, max age is %s"%(self.name, password_diff, expire))
             raise emen2.db.exceptions.ExpiredPassword(name=self.name, message="This password has expired.")        
         
-    def checkinactive(self, events=None):
+    def checkinactive(self, lastcontext=None):
+        raise NotImplementedError
         inactive = emen2.db.config.get('security.user_inactive')
         if not inactive:
             return
-        if not events:
+        if not lastcontext:
             return
-
-        raise NotImplementedError
-        last_context = events.find(key='context', limit=1)
-        if not last_context:
-            return
-
-        last_context = last_context[0][0]
-        inactive_diff = emen2.db.database.utcdifference(last_context)
-        # print "last_context?", last_context, inactive_diff, inactive
+        inactive_diff = emen2.db.database.utcdifference(lastcontext)
+        # print "lastcontext?", last_context, inactive_diff, inactive
         if inactive_diff > inactive:
             emen2.db.log.security("Login failed: inactive account for %s, last login was %s, max inactivity is %s"%(self.name, inactive_diff, inactive))
             raise emen2.db.exceptions.InactiveAccount(name=self.name, message="This account has expired due to inactivity.")
@@ -228,3 +243,17 @@ class KerberosAuth(object):
     def check(self, password, hashed):
         pass
 
+
+if __name__ == "__main__":
+    # Test
+    for i in ['legacy', 'MD5', 'SHA-1', 'SHA-2', 'bcrypt']:
+        password = 'Asdf1234@!'
+        h = HashType.getcls(algorithm=i)()
+        hashpw = h.hashpw(password)
+        check = h.check(password, hashpw)
+        assert check
+        fail = h.check("incorrectpassword", hashpw)
+        assert fail == False
+        
+    
+    
