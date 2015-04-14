@@ -126,7 +126,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
     ##### Login #####
 
-    def login(self, password, events=None):
+    def login(self, password, history=None):
         # Disabled users cannot login.
         # This needs to work even if there is no Context set.
         # Return a Context?
@@ -139,9 +139,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
         # Check for expired password or inactive account.
         # These will raise an ExpiredPassword Exception on failure.
-        auth = emen2.db.auth.PasswordAuth(name=self.name)
-        auth.checkexpired(password, events=events)
-        auth.checkinactive(events=events)
+        auth = emen2.db.auth.PasswordAuth(name=self.name, history=history)
+        auth.checkexpired(password)
+        auth.checkinactive()
 
     ##### Password methods #####
 
@@ -149,18 +149,8 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         self.setpassword(value)
         # """Can't set password this way. Use user.setpassword().""" ??
         # return
-    
-    def _validate_password(self, password, events=None):
-        password = unicode(password or '').strip()
-        # Validate the new password.
-        auth = emen2.db.auth.PasswordAuth()
-        hashpassword = auth.validate(password)
-        # Check the password hasn't been used recently.
-        auth.checkrecycle(password, events=events)
-        # Return the password hash.
-        return hashpassword
 
-    def setpassword(self, newpassword, password=None, secret=None, events=None):
+    def setpassword(self, newpassword, password=None, secret=None, history=None):
         """Set the user password.
         
         You must provide either the existing password or an authentication secret.
@@ -181,7 +171,9 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         else:
             raise self.error(e=emen2.db.exceptions.AuthenticationError)
 
-        hashpassword = self._validate_password(newpassword, events=events)
+        # Validate the new password.
+        auth = emen2.db.auth.PasswordAuth(history=history)
+        hashpassword = auth.validate(password)
         
         # Remove any secrets, if set.
         self._delsecret() 
@@ -436,29 +428,3 @@ class User(BaseUser):
             raise self.error("User privacy setting may be 0, 1, or 2.")
         self._set('privacy', privacy, self.isowner())
             
-# History
-class History(object):
-    """Manage previously used values."""
-    def init(self, data):
-        self.data = data or []
-    
-    def find(self, key=None, value=None, user=None, limit=None):
-        h = sorted(self.data, key=lambda x:x.get('time'))
-        if key:
-            h = [i for i in h if i.get('key') == key]
-        if value:
-            h = [i for i in h if i.get('value') == value]
-        if user:
-            h = [i for i in h if i.get('user') == user]
-        if limit is not None:
-            h = h[:limit]
-        return h
-    
-    # def checkhistory(self, timestamp=None, user=None, param=None, value=None, limit=None):
-    def checkfind(self, key=None, value=None, user=None, limit=None):
-        """Check if an key or value is in the past :limit: items."""
-        if self.find(key=key, value=value, user=user, limit=limit):
-            return True
-        return False
-
-        
