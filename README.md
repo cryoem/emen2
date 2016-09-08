@@ -6,8 +6,8 @@ To address these needs, we have developed EMEN2, an object-oriented scientific d
 endeavors.
 
 You can read about EMEN2 in the manuscript:
-
 [Rees, I., Langley, E., Chiu, W., & Ludtke, S.J. (2013). EMEN2: an object oriented database and electronic lab notebook. Microsc Microanal 19, 1-10](http://www.ncbi.nlm.nih.gov/pubmed/23360752)
 
-For more information, please see the EMEN2 wiki: <http://blake.bcm.edu/emanwiki/EMEN2>
+For more information, please see the EMEN2 wiki:
+<http://blake.bcm.edu/emanwiki/EMEN2>
 
