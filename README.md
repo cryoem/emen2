@@ -7,7 +7,7 @@ endeavors.
 
 You can read about EMEN2 in the manuscript:
 
-[http://www.ncbi.nlm.nih.gov/pubmed/23360752]Rees, I., Langley, E., Chiu, W., & Ludtke, S.J. (2013). EMEN2: an object oriented database and electronic lab notebook. Microsc Microanal 19, 1-10
+[Rees, I., Langley, E., Chiu, W., & Ludtke, S.J. (2013). EMEN2: an object oriented database and electronic lab notebook. Microsc Microanal 19, 1-10](http://www.ncbi.nlm.nih.gov/pubmed/23360752)
 
 For more information, please see the EMEN2 wiki: <http://blake.bcm.edu/emanwiki/EMEN2>
 
