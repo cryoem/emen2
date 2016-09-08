@@ -6,8 +6,8 @@
 .*project
 .DS*
 .git
-.gitignore
 .hg
+.cvsignore
 .hgignore
 MANIFEST
 _darcs
