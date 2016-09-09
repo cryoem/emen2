@@ -20,6 +20,7 @@
             </tr>
         </table>
     </form>
+
 </%def>
 
 <h1>Login</h1>

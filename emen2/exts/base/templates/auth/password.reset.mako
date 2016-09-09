@@ -9,6 +9,7 @@
     <p>Forgot your password? Please enter your email below, and the system will attempt to locate your account details and email you a link to reset your password.</p>    
 % endif
 
+
 <form method="post" action="">
     <table>
     % if not secret:

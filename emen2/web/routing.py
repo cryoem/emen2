@@ -1,3 +1,4 @@
+# $Id: routing.py,v 1.56 2013/03/21 06:18:38 irees Exp $
 import re
 import sre_parse
 import urllib
@@ -12,13 +13,16 @@ from itertools import izip
 
 import twisted.web.resource
 
-import emen2.web.registry
+import emen2.util.registry
 from emen2.db.exceptions import *
 from emen2.web import responsecodes
+from emen2.util import listops
+
 
 def resolve(name=None, path=None):
     """Resolve a route using either a route name or path URI."""
     return _Router.resolve(name=name, path=path)
+
 
 def execute(_execute_name, db=None, *args, **kwargs):
     """Find and execute a route by name.
@@ -30,11 +34,14 @@ def execute(_execute_name, db=None, *args, **kwargs):
     method(view, *args, **kwargs)
     return view
 
+
 def reverse(*args, **kwargs):
     return _Router.reverse(*args, **kwargs)
 
+
 def add(*args, **kwargs):
     pass
+
 
 def force_unicode(string):
     result = string
@@ -44,6 +51,8 @@ def force_unicode(string):
         return unicode(result)
     else:
         return unicode(result, 'utf-8', errors='replace')
+
+
 
 ##### Routing Resource #####
 
@@ -102,6 +111,9 @@ class Router(twisted.web.resource.Resource):
                 location=request.uri)
             ).encode('utf-8')
         
+
+
+
 class Route(object):
     """Private"""
     def __init__(self, name, matcher, cls=None, method=None, write=False):
@@ -115,6 +127,7 @@ class Route(object):
         # Hint that this route will cause writes
         self.write = write
 
+
     def match(self, path):
         result = None
         match = self.matcher.match(path)
@@ -125,8 +138,10 @@ class Route(object):
                 result[urllib.unquote_plus(k)] = urllib.unquote_plus(v)
         return result
 
-@emen2.web.registry.Registry.setup
-class _Router(emen2.web.registry.Registry):
+
+
+@emen2.util.registry.Registry.setup
+class _Router(emen2.util.registry.Registry):
     """Private"""
 
     _prepend = ''
@@ -145,10 +160,12 @@ class _Router(emen2.web.registry.Registry):
 
     default = property(get_default, set_default)
 
+
     # Not Found
     @staticmethod
     def onfail(inp):
         raise responsecodes.NotFoundError(inp)
+
 
     # Find a match for a path
     @classmethod
@@ -159,7 +176,7 @@ class _Router(emen2.web.registry.Registry):
         """
 
         if (not path and not name) or (path and name):
-            raise ValueError("You must specify either a path or a name.")
+            raise ValueError, "You must specify either a path or a name"
 
         # Return a callback and found arguments
         result = None, None
@@ -183,24 +200,25 @@ class _Router(emen2.web.registry.Registry):
                     return route.cls, f
         
         # Try to find a public template.
-        if path:
+        try:
             template = path[:-1]
-            try:
-                makot = emen2.db.config.templates.get_template(template)
-            except Exception, e:
-                emen2.db.log.error("Could not render template %s: %s"%(template, e))
+            makot = emen2.db.config.templates.get_template(template)
             route = cls.registry.get('TemplateRender/main')
             f = partial(route.method, template=template)
             return route.cls, f
+        except:
+            pass
             
         # Raise a 404.
         raise responsecodes.NotFoundError(path or name)
+
 
     # Test resolve a route
     @classmethod
     def is_reachable(cls, route):
         cb, groups = cls.resolve(route)
         return cb != None and groups != None
+
 
     # Registration
     @classmethod
@@ -211,8 +229,9 @@ class _Router(emen2.web.registry.Registry):
         @returns true if a Route was already registered with the same name
         '''
         p = cls()
-        route = emen2.web.registry.Registry.register(p, route)
+        route = emen2.util.registry.Registry.register(p, route)
         return route
+
 
     # Reverse lookup
     @classmethod
@@ -239,6 +258,7 @@ class _Router(emen2.web.registry.Registry):
 
         return result+anchor
 
+
     @classmethod
     def _reverse_helper(cls, regex, *args, **kwargs):
         mc = MatchChecker(args, kwargs)
@@ -250,10 +270,15 @@ class _Router(emen2.web.registry.Registry):
         
         return '?'.join(result)
 
+
+
+
 ################################
 # Modified code from Django
+
 class NoReverseMatch(Exception):
     pass
+
 
 class MatchChecker(object):
     "Class used in reverse lookup."
@@ -279,16 +304,20 @@ class MatchChecker(object):
     def __call__(self, match_obj):
         grouped = match_obj.group(1)
         m = self.NAMED_GROUP.search(grouped)
+
         if m:
             value, test_regex = self.get_arg(m.group(1)), m.group(2)
         else:
             value, test_regex = self.args.next(), grouped
 
         if value is None:
-            raise NoReverseMatch('Not enough arguments passed in.')
+            raise NoReverseMatch('Not enough arguments passed in')
+
         if not re.match(test_regex + '$', value, re.UNICODE):
-            raise NoReverseMatch("Value %r didn't match regular expression %r."%(value, test_regex))
+            raise NoReverseMatch("Value %r didn't match regular expression %r" % (value, test_regex))
+
         return force_unicode(value)
+
 
 class _IndexedListIterator(object):
     def __init__(self, lis):
@@ -312,4 +341,6 @@ class _IndexedListIterator(object):
 
     def __getitem__(self, arg):
         return self.lis[arg]
+        
 
+__version__ = "$Revision: 1.56 $".split(":")[1][:-1].strip()

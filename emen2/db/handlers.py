@@ -1,3 +1,4 @@
+# $Id: handlers.py,v 1.39 2013/02/28 00:49:55 irees Exp $
 '''File handlers
 
 '''
@@ -38,10 +39,9 @@ def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
     import emen2.db.queues
     
     # Paths and filenames
+    previewpath = emen2.db.binary.Binary.parse(bdo.get('name')).get('previewpath')
+    filepath = bdo.get('filepath')
     filename = bdo.get('filename')
-    dkey = emen2.db.binary.parse(bdo.creationtime, bdo.name)
-    previewpath = dkey['previewpath']
-    filepath = dkey['filepath']
 
     # Sanitize the filename to check compress= and ext=
     ext = ''
@@ -86,15 +86,17 @@ def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
     args.append(handler.__class__.__name__)
     args.append(filepath)
     
-    # if wait:
-    #    # Run directly and wait.
-    #    a = subprocess.Popen(args)
-    #    a.wait()
-    #    return "complete"
+    if wait:
+        # Run directly and wait.
+        a = subprocess.Popen(args)
+        a.wait()
+        return "complete"
     
     # Otherwise, add to the task queue.
     emen2.db.queues.processqueue.add_task(args, name=filepath, priority=priority)
     return "building"
+    
+    
 
 def main(g):
     """Use a Handler to build a thumbnail."""
@@ -111,11 +113,14 @@ def main(g):
     # Get the handler and build the thumbnail.
     handler = g[handler](filepath=filepath, filename=filename)
     handler.thumbnail(previewpath=options.previewpath, force=options.force)
-            
+    
+    
+    
 ##### Exceptions and Options #####    
 
 class ThumbnailError(Exception):
     pass
+
 
 class ThumbnailOptions(optparse.OptionParser):
     """Options to run a Binary thumbnail generator."""
@@ -131,8 +136,10 @@ class ThumbnailOptions(optparse.OptionParser):
     def parse_args(self, lc=True, *args, **kwargs):
         options, args = optparse.OptionParser.parse_args(self,  *args, **kwargs)
         if len(args) < 2:
-            raise ValueError("Handler class name and input file required.")
+            raise ValueError, "Handler class name and input file required"
         return options, args
+
+
 
 ##### File handler #####
 
@@ -142,7 +149,7 @@ class BinaryHandler(object):
     This is used in a few different ways. It is used for files uploaded
     to the web server. It can also be used with the File Handlers defined
     below (e.g. to extract header metadata.) Handlers can also be passed
-    as items to db.binary.upload().
+    as items to db.binary.put.
     
     The original name of the file is self.filename. Sources can be a added in
     the constructor, and may be a string of data (filedata), or a file-like
@@ -163,7 +170,7 @@ class BinaryHandler(object):
         # Original filename
         self.filename = filename
         if not self.filename:
-            raise ThumbnailError("Filename required.")
+            raise ThumbnailError, "Filename required"
 
         # Parameter in the associated record
         self.param = param
@@ -180,8 +187,10 @@ class BinaryHandler(object):
         # if not any([self.filepath, self.filedata, self.fileobj]):
         #    raise ThumbnailError, "No data; can be filepath, filedata, or fileobj."
 
+
     def get(self, key, default=None):
         return self.__dict__.get(key, default)
+
 
     ##### Open the underlying data #####
         
@@ -203,7 +212,7 @@ class BinaryHandler(object):
             self.fileobj.seek(0)
             readfile = self.fileobj
         else:
-            raise IOError("No file given, or don't know how to read file.")
+            raise IOError, "No file given, or don't know how to read file.."
         return readfile
 
     # Making this a private method for now
@@ -236,6 +245,7 @@ class BinaryHandler(object):
         for f in self._tmpfiles:
              os.remove(f)
 
+
     ##### Extract metadata and build thumbnails #####
 
     def extract(self, **kwargs):
@@ -244,7 +254,7 @@ class BinaryHandler(object):
     def thumbnail(self, previewpath, force=False):
         fp = self._getfilepath()
         if not os.access(fp, os.F_OK):
-            raise ThumbnailError("Could not access: %s"%fp)
+            raise ThumbnailError, "Could not access: %s"%fp
 
         # This is used in self._outfile()
         self._previewpath = previewpath
@@ -287,7 +297,7 @@ class BinaryHandler(object):
             try:
                 self._thumbnail_build(workfile)
             except Exception, e:
-                emen2.db.log.error("BinaryHandler: Could not build tiles: %s"%e)
+                emen2.db.log.error("Could not build tiles: %s"%e)
                 pass
             os.remove(workfile)
         else:
@@ -329,7 +339,7 @@ class BinaryHandler(object):
         def f(o):
             for name in names:
                 if name in cls._handlers:
-                    raise ValueError("""File handler %s already registered"""%name)
+                    raise ValueError("""File handler %s already registered""" % name)
                 cls._handlers[name] = o
             return o
         return f
@@ -351,7 +361,11 @@ class BinaryHandler(object):
             
         handler = cls._handlers.get(handler, cls)
         return handler(**kwargs)
-            
+    
+    
+    
+    
+    
 @BinaryHandler.register(['jpg', 'jpeg', 'png', 'gif', 'bmp', 'ai', 'pdf', 'eps', 'mpeg'])
 class ImageHandler(BinaryHandler):
     def build_scale(self, img, outfile, tilesize=256):
@@ -381,12 +395,18 @@ class ImageHandler(BinaryHandler):
 
         a = subprocess.Popen(args)
         a.wait()
+        
 
     def _thumbnail_build(self, workfile):
         self.build_scale(workfile, self._outfile('thumb.jpg'), tilesize=128)
         self.build_scale(workfile, self._outfile('small.jpg'), tilesize=512)
         self.build_scale(workfile, self._outfile('medium.jpg'), tilesize=1024)
-            
+
+    
+        
+        
 if __name__ == "__main__":
     main(globals())
-            
+        
+        
+        

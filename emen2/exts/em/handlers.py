@@ -1,3 +1,4 @@
+# $Id: handlers.py,v 1.6 2013/02/28 00:49:55 irees Exp $
 '''File handlers.'''
 
 import time
@@ -26,6 +27,7 @@ try:
     BinaryHandler = emen2.db.handlers.BinaryHandler
 except:
     BinaryHandler = DummyHandler
+    
 
 # EMAN2 can only be imported in the main thread.
 try:
@@ -35,6 +37,7 @@ try:
     signal.signal(15, signal.SIG_DFL)
 except ImportError:
     EMAN2 = None
+
 
 class EMDataBuilder(object):
     '''Helper class to build tiles and thumbnails for EMAN2-readable files.
@@ -82,11 +85,12 @@ class EMDataBuilder(object):
             # print "Removing tmpdir:", self.tmpdir
             os.rmdir(self.tmpdir)
         except:
-            # print "Could not remove tmpdir: ", self.tmpdir
+            # print "Couldn't remove tmpdir: ", self.tmpdir
             pass
         
         # print ret
         return ret
+        
 
     def _build(self, index):
         '''Build a single image in the file.'''
@@ -125,6 +129,7 @@ class EMDataBuilder(object):
                 header['slices'].append(self.build_slice(img2, index=index, nz=i, fixed=[128,512,1024]))
         
         return header
+        
 
     def _build_compile(self, ret, outfile):
         '''Combine the results into a single tile file.'''
@@ -159,6 +164,7 @@ class EMDataBuilder(object):
 
         tf.close()        
 
+
     def build_slice(self, img, nz=1, index=0, tile=False, pspec=False, fixed=None):
         '''Build a single 2D slice from a 2D or 3D image.'''
         header = {}
@@ -183,7 +189,8 @@ class EMDataBuilder(object):
                 header['fixed'][f] = self.build_fixed(img, tilesize=f, nz=nz, index=index)
 
         return header
-            
+        
+        
     def build_tiles(self, img, nz=1, index=0, tilesize=256):
         '''Build tiles for a 2D slice.'''
         # Work with a copy of the EMData
@@ -217,7 +224,8 @@ class EMDataBuilder(object):
             img2.process_inplace("math.meanshrink",{"n":2})
 
         return tile_dict
-            
+
+        
     def build_fixed(self, img, tilesize=256, nz=1, index=0):
         """Build a thumbnail of a 2D EMData."""
         # Output files
@@ -251,7 +259,8 @@ class EMDataBuilder(object):
             img2.write_image(self.copyout[tilesize])
 
         return [fsp, None, 'jpg', img2.get_xsize(), img2.get_ysize()]
-            
+
+    
     def build_pspec(self, img, tilesize=512, nz=1, index=0):
         """Build a 2D FFT and 1D rotationally averaged power spectrum of a 2D EMData."""
         
@@ -310,6 +319,7 @@ class EMDataBuilder(object):
         # Return both the 2D and 1D files
         return pspec_dict, pspec1d_dict
 
+
 ##### Cryo-EM file format handlers #####
 
 class EMDataHandler(BinaryHandler):
@@ -323,12 +333,17 @@ class EMDataHandler(BinaryHandler):
         }
         builder = EMDataBuilder()
         tile = builder.build(str(workfile), outfile, copyout=copyout)            
+        
+
 
 @BinaryHandler.register(['dm3', 'mrc', 'tif', 'tiff', 'hdf'])
 class MicrographHandler(EMDataHandler):
     _allow_gzip = True
+    
+
 
 # IMPORTANT -- Do not change this.
 if __name__ == "__main__":
     emen2.db.handlers.main(globals())
-            
+
+    

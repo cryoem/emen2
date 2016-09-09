@@ -1,13 +1,30 @@
+# $Id: create.py,v 1.3 2013/05/21 21:21:51 irees Exp $
 """Create a new database."""
+
+import os
+import sys
+import time
+import tarfile
+import tempfile
+import string
+import random
+import collections
+import getpass
+import json
+import jsonrpc.jsonutil
+
+# EMEN2 imports
+import emen2.util.listops
+import emen2.db.config
+
+class CreateOptions(emen2.db.config.DBOptions):
+    def parseArgs(self):
+        pass
 
 if __name__ == "__main__":
     import emen2.db
-    import emen2.db.config
-    opts = emen2.db.config.DBOptions()
-
-    opts.add_argument("--rootemail", help="Root email")
-    opts.add_argument("--rootpw", help="Root password")
-    
-    args = opts.parse_args()
     db = emen2.db.opendb(admin=True)
-    emen2.db.database.setup(db=db, rootpw=args.rootpw, rootemail=args.rootemail)
+    db._db.dbenv.create()
+    emen2.db.database.setup(db=db)
+            
+        

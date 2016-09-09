@@ -101,6 +101,7 @@
     </div>
 </%def>
 
+
 <%def name="person(name, ctxt)">
     <% child = ctxt.db.record.get(name) %>
     <% if child['username'] == 'root': return %>
@@ -126,7 +127,7 @@
                 </p>
 
                 <p>
-                    ph: <em>${extract(child, 'phone', 'Phone')}</em> <br>
+                    ph: <em>${extract(child, 'phone_voice', 'Phone')}</em> <br>
                     fax: <em>${extract(child, 'phone_fax', 'Fax')}</em> <br>
                     web: <em>${extract(child, 'website', 'Website')}</em>
                 </p>
@@ -134,6 +135,7 @@
         </div>
     </div>
 </%def>
+
 
 <%def name="extract(record, key, default=None)">
     %if record[key]:

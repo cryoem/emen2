@@ -15,6 +15,7 @@ ${rendered | n}
 
 <script type="text/javascript">
 
+
 bind_edit(document);
 
 </script>

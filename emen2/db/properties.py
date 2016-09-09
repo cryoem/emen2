@@ -1,161 +1,164 @@
+# $Id: properties.py,v 1.30 2013/05/01 16:32:12 irees Exp $
 # This Python file is encoding:UTF-8 Encoded
-"""Properties -- types of physical properties (units)."""
+"""Properties -- types of physical properties (units)
+
+Classes:
+    Property
+    prop_*: A number of included Properties
+
+"""
 
 import sys
 import math
 import re
 
 # EMEN2 imports
-import emen2.utils
+import emen2.util.listops
 import emen2.db.exceptions
 import emen2.db.magnitude as mg
 
+
 # Convenience
-ci = emen2.utils.check_iterable
+ci = emen2.util.listops.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
 
 # Unit synonyms
-equivs = {}
+equivs = {
+    'mm^2': 'mm mm',
+    'cm^2': 'cm cm',
+    'm^2': 'm m',
+    'km^2': 'km km',
+    'square feet': 'ft ft',
+    'square meters': 'm m',
+    'square kilometers': 'km km',
+    'square miles': 'mile mile',
 
-# SI Synonyms
-# http://physics.nist.gov/cuu/Units/units.html
+    'gallons': 'gallon',
+
+    'kg/m^3': 'kg/m m m',
+    'mol/m^3': 'mol/m m m',    
+    'm^3': 'm m m',
+
+    'Torr': 'torr',
+
+    u'Ångstrom': u'Å',
+    u'Ångstroms': u'Å',
+    'Angstrom': u'Å',
+    'Angstroms': u'Å',
+
+    'nL': 'nl',
+    'uL': 'ul',
+    'mL': 'ml',
+    'L': 'l',
+    'kL': 'kl',
+    'ML': 'Ml',    
+
+    'degrees K': 'K',
+    'degrees Kelvin': 'K',
+    'Kelvin': 'K',
+    
+    'degrees C': 'degC',
+    'Celcius': 'degC',
+    'centigrade': 'degC',
+    'degrees Celcius': 'degC',
+    
+    'degrees': 'degree',
+    
+    'moles': 'mol',
+    
+    'dollar': '$',
+    'dollars': '$',
+
+    'feet': 'ft',
+    'foot': 'ft',
+    
+    'inches': 'inch',
+    
+    'lightspeed': 'c',
+
+    'dots per inch': 'dpi',
+    'lines per inch': 'lpi',
+    
+    'Henry': 'H',
+    'Henrys': 'H',
+    
+    'katal': 'kat',
+    'katals': 'kat',
+    
+    'lumen': 'lm',
+    'lumens': 'lm',
+        
+    'minute': 'min',
+    'minutes': 'min',
+    
+    'mins': 'min',
+    'days': 'day',
+    'years': 'year'
+}
+
+
+# SI prefix synonyms
 si_equivs = {
-    # meter / m
     'meter': 'm',
     'meters': 'm',
     'metre': 'm',
     'metres': 'm',
 
-    # liter / l
     'Liter': 'l',
     'Liters': 'l',
     'Litre': 'l',
     'Litres': 'l',
 
-    # kilogram / kg
     'gram': 'g',
     'grams': 'g',
 
-    # ampere
-    'Amp': 'ampere',
-    'Amps': 'ampere',
-    'Ampere': 'ampere',
-    'Amperes': 'ampere',
     'amp': 'ampere',
     'amps': 'ampere',
     'amperes': 'ampere',
     
-    # second / s
     'second': 's',
     'seconds': 's',
-    
-    # Derived Units
-    # Force: Newton / N
+
     'Newton': 'N',
     'Newtons': 'N',
-    'newton': 'N',
-    'newtons': 'N',
     
-    # Absorbed dose: Gray / Gy
     'Gray': 'Gy',
     'Grays': 'Gy',
-    'gray': 'Gy',
-    'grays': 'Gy',
     
-    # Power: Watt / W
     'Watt': 'W',
     'Watts': 'W',
-    'watt': 'W',
-    'watts': 'W',
     
-    # Energy: Joule / J
     'Joule': 'J',
     'Joules': 'J',
-    'joule': 'J',
-    'joules': 'J',
     
-    # Electric potential difference: Volt / V
     'Volt': 'V',
     'Volts': 'V',
-    'volt': 'V',
-    'volts': 'V',
     
-    # Plane angle: radian / rad
     'rads': 'rad',
     'radians': 'rad',
-    
-    # Frequency: Hertz / Hz
+        
     'Hertz': 'Hz',
-    'hertz': 'Hz',
     
-    # Electric resistence: Ohm / Ω
     'Ohm': 'ohm',
     'Ohms': 'ohm',
-    'ohms': 'ohm',
     
-    # Magnetic flux density: Tesla / T
     'Tesla': 'T',
     'Teslas': 'T',
-    'tesla': 'T',
-    'teslas': 'T',
     
-    # Dose equivalent: Sievert / Sv
     'Sievert': 'Sv',
     'Sieverts': 'Sv',
-    'sievert': 'Sv',
-    'sieverts': 'Sv',
     
-    # Radionuclide activity: Becquerel / Bq
     'Becquerel': 'Bq',
     'Becquerels': 'Bq',
-    'becquerel': 'Bq',
-    'becquerels': 'Bq',
 
-    # Eletric charge: Coulomb / C
     'Coulomb': 'C',
     'Coulombs': 'C',
-    'coulomb': 'C',
-    'coulombs': 'C',
     
-    # Capacitance: Farad / F
-    'Farad': 'F',
-    'Farads': 'F',
     'farad': 'F',
-    'farads': 'F',
-    
-    # Solid angle: steradian / sr
-    
-    # Pressure: Pascal / Pa
-    'Pascal': 'Pa',
-    'pascal': 'Pa',
-
-    # Electric conductance
-    'Siemens': 'S',
-    'siemens': 'S',
-    
-    # Magnetic flux: Weber / Wb
-    'Weber': 'Wb',
-    'weber': 'Wb',
-    
-    # Inductance: Henry / H
-    'Henry': 'H',
-    'henry': 'H',
-    
-    # Luminous flux: lumen / lm
-    'Lumen': 'lm',
-    'lumen': 'lm',
-    
-    # Catalytic activity: katal / kat
-    'katal': 'kat',
-
-    # Illuminance: lux / lx
-    # Not defined in magnitude.py
-    # 'lux':, 'lx',
+    'farads': 'F'    
 }
 
 # SI Prefixes
-# These are placed before each synonym above, e.g.
-# nanometers -> nm
 si_prefix = {
     'yocto': 'y',
     'zepto': 'z',
@@ -163,7 +166,7 @@ si_prefix = {
     'femto': 'f',
     'pico': 'p',
     'nano': 'n',
-    'micro': 'u', # u'µ',
+    'micro': 'u',
     'milli': 'm',
     'centi': 'c',
     'deci': 'd',
@@ -177,7 +180,6 @@ si_prefix = {
     'yotta': 'Y',
 }
 
-# These are handled a little differently.
 # bit/byte synonyms
 bytes_equivs = {
     'bit': 'b',
@@ -196,79 +198,6 @@ bytes_prefix = {
     'Exbi': 'Ei'
 }
 
-# Other unit synonyms
-other_equivs = {
-    # 'KB': 'KiB',
-
-    # Pressure
-    'Torr': 'torr',
-
-    # (Liquid volume)
-    'gallons': 'gallon',
-    # lowercase l for liter
-    'nL': 'nl',
-    'uL': 'ul',
-    # 'ul': u'µl',
-    # u'µL': u'µl',
-    # u'uL': u'µl',
-    'mL': 'ml',
-    'L': 'l',
-    'kL': 'kl',
-    'ML': 'Ml',    
-
-    # Temperature
-    'degrees K': 'K',
-    'degrees Kelvin': 'K',
-    'Kelvin': 'K',
-    'degrees C': 'degC',
-    'Celcius': 'degC',
-    'centigrade': 'degC',
-    'degrees Celcius': 'degC',
-    
-    # Amount of substance
-    'moles': 'mol',
-    
-    # Currency
-    'dollar': 'US$',
-    'dollars': 'US$',
-
-    # Length
-    u'Ångstrom': u'Å',
-    u'Ångstroms': u'Å',
-    'Angstrom': u'Å',
-    'Angstroms': u'Å',
-    'feet': 'ft',
-    'foot': 'ft',
-    'inches': 'inch',
-    'lightspeed': 'c',
-
-    # Spatial frequency
-    'dots per inch': 'dpi',
-    'lines per inch': 'lpi',
-    
-    # Time
-    'minute': 'min',
-    'minutes': 'min',
-    'mins': 'min',
-    'days': 'day',
-    'years': 'year',
-    
-    # Derived units
-    'mm^2': 'mm mm',
-    'cm^2': 'cm cm',
-    'm^2': 'm m',
-    'km^2': 'km km',
-    'square feet': 'ft ft',
-    'square meters': 'm m',
-    'square kilometers': 'km km',
-    'square miles': 'mile mile',
-    'kg/m^3': 'kg/m m m',
-    'mol/m^3': 'mol/m m m',    
-    'm^3': 'm m m',    
-}
-
-equivs.update(other_equivs)
-
 # Massage my equivalents into the units system.
 for name,abbr in si_equivs.items():
     equivs[name] = abbr
@@ -285,9 +214,6 @@ for name,abbr in bytes_equivs.items():
 for name, abbr in equivs.items():
     equivs[name.lower()] = abbr
 
-# print "EQUIVS:"
-# for k,v in equivs.items(): print k,v
-
 # Structural biology units: Angstrom and Dalton
 mg.new_mag(u'Å', mg.Magnitude(1e-10, m=1))
 mg.new_mag('Da', mg.Magnitude(1.6605402e-27, kg=1))
@@ -302,18 +228,13 @@ mg.new_mag('%T', mg.Magnitude(1))
 mg.new_mag('%', mg.Magnitude(1))
 mg.new_mag('pfu', mg.Magnitude(1))
 
-# Other units
+# Non-SI Units
 mg.new_mag('degF', mg.Magnitude(1.0))
 mg.new_mag('mile', mg.mg(160934.4, 'cm'))
 mg.new_mag('gallon', mg.Magnitude(3.78541178e-3, m=3))
-mg.new_mag('torr', mg.mg(133.3224, 'Pa'))
-mg.new_mag('psi', mg.mg(6.8948e3, 'Pa'))
-mg.new_mag('bar', mg.mg(1e5, 'Pa'))
-mg.new_mag('atm', mg.mg(1.01325e5, 'Pa'))
+mg.new_mag('torr', mg.Magnitude(1/760.0, m=-1, kg=1, s=-2))
 mg.new_mag('degree', mg.Magnitude(1))
-mg.new_mag('hour', mg.Magnitude(3600.0, s=1))
-mg.new_mag('hectare', mg.Magnitude(1e4, m=2))
-mg.new_mag('acre', mg.Magnitude(4046.8564224, m=2))
+
 
 class Property(object):    
     restricted = False
@@ -327,7 +248,7 @@ class Property(object):
     def register(cls, name):
         def f(o):
             if name in cls.registered:
-                raise ValueError("""%s is already registered"""%name)
+                raise ValueError("""%s is already registered""" % name)
             cls.registered[name] = o
             return o
         return f
@@ -338,9 +259,9 @@ class Property(object):
 
     ##### Validation #####
 
-    def validate(self, pd, value, db):
+    def validate(self, engine, pd, value, db):
         if hasattr(value, "__iter__"):
-            return [self.validate(pd, i, db) for i in value]
+            return [self.validate(engine, pd, i, db) for i in value]
 
         if hasattr(value, "__float__"):
             return float(value)
@@ -356,7 +277,7 @@ class Property(object):
         try:
             r = q.match(value).groups()
         except Exception, e:
-            raise ValueError("Unable to parse '%s' for units."%(value))
+            raise ValueError, "Unable to parse '%s' for units"%(value)
 
         value = float(r[0])
         
@@ -376,10 +297,10 @@ class Property(object):
         return value
 
     def check_restrict(self, units, allowed):
-        equivs = equivs.get(units, units)
-        allowed = [equivs.get(i,i) for i in allowed]
-        if units not in allowed:
-            raise ValueError("Units %s not allowed for this property. Allowed units: %s."%(units, ", ".join(allowed)))
+        return
+        # allowed = [equivs.get(i,i) for i in allowed]
+        # if units not in allowed:
+        #     raise ValueError, "Units %s not allowed for this property. Allowed units: %s"%(units, ", ".join(allowed))
             
     def convert(self, value, units, target):
         units = equivs.get(units, units)
@@ -402,14 +323,14 @@ class Property(object):
             
         # Check for dimensionless conversions...
         if v.dimensionless():
-            raise self.error(units, target, msg='dimensionless property')        
+            self.error(units, target, msg='dimensionless property')        
         return v.toval()
 
     def error(self, units, target, msg=None):
-        return ValueError("Could not convert %s to %s: %s"%(units, target, msg or ''))
+        raise ValueError, "Couldn't convert %s to %s: %s"%(units, target, msg or '')        
 
     def unknown(self, units, target):
-        raise ValueError("Don't know how to convert %s to %s."%(units, target))
+        raise ValueError, "Don't know how to convert %s to %s"%(units, target)
 
 @Property.register('transmittance')
 class prop_transmittance(Property):
@@ -419,17 +340,17 @@ class prop_transmittance(Property):
 @Property.register('force')
 class prop_force(Property):
     defaultunits = 'N'
-    units = ['N', 'kN']
+    units = ['N']
 
 @Property.register('energy')
 class prop_energy(Property):
     defaultunits = 'J'
-    units = ['J', 'kJ']
+    units = ['J']
 
 @Property.register('resistance')
 class prop_resistance(Property):
     defaultunits = 'ohm'
-    units = ['uohm', 'mohm', 'ohm']
+    units = ['microohm', 'milliohm', 'ohm']
 
 @Property.register('dose')
 class prop_dose(Property):
@@ -443,8 +364,8 @@ class prop_exposure(Property):
 
 @Property.register('currency')
 class prop_currency(Property):
-    defaultunits = 'US$'
-    units = ['US$']
+    defaultunits = 'dollar'
+    units = ['dollar']
 
 @Property.register('voltage')
 class prop_voltage(Property):
@@ -456,8 +377,8 @@ class prop_pH(Property):
     defaultunits = 'pH'
     units = ['pH']
     def check_bounds(self, value, target):
-        if (target == 'pH' and (value < 0 or value > 14)):
-            raise ValueError("pH must be between 0 and 14.")
+        if (target == 'pH' and not 0 <- value <- 14):
+            raise ValueError, "pH must be between 0 and 14"
 
 @Property.register('concentration')
 class prop_concentration(Property):
@@ -495,7 +416,7 @@ class prop_temperature(Property):
     def check_bounds(self, value, target):
         # Check absolute zero
         if (target == 'degC' and value < -273.15) or (target == 'K' and value < 0) or (target == 'degF' and value < -459.67):
-            raise ValueError("Cannot set a temperature below absolute zero.")
+            raise ValueError, "Cannot set a temperature below absolute zero"
 
     def _convert(self, value, units, target):
         # C / K
@@ -514,13 +435,13 @@ class prop_temperature(Property):
         elif units == 'degF' and target == 'degC':
             value = (value - 32) * (5.0 / 9.0)
         else:
-            raise ValueError("Don't know how to convert %s to %s."%(units, target))
+            raise ValueError, "Don't know how to convert %s to %s"%(units, target)
         return value
     
 @Property.register('area')
 class prop_area(Property):
     defaultunits = 'm^2'
-    units = ['mm^2', 'cm^2', 'm^2', 'km^2', 'square feet', 'hectare', 'acre']
+    units = ['mm^2', 'cm^2', 'm^2', 'km^2', 'square feet']
 
 @Property.register('current')        
 class prop_current(Property):
@@ -530,7 +451,7 @@ class prop_current(Property):
 @Property.register('bytes')
 class prop_bytes(Property):
     defaultunits = 'B'
-    units = ['B', 'kB', 'MB', 'GB', 'TB', 'KiB', 'MiB', 'GiB', 'TiB']
+    units = ['B', 'KB', 'MB', 'GB', 'TB', 'KiB', 'MiB', 'GiB', 'TiB']
 
 @Property.register('percentage')
 class prop_percentage(Property):
@@ -611,3 +532,20 @@ class prop_acceleration(Property):
 class prop_resolution(Property):
     defaultunits = u'Å/pixel'
     units = [u'Å/pixel', 'dpi', 'lpi']
+        
+
+if __name__ == '__main__':
+    # print convert(-460, 'degF', 'K')
+    # a = prop_temperature()
+    # print a.convert(100, 'K', 'degC')
+    
+    # a = prop_angle()
+    # print a.convert(360, 'degree', 'rad')    
+        
+    # a = prop_mass()
+    # print a.convert(1, 'kDa', 'MDa')    
+        
+    a = prop_angle()
+    print a.convert(1, 'degree', 'rads')    
+        
+__version__ = "$Revision: 1.30 $".split(":")[1][:-1].strip()

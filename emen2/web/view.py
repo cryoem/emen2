@@ -1,3 +1,4 @@
+# $Id: view.py,v 1.146 2013/01/04 20:52:22 irees Exp $
 import sys
 import os
 import time
@@ -11,6 +12,7 @@ import emen2.web.routing
 import emen2.web.resource
 import emen2.db.config
 import emen2.db.log
+
 
 ##### I. Views #####
 
@@ -36,6 +38,7 @@ class TemplateContext(collections.MutableMapping):
         self.root = emen2.db.config.get('web.root')
         self['TITLE'] = emen2.db.config.get('customization.title')
         self.version = emen2.__version__
+
 
     def __getitem__(self, n):
         return self.__dict[n]
@@ -80,6 +83,8 @@ class TemplateContext(collections.MutableMapping):
             result = result.replace('?', '/?', 1)
 
         return result
+
+
 
 class TemplateView(emen2.web.resource.EMEN2Resource):
     '''An EMEN2Resource class that renders a result using a template.'''
@@ -138,6 +143,9 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
         '''Render the template.'''
         return emen2.db.config.templates.render_template(self.ctxt.template, self.ctxt)
 
+
+
+
 class View(TemplateView):
     '''A View with a database connection.'''
 
@@ -148,7 +156,7 @@ class View(TemplateView):
         admin = False
         ctx = getattr(self.db, '_getctx', lambda:None)()
         try:
-            user = ctx.db.user.get(ctx.user)
+            user = ctx.db.user.get(ctx.username)
             admin = ctx.checkadmin()
         except:
             pass
@@ -159,3 +167,5 @@ class View(TemplateView):
             DB = self.db
         ))
 
+
+__version__ = "$Revision: 1.146 $".split(":")[1][:-1].strip()

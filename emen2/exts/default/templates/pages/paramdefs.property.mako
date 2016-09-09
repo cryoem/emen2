@@ -1,6 +1,7 @@
 <%inherit file="/page" />
 <%namespace name="buttons"  file="/buttons"  /> 
 
+
 <form method="post" action="${ctxt.root}/paramdefs/name/">
 <h1>
     ${ctxt.title}
@@ -19,6 +20,7 @@
 </h1>
 </form>
 
+
 <%
 import operator
 import collections
@@ -33,6 +35,7 @@ for k,v in d.items():
 
 %>
 
+
 <%buttons:singlepage label='Index'>
     <ul>
     % for k in sorted(d.keys()):
@@ -41,6 +44,7 @@ for k,v in d.items():
     </ul>
     <p>Showing ${len(paramdefs)} of ${len(paramdefnames)} parameters.</p>        
 </%buttons:singlepage>
+
 
 % for k in sorted(d.keys()):
 

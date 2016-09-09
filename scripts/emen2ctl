@@ -68,10 +68,10 @@ case $COMMAND in
         python -m emen2.db --create -h ${EMEN2DBHOME}
         ;;
 
-    # passwd)
-    #    echo "Resetting password"
-    #    # python -m emen2.db --create -h ${EMEN2DBHOME}
-    #    ;;
+    passwd)
+        echo "Resetting password"
+        # python -m emen2.db --create -h ${EMEN2DBHOME}
+        ;;
 
     archive)
         echo "Running emen2 database log archive"

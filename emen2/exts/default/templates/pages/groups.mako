@@ -1,6 +1,7 @@
 <%inherit file="/page" />
 <%namespace name="buttons"  file="/buttons"  /> 
 
+
 <%
 import operator
 import collections
@@ -14,8 +15,8 @@ for group in groups:
     d[lastname].append(group)
 
 for k,v in d.items():
-    # print "!", k, v
-    # for i in v: print i, i.name, i.get('displayname')
+    print "!", k, v
+    for i in v: print i, i.name, i.get('displayname')
     d[k] = sorted(v, key=lambda x:x.get('displayname', group.name).lower())
 
 %>
@@ -42,6 +43,8 @@ for k,v in d.items():
     % endfor
     <p>Showing ${len(groups)} of ${len(groupnames)} user groups.</p>    
 </%buttons:singlepage>
+
+
 
 % for k in sorted(d.keys()):
 

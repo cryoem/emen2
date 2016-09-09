@@ -1,3 +1,4 @@
+# $Id: resource.py,v 1.50 2013/06/04 10:12:23 irees Exp $
 
 import re
 import time
@@ -23,6 +24,7 @@ import emen2.db.config
 import emen2.db.log
 import emen2.db.exceptions
 import emen2.db.handlers
+import emen2.util.listops
 import emen2.web.events
 import emen2.web.routing
 import emen2.web.responsecodes
@@ -55,7 +57,7 @@ class RoutedResource(object):
         This may do things like disable snapshot transactions.
         '''
         if not matchers:
-            raise ValueError('A view must have at least one matcher')
+            raise ValueError, 'A view must have at least one matcher'
 
         # Default name (this is usually the method name)
         def check_name(name):
@@ -98,6 +100,23 @@ class RoutedResource(object):
                     pass
 
         return cls
+
+    slots = collections.defaultdict(list)
+    @classmethod
+    def provides(cls, slot):
+        '''Decorate a method to indicate that the method provides a certain functionality'''
+        def _inner(view):
+            cls.slots[slot].append(functools.partial(cls, init=view))
+            return view
+        return _inner
+
+    @classmethod
+    def require(cls, slot):
+        '''Use to get a view with a desired functionality'''
+        if slot in cls.slots:
+            return cls.slots[slot][-1]
+        else: raise ValueError, "No such slot"
+
 
 class FixedArgsResource(object):
     """Better handling of request args than Twisted's Resource."""
@@ -245,6 +264,8 @@ class FixedArgsResource(object):
 
         return unicode(args, 'utf-8')
 
+
+
 class EMEN2Resource(RoutedResource, FixedArgsResource):
     """Base resource for EMEN2. 
     
@@ -289,6 +310,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         '''Render the resource, encoded as UTF-8'''
         return self.get_data().encode('utf-8', 'replace')
 
+
     ##### Headers #####
 
     def set_header(self, name, value):
@@ -300,9 +322,12 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         return '-'.join(x.capitalize() for x in name.split('-'))
 
     def _set_ctxid(self, request, ctxid):
-        request.addCookie("ctxid", str(ctxid), path='/')
+        request.addCookie("ctxid", ctxid, path='/')
 
     ##### Resource interface #####
+
+    def get_json(self):
+        return None
 
     def get_data(self):
         return ""
@@ -365,7 +390,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         with self.db._newtxn(write=write):
             # Bind the ctxid/host to the DBProxy
             self.db._setContext(ctxid, host)
-            self._log_username = self.db._ctx.user
+            self._log_username = self.db._ctx.username
             
             # Any View init method is run inside the transaction
             self.init()
@@ -375,8 +400,11 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
             # otherwise, calls str() on the View.
             if result is None:
                 result = str(self)
+
         self.db = None
+
         return result
+
 
     ##### Callbacks #####
 
@@ -415,7 +443,8 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
     def render_result(self, result, request):
         """Write the result to the client and close the request."""
         # if result is not None:
-        request.setHeader("Content-Length", len(result))
+        length = len(result)
+        request.setHeader("Content-Length", length)
         request.write(result)
         
         # Close the request and write to log
@@ -423,6 +452,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
     def render_eb(self, failure, request, t=0, **_):
         # This method accepts either a regular Exception or Twisted Failure
+        print failure
         e, data = '', ''
         headers = {}
 
@@ -439,28 +469,18 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
         # Expired or invalid session. Remove ctxid and redirect to root.
         except emen2.db.exceptions.SessionError, e:
-            data = self._render_error(request.uri, e, route='Error/auth')
+            data = self.render_error_security(request.uri, e)
             request.addCookie('ctxid', '', path='/')
             emen2.db.log.security(e)
 
-        # Expired password.
-        except emen2.db.exceptions.PasswordReset, e:
-            data = self._render_error(request.uri, e, route='Error/expired', name=e.name)
-            emen2.db.log.security(e)
-
-        # Permissions exceptions.
-        except emen2.db.exceptions.PermissionsError, e:
-            data = self._render_error(request.uri, e, route='Error/auth', name=e.name)
-            emen2.db.log.security(e)
-
-        # Permissions exceptions.
-        except emen2.db.exceptions.AuthenticationError, e:
-            data = self._render_error(request.uri, e, route='Error/auth', name=e.name)
+        # Authentication exceptions
+        except emen2.db.exceptions.SecurityError, e:
+            data = self.render_error_security(request.uri, e)
             emen2.db.log.security(e)
 
         # HTTP errors
         except emen2.web.responsecodes.HTTPResponseCode, e:
-            data = self._render_error(request.uri, e, route='Error/resp')
+            data = self.render_error_response(request.uri, e)
             emen2.db.log.error(e)
 
         # General error
@@ -473,7 +493,9 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         request.setResponseCode(getattr(e, 'code', 500))
         [request.setHeader(k, v) for k,v in headers.items()]
         request.write(data)
+
         request.finish()
+
 
     ##### Error handlers #####
 
@@ -481,10 +503,12 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         # return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
         return mako.exceptions.html_error_template().render()
 
-    def _render_error(self, location, e, route=None, **kwargs):
-        route = route or 'Error/resp'
-        return unicode(emen2.web.routing.execute(route, db=None, error=e, location=location, **kwargs)).encode('utf-8')
-        
+    def render_error_security(self, location, e):
+        return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
+
+    def render_error_response(self, location, e):
+        return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
+
     def _request_broken(self, failure, request, deferred):
         # Cancel the deferred.
         # The errback will be called, but not the callback.
@@ -497,10 +521,18 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         # failure = twisted.python.failure.Failure(exc_value=Exception("Cancelled request"))
         # deferred.errback(failure)
 
+
+
+
+
+
+
+
 ##### XML-RPC and JSON-RPC Resources #####
 
 class XMLRPCResource(object):
     pass
+
 
 class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
     q = Queue.Queue()
@@ -521,7 +553,7 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
     def callmethod(self, request, rpcrequest, db=None, ctxid=None, **kw):
         # Lookup the method and call
         if not db:
-            raise Exception("No DBProxy.")
+            raise Exception, "No DBProxy"
 
         # Hack to log username and ctxid
         request._log_username = None
@@ -529,14 +561,14 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 
         methodresult = None
         if rpcrequest.method.startswith('_'):
-            raise emen2.web.responsecodes.ForbiddenError('Method not accessible.')
+            raise emen2.web.responsecodes.ForbiddenError, 'Method not accessible'
 
         elif rpcrequest.method in db._publicmethods:
             # Start the DB with a write transaction
             # db._starttxn(write=db._checkwrite(rpcrequest.method))
             with db:
                 db._setContext(self.ctxid, self.host)
-                request._log_username = db._ctx.user
+                request._log_username = db._ctx.username
                 
                 _method = rpcrequest.method.rpartition('.')[2]
                 if _method == 'login':
@@ -570,3 +602,8 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
         else:
             pass
 
+
+
+
+
+__version__ = "$Revision: 1.50 $".split(":")[1][:-1].strip()

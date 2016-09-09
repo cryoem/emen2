@@ -5,7 +5,8 @@ import json
 import jsonrpc.jsonutil
 import emen2.db
 import emen2.db.config
-import emen2.utils
+import emen2.util.listops
+
 
 def dump_json(outfile, items, uri=None):
     if os.path.exists(outfile):
@@ -16,6 +17,7 @@ def dump_json(outfile, items, uri=None):
             if uri:
                 item['uri'] = '%s/%s/%s/'%(uri, item.get('keytype'), item.get('name'))
             f.write(json.dumps(item)+"\n")
+
 
 class Dumper(object):
     
@@ -36,7 +38,7 @@ class Dumper(object):
         keys[keytype] |= set(names)
 
         # Find referenced items.
-        for chunk in emen2.utils.chunk(keys[keytype], count=1000):
+        for chunk in emen2.util.listops.chunk(keys[keytype], count=1000):
             items = self.db.get(chunk, keytype=keytype)
             print "Processing: %s ... %s"%(items[0].name, items[-1].name)
             # Find paramdefs that reference other items..
@@ -52,11 +54,11 @@ class Dumper(object):
         for keytype in self.keytypes:
             modify = getattr(self, '_modify_%s'%keytype, lambda x:x)
             
-            for chunk in emen2.utils.chunk(keys.get(keytype, []), count=1000):
+            for chunk in emen2.util.listops.chunk(keys.get(keytype, []), count=1000):
                 items = self.db.get(chunk, keytype=keytype)
                 for item in items:
                     if uri:
-                        item.data['uri'] = '%s/%s/%s'%(uri, keytype, item.name)
+                        item.__dict__['uri'] = '%s/%s/%s'%(uri, keytype, item.name)
                     item = modify(item)
                     print "%s: %s"%(item.keytype, item.name)
                     f.write(jsonrpc.jsonutil.encode(item))
@@ -117,20 +119,30 @@ class Dumper(object):
     def _modify_user(self, item):
         return item
 
+
+
 class PublicDumper(Dumper):
     def _modify_record(self, item):
         # Remove permissions, mark published data as anon
-        if set(['authenticated', 'publish']) & item.data['groups']:
-            item.data['groups'] = set(['anon'])
+        if set(['authenticated', 'publish']) & item.__dict__['groups']:
+            item.__dict__['groups'] = set(['anon'])
         else:
-            item.data['groups'] = set()
-        item.data['permissions'] = [[],[],[],[]]
+            item.__dict__['groups'] = set()
+        item.__dict__['permissions'] = [[],[],[],[]]
         return item
         
     def _modify_user(self, item):
         # Remove user passwords
-        item.data['password'] = ''
+        item.__dict__['password'] = ''
         return item
+
+
+
+class DumpOptions(emen2.db.config.DBOptions):
+    def parseArgs(self, infile):
+        self['infile'] = infile
+
+
 
 if __name__ == "__main__":
     import emen2.db
@@ -142,4 +154,6 @@ if __name__ == "__main__":
     keys['user'] = db.user.filter()
     keys['user'].remove('root')
     dumper.write(keys, outfile="dump-publicdata.json", uri="http://ncmidb.bcm.edu")
+    
+    
     

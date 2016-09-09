@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# $Id: server.py,v 1.105 2013/06/20 23:05:53 irees Exp $
 import traceback
 import thread
 import os.path
@@ -7,11 +8,6 @@ import contextlib
 import time
 import collections
 import sys
-
-try:
-    from cgi import escape
-except ImportError:
-    from html import escape
 
 # Twisted imports
 from twisted.application import internet
@@ -48,12 +44,12 @@ class DBPool(object):
 
     def connect(self):
         """Create a new database connection."""
-        import emen2.db
+        import emen2.db.database
         tid = self.threadID()
         # emen2.db.log.info('DBPool info: # threads: %s -- this thread is %s'%(len(self.dbs), tid))
         db = self.dbs.get(tid)
         if not db:
-            db = emen2.db.opendb()
+            db = emen2.db.database.opendb()
             self.dbs[tid] = db
         return db
 
@@ -61,7 +57,7 @@ class DBPool(object):
         """Disconnect a database connection."""
         tid = self.threadID()
         if db is not self.dbs.get(tid):
-            raise Exception('Wrong connection for thread.')
+            raise Exception('Wrong connection for thread')
         if db:
             # db.close()
             del self.dbs[tid]
@@ -75,10 +71,22 @@ class DBPool(object):
         result = call(*args, **kwargs)
         return result
 
+
 # The thread pool.
 pool = DBPool()
 
+
 ##### Web server ######
+
+class WebServerOptions(emen2.db.config.DBOptions):
+    optParameters = [
+        ['port',      'HTTP port',  None, None, int],
+        ['httpsport', 'HTTPS port', None, None, int],
+    ]
+
+    optFlags = [
+        ['https', None, 'Use HTTPS']
+    ]
 
 class EMEN2Site(twisted.web.server.Site):
     def log(self, request):
@@ -93,24 +101,23 @@ class EMEN2Site(twisted.web.server.Site):
             ctxid,
             username,
             self._logDateTime,
-            '%s %s %s' % (escape(request.method),
-                          escape(request.uri),
-                          escape(request.clientproto)),
+            '%s %s %s' % (self._escape(request.method),
+                          self._escape(request.uri),
+                          self._escape(request.clientproto)),
             request.code,
             request.sentLength or "-",
-            escape(request.getHeader("referer") or "-"),
-            escape(request.getHeader("user-agent") or "-"))
+            self._escape(request.getHeader("referer") or "-"),
+            self._escape(request.getHeader("user-agent") or "-"))
 
         emen2.db.log.web(line)
 
 class EMEN2BaseServer(object):
 
-    # usage = WebServerOptions
+    usage = WebServerOptions
 
     def __init__(self, options=None):
-        self.port = emen2.db.config.get('web.port')
-        self.https = emen2.db.config.get('web.https')
-        self.ssl = emen2.db.config.get('paths.ssl')
+        options = options or {}
+        self.port = options.get('port') or emen2.db.config.get('web.port')
 
     #@contextlib.contextmanager
     def start(self, service=None):
@@ -138,23 +145,14 @@ class EMEN2BaseServer(object):
 
     def attach_resources(self, root):
         pass
-
+        
     def attach_to_service(self, service):
         emen2_service = internet.TCPServer(self.port, self.site)
         emen2_service.setServiceParent(service)
-        key = os.path.join(self.ssl, 'server.key')
-        crt = os.path.join(self.ssl, 'server.crt')
-        if self.https and ssl and os.path.exists(key) and os.path.exists(crt):
-            emen2_service_https = internet.SSLServer(self.https, self.site, ssl.DefaultOpenSSLContextFactory(key, crt))
-            emen2_service_https.setServiceParent(service)
 
     def attach_standalone(self):
         reactor = twisted.internet.reactor
         reactor.listenTCP(self.port, self.site)
-        key = os.path.join(self.ssl, 'server.key')
-        crt = os.path.join(self.ssl, 'server.crt')
-        if self.https and ssl and os.path.exists(key) and os.path.exists(crt):
-            reactor.listenSSL(self.https, self.site, ssl.DefaultOpenSSLContextFactory(key, crt))
         reactor.run()
 
 class EMEN2RPCServer(EMEN2BaseServer):
@@ -163,39 +161,39 @@ class EMEN2RPCServer(EMEN2BaseServer):
         import jsonrpc.server
         from emen2.web.resource import JSONRPCServerEvents
         root.putChild('jsonrpc', jsonrpc.server.JSON_RPC().customize(JSONRPCServerEvents))
-
+    
 class EMEN2WebServer(EMEN2BaseServer):
     """Start the full web server."""
     def attach_resources(self, root):
         # Load all View extensions
         import emen2.db.config
-        emen2.db.config.exthandler.load_views()
+        emen2.db.config.load_views()
 
         # Child resources that do not go through the Router.
         import jsonrpc.server
         import emen2.web.resource
 
-        # if all the JSON_RPC class does is change the eventhandler,
-        #   it can (and should) be instantiated this way:
+        # if all the JSON_RPC class does is change the eventhandler, it can (and should) be instantiated this way:
         from emen2.web.resource import JSONRPCServerEvents
         root.putChild('jsonrpc', jsonrpc.server.JSON_RPC().customize(JSONRPCServerEvents))
         root.putChild('static', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
         root.putChild('static-%s'%emen2.__version__, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
         root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
         root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
-
-def standalone(service='web'):
-    opts = emen2.db.config.DBOptions()
-    args = opts.parse_args()
-    if service == 'web':
-        service = EMEN2WebServer
-    elif service == 'rpc':
-        service = EMEN2RPCServer
-    else:
-        raise ValuError("Unknown service.")
-    server = service()
-    emen2.db.log.info("Service started: %s"%service)
+    
+def start_standalone():
+    opt = emen2.db.config.UsageParser(WebServerOptions)
+    server = EMEN2WebServer(opt.options)
+    emen2.db.log.info("Web server started")
+    server.start()
+    
+def start_rpc():
+    opt = emen2.db.config.UsageParser(WebServerOptions)
+    server = EMEN2RPCServer(opt.options)
+    emen2.db.log.info("RPC server started")
     server.start()
 
 if __name__ == "__main__":
-    standalone()
+    start_standalone()
+
+__version__ = "$Revision: 1.105 $".split(":")[1][:-1].strip()

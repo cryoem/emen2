@@ -1,64 +1,39 @@
-"""Exceptions."""
+# $Id: exceptions.py,v 1.20 2013/06/04 10:12:23 irees Exp $
+"""Exceptions
 
-class EMEN2Exception(Exception):
-    def __init__(self, message=None, name=None, title=None):
-        self.name = name
-        self.title = title
-        self.message = message or self.__doc__
-    def __str__(self):
-        return self.message
+Exceptions:
+    SecurityError
+    SessionError
+    AuthenticationError
+    DisabledUserError
+    ValidationError
+    ExistingKeyError
+    TimeError
+"""
 
-##### Security Errors #####
-class SecurityError(EMEN2Exception):
+# Security Errors
+class SecurityError(Exception):
     """Security error."""
     code = 401
-            
-##### Permissions error. #####
-class PermissionsError(SecurityError):
-    """Insufficient permissions."""
-            
-##### Authentication errors. #####
+
+class SessionError(SecurityError):
+    """Session expired."""
+
 class AuthenticationError(SecurityError):
     """Invalid account name or password."""
 
-# Expired session.
-class SessionError(AuthenticationError):
-    """Session expired."""
-
-class TooManyAttempts(AuthenticationError):
-    """Too many login attempts. Please try again later."""
-
-# Disabled users.
-class InactiveAccount(AuthenticationError):
-    """Account disabled for inactivity."""
-
-class DisabledUserError(AuthenticationError):
+class DisabledUserError(SecurityError):
     """Disabled user."""
-            
-##### Password setting errors. #####
-class PasswordReset(SecurityError):
-    """Invalid password."""
-    
-class WeakPassword(PasswordReset):
-    """Weak password."""
 
-class ExpiredPassword(PasswordReset):
-    """Expired password."""  
-
-class RecycledPassword(PasswordReset):
-    """Recycled password."""
-            
-##### Validation Errors #####
-class ValidationError(EMEN2Exception):
+# Validation Errors
+class ValidationError(ValueError):
     """Validation error."""
 
-class ExistingKeyError(EMEN2Exception):
+class ExistingKeyError(ValueError):
     """This account name or email is already in use."""
-            
-##### Time out #####
-class TimeOutError(EMEN2Exception):
+
+# Time out
+class TimeError(Exception):
     """Operation timed out."""
-            
-##### Email #####
-class EmailError(EMEN2Exception):
-    """There was a problem sending an email."""
+
+__version__ = "$Revision: 1.20 $".split(":")[1][:-1].strip()

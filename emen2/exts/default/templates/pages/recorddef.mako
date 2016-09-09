@@ -6,6 +6,7 @@
 <%namespace name="buttons" file="/buttons" /> 
 <%namespace name="forms" file="/forms"  /> 
 
+
 <%block name="js_ready">
     ${parent.js_ready()}
     ${buttons.tocache(recorddef)}
@@ -21,7 +22,9 @@
     <div class="e2-tree-main" style="overflow:hidden">${parentmap | n,unicode}</div>
 </%block>
 
+
 <form method="post" action="">
+
 
 <h1>
     ${ctxt.title}
@@ -29,13 +32,16 @@
         % if new or edit:
             <li><input type="submit" value="Save">
         % else:
-            <li><a class="e2-button" href="${ctxt.root}/query/results/rectype.is.${recorddef.name}/">${buttons.image('query.png', 'Query')} Query</a></li>
+            <li><a class="e2-button" href="${ctxt.root}/query/rectype.is.${recorddef.name}/">${buttons.image('query.png', 'Query')} Query</a></li>
             <li><a class="e2-button" href="${ctxt.root}/recorddef/${recorddef.name}/edit/">${buttons.image('edit.png', 'Edit')} Edit</a></li>
             <li><a class="e2-button" href="${ctxt.root}/recorddef/${recorddef.name}/new/"><img src="${ctxt.root}/static/images/edit.png" alt="New" /> New</a></li>
         % endif
     </ul>
         
 </h1>
+
+
+
 
 <%buttons:singlepage label='Details'>
     <table class="e2l-kv">
@@ -47,13 +53,6 @@
                 % else:
                     ${recorddef.name or ''}
                 % endif
-            </td>
-        </tr>
-        
-        <tr>    
-            <td>Source:</td>
-            <td>
-                ${recorddef.uri or ''}
             </td>
         </tr>
 
@@ -83,9 +82,9 @@
             <td>Private:</td>
             <td>
                 % if edit:
-                    <input type="checkbox" value="True" name="privacy" ${forms.ifchecked(recorddef.privacy)} />
+                    <input type="checkbox" value="True" name="private" ${forms.ifchecked(recorddef.private)} />
                 % else:
-                    ${recorddef.privacy}
+                    ${recorddef.private}
                 % endif
             </td>
         </tr>
@@ -115,13 +114,23 @@
     </table>
 </%buttons:singlepage>
 
+
+
+
+
+
 <%buttons:singlepage label='Main Protocol'>
     % if new or (edit and ADMIN):
         <textarea name="mainview" rows="10" required="required">${recorddef.mainview}</textarea>
     % else:
-        ${markdown.markdown(recorddef.mainview.replace('\n','  \n'), safe_mode='escape') | n,unicode}
+        ${markdown.markdown(recorddef.mainview, safe_mode='escape') | n,unicode}
     % endif
 </%buttons:singlepage>
+
+
+
+
+
 
 <div class="e2-tab e2-tab-switcher" id="recorddef-views">
     <ul class="e2l-cf">
@@ -147,6 +156,7 @@
         % endfor
     </ul>
 
+
     % for count, (key, view) in enumerate(v):
         % if count == 0:
             <div class="e2-tab-active" data-tab="${count}">
@@ -158,7 +168,7 @@
             <strong>&nbsp;View name:</strong> <input type="text" name="view_name" value="${key}" /><br />
             <textarea rows="10" name="view_view">${view}</textarea>
         % else:            
-            ${markdown.markdown(view.replace('\n', '  \n'), safe_mode='escape') | n,unicode}
+            ${markdown.markdown(view, safe_mode='escape') | n,unicode}
         % endif
         </div>
     % endfor
@@ -167,6 +177,10 @@
     <input type="hidden" name="view_view" value="" />
     
 </div>
+
+
+
+
 
 % if not new:
     <%buttons:singlepage label='History'>
@@ -184,8 +198,13 @@
     </%buttons:singlepage>
 % endif
 
+
+
+
+
 <%buttons:singlepage label='Relationships'>
     <div id="e2-relationships" data-name="${recorddef.name}" data-keytype="${recorddef.keytype}"></div>
 </%buttons:singlepage>
+
 
 </form>

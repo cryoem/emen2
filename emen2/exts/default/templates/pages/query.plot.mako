@@ -9,12 +9,12 @@
     $('#query-plot').PlotControl({
         q:q
     });
-    // $('#query-control').QueryControl({
-    //    q:q,
-    //    query: function(self, q){
-    //        $("#query-plot").PlotControl('query', q);
-    //    }
-    // });
+    $('#query-control').QueryControl({
+        q:q,
+        query: function(self, q){
+            $("#query-plot").PlotControl('query', q);
+        }
+    });
 </%block>
 
 <h1>Plot</h1>

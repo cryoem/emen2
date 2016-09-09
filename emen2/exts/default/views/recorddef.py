@@ -1,6 +1,9 @@
+# $Id: recorddef.py,v 1.30 2013/05/21 16:54:18 irees Exp $
 import collections
 
 from emen2.web.view import View
+
+
 
 @View.register
 class RecordDef(View):
@@ -16,7 +19,7 @@ class RecordDef(View):
                 if k and v:
                     views[k] = v
             kwargs['views'] = views
-            if kwargs.get('privacy') == None: kwargs['privacy'] = 0
+            if kwargs.get('private') == None: kwargs['private'] = False
             recorddef = self.db.recorddef.new(mainview=mainview, name=name)
             recorddef.update(kwargs)
             rd = self.db.recorddef.put(recorddef)
@@ -26,9 +29,14 @@ class RecordDef(View):
                 
         self.main(name=name)
         self.template = '/pages/recorddef'
+        self.recorddef.parents = set([self.recorddef.name])
+        self.recorddef.children = set()
         self.ctxt['edit'] = True
         self.ctxt['new'] = True
         self.title = 'New Protocol based on: %s'%self.recorddef.desc_short
+
+
+
 
     @View.add_matcher(r'^/recorddef/(?P<name>[^/]*)/edit/$')    
     def edit(self, name=None, **kwargs):
@@ -40,7 +48,7 @@ class RecordDef(View):
                 if k and v:
                     views[k] = v
             kwargs['views'] = views
-            if kwargs.get('privacy') == None: kwargs['privacy'] = 0
+            if kwargs.get('private') == None: kwargs['private'] = False
             recorddef = self.db.recorddef.get(name)
             recorddef.update(kwargs)
             rd = self.db.recorddef.put(recorddef)
@@ -52,6 +60,7 @@ class RecordDef(View):
         self.template = '/pages/recorddef'
         self.ctxt['edit'] = True
         self.title = 'Edit Protocol: %s'%self.recorddef.desc_short
+
 
     @View.add_matcher(r'^/recorddef/(?P<name>[^/]*)/$')    
     def main(self, name=None):
@@ -76,6 +85,8 @@ class RecordDef(View):
             new = False,
         ))
 
+
+
 @View.register
 class RecordDefs(View):
 
@@ -83,13 +94,16 @@ class RecordDefs(View):
     def name(self, *args, **kwargs):
         return self.main(action='name', *args, **kwargs)
 
+
     @View.add_matcher(r'^/recorddefs/count/$')
     def count(self, *args, **kwargs):
         return self.main(action='count', *args, **kwargs)
 
+
     @View.add_matcher(r'^/recorddefs/tree/$')
     def tree(self, action=None, q=None, *args, **kwargs):
         return self.main(action='tree', *args, **kwargs)
+
 
     @View.add_matcher(r'^/recorddefs/$')
     def main(self, action=None, q=None):
@@ -135,3 +149,7 @@ class RecordDefs(View):
         self.ctxt["childmap"] = childmap
         self.ctxt['create'] = self.db.auth.check.create()
 
+
+
+
+__version__ = "$Revision: 1.30 $".split(":")[1][:-1].strip()

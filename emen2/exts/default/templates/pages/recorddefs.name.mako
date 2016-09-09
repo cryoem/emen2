@@ -16,6 +16,7 @@
 </h1>
 </form>
 
+
 <%
 import operator
 import collections
@@ -30,12 +31,15 @@ for k,v in d.items():
 
 %>
 
+
 <%buttons:singlepage label='Index'>
     % for k in sorted(d.keys()):
         <a href="#${k}">${k}</a>
     % endfor
     <p>Showing ${len(recorddefs)} of ${len(recorddefnames)} protocols.</p>    
 </%buttons:singlepage>
+
+
 
 % for k in sorted(d.keys()):
 

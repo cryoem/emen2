@@ -9,17 +9,19 @@ if __name__ == "__main__":
     packages = [
         'emen2',
         'emen2.db',
-        'emen2.web'
+        'emen2.web',
+        'emen2.util'
         ]
-        
-    package_data = {        
-        'emen2.db': ['config.core.json', 'skeleton.json', 'core.json', 'bulk.c'],
+
+    package_data = {
+        'emen2.db': ['config.core.json', 'skeleton.json', 'base.json', 'bulk.c'],
         'emen2.web': ['static/*.*', 'static/*/*.*', 'static/*/*/*.*', 'static/*/*/*/*.*']
     }
-    
+
     scripts = ['scripts/emen2ctl']
-    
-    exts = ['base', 'default', 'em', 'site', 'example']
+
+    exts = ['base', 'default', 'em', 'site', 'publicdata']
+
     for ext in exts:
         packages.append('emen2.exts.%s'%ext)
         packages.append('emen2.exts.%s.views'%ext)

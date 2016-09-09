@@ -13,43 +13,58 @@ bookmarks = emen2.db.config.get('bookmarks.bookmarks')
             <a style="padding:0px;padding-left:8px;" href="${ctxt.root}/"><img id="logo" src="${ctxt.root}/static/images/${logo}" alt="${TITLE}" /></a>
         </li>
     
-        <li>
-            <a href="${ctxt.root}/">Home ${buttons.caret()}</a>
-            <ul>
-                <li><a href="${ctxt.root}/query/form/">Record query</a></li>
-                <li><a href="${ctxt.root}/records/">Record relationships</a></li>
-                <li class="e2l-menu-divider"><a href="${ctxt.root}/recorddefs/">Protocols</a></li>
-                <li><a href="${ctxt.root}/paramdefs/">Parameters</a></li>
-                <li class="e2l-menu-divider"><a href="${ctxt.root}/users/">Users</a></li>
-                <li><a href="${ctxt.root}/groups/">Groups</a></li>
-            </ul>
-        </li>
+        % if USER:
 
-        <li id="bookmarks">
-            <a href="">Bookmarks ${buttons.caret()}</a>
-            <ul id="bookmarks_system">
-                % for i,j in bookmarks:
-                    % if i == '-':
-                        <li class="e2l-menu-divider"></li>
-                    % else:
-                        <li><a href="${ctxt.root}${j}">${i}</a></li>
-                    % endif
-                % endfor
-            </ul>
-        </li>
+            <li><a href="${ctxt.root}/">Home ${buttons.caret()}</a>
+                <ul>
+                    <li><a href="${ctxt.root}/records/">Records</a></li>
+                    <li class="e2l-menu-divider"><a href="${ctxt.root}/paramdefs/">Params</a></li>
+                    <li><a href="${ctxt.root}/recorddefs/">Protocols</a></li>
+                    <li class="e2l-menu-divider"><a href="${ctxt.root}/users/">Users</a></li>
+                    <li><a href="${ctxt.root}/groups/">User groups</a></li>
+                    <li class="e2l-menu-divider"><a href="${ctxt.root}/help/">Help</a></li>                
+                </ul>
+            </li>
+
+            <li>
+                <a href="${ctxt.root}/query/">Query ${buttons.caret()}</a>
+                <ul>
+                    <li><a href="${ctxt.root}/query">All records</a></li>
+                    <li class="e2l-menu-divider"></li>
+                    <li><a href="${ctxt.root}/query/rectype.is.project/">Projects</a></li>
+                    <li><a href="${ctxt.root}/query/rectype.is.grid_imaging/">Imaging sessions</a></li>
+                    <li><a href="${ctxt.root}/query/rectype.is.image_capture*/">Images</a></li>
+                    <li><a href="${ctxt.root}/query/rectype.is.labnotebook/">Lab notebooks</a></li>
+                    <li><a href="${ctxt.root}/query/rectype.is.publication*/">Publications</a></li>
+                </ul>
+            </li>
+            
+            <li id="bookmarks" data-parent="${USER.record}">
+                <a href="">Bookmarks ${buttons.caret()}</a>
+                <ul id="bookmarks_system">
+                    % for i,j in bookmarks:
+                        <li><a href="${j}">${i}</a></li>
+                    % endfor
+                    ## <li class="e2l-menu-divider"></li>
+                    ## <li><a href="">${buttons.image('spinner.gif')} Loading personal bookmarks</a></li>
+                </ul>
+            </li>
+    
+        % endif
 
         % if ADMIN:
-            <li>
-                <a href="${ctxt.root}/">Admin ${buttons.caret()}</a>
+            <li><a href="${ctxt.root}/">Admin ${buttons.caret()}</a>
                 <ul>
                     <li><a href="${ctxt.reverse('Users/queue')}">Account requests</a></li>
+                    ## <li><a href="${ctxt.reverse('Users/admin')}">User administration</a></li>
+                    ## <li><a href="">Configuration</a></li>
+                    ## <li><a href="">Backup</a></li>
                 </ul>
             </li>
         % endif
 
-
         <li class="e2l-float-right nohover" role="search">
-            <form method="get" action="${ctxt.root}/query/results/">
+            <form method="get" action="${ctxt.root}/query/">
                 <input type="text" name="keywords" size="8" placeholder="Search" id="e2-header-search" />
             </form>
         </li>

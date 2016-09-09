@@ -1,3 +1,4 @@
+# $Id: user.py,v 1.29 2013/05/14 14:12:37 irees Exp $
 import re
 import os
 import time
@@ -6,12 +7,14 @@ import hashlib
 
 import emen2.db.exceptions
 import emen2.db.database
-import emen2.utils
+import emen2.util.listops
 from emen2.web.view import View
+
 
 # Use randomly assigned usernames?
 HASH_USERNAME_FORCE = False
 HASH_USERNAME = True
+
 
 @View.register
 class User(View):
@@ -35,7 +38,7 @@ class User(View):
         # Security is of course is checked by the database, 
         # this just hides the form itself.
         if self.db.auth.check.context()[0] != user.name and not self.ctxt['ADMIN']:
-            raise emen2.db.exceptions.PermissionsError("You may only edit your own user page.")
+            raise emen2.db.exceptions.SecurityError, "You may only edit your own user page"
 
         msgs = {
             "password":"Password updated.", 
@@ -55,6 +58,8 @@ class User(View):
             user.update(u)
             self.db.user.put(user)
             self.simple("Saved account settings.")
+
+
 
 @View.register
 class Users(View):
@@ -94,6 +99,8 @@ class Users(View):
         self.ctxt['sortby'] = sortby
         self.ctxt['reverse'] = reverse
 
+
+
 @View.register
 class NewUser(View):
 
@@ -116,14 +123,21 @@ class NewUser(View):
         if self.request_method != 'post':
             return
                 
+        # Always required new user parameters.
+        REQUIRED = set(['name_last', 'name_first'])
+
+        # Note: other parameters can be marked as required at the FORM level,
+        # using HTML5 'required' attribute. However, industrious users
+        # or those using older browsers could easily bypass :)
+                
         # Snap off the base user parameters
         email = user.get('email', '').strip()
         password = user.get('password', None)
         
         try:
-            user = self.db.newuser.new(**user)
+            user = self.db.newuser.new(password=password, email=email)
             user.setsignupinfo(userrec)
-            self.db.newuser.request(user)
+            self.db.newuser.put(user)
         except Exception, e:
             self.notify('There was a problem creating your account: %s'%e, error=True)
         else:
@@ -155,7 +169,7 @@ class NewUser(View):
             # ... do this better in the future.
             for user in approved:
                 g = filter(None, groups.get(user.name, []))
-                g = emen2.utils.check_iterable(g)
+                g = emen2.util.listops.check_iterable(g)
 
                 for group in self.db.group.get(g):
                     group.adduser(user.name)
@@ -169,3 +183,6 @@ class NewUser(View):
         self.ctxt['groups'] = self.db.group.get(groupnames)
         self.ctxt['groups_default'] = set(['create'])
 
+
+
+__version__ = "$Revision: 1.29 $".split(":")[1][:-1].strip()

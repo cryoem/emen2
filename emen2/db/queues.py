@@ -1,10 +1,13 @@
-"""EMEN2 process and message queues."""
+# $Id: queues.py,v 1.12 2012/07/31 21:46:10 irees Exp $
+"""EMEN2 process and message queues
+"""
 
 import time
 import random
 import subprocess
 import threading
 import Queue
+
 
 # try:
 #    import multiprocessing
@@ -15,15 +18,6 @@ import Queue
 CPU_COUNT = 2
 
 import emen2.db.log
-
-def run(task):
-    p = subprocess.Popen(task, stderr=subprocess.PIPE)
-    p.wait()
-    stdout, stderr = p.communicate()
-    ret = p.returncode
-    if ret:
-        raise Exception(stderr)
-    return ret
 
 ##### Subprocess queues #####
 
@@ -39,16 +33,17 @@ class ProcessWorker(object):
                 self.queue.add_task(None)
                 return
             desc = ' '.join(map(str, task))
-            emen2.db.log.info("ProcessWorker: run: %s"%(desc))
+            emen2.db.log.info("ProcessWorker run: %s"%(desc))
             # a = subprocess.Popen(task)
             # returncode = a.wait()
             try:
-                # ret = subprocess.check_output(task, stderr=subprocess.STDOUT)
-                run(task)
+                ret = subprocess.check_output(task, stderr=subprocess.STDOUT)
             except Exception, e:
-                emen2.db.log.error("ProcessWorker: Could not build tile: %s"%e)
+                emen2.db.log.error("Couldn't build tile: %s"%e)
             finally:
                 self.queue.task_done()
+            
+            
 
 class ProcessQueue(Queue.LifoQueue):
     """A queue of processes to run."""
@@ -60,11 +55,11 @@ class ProcessQueue(Queue.LifoQueue):
             task = tuple(task)
 
         if priority < -100 or priority > 100:
-            raise ValueError("Highest priority is -100, lowest priority is 100.")
+            raise ValueError, "Highest priority is -100, lowest priority is 100"
 
         if name in [i[1] for i in self.queue]:
 		priority = 0
-        #    raise ValueError("Task name already in queue: %s"%name)
+        #    raise ValueError, "Task name already in queue: %s"%name
 
         emen2.db.log.info("ProcessQueue: Adding task %s with priority %s to queue: %s"%(name, priority, task))
         return self.put((priority, name, task))
@@ -83,9 +78,11 @@ class ProcessQueue(Queue.LifoQueue):
             t = threading.Thread(target=worker.run)
             t.daemon = True
             t.start()
+            
 
 processqueue = ProcessQueue()
 processqueue.start(processes=CPU_COUNT)
+
 
 if __name__ == "__main__":
     pq = ProcessQueue()
@@ -94,3 +91,6 @@ if __name__ == "__main__":
     pq.start()
     pq.join()
     # pq.end()
+
+
+__version__ = "$Revision: 1.12 $".split(":")[1][:-1].strip()

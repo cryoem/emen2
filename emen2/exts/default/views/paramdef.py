@@ -1,6 +1,8 @@
+# $Id: paramdef.py,v 1.27 2013/05/01 08:22:10 irees Exp $
 import collections
 
 from emen2.web.view import View
+
 
 @View.register
 class ParamDef(View):
@@ -31,6 +33,7 @@ class ParamDef(View):
             parentmap = parentmap
             ))
 
+
     @View.add_matcher(r'^/paramdef/(?P<name>[^/]*)/edit/$')
     def edit(self, name, **kwargs):
         if self.request_method == 'post':            
@@ -45,7 +48,8 @@ class ParamDef(View):
         self.template = '/pages/paramdef.edit'
         self.ctxt['edit'] = True
         self.title = 'Edit Parameter: %s'%self.paramdef.desc_short
-            
+        
+        
     @View.add_matcher(r'^/paramdef/(?P<name>[^/]*)/new/$')
     def new(self, name, **kwargs):
         if self.request_method == 'post':
@@ -59,9 +63,12 @@ class ParamDef(View):
 
         self.main(name=name)
         self.template = '/pages/paramdef.new'
+        self.paramdef.parents = set([self.paramdef.name])
+        self.paramdef.children = set()
         self.ctxt['edit'] = True
         self.ctxt['new'] = True
         self.title = 'New Parameter based on: %s'%self.paramdef.desc_short
+
 
 @View.register
 class ParamDefs(View):
@@ -104,19 +111,30 @@ class ParamDefs(View):
         self.ctxt['childmap'] = childmap
         self.ctxt['create'] = self.db.auth.check.create()
 
+
     @View.add_matcher(r'^/paramdefs/vartype/$')
     def vartype(self, *args, **kwargs):
         return self.main(action='vartype', *args, **kwargs)
+
 
     @View.add_matcher(r'^/paramdefs/tree/$')
     def tree(self, *args, **kwargs):
         return self.main(action='tree', *args, **kwargs)
 
+
     @View.add_matcher(r'^/paramdefs/property/$')
     def property(self, *args, **kwargs):
         return self.main(action='property', *args, **kwargs)
-            
+        
+        
     @View.add_matcher(r'^/paramdefs/name/$')
     def name(self, *args, **kwargs):
         return self.main(action='name', *args, **kwargs)
+        
 
+
+
+
+
+
+__version__ = "$Revision: 1.27 $".split(":")[1][:-1].strip()

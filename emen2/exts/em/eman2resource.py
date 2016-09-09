@@ -1,3 +1,4 @@
+# # $Id: eman2resource.py,v 1.4 2012/10/18 09:41:40 irees Exp $
 # import re
 # import os
 # import pickle
@@ -352,3 +353,4 @@
 # 
 # 
 # 
+# __version__ = "$Revision: 1.4 $".split(":")[1][:-1].strip()

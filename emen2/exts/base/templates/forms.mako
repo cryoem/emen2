@@ -15,6 +15,7 @@ def test(echo):
 
 %>
 
+
 <%def name="iftrue(exp, value)">${f_iftrue(exp, value)}</%def>
 
 <%def name="iffalse(exp, value)">${f_iffalse(exp, value)}</%def>
@@ -22,6 +23,7 @@ def test(echo):
 <%def name="ifchecked(exp=None)">${f_iftrue(exp, 'checked="checked"')}</%def>
 
 <%def name="ifselected(exp=None)">${f_iftrue(exp, 'selected="selected"')}</%def>
+
 
 <%def name="text(name, value=None, required=False, cls='')">
     <%
@@ -34,6 +36,8 @@ def test(echo):
     % endif
 </%def>
 
+
+
 <%def name="textarea(name, value=None, required=False, cls='')">
     <%
         if value is None: value = ''
@@ -44,6 +48,9 @@ def test(echo):
         <textarea name="${name}" class="${cls}" />${value}</textarea>
     % endif
 </%def>
+
+
+
 
 <%def name="checkbox(name, v, label=None, value=None, required=False, cls='')">
     <%
@@ -59,6 +66,8 @@ def test(echo):
     % endif
     <label for="">${label or v}</label>
 </%def>
+
+
 
 <%def name="checkboxes(name, v, values=None, required=False, cls='', elem=None)">
     <%
@@ -92,6 +101,8 @@ def test(echo):
 
 </%def>
 
+
+
 <%def name="radios(name, v, value=None, required=False, cls='', elem=None)">
     <%
 
@@ -123,6 +134,9 @@ def test(echo):
     % endfor
 </%def>
 
+
+
+
 <%def name="select(name, v, value=None, required=False, cls='')">
     <% 
     if hasattr(v, "items"):
@@ -147,6 +161,9 @@ def test(echo):
         % endfor
     </select>
 </%def>
+
+
+
 
 <%def name="countries()">
     <option value=""></option>

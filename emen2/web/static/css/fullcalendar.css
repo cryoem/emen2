@@ -9,6 +9,7 @@
  *
  */
 
+
 .fc {
     direction: ltr;
     text-align: left;
@@ -29,6 +30,8 @@ html .fc,
     padding: 0;
     vertical-align: top;
     }
+
+
 
 /* Header
 ------------------------------------------------------------------------*/
@@ -113,6 +116,8 @@ html .fc,
     width: 100%; /* needed for view switching (when view is absolute) */
     overflow: hidden;
     }
+    
+    
 
 /* Cell Styles
 ------------------------------------------------------------------------*/
@@ -131,6 +136,8 @@ html .fc,
     opacity: .2;
     filter: alpha(opacity=20); /* for IE */
     }
+    
+
 
 /* Buttons
 ------------------------------------------------------------------------*/
@@ -245,6 +252,8 @@ html .fc,
 .fc-state-disabled .fc-button-effect {
     display: none;
     }
+    
+    
 
 /* Global Event Styles
 ------------------------------------------------------------------------*/
@@ -418,6 +427,8 @@ table.fc-border-separate {
 .fc-border-separate tbody tr.fc-first th {
     border-top-width: 0;
     }
+    
+    
 
 /* Month View, Basic Week View, Basic Day View
 ------------------------------------------------------------------------*/
@@ -459,6 +470,8 @@ table.fc-border-separate {
 .fc-rtl .fc-grid .fc-event-time {
     float: right;
     }
+    
+    
 
 /* Agenda Week View, Agenda Day View
 ------------------------------------------------------------------------*/
@@ -544,6 +557,8 @@ table.fc-border-separate {
 .fc-agenda-slots tr.fc-minor th.ui-widget-header {
     *border-top-style: solid; /* doesn't work with background in IE6/7 */
     }
+    
+
 
 /* Vertical Events
 ------------------------------------------------------------------------*/

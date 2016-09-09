@@ -1,3 +1,4 @@
+# $Id: em.py,v 1.50 2013/06/27 06:52:52 irees Exp $
 import datetime
 import time
 import tempfile
@@ -11,6 +12,9 @@ import emen2.db.config
 import emen2.db.log
 from emen2.web.view import View
 
+
+
+
 @View.register
 class EMEquipment(View):
     @View.add_matcher(r'^/em/equipment/(?P<name>[^/]*)/$')
@@ -22,6 +26,8 @@ class EMEquipment(View):
     def new(self, rectype, **kwargs):
         self.title = 'New Equipment'
         self.template = '/em/project.new'
+        
+      
         
 @View.register
 class EMAN2Convert(View):
@@ -39,7 +45,7 @@ class EMAN2Convert(View):
         import EMAN2
 
         if format not in ['tif', 'tiff', 'tif8', 'mrc', 'hdf', 'jpg', 'jpeg', 'png']:
-            raise ValueError("Invalid format: %s."%format)
+            raise ValueError, "Invalid format: %s"%format
 
         depth = None
         if format in ['tif8']:
@@ -82,8 +88,8 @@ class EMAN2Convert(View):
         a.start()
 
         try:
-            emen2.db.log.info("EMAN2Convert: Removing temporary file: %s"%filepath)
+            emen2.db.log.info("Removing temporary file: %s"%filepath)
             os.remove(filepath)
         except:
-            emen2.db.log.error("EMAN2Convert: Could not remove temporary file: %s"%filepath)
+            emen2.db.log.error("Couldn't remove temporary file: %s"%filepath)
             

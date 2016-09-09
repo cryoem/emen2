@@ -129,7 +129,7 @@
             var rd = emen2.caches['recorddef'][this.options.rectype];
             if (this.options.mode == 'new') {
                 // RecordDef description
-                $('<p class="e2l-shadow-drop" />').text(rd.desc_long || '').appendTo(this.dialog);
+                $('<p class="e2l-shadow-drop" />').text(rd.desc_long).appendTo(this.dialog);
                 // Add the parent for a new record
                 form.attr('data-name', 'None');
                 $('<input type="hidden" name="parents" />').val(this.options.parent).appendTo(form);
@@ -162,7 +162,7 @@
         options: {
             parent: null,
             rectype: null,
-            privacy: null,
+            private: null,
             copy: null,
             show: true,
             help: false,
@@ -171,7 +171,7 @@
         
         _create: function() {
             this.built = 0;
-			emen2.util.checkopts(this, ['rectype', 'parent', 'privacy', 'copy']);
+			emen2.util.checkopts(this, ['rectype', 'parent', 'private', 'copy']);
             if (this.options.show) {
                 this.show();
             }
@@ -189,19 +189,19 @@
             this.element.append(emen2.template.spinner(true));
             
             // Get the RecordDef for typicalchildren and prettier display
-            emen2.db("recorddef.get", [this.options.rectype], function(rd) {
+            emen2.db("recorddef.find", {'record':[this.options.parent]}, function(rd) {
                 var typicalchld = [];
-                emen2.caches['recorddef'][rd.name] = rd;
-                if (rd.typicalchld) {
-                    emen2.db("recorddef.get", [rd.typicalchld], function(rds2) {
-                        $.each(rds2, function(rd2) {
-                            emen2.caches['recorddef'][rd2.name] = rd2;
-                        })
-                        self._build();
+                $.each(rd, function() {
+                    self.options.rectype = this.name;
+                    emen2.caches['recorddef'][this.name] = this;
+                    typicalchld = this.typicalchld;                    
+                });
+                emen2.db("recorddef.get", [typicalchld], function(rd2) {
+                    $.each(rd2, function() {
+                        emen2.caches['recorddef'][this.name] = this;
                     })
-                } else {
                     self._build();
-                }
+                })
             });            
         },
         
@@ -231,10 +231,8 @@
             }
             
             // Children suggested by RecordDef.typicalchld
-            if (rd.typicalchld && rd.typicalchld.length) {
+            if (rd.typicalchld.length) {
                 this.element.append(this.build_level('Suggested protocols', 'typicalchld', rd.typicalchld))
-            } else {
-                $('<p>There are no suggested protocols, please <span class="e2l-a e2-newrecord-other">search for a different protocol</span>.</p>').appendTo(this.element);                
             }
             
             $('.e2-newrecord-other', this.element).FindControl({
@@ -309,13 +307,28 @@
 				parent.before(b);
 				self.bind(b);
 			});
-                                    
+
+            // Date picker
+            $('.e2-edit[data-vartype="datetime"] input', elem).datetimepicker({
+                showButtonPanel: true,
+                changeMonth: true,
+                changeYear: true,
+                showSecond: true,
+                showAnim: '',
+                yearRange: 'c-100:c+100',
+                dateFormat: 'yy-mm-dd',
+                timeFormat: 'hh:mm:ssz',
+                separator: 'T',
+                timezone: '+0500',
+                showTimezone: true
+            });
+            
             // Find items.
 			$('.e2-edit-add-find', elem).FindControl({
 			    minimum: 0,
 			    selected: function(self, name){
 					var parent = self.element.parent();
-					var param = self.element.attr('data-paramdef');
+					var param = self.element.attr('data-param');
 					var iter = self.element.attr('data-iter');
 			        var d = $('<div/>').InfoBox({
 			            keytype: 'user',
@@ -331,19 +344,6 @@
 					}
 				}
 			});
-            
-            var parent = $(elem).parent();
-
-            // Autocomplete
-            $('.e2-edit[data-vartype="string"] input', parent).AutoCompleteControl();
-            
-            // Date picker
-            $('.e2-edit[data-vartype="datetime"] input', parent).DatePickerControl();
-            $('.e2-edit[data-vartype="date"] input', parent).DatePickerControl({
-                showtime: false,
-                showtz:false
-            });            
-            
         }    
     });
 	
@@ -477,14 +477,13 @@
                 if (e.length == 3) {
                     row.prepend(emen2.template.image('comment.closed.png'));
                     row.text(e[2]);
-                    // row.appendTo(comments);
+                    row.appendTo(comments);
                 } else if (e.length == 4) {
                     var pdname = e[2];
                     if (emen2.caches['paramdef'][pdname]){
-                        pdname=emen2.caches['paramdef'][pdname].desc_short;
+                        pdname=emen2.caches['paramdef'][pdname].desc_short
                     }
-                    emen2.template.image('edit.png')
-                        .appendTo(row);
+                    emen2.template.image('edit.png').appendTo(row);
                     row.append('Edited ' );
                     $('<a />')
                         .attr('href', emen2.template.uri(['paramdef', e[2]]))
@@ -492,7 +491,7 @@
                         .appendTo(row);
                     row.append('. Previous value was: ');
                     $('<span />')
-                        .text(String(e[3]) || "None")
+                        .text(e[3] || "None")
                         .appendTo(row);
                 }
             });
@@ -511,6 +510,7 @@
     
     
 })(jQuery);
+
 
 <%!
 public = True

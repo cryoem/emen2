@@ -1,3 +1,4 @@
+# $Id: tiles.py,v 1.15 2012/10/18 23:34:23 irees Exp $
 import os
 import pickle
 import math
@@ -11,8 +12,7 @@ from emen2.web.view import View
 import emen2.db.handlers
 
 # header[index][slices][tiles][(level, x, y)]
-class BuildingTileException(Exception):
-    pass
+
 
 @View.register
 class Preview(View):
@@ -31,26 +31,24 @@ class Preview(View):
         x = int(kwargs.get('x', 0))
         y = int(kwargs.get('y', 0))
 
-        previewpath = emen2.db.binary.parse(bdo.creationtime, bdo.name)['previewpath']
+        # get_data(self)
+        previewpath = emen2.db.binary.Binary.parse(bid).get('previewpath')
         previewpath = '%s.eman2'%(previewpath)
 
         if not os.path.exists(previewpath):
             status = emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
-            raise BuildingTileException("Begin building tiles...")
+            raise Exception, "Building tile..."
 
         f = file(previewpath, "r")
         header = pickle.load(f)
+
         if mode == 'header':
-            # Max Scale is 
-            
             h = header[index]
-            # This is obviously wrong and complicated. Come back and fix it.
-            maxscale = 2**math.ceil(math.log((max(h['nx'], h['ny']) / 512.0), 2))
             data = {
                 'nx': h['nx'],
                 'ny': h['ny'],
                 'nz': h['nz'],
-                'maxscale': maxscale,
+                'maxscale': 8,
                 'filename': filename
             }
             f.close()
@@ -60,7 +58,7 @@ class Preview(View):
         key = size
         if mode == 'tiles':
             key = (scale, x, y)
-        
+
         ret = h[mode][key]
 
         f.seek(ret[0], 1)
@@ -75,4 +73,9 @@ class Preview(View):
             self.set_header("Content-Type", "application/json")
 
         return data
+    
 
+
+
+
+__version__ = "$Revision: 1.15 $".split(":")[1][:-1].strip()

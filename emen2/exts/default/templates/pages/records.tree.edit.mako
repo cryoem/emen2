@@ -9,6 +9,7 @@
     });
 </%block>
 
+
 <h1>
     ${ctxt.title}
     <ul class="e2l-actions">

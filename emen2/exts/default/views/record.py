@@ -1,3 +1,4 @@
+# $Id: record.py,v 1.94 2013/06/20 23:05:53 irees Exp $
 import urllib
 import time
 import collections
@@ -5,9 +6,15 @@ import collections
 import jsonrpc
 
 import emen2.db.exceptions
-import emen2.utils
+import emen2.util.listops as listops
 import emen2.web.responsecodes
 from emen2.web.view import View
+
+class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
+    title = 'Record not Found'
+    msg = 'Record %s not found'
+
+
 
 @View.register
 class Record(View):
@@ -17,23 +24,24 @@ class Record(View):
         """Main record rendering."""
         # Get record..
         self.rec = self.db.record.get(name, filt=False)
-        self.title = self.db.view(self.rec.name) or self.rec.name
+        recnames = self.db.view([name])
+        self.title = recnames.get(self.rec.name, self.rec.name)
 
         # Look for any recorddef-specific template.
+        template = '/record/rectypes/%s'%self.rec.rectype
         try:
-            template = '/record/rectypes/%s'%self.rec.rectype
             emen2.db.config.templates.get_template(template)
         except:
             template = '/record/rectypes/root'
         self.template = template
 
         # Render main view
-        rendered = self.db.view(self.rec.name, viewname=viewname, options={'output':'html', 'markdown':True})
-        rendered_edit = self.db.view(self.rec.name, viewname=viewname, options={'output':'form', 'markdown':True, 'name': self.rec.name})
+        rendered = self.db.view(name, viewname=viewname, options={'output':'html', 'markdown':True})
+        rendered_edit = self.db.view(name, viewname=viewname, options={'output':'form', 'markdown':True, 'name': self.rec.name})
         
         # Access tags
         accesstags = []
-        if self.rec.get('hidden'):
+        if self.rec.get('deleted'):
             accesstags.append('Hidden record')
         if 'publish' in self.rec.get('groups',[]):
             accesstags.append('Published data')
@@ -50,7 +58,7 @@ class Record(View):
         parentmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='parents', recurse=-1, expandable=False)
 
         # Children
-        children = self.db.record.get(self.db.rel.children(self.rec.name))
+        children = self.db.record.get(self.rec.children)
         children_groups = collections.defaultdict(set)
         for i in children:
             children_groups[i.rectype].add(i)
@@ -64,7 +72,7 @@ class Record(View):
         recdef = self.db.recorddef.get(self.rec.rectype)
         recdefs = [recdef] + self.db.recorddef.get(children_groups.keys())
 
-        # Tab pages -- a UI element. This may be replaced in the future.
+        # Pages -- a deprecated UI element. 
         recdefs_d = dict([i.name, i] for i in recdefs)
         pages = collections.OrderedDict()
         pages.uris = {}
@@ -83,6 +91,7 @@ class Record(View):
             recdef = recdef,
             recdefs = recdefs,
             users = users,
+            recnames = recnames,
             parentmap = parentmap,
             edit = False,
             create = self.db.auth.check.create(),
@@ -93,7 +102,8 @@ class Record(View):
             siblings = siblings,
             table = "",
             pages = pages
-        )            
+        )    
+        
     
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/$', write=True)
     def edit(self, name=None, _format=None, **kwargs):
@@ -103,39 +113,39 @@ class Record(View):
             self.ctxt["edit"] = True
             return
 
-        # Check write permissions first, so we won't waste time, 
-        #   e.g. trying to upload files before failing.
+        # Get the record
         if not self.rec.writable():
-            raise emen2.db.exceptions.PermissionsError("No write permission for record %s."%self.rec.name)
+            raise emen2.db.exceptions.SecurityError, "No write permission for record %s"%self.rec.name
 
         # Update the record
         if kwargs:
             self.rec.update(kwargs)
             self.rec = self.db.record.put(self.rec)
 
-        # Upload files.
         for f in self.request_files:
             param = f.get('param', 'file_binary')
-            bdo = self.db.binary.upload(f)
+            bdo = self.db.binary.put(f)
             self.db.binary.addreference(self.rec.name, param, bdo.name)
 
         # Redirect
-        # IMPORTANT NOTE: Some clients (EMDash) require the 
-        #   _format support below as part of the REST API.        
+        # IMPORTANT NOTE: Some clients (EMDash) require the _format support below as part of the REST API.        
         self.redirect(self._redirect or self.routing.reverse('Record/main', name=self.rec.name))
         if _format == "json":
             return jsonrpc.jsonutil.encode(self.rec)
+
 
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/attachments/$', name='edit/attachments', write=True)
     def edit_attachments(self, name=None, **kwargs):
         self.edit(name=name, **kwargs)
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name, anchor='attachments'))
 
+
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/relationships/$', name='edit/relationships', write=True)
     def edit_relationships(self, name=None, **kwargs):
-        # TODO: Check orphans, show orphan confirmation page
+        # ian: todo: Check orphans, show orphan confirmation page
         self.edit(name=name, **kwargs)
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name, anchor='relationships'))
+
 
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/edit/permissions/$', name='edit/permissions', write=True)
     def edit_permissions(self, name=None, permissions=None, groups=None, action=None, filt=True):
@@ -145,29 +155,36 @@ class Record(View):
         users = set()
         if hasattr(permissions, 'items'):
             for k,v in permissions.items():
-                users |= set(emen2.utils.check_iterable(v))
+                users |= set(listops.check_iterable(v))
         else:
             for v in permissions:
-                users |= set(emen2.utils.check_iterable(v))
+                users |= set(listops.check_iterable(v))
 
         if self.request_method != 'post':
             return
+            
         if action == 'add':
             self.db.record.setpermissionscompat(names=self.rec.name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt)
+
         elif action == 'remove':
             self.db.record.setpermissionscompat(names=self.rec.name, recurse=-1, removeusers=users, removegroups=groups, filt=filt)
+
         elif action == 'overwrite':
             self.db.record.setpermissionscompat(names=self.rec.name, recurse=-1, addumask=permissions, addgroups=groups, filt=filt, overwrite_users=True, overwrite_groups=True)
+
         else:
             self.rec['groups'] = groups
             self.rec['permissions'] = permissions
             self.rec = self.db.record.put(self.rec)
+
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name, anchor='permissions'))
+
 
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/new/(?P<rectype>[^/]*)/$', write=True)
     def new(self, name=None, rectype=None, _redirect=None, _format=None, **kwargs): 
         """Create a new record."""
         self.main(name=name)
+    
         newrec = self.db.record.new(rectype=rectype, inherit=[self.rec.name])
         if self.request_method not in ['post', 'put']:
             self.template = '/record/record.new'
@@ -187,10 +204,9 @@ class Record(View):
         newrec.update(kwargs)
         newrec = self.db.record.put(newrec)
 
-        # Upload any posted files.
         for f in self.request_files:
             param = f.get('param', 'file_binary')
-            bdo = self.db.binary.upload(f)
+            bdo = self.db.binary.put(f)
             self.db.binary.addreference(newrec.name, param, bdo.name)
 
         # IMPORTANT NOTE: Some clients (EMDash) require the _format support below as part of the REST API.
@@ -198,6 +214,14 @@ class Record(View):
         if _format == "json":
             return jsonrpc.jsonutil.encode(newrec)
 
+
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/$')
+    @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/(?P<path>.*)/$')
+    def query(self, name=None, path=None, q=None, c=None, **kwargs):
+        self.main(name=name)
+    
+
+    # @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/(?P<path>.*)/attachments/$')
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/query/attachments/$')
     def query_attachments(self, name=None, path=None, q=None, c=None, **kwargs):
         self.main(name=name)
@@ -205,8 +229,17 @@ class Record(View):
         # Look up all the binaries
         children = self.db.rel.children(self.rec.name, recurse=-1)
         bdos = self.db.binary.find(record=children, count=0)
-        names = [i.name for i in bdos]
-        self.ctxt['q'] = self.db.table(subset=names, keytype="binary", checkbox=True, view="{{checkbox()}} {{thumbnail}} {{filename}} {{filesize}} {{recname(record)}} {{record}}")
+        if len(bdos) > 100000 and not confirm:
+            raise Exception, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
+
+        records = set([i.record for i in bdos])
+        users = set([bdo.get('creator') for bdo in bdos])
+        users = self.db.user.get(users)
+        # self.ctxt['tab'] = 'attachments'
+        self.ctxt['users'].extend(users)
+        self.ctxt['recnames'].update(self.db.view(records))
+        self.ctxt['bdos'] = bdos
+    
     
     @View.add_matcher('^/record/(?P<name>[^/]*)/children/$')
     def children_map(self, name=None):
@@ -214,6 +247,7 @@ class Record(View):
         self.template = '/record/record.tree'
         childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, expandable=True)
         self.ctxt['childmap'] = childmap
+
 
     @View.add_matcher('^/record/(?P<name>[^/]*)/children/(?P<childtype>\w+)/$')
     def children(self, name=None, childtype=None):
@@ -228,8 +262,8 @@ class Record(View):
         self.ctxt['table'] = query
         self.ctxt['tab'] = 'children-%s'%childtype
         self.ctxt['childtype'] = childtype
-        # Show the active tab -- this might go away at some point.
-        self.ctxt["pages"].active = childtype 
+        self.ctxt["pages"].active = childtype # Show the active tab -- this might go away at some point.
+
 
     @View.add_matcher("^/record/(?P<name>[^/]*)/hide/$", write=True)
     def hide(self, name=None, confirm=False, childaction=None):
@@ -246,6 +280,8 @@ class Record(View):
 
         self.db.record.hide(self.rec.name, childaction=childaction)
         self.redirect(self.routing.reverse('Record/main', name=self.rec.name))
+
+
 
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/history/$')
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/history/(?P<revision>.*)/', name='history/revision')
@@ -272,11 +308,12 @@ class Record(View):
         # Update context
         # self.ctxt['tab'] = 'history'
         self.ctxt['users'] = users
-        self.ctxt['users_d'] = emen2.utils.dictbykey(users, 'name') # do this in template
+        self.ctxt['users_d'] = emen2.util.listops.dictbykey(users, 'name') # do this in template
         self.ctxt['paramdefs'] = paramdefs
-        self.ctxt['paramdefs_d'] = emen2.utils.dictbykey(paramdefs, 'name') # do this in template
+        self.ctxt['paramdefs_d'] = emen2.util.listops.dictbykey(paramdefs, 'name') # do this in template
         self.ctxt['simple'] = simple
         self.ctxt['revision'] = revision
+
 
     @View.add_matcher("^/record/(?P<name>[^/]*)/email/$")
     def email(self, name=None):
@@ -303,6 +340,7 @@ class Record(View):
         emailusers = self.db.user.get(users_ref | users_permissions)
         self.ctxt['emailusers'] = emailusers
 
+
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/publish/$', write=True)
     def publish(self, name=None, state=None):
         self.main(name=name)
@@ -312,7 +350,7 @@ class Record(View):
         names.add(self.rec.name)        
 
         recs = self.db.record.get(names)
-        recs_d = emen2.utils.dictbykey(recs)
+        recs_d = emen2.util.listops.dictbykey(recs)
         state = set(map(unicode, state or [])) & names
 
         # Find published items
@@ -343,13 +381,16 @@ class Record(View):
         recs = self.db.record.put(commit)
         self.redirect(self.routing.reverse('Record/publish', name=self.rec.name))
 
+        
+
+
+
 @View.register
 class Records(View):
     
     @View.add_matcher(r"^/records/$")
-    def main(self, root=None, removerels=None, addrels=None, **kwargs):
+    def main(self, root="0", removerels=None, addrels=None, **kwargs):
         kwargs['recurse'] = kwargs.get('recurse', 2)
-        root = root or self.db.rel.root(keytype='record')
         childmap = self.routing.execute('Tree/embed', db=self.db, mode="children", keytype="record", root=root, recurse=kwargs.get('recurse'), id='sitemap')
         self.template = '/pages/records.tree'
         self.title = 'Record relationships'
@@ -357,9 +398,9 @@ class Records(View):
         self.ctxt['childmap'] = childmap
         self.ctxt['create'] = self.db.auth.check.create()
 
+
     @View.add_matcher(r"^/records/edit/relationships/$", write=True)
-    def edit_relationships(self, root=None, removerels=None, addrels=None, **kwargs):
-        root = root or self.db.rel.root(keytype='record')
+    def edit_relationships(self, root="0", removerels=None, addrels=None, **kwargs):
         self.title = 'Edit record relationships'
         if self.request_method != 'post':
             kwargs['recurse'] = kwargs.get('recurse', 2)
@@ -371,7 +412,7 @@ class Records(View):
             return
             
         self.db.rel.relink(removerels=removerels, addrels=addrels)
-        self.redirect('%s/records/edit/relationships/?root=%s'%('', root), title=self.title, content="Your changes were saved.")
+        self.redirect('%s/records/edit/relationships/?root=%s'%(self.ctxt.root, root), title=self.title, content="Your changes were saved.")
 
     @View.add_matcher("^/records/edit/$", write=True)
     def edit(self, *args, **kwargs):
@@ -395,3 +436,10 @@ class Records(View):
 
         self.simple(content="Saved %s records."%(len(recs)))
 
+
+
+
+
+
+
+__version__ = "$Revision: 1.94 $".split(":")[1][:-1].strip()

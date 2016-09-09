@@ -1,11 +1,18 @@
-"""EMEN2 Macros."""
+# $Id: macros.py,v 1.77 2013/06/20 23:05:53 irees Exp $
+"""EMEN2 Macros
+
+Classes:
+    Macro: Base Macro
+    macro_*: A number of macros included by default
+
+"""
 
 import random
 import operator
 import cgi
 import re
 
-import emen2.utils
+import emen2.util.listops
 import emen2.db.exceptions
 
 # Markdown and Markupsafe are required now.
@@ -13,7 +20,7 @@ import markdown
 from markupsafe import Markup, escape
 
 # Convenience
-ci = emen2.utils.check_iterable
+ci = emen2.util.listops.check_iterable
 ValidationError = emen2.db.exceptions.ValidationError
 
 # From http://stackoverflow.com/questions/2212933/python-regex-for-reading-csv-like-rows
@@ -49,10 +56,11 @@ def parse_args(args):
         ret.append(i)
     return ret
 
+
 ##### Macro #####
 
 class Macro(object):
-    keyclass = unicode
+    keyformat = 'str'
 
     def __init__(self, cache=None, db=None):
         self.cache = cache
@@ -97,10 +105,12 @@ class Macro(object):
     def macro_name(self, params):
         return unicode("Macro")
 
+
 # Dummy
 @Macro.register('dummy')
 class macro_dummy(Macro):
     pass
+
 
 @Macro.register('recname')
 class macro_recname(Macro):
@@ -111,13 +121,14 @@ class macro_recname(Macro):
             return self.db.view(rec.get(params))
         return self.db.view(params or rec)
 
+
     def macro_name(self, params):
         return "Record ID"
 
 @Macro.register('childcount')
 class macro_childcount(Macro):
     """childcount macro"""
-    keyclass = int
+    keyformat = 'int'
 
     def preprocess(self, params, recs):
         rectypes = filter(None, params.split(","))
@@ -205,20 +216,14 @@ class macro_thumbnail(Macro):
                 defaults[i]=v        
         paramdef, size, format = defaults
         
-        # Argh..
-        if rec.get('keytype') == 'record':
-            pd = self.db.paramdef.get(paramdef)
-            value = rec.get(pd.name)
-            if not value:
-                return
-            if not pd.iter:
-                value = [value]
-            bdos = self.db.binary.get(value)
-        elif rec.get('keytype') == 'binary':
-            bdos = [rec]
-
+        pd = self.db.paramdef.get(paramdef)
+        value = rec.get(pd.name)
+        if not value:
+            return
+        if not pd.iter:
+            value = [value]
         ret = []
-        for bdo in bdos:
+        for bdo in self.db.binary.get(value):
             if not bdo:
                 return Markup("Error getting binary: %s"%value)
             i = Markup("""download/%s/%s?size=%s&format=%s""")%(
@@ -236,27 +241,30 @@ class macro_thumbnail(Macro):
 
 ##### Editing macros #####
 
-# @Macro.register('checkbox')
-# class macro_checkbox(Macro):
-#     """draw a checkbox for editing values"""
-# 
-#     def process(self, params, rec):
-#         args = parse_args(params)
-#         return self._process(rec, *args)
-# 
-#     def _process(self, rec, param, value, label=None, *args, **kwargs):
-#         checked = ''
-#         if value in ci(rec.get(param)):
-#             checked = 'checked="checked"'
-# 
-#         # grumble..
-#         labelid = 'e2-edit-checkbox-%032x'%random.getrandbits(128)
-# 
-#         # Need to put in a hidden input element so that empty sets will still be submitted.
-#         return """
-#             <input id="%s" type="checkbox" name="%s" data-paramdef="%s" value="%s" %s />
-#             <label for="%s">%s</label>
-#             <input type="hidden" name="%s" value="" />"""%(labelid, param, param, value, checked, labelid, label or value, param)
-# 
-#     def macro_name(self, params):
-#         return "Checkbox:", params
+@Macro.register('checkbox')
+class macro_checkbox(Macro):
+    """draw a checkbox for editing values"""
+
+    def process(self, params, rec):
+        args = parse_args(params)
+        return self._process(rec, *args)
+
+    def _process(self, rec, param, value, label=None, *args, **kwargs):
+        checked = ''
+        if value in ci(rec.get(param)):
+            checked = 'checked="checked"'
+
+        # grumble..
+        labelid = 'e2-edit-checkbox-%032x'%random.getrandbits(128)
+
+        # Need to put in a hidden input element so that empty sets will still be submitted.
+        return """
+            <input id="%s" type="checkbox" name="%s" data-param="%s" value="%s" %s />
+            <label for="%s">%s</label>
+            <input type="hidden" name="%s" value="" />"""%(labelid, param, param, value, checked, labelid, label or value, param)
+
+    def macro_name(self, params):
+        return "Checkbox:", params
+
+
+__version__ = "$Revision: 1.77 $".split(":")[1][:-1].strip()

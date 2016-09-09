@@ -999,6 +999,7 @@
             // Separate by series key
             var series = this.z.data(recs);
 
+
             // Update the X bounds
             this.x.data(recs);
 
@@ -1061,6 +1062,7 @@
         }
     });    
 })(jQuery);
+
 
 <%!
 public = True

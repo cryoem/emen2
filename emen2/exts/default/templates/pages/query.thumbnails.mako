@@ -8,6 +8,7 @@ q = DB.query([['creationtime', '>=', 'bdo:2012']], keytype='binary')
 
 ${q}
 
+
 ## % for rec, bdos in c.items():
 ##    
 ##    <h1><a href="${ctxt.root}/record/${rec}/">${recnames.get(rec, rec)}</a></h1>

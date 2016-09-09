@@ -1,0 +1,120 @@
+{
+    // These paths either absolute, or relative to EMEN2DBHOME, depending on the presence of leading slash
+    "paths":{
+        // Log directory: access.log, error.log, debug.log, etc. (see logging section) 
+        "log": "log",
+
+        // Berkeley DB log (journal) archive directory. You will want to carefully back these up.
+        "journal_archive": "journal_archive",
+
+        // Temporary directory
+        "tmp": "tmp",
+        
+        /* Raw data storage area. You may want to place this on a large raid array.
+        You can also set this up to split file storage by date, e.g.:
+            '0': '/raid1/', 
+            '20080501': '/raid2/',
+            '20100101': '/raid3/'
+        Files from beginning -> May 2008 will be on /raid1, May 2008 to Jan 2010 on /raid2, and files after Jan 2010 on /raid3 */        
+        "binary": {
+            "0": "binary"
+        },
+
+        "preview": {
+            "0": "preview"
+        },
+
+        // Path to SSL certificates
+        "ssl": "ssl",
+
+        // Load additional files. Typically this will only be used by the system installed base config file.
+        "configfiles": [
+            "/etc/emen2config.json",
+            "config.json"
+        ],
+        
+        // Directories containing extensions
+        "exts" :[]
+    },
+
+    "extensions":{
+        "exts": ["base", "default"]
+    },
+
+    // You probably don't want to change any of these.
+    "params":{
+        "blocklength": 100000,
+        "maxrecurse": 50,
+        "maxidle": 604800
+    },
+    
+    // Berkeley DB cachesize (in megabytes), and MVCC (snapshot transaction) support.
+    "bdb": {
+        "snapshot": 1,
+        "cachesize": 256
+    },
+
+    // Logging
+    "logging":{
+        "debug": false,
+        "level": "info"
+    },
+
+    // Mail settings. If the smtphost is configured, and from address is set,
+    //    emails will be sent during certain events.
+    "mail":{
+        //"from": "ian@ianrees.net",
+        //"smtphost": "localhost"
+    },
+
+    // Web-server related settings
+    "web":{
+        "uri": "",
+
+        // Number of web server threads to run
+        "threads": 1,
+
+        // Regular HTTP port
+        "port": 8080,
+
+        // HTTPS port. You will need to place the SSL certificate and key files in the SSL directory
+        "https": 0,
+
+        // The hostname of the EMEN2 installation, for reversing to a full URI
+        "host": "localhost",
+
+        // The EMEN2 URI root -- e.g., "/testserver" or "http://ncmidb.bcm.edu/challenge". Useful for running behind a reverse proxy.
+        "root": ""
+    },
+
+    // User settings
+    "users":{
+        // Automatically approve new user accounts
+        "autoapprove": false,
+        
+        // New users will be added to these groups
+        "group_defaults": ["create"]        
+    },
+
+    // Some basic settings and interface strings
+    "customization":{
+        // Short string for database identification. This shows up several places in the UI
+        "title": "EMEN2",
+
+        // Logo graphic
+        // todo: Move to template block.
+        "logo": "emen2logo-small.png",
+        
+        // These words will not be indexed
+        "unindexed_words": ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"],
+
+        "table_add_columns": ["creationtime", "creator"]
+    },
+
+    // Bookmarks to some key records.
+    "bookmarks":{
+        "banner": "0",
+        "banner_noauth": "0",
+        "bookmarks": []
+    }
+}

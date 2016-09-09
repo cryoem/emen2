@@ -1,5 +1,7 @@
+# $Id: map.py,v 1.26 2013/05/07 07:22:05 irees Exp $
 from emen2.web.view import View
 import emen2.db.config
+
 
 def bfs(root, tree, recurse=1):
     maxrecurse = emen2.db.config.get('params.maxrecurse')
@@ -16,6 +18,8 @@ def bfs(root, tree, recurse=1):
     stack = set()
     inner(stack, tree.get(None, [root]))
     return stack
+
+
 
 @View.register
 class Tree(View):
@@ -34,7 +38,9 @@ class Tree(View):
         # Expand all nodes. -3 turns into -1...
         if action=="expand" or recurse == -1:
             recurse = -3
-            
+
+        parents = set()
+
         # add 2 to recurse to get enough info to draw the next level
         if mode == "children":
             tree = self.db.rel.rel([root], rel="children", recurse=recurse+2, keytype=keytype, tree=True)
@@ -42,8 +48,6 @@ class Tree(View):
             parents = self.db.rel.parents(root, keytype=keytype)
         else:
             tree = self.db.rel.rel([root], rel="parents", recurse=recurse+2, keytype=keytype, tree=True)
-            parents = set()
-
         # if collapse_rectype:
         #    collapsed |= self.db.rel.children(root, recurse=-1, rectype=collapse_rectype)
 
@@ -81,3 +85,5 @@ class Tree(View):
         self.ctxt['link'] = link
         self.ctxt['showroot'] = showroot
 
+
+__version__ = "$Revision: 1.26 $".split(":")[1][:-1].strip()

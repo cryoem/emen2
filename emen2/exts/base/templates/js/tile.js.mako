@@ -29,9 +29,9 @@
             this.element.empty();
             
             if (retry==null) {retry = 0}
-            if (retry > 10) {
+            if (retry > 5) {
                 $('<p />')
-                    .text('Could not access tiles.')
+                    .text('Error getting tiles!')
                     .appendTo(this.element);
                 return
             }
@@ -52,7 +52,6 @@
                     self.options.ny = d['ny'];
                     self.options.filename = d['filename'];
                     self.options.maxscale = d['maxscale'];
-                    console.log("Got response:", self.options);
                     self.build();
                 },
                 error: function(x,y,z) {
@@ -459,6 +458,8 @@
         }
     });    
 })(jQuery);
+
+
 
 <%!
 public = True

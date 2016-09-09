@@ -1,3 +1,4 @@
+# $Id: download.py,v 1.34 2013/05/14 09:19:12 irees Exp $
 import time
 import re
 import os
@@ -37,25 +38,17 @@ class Download(View):
     defaultType = 'application/octet-stream'
 
     @View.add_matcher('^/download/$', name='multi')
-    @View.add_matcher('^/download/(?P<name>[^/]*)/$', name='test0')
-    @View.add_matcher('^/download/(?P<name>[^/]*)/(?P<filename>[^/]*)/$', name='test')
-    @View.add_matcher('^/binary/(?P<name>[^/]*)/$', name='binary')
-    @View.add_matcher('^/binary/(?P<name>[^/]*)/(?P<filename>[^/]*)/$', name='test2')
-    def main(self, name, filename=None, size=None, format=None, q=None, rename=None, tar=None):
-        # Testing...
-        self._filename = filename
+    @View.add_matcher('^/download/(?P<bids>[^/]*)/(?P<filename>[^/]*)/$')
+    @View.add_matcher('^/binary/(?P<bids>[^/]*/)/$', name='binary')
+    def main(self, bids, filename=None, size=None, format=None, q=None, rename=None, tar=None):
+        if not hasattr(bids, '__iter__'):
+            bids = [bids]
 
-        # Compatibility...
-        if hasattr(name, '__iter__'):
-            names = name
-        else:
-            names = [name]
-            
         # Query for BDOs
         if q:
             bdos = self.db.binary.get(q=q)
         else:
-            bdos = self.db.binary.get(names)
+            bdos = self.db.binary.get(bids)
 
         # Found what we needed; close the transaction
         return bdos
@@ -73,9 +66,8 @@ class Download(View):
             name = bdo.get('name', 'none')
             record = bdo.get('record', 'none')
             filename = bdo.get("filename")
-            dkey = emen2.db.binary.parse(bdo.creationtime, bdo.name)
-            filepath = dkey['filepath']
-            previewpath = dkey['previewpath']
+            filepath = bdo.get("filepath")
+            previewpath = emen2.db.binary.Binary.parse(bdo.get('name')).get('previewpath')
             
             if size:
                 # Thumbnail requested
@@ -93,14 +85,14 @@ class Download(View):
             elif os.access(filepath, os.F_OK):
                 # Found the file
                 if rename == 'name':
-                    filename = "%s.%s"%(bdo.get('name', 'none'), filename)
+                    filename = "%s.%s"%(bdo.get('name', 'none').replace('bdo:', ''), filename)
                 elif rename == 'record':
                     filename = "%s.%s"%(bdo.get('record', 'none'), filename)
                 files[filepath] = filename
             
             else:
                 # This will trigger render_eb if the file is not found
-                raise IOError("Could not access file.")
+                raise IOError, "Could not access file"
 
         # Check for files that have the same name...
         seen = []
@@ -108,11 +100,12 @@ class Download(View):
             if v in seen:
                 files[k] = renamefile(v, count=seen.count(v)+1)
             seen.append(v)
-        
+            
         if tar or len(files) > 1:
             return self._transfer_tar(files, request)
         
         return self._transfer_single(files, request, cache=cache)
+
 
     ##### Process the result #####
 
@@ -128,8 +121,8 @@ class Download(View):
 
         fsize = os.stat(filepath).st_size
         f = open(filepath)
-        
-        if request.postpath[-1] == "save" or not self._filename:
+
+        if request.postpath[-1] == "save":
             request.setHeader('Content-Disposition', 'attachment; filename=%s'%filename.encode('utf-8'))
 
         request.setHeader('Content-Length', str(fsize))
@@ -141,6 +134,7 @@ class Download(View):
         a = twisted.web.static.NoRangeStaticProducer(request, f)
         a.start()
 
+
     def _transfer_tar(self, files, request, cache=False):
         # Download multiple files using TarPipe
         t = emen2.db.database.utcnow()[:10]
@@ -149,6 +143,7 @@ class Download(View):
         request.setHeader('Content-Encoding', 'application/octet-stream')
         a = twisted.web.static.NoRangeStaticProducer(request, TarPipe(files))
         a.start()
+        
 
 class TarPipe(object):
     def __init__(self, files={}):
@@ -182,3 +177,7 @@ class TarPipe(object):
             data = self.buffer.read(size)
         return data
 
+
+
+
+__version__ = "$Revision: 1.34 $".split(":")[1][:-1].strip()

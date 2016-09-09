@@ -1,3 +1,4 @@
+# $Id: reverse.py,v 1.6 2012/07/28 06:31:18 irees Exp $
 import collections
 import jsonrpc.jsonutil
 
@@ -54,3 +55,4 @@ class ReverseURI(View):
         kwargs = dict( (k.encode('utf-8'), v) for k,v in kwargs.iteritems() )
         self.page = self.ctxt.render_template_view(name, *arguments, **kwargs)
         
+__version__ = "$Revision: 1.6 $".split(":")[1][:-1].strip()

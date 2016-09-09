@@ -11,11 +11,13 @@
  
 (function($) {
 
+
 var fc = $.fullCalendar;
 var formatDate = fc.formatDate;
 var parseISO8601 = fc.parseISO8601;
 var addDays = fc.addDays;
 var applyAll = fc.applyAll;
+
 
 fc.sourceNormalizers.push(function(sourceOptions) {
     if (sourceOptions.dataType == 'gcal' ||
@@ -28,11 +30,13 @@ fc.sourceNormalizers.push(function(sourceOptions) {
         }
 });
 
+
 fc.sourceFetchers.push(function(sourceOptions, start, end) {
     if (sourceOptions.dataType == 'gcal') {
         return transformOptions(sourceOptions, start, end);
     }
 });
+
 
 function transformOptions(sourceOptions, start, end) {
 
@@ -98,9 +102,11 @@ function transformOptions(sourceOptions, start, end) {
     
 }
 
+
 // legacy
 fc.gcalFeed = function(url, sourceOptions) {
     return $.extend({}, sourceOptions, { url: url, dataType: 'gcal' });
 };
+
 
 })(jQuery);

@@ -1,3 +1,4 @@
+# $Id: log.py,v 1.8 2012/10/18 09:41:40 irees Exp $
 # Standard View imports
 import functools
 import collections
@@ -7,6 +8,7 @@ import emen2.db.config
 from emen2.web.view import View, AdminView
 from emen2.util.loganalyzer import AccessLogFile, AccessLogLine
 import datetime
+
 
 class _Null: pass
 def cast_arguments(*postypes, **kwtypes):
@@ -27,6 +29,8 @@ def cast_arguments(*postypes, **kwtypes):
         return _inner
     return _func
 
+
+
 class RecordNotFound(emen2.web.responsecodes.NotFoundError):
     title = 'Record Not Found'
     msg = 'Record %d not found'
@@ -46,8 +50,7 @@ class Reverser(object):
         self.stopped = result
         return result
     def next(self):
-            if self.stopped:
-                raise StopIteration
+            if self.stopped: raise StopIteration
             line = []
             line.insert(0, self._file.read(1))
             if line[0] == '\n':
@@ -65,8 +68,7 @@ class Reverser(object):
         try:
             while True:
                 yield self.next()
-        except EOFError:
-            raise StopIteration
+        except EOFError: raise StopIteration
 
 # class TableJS(emen2.web.templating.BaseJS):
 #     def main(self):
@@ -94,6 +96,7 @@ def stringify(dict_):
     sdict = {'TB': (0, '{TB} TB'), 'GB': (1, '{GB} GB'), 'MB': (2, '{MB} MB'), 'KB': (3,'{KB} KB'), 'B':(4,'{B} B')}
     fmtl =  [ x[1] for x in sorted( sdict[k] for k in (set(dict_) & set(sdict)) ) ]
     return ', '.join(fmtl).format(**dict_)
+
 
 @stringify
 def makereadable(val):
@@ -159,7 +162,7 @@ class LogAnalysis(View):#AdminView):
 
         ctx = self.db._getctx()
         if not ctx.checkadmin():
-            linefilter['username'] = set([ctx.user])
+            linefilter['username'] = set([ctx.username])
 
         logfile, errors = self._getlines('access.log', AccessLogFile, start, end, reverse=reverse, index=index)
 
@@ -181,6 +184,8 @@ class LogAnalysis(View):#AdminView):
                     if add:
                         data[name].append(line)
                 if len(data[name]) == 0: del data[name]
+
+
 
         print linefilter, jsfilter
         self.ctxt.update(
@@ -205,3 +210,4 @@ class LogAnalysis(View):#AdminView):
                     )
                 ).get(name, Normalizer())
         )
+__version__ = "$Revision: 1.8 $".split(":")[1][:-1].strip()

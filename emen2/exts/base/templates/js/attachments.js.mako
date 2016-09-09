@@ -129,6 +129,7 @@
             // Show completion button
             $('.e2-dialog-no-close button').attr('disabled','disabled');
             $('.e2-dialog-no-close button .ui-button-text').text("Uploading...");
+            
 
             // Get the files and parameter name
             var fileinput = $('input:file', this.element);
@@ -356,11 +357,13 @@
                 var summary = $('<div />');
                 var sum2 = $('<p />').text('This record has '+this.bdos.length+' attachments.');
                 var rec = emen2.cache.get(this.options.name);
-                sum2.append(' There may be additional attachments in child records: ');
-                var a = $('<a />')
-                a.attr('href', emen2.template.uri(['record', this.options.name, 'query', 'attachments']))
-                a.text('view all attachments in child records.');
-                a.appendTo(sum2);
+                if (rec['children'].length) {
+                    sum2.append(' There may be additional attachments in child records: ');
+                    var a = $('<a />')
+                    a.attr('href', emen2.template.uri(['record', this.options.name, 'query', 'attachments']))
+                    a.text('view all attachments in child records.');
+                    a.appendTo(sum2);
+                }
                 summary.append(sum2);
                 this.element.append(summary);
             }
@@ -415,7 +418,7 @@
                     <li>Add attachments: <input type="file" class="e2-attachments-fileinput" name="file_binary" multiple /></li> \
                 </ul> \
                 <ul class="e2l-controls"> \
-                    <li><input type="submit" class="e2l-save" value="Update attachments" /></li> \
+                    <li><input type="submit" class="e2l-save" value="Save attachments" /></li> \
                 </ul>');
 
             // Selection control

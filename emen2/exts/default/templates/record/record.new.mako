@@ -21,6 +21,8 @@
     // });    
 </%block>
 
+
+
 <div class="e2l-help">
     <p>
         You are creating a new <a href="${ctxt.reverse('RecordDef/main', name=recdef.name)}">${recdef.desc_short}</a> record as a child of <a href="${ctxt.reverse('Record/main', name=rec.name)}">${recnames.get(rec.name, rec.name)}</a>
@@ -33,6 +35,7 @@
     <form id="e2-permissions"></form>
 </div>
 
+
 ## Main rendered record
 
 <form id="e2-edit" data-name="None" method="post" action="${ctxt.root}/record/${rec.name}/new/${newrec.rectype}/" enctype="multipart/form-data">
@@ -44,4 +47,6 @@
         <input type="submit" value="Save">
     </div>
 </form>
+
+
 

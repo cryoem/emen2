@@ -89,6 +89,7 @@ emen2.time.start = function(t1, width) {
 // EMEN2 Time interval helpers
 emen2.time.interval = {};
 
+
 // Return year interval
 emen2.time.interval.year = function(t1) {
     var t1 = t1 || new Date();
@@ -131,6 +132,8 @@ emen2.time.interval.second = function(t1) {
     var end = new Date(t1.getFullYear(), t1.getMonth(), t1.getDate(), t1.getHours(), t1.getMinutes(), t1.getSeconds()+1, 0);
     return [start, end]
 };
+
+
 
 // EMEN2 cache handling
 emen2.cache = {};
@@ -265,6 +268,7 @@ emen2.ui.buttonfeedback = function(elem) {
     elem.addClass('e2l-disabled');
 }
 
+
 // Convert a byte count to human friendly
 emen2.template.prettybytes = function(bytes) {
     var b = 0;
@@ -286,6 +290,7 @@ emen2.template.prettybytes = function(bytes) {
         return "Unknown"
     }
 };
+
 
 // EMEN2 Utility functions
 emen2.util = {};
@@ -399,61 +404,6 @@ emen2.util.set_remove = function(i, l) {
     // Some simple jquery UI widgets that don't really
     //  fit in any other files..
     ///////////////////////////////////////////////////
- 
-    $.widget('emen2.AutoCompleteControl', {
-        options: {
-            param: null
-        }, 
-        
-        _create: function() {
-            var self = this;
-			emen2.util.checkopts(this, ['paramdef']);
-            this.element.autocomplete({
-                minLength: 0,
-                source: function(request, response) {
-                    emen2.db("record.findbyvalue", [self.options.paramdef, request.term], function(ret) {
-                        var r = $.map(ret, function(item) {
-                            return {
-                                label: item[0] + " (" + item[1] + " records)",
-                                value: item[0]
-                            }
-                        });
-                        response(r);            
-                    });
-                }
-            });
-        }
-    }),
-    
-    $.widget('emen2.DatePickerControl', {
-        // Basically, just keep all the options for the date picker together.
-       options: {           
-           showtime: true,
-           showtz: true
-       },
-       _create: function() {
-           opts = {
-              showButtonPanel: true,
-              changeMonth: true,
-              changeYear: true,
-              showAnim: '',
-              yearRange: 'c-100:c+100',
-              dateFormat: 'yy-mm-dd',
-          }
-          if (this.options.showtz && this.options.showtime) {
-              opts['showTimezone'] = true;              
-              opts['timezone'] = '+0500';
-              this.element.datetimepicker(opts);               
-          } else if (this.options.showtime) {
-              opts['separator'] = 'T';
-              opts['timeFormat'] = 'hh:mm:ssz';
-              opts['showSecond'] = true;              
-              this.element.datetimepicker(opts);           
-          } else {
-              this.element.datepicker(opts);                         
-          }
-       }
-    }),
  
     // Select utility
     $.widget('emen2.SelectControl', {
@@ -601,7 +551,7 @@ emen2.util.set_remove = function(i, l) {
                     .attr('data-tab', tab)
                     .appendTo(this.tabpanel);
             }            
-            // p.addClass('e2l-cf');
+            p.addClass('e2l-cf');
 
             // Menu-style -- float above content
             // if (this.options.absolute) {

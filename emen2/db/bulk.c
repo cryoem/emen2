@@ -3,6 +3,7 @@
 #include "db.h"
 #include "bsddb.h"
 
+
 // To compile on OS X:
 // export BERKELEYDBPATH=/usr/local/BerkeleyDB.5.3
 // export BSDDB3PATH=$HOME/src/bsddb3-5.3.0/Modules
@@ -11,9 +12,13 @@
 // gcc -Wl,-F. -bundle -undefined dynamic_lookup -L${BERKELEYDBPATH}/lib -ldb emen2/db/bulk.o -o emen2/db/bulk.so 
 // python -c "import emen2.db.bulk"
 
+
 // Linux -- new
 // gcc -pthread -fno-strict-aliasing -DNDEBUG -g -fwrapv -O3 -Wall -Wstrict-prototypes -fPIC -DPYBSDDB_STANDALONE=1 -I/usr/local/BerkeleyDB.5.3/include -I/home/emen2/EMAN2/Python/include/python2.7  -I/home/emen2/bsddb3-5.3.0/Modules/  -c test/emen2/emen2/db/bulk.c -o bulk.o
 // gcc -pthread -shared db/bulk.o -L/usr/local/BerkeleyDB.4.8/lib -Wl,-R/usr/local/BerkeleyDB.4.8/lib -ldb-4.8 -o db/bulk.so
+
+
+
 
 /*
 err = cursor->dbc->get(cursor->dbc, &key, &data, DB_FIRST);
@@ -29,6 +34,7 @@ while (err != DB_NOTFOUND) {
 }
 */
 
+
 // static PyObject*
 // testwtf(PyObject *self, PyObject *args, PyObject *kwargs) {
 //       PyObject* set;
@@ -41,10 +47,14 @@ while (err != DB_NOTFOUND) {
 //    return set;
 // }
 
+
 // static PyObject*
 // DBC_get_dup_items(PyObject *self, PyObject *args, PyObject *kwargs) {
 //    
 // }
+
+
+
 
 static PyObject*
 notbulk(DBCursorObject *cursor, PyObject *keyobj, char dtype) { 
@@ -68,6 +78,7 @@ notbulk(DBCursorObject *cursor, PyObject *keyobj, char dtype) {
     key.data = PyString_AS_STRING(keyobj);
     key.size = PyString_GET_SIZE(keyobj);
     /* end common */
+    
 
     Py_BEGIN_ALLOW_THREADS
     err = cursor->dbc->c_get(cursor->dbc, &key, &data, DB_SET);
@@ -109,6 +120,8 @@ notbulk(DBCursorObject *cursor, PyObject *keyobj, char dtype) {
     return (set);
 }
 
+
+
 static PyObject*
 bulk(DBCursorObject *cursor, PyObject *keyobj, char dtype) {    
 
@@ -129,6 +142,7 @@ bulk(DBCursorObject *cursor, PyObject *keyobj, char dtype) {
     if (list == NULL)
         return NULL;
 
+
     memset(&key, 0, sizeof(key));
     memset(&data, 0, sizeof(data));
     memset(&data2, 0, sizeof(data2));
@@ -136,6 +150,7 @@ bulk(DBCursorObject *cursor, PyObject *keyobj, char dtype) {
     key.data = PyString_AS_STRING(keyobj);
     key.size = PyString_GET_SIZE(keyobj);
     /* end common */
+    
 
     
     // review in 4 MB chunks
@@ -143,6 +158,7 @@ bulk(DBCursorObject *cursor, PyObject *keyobj, char dtype) {
     if ((data2.data = malloc(blen)) == NULL) {return NULL;}
     data2.ulen = blen;
     data2.flags = DB_DBT_USERMEM;
+
 
     // get the first item, add it to the list..
     Py_BEGIN_ALLOW_THREADS
@@ -166,6 +182,7 @@ bulk(DBCursorObject *cursor, PyObject *keyobj, char dtype) {
             Py_DECREF(item);
         }
     }
+    
 
     for (;;) {
         
@@ -218,6 +235,11 @@ bulk(DBCursorObject *cursor, PyObject *keyobj, char dtype) {
     return (set);
 }
 
+
+
+
+
+
 static PyObject*
 DBC_get_dup_bulk(PyObject *self, PyObject *args, PyObject *kwargs) {
 
@@ -234,6 +256,7 @@ DBC_get_dup_bulk(PyObject *self, PyObject *args, PyObject *kwargs) {
     return bulk(cursor, keyobj, dtype);
     
 }
+
 
 static PyObject*
 DBC_get_dup_notbulk(PyObject *self, PyObject *args, PyObject *kwargs) {
@@ -252,11 +275,15 @@ DBC_get_dup_notbulk(PyObject *self, PyObject *args, PyObject *kwargs) {
     
 }
 
+
+
 static PyMethodDef BulkMethods[] = {
     {"get_dup_bulk",  (PyCFunction)DBC_get_dup_bulk, METH_VARARGS | METH_KEYWORDS, "DB Bulk (using bulk interface)"},
     {"get_dup_notbulk",     (PyCFunction)DBC_get_dup_notbulk, METH_VARARGS | METH_KEYWORDS, "DB Get Duplicates (not bulk interface)"},
     {NULL, NULL, 0, NULL}
 };
+
+
 
 PyMODINIT_FUNC
 initbulk(void)

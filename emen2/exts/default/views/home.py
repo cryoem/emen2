@@ -1,3 +1,4 @@
+# $Id: home.py,v 1.30 2013/06/27 06:52:52 irees Exp $
 import datetime
 import time
 import tempfile
@@ -11,6 +12,7 @@ import emen2.db.config
 import emen2.db.log
 from emen2.web.view import View
 
+
 @View.register
 class Home(View):
 
@@ -18,7 +20,7 @@ class Home(View):
     @View.add_matcher(r'^/home/$', r'^/db/home/$')
     def main(self, hideinactive=False, sortkey='name', reverse=False):
         self.title = 'Home'
-        self.template = '/pages/home'
+        self.template = '/pages/home.main'
 
         banner = None
         render_banner = ''
@@ -54,9 +56,6 @@ class Home(View):
             )            
         self.ctxt['recent_activity'] = q
 
-        # Root
-        self.ctxt['rel_root'] = self.db.rel.root(keytype='record')
-        
         # Table
         q_table = self.routing.execute('Query/embed', db=self.db, q={'count':20, 'subset':q['names']}, controls=False)
         self.ctxt['recent_activity_table'] = q_table
@@ -64,7 +63,7 @@ class Home(View):
         # Groups and projects
         torender = set()
         def nodeleted(items):
-            return filter(lambda x:not x.get('hidden'), items)
+            return filter(lambda x:not x.get('deleted'), items)
 
         # Groups
         groups = nodeleted(self.db.record.get(self.db.record.findbyrectype('group')))
@@ -91,11 +90,6 @@ class Home(View):
 
         # Get all the recent records we want to display
         recnames = self.db.view(torender)
-
-        # Default group and project recorddefs
-        recorddef_defaults = emen2.db.config.get('customization.recorddef_defaults')
-        self.ctxt['default_project'] = self.db.recorddef.get(recorddef_defaults.get('project', 'project')) or self.db.recorddef.get('root')
-        self.ctxt['default_group'] = self.db.recorddef.get(recorddef_defaults.get('group','group')) or self.db.recorddef.get('root')
 
         # Update context
         self.ctxt['recnames'] = recnames

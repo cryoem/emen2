@@ -4,55 +4,60 @@
 
 <h1>${user.displayname}</h1>
 
-<%buttons:singlepage label='Basic information'>
-    <form method="post" action="${ctxt.reverse('User/edit', name=user.name)}">
-        ## <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='privacy')}" />    
-        <table class="e2l-kv">
-            <tbody>
-                <tr>
-                    <td>First Name:</td>
-                    <td><input name="user.name_first" type="text" value="${user.get('name_first','')}" required autocomplete="off" /></td>
-                </tr>
-                <tr>
-                    <td>Middle Name:</td>
-                    <td><input name="user.name_middle" type="text" value="${user.get('name_middle','')}" autocomplete="off" /></td>
-                </tr>
-                <tr>
-                    <td>Last Name:</td>
-                    <td><input name="user.name_last" type="text" value="${user.get('name_last','')}" required autocomplete="off" /></td>
-                </tr>
-            </tbody>
-        </table>
-        ${buttons.save('Save name')}
-    </form>        
-</%buttons:singlepage>
+% if user.name != 'root' and user.userrec:
 
-
-% if user.userrec:
     <%buttons:singlepage label='Profile'>
+
         <form method="post" enctype="multipart/form-data" action="${ctxt.root}/record/${user.record}/edit/">
+
             <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='profile')}" />
+        
             ${user_util.profile(user=user, userrec=user.userrec, edit=True, prefix='')}
+
+            <table class="e2l-kv">
+                <tbody>
+                    <tr>
+                        <td>Select a new photo:</td>
+                        <td>
+
+                            % if user.userrec.get('person_photo'):
+                                <% pf_url = ctxt.root + "/download/" + user.userrec.get('person_photo') + "/user.jpg" %>
+                                <a href="${pf_url}"><img src="${pf_url}?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" /></a>
+                                <input type="hidden" name="person_photo" value="${user.userrec.get('person_photo')}" />
+                            % else:
+                                <div>There is currently no photo.</div>
+                            % endif
+
+                            <p>
+                                <input type="file" name="person_photo"/>
+                            </p>
+
+
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+
             ${buttons.save('Save profile')}
+
         </form>
     </%buttons:singlepage>
+
 % endif
+
 
 
 <%buttons:singlepage label='Change email'>
     <form method="post" action="${ctxt.root}/auth/email/change/">
+
+        ## <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='email')}" />
         <input type="hidden" name="name" value="${user.name or ''}" />
+
         <table class="e2l-kv">
             <tbody>
                 <tr>
                     <td>Current password:</td>
-                    <td>
-                        % if ADMIN:
-                            <input type="password" disabled="disabled" placeholder="Admin" /> <span class="e2l-small">(Admin may directly change email)</span>
-                        % else:
-                            <input type="password" name="opw" value="" /> <span class="e2l-small">(required to change email)</span>
-                        % endif
-                    </td>
+                    <td><input type="password" name="opw" value="" /> <span class="e2l-small">(required to change email)</span></td>
                 </tr>
                 </tr>
                     <td>New email:</td>
@@ -60,24 +65,25 @@
                 </tr>
             </tbody>
         </table>
+
         ${buttons.save('Change email')}
+
     </form>
 </%buttons:singlepage>
 
+
+
 <%buttons:singlepage label='Change password'>
     <form action="${ctxt.root}/auth/password/change/" method="post">
+
+        ## <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='password')}" />
         <input type="hidden" name="name" value="${user.name or ''}" />
+
         <table class="e2l-kv">
             <tbody>
                 <tr>
                     <td>Current password:</td>
-                    <td>
-                        % if ADMIN:
-                            <input type="password" disabled="disabled" placeholder="Admin" /> <span class="e2l-small">(Admin may directly set password)</span>
-                        % else:
-                            <input type="password" name="opw" />
-                        % endif
-                    </td>
+                    <td><input type="password" name="opw" /></td>
                 </tr>
                 <tr>
                     <td>New password:</td>
@@ -89,12 +95,17 @@
                 </tr>
             </tbody>
         </table>
+
         ${buttons.save('Change password')}
+
     </form>
 </%buttons:singlepage>
 
+
+
 <%buttons:singlepage label='Set privacy'>
     Who may view your account information:
+        
     <form method="post" action="${ctxt.reverse('User/edit', name=user.name)}">
         <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='privacy')}" />    
         <input type="radio" name="user.privacy" value="0" ${['checked="checked"','',''][user.privacy]}> Public <br />
@@ -103,6 +114,8 @@
         ${buttons.save('Set privacy level')}
     </form>        
 </%buttons:singlepage>
+
+
 
 % if ADMIN:
     <%buttons:singlepage label='Account status'>
@@ -115,10 +128,14 @@
     </%buttons:singlepage>
 % endif
 
+
+
 <%buttons:singlepage label='History'>
     <p>Created: <time class="e2-localize" datetime="${user.get("creationtime")}">${user.get("creationtime")}</time></p>
     <p>Modified: <time class="e2-localize" datetime="${user.get("modifytime")}">${user.get("modifytime")}</time></p>
 </%buttons:singlepage>
+
+
 
 ## <%buttons:singlepage label='Groups'>
 ## </%buttons:singlepage>

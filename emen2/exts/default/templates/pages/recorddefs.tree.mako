@@ -8,6 +8,7 @@
     });
 </%block>
 
+
 <form method="post" action="${ctxt.root}/recorddefs/name/">
 <h1>
     ${ctxt.title}

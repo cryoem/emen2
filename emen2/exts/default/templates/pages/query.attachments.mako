@@ -10,19 +10,14 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
     $("#e2-download").DownloadControl({});
 </%block>
 
-<form id="e2-download" method="post" action="${ctxt.root}/download/">
-    <input type="hidden" name="tar" value="True" />
-    <h1>
-        <span class="e2-download-filecount">${len(bdos)}</span> files, <span class="e2-download-filesize">${filesize}</span>
 
-        <ul class="e2l-actions">
-            <li><input type="submit" value="Download selected attachments" /></li>
-            <li>
-                <input type="checkbox" name="rename" value="name" id="e2-download-rename" />
-                <label for="e2-download-rename">Add attachment ID to filenames</label>
-            </li>
-        </ul>
-    </h1>
+
+<%def name="download(bdos, users=None, recnames=None)">
+    <%
+    recnames = recnames or {}
+    users = users or []
+    users_d = dict((i.name, i) for i in users)    
+    %>
 
     <table class="e2l-shaded">
         <thead>
@@ -35,9 +30,9 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
                 <th>Created</th>
             </tr>
         </thead>
-
+    
         <tbody>
-        % for bdo in bdos:
+        % for bdo in sorted(bdos, key=lambda x:x.filename.lower()):
             <tr>
                 <td><input type="checkbox" checked="checked" name="bids" value="${bdo.name}" data-filesize="${bdo.get('filesize',0)}" /></td>
                 <td>
@@ -64,5 +59,22 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
         </tbody>
 
     </table>
+</%def>
 
+
+<form id="e2-download" method="post" action="${ctxt.root}/download/">
+    <input type="hidden" name="tar" value="True" />
+    <h1>
+        <span class="e2-download-filecount">${len(bdos)}</span> files, <span class="e2-download-filesize">${filesize}</span>
+
+        <ul class="e2l-actions">
+            <li><input type="submit" value="Download selected attachments" /></li>
+            <li>
+                <input type="checkbox" name="rename" value="name" id="e2-download-rename" />
+                <label for="e2-download-rename">Add attachment ID to filenames</label>
+            </li>
+        </ul>
+    </h1>
+
+    ${download(bdos)}    
 </form>
