@@ -69,7 +69,7 @@ def update_recorddef_cache(cache, db, values):
         rds = db.recorddef.get(to_cache)
         for rd in rds:
             cache.store(('recorddef', rd.name), rd)
-    
+
 
 
 
@@ -130,7 +130,7 @@ class Vartype(object):
 
     #: Is this vartype iterable?
     iterable = True
-    
+
     #: Sort using rendered values?
     sort_render = False
 
@@ -162,10 +162,10 @@ class Vartype(object):
     # def validate(self, pd, value):
     #     if value in NONEVALUES:
     #         return None
-    # 
+    #
     #     if pd.property:
     #         value = self.properties[pd.property]().validate(self, pd, value, self.db)
-    # 
+    #
     #     return self.vartypes[pd.vartype](cache=self.cache, db=self.db, pd=pd).validate(value)
 
     def validate(self, value):
@@ -181,7 +181,7 @@ class Vartype(object):
             found = set()
             changed = True
 
-        for i in value:       
+        for i in value:
             i = self.db._db.dbenv[keytype].keyclass(i) # ugly hack :(
             if i in found:
                 ret.append(i)
@@ -194,9 +194,9 @@ class Vartype(object):
                 ret.append(i)
             else:
                 raise ValidationError, "Could not find: %s (parameter %s)"%(i, self.pd.name)
-        
+
         if changed:
-            self.cache.store(key, found)    
+            self.cache.store(key, found)
         return ret
 
     def _rci(self, value):
@@ -205,7 +205,7 @@ class Vartype(object):
             return value.pop()
         return value or None
 
-    
+
     ##### Indexing #####
 
     def reindex_keywords(self, items):
@@ -257,7 +257,7 @@ class Vartype(object):
         if self.pd.iter:
             return ", ".join(self._unicode(i) for i in value)
         return self._unicode(value)
-    
+
     def render_html(self, value):
         """Render HTML formatted values. All values MUST be escaped."""
         if value is None:
@@ -281,13 +281,13 @@ class Vartype(object):
 
     def _unicode(self, value):
         return unicode(value)
-    
+
     def _html(self, value):
         if value is None:
             return ''
         elem = Markup("""<span class="e2-edit" data-paramdef="%s">%s</span>""")%(self.pd.name, self._unicode(value))
         return elem
-        
+
     def _form(self, value):
         if value is None:
             value = ''
@@ -305,17 +305,17 @@ class Vartype(object):
     def _li_wrap(self, values, hidden=None, add=None):
         lis = ["""<li>%s</li>"""%value for value in values]
         if hidden:
-            lis.append("""<li class="e2-edit-template e2l-hide">%s</li>"""%hidden)            
+            lis.append("""<li class="e2-edit-template e2l-hide">%s</li>"""%hidden)
         if add:
             lis.append("""<li>%s</li>"""%add)
         return """<ul>%s</ul>"""%"".join(lis)
-        
+
 
 
 @Vartype.register('none')
 class vt_none(Vartype):
     pass
-    
+
 
 # Float vartypes
 #    Indexed as 'f'
@@ -332,7 +332,7 @@ class vt_float(Vartype):
         u = self.pd.defaultunits or ''
         return '%g %s'%(value, u)
 
-    def _form(self, value):    
+    def _form(self, value):
         if value is None:
             value = ''
         units = self.pd.defaultunits or ''
@@ -343,7 +343,7 @@ class vt_float(Vartype):
             value,
             units
         )
-    
+
 
 @Vartype.register('percent')
 class vt_percent(Vartype):
@@ -359,7 +359,7 @@ class vt_percent(Vartype):
         return self._rci(value)
 
     def _unicode(self, value):
-        return '%0.0f'%(i*100.0)
+        return '%0.0f'%(value*100.0)
 
 
 
@@ -421,11 +421,11 @@ class vt_boolean(Vartype):
             choices.append("""<option>True</option>""")
             choices.append("""<option checked="checked" >False</option>""")
         return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><select>%s</select></span>""")%(
-            self.pd.name, 
+            self.pd.name,
             self.pd.vartype,
             Markup("".join(choices))
             )
-        
+
 
 @Vartype.register('keywords')
 class vt_keywords(Vartype):
@@ -437,7 +437,7 @@ class vt_keywords(Vartype):
 @Vartype.register('string')
 class vt_string(Vartype):
     """String."""
-    
+
     _indexwords = re.compile('[a-zA-Z0-9-]{3,}')
 
     def _getindexwords(self, value):
@@ -494,14 +494,14 @@ class vt_choice(vt_string):
             else:
                 elem = Markup("""<option value="%s">%s</option>""")%(choice, choice)
             choices.append(elem)
-            
+
         return Markup("""<span class="e2-edit" data-paramdef="%s" data-vartype="%s"><select name="%s">%s</select></span>""")%(
             self.pd.name,
             self.pd.vartype,
             self.pd.name,
             Markup("".join(choices))
             )
-        
+
 
 @Vartype.register('text')
 class vt_text(vt_string):
@@ -559,7 +559,7 @@ class vt_datetime(Vartype):
                     raise ValidationError, "No UTC offset: %s"%i
                 ret.append(t.isoformat())
         return self._rci(ret)
-        
+
     def _strip(self, t, time_precision=None):
         limit = time_precision or self.options.get('time_precision') or 0
         for prec, i in enumerate((t.microsecond, t.second, t.minute, t.hour, t.day, t.month, t.year)):
@@ -573,13 +573,13 @@ class vt_datetime(Vartype):
             return t.strftime(self.fmt[prec])
         except:
             return "Date out of bounds! %s"%value
-    
+
     def _unicode(self, value):
         tz = self.options.get('tz')
         raw_time = dateutil.parser.parse(value)
         local_time = raw_time.astimezone(dateutil.tz.gettz(tz))
         return self._strip(local_time)
-    
+
     def _html(self, value):
         tz = self.options.get('tz')
         raw_time = dateutil.parser.parse(value)
@@ -593,7 +593,7 @@ class vt_datetime(Vartype):
             local_time.isoformat(),
             self._strip(local_time)
             )
-            
+
 
 @Vartype.register('date')
 class vt_date(vt_datetime):
@@ -658,7 +658,7 @@ class vt_dictlist(vt_dict):
 
     def validate(self, value):
         if not value:
-            return None        
+            return None
         ret = {}
         for k,v in value.items():
             k = unicode(k)
@@ -695,7 +695,7 @@ class vt_binary(Vartype):
             self.pd.name,
             multiple
             )
-            
+
     def _html(self, value):
         if value is None:
             return ''
@@ -718,18 +718,18 @@ class vt_binary(Vartype):
         return elem
 
     def _form(self, value):
-        elem = ""       
+        elem = ""
         if value:
             bdo = self.db.binary.get(value)
             if not bdo:
                 return Markup("Error getting binary: %s"%value)
-            src = "/download/%s/thumb.jpg?size=thumb"%(bdo.name)        
+            src = "/download/%s/thumb.jpg?size=thumb"%(bdo.name)
             elem = Markup("""
                 <div class="e2-infobox" data-name="%s" data-keytype="user">
                     <input type="checkbox" name="%s" value="%s" checked="checked" />
                     <img src="%s" class="e2l-thumbnail" alt="Photo" />
                     <h4>%s</h4>
-                    <p class="e2l-small">%s</p>                
+                    <p class="e2l-small">%s</p>
                 </div>""")%(
                     bdo.name,
                     self.pd.name,
@@ -738,11 +738,11 @@ class vt_binary(Vartype):
                     bdo.filename,
                     bdo.filesize
                 )
-        
+
         # Show a 'Change' button...
         if not self.pd.iter:
             elem += self._add()
-            
+
         return Markup("""<div class="e2-edit" %s>%s</div>""")%(
             self.pd.name,
             elem
@@ -803,7 +803,7 @@ class vt_recorddef(Vartype):
 @Vartype.register('user')
 class vt_user(Vartype):
     """Users."""
-    
+
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='user')
         return self._rci(value)
@@ -845,7 +845,7 @@ class vt_user(Vartype):
                 <input type="checkbox" name="%s" value="%s" checked="checked" />
                 <img src="%s" class="e2l-thumbnail" alt="Photo" />
                 <h4>%s</h4>
-                <p class="e2l-small">%s</p>                
+                <p class="e2l-small">%s</p>
             </div>
             """)%(
                 value,
@@ -855,22 +855,22 @@ class vt_user(Vartype):
                 user.getdisplayname(),
                 user.email
             )
-        
+
         # Show a 'Change' button...
         if not self.pd.iter:
             elem += self._add()
-            
+
         return Markup("""<div class="e2-edit" data-paramdef="%s" data-vartype="%s">%s</div>""")%(
             self.pd.name,
             self.pd.vartype,
             elem
             )
-        
+
 
 @Vartype.register('acl')
 class vt_acl(Vartype):
     """Permissions access control list; nested lists of users."""
-    
+
     def validate(self, value):
         if not hasattr(value, '__iter__'):
             value = [[value],[],[],[]]
@@ -922,7 +922,7 @@ class vt_acl(Vartype):
 @Vartype.register('group')
 class vt_group(Vartype):
     """Group."""
-    
+
     def validate(self, value):
         value = self._validate_reference(ci(value), keytype='group')
         return self._rci(value)
@@ -933,13 +933,13 @@ class vt_group(Vartype):
 @Vartype.register('comments')
 class vt_comments(Vartype):
     """Comments."""
-    
+
     keyformat = None
 
     # ian: todo... sort this out.
     def validate(self, value):
         return value
-      
+
     def _html(self, value):
         user, dt, comment = value
         update_user_cache(self.cache, self.db, [user])
@@ -960,7 +960,7 @@ class vt_comments(Vartype):
 @Vartype.register('history')
 class vt_history(Vartype):
     """History."""
-    
+
     keyformat = None
 
 
