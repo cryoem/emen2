@@ -6,9 +6,9 @@ import math
 import os
 import signal
 import struct
-import json
+from . import json
 import sys
-import cPickle as pickle
+import pickle as pickle
 
 # For file writing
 import tempfile

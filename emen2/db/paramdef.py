@@ -161,14 +161,14 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
     def _set_choices(self, key, value):
         value = emen2.util.listops.check_iterable(value)
-        value = filter(None, [unicode(i) for i in value]) or None
+        value = [_f for _f in [str(i) for i in value] if _f] or None
         return self._set(key, value, self.isowner())
 
     def _set_desc_short(self, key, value):
-        return self._set(key, unicode(value or self.name), self.isowner())
+        return self._set(key, str(value or self.name), self.isowner())
 
     def _set_desc_long(self, key, value):
-        return self._set(key, unicode(value or ''), self.isowner())
+        return self._set(key, str(value or ''), self.isowner())
 
     # Only admin can change defaultunits/immutable/indexed/vartype.
     # This should still generate lots of warnings.
@@ -183,7 +183,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
 
     def _set_controlhint(self, key, value):
         if value != None:
-            value = unicode(value)
+            value = str(value)
         value = value or None
         return self._set(key, value)
                 
@@ -192,7 +192,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         if not self.isnew():
             self.error("Cannot change vartype from %s to %s."%(self.vartype, value))
 
-        value = unicode(value or '') or None
+        value = str(value or '') or None
 
         if value not in emen2.db.vartypes.Vartype.registered:
             self.error("Invalid vartype: %s"%value)
@@ -203,7 +203,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         if not self.isnew():
             self.error("Cannot change property from %s to %s."%(self.property, value))
 
-        value = unicode(value or '')
+        value = str(value or '')
         if value in ['None', None, '']:
             value = None
 
@@ -217,7 +217,7 @@ class ParamDef(emen2.db.dataobject.BaseDBObject):
         if not self.isnew():
             self.error("Cannot change defaultunits from %s to %s."%(self.defaultunits, value))
 
-        value = unicode(value or '') or None
+        value = str(value or '') or None
         value = emen2.db.properties.equivs.get(value, value)
         return self._set('defaultunits', value)
 

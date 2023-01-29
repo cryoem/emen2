@@ -38,7 +38,7 @@ def help(mt):
     def _inner(*a, **b):
         return dict(
             doc = getattr(mt, 'doc', None),
-            methods = mt.children.keys()
+            methods = list(mt.children.keys())
         )
     return _inner
 
@@ -64,7 +64,7 @@ class MethodTree(object):
         '''
 
         if original_name in self.children:
-            raise ValueError, "namespace conflict, cannot alias %r to %r" %(original_name, new_name)
+            raise ValueError("namespace conflict, cannot alias %r to %r" %(original_name, new_name))
         self.aliases[original_name] = new_name
 
     def get_alias(self, name):
@@ -113,7 +113,7 @@ class MethodTree(object):
         child = self.children.get(head)
 
         if child is None:
-            if tail: raise AttributeError, "method %r not found"%name
+            if tail: raise AttributeError("method %r not found"%name)
             else:
                 result = self
                 if name == 'help':
@@ -138,7 +138,7 @@ class _Method(object):
 
 
     def __call__(self, *args):
-        raise AttributeError, "No public method %s"%self._name
+        raise AttributeError("No public method %s"%self._name)
 
 class DBProxy(object):
     """A proxy that provides access to database public methods and handles low level details, such as Context and transactions.
@@ -166,7 +166,7 @@ class DBProxy(object):
 
     def __init__(self, db=None, ctx=None, txn=None):
         # it can cause circular imports if this is at the top level of the module
-        import database
+        from . import database
         db = db or database.DB()
 
         self._db = db
@@ -186,7 +186,7 @@ class DBProxy(object):
     def __exit__(self, exc_type, exc_value, traceback):
         # print "--> EXIT:", exc_type
         if not self._txn:
-            raise Exception, "DBProxy: No transaction to close."
+            raise Exception("DBProxy: No transaction to close.")
         if exc_type is None:
             self._txn = self._db.dbenv.txncommit(txn=self._txn)
         else:
@@ -220,7 +220,7 @@ class DBProxy(object):
 
     @classmethod
     def _register_publicmethod(cls, func, apiname=None, write=False, admin=False, ext=False, compat=None):
-        apiname = apiname or func.func_name.replace('_','.')
+        apiname = apiname or func.__name__.replace('_','.')
         setattr(func, 'apiname', apiname)
         setattr(func, 'write', write)
         setattr(func, 'admin', admin)
@@ -228,12 +228,12 @@ class DBProxy(object):
         setattr(func, 'compat', compat)
 
         cls._publicmethods[func.apiname] = func
-        cls._publicmethods[func.func_name] = func
+        cls._publicmethods[func.__name__] = func
         if compat:
             cls._publicmethods[compat] = func
 
         cls.mt.add_method(apiname, func)
-        cls.mt.add_method(func.func_name, func)
+        cls.mt.add_method(func.__name__, func)
 
         if compat:
             cls.mt.add_method(compat, func)
@@ -277,7 +277,7 @@ class DBProxy(object):
             kwargs['ctx'] = self._ctx
             kwargs['txn'] = self._txn
 
-            emen2.db.log.debug("API: start: %s"%(func.func_name))
+            emen2.db.log.debug("API: start: %s"%(func.__name__))
             # kwcopy = {}
             # for k,v in kwargs.items():
             #    if k not in ['ctx', 'txn']:
@@ -285,7 +285,7 @@ class DBProxy(object):
             # print "\t<-", args, kwcopy
 
             if getattr(func, 'admin', False) and not self._ctx.checkadmin():
-                raise Exception, "This method requires administrator level access."
+                raise Exception("This method requires administrator level access.")
 
             # Make sure the DB is bound to the Context
             self._ctx.setdb(self)
@@ -293,7 +293,7 @@ class DBProxy(object):
             result = func(self._db, *args, **kwargs)
             ms = (time.time()-t)*1000
             
-            emen2.db.log.debug("API: finished: %s in %0.2f ms"%(func.func_name, ms))
+            emen2.db.log.debug("API: finished: %s in %0.2f ms"%(func.__name__, ms))
             # print "\t->", result
             return result
 

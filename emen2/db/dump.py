@@ -10,8 +10,8 @@ import emen2.util.listops
 
 def dump_json(outfile, items, uri=None):
     if os.path.exists(outfile):
-        print "Warning: File %s exists"%outfile
-    print "Saving output to %s"%outfile
+        print("Warning: File %s exists"%outfile)
+    print("Saving output to %s"%outfile)
     with open(outfile,'w') as f:
         for item in items:
             if uri:
@@ -32,15 +32,15 @@ class Dumper(object):
         # Query
         kwargs['keytype'] = keytype
         names = names or self.db.query(**kwargs)['names']
-        print "Starting with:"
-        print len(names)
+        print("Starting with:")
+        print(len(names))
         keys = collections.defaultdict(set)
         keys[keytype] |= set(names)
 
         # Find referenced items.
         for chunk in emen2.util.listops.chunk(keys[keytype], count=1000):
             items = self.db.get(chunk, keytype=keytype)
-            print "Processing: %s ... %s"%(items[0].name, items[-1].name)
+            print("Processing: %s ... %s"%(items[0].name, items[-1].name))
             # Find paramdefs that reference other items..
             self._findrefs(items)
             # Find other items..
@@ -60,7 +60,7 @@ class Dumper(object):
                     if uri:
                         item.__dict__['uri'] = '%s/%s/%s'%(uri, keytype, item.name)
                     item = modify(item)
-                    print "%s: %s"%(item.keytype, item.name)
+                    print("%s: %s"%(item.keytype, item.name))
                     f.write(jsonrpc.jsonutil.encode(item))
                     f.write('\n')
         f.close()

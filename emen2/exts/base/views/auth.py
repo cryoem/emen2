@@ -44,7 +44,7 @@ class Auth(View):
             try:
                 self.db.user.setpassword(name, opw, on1)
                 self.redirect(content="Password changed successfully.", auto=False)
-            except Exception, errmsg:
+            except Exception as errmsg:
                 self.notify(errmsg, error=True)
 
     @View.add_matcher(r'^/auth/password/reset/$', name='password/reset')
@@ -60,14 +60,14 @@ class Auth(View):
             try:
                 self.db.user.setpassword(name, oldpassword=None, newpassword=newpassword, secret=secret)
                 self.redirect(content='The password for your account has been changed.', auto=False)
-            except Exception, errmsg:
+            except Exception as errmsg:
                 self.notify(errmsg, error=True)
 
         elif email:
             try:
                 self.db.user.resetpassword(email)
                 self.redirect(content='Instructions for resetting your password have been sent to %s.'%email, auto=False)
-            except Exception, errmsg:
+            except Exception as errmsg:
                 self.notify(errmsg, error=True)
 
 
@@ -89,7 +89,7 @@ class Auth(View):
                     self.redirect(content='Email address successfully updated to %s.'%user.email, auto=False)
                 else:
                     self.redirect(content='A verification email has been sent to %s.'%email, auto=False)
-            except Exception, errmsg:
+            except Exception as errmsg:
                 self.notify(errmsg, error=True)
                 
 
@@ -102,7 +102,7 @@ class Auth(View):
             try:
                 user = self.db.user.setemail(name=name, email=email, secret=secret)
                 self.redirect(content="The email address for your account has been changed to %s"%user.email, auto=False)
-            except Exception, errmsg:
+            except Exception as errmsg:
                 self.notify(errmsg, error=True)
 
 

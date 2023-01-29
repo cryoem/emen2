@@ -15,7 +15,7 @@ Classes:
     Filter: subclass of file, used to be use to strip headers off of access.log, unused
 """
 
-from __future__ import with_statement
+
 
 import functools
 import code
@@ -33,7 +33,7 @@ __all__ = ['DebugState', 'Output', 'Bounded', 'Headless', 'Min']
 
 
 def take(num, iter_):
-    for _ in range(num): yield iter_.next()
+    for _ in range(num): yield next(iter_)
 
 class DebugState(object):
     """Handles logging etc.."""
@@ -58,7 +58,7 @@ class DebugState(object):
     def loud_notify(self, msg):
         'Notifies and forces attention'
         self.msg(msg)
-        raw_input('hit enter to continue...')
+        input('hit enter to continue...')
 
     def interact(self, locals, *args):
         """\
@@ -80,7 +80,7 @@ class DebugState(object):
             result = None
             try:
                 result = func(*args, **kwargs)
-            except BaseException, e:
+            except BaseException as e:
                 self.msg('the callable %(func)r failed with: (%(exc)r) - %(exc)s' % dict(func=func, exc=e))
                 raise
             else:
@@ -93,7 +93,7 @@ class DebugState(object):
         return (_inner if self.debugstates.DEBUG  in (self._state, self._log_state) else func)
 
     def instrument_class(self, name, bases, dict):
-        for nm,meth in [ (nm,meth) for nm,meth in dict.items() if hasattr(meth, '__call__')]:
+        for nm,meth in [ (nm,meth) for nm,meth in list(dict.items()) if hasattr(meth, '__call__')]:
             self.msg('Instrumenting class (%s) method (%s)' % (name, nm))
             dict[nm] = self.debug_func(meth)
         clss = type(name, bases, dict)
@@ -133,7 +133,7 @@ class DebugState(object):
     def print_list(self, lis, join=' '):
         #deal with Python's unicode brokenness :-{
         def get_right(mess):
-            if type(mess) == unicode: pass
+            if type(mess) == str: pass
             elif type(mess) == str:
                 mess = mess.decode('utf-8', 'replace')
             else:
@@ -146,13 +146,13 @@ class DebugState(object):
 class debugDict(dict):
     def __getitem__(self, name):
         result = dict.get(self, name)
-        print name, result
-        if not self.has_key(name):
+        print(name, result)
+        if name not in self:
             dict.__getitem__(self, name)
         return result
     def get(self, name, default=None):
         result = dict.get(self, name, default)
-        print name, result
+        print(name, result)
         return result
 
 
@@ -257,7 +257,7 @@ class Output(object):
         result = False
         if self._states is None: result = False
         elif self._states == DebugState.debugstates.ALL: result = True
-        elif isinstance(self._states, (str, unicode)): result = False
+        elif isinstance(self._states, str): result = False
         else: result = state in self._states
         self._state_checked = result
         return result
@@ -328,16 +328,17 @@ class stderr(Min):
     _preprocess = stdouts_handler('!!', '') # not sure why you need pre and postpend
 
 
+import io
 
-class Filter(file):
+class Filter(io.FileIO):
     def __init__(self, *args, **kwargs):
         self._splitter = kwargs.pop('sep', '::')
         self._num = kwargs.pop('items', 1)
-        file.__init__(self, *args, **kwargs)
+        super(TiffFile, self).__init__(self, *args, **kwargs)
 
     def write(self, str_):
         str_ = str_.split(self._splitter, self._num)[-1]
-        file.write(self, str_)
+        io.FileIO.write(self, str_)
 
 
 #def _get_last_module(debugstate):

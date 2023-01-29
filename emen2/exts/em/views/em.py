@@ -45,7 +45,7 @@ class EMAN2Convert(View):
         import EMAN2
 
         if format not in ['tif', 'tiff', 'tif8', 'mrc', 'hdf', 'jpg', 'jpeg', 'png']:
-            raise ValueError, "Invalid format: %s"%format
+            raise ValueError("Invalid format: %s"%format)
 
         depth = None
         if format in ['tif8']:

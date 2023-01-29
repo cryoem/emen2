@@ -116,7 +116,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         if not self.isnew() and not self._ctx.checkadmin():
             self.error("Cannot change mainview")
 
-        value = unicode(textwrap.dedent(value))
+        value = str(textwrap.dedent(value))
         ret = self._set('mainview', value, self.isowner())
         self.findparams()
         return ret
@@ -125,8 +125,8 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
     def _set_views(self, key, value):
         views = {}
         value = value or {}
-        for k,v in value.items():
-            views[k] = unicode(textwrap.dedent(v))
+        for k,v in list(value.items()):
+            views[k] = str(textwrap.dedent(v))
 
         ret = self._set('views', views, self.isowner())
         self.findparams()
@@ -138,14 +138,14 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
     # ian: todo: Validate that these are actually valid RecordDefs
     def _set_typicalchld(self, key, value):
         value = emen2.util.listops.check_iterable(value)
-        value = filter(None, [unicode(i) for i in value]) or None
+        value = [_f for _f in [str(i) for i in value] if _f] or None
         return self._set('typicalchld', value, self.isowner())
 
     def _set_desc_short(self, key, value):
-        return self._set('desc_short', unicode(value or self.name), self.isowner())
+        return self._set('desc_short', str(value or self.name), self.isowner())
 
     def _set_desc_long(self, key, value):
-        return self._set('desc_long', unicode(value or ''), self.isowner())
+        return self._set('desc_long', str(value or ''), self.isowner())
 
 
     ##### RecordDef Methods #####
@@ -167,7 +167,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         """This will update the list of params by parsing the views"""
         t, d, r = parseparmvalues(self.mainview)
 
-        for i in self.views.values():
+        for i in list(self.views.values()):
             t2, d2, r2 = parseparmvalues(i)
             t |= t2
             r |= r2

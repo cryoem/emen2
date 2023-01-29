@@ -98,11 +98,11 @@ class Context(object):
 
     def refresh(self, grouplevels=None, host=None, db=None):
         if host != self.host:
-            raise emen2.db.exceptions.SessionError, "Session expired"
+            raise emen2.db.exceptions.SessionError("Session expired")
 
         t = emen2.db.database.getctime()
         if t > (self.time + self.maxidle):
-            raise emen2.db.exceptions.SessionError, "Session expired"
+            raise emen2.db.exceptions.SessionError("Session expired")
 
         self.time = t
         self.utcnow = emen2.db.database.utcnow()
@@ -129,7 +129,7 @@ class SpecialRootContext(Context):
     def refresh(self, user=None, grouplevels=None, host=None, username=None, db=None, txn=None):
         self.name = None
         self.setdb(db=db)
-        self.username = username or u'root'
+        self.username = username or 'root'
         self.time = emen2.db.database.getctime()
         self.utcnow = emen2.db.database.utcnow()
         self.cache = Cacher()        

@@ -47,12 +47,12 @@ def parse_args(args):
         if not i:
             continue
         if i[0] in ['"',"'"] and i[0]==i[-1]:
-            i = unicode(i[1:-1])
+            i = str(i[1:-1])
         else:
             try:
                 i = float(i)
             except ValueError:
-                i = unicode(i)
+                i = str(i)
         ret.append(i)
     return ret
 
@@ -98,12 +98,12 @@ class Macro(object):
     def render(self, params, rec, value=None):
         value = value or self.process(params, rec)
         if hasattr(value, '__iter__'):
-            value = ", ".join(map(unicode, value))
-        return unicode(value)
+            value = ", ".join(map(str, value))
+        return str(value)
 
     # Get some info about the macro
     def macro_name(self, params):
-        return unicode("Macro")
+        return str("Macro")
 
 
 # Dummy
@@ -131,17 +131,17 @@ class macro_childcount(Macro):
     keyformat = 'int'
 
     def preprocess(self, params, recs):
-        rectypes = filter(None, params.split(","))
+        rectypes = [_f for _f in params.split(",") if _f]
         children = self.db.rel.children([rec.name for rec in recs], recurse=-1)
         # Filter by rectype... somewhat ugly.
         if rectypes:
             allchildren = set()
-            for k,v in children.items():
+            for k,v in list(children.items()):
                 allchildren |= v
             allg = set()
-            for k,v in self.db.record.groupbyrectype(allchildren, rectypes=rectypes).items():
+            for k,v in list(self.db.record.groupbyrectype(allchildren, rectypes=rectypes).items()):
                 allg |= v
-            for k,v in children.items():
+            for k,v in list(children.items()):
                 v &= allg
         
         for rec in recs:
@@ -149,14 +149,14 @@ class macro_childcount(Macro):
             self.cache.store(key, len(children.get(rec.name,[])))
 
     def process(self, params, rec):
-        rectypes = filter(None, params.split(","))
+        rectypes = [_f for _f in params.split(",") if _f]
         key = ('rel.children', rec.name, tuple(rectypes))
         hit, children = self.cache.check(key)
         if not hit:
             children = self.db.rel.children(rec.name, recurse=-1)
             if rectypes:
                 allg = set()
-                for k,v in self.db.record.groupbyrectype(children, rectypes=rectypes).items():
+                for k,v in list(self.db.record.groupbyrectype(children, rectypes=rectypes).items()):
                     allg |= v
                 children = allg
             self.cache.store(key, len(children))
@@ -194,11 +194,11 @@ class macro_parentvalue(Macro):
         parents = self.db.rel.parents(rec.name, recurse=recurse)
         if rectypes:
             p = set()
-            for k,v in self.db.record.groupbyrectype(parents, rectypes=rectypes).items():
+            for k,v in list(self.db.record.groupbyrectype(parents, rectypes=rectypes).items()):
                 p |= v
             parents = p            
         parents = self.db.record.get(parents)
-        return filter(None, [i.get(param) for i in parents])
+        return [_f for _f in [i.get(param) for i in parents] if _f]
 
     def macro_name(self, params):
         return "Parent Value: %s"%params

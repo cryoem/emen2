@@ -1,2 +1,2 @@
-import em
-import tiles
+from . import em
+from . import tiles

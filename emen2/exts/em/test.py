@@ -4,7 +4,7 @@ import collections
 import operator
 import getpass
 import math
-import json    
+from . import json    
 
 # import emen2.clients
 import emen2.db.admin
@@ -33,13 +33,13 @@ def open_refine_classes(refine, classes, prefix=None, mappings=None, db=None):
     included = set()
     excluded = set()
     
-    print "Reading input set (%s particles)"%input_set['maxrec']
+    print("Reading input set (%s particles)"%input_set['maxrec'])
     for i in range(0,input_set['maxrec']+1):
         src = input_set.get_header(i).get('data_source')
         ptcl_source[src].add(i)
         
     
-    print "Reading refinement classes (%s classes)"%classes['maxrec']
+    print("Reading refinement classes (%s classes)"%classes['maxrec'])
     for i in range(0,classes['maxrec']+1):
         included |= set(classes[i].get_attr_default('class_ptcl_idxs') or [])
         excluded |= set(classes[i].get_attr_default('exc_class_ptcl_idxs') or [])
@@ -47,19 +47,19 @@ def open_refine_classes(refine, classes, prefix=None, mappings=None, db=None):
     included -= excluded
 
 
-    print "Reading particle sets to get source_uris"
+    print("Reading particle sets to get source_uris")
     for k in ptcl_source:
         d = EMAN2.db_open_dict(k)
         s = d[0].get_attr_default('source_uri')
         if s: source_uri[k] = s
             
-    print source_uri
+    print(source_uri)
     
     scores = {}
     
     # Create a score for each micrograph
-    print "Calculating score"
-    for k,v in ptcl_source.items():
+    print("Calculating score")
+    for k,v in list(ptcl_source.items()):
         incl = v & included
         excl = v & excluded
         scores[k] = len(incl)/float(len(v)) #1.0 - 
@@ -110,16 +110,16 @@ def plot_processed_snr(prefix="ctfp", db=None, apix=None):
     f.close()
 
     source_ctf = {}
-    print "Reading e2ctfparms"
-    for k,v in EMAN2.db_open_dict("bdb:e2ctf.parms").items():
+    print("Reading e2ctfparms")
+    for k,v in list(EMAN2.db_open_dict("bdb:e2ctf.parms").items()):
         ctf = EMAN2.EMAN2Ctf()
         ctf.from_string(v[0])
         source_ctf[k] = ctf.snr
-        print ctf.snr
+        print(ctf.snr)
 
 
-    for k,v in source_gi.items():
-        print "\n==", k
+    for k,v in list(source_gi.items()):
+        print("\n==", k)
         outfile = open("%s_%s.plot"%(prefix, k), 'w')
         for v2 in v:
             for x,y in peaks(source_ctf[v2], apix=APIX):
@@ -144,8 +144,8 @@ def peaks(y, apix=1.0):
         
     
 def make_plots(source, prefix=None):
-    for k,v in source.items():
-        print "\n=== Processing GI", k
+    for k,v in list(source.items()):
+        print("\n=== Processing GI", k)
         outfile = open("%s_%s.plot"%(prefix, k), 'w')
         for v2 in v:
             d = EMAN2.db_open_dict(v2)

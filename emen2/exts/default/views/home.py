@@ -63,7 +63,7 @@ class Home(View):
         # Groups and projects
         torender = set()
         def nodeleted(items):
-            return filter(lambda x:not x.get('deleted'), items)
+            return [x for x in items if not x.get('deleted')]
 
         # Groups
         groups = nodeleted(self.db.record.get(self.db.record.findbyrectype('group')))
@@ -72,7 +72,7 @@ class Home(View):
         
         # Ok, hold on for a sec. Group "groups" by parent records.
         groups_group = collections.defaultdict(set)
-        for k,v in self.db.rel.parents(groupnames).items():
+        for k,v in list(self.db.rel.parents(groupnames).items()):
             for v2 in v:
                 groups_group[v2].add(k)
         torender |= set(groups_group.keys())
@@ -80,7 +80,7 @@ class Home(View):
         # Top-level children of groups (any rectype)
         groups_children = self.db.rel.children(groupnames)
         projs = set()
-        for v in groups_children.values():
+        for v in list(groups_children.values()):
             projs |= v
         torender |= projs
 

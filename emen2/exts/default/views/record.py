@@ -1,5 +1,5 @@
 # $Id: record.py,v 1.94 2013/06/20 23:05:53 irees Exp $
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import time
 import collections
 
@@ -70,7 +70,7 @@ class Record(View):
 
         # Get RecordDefs
         recdef = self.db.recorddef.get(self.rec.rectype)
-        recdefs = [recdef] + self.db.recorddef.get(children_groups.keys())
+        recdefs = [recdef] + self.db.recorddef.get(list(children_groups.keys()))
 
         # Pages -- a deprecated UI element. 
         recdefs_d = dict([i.name, i] for i in recdefs)
@@ -79,7 +79,7 @@ class Record(View):
         pages['main'] = self.title
         pages.uris
         pages.uris['main'] = self.routing.reverse('Record/main', name=self.rec.name)
-        for k,v in children_groups.items():
+        for k,v in list(children_groups.items()):
             pages[k] = "%s (%s)"%(recdefs_d.get(k,dict()).get('desc_short', k),len(v))
             pages.uris[k] = self.routing.reverse('Record/children', name=self.rec.name, childtype=k)    
     
@@ -115,7 +115,7 @@ class Record(View):
 
         # Get the record
         if not self.rec.writable():
-            raise emen2.db.exceptions.SecurityError, "No write permission for record %s"%self.rec.name
+            raise emen2.db.exceptions.SecurityError("No write permission for record %s"%self.rec.name)
 
         # Update the record
         if kwargs:
@@ -154,7 +154,7 @@ class Record(View):
         groups = groups or []
         users = set()
         if hasattr(permissions, 'items'):
-            for k,v in permissions.items():
+            for k,v in list(permissions.items()):
                 users |= set(listops.check_iterable(v))
         else:
             for v in permissions:
@@ -230,7 +230,7 @@ class Record(View):
         children = self.db.rel.children(self.rec.name, recurse=-1)
         bdos = self.db.binary.find(record=children, count=0)
         if len(bdos) > 100000 and not confirm:
-            raise Exception, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
+            raise Exception("More than 100,000 files returned. Please see the admin if you need to download the complete set.")
 
         records = set([i.record for i in bdos])
         users = set([bdo.get('creator') for bdo in bdos])
@@ -321,7 +321,7 @@ class Record(View):
         self.main(name=name)
         self.template = "/record/record.email"
 
-        pds = self.db.paramdef.find(record=self.rec.keys())
+        pds = self.db.paramdef.find(record=list(self.rec.keys()))
         users_ref = set()
         for i in pds:
             v = self.rec.get(i.name)
@@ -351,7 +351,7 @@ class Record(View):
 
         recs = self.db.record.get(names)
         recs_d = emen2.util.listops.dictbykey(recs)
-        state = set(map(unicode, state or [])) & names
+        state = set(map(str, state or [])) & names
 
         # Find published items
         published = set()
@@ -421,10 +421,10 @@ class Records(View):
         if self.request_method != 'post':
             return
 
-        for k,v in kwargs.items():
+        for k,v in list(kwargs.items()):
             v['name'] = k
 
-        recs = self.db.record.put(kwargs.values())
+        recs = self.db.record.put(list(kwargs.values()))
         if comments:
             for rec in recs:
                 rec.addcomment(comments)

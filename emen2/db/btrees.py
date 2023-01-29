@@ -8,7 +8,7 @@ import os
 import shutil
 import time
 import traceback
-import cPickle as pickle
+import pickle as pickle
 
 # Berkeley DB
 # Note: the 'bsddb' module is not sufficient.
@@ -44,7 +44,7 @@ try:
     import emen2.db.bulk
     bulk = emen2.db.bulk
     # emen2.db.log.info("Note: using EMEN2-BerkeleyDB bulk access module")
-except ImportError, inst:
+except ImportError as inst:
     bulk = None
 
 
@@ -72,7 +72,7 @@ class EMEN2DBEnv(object):
         # Database environment directory
         self.path = path
         self.snapshot = snapshot or (not emen2.db.config.get('params.snapshot'))
-        self.cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024l
+        self.cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024
 
         # Make sure the data and journal directories exists.
         paths = [
@@ -182,7 +182,7 @@ class EMEN2DBEnv(object):
     # ian: todo: make this nicer.
     def close(self):
         """Close the Database Environment"""
-        for k,v in self.keytypes.items():
+        for k,v in list(self.keytypes.items()):
             v.close()
         self.dbenv.close()
 
@@ -248,9 +248,9 @@ class EMEN2DBEnv(object):
     def txncb(self, txn, action, args=None, kwargs=None, condition='commit', when='before'):
         # Add a pre- or post-commit hook.
         if when not in ['before', 'after']:
-            raise ValueError, "Transaction callback 'when' must be before or after"
+            raise ValueError("Transaction callback 'when' must be before or after")
         if condition not in ['commit', 'abort']:
-            raise ValueError, "Transaction callback 'condition' must be commit or abort"
+            raise ValueError("Transaction callback 'condition' must be commit or abort")
         item = [condition, when, action, args or [], kwargs or {}]
         self._txncbs[txn.id()].append(item)
 
@@ -272,19 +272,19 @@ class EMEN2DBEnv(object):
         emen2.db.log.info("TXN CB: Renaming file: %s -> %s"%(source, dest))
         try:
             shutil.move(source, dest)
-        except Exception, e:
+        except Exception as e:
             emen2.db.log.error("TXN CB: Couldn't rename file %s -> %s"%(source, dest))
 
     def _txncb_email(self, *args, **kwargs):
         try:
             emen2.db.database.sendmail(*args, **kwargs)
-        except Exception, e:
+        except Exception as e:
             emen2.db.log.error("TXN CB: Couldn't send email: %s"%e)
             
     def _txncb_thumbnail(self, bdo):
         try:
             emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
-        except Exception, e:
+        except Exception as e:
             emen2.db.log.error("TXN CB: Couldn't start thumbnail builder")
     
     ##### Log archive #####
@@ -324,7 +324,7 @@ class EMEN2DBEnv(object):
     ##### Rebuild indexes #####
     
     def rebuild_indexes(self, ctx=None, txn=None):
-        for k,v in self.keytypes.items():
+        for k,v in list(self.keytypes.items()):
             v.rebuild_indexes(ctx=ctx, txn=txn)
         
 
@@ -375,7 +375,7 @@ class BaseDB(object):
     def open(self):
         """Open the DB. This uses an implicit open transaction."""
         if self.bdb:
-            raise Exception, "DB already open"
+            raise Exception("DB already open")
 
         # Create the DB handle and set flags
         self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
@@ -424,8 +424,8 @@ class BaseDB(object):
         # Set the DB key type. This will bind the correct
         # keyclass, keydump, keyload methods.
         if keyformat == 'str':
-            self.keyclass = unicode
-            self.keydump = lambda x:unicode(x).encode('utf-8')
+            self.keyclass = str
+            self.keydump = lambda x:str(x).encode('utf-8')
             self.keyload = lambda x:x.decode('utf-8')
         elif keyformat == 'int':
             self.keyclass = int
@@ -436,7 +436,7 @@ class BaseDB(object):
             self.keydump = lambda x:pickle.dumps(x)
             self.keyload = lambda x:pickle.loads(x or 'N.')
         else:
-            raise ValueError, "Invalid key format: %s. Supported: str, int, float"%keyformat
+            raise ValueError("Invalid key format: %s. Supported: str, int, float"%keyformat)
         self.keyformat = keyformat
 
     def _setdataformat(self, dataformat, dataclass=None):
@@ -446,8 +446,8 @@ class BaseDB(object):
             dataformat = 'pickle'
         if dataformat == 'str':
             # String dataformat; use UTF-8 encoded strings.
-            self.dataclass = unicode
-            self.datadump = lambda x:unicode(x).encode('utf-8')
+            self.dataclass = str
+            self.datadump = lambda x:str(x).encode('utf-8')
             self.dataload = lambda x:x.decode('utf-8')
         elif dataformat == 'int':
             # Decimal dataformat, use str encoded ints.
@@ -466,7 +466,7 @@ class BaseDB(object):
             self.dataload = lambda x:pickle.loads(x or 'N.')
         else:
             # Unknown dataformat.
-            raise Exception, "Invalid data format: %s. Supported: str, int, float, pickle"%dataformat
+            raise Exception("Invalid data format: %s. Supported: str, int, float, pickle"%dataformat)
         self.dataformat = dataformat
     
 
@@ -676,7 +676,7 @@ class IndexDB(BaseDB):
         for ditem in ditems:
             try:
                 cursor.put(dkey, ditem, flags=bsddb3.db.DB_KEYFIRST)
-            except bsddb3.db.DBKeyExistError, e:
+            except bsddb3.db.DBKeyExistError as e:
                 pass
 
         cursor.close()
@@ -779,7 +779,7 @@ class CollectionDB(BaseDB):
         super(CollectionDB, self).close()
         self.sequencedb.close()
         self.sequencedb = None
-        for k,v in self.indexes.items():
+        for k,v in list(self.indexes.items()):
             if v:
                 ind.close()
         self.indexes = {}
@@ -813,7 +813,7 @@ class CollectionDB(BaseDB):
 
         # Acquire a write lock on this name.
         if self.exists(item.name, txn=txn, flags=bsddb3.db.DB_RMW):
-            raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%item.name
+            raise emen2.db.exceptions.ExistingKeyError("%s already exists"%item.name)
 
         return item
 
@@ -850,7 +850,7 @@ class CollectionDB(BaseDB):
     
     def keys(self, ctx=None, txn=None):
         emen2.db.log.warn("BDB: %s keys: Deprecated method!"%self.filename)
-        return map(self.keyload, self.bdb.keys(txn))
+        return list(map(self.keyload, self.bdb.keys(txn)))
     
     def items(self, ctx=None, txn=None):
         emen2.db.log.warn("BDB: %s items: Deprecated method!"%self.filename)
@@ -897,7 +897,7 @@ class CollectionDB(BaseDB):
                 d = self._get_data(key, txn=txn, flags=flags)
                 d.setContext(ctx)
                 ret.append(d)
-            except filt, e:
+            except filt as e:
                 pass
         return ret
         
@@ -907,7 +907,7 @@ class CollectionDB(BaseDB):
         d = self.dataload(self.bdb.get(kd, txn=txn, flags=flags))
         if d:
             return d
-        raise KeyError, "No such key %s"%(key)    
+        raise KeyError("No such key %s"%(key))    
 
     def _get_data_items(self, txn=None, flags=0):
         # items() without ctx.
@@ -1055,7 +1055,7 @@ class CollectionDB(BaseDB):
         self._reindex_relink(parents, children, txn=txn)
 
         # Now, Update indexes.
-        for k,v in ind.items():
+        for k,v in list(ind.items()):
             self._reindex_param(k, v, ctx=ctx, txn=txn)
 
     def _reindex_param(self, param, changes, ctx=None, txn=None):
@@ -1081,18 +1081,18 @@ class CollectionDB(BaseDB):
         try:
             addrefs, removerefs = vt.reindex(changes)
             addkeywords, removekeywords = vt.reindex_keywords(changes)
-        except Exception, e:
-           print "Could not reindex param %s: %s"%(pd.name, e)
+        except Exception as e:
+           print("Could not reindex param %s: %s"%(pd.name, e))
            return
 
         # Write!
-        for oldval, recs in removerefs.items():
+        for oldval, recs in list(removerefs.items()):
             ind.removerefs(oldval, recs, txn=txn)
-        for newval,recs in addrefs.items():
+        for newval,recs in list(addrefs.items()):
             ind.addrefs(newval, recs, txn=txn)
-        for oldval, recs in removekeywords.items():
+        for oldval, recs in list(removekeywords.items()):
             indkeywords.removerefs(oldval, recs, txn=txn)
-        for newval,recs in addkeywords.items():
+        for newval,recs in list(addkeywords.items()):
             indkeywords.addrefs(newval, recs, txn=txn)
 
 
@@ -1186,10 +1186,10 @@ class CollectionDB(BaseDB):
                 try:
                     newname = self.keyclass(newname)
                 except:
-                    raise Exception, "Invalid name: %s"%newname
+                    raise Exception("Invalid name: %s"%newname)
                 # Check the name is still available, and acquire lock.
                 if self.exists(newname, txn=txn, flags=bsddb3.db.DB_RMW):
-                    raise emen2.db.exceptions.ExistingKeyError, "%s already exists"%newname
+                    raise emen2.db.exceptions.ExistingKeyError("%s already exists"%newname)
                 # Update the item's name.
                 namemap[item.name] = newname
                 item.__dict__['name'] = newname
@@ -1203,7 +1203,7 @@ class CollectionDB(BaseDB):
 
     def _key_generator(self, item, txn=None):
         # Set name policy in this method.
-        return unicode(item.name or emen2.db.database.getrandomid())
+        return str(item.name or emen2.db.database.getrandomid())
 
     def _incr_sequence(self, key='sequence', txn=None):
         # Update a sequence key. Requires txn.
@@ -1250,11 +1250,11 @@ class CollectionDB(BaseDB):
         # Expand *'s
         remove = set()
         add = set()
-        for key in (i for i in names if isinstance(i, basestring)):
+        for key in (i for i in names if isinstance(i, str)):
             try:
                 newkey = self.keyclass(key.replace('*', ''))
             except:
-                raise KeyError, "Invalid key: %s"%key
+                raise KeyError("Invalid key: %s"%key)
 
             if key.endswith('*'):
                 add |= self.rel([newkey], rel='children', recurse=-1, ctx=ctx, txn=txn).get(newkey, set())
@@ -1297,11 +1297,11 @@ class CollectionDB(BaseDB):
         """
         parents = self.rel([name], rel='parents', ctx=ctx, txn=txn)
         allparents = set()
-        for k,v in parents.items():
+        for k,v in list(parents.items()):
             allparents |= v
         siblings = set()
         children = self.rel(allparents, ctx=ctx, txn=txn)
-        for k,v in children.items():
+        for k,v in list(children.items()):
             siblings |= v
         return siblings
 
@@ -1360,7 +1360,7 @@ class CollectionDB(BaseDB):
 
         # Flatten the dictionary to get all touched names
         allr = set()
-        for v in visited.values():
+        for v in list(visited.values()):
             allr |= v
 
         # Filter by permissions
@@ -1369,7 +1369,7 @@ class CollectionDB(BaseDB):
         # If Tree=True, we're returning the tree... Filter for permissions.
         if tree:
             outret = {}
-            for k, v in result.iteritems():
+            for k, v in result.items():
                 for k2 in v:
                     outret[k2] = result[k][k2] & allr
             return outret
@@ -1421,10 +1421,10 @@ class CollectionDB(BaseDB):
         add = collections.defaultdict(set)
         ci = emen2.util.listops.check_iterable
 
-        for k,v in removerels.items():
+        for k,v in list(removerels.items()):
             for v2 in ci(v):
                 remove[self.keyclass(k)].add(self.keyclass(v2))
-        for k,v in addrels.items():
+        for k,v in list(addrels.items()):
             for v2 in ci(v):
                 add[self.keyclass(k)].add(self.keyclass(v2))
 
@@ -1460,7 +1460,7 @@ class CollectionDB(BaseDB):
             pass
 
         if not any(perm):
-            raise emen2.db.exceptions.SecurityError, "Insufficient permissions to add/remove relationship"
+            raise emen2.db.exceptions.SecurityError("Insufficient permissions to add/remove relationship")
 
         # Transform into the right format for _reindex_relink..
         newvalue = set() | p.children # copy
@@ -1518,7 +1518,7 @@ class CollectionDB(BaseDB):
             c_remove[p].add(c)
 
         # Go and fetch other items that we need to update
-        names = set(p_add.keys()+p_remove.keys()+c_add.keys()+c_remove.keys())
+        names = set(list(p_add.keys())+list(p_remove.keys())+list(c_add.keys())+list(c_remove.keys()))
         # print "All affected items:", names
         # Get and modify the item directly w/o Context:
         # Linking only requires write permissions
@@ -1533,16 +1533,16 @@ class CollectionDB(BaseDB):
             rec.__dict__['children'] -= c_remove[rec.name]
             rec.__dict__['children'] |= c_add[rec.name]
             self._put_data(rec.name, rec, txn=txn)
-        for k,v in p_remove.items():
+        for k,v in list(p_remove.items()):
             if v:
                 indp.removerefs(k, v, txn=txn)
-        for k,v in p_add.items():
+        for k,v in list(p_add.items()):
             if v:
                 indp.addrefs(k, v, txn=txn)
-        for k,v in c_remove.items():
+        for k,v in list(c_remove.items()):
             if v:
                 indc.removerefs(k, v, txn=txn)
-        for k,v in c_add.items():
+        for k,v in list(c_add.items()):
             if v:
                 indc.addrefs(k, v, txn=txn)
         return
@@ -1571,7 +1571,7 @@ class CollectionDB(BaseDB):
         visited = set()
         lookups = []
 
-        for x in xrange(recurse-1):
+        for x in range(recurse-1):
             if not stack[x]:
                 break
 
@@ -1610,8 +1610,8 @@ class RecordDB(CollectionDB):
     def _key_generator(self, item, txn=None):
         # Set name policy in this method.
         if ALLOW_RECORD_NAMES:
-            return unicode(item.name or emen2.db.database.getrandomid())
-        return unicode(self._incr_sequence(txn=txn))
+            return str(item.name or emen2.db.database.getrandomid())
+        return str(self._incr_sequence(txn=txn))
 
     # Todo: integrate with main filter method, since this works
     # for all permission-defined items.
@@ -1623,7 +1623,7 @@ class RecordDB(CollectionDB):
         if names is None:
             if ctx.checkreadadmin():
                 m = self._get_max(txn=txn)
-                return set(map(unicode, range(0, m)))
+                return set(map(str, list(range(0, m))))
                 # return set(self.keys(txn=txn))
             ind = self.getindex("permissions", txn=txn)
             indc = self.getindex('creator', txn=txn)
@@ -1685,7 +1685,7 @@ class UserDB(CollectionDB):
 class NewUserDB(CollectionDB):
     def delete(self, key, ctx=None, txn=None, flags=0):
         if not ctx.checkadmin():
-            raise emen2.db.exceptions.SecurityError, "Only admin can delete keys."
+            raise emen2.db.exceptions.SecurityError("Only admin can delete keys.")
         self.bdb.delete(self.keydump(key), txn=txn, flags=flags)
 
     def new(self, *args, **kwargs):
@@ -1712,7 +1712,7 @@ class NewUserDB(CollectionDB):
     def filter(self, names=None, ctx=None, txn=None):
         # This requires admin access
         if not ctx or not ctx.checkadmin():
-            raise emen2.db.exceptions.SecurityError, "Admin rights needed to view user queue"
+            raise emen2.db.exceptions.SecurityError("Admin rights needed to view user queue")
         return super(NewUserDB, self).filter(names, ctx=ctx, txn=txn)
 
 

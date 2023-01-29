@@ -11,11 +11,12 @@ import re
 import collections
 import operator
 import hashlib
-import UserDict
+#import UserDict
 
 import emen2.util.listops
 import emen2.db.exceptions
 import emen2.db.vartypes
+from functools import reduce
 
 
 class BaseDBObject(object):
@@ -158,8 +159,8 @@ class BaseDBObject(object):
 
     def changedparams(self, item=None):
         """Differences between two instances."""
-        allkeys = set(self.keys() + item.keys())
-        return set(filter(lambda k:self.get(k) != item.get(k), allkeys))
+        allkeys = set(list(self.keys()) + list(item.keys()))
+        return set([k for k in allkeys if self.get(k) != item.get(k)])
 
     ##### Permissions
     # Two basic permissions are defined: owner and writable
@@ -201,12 +202,12 @@ class BaseDBObject(object):
         return list(self.attr_public)
 
     def items(self):
-        return [(k,self[k]) for k in self.keys()]
+        return [(k,self[k]) for k in list(self.keys())]
 
     def update(self, update):
         """Dict-like update. Returns a set of keys that were updated."""
         cp = set()
-        for k,v in update.items():
+        for k,v in list(update.items()):
             cp |= self.__setitem__(k, v)
         return cp
 
@@ -218,14 +219,14 @@ class BaseDBObject(object):
         # Skip validation for relationships.
         # This will assume they are the correct data format.
         for key in ['parents', 'children']:
-           self.__dict__[unicode(key)] = set(update.pop(key, None) or [])
+           self.__dict__[str(key)] = set(update.pop(key, None) or [])
 
         # Skip validation?
         keys = self.attr_public & set(update.keys())
         keys.add('name')
         for key in keys:
             value = update.pop(key, None)
-            self.__dict__[unicode(key)] = value
+            self.__dict__[str(key)] = value
 
         # Update others...
         # if update:
@@ -240,7 +241,7 @@ class BaseDBObject(object):
             return default
 
     def __delitem__(self, key):
-        raise AttributeError, 'Key deletion not allowed'
+        raise AttributeError('Key deletion not allowed')
 
     def __getattr__(self, name):
         return object.__getattribute__(self, name)
@@ -352,7 +353,7 @@ class BaseDBObject(object):
         """Context and other session-specific information should not be pickled.
         All private keys (starts with underscore) will be removed."""
         odict = self.__dict__.copy() # copy since we are removing keys
-        for key in odict.keys():
+        for key in list(odict.keys()):
             if key.startswith('_'):
                 odict.pop(key, None)
         return odict
@@ -519,7 +520,7 @@ class PermissionsDBObject(BaseDBObject):
 
         # Now, check if we can read.
         if not self.readable():
-            raise emen2.db.exceptions.SecurityError, "Permission denied: %s"%(self.name)
+            raise emen2.db.exceptions.SecurityError("Permission denied: %s"%(self.name))
         return True
 
     def getlevel(self, user):
@@ -593,9 +594,9 @@ class PermissionsDBObject(BaseDBObject):
             v[2] = ci(value.get('write'))
             v[3] = ci(value.get('admin'))
             value = v
-        permissions = [[unicode(y) for y in x] for x in value]
+        permissions = [[str(y) for y in x] for x in value]
         if len(permissions) != 4:
-            raise ValueError, "Invalid permissions format"
+            raise ValueError("Invalid permissions format")
         return permissions
 
     def adduser(self, users, level=0, reassign=False):
@@ -616,7 +617,7 @@ class PermissionsDBObject(BaseDBObject):
 
         level = int(level)
         if not 0 <= level <= 3:
-            raise Exception, "Invalid permissions level. 0 = Read, 1 = Comment, 2 = Write, 3 = Owner"
+            raise Exception("Invalid permissions level. 0 = Read, 1 = Comment, 2 = Write, 3 = Owner")
 
         p = [set(x) for x in self.permissions]
 

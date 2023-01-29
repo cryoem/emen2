@@ -2,7 +2,7 @@
 import sys
 import cgi
 import time
-import UserDict, collections
+import collections
 
 from emen2.web.view import View
 

@@ -9,7 +9,7 @@ Classes:
 
 import operator
 import collections
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import re
 
 # Working with time is even more fun.
@@ -31,6 +31,7 @@ from markupsafe import Markup, escape
 import emen2.db.log
 import emen2.db.exceptions
 import emen2.util.listops
+from functools import reduce
 
 # Convenience
 tzutc = dateutil.tz.tzutc()
@@ -170,7 +171,7 @@ class Vartype(object):
 
     def validate(self, value):
         """Validate a value"""
-        raise ValidationError, "%s is an organizational parameter, and is not intended to be used."%self.pd.name
+        raise ValidationError("%s is an organizational parameter, and is not intended to be used."%self.pd.name)
 
     def _validate_reference(self, value, keytype=None):
         ret = []
@@ -193,7 +194,7 @@ class Vartype(object):
                 emen2.db.log.warn("Validation: Could not find, but allowing: %s (parameter %s)"%(i, self.pd.name))
                 ret.append(i)
             else:
-                raise ValidationError, "Could not find: %s (parameter %s)"%(i, self.pd.name)
+                raise ValidationError("Could not find: %s (parameter %s)"%(i, self.pd.name))
 
         if changed:
             self.cache.store(key, found)
@@ -280,7 +281,7 @@ class Vartype(object):
         return elem
 
     def _unicode(self, value):
-        return unicode(value)
+        return str(value)
 
     def _html(self, value):
         if value is None:
@@ -326,7 +327,7 @@ class vt_float(Vartype):
     keyformat = 'float'
 
     def validate(self, value):
-        return self._rci(map(float, ci(value)))
+        return self._rci(list(map(float, ci(value))))
 
     def _unicode(self, value):
         u = self.pd.defaultunits or ''
@@ -352,10 +353,10 @@ class vt_percent(Vartype):
     keyformat = 'float'
 
     def validate(self, value):
-        value = map(float, ci(value))
+        value = list(map(float, ci(value)))
         for i in value:
             if not 0 <= i <= 1.0:
-                raise ValidationError, "Range for percentage is 0 <= value <= 1.0; value was: %s"%i
+                raise ValidationError("Range for percentage is 0 <= value <= 1.0; value was: %s"%i)
         return self._rci(value)
 
     def _unicode(self, value):
@@ -372,7 +373,7 @@ class vt_int(Vartype):
     keyformat = 'int'
 
     def validate(self, value):
-        return self._rci(map(int, ci(value)))
+        return self._rci(list(map(int, ci(value))))
 
 
 @Vartype.register('coordinate')
@@ -396,13 +397,13 @@ class vt_boolean(Vartype):
         f = ['f', 'n', 'no', 'false', 'none', '0']
         ret = []
         for i in ci(value):
-            i = unicode(value).lower()
+            i = str(value).lower()
             if i in t:
                 i = True
             elif i in f:
                 i = False
             else:
-                raise ValidationError, "Invalid boolean: %s"%unicode(value)
+                raise ValidationError("Invalid boolean: %s"%str(value))
             ret.append(i)
         return self._rci(ret)
 
@@ -444,7 +445,7 @@ class vt_string(Vartype):
         """(Internal) Split up a text param into components"""
         # print "-> reindex", self.pd.name, self.pd.vartype, self._indexwords.findall(value)
         if value == None: return set()
-        value = unicode(value).lower()
+        value = str(value).lower()
         return set(x for x in self._indexwords.findall(value))
 
     def reindex_keywords(self, items):
@@ -458,7 +459,7 @@ class vt_string(Vartype):
             for i in self._getindexwords(item[2]):
                 delrefs[i].append(item[0])
 
-        allwords = set(addrefs.keys() + delrefs.keys())
+        allwords = set(list(addrefs.keys()) + list(delrefs.keys()))
         addrefs2 = {}
         delrefs2 = {}
         for i in allwords:
@@ -470,7 +471,7 @@ class vt_string(Vartype):
         return addrefs2, delrefs2
 
     def validate(self, value):
-        return self._rci([unicode(x).strip() for x in ci(value)])
+        return self._rci([str(x).strip() for x in ci(value)])
 
 
 @Vartype.register('choice')
@@ -478,10 +479,10 @@ class vt_choice(vt_string):
     """One value from a defined list of choices."""
 
     def validate(self, value):
-        value = [unicode(i).strip() for i in ci(value)]
+        value = [str(i).strip() for i in ci(value)]
         for v in value:
             if v not in self.pd.choices:
-                raise ValidationError, "Invalid choice: %s"%v
+                raise ValidationError("Invalid choice: %s"%v)
         return self._rci(value)
 
     def _form(self, value):
@@ -515,7 +516,7 @@ class vt_text(vt_string):
     def _html(self, value):
         if value is None:
             return ''
-        value = Markup(markdown.markdown(unicode(value), safe_mode='escape'))
+        value = Markup(markdown.markdown(str(value), safe_mode='escape'))
         elem = Markup("""<div class="e2-edit" data-paramdef="%s">%s</div>""")%(self.pd.name, value)
         return elem
 
@@ -556,7 +557,7 @@ class vt_datetime(Vartype):
             if i:
                 t = dateutil.parser.parse(i)
                 if not t.tzinfo:
-                    raise ValidationError, "No UTC offset: %s"%i
+                    raise ValidationError("No UTC offset: %s"%i)
                 ret.append(t.isoformat())
         return self._rci(ret)
 
@@ -628,10 +629,10 @@ class vt_uri(Vartype):
 
     # ian: todo: parse with urlparse
     def validate(self, value):
-        value = [unicode(i).strip() for i in ci(value)]
+        value = [str(i).strip() for i in ci(value)]
         for v in value:
             if not v.startswith("http://"):
-                raise ValidationError, "Invalid URI: %s"%value
+                raise ValidationError("Invalid URI: %s"%value)
         return self._rci(value)
 
 
@@ -646,7 +647,7 @@ class vt_dict(Vartype):
     def validate(self, value):
         if not value:
             return None
-        r = [(unicode(k), unicode(v)) for k,v in value.items() if k]
+        r = [(str(k), str(v)) for k,v in list(value.items()) if k]
         return dict(r)
 
 
@@ -660,9 +661,9 @@ class vt_dictlist(vt_dict):
         if not value:
             return None
         ret = {}
-        for k,v in value.items():
-            k = unicode(k)
-            v = [unicode(i) for i in v]
+        for k,v in list(value.items()):
+            k = str(k)
+            v = [str(i) for i in v]
             ret[k] = v
         return ret
 
@@ -681,7 +682,7 @@ class vt_binary(Vartype):
         try:
             v = self.db.binary.get(value)
             return v.filename or value
-        except (ValueError, TypeError, AttributeError, KeyError), e:
+        except (ValueError, TypeError, AttributeError, KeyError) as e:
             return "Error getting binary: %s"%value
 
     def _add(self):
@@ -757,7 +758,7 @@ class vt_md5(Vartype):
     """String"""
 
     def validate(self, value):
-        return self._rci([unicode(x).strip() for x in ci(value)])
+        return self._rci([str(x).strip() for x in ci(value)])
 
 
 
@@ -886,11 +887,11 @@ class vt_acl(Vartype):
 
         for i in value:
             if not hasattr(i, '__iter__'):
-                raise ValidationError, "Invalid permissions format: %s"%(value)
+                raise ValidationError("Invalid permissions format: %s"%(value))
 
-        value = [[unicode(y) for y in x] for x in value]
+        value = [[str(y) for y in x] for x in value]
         if len(value) != 4:
-            raise ValidationError, "Invalid permissions format: ", value
+            raise ValidationError("Invalid permissions format: ").with_traceback(value)
 
         users = reduce(lambda x,y:x+y, value)
         self._validate_reference(users, keytype='user')

@@ -17,7 +17,7 @@ import sys
 # For file writing
 import shutil
 import hashlib
-import cStringIO
+import io
 import tempfile
 
 ##########################################################
@@ -136,7 +136,7 @@ class ThumbnailOptions(optparse.OptionParser):
     def parse_args(self, lc=True, *args, **kwargs):
         options, args = optparse.OptionParser.parse_args(self,  *args, **kwargs)
         if len(args) < 2:
-            raise ValueError, "Handler class name and input file required"
+            raise ValueError("Handler class name and input file required")
         return options, args
 
 
@@ -170,7 +170,7 @@ class BinaryHandler(object):
         # Original filename
         self.filename = filename
         if not self.filename:
-            raise ThumbnailError, "Filename required"
+            raise ThumbnailError("Filename required")
 
         # Parameter in the associated record
         self.param = param
@@ -206,13 +206,13 @@ class BinaryHandler(object):
         readfile = None
         if self.filedata:
             # Take a StringIO or string and make a StringIO
-            readfile = cStringIO.StringIO(self.filedata)
+            readfile = io.StringIO(self.filedata)
         elif self.fileobj:
             # ... use the fileobj
             self.fileobj.seek(0)
             readfile = self.fileobj
         else:
-            raise IOError, "No file given, or don't know how to read file.."
+            raise IOError("No file given, or don't know how to read file..")
         return readfile
 
     # Making this a private method for now
@@ -254,7 +254,7 @@ class BinaryHandler(object):
     def thumbnail(self, previewpath, force=False):
         fp = self._getfilepath()
         if not os.access(fp, os.F_OK):
-            raise ThumbnailError, "Could not access: %s"%fp
+            raise ThumbnailError("Could not access: %s"%fp)
 
         # This is used in self._outfile()
         self._previewpath = previewpath
@@ -296,7 +296,7 @@ class BinaryHandler(object):
             os.system(cmd)
             try:
                 self._thumbnail_build(workfile)
-            except Exception, e:
+            except Exception as e:
                 emen2.db.log.error("Could not build tiles: %s"%e)
                 pass
             os.remove(workfile)

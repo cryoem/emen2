@@ -78,7 +78,7 @@ class Loader(BaseLoader):
         ctx = self.db._ctx
         txn = self.db._txn
         for item in self.loadfile():
-            print "\n======= put count %s"%count
+            print("\n======= put count %s"%count)
             keytype = item.get('keytype')
             i = dbenv[keytype].dataclass(ctx=ctx) 
             i._load(item)
@@ -86,7 +86,7 @@ class Loader(BaseLoader):
             count += 1
         t = time.time()-t
         s = float(count) / t
-        print "total time: %s, %s put/sec"%(t, s)
+        print("total time: %s, %s put/sec"%(t, s))
 
 
 class LoadOptions(emen2.db.config.DBOptions):

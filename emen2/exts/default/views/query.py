@@ -3,7 +3,7 @@ import os
 import operator
 import datetime
 import copy
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 import emen2.util.listops
 from emen2.web.view import View
@@ -42,15 +42,15 @@ def path_to_query(path, **kwargs):
     c = path.split("/")
 
     for constraint in c:
-        constraint = urllib.unquote(constraint)
+        constraint = urllib.parse.unquote(constraint)
         match = []
-        foundcomps = filter(lambda x:constraint.partition(x)[1], cmp_order)
+        foundcomps = [x for x in cmp_order if constraint.partition(x)[1]]
         if foundcomps:
             comp = foundcomps[0]
             p1, p2, p3 = constraint.partition(comp)
-            p1 = urllib.unquote(p1)
-            p2 = urllib.unquote(p2).replace('.','')
-            p3 = urllib.unquote(p3)
+            p1 = urllib.parse.unquote(p1)
+            p2 = urllib.parse.unquote(p2).replace('.','')
+            p3 = urllib.parse.unquote(p3)
 
             if p1:
                 match.append(p1)
@@ -69,7 +69,7 @@ def path_to_query(path, **kwargs):
     # General query...
     keywords = kwargs.pop('keywords', None)
     if keywords:
-        q['c'].append(['keywords','==',unicode(keywords).lower()])
+        q['c'].append(['keywords','==',str(keywords).lower()])
 
     q.update(kwargs)
     return q
@@ -145,7 +145,7 @@ class Query(View):
         # Look up all the binaries
         bdos = self.db.binary.find(record=self.q['names'], count=0)
         if len(bdos) > 100000 and not confirm:
-            raise TooManyFiles, "More than 100,000 files returned. Please see the admin if you need to download the complete set."
+            raise TooManyFiles("More than 100,000 files returned. Please see the admin if you need to download the complete set.")
 
         records = set([i.record for i in bdos])
         users = set([bdo.get('creator') for bdo in bdos])

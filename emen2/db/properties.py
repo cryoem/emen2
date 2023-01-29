@@ -41,10 +41,10 @@ equivs = {
 
     'Torr': 'torr',
 
-    u'Ångstrom': u'Å',
-    u'Ångstroms': u'Å',
-    'Angstrom': u'Å',
-    'Angstroms': u'Å',
+    'Ångstrom': 'Å',
+    'Ångstroms': 'Å',
+    'Angstrom': 'Å',
+    'Angstroms': 'Å',
 
     'nL': 'nl',
     'uL': 'ul',
@@ -199,23 +199,23 @@ bytes_prefix = {
 }
 
 # Massage my equivalents into the units system.
-for name,abbr in si_equivs.items():
+for name,abbr in list(si_equivs.items()):
     equivs[name] = abbr
-    for prefix, p in si_prefix.items():
+    for prefix, p in list(si_prefix.items()):
         equivs[prefix + name] = p + abbr
 
-for name,abbr in bytes_equivs.items():
+for name,abbr in list(bytes_equivs.items()):
     equivs[name] = abbr
-    for prefix, p in si_prefix.items():
+    for prefix, p in list(si_prefix.items()):
         equivs[prefix + name] = p + abbr
-    for prefix, p in bytes_prefix.items():
+    for prefix, p in list(bytes_prefix.items()):
         equivs[prefix + name] = p + abbr
     
-for name, abbr in equivs.items():
+for name, abbr in list(equivs.items()):
     equivs[name.lower()] = abbr
 
 # Structural biology units: Angstrom and Dalton
-mg.new_mag(u'Å', mg.Magnitude(1e-10, m=1))
+mg.new_mag('Å', mg.Magnitude(1e-10, m=1))
 mg.new_mag('Da', mg.Magnitude(1.6605402e-27, kg=1))
 
 # Unitless
@@ -267,7 +267,7 @@ class Property(object):
             return float(value)
 
         # print "Parsing for units: '%s'"%value            
-        value = unicode(value).strip()
+        value = str(value).strip()
         if not value:
             return None
 
@@ -276,8 +276,8 @@ class Property(object):
 
         try:
             r = q.match(value).groups()
-        except Exception, e:
-            raise ValueError, "Unable to parse '%s' for units"%(value)
+        except Exception as e:
+            raise ValueError("Unable to parse '%s' for units"%(value))
 
         value = float(r[0])
         
@@ -287,7 +287,7 @@ class Property(object):
 
         units = None
         if r[2] != None:
-            units = unicode(r[2]).strip()
+            units = str(r[2]).strip()
         if not units:
             units = target
 
@@ -327,10 +327,10 @@ class Property(object):
         return v.toval()
 
     def error(self, units, target, msg=None):
-        raise ValueError, "Couldn't convert %s to %s: %s"%(units, target, msg or '')        
+        raise ValueError("Couldn't convert %s to %s: %s"%(units, target, msg or ''))        
 
     def unknown(self, units, target):
-        raise ValueError, "Don't know how to convert %s to %s"%(units, target)
+        raise ValueError("Don't know how to convert %s to %s"%(units, target))
 
 @Property.register('transmittance')
 class prop_transmittance(Property):
@@ -378,7 +378,7 @@ class prop_pH(Property):
     units = ['pH']
     def check_bounds(self, value, target):
         if (target == 'pH' and not 0 <- value <- 14):
-            raise ValueError, "pH must be between 0 and 14"
+            raise ValueError("pH must be between 0 and 14")
 
 @Property.register('concentration')
 class prop_concentration(Property):
@@ -416,7 +416,7 @@ class prop_temperature(Property):
     def check_bounds(self, value, target):
         # Check absolute zero
         if (target == 'degC' and value < -273.15) or (target == 'K' and value < 0) or (target == 'degF' and value < -459.67):
-            raise ValueError, "Cannot set a temperature below absolute zero"
+            raise ValueError("Cannot set a temperature below absolute zero")
 
     def _convert(self, value, units, target):
         # C / K
@@ -435,7 +435,7 @@ class prop_temperature(Property):
         elif units == 'degF' and target == 'degC':
             value = (value - 32) * (5.0 / 9.0)
         else:
-            raise ValueError, "Don't know how to convert %s to %s"%(units, target)
+            raise ValueError("Don't know how to convert %s to %s"%(units, target))
         return value
     
 @Property.register('area')
@@ -506,7 +506,7 @@ class prop_relative_humidity(Property):
 @Property.register('length')
 class prop_length(Property):
     defaultunits = 'm'
-    units = [u'Å', 'nm', 'um', 'mm', 'm', 'km']
+    units = ['Å', 'nm', 'um', 'mm', 'm', 'km']
 
 @Property.register('mass')
 class prop_mass(Property):
@@ -530,8 +530,8 @@ class prop_acceleration(Property):
 
 @Property.register('resolution')
 class prop_resolution(Property):
-    defaultunits = u'Å/pixel'
-    units = [u'Å/pixel', 'dpi', 'lpi']
+    defaultunits = 'Å/pixel'
+    units = ['Å/pixel', 'dpi', 'lpi']
         
 
 if __name__ == '__main__':
@@ -546,6 +546,6 @@ if __name__ == '__main__':
     # print a.convert(1, 'kDa', 'MDa')    
         
     a = prop_angle()
-    print a.convert(1, 'degree', 'rads')    
+    print(a.convert(1, 'degree', 'rads'))    
         
 __version__ = "$Revision: 1.30 $".split(":")[1][:-1].strip()

@@ -28,7 +28,7 @@ import emen2.db.config
 
 class PrintLogger(object):
     def emit(self, eventDict):
-        print eventDict
+        print(eventDict)
 
 class SubLogger(twisted.python.log.FileLogObserver):
     pass
@@ -80,7 +80,7 @@ class EMEN2Logger(object):
 
         # Open the various log files.        
         if not self.logpath:
-            raise Exception, "No log path set"
+            raise Exception("No log path set")
             
         self.loggers["INFO"] = SubLogger(open(os.path.join(self.logpath, "emen2.log"), "a+"))
         self.loggers["SECURITY"] = SubLogger(open(os.path.join(self.logpath, "security.log"), "a+"))
@@ -90,7 +90,7 @@ class EMEN2Logger(object):
     def stop(self):
         """Stop file-backed logging."""
         self.started = False
-        for k,v in self.loggers.items():
+        for k,v in list(self.loggers.items()):
             v.close()
 
     def emit(self, e):
@@ -111,9 +111,9 @@ class EMEN2Logger(object):
         else:
             pass
             try:
-                print "[%s]"%level, unicode(message).encode('utf-8')
+                print("[%s]"%level, str(message).encode('utf-8'))
             except UnicodeDecodeError:
-                print message
+                print(message)
             
 # Create the logger
 logger = EMEN2Logger()

@@ -1,20 +1,20 @@
 # $Id: listops.py,v 1.43 2013/02/05 05:13:23 irees Exp $
 import collections
 import itertools
-from UserDict import DictMixin
+#from UserDict import DictMixin
 from functools import partial
 
 
 
 def filter_dict_zero(d):
     """@return Filter dict for items with values > 0"""
-    return dict(filter(lambda x:len(x[1])>0, d.items()))
+    return dict([x for x in list(d.items()) if len(x[1])>0])
 
 
 
 def filter_dict_none(d):
     """@return Filter dict for items with values != None"""
-    return dict(filter(lambda x:x[1]!=None, d.items()))
+    return dict([x for x in list(d.items()) if x[1]!=None])
 
 
 
@@ -25,9 +25,9 @@ def first_or_none(items):
     result = None
     if len(items) > 0:
         if hasattr(items, 'keys'):
-            result = items.get(first_or_none(items.keys()))
+            result = items.get(first_or_none(list(items.keys())))
         else:
-            result = iter(items).next()
+            result = next(iter(items))
     return result
 
 
@@ -37,7 +37,7 @@ filter_none = lambda x:x or x==0
 def invert(d):
     """Invert a dictionary"""
     ret = {}
-    for k,v in d.items():
+    for k,v in list(d.items()):
         for v2 in v:
             ret[v2]=k
     return ret
@@ -48,7 +48,7 @@ def invert(d):
 def check_iterable(value):
     if not hasattr(value,"__iter__"):
         value = [value]
-    return filter(filter_none, value)
+    return list(filter(filter_none, value))
 
 
 
@@ -117,7 +117,7 @@ drop = partial(filter_dict, pred=(lambda x,y: x not in y))
 def chunk(l, count=1000):
     '''chunk a list into segments of length count'''
     ll = list(l)
-    return (ll[i:i+count] for i in xrange(0, len(ll), count))
+    return (ll[i:i+count] for i in range(0, len(ll), count))
 
 
 
@@ -132,7 +132,7 @@ def groupchunk(list_, grouper=lambda x: x[0]==x[1], itemgetter=lambda x:x):
     if hasattr(list_, '__iter__') and not isinstance(list_, list):
         list_ = list(list_)
     result = [[list_[0]]]
-    for x in xrange(len(list_)-1):
+    for x in range(len(list_)-1):
         window = list_[x:x+2]
         if not grouper(window):
             result.append([])
@@ -214,7 +214,7 @@ def combine(*lists, **kw):
     '''
     dtype = kw.get('dtype', None) or type(lists[0])
     if hasattr(lists[0], 'items'):
-        lists = [list_.items() for list_ in lists]
+        lists = [list(list_.items()) for list_ in lists]
     return dtype(itertools.chain(*lists))
 
 
@@ -225,7 +225,7 @@ def flatten(a):
     >>> flatten(a)
     set([1, 2, 3, 4, 5, 6])
     '''
-    return combine(*([a.keys()]+a.values()), dtype=set)
+    return combine(*([list(a.keys())]+list(a.values())), dtype=set)
 
 
 
@@ -244,7 +244,7 @@ def oltolist(d, dtype=None):
 
     if isinstance(d, dtype): pass
 
-    elif isinstance(d, (dict, DictMixin)) or not hasattr(d, "__iter__"):
+    elif isinstance(d, dict) or not hasattr(d, "__iter__"):
         d = [d]
         ol = True
 
@@ -268,7 +268,7 @@ def dictbykey_1(l, key):
 
 def dictbykey_2(l, key):
     l = sorted(l, key=lambda x: x.get(key))
-    l = groupchunk(l, grouper=lambda (a,b): a.get(key)==b.get(key))
+    l = groupchunk(l, grouper=lambda a_b: a_b[0].get(key)==a_b[1].get(key))
     l = dict( (x[0].get(key), x) for x in l)
     return l
 
@@ -299,9 +299,9 @@ def typefilter(l, types=None):
 
 
 def test_get():
-    print '1 == ',  get( {2:2, 3:3, 1:1}, 1 )
-    print '1 == ', get( {2:2, 3:3}, 1, 1 )
-    print 'None == ', get( {2:2, 3:3}, 1)
+    print('1 == ',  get( {2:2, 3:3, 1:1}, 1 ))
+    print('1 == ', get( {2:2, 3:3}, 1, 1 ))
+    print('None == ', get( {2:2, 3:3}, 1))
 
 def run_tests():
     test_get()

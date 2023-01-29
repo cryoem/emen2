@@ -15,6 +15,7 @@ import uuid
 import smtplib
 import email
 import email.mime.text
+from functools import reduce
 
 # Markdown processing
 try:
@@ -58,7 +59,7 @@ BACKEND = "bdb"
 if BACKEND == "bdb":
     import emen2.db.btrees as backend
 else:
-    raise ImportError, "Unsupported EMEN2 backend: %s"%backend
+    raise ImportError("Unsupported EMEN2 backend: %s"%backend)
 
 
 # EMEN2 Extensions
@@ -87,7 +88,7 @@ VIEW_REGEX_CLASSIC = '''(\$[\$\@\#\!]%s(?P<sep>[\W])?)'''%VIEW_REGEX_P
 VIEW_REGEX_M = '''(\{\{[\#\^\/]?%s\}\})'''%VIEW_REGEX_P
 
 # basestring goes away in Python 3
-basestring = (str, unicode)
+str = (str, str)
 
 ##### Utility methods #####
 
@@ -109,11 +110,11 @@ def getpw(pw=None):
     pw = pw or getpass.getpass("Password: ")
     while len(pw) < minlength:
         if len(pw) == 0:
-            print "Warning! No password!"
+            print("Warning! No password!")
             pw = ''
             break
         elif len(pw) < minlength:
-            print "Warning! If you set a password, it needs to be more than %s characters."%minlength
+            print("Warning! If you set a password, it needs to be more than %s characters."%minlength)
             pw = getpass.getpass("Password: ")
     return pw
 
@@ -130,7 +131,7 @@ def ol(name, output=True):
 
         @functools.wraps(f)
         def wrapped_f(*args, **kwargs):
-            if kwargs.has_key(name):
+            if name in kwargs:
                 olreturn, olvalue = listops.oltolist(kwargs[name])
                 kwargs[name] = olvalue
             elif (olpos-1) <= len(args):
@@ -138,7 +139,7 @@ def ol(name, output=True):
                 args = list(args)
                 args[olpos] = olvalue
             else:
-                raise TypeError, 'function %r did not get argument %s' % (f, name)
+                raise TypeError('function %r did not get argument %s' % (f, name))
 
             result = f(*args, **kwargs)
             if output and olreturn:
@@ -205,11 +206,11 @@ def sendmail(to_addr, subject='', msg='', template=None, ctxt=None, **kwargs):
     elif template:
         try:
             msg = emen2.db.config.templates.render_template(template, ctxt)
-        except Exception, e:
+        except Exception as e:
             emen2.db.log.warn('EMAIL: Could not render mail template %s: %s'%(template, e))
             return
     else:
-        raise ValueError, "No message to send!"
+        raise ValueError("No message to send!")
 
     # Actually send the message
     s = smtplib.SMTP(smtphost)
@@ -257,11 +258,11 @@ def setup(db=None, rootpw=None, rootemail=None):
     with db:
         # Create a root user
         if db.user.get('root'):
-           print "Admin account and default groups already exist."
+           print("Admin account and default groups already exist.")
            return
 
         defaultemail = 'root@localhost'
-        print "\n=== Setup Admin (root) account ==="
+        print("\n=== Setup Admin (root) account ===")
         rootemail = rootemail or defaultemail
         rootpw = getpw(pw=rootpw)
         root = {'name':'root', 'email':rootemail, 'password':rootpw}
@@ -274,7 +275,7 @@ def setup(db=None, rootpw=None, rootemail=None):
         groups['create'] = {'displayname':'Create records'}
         groups['authenticated'] = {'displayname':'Authenticated users'}
         groups['anon'] = {'displayname':'Anonymous users'}
-        for k,v in groups.items():
+        for k,v in list(groups.items()):
             v['name'] = k
             db.group.put(v)
 
@@ -316,14 +317,14 @@ class DB(object):
             try:
                 context = self.dbenv._context._get_data(ctxid, txn=txn)
             except KeyError:
-                raise SessionError, "Session expired"
+                raise SessionError("Session expired")
         else:
             # If no ctxid was provided, make an Anonymous Context.
             context = emen2.db.context.AnonymousContext(host=host)
             
         # If no ctxid was found, it's an invalid or expired Context.
         if not context:
-            raise SessionError, "Session expired"
+            raise SessionError("Session expired")
 
         # Fetch group memberships.
         grouplevels = {}
@@ -382,7 +383,7 @@ class DB(object):
 
     def _user_by_email(self, name, ctx=None, txn=None):
         """(Internal) Lookup a user by name or email address."""
-        name = unicode(name or '').strip().lower()
+        name = str(name or '').strip().lower()
         found = self.dbenv["user"].getindex('email', txn=txn).get(name, txn=txn)
         if found:
             name = found.pop()
@@ -390,7 +391,7 @@ class DB(object):
 
     def _findrecorddefnames(self, names, ctx=None, txn=None):
         """(Internal) Find referenced recorddefs."""
-        recnames, recs, rds = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
+        recnames, recs, rds = listops.typepartition(names, str, emen2.db.dataobject.BaseDBObject)
         rds = set(rds)
         rds |= set([i.rectype for i in recs])
         if recnames:
@@ -400,7 +401,7 @@ class DB(object):
 
     def _findparamdefnames(self, names, ctx=None, txn=None):
         """(Internal) Find referenced paramdefs."""
-        recnames, recs, params = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
+        recnames, recs, params = listops.typepartition(names, str, emen2.db.dataobject.BaseDBObject)
         params = set(params)
         if recnames:
             recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
@@ -410,7 +411,7 @@ class DB(object):
 
     def _findbyvartype(self, names, vartypes, ctx=None, txn=None):
         """(Internal) Find referenced users/binaries."""
-        recnames, recs, values = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
+        recnames, recs, values = listops.typepartition(names, str, emen2.db.dataobject.BaseDBObject)
         values = set(values)
         if recnames:
             recs.extend(self.dbenv["record"].gets(recnames, ctx=ctx, txn=txn))
@@ -468,10 +469,10 @@ class DB(object):
         """(Internal) Find ParamDefs or RecordDefs based on **qp constraints."""
         rets = []
         # This can still be done much better
-        names, items = zip(*self.dbenv[keytype].items(ctx=ctx, txn=txn))
+        names, items = list(zip(*self.dbenv[keytype].items(ctx=ctx, txn=txn)))
         ditems = listops.dictbykey(items, 'name')
 
-        query = unicode(query or '').split()
+        query = str(query or '').split()
         for q in query:
             ret = set()
             # Search some text-y fields
@@ -488,7 +489,7 @@ class DB(object):
             rets.append(cb(listops.check_iterable(record), ctx=ctx, txn=txn))
 
         allret = self._boolmode_collapse(rets, boolmode='AND')
-        ret = map(ditems.get, allret)
+        ret = list(map(ditems.get, allret))
         return ret
 
     def _view_kv(self, params):
@@ -595,19 +596,19 @@ class DB(object):
         """
         
         # Strip the username
-        username = unicode(username).lower().strip()
+        username = str(username).lower().strip()
         
         # Check password; user.checkpassword will raise SecurityError if wrong.
         try:
             user = self._user_by_email(username, txn=txn)
             user.checkpassword(password)
-        except SecurityError, e:
+        except SecurityError as e:
             # Both of these errors appear the same to the user,
             # but are logged with the specific reason for
             # login failure.
             emen2.db.log.security("Login failed: Bad password: %s"%(username))                
             raise AuthenticationError
-        except KeyError, e:
+        except KeyError as e:
             emen2.db.log.security("Login failed: No such user: %s"%(username))                
             raise AuthenticationError
 
@@ -633,7 +634,7 @@ class DB(object):
         if self.dbenv._context.bdb.exists(ctx.name, txn=txn):
             self.dbenv._context.bdb.delete(ctx.name, txn=txn)
         else:
-            raise SessionError, "Cannot logout: Unknown Context"
+            raise SessionError("Cannot logout: Unknown Context")
         emen2.db.log.security("Logout succeeded: %s" % (ctx.name))
 
     @publicmethod(compat="checkcontext")
@@ -817,7 +818,7 @@ class DB(object):
         ctx = kwargs.pop('ctx')
         txn = kwargs.pop('txn')
         c = list(c)
-        for k,v in kwargs.items():
+        for k,v in list(kwargs.items()):
             c.append([k, 'is', v])
         return self.query(c, keytype=keytype, ctx=ctx, txn=txn)['names']
 
@@ -975,7 +976,7 @@ class DB(object):
 
             if toget:
                 rt = self.record_groupbyrectype(toget, ctx=ctx, txn=txn)
-                for k,v in rt.items():
+                for k,v in list(rt.items()):
                     for name in v:
                         q.cache[name]['rectype'] = k
 
@@ -1076,7 +1077,7 @@ class DB(object):
         ret['names'] = q.sort(sortkey=sortkey, pos=pos, count=count, reverse=reverse)
         ret['stats']['length'] = len(q.result)
         ret['stats']['time'] = q.time
-        ret['recs'] = q.cache.values()
+        ret['recs'] = list(q.cache.values())
         return ret
 
     @publicmethod()
@@ -1109,7 +1110,7 @@ class DB(object):
         options = options or {}
 
         # Get Record instances from names argument.
-        names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
+        names, recs, newrecs, other = listops.typepartition(names, str, emen2.db.dataobject.BaseDBObject, dict)
         names.extend(other)
         recs.extend(self.dbenv[keytype].gets(names, ctx=ctx, txn=txn))
 
@@ -1211,7 +1212,7 @@ class DB(object):
             if match.group('args'):
                 key = '%s(%s)'%(match.group('name'), match.group('args') or '')
             # Replace the values.
-            for name, rec in recs.items():
+            for name, rec in list(recs.items()):
                 ret[name] = ret[name].replace(match.groups()[0], rec.get(key, ''))
         return ret
 
@@ -1252,7 +1253,7 @@ class DB(object):
             options['time_precision'] = 3
 
         # Get Record instances from names argument.
-        names, recs, newrecs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject, dict)
+        names, recs, newrecs, other = listops.typepartition(names, str, emen2.db.dataobject.BaseDBObject, dict)
         names.extend(other)
         recs.extend(self.dbenv[keytype].gets(names, ctx=ctx, txn=txn))
         for newrec in newrecs:
@@ -1267,11 +1268,11 @@ class DB(object):
             byrt = collections.defaultdict(set)
             for rec in recs:
                 byrt[rec.rectype].add(rec)
-            for recdef in self.dbenv['recorddef'].gets(byrt.keys(), ctx=ctx, txn=txn):
+            for recdef in self.dbenv['recorddef'].gets(list(byrt.keys()), ctx=ctx, txn=txn):
                 if viewname == 'mainview':
                     v = recdef.mainview
                 elif viewname == 'kv':
-                    v = self._view_kv(rec.keys())
+                    v = self._view_kv(list(rec.keys()))
                 else:
                     v = recdef.views.get(viewname) or recdef.views.get('recname') or default
                 views[v] = byrt[recdef.name]
@@ -1282,12 +1283,12 @@ class DB(object):
         # Optional: Apply MarkDown formatting to view before inserting values.
         if options.get('markdown'):
             views2 = {}
-            for k,v in views.items():
+            for k,v in list(views.items()):
                 views2[markdown.markdown(k)] = v
             views = views2
             
         # Render.
-        for view, recs in views.items():
+        for view, recs in list(views.items()):
             view = view or '{{name}}'
             view = self._view_convert(view)
             keys = self._view_keys(view)
@@ -1559,7 +1560,7 @@ class DB(object):
 
     @publicmethod()
     def user_new(self, *args, **kwargs):
-        raise NotImplementedError, "Use newuser.new() to create new users."
+        raise NotImplementedError("Use newuser.new() to create new users.")
     
     @publicmethod(write=True, compat="putuser")
     @ol('items')
@@ -1599,7 +1600,7 @@ class DB(object):
         """
         foundusers = None
         foundrecs = None
-        query = filter(None, [i.strip() for i in unicode(query or '').split()])
+        query = [_f for _f in [i.strip() for i in str(query or '').split()] if _f]
 
         # If no options specified, find all users
         if not any([query, record, kwargs]):
@@ -1767,7 +1768,7 @@ class DB(object):
         ind = self.dbenv["user"].getindex('email', txn=txn)
         if ind.get(email, txn=txn):
             time.sleep(2)
-            raise SecurityError, "The email address %s is already in use"%(email)
+            raise SecurityError("The email address %s is already in use"%(email))
 
         # Do not use get; it will strip out the secret.
         user = self.dbenv["user"]._get_data(name, txn=txn)
@@ -1871,7 +1872,7 @@ class DB(object):
         
         from_addr, smtphost = emen2.db.config.mailconfig()
         if not (from_addr and smtphost):
-            raise Exception, "Mail server is not configured; contact the administrator for help resetting a password."
+            raise Exception("Mail server is not configured; contact the administrator for help resetting a password.")
         
         user = self._user_by_email(name, ctx=ctx, txn=txn)
         user.resetpassword()
@@ -2052,7 +2053,7 @@ class DB(object):
             self.dbenv["newuser"].delete(user.name, txn=txn)
 
         # Send the emails
-        for name, email in emails.items():
+        for name, email in list(emails.items()):
             ctxt = {'name':name}
             self.dbenv.txncb(txn, 'email', kwargs={'to_addr':email, 'template':'/email/adduser.rejected', 'ctxt':ctxt})
 
@@ -2102,7 +2103,7 @@ class DB(object):
         ditems = listops.dictbykey(items, 'name')
 
         rets = []
-        query = unicode(query or '').split()
+        query = str(query or '').split()
 
         # If query is empty, match everything. Do this only for group.find, for now.
         if not query:
@@ -2122,7 +2123,7 @@ class DB(object):
             rets.append(set(ret))
 
         allret = self._boolmode_collapse(rets, boolmode='AND')
-        ret = map(ditems.get, allret)
+        ret = list(map(ditems.get, allret))
 
         if count:
             return ret[:count]
@@ -2237,7 +2238,7 @@ class DB(object):
             names |= self.record_findorphans(names, ctx=ctx, txn=txn)
         elif childaction == 'all':
             c = self.rel_children(names, ctx=ctx, txn=txn)
-            for k,v in c.items():
+            for k,v in list(c.items()):
                 names |= v
                 names.add(k)
 
@@ -2248,11 +2249,11 @@ class DB(object):
             rec.setpermissions([[],[],[],[]])
             rec.setgroups([])
             if rec.parents and rec.children:
-                rec["comments"] = "Record hidden by unlinking from parents %s and children %s"%(", ".join([unicode(x) for x in rec.parents]), ", ".join([unicode(x) for x in rec.children]))
+                rec["comments"] = "Record hidden by unlinking from parents %s and children %s"%(", ".join([str(x) for x in rec.parents]), ", ".join([str(x) for x in rec.children]))
             elif rec.parents:
-                rec["comments"] = "Record hidden by unlinking from parents %s"%", ".join([unicode(x) for x in rec.parents])
+                rec["comments"] = "Record hidden by unlinking from parents %s"%", ".join([str(x) for x in rec.parents])
             elif rec.children:
-                rec["comments"] = "Record hidden by unlinking from children %s"%", ".join([unicode(x) for x in rec.children])
+                rec["comments"] = "Record hidden by unlinking from children %s"%", ".join([str(x) for x in rec.children])
             else:
                 rec["comments"] = "Record hidden"
 
@@ -2535,7 +2536,7 @@ class DB(object):
         children = self.rel_rel(names, rel='children', tree=True, recurse=-1, ctx=ctx, txn=txn)
         allchildren = set()
         allchildren |= names
-        for k,v in children.items():
+        for k,v in list(children.items()):
             allchildren.add(k)
             allchildren |= v
 
@@ -2585,8 +2586,8 @@ class DB(object):
             cp = rec.get("comments")
             if not cp:
                 continue
-            cp = filter(lambda x:"LOG: " not in x[2], cp)
-            cp = filter(lambda x:"Validation error: " not in x[2], cp)
+            cp = [x for x in cp if "LOG: " not in x[2]]
+            cp = [x for x in cp if "Validation error: " not in x[2]]
             for c in cp:
                 ret.append([rec.name]+list(c))
 
@@ -2668,7 +2669,7 @@ class DB(object):
 
         # Sort by the number of items.
         keys = sorted(inverted, key=lambda x:len(inverted[x]), reverse=True)
-        keys = filter(lambda x:x not in choices, keys)
+        keys = [x for x in keys if x not in choices]
 
         ret = []
         for key in choices + keys:
@@ -2709,7 +2710,7 @@ class DB(object):
             
         # Allow either Record(s) or Record name(s) as input
         ret = collections.defaultdict(set)
-        recnames, recs, other = listops.typepartition(names, basestring, emen2.db.dataobject.BaseDBObject)
+        recnames, recs, other = listops.typepartition(names, str, emen2.db.dataobject.BaseDBObject)
 
         if len(recnames) < 1000:
             # Get the records directly
@@ -2798,13 +2799,13 @@ class DB(object):
             all_leaves = self.record_findbyrectype(leaf_rectypes, ctx=ctx, txn=txn)
             parents = self.dbenv['record'].rel(all_leaves, rel='parents', recurse=-1, ctx=ctx, txn=txn)
             parents_paths = collections.defaultdict(set)
-            for k,v in parents.items():
+            for k,v in list(parents.items()):
                 for i in v & names:
                     parents_paths[i].add(k)
 
             # All the leaves that have allowed roots
             all_leaves_found = set()
-            for k,v in parents_paths.items():
+            for k,v in list(parents_paths.items()):
                 all_leaves_found |= v
 
             # filter by permissions
@@ -2812,14 +2813,14 @@ class DB(object):
 
             # Now, reverse.
             parents2 = self.dbenv['record'].rel(all_leaves_found, rel='parents', recurse=-1, tree=True, ctx=ctx, txn=txn)
-            for k,v in parents2.items():
+            for k,v in list(parents2.items()):
                 for v2 in v:
                     paths[v2].add(k)
 
         else:
             paths = self.dbenv['record'].rel(names, rel='children', recurse=-1, tree=True, ctx=ctx, txn=txn)
 
-        for k,v in paths.items():
+        for k,v in list(paths.items()):
             all_nodes.add(k)
             all_nodes |= v                
         recnames = self.view(all_nodes, ctx=ctx, txn=txn)            
@@ -2930,7 +2931,7 @@ class DB(object):
         if query or kwargs.get('name'):
             names = self.dbenv["binary"].filter(None, ctx=ctx, txn=txn)
 
-        query = unicode(query or '').split()
+        query = str(query or '').split()
         for q in query:
             ret = set()
             ret |= set(name for name in names if q in name)
@@ -2955,7 +2956,7 @@ class DB(object):
         pd = self.dbenv["paramdef"].get(param, ctx=ctx, txn=txn)
 
         if pd.vartype != 'binary':
-            raise KeyError, "ParamDef %s does not accept binary references"%pd.name
+            raise KeyError("ParamDef %s does not accept binary references"%pd.name)
 
         if pd.iter:
             v = rec.get(pd.name) or []

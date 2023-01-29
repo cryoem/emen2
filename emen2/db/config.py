@@ -29,7 +29,7 @@ import emen2.db.globalns
 #     This module is loaded by many others, it can create circular
 #     dependencies very easily!
 
-basestring = (str, unicode)
+str = (str, str)
 
 ##### Mako template lookup #####
 
@@ -99,7 +99,7 @@ def set(key, value):
     :param value: Configuration value
 
     """
-    raise NotImplementedError, "Soon."
+    raise NotImplementedError("Soon.")
 
 
 ##### Email config helper #####
@@ -150,7 +150,7 @@ def load_view(ext):
     path = module[1]
     try:
         viewmodule = imp.find_module('views', [path])
-    except ImportError, e:
+    except ImportError as e:
         viewmodule = None
     if viewmodule:
         imp.load_module(modulename, *viewmodule)
@@ -186,7 +186,7 @@ class Config(object):
             for dct in args:
                 self.load_data(**dct)
 
-        for key, value in data.items():
+        for key, value in list(data.items()):
             # This needs to use setattr() so @properties will work.
             setattr(self.globalns, key, value)
 
@@ -322,7 +322,7 @@ class UsageParser(object):
         # This will be used with imp.find_module(ext, self.config.globalns.paths.exts)
         self.config.globalns.paths.exts.append(get_filename('emen2', 'exts'))
         if os.getenv('EMEN2EXTPATH'):
-            for path in filter(None, os.getenv('EMEN2EXTPATH','').split(":")):
+            for path in [_f for _f in os.getenv('EMEN2EXTPATH','').split(":") if _f]:
                 self.config.globalns.paths.exts.append(path)
 
         self.config.globalns.paths.exts.append(os.path.join(h, 'exts'))

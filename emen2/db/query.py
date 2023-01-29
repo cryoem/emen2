@@ -39,7 +39,7 @@ def getop(op):
         "<=":   lambda y,x: x <= y,
         'any':  lambda y,x: x != None,
         'noop': lambda y,x: True,
-        'contains': lambda y,x: unicode(y).lower() in unicode(x).lower(),
+        'contains': lambda y,x: str(y).lower() in str(x).lower(),
     }
     return ops[synonyms.get(op, op)]
 
@@ -51,7 +51,7 @@ def keyformatconvert(keyformat, term):
         elif keyformat == 'float':
             term = float(term)
         elif keyformat == 'str':
-            term = unicode(term)
+            term = str(term)
     except:
         pass
     return term
@@ -120,7 +120,7 @@ class IndexedConstraint(Constraint):
             self.index = self.p.btree.getindex(self.param, txn=self.p.txn)
             nkeys = self.index.bdb.stat(txn=self.p.txn)['ndata'] or 1 # avoid div by zero
             self.priority = 1.0 - (1.0/nkeys)
-        except Exception, e:
+        except Exception as e:
             # print "Error opening %s index:"%self.param, e
             pass
             
@@ -212,7 +212,7 @@ class RelConstraint(IndexedConstraint):
     def _run(self):
         # Relationships
         recurse = 1
-        term = unicode(self.term)
+        term = str(self.term)
         if term.endswith('*'):
             term = term.replace('*', '')
             recurse = -1            
@@ -396,13 +396,13 @@ class Query(object):
         elif self.mode == 'OR':
             self.result |= f
         else:
-            raise QuerySyntaxError, "Unknown boolean mode %s"%self.mode
+            raise QuerySyntaxError("Unknown boolean mode %s"%self.mode)
 
     def _prunecache(self):
         # Prune items from the cache that aren't in result set.
         if self.result is None:
             return
-        keys = self.cache.keys()
+        keys = list(self.cache.keys())
         for key in keys:
             self.cache[key]['name'] = key
             if key not in self.result:
@@ -426,7 +426,7 @@ class Query(object):
         toget -= current
 
         if len(toget) > ITEMSMAX:
-            raise QueryMaxItems, "This type of constraint has a limit of 100000 items; tried to get %s. Try narrowing the search by adding additional parameters."%(len(toget))
+            raise QueryMaxItems("This type of constraint has a limit of 100000 items; tried to get %s. Try narrowing the search by adding additional parameters."%(len(toget)))
 
         if toget:
             items = self.btree.gets(toget, ctx=self.ctx, txn=self.txn)
@@ -437,7 +437,7 @@ class Query(object):
         # (e.g. indexes for iterable params)
         if param == 'name':
             return
-        checkitems = set([k for k,v in self.cache.items() if (param in v)])
+        checkitems = set([k for k,v in list(self.cache.items()) if (param in v)])
         items = set([i.name for i in self.items])
         items = self.btree.gets(checkitems - items, ctx=self.ctx, txn=self.txn)
         self.items.extend(items)

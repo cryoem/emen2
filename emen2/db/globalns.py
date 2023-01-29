@@ -3,7 +3,7 @@
 Use the get() and set() functions in emen2.db.config instead.
 """
 
-from __future__ import with_statement
+
 
 import itertools
 import collections
@@ -136,7 +136,7 @@ import collections
 import threading
 import os
 import os.path
-import UserDict
+#import UserDict
 import time
 import os.path
 
@@ -204,7 +204,7 @@ class GlobalNamespace(Hier):
             if name.startswith('_') or name in set(['attrs', 'root']):
                 return value
             else:
-                if isinstance(value, (str, unicode)):
+                if isinstance(value, str):
                     if value.startswith('/'):
                         pass
                     else: value = os.path.join(self.root, value)
@@ -254,7 +254,7 @@ class GlobalNamespace(Hier):
         if not self.__locked:
             cls.__locked = bool(value)
         elif bool(value) == False:
-            raise LockedNamespaceError, 'cannot unlock %s' % cls.__name__
+            raise LockedNamespaceError('cannot unlock %s' % cls.__name__)
 
 
     @classmethod
@@ -285,7 +285,7 @@ class GlobalNamespace(Hier):
                 pass
 
             def fail(*a):
-                raise NotImplementedError, "No loader for %s files found" % ext.upper()
+                raise NotImplementedError("No loader for %s files found" % ext.upper())
 
             loadfunc = loadfunc.get( fn.rpartition('.')[2], fail )
 
@@ -308,7 +308,7 @@ class GlobalNamespace(Hier):
         """Alternate constructor which initializes a GlobalNamespace instance from a JSON or YAML file"""
 
         if not (fn or data):
-            raise ValueError, 'Either a filename or json/yaml data must be supplied'
+            raise ValueError('Either a filename or json/yaml data must be supplied')
 
         data = cls.load_data(fn, data)
 
@@ -322,7 +322,7 @@ class GlobalNamespace(Hier):
             self.EMEN2DBHOME = data.pop('EMEN2DBHOME', self.getattr('EMEN2DBHOME', ''))
             self.paths.root = self.EMEN2DBHOME
 
-            for k,v in data.pop('paths', {}).items():
+            for k,v in list(data.pop('paths', {}).items()):
                 setattr(self.paths, k, v)
 
             # process data
@@ -333,7 +333,7 @@ class GlobalNamespace(Hier):
                 options = b.pop('options', {})      # get options for the dictionary
                 self.__yaml_files[fn].append(key)
 
-                for key2, value in b.iteritems():
+                for key2, value in b.items():
                     self.__yaml_keys[key].append(key2)
                     #self.setattr('.'.join([key,key2]), value, options)
             self.from_dict(data)
@@ -368,7 +368,7 @@ class GlobalNamespace(Hier):
             keys = self.__yaml_keys
 
         _dict = collections.defaultdict(dict)
-        for key, value in keys.iteritems():
+        for key, value in keys.items():
             for k2 in value:
                 value = self.getattr(key).getattr(k2)
                 if hasattr(value, 'json_equivalent'): value = value.json_equivalent()
@@ -418,13 +418,13 @@ class GlobalNamespace(Hier):
                 for option in options:
                     self.__options[option].add(name)
             Hier.setattr(self, name, value)
-        else: raise LockedNamespaceError, 'cannot change locked namespace'
+        else: raise LockedNamespaceError('cannot change locked namespace')
 
     def getattr(self, name, default=None, *args, **kwargs):
         '''Get an attribute, returning default if not accessible'''
         if name.endswith('___'):
             name = name.partition('___')[-1]
-        if self.__options.has_key('private'):
+        if 'private' in self.__options:
             if name in self.__options['private']:
                 return default
         result = Hier.getattr(self, name, default=default, *args, **kwargs)
@@ -464,7 +464,7 @@ class TestGlobalNamespace(unittest.TestCase):
         self.assertEqual(self.a.a, tempdict['a'])
         self.assertEqual(self.b.a, tempdict['a'])
         self.assertEqual(self.a.___a, tempdict['a'])
-        print "test 3 passed"
+        print("test 3 passed")
         a.reset()
 
 
@@ -472,20 +472,21 @@ if __name__ == '__main__':
     pass
     #unittest.main()
 
-class dictWrapper(object, UserDict.DictMixin):
+#class dictWrapper(object, UserDict.DictMixin):
+class dictWrapper(dict):
     def __init__(self, dict_, prefix):
         self.__dict = dict_
         self.__prefix = prefix
     def __repr__(self):
         return '<dictWrapper dict: %r>' % self.__dict
-    def keys(self): return self.__dict.keys()
+    def keys(self): return list(self.__dict.keys())
     def __getitem__(self, name):
         v = self.__dict[name]
         if not v.startswith('/'):
             v = os.path.join(self.__prefix, v)
         return v
     def __setitem__(self, name, value):
-        if isinstance(value, (str, unicode)):
+        if isinstance(value, str):
             if value.startswith(self.__prefix):
                 del value[len(self.__prefix)+1:]
         self.__dict[name] = value
@@ -500,7 +501,7 @@ class listWrapper(object):
     def __repr__(self):
         return '<listWrapper list: %r, prefix: %s>'%(self.__list, self.__prefix)
     def check_item(self, item):
-        if isinstance(item, (str, unicode)):
+        if isinstance(item, str):
             item = os.path.join(self.__prefix, item)
         return item
     def __iter__(self):
@@ -509,7 +510,7 @@ class listWrapper(object):
     def __getitem__(self, k):
         return self.check_item(self.__list[k])
     def chopitem(self, item):
-        if isinstance(item, (str, unicode)):
+        if isinstance(item, str):
             if item.startswith(self.__prefix):
                 item = item[len(self.__prefix)+1:]
         return item
@@ -556,7 +557,7 @@ class Claim(Watch):
     claimed_attributes = set()
     def __init__(self, ns, name, default, validator=None):
         if name in self.claimed_attributes:
-            raise ValueError, 'attribute %s already claimed, use GlobalNamespace.watch() instead' % name
+            raise ValueError('attribute %s already claimed, use GlobalNamespace.watch() instead' % name)
         else:
             self.claimed_attributes.add(name)
 
@@ -575,7 +576,7 @@ class Claim(Watch):
                 if not is_valid:
                     res_repr = repr(value)
                     if len(res_repr) > 30: res_repr = res_repr[:27] + '...'
-                    raise ValueError, 'Configuration value %r has invalid value %s' % (self.name, res_repr)
+                    raise ValueError('Configuration value %r has invalid value %s' % (self.name, res_repr))
 
     def __set__(self, instance, value):
         self.set(value)

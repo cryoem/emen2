@@ -38,7 +38,7 @@ class User(View):
         # Security is of course is checked by the database, 
         # this just hides the form itself.
         if self.db.auth.check.context()[0] != user.name and not self.ctxt['ADMIN']:
-            raise emen2.db.exceptions.SecurityError, "You may only edit your own user page"
+            raise emen2.db.exceptions.SecurityError("You may only edit your own user page")
 
         msgs = {
             "password":"Password updated.", 
@@ -138,7 +138,7 @@ class NewUser(View):
             user = self.db.newuser.new(password=password, email=email)
             user.setsignupinfo(userrec)
             self.db.newuser.put(user)
-        except Exception, e:
+        except Exception as e:
             self.notify('There was a problem creating your account: %s'%e, error=True)
         else:
             self.simple(content='''Your request for a new account (%s) is being processed. You will be notified via email when it is approved.'''%(user.email))
@@ -156,8 +156,8 @@ class NewUser(View):
         if self.request_method == 'post':
             # I don't care for this format, but it's a limitation of
             # HTML input elements. 
-            reject = set(k for k,v in actions.items() if v=='reject')
-            approve = set(k for k,v in actions.items() if v=='approve')
+            reject = set(k for k,v in list(actions.items()) if v=='reject')
+            approve = set(k for k,v in list(actions.items()) if v=='approve')
             rejected = []
             approved = []
             if reject:
@@ -168,7 +168,7 @@ class NewUser(View):
             # Add the users to all the requested groups.
             # ... do this better in the future.
             for user in approved:
-                g = filter(None, groups.get(user.name, []))
+                g = [_f for _f in groups.get(user.name, []) if _f]
                 g = emen2.util.listops.check_iterable(g)
 
                 for group in self.db.group.get(g):

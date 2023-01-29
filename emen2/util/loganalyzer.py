@@ -67,7 +67,7 @@ class LogLine(dict):
         line[1] = line[1].strip()
 
         if any(not x for x in line):
-            print ' '.join(line)
+            print(' '.join(line))
         return cls(*line)
 
 class LogFile1(object):
@@ -79,7 +79,7 @@ class LogFile1(object):
             if not isinstance(line, LogLine):
                 line = LogLine.from_line(line)
             self.lines.append(line)
-            for k,v in line.items():
+            for k,v in list(line.items()):
                 self.data[k][v].append(line)
 
     @classmethod
@@ -127,13 +127,14 @@ class _Munger(object):
             return v
         return _inner
 
-import UserDict
-class AccessLogLine(object, UserDict.DictMixin):
+#import UserDict
+#class AccessLogLine(object, UserDict.DictMixin):
+class AccessLogLine(dict):
     order = (
         ('host',str), ('ctxid',str),
         ('username',str), ('rtime',timeconv),
-        ('request', str), ('response_code', long),
-        ('size', long), ('cputime', safe_float),
+        ('request', str), ('response_code', int),
+        ('size', int), ('cputime', safe_float),
         ('resource', str)
     )
     labels = set(x[0] for x in order)
@@ -158,7 +159,7 @@ class AccessLogLine(object, UserDict.DictMixin):
 
                 (typ() if v == '-' else typ( v or kwargs.get(k,typ()) ) )
 
-            ) for k,typ,v in itertools.izip_longest(*zip(*self.order) + [args], fillvalue='') if k != ''
+            ) for k,typ,v in itertools.zip_longest(*list(zip(*self.order)) + [args], fillvalue='') if k != ''
         )
 
         #values = dict( (k,v) for k, v in values )
@@ -211,7 +212,7 @@ class AccessLogLine(object, UserDict.DictMixin):
         return self._d[key]
     def __setitem__(self, key, value):
         if self._locked == True:
-            raise NotImplementedError, 'read only'
+            raise NotImplementedError('read only')
         else:
             self._d[key] = value
     def __getattr__(self, name):
@@ -220,7 +221,7 @@ class AccessLogLine(object, UserDict.DictMixin):
             if name in self: return self[name]
             else: raise
     def keys(self):
-        return self._d.keys()
+        return list(self._d.keys())
     def has_key(self, k):
         return k in self._d
 
@@ -236,7 +237,7 @@ class AccessLogFile(object):
             if not isinstance(line, AccessLogLine):
                 line = AccessLogLine.from_line(line)
             self.lines.append(line)
-            for k,v in line.items():
+            for k,v in list(line.items()):
                 if (index==None) or (k in index):
                     self.data[k][v].append(line)
 

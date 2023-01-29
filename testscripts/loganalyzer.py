@@ -126,8 +126,9 @@ class _Munger(object):
             return v
         return _inner
 
-import UserDict
-class AccessLogLine(object, UserDict.DictMixin):
+#import UserDict
+#class AccessLogLine(object, UserDict.DictMixin):
+class AccessLogLine(dict):
     order = (
         ('host',str), ('ctxid',str),
         ('username',str), ('rtime',timeconv),

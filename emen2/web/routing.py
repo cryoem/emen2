@@ -1,15 +1,15 @@
 # $Id: routing.py,v 1.56 2013/03/21 06:18:38 irees Exp $
 import re
 import sre_parse
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import cgi
 import contextlib
 import time
 import functools
-import urllib
+import urllib.request, urllib.parse, urllib.error
 
 from functools import partial
-from itertools import izip
+
 
 import twisted.web.resource
 
@@ -45,12 +45,12 @@ def add(*args, **kwargs):
 
 def force_unicode(string):
     result = string
-    if isinstance(result, unicode):
+    if isinstance(result, str):
         return result
     elif hasattr(result, '__unicode__'):
-        return unicode(result)
+        return str(result)
     else:
-        return unicode(result, 'utf-8', errors='replace')
+        return str(result, 'utf-8', errors='replace')
 
 
 
@@ -103,7 +103,7 @@ class Router(twisted.web.resource.Resource):
 
     # Resource was not found
     def render(self, request):
-        return unicode(
+        return str(
             emen2.web.routing.execute(
                 'Error/resp', 
                 db=None,
@@ -134,8 +134,8 @@ class Route(object):
         if match:
             # url unquote
             result = {}
-            for k,v in match.groupdict().items():
-                result[urllib.unquote_plus(k)] = urllib.unquote_plus(v)
+            for k,v in list(match.groupdict().items()):
+                result[urllib.parse.unquote_plus(k)] = urllib.parse.unquote_plus(v)
         return result
 
 
@@ -176,13 +176,13 @@ class _Router(emen2.util.registry.Registry):
         """
 
         if (not path and not name) or (path and name):
-            raise ValueError, "You must specify either a path or a name"
+            raise ValueError("You must specify either a path or a name")
 
         # Return a callback and found arguments
         result = None, None
 
         # Look at all the routes in the registry
-        for route in cls.registry.values():
+        for route in list(cls.registry.values()):
             # Return a result if found
             if path:
                 tmp = route.match(path)
@@ -263,7 +263,7 @@ class _Router(emen2.util.registry.Registry):
     def _reverse_helper(cls, regex, *args, **kwargs):
         mc = MatchChecker(args, kwargs)
         result = re.sub(r'\(([^)]+)\)', mc, regex.pattern)
-        qs = '&'.join( '%s=%s' % (urllib.quote_plus(k),urllib.quote_plus(v)) for k,v in mc.get_unused_kwargs().items() )
+        qs = '&'.join( '%s=%s' % (urllib.parse.quote_plus(k),urllib.parse.quote_plus(v)) for k,v in list(mc.get_unused_kwargs().items()) )
         result = [result.replace('^', '').replace('$', ''),qs]
         if qs == '':
             result.pop()
@@ -284,20 +284,20 @@ class MatchChecker(object):
     "Class used in reverse lookup."
     def __init__(self, args, kwargs):
         # Don't forget to quote the values.
-        self.args = _IndexedListIterator( (urllib.quote_plus(x) for x in args) )
-        self.kwargs = dict(  ( x, urllib.quote_plus(y) ) for x, y in kwargs.items()  )
+        self.args = _IndexedListIterator( (urllib.parse.quote_plus(x) for x in args) )
+        self.kwargs = dict(  ( x, urllib.parse.quote_plus(y) ) for x, y in list(kwargs.items())  )
         self.used_kwargs = set([])
 
     def get_arg(self, name):
         result = self.kwargs.get(name)
         if result is None:
-            result = self.args.next()
+            result = next(self.args)
         else:
             self.used_kwargs.add(name)
         return result
 
     def get_unused_kwargs(self):
-        return dict( (k,v) for k,v in self.kwargs.iteritems() if k not in self.used_kwargs )
+        return dict( (k,v) for k,v in self.kwargs.items() if k not in self.used_kwargs )
 
     NAMED_GROUP = re.compile(r'^\?P<(\w+)>(.*?)$', re.UNICODE)
 
@@ -308,7 +308,7 @@ class MatchChecker(object):
         if m:
             value, test_regex = self.get_arg(m.group(1)), m.group(2)
         else:
-            value, test_regex = self.args.next(), grouped
+            value, test_regex = next(self.args), grouped
 
         if value is None:
             raise NoReverseMatch('Not enough arguments passed in')

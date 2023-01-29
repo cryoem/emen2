@@ -57,14 +57,14 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     ##### Password methods #####
 
     def _hashpassword(self, password):
-        password = unicode(password or '')
+        password = str(password or '')
         if len(password) == 40:
             return password
-        return hashlib.sha1(unicode(password)).hexdigest()
+        return hashlib.sha1(str(password)).hexdigest()
 
     def validate_password(self, password):
         # Only root is allowed to have no password. All user accounts must have a password.
-        password = unicode(password or '')
+        password = str(password or '')
         if len(password) < 6 and self.name != 'root' and len(password) != 40:
             self.error("Password too short; minimum 6 characters required")
         return password
@@ -140,7 +140,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     def _makesecret(self, length=32):
         l = length / 2
         rg = random.SystemRandom()
-        r = range(255)
+        r = list(range(255))
         return ''.join(['%02x'%rg.choice(r) for i in range(l)])
 
     def _checksecret(self, action, args, secret):
@@ -172,7 +172,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # After a long discussion in #python, it is impossible to validate
         #     emails other than checking for '@'
         # Note: Forcing emails to be stored as lower case.
-        email = unicode(email or '').strip().lower()
+        email = str(email or '').strip().lower()
         if not email or '@' not in email:
             self.error("Invalid email format '%s'"%email)
         return email
@@ -208,7 +208,7 @@ class NewUser(BaseUser):
         required = set(["name_first","name_last"])
         newsignup = {}
 
-        for param, value in self.signupinfo.items():
+        for param, value in list(self.signupinfo.items()):
             if not value:
                 continue
                 
@@ -223,7 +223,7 @@ class NewUser(BaseUser):
 
         for param in required:
             if not newsignup.get(param):
-                raise ValueError, "Required param %s"%param
+                raise ValueError("Required param %s"%param)
 
         if self.signupinfo.get('child'):
             newsignup['child'] = self.signupinfo['child']
@@ -294,7 +294,7 @@ class User(BaseUser):
         try:
             if self._ctx.checkadmin():
                 return True
-        except Exception, e:
+        except Exception as e:
             pass
 
         if not hasattr(self, 'secret'):
@@ -328,7 +328,7 @@ class User(BaseUser):
     def getdisplayname(self, lnf=False, record=None):
         """Get the user profile record from the current Context"""
         if self.record is None:
-            return unicode(self.name)
+            return str(self.name)
 
         if not self._userrec:
             if not record:

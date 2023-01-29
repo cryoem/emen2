@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # $Id: server.py,v 1.105 2013/06/20 23:05:53 irees Exp $
 import traceback
-import thread
+import _thread
 import os.path
 import functools
 import contextlib
@@ -42,7 +42,7 @@ class DBPool(object):
         self.min = min
         self.max = max
         # Generate Thread ID
-        self.threadID = thread.get_ident
+        self.threadID = _thread.get_ident
         # Connect to reactor
         self.reactor = twisted.internet.reactor
         self.threadpool = twisted.python.threadpool.ThreadPool(self.min, self.max)

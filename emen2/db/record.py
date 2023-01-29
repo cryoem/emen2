@@ -139,7 +139,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
     def _set_rectype(self, key, value):
         if not self.isnew():
             self.error("Cannot change rectype")
-        self.__dict__['rectype'] = unicode(value)
+        self.__dict__['rectype'] = str(value)
         return set(['rectype'])
         
     def _set_comments(self, key, value):
@@ -174,13 +174,13 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
 
     def keys(self):
         """All retrievable keys for this record"""
-        return self.params.keys() + list(self.attr_public)
+        return list(self.params.keys()) + list(self.attr_public)
 
     def items(self):
-        return [(k,self[k]) for k in self.keys()]
+        return [(k,self[k]) for k in list(self.keys())]
 
     def paramkeys(self):
-        return self.params.keys()
+        return list(self.params.keys())
 
     ##### Comments and history #####
 
@@ -190,8 +190,8 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         if self.isnew():
             return
         if not param:
-            raise Exception, "Unable to add item to history log"
-        self.history.append((unicode(self._ctx.username), unicode(self._ctx.utcnow), unicode(param), self.params.get(param)))
+            raise Exception("Unable to add item to history log")
+        self.history.append((str(self._ctx.username), str(self._ctx.utcnow), str(param), self.params.get(param)))
 
     def addcomment(self, value):
         """Add a comment. Any $$param="value" comments will be parsed and set as values.
@@ -217,7 +217,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
             if hasattr(c, "__iter__"):
                 c = c[-1]
             if c and c not in existing:
-                newcomments.append(unicode(c))
+                newcomments.append(str(c))
 
         # newcomments2 = []
         # updvalues = {}
@@ -226,16 +226,16 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
             if not value.startswith("LOG"): # legacy fix..
                 d = emen2.db.recorddef.parseparmvalues(value)[1]
 
-            if d.has_key("comments"):
+            if "comments" in d:
                 # Always abort
                 self.error("Cannot set comments inside a comment", warning=False)
 
             # Now update the values of any embedded params
-            for i,j in d.items():
+            for i,j in list(d.items()):
                 cp |= self.__setitem__(i, j)
 
             # Store the comment string itself
-            self.comments.append((unicode(self._ctx.username), unicode(self._ctx.utcnow), unicode(value)))
+            self.comments.append((str(self._ctx.username), str(self._ctx.utcnow), str(value)))
             cp.add('comments')
 
         return cp
@@ -247,7 +247,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
         # Cut out any None's
         # The rest of the parameters are validated 
         # when they are set or updated.
-        pitems = self.params.items()
+        pitems = list(self.params.items())
         for k,v in pitems:
             if not v and v != 0 and v != False:
                 del self.params[k]
@@ -272,7 +272,7 @@ class Record(emen2.db.dataobject.PermissionsDBObject):
             if self.get(param) is None:
                 self.error("Required parameter: %s"%(param))
 
-        self.__dict__['rectype'] = unicode(rd.name)
+        self.__dict__['rectype'] = str(rd.name)
 
 
 __version__ = "$Revision: 1.94 $".split(":")[1][:-1].strip()

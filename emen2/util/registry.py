@@ -1,14 +1,45 @@
 import contextlib
 import functools
 
-class CallableGeneratorContextManager(contextlib.GeneratorContextManager):
-    '''A subclass of :py:class:`contextlib.GeneratorContextManager` which can be called
+### This is pulled from the Python 2.7 source with the addition of __call__. I really dislike this hacking of the
+### language in a final product. This copy was required for straigtforward porting to Python3 (steve)
+class CallableGeneratorContextManager(object):
+    """Helper for @contextmanager decorator."""
 
-    Basically, this exists to avoid unecessary hassles with object methods which need special treatment'''
+    def __init__(self, gen):
+        self.gen = gen
+
+    def __enter__(self):
+        try:
+            return next(self.gen)
+        except StopIteration:
+            raise RuntimeError("generator didn't yield")
+
     def __call__(self, *a, **kw):
         '''Enter self's context and call the object returned by __enter__'''
         with self as obj:
             return obj(*a, **kw)
+
+    def __exit__(self, type, value, traceback):
+        if type is None:
+            try:
+                next(self.gen)
+            except StopIteration:
+                return
+            else:
+                raise RuntimeError("generator didn't stop")
+        else:
+            if value is None:
+                value = type()
+            try:
+                self.gen.throw(type, value, traceback)
+                raise RuntimeError("generator didn't stop after throw()")
+            except StopIteration(exc):
+                return exc is not value
+            except:
+                if sys.exc_info()[1] is not value:
+                    raise
+
 
 #NOTE: (ed) this is literally ripped out of contextlib,
 # but I've replaced contextlib.GeneratorContextManager with the previous class
@@ -140,4 +171,4 @@ if __name__ == '__main__':
 
     for obj_name in shuffled(['first_obj', 'second_obj', 'third_obj']):
         with registry.dataobj(obj_name) as obj:
-            print '%s - a: %s, b: %s, c: %s' % (obj.name, obj.a, obj.b, obj.c)
+            print('%s - a: %s, b: %s, c: %s' % (obj.name, obj.a, obj.b, obj.c))

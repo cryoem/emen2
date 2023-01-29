@@ -1,10 +1,10 @@
 __version__ = "$Revision: 1.4 $".split(":")[1][:-1].strip()
-import group
-import help
-import home
-import map
-import paramdef
-import query
-import record
-import recorddef
-import user
+from . import group
+from . import help
+from . import home
+from . import map
+from . import paramdef
+from . import query
+from . import record
+from . import recorddef
+from . import user

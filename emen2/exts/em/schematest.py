@@ -2150,7 +2150,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'defaultunits': u'\xc5',
+ {'defaultunits': '\xc5',
   'desc_long': 'Fourier shell correlation',
   'desc_short': 'FSC',
   'indexed': True,
@@ -2434,7 +2434,7 @@ paramdefs =  [
   'vartype': 'float'},
 
 
- {'defaultunits': u'\xc5',
+ {'defaultunits': '\xc5',
   'desc_long': 'Height of the sample',
   'desc_short': 'Height sample',
   'indexed': True,
@@ -2605,7 +2605,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'defaultunits': u'\xc5',
+ {'defaultunits': '\xc5',
   'desc_long': 'Actual defocus',
   'desc_short': 'Actual defocus',
   'indexed': True,
@@ -3521,7 +3521,7 @@ paramdefs =  [
   'vartype': 'int'},
 
 
- {'defaultunits': u'\xc5',
+ {'defaultunits': '\xc5',
   'desc_long': 'Resolution cutoff for low-pass filter',
   'desc_short': 'Cut-off point',
   'indexed': True,
@@ -3851,7 +3851,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'defaultunits': u'\xc5',
+ {'defaultunits': '\xc5',
   'desc_long': 'Inner radius',
   'desc_short': 'Inner radius',
   'indexed': True,
@@ -3928,7 +3928,7 @@ paramdefs =  [
   'vartype': 'string'},
 
 
- {'defaultunits': u'\xc5/pixel',
+ {'defaultunits': '\xc5/pixel',
   'desc_long': 'Apixel',
   'desc_short': 'A/pixel',
   'indexed': True,

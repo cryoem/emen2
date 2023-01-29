@@ -1,6 +1,6 @@
-import auth
-import download
-import error
-import reverse
-import rpc
-import template
+from . import auth
+from . import download
+from . import error
+from . import reverse
+from . import rpc
+from . import template

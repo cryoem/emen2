@@ -6,7 +6,7 @@ import time
 import random
 import subprocess
 import threading
-import Queue
+import queue
 
 
 # try:
@@ -38,14 +38,14 @@ class ProcessWorker(object):
             # returncode = a.wait()
             try:
                 ret = subprocess.check_output(task, stderr=subprocess.STDOUT)
-            except Exception, e:
+            except Exception as e:
                 emen2.db.log.error("Couldn't build tile: %s"%e)
             finally:
                 self.queue.task_done()
             
             
 
-class ProcessQueue(Queue.LifoQueue):
+class ProcessQueue(queue.LifoQueue):
     """A queue of processes to run."""
     worker = ProcessWorker
     
@@ -55,10 +55,10 @@ class ProcessQueue(Queue.LifoQueue):
             task = tuple(task)
 
         if priority < -100 or priority > 100:
-            raise ValueError, "Highest priority is -100, lowest priority is 100"
+            raise ValueError("Highest priority is -100, lowest priority is 100")
 
         if name in [i[1] for i in self.queue]:
-		priority = 0
+            priority = 0
         #    raise ValueError, "Task name already in queue: %s"%name
 
         emen2.db.log.info("ProcessQueue: Adding task %s with priority %s to queue: %s"%(name, priority, task))

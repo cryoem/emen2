@@ -4,8 +4,8 @@ import re
 import os
 import time
 import tarfile
-import StringIO
-import cStringIO
+import io
+import io
 
 import twisted.web.static
 
@@ -92,11 +92,11 @@ class Download(View):
             
             else:
                 # This will trigger render_eb if the file is not found
-                raise IOError, "Could not access file"
+                raise IOError("Could not access file")
 
         # Check for files that have the same name...
         seen = []
-        for k,v in files.items():
+        for k,v in list(files.items()):
             if v in seen:
                 files[k] = renamefile(v, count=seen.count(v)+1)
             seen.append(v)
@@ -111,7 +111,7 @@ class Download(View):
 
     def _transfer_single(self, files, request, cache=True):
         # Download a single file
-        filepath, filename = files.items()[0]
+        filepath, filename = list(files.items())[0]
         mimetype, encoding = twisted.web.static.getTypeAndEncoding(filename, self.contentTypes, self.contentEncodings, self.defaultType)
 
         # If we're saving a gzip, we'll let the browser expand it by setting encoding:gzip.
@@ -148,7 +148,7 @@ class Download(View):
 class TarPipe(object):
     def __init__(self, files={}):
         self.files = files
-        self.buffer = cStringIO.StringIO()
+        self.buffer = io.StringIO()
         self.tarfile = tarfile.open(mode='w', fileobj=self.buffer)
 
     def close(self):
@@ -160,7 +160,7 @@ class TarPipe(object):
             self.tarfile.close()
             return
             
-        key = self.files.keys()[0]
+        key = list(self.files.keys())[0]
         filename = self.files.pop(key)
 
         self.buffer.seek(0)

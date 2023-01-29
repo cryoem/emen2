@@ -42,7 +42,7 @@ class HTTPMovedPermanently(HTTP300Response):
     code = 301
     def __init__(self, msg, dest):
         HTTP300Response.__init__(self, msg)
-        self.headers['Location'] = unicode(dest).encode('utf-8')
+        self.headers['Location'] = str(dest).encode('utf-8')
 
 
 class HTTPFound(HTTP300Response):
@@ -52,7 +52,7 @@ class HTTPFound(HTTP300Response):
     code = 302
     def __init__(self, msg, dest):
         HTTP300Response.__init__(self, msg)
-        self.headers['Location'] = unicode(dest).encode('utf-8')
+        self.headers['Location'] = str(dest).encode('utf-8')
 
 
 class HTTPNotModified(HTTP300Response):

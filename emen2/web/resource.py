@@ -6,7 +6,7 @@ import cgi
 import traceback
 import collections
 import functools
-import Queue
+import queue
 import itertools
 
 import twisted.internet
@@ -57,7 +57,7 @@ class RoutedResource(object):
         This may do things like disable snapshot transactions.
         '''
         if not matchers:
-            raise ValueError, 'A view must have at least one matcher'
+            raise ValueError('A view must have at least one matcher')
 
         # Default name (this is usually the method name)
         def check_name(name):
@@ -88,7 +88,7 @@ class RoutedResource(object):
         - These can be reversed with self.ctxt.reverse('ClassName/alt1', param1='asd') and such
         '''
         # Register mtchers produced by the add_matcher decorator
-        for func in cls.__dict__.values():
+        for func in list(cls.__dict__.values()):
             if not callable(func): continue
 
             for matcher in getattr(func, 'matcherinfo', []):
@@ -115,7 +115,7 @@ class RoutedResource(object):
         '''Use to get a view with a desired functionality'''
         if slot in cls.slots:
             return cls.slots[slot][-1]
-        else: raise ValueError, "No such slot"
+        else: raise ValueError("No such slot")
 
 
 class FixedArgsResource(object):
@@ -133,7 +133,7 @@ class FixedArgsResource(object):
 
         # Twisted provides all args as lists.
         # If we only got one value, pop it
-        for k, v in args.items():
+        for k, v in list(args.items()):
             if len(v) == 1:
                 v = v[0]
             args[k] = v
@@ -213,7 +213,7 @@ class FixedArgsResource(object):
         test = {}
         newargs = {}
         # Sort by key length so child dictionaries are created in order
-        for k,v in sorted(args.items(), key=lambda x:len(x[0])):
+        for k,v in sorted(list(args.items()), key=lambda x:len(x[0])):
             if '.' in k:
                 cur = newargs
                 s = k.split('.')
@@ -237,8 +237,8 @@ class FixedArgsResource(object):
                 newargs[k] = v
 
         # Transform :-keyed items back into dict
-        for k,v in test.items():
-            v2 = zip(v.get('keys', []), v.get('values', []))
+        for k,v in list(test.items()):
+            v2 = list(zip(v.get('keys', []), v.get('values', [])))
             newargs[k] = dict(v2)
 
         return newargs
@@ -246,7 +246,7 @@ class FixedArgsResource(object):
     def _parse_coerce_unicode(self, args, keyname=''):
         # This is terribly hacky, to deal with various Unicode issues
         # To disable this for a class, override and return {}
-        if isinstance(args, unicode):
+        if isinstance(args, str):
             return args
 
         elif keyname == 'filedata':
@@ -255,14 +255,14 @@ class FixedArgsResource(object):
 
         elif hasattr(args, 'items'):
             newargs = {}
-            for k, v in args.items():
+            for k, v in list(args.items()):
                 newargs[k] = self._parse_coerce_unicode(v, keyname=k)
             return newargs
 
         elif hasattr(args, '__iter__'):
-            return [unicode(i, 'utf-8') for i in args]
+            return [str(i, 'utf-8') for i in args]
 
-        return unicode(args, 'utf-8')
+        return str(args, 'utf-8')
 
 
 
@@ -304,7 +304,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
     def __unicode__(self):
         '''Render the resource into a string that can be sent to the client'''
-        return unicode(self.get_data())
+        return str(self.get_data())
 
     def __str__(self):
         '''Render the resource, encoded as UTF-8'''
@@ -418,7 +418,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         # Filter the headers.
         headers = {}
         headers.update(self.headers)
-        headers = dict( (k,v) for k,v in headers.iteritems() if v != None )
+        headers = dict( (k,v) for k,v in headers.items() if v != None )
 
         # Redirect if necessary
         if self._redirect:
@@ -452,7 +452,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
     def render_eb(self, failure, request, t=0, **_):
         # This method accepts either a regular Exception or Twisted Failure
-        print failure
+        print(failure)
         e, data = '', ''
         headers = {}
 
@@ -464,34 +464,34 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
                 raise failure
 
         # Closed connection error. Nothing to write, and no connection to close.
-        except (twisted.internet.defer.CancelledError), e:
+        except (twisted.internet.defer.CancelledError) as e:
             return
 
         # Expired or invalid session. Remove ctxid and redirect to root.
-        except emen2.db.exceptions.SessionError, e:
+        except emen2.db.exceptions.SessionError as e:
             data = self.render_error_security(request.uri, e)
             request.addCookie('ctxid', '', path='/')
             emen2.db.log.security(e)
 
         # Authentication exceptions
-        except emen2.db.exceptions.SecurityError, e:
+        except emen2.db.exceptions.SecurityError as e:
             data = self.render_error_security(request.uri, e)
             emen2.db.log.security(e)
 
         # HTTP errors
-        except emen2.web.responsecodes.HTTPResponseCode, e:
+        except emen2.web.responsecodes.HTTPResponseCode as e:
             data = self.render_error_response(request.uri, e)
             emen2.db.log.error(e)
 
         # General error
-        except BaseException, e:
+        except BaseException as e:
             data = self.render_error(request.uri, e)
             emen2.db.log.error(e)
 
         # Write the response
         headers.update(getattr(e, 'headers', {}))
         request.setResponseCode(getattr(e, 'code', 500))
-        [request.setHeader(k, v) for k,v in headers.items()]
+        [request.setHeader(k, v) for k,v in list(headers.items())]
         request.write(data)
 
         request.finish()
@@ -504,10 +504,10 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         return mako.exceptions.html_error_template().render()
 
     def render_error_security(self, location, e):
-        return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
+        return str(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
 
     def render_error_response(self, location, e):
-        return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
+        return str(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
 
     def _request_broken(self, failure, request, deferred):
         # Cancel the deferred.
@@ -535,7 +535,7 @@ class XMLRPCResource(object):
 
 
 class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
-    q = Queue.Queue()
+    q = queue.Queue()
 
     def processcontent(self, content, request):
         # Get the host from request
@@ -553,7 +553,7 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
     def callmethod(self, request, rpcrequest, db=None, ctxid=None, **kw):
         # Lookup the method and call
         if not db:
-            raise Exception, "No DBProxy"
+            raise Exception("No DBProxy")
 
         # Hack to log username and ctxid
         request._log_username = None
@@ -561,7 +561,7 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 
         methodresult = None
         if rpcrequest.method.startswith('_'):
-            raise emen2.web.responsecodes.ForbiddenError, 'Method not accessible'
+            raise emen2.web.responsecodes.ForbiddenError('Method not accessible')
 
         elif rpcrequest.method in db._publicmethods:
             # Start the DB with a write transaction

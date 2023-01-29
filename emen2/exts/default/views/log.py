@@ -16,12 +16,12 @@ def cast_arguments(*postypes, **kwtypes):
         @functools.wraps(func)
         def _inner(*args, **kwargs):
             out = []
-            for typ, arg in itertools.izip_longest(postypes, args, fillvalue=_Null):
+            for typ, arg in itertools.zip_longest(postypes, args, fillvalue=_Null):
                 if arg != _Null:
                     if typ != _Null and typ != None:
                         arg = typ(arg)
                     out.append(arg)
-            for k,v in kwargs.iteritems():
+            for k,v in kwargs.items():
                 typ = kwtypes.get(k, _Null)
                 if typ != _Null and typ != None:
                     kwargs[k] = typ(kwargs[k])
@@ -49,7 +49,7 @@ class Reverser(object):
             self._file.seek(-2,1)
         self.stopped = result
         return result
-    def next(self):
+    def __next__(self):
             if self.stopped: raise StopIteration
             line = []
             line.insert(0, self._file.read(1))
@@ -67,7 +67,7 @@ class Reverser(object):
     def __iter__(self):
         try:
             while True:
-                yield self.next()
+                yield next(self)
         except EOFError: raise StopIteration
 
 # class TableJS(emen2.web.templating.BaseJS):
@@ -109,7 +109,7 @@ def makereadable(val):
     adjust(vals, 'KB', 'MB')
     adjust(vals, 'MB', 'GB')
     adjust(vals, 'GB', 'TB')
-    vals = dict( (k,v) for k,v in vals.iteritems() if v != 0 ) or {'B':0}
+    vals = dict( (k,v) for k,v in vals.items() if v != 0 ) or {'B':0}
     return vals
 
 @View.register
@@ -134,7 +134,7 @@ class LogAnalysis(View):#AdminView):
                     if n >= end: break
                     elif start <= n:
                         lines.append(line)
-                except Exception, e:
+                except Exception as e:
                     emen2.db.log.error(e)
                     errors.append('problem, line: %r' % line)
 
@@ -152,7 +152,7 @@ class LogAnalysis(View):#AdminView):
         data_cast = dict(AccessLogLine.order)
         for x in dataset[1:]:
             n = x.split(':', 1)
-            print n
+            print(n)
             if (len(n) == 2) and (n[0] in AccessLogLine.labels):
                 label, val = n
                 index.add(label)
@@ -168,9 +168,9 @@ class LogAnalysis(View):#AdminView):
 
         data = ldata = logfile.data.get(name, {})
         if linefilter:
-            print 1
+            print(1)
             data = {}
-            for name, lines in ldata.iteritems():
+            for name, lines in ldata.items():
                 data[name] = []
                 for line in lines:
                     to_check = set(line) & set(linefilter)
@@ -187,7 +187,7 @@ class LogAnalysis(View):#AdminView):
 
 
 
-        print linefilter, jsfilter
+        print(linefilter, jsfilter)
         self.ctxt.update(
             sort=sort, errors=errors, name=name,
 

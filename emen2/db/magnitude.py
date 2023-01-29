@@ -334,10 +334,10 @@ def _res2m2(res):
 # Definition of the magnitude type.  Includes operator overloads.
 
 def _numberp(n):  ## Python has to have a decent way to do this!
-    return (isinstance(n, types.ComplexType) or
-            isinstance(n, types.FloatType) or
-            isinstance(n, types.IntType) or
-            isinstance(n, types.LongType))
+    return (isinstance(n, complex) or
+            isinstance(n, float) or
+            isinstance(n, int) or
+            isinstance(n, int))
 
 class Magnitude:
     def __init__(self, val, m=0, s=0, K=0, kg=0, A=0, mol=0, cd=0, dollar=0,
@@ -465,14 +465,14 @@ class Magnitude:
                 if re.search(r'\d$', u):
                     exp = int(u[-1])
                     u = u[0:-1]
-                if _mags.has_key(u):
+                if u in _mags:
                     u = _mags[u].copy()
-                elif ((len(u)>=3) and _prefix.has_key(u[0:2]) and
-                      _mags.has_key(u[2:])):
+                elif ((len(u)>=3) and u[0:2] in _prefix and
+                      u[2:] in _mags):
                     pr = _prefix[u[0:2]]
                     u = _mags[u[2:]].copy();  u.val = pr * u.val
-                elif ((len(u)>=2) and _prefix.has_key(u[0]) and
-                      _mags.has_key(u[1:])):
+                elif ((len(u)>=2) and u[0] in _prefix and
+                      u[1:] in _mags):
                     pr = _prefix[u[0]]
                     u = _mags[u[1:]].copy();  u.val = pr * u.val
                 elif _isres(u):
@@ -856,7 +856,7 @@ class Magnitude:
 
     def __long__(self):
         """Return the value of a Magnitude coerced to long.  See __int__."""
-        return long(self.toval())
+        return int(self.toval())
 
     def __float__(self):
         """Return the value of a Magnitude coerced to float.  See __int__."""

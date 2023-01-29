@@ -19,12 +19,12 @@ class ReverseURI(View):
         self.make_raw()
         self.set_header('content-type', 'application/json')
 
-        if name is None and isinstance(arg, (str, unicode)):
+        if name is None and isinstance(arg, str):
             arg = jsonrpc.jsonutil.decode(arg)
         elif name is not None:
-            if isinstance(arguments, (str, unicode)):
+            if isinstance(arguments, str):
                 arguments = jsonrpc.jsonutil.decode(arguments)
-            if isinstance(kwargs, (str, unicode)):
+            if isinstance(kwargs, str):
                 kwargs = jsonrpc.jsonutil.decode(kwargs)
             arg = [name, arguments, kwargs]
 
@@ -34,9 +34,9 @@ class ReverseURI(View):
 
     def get_url(self, arg):
         ret_list = True
-        if arg and isinstance(arg[0], (str, unicode) ): arg, ret_list = [arg], False
+        if arg and isinstance(arg[0], str ): arg, ret_list = [arg], False
 
-        arg = [ (name, args, dict( (k.encode('utf-8'),v) for k,v in kwargs.iteritems() ))
+        arg = [ (name, args, dict( (k.encode('utf-8'),v) for k,v in kwargs.items() ))
                     for name, args, kwargs in arg]
 
         arg = [(name, self.ctxt.reverse(name, *args, **kwargs)) for name, args, kwargs in arg]
@@ -52,7 +52,7 @@ class ReverseURI(View):
         self.page = jsonrpc.jsonutil.encode(arg)
 
     def execute_url(self, name, arguments, kwargs):
-        kwargs = dict( (k.encode('utf-8'), v) for k,v in kwargs.iteritems() )
+        kwargs = dict( (k.encode('utf-8'), v) for k,v in kwargs.items() )
         self.page = self.ctxt.render_template_view(name, *arguments, **kwargs)
         
 __version__ = "$Revision: 1.6 $".split(":")[1][:-1].strip()

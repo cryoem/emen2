@@ -44,7 +44,7 @@ class Event(object):
 
     def add_cbs(self, cbs):
         '''Add many callbacks, argument format: { callback: (args, kwargs) }'''
-        for (cb, (a, kw)) in cbs.iteritems():
+        for (cb, (a, kw)) in cbs.items():
             self.add_cb(cb, *a, **kw)
         return self
 
