@@ -1,4 +1,4 @@
-# $Id: log.py,v 1.29 2013/05/31 23:22:10 irees Exp $
+# $Id: log.py,v 1.23 2012/10/31 13:00:49 irees Exp $
 """EMEN2 logging
 
 Functions:
@@ -26,12 +26,15 @@ from twisted.python.log import _safeFormat, textFromEventDict
 
 import emen2.db.config
 
+
 class PrintLogger(object):
     def emit(self, eventDict):
         print eventDict
 
+
 class SubLogger(twisted.python.log.FileLogObserver):
     pass
+
 
 class WebLogger(twisted.python.log.FileLogObserver):
     def emit(self, eventDict):
@@ -40,10 +43,13 @@ class WebLogger(twisted.python.log.FileLogObserver):
             util.untilConcludes(self.write, message+"\n")
             util.untilConcludes(self.flush)
 
+
 class ErrorLogger(twisted.python.log.FileLogObserver):
     pass
     
+
 class EMEN2Logger(object):
+
     log_levels = dict(
             DEBUG=-1,
             TXN=1,
@@ -110,11 +116,10 @@ class EMEN2Logger(object):
             twisted.python.log.msg(message, system=level)
         else:
             pass
-            try:
-                print "[%s]"%level, unicode(message).encode('utf-8')
-            except UnicodeDecodeError:
-                print message
-            
+            print (u"[%s] %s"%(level, message)).encode('utf-8')
+
+
+
 # Create the logger
 logger = EMEN2Logger()
 
@@ -124,6 +129,7 @@ def print_exception():
 def msg(msg='', level='INFO'):
     logger.log(msg, level)
 
+
 # Aliases
 info = functools.partial(msg, level='INFO')
 init = functools.partial(msg, level='INIT')
@@ -131,6 +137,6 @@ error = functools.partial(msg, level='ERROR')
 warn = functools.partial(msg, level='WARN')
 debug = functools.partial(msg, level='DEBUG')
 security = functools.partial(msg, level='SECURITY')
-index = functools.partial(msg, level='INDEX')
+index = functools.partial(msg, level='INFO')
 commit = functools.partial(msg, level='COMMIT')
 web = functools.partial(msg, level='WEB')

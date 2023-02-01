@@ -1,5 +1,5 @@
-# $Id: __init__.py,v 1.35 2013/05/14 15:52:32 irees Exp $
-"""EMEN2: An extesible electronic lab notebook and database."""
+# $Id: __init__.py,v 1.34 2012/07/28 06:31:17 irees Exp $
+"""EMEN2: An object-oriented scientific database."""
 
 def opendb(**kwargs):
     """Open a database."""
@@ -17,4 +17,4 @@ def opendbwithopts(optclass, **kwargs):
     return cmd, emen2.db.database.opendb(**kwargs)
         
 
-__version__ = "$Revision: 1.35 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.34 $".split(":")[1][:-1].strip()

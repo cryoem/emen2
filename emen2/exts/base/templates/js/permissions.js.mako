@@ -1,4 +1,5 @@
 (function($) {
+    
     $.widget('emen2.PermissionsControl', {
         options: {
             keytype: 'record',
@@ -26,7 +27,6 @@
         build: function() {
             // Cache items before real build..
             if (this.built) {return}
-            this.built = 1;            
             var self = this;
 
             // Add the e2-permissions class
@@ -34,28 +34,33 @@
             this.element.addClass('e2-permissions');
             this.element.append(emen2.template.spinner());
 
+            // Complicated callback chain...
             // 1. Get the item...
             var item = emen2.caches[this.options.keytype][this.options.name];
             if (!item) {
                 emen2.db('get', {'keytype':this.options.keytype, 'names':this.options.name}, function(item) {
                     emen2.cache.update([item]);
+
                     // 2. Get all the users before we draw the infoboxes
                     var users = [];
                     $.each(item['permissions'] || [], function(k, v) {users = users.concat(v)});
                     users = emen2.cache.check('user', users);
                     emen2.db('user.get', [users], function(users) {
                         emen2.cache.update(users);
+
                         // 3. ... also get groups ...
                         var groups = item['groups'] || [];
                         groups = emen2.cache.check('group', groups);
                         emen2.db('group.get', [groups], function(groups) {                    
                             emen2.cache.update(groups)
+
                             // 4. Finally call real build method
                             self._build();
                         });    
                     });
                 });
             } else {
+
                 // This should be broken down into a separate callback method
                 // for each step of the chain
                 var users = [];
@@ -63,11 +68,13 @@
                 users = emen2.cache.check('user', users);
                 emen2.db('user.get', [users], function(users) {
                     emen2.cache.update(users);
+
                     // 3. ... also get groups ...
                     var groups = item['groups'] || [];
                     groups = emen2.cache.check('group', groups);
                     emen2.db('group.get', [groups], function(groups) {                    
                         emen2.cache.update(groups)
+
                         // 4. Finally call real build method
                         self._build();
                     });    
@@ -77,6 +84,8 @@
         },
         
         _build: function() {
+            // Real build method
+            this.built = 1;
             var self = this;
             var permissions = emen2.caches[this.options.keytype][this.options.name]['permissions'] || [];
             var groups = emen2.caches[this.options.keytype][this.options.name]['groups'] || [];
@@ -84,12 +93,16 @@
             // Remove anything that is bound
             this.element.empty();
 
-            // Add help, controls, summary, etc.
+            // Build the controls
+            if (this.options.controls && this.options.edit) {
+                this.build_controls();
+            }
             if (this.options.summary || this.options.help) {
-                $('<h2 />').text('Permissions').appendTo(this.element);
+                this.element.append('<h2 class="e2l-cf">Permissions</h2>');
             }
             if (this.options.help) {
-                $('<div class="e2l-help" role="help"><p> \
+                var help = (' \
+                <div class="e2l-help" role="help"><p> \
                     There are four types of permissions: \
                 </p><ul><li><strong>Read-only</strong>: access record</li> \
                     <li><strong>Comment</strong>: access record and add comments</li> \
@@ -105,61 +118,84 @@
                     or click <strong>save permissions recursively</strong> to save to this record and all child records. \
                 </p><p> \
                     Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Permissions">EMEN2 Wiki</a>. \
-                </p></div>')
-                .appendTo(this.element);
+                </p></div>');
+                this.element.append(help);
             }
             if (this.options.summary) {
-                this.build_summary().appendTo(this.element);
-            }
-            if (this.options.controls && this.options.edit) {
-                this.build_controls().appendTo(this.options.controls);
+                var summary = $('<p />');            
+                summary.append(this.build_summary());
+                this.element.append(summary);
             }
 
             // Build the permissions levels
             if (this.options.groups) {
-                this.build_level('Groups', 'groups', groups, 'group').appendTo(this.element);
+                this.element.append(this.build_level('Groups', 'groups', groups, 'group'));
             }
-            this.build_level('Read-only', 'read', permissions[0]).appendTo(this.element);
-            this.build_level('Comment', 'comment', permissions[1]).appendTo(this.element);
-            this.build_level('Write', 'write', permissions[2]).appendTo(this.element);
-            this.build_level('Owners', 'admin', permissions[3]).appendTo(this.element);
+            this.element.append(this.build_level('Read-only', 'read', permissions[0]));
+            this.element.append(this.build_level('Comment', 'comment', permissions[1]));
+            this.element.append(this.build_level('Write', 'write', permissions[2]));
+            this.element.append(this.build_level('Owners', 'admin', permissions[3]));
+            
+            // Show all the infoboxes...
+            $('.e2-permissions-infobox', this.element).InfoBox('show');
+            
         },
         
         build_summary: function() {
             var permissions = emen2.caches[this.options.keytype][this.options.name]['permissions'] || [];
             var groups = emen2.caches[this.options.keytype][this.options.name]['groups'] || [];
             var total = permissions[0].length + permissions[1].length + permissions[2].length + permissions[3].length;
-            return $('<p />').text('This record is accessible by '+groups.length+' groups and '+total+' users.')
+            var ret = '<p>This record is accessible by '+groups.length+' groups and '+total+' users.</p>';
+            return ret
         },
         
         build_controls: function() {
-            // Todo: cleaner markup.
             var self = this;
+            // var controls = $(' \
+            //     <ul class="e2l-options"> \
+            //         <li class="e2-select"></li> \
+            //         <li><span class="e2-permissions-advanced e2l-a">'+emen2.template.caret('up')+'Advanced</span></li> \
+            //      </ul> \
+            //     <ul class="e2l-advanced e2l-hide"> \
+            //          <li><input type="button" name="add" value="Add selection to children" /></li> \
+            //                      <li><input type="button" name="remove" value="Remove selection from children" /></li> \
+            //          <li><input type="button" name="overwrite" value="Overwrite children with selection" /></li> \
+            //          <li><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label><br /></li> \
+            //     </ul> \
+            //     <ul class="e2l-controls"> \
+            //         <li><input type="button" name="save" value="Save permissions" /></li> \
+            //     </ul>');
             var controls = $(' \
+                <ul class="e2l-options"> \
+                    <li class="e2-select"></li> \
+                    <li><span class="e2-permissions-caret e2l-a">'+emen2.template.caret('up')+'Advanced</span></li> \
+                </ul> \
                 <ul class="e2l-controls"> \
                     <li><input type="button" name="save" value="Save permissions" /></li> \
-                    <li><input type="button" name="overwrite" value="Save permissions recurisvely" /></li> \
-                </ul>');
-            // Action buttons
-            $('input[name=overwrite]', controls).click(function(){self.save('overwrite')})
-            $('input[name=save]', controls).click(function(){self.save()});
-            return controls
-            // <ul class="e2l-options"> \
-            //     <li class="e2-select"></li> \
-            // </ul> \
-            // <li class="e2-permissions-advanced e2l-hide"><input type="button" name="add" value="Add checked users to children" /></li> \
-            // <li class="e2-permissions-advanced e2l-hide"><input type="button" name="remove" value="Remove checked users from children" /></li> \
-            // <li class="e2-permissions-advanced e2l-hide"><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label></li> \
-            // Show/hide advanced options
-            // $('.e2-permissions-caret', controls).click(function(){
-            //     $('.e2-permissions-advanced', self.options.controls).toggle();
-            // });
-            // $('input[name=add]', controls).click(function(){self.save('add')})
-            // $('input[name=remove]', controls).click(function(){self.save('remove')})
+                    <li><input type="button" name="overwrite" value="Save permissions recursively" /></li> \
+                    <li class="e2-permissions-advanced e2l-hide"><input type="button" name="add" value="Add checked users to children" /></li> \
+                    <li class="e2-permissions-advanced e2l-hide"><input type="button" name="remove" value="Remove checked users from children" /></li> \
+                    <li class="e2-permissions-advanced e2l-hide"><input type="checkbox" name="filt" value="filt" checked id="e2-permissions-filt"><label for="e2-permissions-filt">Ignore failures</label></li> \
+                </ul> \
+                ');
 
             // Selection control
-            // $('.e2-select', controls).SelectControl({root: this.element});
-                        
+            $('.e2-select', controls).SelectControl({root: this.element});
+            
+            // Show/hide advanced options
+            $('.e2-permissions-caret', controls).click(function(){
+                emen2.template.caret('toggle', self.options.controls);
+                //$('.e2l-controls', self.options.controls).toggle();
+                $('.e2-permissions-advanced', self.options.controls).toggle();
+            });
+            
+            // Action buttons
+            $('input[name=add]', controls).click(function(){self.save('add')})
+            $('input[name=remove]', controls).click(function(){self.save('remove')})
+            $('input[name=overwrite]', controls).click(function(){self.save('overwrite')})
+            $('input[name=save]', controls).click(function(){self.save()});
+            
+            this.options.controls.append(controls);            
         },
 
         build_level: function(lab, level, items, keytype) {
@@ -168,39 +204,35 @@
             var keytype = (level == 'groups') ? 'group' : 'user';
             var param = (level == 'groups') ? 'groups' : 'permissions.'+level;
 
-            var ret = $('<div />')
-                .addClass('e2l-cf')
-                .attr('data-level', level);
-            
-            var header = $('<h4 />')
-                .text(lab)
-                .appendTo(ret);
+            var ret = $('<div></div>')            
+            var header = $('<h4 class="e2l-cf">'+lab+'</h4>');
             if (this.options.edit) {
-                $('<input type="button" />')
-                .attr('data-level', level)
-                .attr('data-keytype', keytype)
-                .FindControl({
+                var add = $('<input type="button" data-level="'+level+'" data-keytype="'+keytype+'" value="+" /> ');
+                // Find control. Callback adds item to the correct box.
+                // var minimum = 0;
+                // if (keytype=='group'){minimum=0}
+                add.FindControl({
                     keytype: keytype,
                     minimum: 0,
                     selected: function(w, value) {
                         var level = w.element.attr('data-level');
                         self.add(level, value);
                     }
-                })
-                .val('+')
-                .prependTo(header)
+                });
+                header.prepend(add, ' ');
             }
 
+            var div = $('<div class="e2l-cf"></div>');
+            div.attr('data-level', level);
+            
             // Add the infoboxes
             for (var i=0;i<items.length;i++) {
-                this.build_item(level, items[i], keytype).appendTo(ret);
+                div.append(this.build_item(level, items[i], keytype));
             }
 
-            // Need to have one last hidden item to make sure it's a list.
-            $('<input type="hidden" />')
-                .attr('name', param)
-                .appendTo(ret);
-
+            // We have to put in one last empty element
+            div.append('<input type="hidden" name="'+param+'" value="" class="e2-permissions-hidden" />');
+            ret.append(header, div);
             return ret
         },
         
@@ -211,35 +243,47 @@
             var param = (level == 'groups') ? 'groups' : 'permissions.'+level;
 
             // Update the select count when built or checked..
-            var d = $('<div />')
-                .InfoBox({
-                    keytype: keytype,
-                    name: name,
-                    selectable: this.options.edit,
-                    input: ['checkbox', param, true],
-                });
+            var cb = function() {$('.e2-select', self.options.controls).SelectControl('update')}
+
+            // User infobox
+            // Show is false -- we need to attach to DOM before
+            // the built() callback will work correctly.
+            var d = $('<div class="e2-permissions-infobox"></div>');
+            d.InfoBox({
+                show: false,
+                keytype: keytype,
+                name: name,
+                selectable: this.options.edit,
+                input: ['checkbox', param, true],
+                selected: cb,
+                built: cb
+            });
             return d
         },
         
         add: function(level, name) {
             var self = this;
-            var lvl = $('div[data-level='+$.escape(level)+']');
-            if ($('div[data-name="'+$.escape(name)+'"]', lvl).length) {
+            var lvl = $('div[data-level='+level+']');
+            if ($('div[data-name="'+name+'"]', lvl).length) {
                 return
             }
-            this.build_item(level, name).appendTo(lvl);
+            var item = this.build_item(level, name);
+            lvl.append(item);
+            item.InfoBox('show');
         },
         
         save: function(action) {
             var self = this;
-
-            // Clear the existing form.
-            $('input[name=action]', this.element).remove();            
+            
             // Copy options into the form...
-            $('<input type="hidden" />')
-                .attr('name', 'action')
-                .val(action)
-                .appendTo(this.element);
+            if (action) {
+                $('.e2-permissions-copied', this.element).remove();
+                var copied = $('<div class="e2-permissions-copied e2l-hide"></div>');
+                var filt = $('input[name=filt]:checked', this.options.controls).val();
+                copied.append('<input type="hidden" name="action" value="'+action+'" />');
+                copied.append('<input type="hidden" name="filt" value="'+filt+'" />');
+                this.element.append(copied);
+            }
             
             // Submit the actual form
             this.element.submit();            

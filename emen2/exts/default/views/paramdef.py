@@ -1,4 +1,4 @@
-# $Id: paramdef.py,v 1.27 2013/05/01 08:22:10 irees Exp $
+# $Id: paramdef.py,v 1.26 2012/10/18 23:34:23 irees Exp $
 import collections
 
 from emen2.web.view import View
@@ -75,7 +75,7 @@ class ParamDefs(View):
 
     @View.add_matcher(r'^/paramdefs/$')
     def main(self, action=None, q=None):
-        paramdefnames = self.db.paramdef.filter(None)
+        paramdefnames = self.db.paramdef.names()
 
         if action == None or action not in ["vartype", "name", "tree", "property"]:
             action = "tree"
@@ -137,4 +137,4 @@ class ParamDefs(View):
 
 
 
-__version__ = "$Revision: 1.27 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.26 $".split(":")[1][:-1].strip()

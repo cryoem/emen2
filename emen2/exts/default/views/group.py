@@ -1,4 +1,4 @@
-# $Id: group.py,v 1.16 2013/05/01 08:22:10 irees Exp $
+# $Id: group.py,v 1.15 2012/10/18 23:34:23 irees Exp $
 import time
 
 from emen2.web.view import View
@@ -12,7 +12,7 @@ class Groups(View):
         self.template="/pages/groups"
         self.title = "User group directory"
         self.ctxt["q"] = ""
-        groupnames = self.db.group.filter(None)
+        groupnames = self.db.group.names()
         groups = self.db.group.get(groupnames)
         admin = self.db.auth.check.admin()
         self.ctxt["admin"] = admin
@@ -78,4 +78,4 @@ class Group(View):
         
 
         
-__version__ = "$Revision: 1.16 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.15 $".split(":")[1][:-1].strip()

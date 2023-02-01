@@ -15,7 +15,7 @@ def parseutc(d):
     try:
         t = dateutil.parser.parse(d, default=default)
     except ValueError, e:
-        print "Could not parse:", d, e
+        print "Couldn't parse:", d, e
         return
     if not t.tzinfo:
         t = t.replace(tzinfo=tzlocal)
@@ -27,7 +27,7 @@ def parselocal(d):
     try:
         t = dateutil.parser.parse(d, default=default)
     except ValueError, e:
-        print "Could not parse:", d, e
+        print "Couldn't parse:", d, e
         return
     if not t.tzinfo:
         t = t.replace(tzinfo=tzlocal)
@@ -39,19 +39,32 @@ def parselocal(d):
     # return t.isoformat()
 
 
-def updatebt(btree, ctx, txn):
+def updatebt(btree, txn, ctx):
     for name, item in btree.items(txn=txn, ctx=ctx):
         # print name
         ct = item.__dict__.get('creationtime') or '2001/01/01'
         item.__dict__['creationtime'] = parseutc(ct)
         item.__dict__['modifytime'] = parseutc(item.get('modifytime') or ct)
-        btree._put_data(item.name, item, txn=txn)
-    btree.rebuild_indexes(ctx=ctx, txn=txn)
+        try:
+            btree.put(str(name), item, txn=txn)
+        except Exception, e:
+            print "Skipped...", e
+
+        
+with db:    
+    pds = set(db.query([['vartype','==','datetime']], keytype='paramdef', count=0)['names'])
+    pds -= set(['creationtime', 'modifytime'])
+    print "Converting timestamps for:", pds
     
-def updaterecs(ctx, txn):
-    # for name in range(550000):
-    for count, name in enumerate(db._db["record"].keys(txn=txn)):
-        if count % 1000 == 0:
+    ctx = db._ctx
+    txn = db._txn
+    
+    for i in ['user', 'group', 'paramdef', 'recorddef', 'binary']:
+        updatebt(db._db.dbenv[i], txn=txn, ctx=ctx)
+    
+    #for name in db._db.dbenv["record"].keys(txn=txn): 
+    for name in range(550000):
+        if name % 1000 == 0:
             print name
 
         rec = db.getrecord(name)
@@ -76,21 +89,7 @@ def updaterecs(ctx, txn):
             if rec.params.get(p):
                 rec.params[p] = parselocal(rec.params[p])
 
-        db._db["record"]._put_data(rec.name, rec, txn=txn)
-    db._db['record'].rebuild_indexes(ctx=ctx, txn=txn)
-    
-    
-with db:    
-    pds = set(db.query([['vartype','==','datetime']], keytype='paramdef', count=0)['names'])
-    pds -= set(['creationtime', 'modifytime'])
-    print "Converting timestamps for:", pds
+        db._db.dbenv["record"].put(rec.name, rec, txn=txn)
         
-    ctx = db._ctx
-    txn = db._txn
-    for i in ['user', 'group', 'paramdef', 'recorddef', 'binary']:
-        updatebt(db._db[i], ctx=ctx, txn=txn)
-    
-    updaterecs(ctx=ctx, txn=txn)
-    
         
         

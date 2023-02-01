@@ -15,6 +15,8 @@ def other_setstate(self, d):
     print d    
     return self.__dict__.update(d)
 
+
+
 def user_setstate(self, d):
     print "Updating user"
     
@@ -137,7 +139,7 @@ def convert_rels(db):
     print "Converting relationships"
     txn = db._gettxn()
     for keytype in ['paramdef', 'recorddef', 'record']:
-        bdb = db._db[keytype]
+        bdb = db._db.dbenv[keytype]
         parents = bdb.getindex('parents', txn=txn)
         children = bdb.getindex('children', txn=txn)
         #for name, rec in bdb.iteritems(txn=txn):
@@ -160,7 +162,7 @@ def convert_pickle_other(db):
     txn = db._gettxn()
     for keytype in ['group', 'user']:
         print "Updating keytype", keytype
-        bdb = db._db[keytype]
+        bdb = db._db.dbenv[keytype]
         for name in bdb.keys(txn=txn):
             rec = bdb.get(name, txn=txn)
             bdb.put(rec.name, rec, txn=txn)
@@ -171,8 +173,8 @@ def convert_bdocounter(db):
     """Convert old style bdocounter to new sequenced bdo db"""
     ctx = db._getctx()
     txn = db._gettxn()
-    bdb = db._db.binary
-    seqdb = db._db["binary"].sequencedb
+    bdb = db._db.dbenv.binary
+    seqdb = db._db.dbenv["binary"].sequencedb
 
     for i in bdb.keys(txn=txn):
         d = bdb.get(i, txn=txn)
@@ -218,7 +220,7 @@ def defs_rename(db):
     root_parameter.children = set()
     db.putparamdef(root)
     db.putparamdef(root_parameter)
-    db._db["paramdef"].delete('root_parameter', txn=txn)
+    db._db.dbenv["paramdef"].delete('root_parameter', txn=txn)
 
     
     root_protocol = db.getrecorddef('root_protocol')
@@ -228,7 +230,7 @@ def defs_rename(db):
     root_protocol.children = set()
     db.putrecorddef(root)
     db.putrecorddef(root_protocol)
-    db._db["recorddef"].delete('root_protocol', txn=txn)
+    db._db.dbenv["recorddef"].delete('root_protocol', txn=txn)
 
 
 
@@ -254,10 +256,10 @@ def paramdefs_props(db):
     txn = db._gettxn()
 
     for pd in paramdefs:
-        vtm = emen2.db.datatypes.VartypeManager(db=db)
+        vt = emen2.db.datatypes.VartypeManager(db=db)
         if pd.property:
             try:
-                prop = vtm.get_property(pd.property)
+                prop = vt.getproperty(pd.property)
             except:
                 print pd.name, pd.property
                 pd.__dict__['property'] = None
@@ -269,7 +271,7 @@ def paramdefs_props(db):
             pd.__dict__['defaultunits'] = fixmap.get(pd.defaultunits, pd.defaultunits)    
             # if pd.defaultunits and pd.defaultunits not in prop.units:
             #     print pd.name, pd.property, pd.defaultunits, prop.units        
-            db._db["paramdef"]._put_data(pd.name, pd, txn=txn)
+            db._db.dbenv["paramdef"].put(pd.name, pd, txn=txn)
     
 
 
@@ -284,6 +286,7 @@ def main(db):
 
 
 def rename():
+    import bsddb3
     import emen2.db.config
     import emen2.db.database
     

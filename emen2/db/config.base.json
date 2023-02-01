@@ -38,7 +38,7 @@
     },
 
     "extensions":{
-        "exts": ["base", "default"]
+        "exts": []
     },
 
     // You probably don't want to change any of these.
@@ -48,7 +48,7 @@
         "maxidle": 604800
     },
     
-    // Berkeley DB cachesize (in megabytes), and MVCC (snapshot transaction) support.
+    // Berkeley DB cachesize (in megabytes), max transactions, and locks
     "bdb": {
         "snapshot": 1,
         "cachesize": 256
@@ -60,7 +60,7 @@
         "level": "info"
     },
 
-    // Mail settings. If the smtphost is configured, and from address is set,
+    // Mail settings. If the MAILHOST is configured, and from or root's email address is set,
     //    emails will be sent during certain events.
     "mail":{
         //"from": "ian@ianrees.net",
@@ -72,7 +72,7 @@
         "uri": "",
 
         // Number of web server threads to run
-        "threads": 1,
+        "threads": 4,
 
         // Regular HTTP port
         "port": 8080,
@@ -108,6 +108,7 @@
         // These words will not be indexed
         "unindexed_words": ["in", "of", "for", "this", "the", "at", "to", "from", "at", "for", "and", "it", "or"],
 
+        // "date_occurred", "performed_by", 
         "table_add_columns": ["creationtime", "creator"]
     },
 
@@ -116,5 +117,15 @@
         "banner": "0",
         "banner_noauth": "0",
         "bookmarks": []
+    },
+
+    // Path to EMAN2 python; if you are using an EMAN2 binary you will want to set this.
+    "EMAN2":{
+        "python":"python"
+    },
+
+    // Path to ImageMagick programs. Used for generating thumbnails.
+    "IMAGEMAGICK":{
+        "convert":"convert"
     }
 }

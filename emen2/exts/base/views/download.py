@@ -1,4 +1,4 @@
-# $Id: download.py,v 1.34 2013/05/14 09:19:12 irees Exp $
+# $Id: download.py,v 1.30 2012/10/18 23:34:23 irees Exp $
 import time
 import re
 import os
@@ -39,7 +39,6 @@ class Download(View):
 
     @View.add_matcher('^/download/$', name='multi')
     @View.add_matcher('^/download/(?P<bids>[^/]*)/(?P<filename>[^/]*)/$')
-    @View.add_matcher('^/binary/(?P<bids>[^/]*/)/$', name='binary')
     def main(self, bids, filename=None, size=None, format=None, q=None, rename=None, tar=None):
         if not hasattr(bids, '__iter__'):
             bids = [bids]
@@ -82,7 +81,7 @@ class Download(View):
                     status = emen2.db.handlers.thumbnail_from_binary(bdo, wait=False)
                     files[emen2.db.config.get_filename('emen2', 'web/static/images/handler.%s.png'%status)] = 'handler.%s.png'%status
 
-            elif os.access(filepath, os.F_OK):
+            elif os.access(filepath, os.F_OK) or os.access(filepath+".gz", os.F_OK):
                 # Found the file
                 if rename == 'name':
                     filename = "%s.%s"%(bdo.get('name', 'none').replace('bdo:', ''), filename)
@@ -92,7 +91,8 @@ class Download(View):
             
             else:
                 # This will trigger render_eb if the file is not found
-                raise IOError, "Could not access file"
+                raise IOError, "Could not access file (%s %s)"%(filepath,filename)
+
 
         # Check for files that have the same name...
         seen = []
@@ -119,13 +119,15 @@ class Download(View):
             filename = filename[:-3]
             encoding = "gzip"
 
-        fsize = os.stat(filepath).st_size
-        f = open(filepath)
+        try: fsize = os.stat(filepath).st_size
+	except: fsize=None
+        try: f = open(filepath,"r")
+	except: f=os.popen("gzip -dc %s.gz"%filepath,"r")
 
         if request.postpath[-1] == "save":
             request.setHeader('Content-Disposition', 'attachment; filename=%s'%filename.encode('utf-8'))
 
-        request.setHeader('Content-Length', str(fsize))
+        if fsize!=None : request.setHeader('Content-Length', str(fsize))
         request.setHeader('Content-Type', mimetype)
         request.setHeader('Content-Encoding', encoding)
         if cache:
@@ -137,12 +139,15 @@ class Download(View):
 
     def _transfer_tar(self, files, request, cache=False):
         # Download multiple files using TarPipe
-        t = emen2.db.database.utcnow()[:10]
+        t = emen2.db.database.gettime()[:10]
         request.setHeader('Content-Disposition', 'attachment; filename=archive-%s.tar'%t)
         request.setHeader('Content-Type', 'application/x-tar')
         request.setHeader('Content-Encoding', 'application/octet-stream')
+
         a = twisted.web.static.NoRangeStaticProducer(request, TarPipe(files))
         a.start()
+        
+        
         
 
 class TarPipe(object):
@@ -167,7 +172,11 @@ class TarPipe(object):
         self.buffer.truncate(0)
         
         # print "Adding %s: %s... %s files left"%(key, filename, len(self.files))
-        self.tarfile.add(key, arcname=filename)
+	if os.access(key, os.F_OK) :
+        	self.tarfile.add(key, arcname=filename)
+	elif os.access(key+".gz", os.F_OK) :
+        	self.tarfile.add(key+".gz", arcname=filename+".gz")
+
         self.buffer.seek(0)
 
     def read(self, size=256**2):
@@ -180,4 +189,4 @@ class TarPipe(object):
 
 
 
-__version__ = "$Revision: 1.34 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.30 $".split(":")[1][:-1].strip()

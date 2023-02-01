@@ -34,28 +34,31 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 <%block name="js_ready">
     ${parent.js_ready()}
+
     ${buttons.tocache(rec)}
 
     emen2.caches['recnames'] = ${recnames | n,jsonencode};
 
-	// Bind the tree controls
     $('.e2-tree').TreeControl({'attach':true});
-
-    // Tile browser
-    $('.e2-tile').TileControl({'mode':'cached'});        
 
     // Record, ptest
     var rec = emen2.caches['record'][${rec.name | n,jsonencode}];
     var ptest = ${rec.ptest() | n,jsonencode}
 
+    // Tile browser
+    $('.e2-tile').TileControl({'mode':'cached'});
+        
     // Intialize the Tab controller
-    var tab = $("#e2-tab-record");        
+    var tab = $("#e2-tab-editbar2");        
     tab.TabControl({});
 
     // Editor
     tab.TabControl('setcb', 'edit', function(page) {
-		page.EditControl({});
-	});
+        $('#e2-edit', page).MultiEditControl({
+            show: true,
+            controls: page,
+        })
+    });
 
     // Permissions editor
     tab.TabControl('setcb','permissions', function(page) {
@@ -88,7 +91,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             controls: page,
             help: true,
             summary: true
-        });
+        })
     });        
 
     // Relationship editor
@@ -131,16 +134,22 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 
 
+
+
 <div class="e2l-sidebar-sidebar">
 
-    <ul id="e2-tab-record" class="e2l-cf e2l-sidebar-projectlist" role="tablist" data-tabgroup="record">
+    <ul id="e2-tab-editbar2" class="e2l-cf e2l-sidebar-projectlist" role="tablist" data-tabgroup="record">
 
         ## Title
         <li role="tab">
             <h2 class="e2l-gradient">
-                <a href="${ctxt.root}/record/${rec.name}/">Record #${rec.name}</a>
+                <a href="${ROOT}/record/${rec.name}/">Record #${rec.name}</a>
             </h2>
         </li>
+
+
+        ## Main tab
+        ## <li data-tab="main" ${istab(tab, "main")}><a href="#main">Main</a></li>
 
 
         ## Edit Record
@@ -150,7 +159,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 
 
         ## New Record
-        % if create and rec.writable():
+        % if create:
             <li role="tab" data-tab="new" ${istab(tab, "new")}><a href="#new">${buttons.image('new.png')}New</a></li>
         % endif
 
@@ -166,7 +175,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         for k in rec.paramkeys():
             v = rec[k]
             if hasattr(v, "__iter__"):
-                attachments.extend(x for x in v if 'bdo:' in str(x))
+                attachments.extend(x for x in v if 'bdo:' in unicode(x))
             elif "bdo:" in unicode(v):
                 attachments.extend([v])
         %>        
@@ -202,7 +211,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         <li role="tab" data-tab="comments">
             <a href="#comments">
                 <span id="e2l-editbar2-commentcount">
-                    <img src="${ctxt.root}/static/images/comment.closed.png" alt="Comments" />
+                    <img src="${ROOT}/static/images/comment.closed.png" alt="Comments" />
                     ${len(comments)} Comments
                 </span>
             </a>
@@ -211,7 +220,7 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         <li role="tab" data-tab="comments">
             <a href="#comments">
                 <span id="e2l-editbar2-historycount">
-                    <img src="${ctxt.root}/static/images/history.png" alt="Edits" />
+                    <img src="${ROOT}/static/images/history.png" alt="Edits" />
                     ${historycount} Edits
                 </span>            
             </a>
@@ -229,69 +238,44 @@ recdefs_d = dict((i.name, i) for i in recdefs)
                     siblings_index = 0
             %>
             <table>
-                
-                % if accesstags:
-                    <tr>
-                        <td />
-                        <td>
-                            <ul class="e2l-nonlist e2-alert">
-                            % for i in accesstags:
-                                <li>${i}</li>
-                            % endfor
-                            </ul>
-                        </td>
-                        <td />
-                    </tr>
-                % endif
-                
-                
                 <tr>
-                    <td />
+                    <td></td>
                     <td>
-                        <p class="e2l-tiny e2l-underline">Created</p>
-                        ${users_d.get(rec.get('creator'), dict()).get('displayname', rec.get('creator'))}<br /> 
-                        <time class="e2-localize e2l-tiny" datetime="${rec.get("creationtime")}">${rec.get("creationtime")[:10]}</time>
+                    
+                        ## C: ${users_d.get(cu, dict()).get('displayname', cu)}<br /> 
+                        ## <time class="e2-localize" datetime="${rec.get("creationtime")}">${rec.get("creationtime")[:10]}</time>
+                        ## <br />
+                        ## % if rec.creationtime != rec.modifytime:
+                            ${users_d.get(mu, dict()).get('displayname', mu)}<br /> 
+                            <time class="e2-localize e2l-tiny" datetime="${rec.get("modifytime")}">${rec.get("modifytime")[:10]}</time>
+                        ## % endif
                     </td>
-                    </td>
+                    <td></td>
                 </tr>
 
-                % if rec.get('creationtime') != rec.get('modifytime'):
-                    <tr>
-                        <td />
-                        <td>                
-                                <p class="e2l-tiny e2l-underline" style="margin-top:10px">Modified</p>
-                                ${users_d.get(rec.get('modifyuser'), dict()).get('displayname', rec.get('modifyuser'))}<br /> 
-                                <time class="e2-localize e2l-tiny" datetime="${rec.get("modifytime")}">${rec.get("modifytime")[:10]}</time>
-                        </td>
-                        <td />
-                    </tr>
-                % endif
-                
-                <tr>
-                    <td />
-                    <td><p class="e2l-tiny e2l-underline" style="margin-top:10px;">Siblings</p></td>
-                    <td />
-                </tr>
 
                 <tr>
                     <td style="width:15px">
                         % if siblings_index > 0:
-                            <a href="${ctxt.root}/record/${siblings_sort[siblings_index-1]}?sibling=${sibling}">&laquo;</a>
+                            <a href="${ROOT}/record/${siblings_sort[siblings_index-1]}?sibling=${sibling}">&laquo;</a>
                         % endif
                     </td>
                     <td>
-                        ${recdefs_d.get(rec.rectype, dict()).get('desc_short', rec.rectype)}                        
+                        ## <a href="${ROOT}/recorddef/${rec.rectype}">
+                        ${recdefs_d.get(rec.rectype, dict()).get('desc_short', rec.rectype)}
+                        ## </a>
+                        
                         % if len(siblings) > 1:
-                            <p class="e2l-tiny">${siblings_index+1} of ${len(siblings_sort)}</p>
+                            <br />
+                            ${siblings_index+1} of ${len(siblings_sort)}                        
                         % endif
                     </td>
                     <td style="width:15px">
                         % if siblings_index < len(siblings)-1:
-                            <a href="${ctxt.root}/record/${siblings_sort[siblings_index+1]}?sibling=${sibling}">&raquo;</a>
+                            <a href="${ROOT}/record/${siblings_sort[siblings_index+1]}?sibling=${sibling}">&raquo;</a>
                         % endif
                     </td>
                 </tr>
-                
             </table>
         </li>
         
@@ -299,17 +283,18 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         ## Children tabs
         <li role="tab" style="margin-top:50px">
             <h2 class="e2l-cf e2l-gradient">
-                <a href="${ctxt.root}/record/${rec.name}/children/">Children</a>
+                <a href="${ROOT}/record/${rec.name}/children/">Children</a>
             </h2>
         </li>
 
         % if not children_groups:
+            ## <li data-tab="new"><a href="#new">No children</a></li>
             <li role="tab"><a href="">No children</a></li>
         % endif
 
         % for k,v in children_groups.items():
             <li role="tab" ${istab(tab, "children-%s"%k)}>
-                <a href="${ctxt.root}/record/${rec.name}/children/${k}/">${recdefs_d.get(k, dict()).get('desc_short', k)}</a>
+                <a href="${ROOT}/record/${rec.name}/children/${k}/">${recdefs_d.get(k, dict()).get('desc_short', k)}</a>
                 <span class="e2l-shadow e2l-sidebar-count">${len(v)}</span>
             </li>
         % endfor
@@ -322,10 +307,10 @@ recdefs_d = dict((i.name, i) for i in recdefs)
             ## <li style="margin-top:100px">
             ##    <h2 class="e2l-gradient"><a href="#">Tools</a></h2>
             ## </li>
-            ## <li><a href="${ctxt.root}/record/${rec.name}/email/">Email Users</a></li>
-            ## <li><a href="${ctxt.root}/record/${rec.name}/publish/">Manage public data</a></li>
-            ## <li><a href="${ctxt.root}/record/${rec.name}/query/attachments/">Child attachments</a></li>
-            ## <li><a href="${ctxt.root}/record/${rec.name}/?viewname=kv">Param-value table</a></li>
+            ## <li><a href="${ROOT}/record/${rec.name}/email/">Email Users</a></li>
+            ## <li><a href="${ROOT}/record/${rec.name}/publish/">Manage public data</a></li>
+            ## <li><a href="${ROOT}/record/${rec.name}/query/attachments/">Child attachments</a></li>
+            ## <li><a href="${ROOT}/record/${rec.name}/?viewname=kv">Param-value table</a></li>
         </%block>
 
         
@@ -335,7 +320,10 @@ recdefs_d = dict((i.name, i) for i in recdefs)
 </div>
 
 
-<div class="e2-tab e2-tab-record e2l-sidebar-main" data-tabgroup="record" role="tabpanel">
+
+
+
+<div class="e2-tab e2-tab-editbar2 e2l-sidebar-main" data-tabgroup="record" role="tabpanel">
 
     % for k,v in children_groups.items():
         % if k == childtype:
@@ -351,34 +339,24 @@ recdefs_d = dict((i.name, i) for i in recdefs)
     </div>
 
     <div data-tab="edit" ${istab(tab, "edit")}>
-        <form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${ctxt.root}/record/${rec.name}/edit/">
+        <form enctype="multipart/form-data" id="e2-edit" method="post" data-name="${rec.name}" action="${ROOT}/record/${rec.name}/edit/">
             ## Disable filtering -- each param/macro renderer is responsible for this.
-            ${rendered_edit | n,unicode}
-
-			<p style="margin-top:20px;padding-top:20px;border-top:solid 1px black">			
-				<textarea name="comments" placeholder="Please provide a reason for the changes."></textarea>            
-				<ul class="e2l-controls e2l-fw"> \
-	                <li>
-						<a class="e2l-float-left e2l-small" href="${ctxt.root}/record/${rec.name}/hide/">(Hide this record?)</a>
-						<input type="submit" class="e2l-float-right" value="Save" />
-					</li>
-	            </ul>
-			</p>
+            ${rendered | n,unicode}
         </form>    
     </div>
     
     <div data-tab="new"></div>
     
     <div data-tab="relationships">
-        <form id="e2-relationships" method="post" action="${ctxt.root}/record/${rec.name}/edit/relationships/"></form>
+        <form id="e2-relationships" method="post" action="${ROOT}/record/${rec.name}/edit/relationships/"></form>
     </div>     
     
     <div data-tab="permissions">
-        <form id="e2-permissions" method="post" action="${ctxt.root}/record/${rec.name}/edit/permissions/"></form>
+        <form id="e2-permissions" method="post" action="${ROOT}/record/${rec.name}/edit/permissions/"></form>
     </div>
     
     <div data-tab="attachments">
-        <form id="e2-attachments" method="post" enctype="multipart/form-data" action="${ctxt.root}/record/${rec.name}/edit/attachments/"></form>
+        <form id="e2-attachments" method="post" enctype="multipart/form-data" action="${ROOT}/record/${rec.name}/edit/attachments/"></form>
     </div>
     
     <div data-tab="comments"></div>
@@ -392,12 +370,12 @@ recdefs_d = dict((i.name, i) for i in recdefs)
         
         <p>You are viewing the ${prettynames.get(viewname, viewname)} view for this record.</p>
 
-        <p>This record uses the <a href="${ctxt.root}/recorddef/${recdef.name}">${recdef.desc_short} protocol</a>, which provides ${len(recdef.views)+2} views:
+        <p>This record uses the <a href="${ROOT}/recorddef/${recdef.name}">${recdef.desc_short} protocol</a>, which provides ${len(recdef.views)+2} views:
             <ul>
-                <li><a href="${ctxt.root}/record/${rec.name}/?viewname=mainview">Protocol</a></li>
-                <li><a href="${ctxt.root}/record/${rec.name}/?viewname=kv">Parameter-Value table</a></li>                
+                <li><a href="${ROOT}/record/${rec.name}/?viewname=mainview">Protocol</a></li>
+                <li><a href="${ROOT}/record/${rec.name}/?viewname=kv">Parameter-Value table</a></li>                
                 % for v in recdef.views:
-                    <li><a href="${ctxt.root}/record/${rec.name}/?viewname=${v}">${prettynames.get(v, v).capitalize()}</a></li>
+                    <li><a href="${ROOT}/record/${rec.name}/?viewname=${v}">${prettynames.get(v, v).capitalize()}</a></li>
                 % endfor
             </ul>
         </p>        

@@ -8,14 +8,12 @@ import emen2.db.config
 import emen2.util.listops
 
 
-def dump_json(outfile, items, uri=None):
+def dump_json(outfile, items):
     if os.path.exists(outfile):
         print "Warning: File %s exists"%outfile
     print "Saving output to %s"%outfile
     with open(outfile,'w') as f:
         for item in items:
-            if uri:
-                item['uri'] = '%s/%s/%s/'%(uri, item.get('keytype'), item.get('name'))
             f.write(json.dumps(item)+"\n")
 
 
@@ -148,12 +146,13 @@ if __name__ == "__main__":
     import emen2.db
     db = emen2.db.opendb(admin=True)
     dumper = Dumper(db=db) # PublicDumper(db=db)
-    keys = dumper.dump(c=[['groups','==','publish']])
-    keys['paramdef'] = db.paramdef.filter(None)
-    keys['recorddef'] = db.recorddef.filter(None)
-    keys['user'] = db.user.filter()
-    keys['user'].remove('root')
-    dumper.write(keys, outfile="dump-publicdata.json", uri="http://ncmidb.bcm.edu")
+    keys = dumper.dump()
+    # keys['paramdef'] = db.paramdef.names()
+   #  keys['recorddef'] = db.recorddef.names()
+    # keys['binary'] = db.binary.names()
+    # keys['user'] = db.user.names()
+    keys['record'] = db.record.names()
+    dumper.write(keys, uri="http://ncmidb.bcm.edu")
     
     
     

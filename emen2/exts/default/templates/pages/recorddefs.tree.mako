@@ -9,7 +9,7 @@
 </%block>
 
 
-<form method="post" action="${ctxt.root}/recorddefs/name/">
+<form method="post" action="${ROOT}/recorddefs/name/">
 <h1>
     ${ctxt.title}
     <ul class="e2l-actions">
@@ -18,10 +18,10 @@
             <input type="submit" value="Search" />
         </li>
         % if create:
-            <li><a class="e2-button" href="${ctxt.root}/recorddef/root/new/"><img src="${ctxt.root}/static/images/edit.png" alt="Edit" /> New</a></li>
+            <li><a class="e2-button" href="${ROOT}/recorddef/root/new/"><img src="${ROOT}/static/images/edit.png" alt="Edit" /> New</a></li>
         % endif
     </ul>
 </h1>
 </form>
 
-${unicode(childmap) | n}
+${childmap}

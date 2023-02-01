@@ -4,9 +4,9 @@
 <%include file="/record/rectypes/_default" />
 
 <%
-children = DB.rel.children(rec.name, recurse=-1)
+children = DB.rel.children(rec.name, recurse=-1, rectype=['image_capture*'])
 bdos = DB.binary.find(record=children, count=0)
-children_recnames = DB.view(children)
+children_recnames = DB.record.render(children)
 %>
 
 ## <br /><br /> <%buttons:singlepage label='In this session...'>
@@ -16,8 +16,8 @@ children_recnames = DB.view(children)
 
     % for bdo in bdos:
         <div class="e2l-float-left" style="margin-right:10px;margin-bottom:10px;padding:10px;border:solid 1px #ccc">
-            <a href="${ctxt.root}/record/${bdo.record}/">
-                <img src="${ctxt.root}/download/${bdo.name}/thumb.jpg?size=small&format=jpg" /><br />
+            <a href="${ROOT}/record/${bdo.record}/">
+                <img src="${ROOT}/download/${bdo.name}/thumb.jpg?size=small&format=jpg" /><br />
                 ${children_recnames.get(bdo.record)}
             </a>
         </div>

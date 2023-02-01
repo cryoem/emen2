@@ -26,7 +26,7 @@
     
     <ul class="e2l-actions">
         % if (ADMIN or group.isowner()) and not edit:
-            <li><a class="e2-button" href="${ctxt.root}/group/${group.name}/edit/"><img src="${ctxt.root}/static/images/edit.png" alt="Edit" /> Edit</a></li>
+            <li><a class="e2-button" href="${ROOT}/group/${group.name}/edit/"><img src="${ROOT}/static/images/edit.png" alt="Edit" /> Edit</a></li>
         % endif    
     </ul>
 

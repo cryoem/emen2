@@ -1,13 +1,17 @@
 (function($) {
     
     /***** Plot Controller *****/
+
     $.widget('emen2.PlotControl', {
         options: {
             q: null
         },
         
         _create: function() {
-            if (!d3) {return $('<div />').text('Plotting not supported.').appendTo(this.element)}
+            if (!d3) {
+                this.element.append("<div>Plotting not supported on this browser.</div>");
+                return
+            }
             this.built = 0;
             // Check the query
             if (this.options.q == null) {this.options.q = {}}
@@ -18,40 +22,37 @@
             this.build(recs);
         },
         
-        
         build: function(recs) {
             var self = this;
             
             // Build the controls stub first
             $('.e2-plot-controls', this.element).remove();
-            var controls = $('<ul />')
-                .addClass('e2-plot-controls')
-                .appendTo(this.element);
+            var controls = $('<ul class="e2-plot-controls"></ul>');
+            this.element.append(controls);
 
             // Build the plot
             this.build_plot(recs);
 
-            $('<input type="button" />')
-                .attr('name', 'update')
-                .click(function(e){self.update()})
-                .val('Apply')            
-                .addClass('e2l-float-right')
-                .wrap('<li />')
-                .appendTo(controls);
+            // Update controls
+            controls.append('<li><br /><input type="button" name="update" value="Apply" class="e2l-float-right" /></li>');
+            $('input[name=update]', controls).click(function(e){self.update()});
         },
         
         build_plot: function(recs) {
-            var w = this.element.parent().width(); // hack
-
-            // Remove existing plot.
             $('.e2-plot', this.element).remove();
-            var plotelem = $('<div />')
-                .addClass('e2-plot')
-                .addClass('e2l-float-left')
-                .width(w-300)
-                .appendTo(this.element);
-
-            // Add the plot
+            var plotelem = $('<div class="e2-plot e2l-float-left"></div>');
+            var w = this.element.parent().width(); // hack
+            plotelem.width(w-300); // hack
+            this.element.append(plotelem);        
+                
+            // Pass along the parent options
+            // var opts = {};
+            // opts['controls'] = this;
+            // opts['recs'] = recs;
+            // opts['x'] = this.options.q['x'];
+            // opts['y'] = this.options.q['y'];
+            // opts['z'] = this.options.q['z'];
+            
             this.options.q['recs'] = recs;
             var bin = this.options.q['x']['bin'];          
             if (bin) {
@@ -107,7 +108,7 @@
 
             // Copy the query
             var newq = {};
-            var c = ['c', 'x', 'y', 'z'];
+            var c = ['c', 'ignorecase', 'x', 'y', 'z'];
             c.map(function(key){
                 newq[key] = self.options.q[key];
             });
@@ -120,9 +121,11 @@
         },        
     });
 
+
     /****************** BASIC CHARTS ******************/
-    
+
     /***** Base Axis Control *****/
+
     $.widget('emen2.AxisControl', {
         options: {
             // Main options
@@ -149,7 +152,7 @@
         _create: function() {
             // Other options kept in this.options
             this.keys = [];
-            this.controls = $('.e2-plot-controls'); // sort this out.
+            this.controls = $('.e2-plot-controls');            
             this.scale = d3.scale.linear().domain([0,1]);
             this.bins = {};
             this.counted = {};
@@ -171,7 +174,7 @@
             return this.options.min + binwidth
         },
         
-        get_vartype: function() {
+        getvartype: function() {
             // hack
             var vt = null;
             var pd = emen2.caches['paramdef'][this.options.key];
@@ -190,7 +193,7 @@
             var self = this;
             
             // Todo: check paramdef...
-            var vt = this.get_vartype();
+            var vt = this.getvartype();
             if (vt == 'datetime') {
                 this.f = function(d) {return new Date(d[self.options.key])};
                 this.scale = d3.time.scale();
@@ -217,70 +220,42 @@
         build_controls: function() {
             // Build the control widgets
             if (!this.controls.length) {return}
-            var controls = $('<li />').appendTo(this.controls);
-            $('<h4 />').text(this.options.name.toUpperCase()).appendTo(controls);
+
+            var controls = $('<li></li>');
+
+            controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
+            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+this.options.name+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+this.options.name+'" src="'+ROOT+'/static/images/query.png" /></div>')
+            controls.append('<div><span class="e2-plot-label">Range:</span><input class="e2-plot-bounds" type="text" name="min" /> - <input class="e2-plot-bounds" type="text" name="max" /></div>');
             
-            // Param
-            var p = $('<div />').appendTo(controls);
-            $('<span />')
-                .addClass('e2-plot-label')
-                .text('Param:')
-                .appendTo(p);
-            $('<input type="text" />')
-                .attr('name', 'key')
-                .attr('id', 'e2-plot-find-'+this.options.name)
-                .val(this.options.key)
-                .css('width', 130)
-                .appendTo(p);
-            emen2.template.image('query.png')
-                .attr('data-target', 'e2-plot-find-'+this.options.name)
-                .attr('data-keytype', 'paramdef')
-                .FindControl({})
-                .appendTo(p);
-            
-            // Range
-            var r = $('<div />').appendTo(controls);            
-            $('<span />')
-                .addClass('e2-plot-label')
-                .text('Range:')
-                .appendTo(r);
-            $('<input type="text" />')
-                .addClass('e2-plot-bounds')
-                .attr('name', 'min')
-                .appendTo(r);
-            $('<input type="text" />')
-                .addClass('e2-plot-bounds')
-                .attr('name', 'max')
-                .appendTo(r);
-                
-            // Bins                        
             if (this.options.binnable) {
-                var b = $('<div />').appendTo(controls);
-                $('<span />')
-                    .addClass('e2-plot-label')
-                    .text('Bin:')
-                    .appendTo(b)
-                var bin = $('<select />')
-                    .attr('name', 'bin')
-                    .appendTo(b);
-                $('<option />').appendTo(bin);
-                var keys = [1, 5, 10, 20, 50, 100, 'year', 'month', 'day', 'hour'];
-                keys.map(function(i) {
-                    $('<option />')
-                        .val(i)
-                        .text(i)
-                        .appendTo(bin);
-                })
-                bin.val(this.options.bin);                
-            }  
-            this.controls = controls; // todo: wonky.
+                var b = $('<div><span class="e2-plot-label">Bin:</span></div>').append(this.build_controls_bin());
+                controls.append(b);
+            }
+            
+            this.controls.append(controls);
+            this.controls = controls;
+            $('input[name=key]', this.controls).val(this.options.key);
+            $('select[name=bin]', this.controls).val(this.options.bin);
+            $('.e2-query-find', this.controls).FindControl({});
             this.update_controls();
         },
-                
+        
+        build_controls_bin: function() {
+            var bin = $('<select name="bin"></select>');
+            bin.append('<option value=""></option>');
+            var keys = [1, 5, 10, 20, 50, 100, 'year', 'month', 'day', 'hour'];
+            keys.map(function(i) {
+                bin.append('<option value="'+i+'">'+i+'</option>');
+            })
+            return bin
+        },
+        
         update_controls: function() {
             // Update the control widgets on redraw
-            $('input[name=min]', this.controls).val(this.options.min);
-            $('input[name=max]', this.controls).val(this.options.max);
+            if (this.controls) {
+                $('input[name=min]', this.controls).val(this.options.min);
+                $('input[name=max]', this.controls).val(this.options.max);
+            }            
         },
         
         update: function() {
@@ -303,7 +278,7 @@
             opts['stacked'] = Boolean($('input[name=stacked]', this.controls).attr('checked'));
 
             // Hide these series
-            opts['hide'] = $('input[name=hide]:not(:checked)', this.controls).map(function(){return $(this).val()});
+            opts['hide'] = $("input[name=hide]:not(:checked)", this.controls).map(function(){return $(this).val()});
             return opts
         },
         
@@ -313,6 +288,7 @@
             for (var i=0;i<recs.length;i++) {
                 x.push(this.f(recs[i]));
             }
+            
             // If bounds weren't specified, update.
             if (this.options.min == null) {this.options.min = d3.min(x)}
             if (this.options.max == null) {this.options.max = d3.max(x)}
@@ -357,6 +333,7 @@
     });
 
     /***** Series Control *****/    
+    
     $.widget('emen2.SeriesControl', $.emen2.AxisControl, {
         setup: function() {
             this.options.pan = false;
@@ -400,11 +377,9 @@
         },
         
         build_legend: function(elem, retry) {
-            var self = this;
-            var vt = this.get_vartype();
-
-            // Not ideal...
             if (retry==null) {retry=true}
+            var self = this;
+            var vt = this.getvartype();
             if (vt=='user') {
                 var getusers = emen2.cache.check('user', this.keys);
                 if (getusers && retry) {
@@ -416,89 +391,51 @@
                 }
             }
 
-            var ul = $('<ul />').appendTo(elem);
+            var ul = $('<ul></ul>');
             this.keys.map(function(key, i) {
-                var row = $('<li />').appendTo(ul);
-                $('<span />')
-                    .addClass('e2-plot-color')
-                    .css('background', self.scale(i))
-                    .text(' ')
-                    .appendTo(row);
-                $('<span />')
-                    .text(self.format_key(vt, key)+' ('+self.counted[key]+')')
-                    .appendTo(row);
+                var item = $('<li><span class="e2-plot-color" style="background:'+self.scale(i)+'">&nbsp;</span>'+self.format_key(vt, key)+' ('+self.counted[key]+')</li>');
+                ul.append(item);
             });
+            elem.append(ul);
         },
         
         build_controls: function() {
-            // Build the control widgets
-            if (!this.controls.length) {return}
-            var controls = $('<li />').appendTo(this.controls);
-            $('<h4 />').text(this.options.name.toUpperCase()).appendTo(controls);
-            
-            // Param
-            var p = $('<div />').appendTo(controls);
-            $('<span />')
-                .addClass('e2-plot-label')
-                .text('Param:')
-                .appendTo(p);
-            $('<input type="text" />')
-                .attr('name', 'key')
-                .attr('id', 'e2-plot-find-'+this.options.name)
-                .val(this.options.key)
-                .css('width', 130)
-                .appendTo(p);
-            emen2.template.image('query.png')
-                .attr('data-target', 'e2-plot-find-'+this.options.name)
-                .attr('data-keytype', 'paramdef')
-                .FindControl({})
-                .appendTo(p);
-
-            // Series
+            if (!this.controls) {return}
+            var vt = this.getvartype();
+            var self = this;
+            var controls = $('<li></li>');
+            controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
+            controls.append('<div><span class="e2-plot-label">Param:</span><input style="width:130px" type="text" name="key" id="e2-plot-find-'+this.options.name+'"/><img class="e2-query-find" data-keytype="paramdef" data-target="e2-plot-find-'+this.options.name+'" src="'+ROOT+'/static/images/query.png" /></div>')
             var total = 0;
-            var table = $('<table />').appendTo(controls);
-            var tb = $('<tbody />').appendTo(table);
+            var table = $('<table><tbody></tbody></table>');
+            var tb = $('tbody', table);
             this.keys.map(function(key, i) {
-                total += self.counted[key];
-                var row = $('<tr />').appendTo(tb);
+                var row = $('<tr></tr>');
                 // Show/hide series
-                var cbox = $('<input type="checkbox" />')
-                    .attr('name', 'hide')
-                    .val(key);
-                if ($.inArray(key, self.options.hide)==-1) {
-                    cbox.attr('checked', true)
-                }
-                $('<td />').append(cbox).appendTo(row);
+                var cbox = $('<input type="checkbox" name="hide" value="'+key+'" />');
+                if ($.inArray(key, self.options.hide)==-1) {cbox.attr('checked', true)}
+                row.append($('<td></td>').append(cbox));
                 // Name
-                $('<td />')
-                    .text(self.format_key(vt, key))
-                    .appendTo(row);
-                // Count
-                $('<td />')
-                    .text(self.counted[key])
-                    .appendTo(row);
-                // Color!
-                $('<td />')
-                    .text(' ')
-                    .addClass('e2-plot-color')
-                    .css('background', self.scale(i))
-                    .appendTo(row);
+                row.append('<td>'+self.format_key(vt, key)+'</td>')
+                row.append('<td>'+self.counted[key]+'</td>');
+                total += self.counted[key];
+                // Colors
+                row.append('<td><span class="e2-plot-color" style="background:'+self.scale(i)+'">&nbsp;</span></td>');
+                tb.append(row);
             });
-            
-            // Totals
-            var totals = $('<tr />')
-                .addClass('e2-plot-totals')
-                .appendTo(tb);
-            $('<td />').appendTo(totals);
-            $('<td />').text('Total:').appendTo(totals);
-            $('<td />').text(total).appendTo(totals);
-            
+            tb.append('<tr class="e2-plot-totals"><td></td><td>Total: </td><td>'+total+'</td><td></td></tr>');
+            controls.append(table);
+            this.controls.append(controls);
             this.controls = controls;
+            $('input[name=key]', this.controls).val(this.options.key);
+            $('select[name=bin]', this.controls).val(this.options.bin); 
+            $('.e2-query-find', this.controls).FindControl({});          
             this.update_controls();
         }
     });
     
     /***** Base Plotting Control *****/
+    
     $.widget('emen2.PlotBase', {
         options: {
             // Padding: top, left, bottom, right
@@ -510,7 +447,11 @@
         },
 
         _create: function() {
-            if (!d3) {return $('<div />').text('Plotting not supported.').appendTo(this.element)}
+            if (!d3) {
+                this.element.append("<div>Plotting not supported on this browser.</div>");
+                return
+            }
+
             this.built = 0;
             
             // Check size options
@@ -568,13 +509,13 @@
             // Add the x-axis.
             this.svg.append("svg:g")
                 .attr("class", "x axis")
-                .attr("transform", 'translate(0,'+this.height+")")
+                .attr("transform", "translate(0," + this.height + ")")
                 .call(this.x.ax);
 
             // Add the y-axis.
             this.svg.append("svg:g")
                 .attr("class", "y axis")
-                .attr("transform", 'translate('+this.width+",0)")
+                .attr("transform", "translate(" + this.width + ",0)")
                 .call(this.y.ax);
 
             // Plot background and plot area
@@ -646,15 +587,15 @@
     });    
 
     /***** Scatter Plot Control *****/
+
     $.widget('emen2.PlotScatter', $.emen2.PlotBase, {
         plot: function(recs) {    
             var self = this;        
-
             // Filter the records
             recs = recs.filter(function(d){return (self.x.f(d)!=null && self.y.f(d)!=null)});
             if (!recs.length) {
                 this.element.empty();
-                $('<p />').text('No records to display.').appendTo(this.element);
+                this.element.append('<p>No records to display</p>');
                 return
             }
             
@@ -687,6 +628,7 @@
     });
 
     /***** Line Chart Control *****/
+
     $.widget('emen2.PlotLine', $.emen2.PlotBase, {
         plot: function(recs) {    
             var self = this;        
@@ -694,7 +636,7 @@
             recs = recs.filter(function(d){return (self.x.f(d)!=null && self.y.f(d)!=null)});
             if (!recs.length) {
                 this.element.empty();
-                $('<p />').text('No records to display.').appendTo(this.element);
+                this.element.append('<p>No records to display</p>');
                 return
             }
             
@@ -730,9 +672,11 @@
     /****************** BAR CHARTS AND HISTOGRAMS ******************/
     
     /***** Bar Chart Control *****/
+    
     // $.widget('emen2.BarChartControl', .....
     
     /***** Histogram X Axis Control *****/
+    
     $.widget('emen2.HistTimeXControl', $.emen2.AxisControl, {
         setup: function() {
             // Use a year/month/day/hour/minute/second bin
@@ -822,6 +766,7 @@
     });
     
     /***** Histogram Y Axis Control *****/    
+    
     $.widget('emen2.HistYControl', $.emen2.AxisControl, {
         setup: function() {
             this.options.min = 0;
@@ -897,63 +842,24 @@
         
         build_controls: function() {
             if (!this.controls.length) {return}
-            var controls = $('<li />').appendTo(this.controls);
-            $('<h4 />').text(this.options.name.toUpperCase()).appendTo(controls);
-
-            // Param
-            var p = $('<div />').appendTo(controls);
-            $('<span />')
-                .addClass('e2-plot-label')
-                .text('Totals:')
-                .appendTo(p);
-            $('<input type="text" />')
-                .attr('name', 'key')
-                .val('name')
-                .addClass('e2-plot-bounds')
-                .appendTo(p);
-
-            var r = $('<div />').appendTo(controls);
-            $('<span />')
-                .addClass('e2-plot-label')
-                .text('Range:')
-                .appendTo(r);
-            $('<input type="text"/>')
-                .attr('name', 'min')
-                .addClass('e2-plot-bounds')
-                .appendTo(r);
-            $('<input type="text"/>')
-                .attr('name', 'max')
-                .addClass('e2-plot-bounds')
-                .appendTo(r);
-
-            var o = $('<div />').appendTo(controls);
-            $('<input type="checkbox" />')
-                .attr('id', 'e2-plot-y-cumulative')
-                .attr('name', 'cumulative')
-                .attr('checked', this.options.cumulative)
-                .appendTo(o);
-            $('<label />')
-                .attr('for', 'e2-plot-y-cumulative')
-                .text('Cumulative')
-                .appendTo(o);
+            var controls = $('<li></li>');
+            controls.append('<h4>'+this.options.name.toUpperCase()+'</h4>');
+            controls.append('<div><span class="e2-plot-label">Totals</span><input class="e2-plot-bounds" type="text" name="key" value="name" /></div>')
+            controls.append('<div><span class="e2-plot-label">Range:</span><input class="e2-plot-bounds" type="text" name="min" /> - <input class="e2-plot-bounds" type="text" name="max" /></div>');
+            controls.append('<div><input type="checkbox" name="cumulative" id="e2-plot-y-cumulative" /><label for="e2-plot-y-cumulative">Cumulative</label></div>');
+            controls.append('<div><input type="checkbox" name="stacked" id="e2-plot-y-stacked" /><label for="e2-plot-y-stacked">Stacked</label></div>');
             
-            var s = $('<div />').appendTo(controls);
-            $('<input type="checkbox" />')
-                .attr('id', 'e2-plot-y-stacked')
-                .attr('name', 'stacked')
-                .attr('checked', this.options.stacked)
-                .appendTo(s);
-            $('<label />')
-                .attr('for', 'e2-plot-y-stacked')
-                .text('Stacked')
-                .appendTo(s);
+            $('input[name=cumulative]', controls).attr('checked', this.options.cumulative);
+            $('input[name=stacked]', controls).attr('checked', this.options.stacked);
 
+            this.controls.append(controls);
             this.controls = controls;
             this.update_controls();
         }
     });
         
     /***** Histogram Plot Control *****/
+    
     $.widget('emen2.PlotHistogram', $.emen2.PlotBase, {        
         setup: function() {    
             // Axis options
@@ -1016,7 +922,7 @@
                         
             // Update Y axis acounts
             this.y.data(series_binned);
-            
+
             // console.log("X keys:", this.x.keys);
             // console.log("Y keys:", this.y.keys);
             // console.log("Z keys:", this.z.keys);

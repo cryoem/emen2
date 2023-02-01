@@ -36,20 +36,20 @@
 ## Some simple helpers
 
 <%def name="image(name, alt='', cls='')">
-    <img src="${ctxt.root}/static-${ctxt.version}/images/${name}" class="${cls}" alt="${alt}" />
+    <img src="${ROOT}/static-${ctxt.version}/images/${name}" class="${cls}" alt="${alt}" />
 </%def>
 
 
 <%def name="spinner(show=True, cls='')">
-    <img src="${ctxt.root}/static/images/spinner.gif" class="e2l-spinner ${forms.iffalse(show, 'e2l-hide')} ${cls}" alt="Loading" />
+    <img src="${ROOT}/static/images/spinner.gif" class="e2l-spinner ${forms.iffalse(show, 'e2l-hide')} ${cls}" alt="Loading" />
 </%def>
 
 
 <%def name="caret(state='down')">
     % if state == 'up':
-        <img src="${ctxt.root}/static/images/caret.up.png" alt="^" />
+        <img src="${ROOT}/static/images/caret.up.png" alt="^" />
     % elif state == 'down':
-        <img src="${ctxt.root}/static/images/caret.down.png" alt="^" />    
+        <img src="${ROOT}/static/images/caret.down.png" alt="^" />    
     % endif
 </%def>
 
@@ -62,7 +62,7 @@
 
 
 <%def name="editicon()">
-    <img src="${ctxt.root}/static/images/edit.png" alt="Edit" />
+    <img src="${ROOT}/static/images/edit.png" alt="Edit" />
 </%def>
 
 
@@ -80,35 +80,35 @@
 
 <%def name="infobox(item=None, title=None, body=None, time=None, link=None, autolink=False)">
     <%
-    item = item or dict()    
+    item = item or dict()
+    
     if autolink:
-        link = '%s/%s/%s/'%(ctxt.root, item.get('keytype'), item.get('name'))
-    src = "%s/static/images/%s.png"%(ctxt.root, item.get('keytype'))
+        link = '%s/%s/%s/'%(ROOT, item.get('keytype'), item.get('name'))
+
+    src = "%s/static/images/gears.png"%ROOT
     title = title or item.get('desc_short') or item.get('name')
     body = ''
-    
+        
     if item.get('keytype') == 'user':
+        src = "%s/static/images/nophoto.png"%ROOT
         title = item.get('displayname') or item.get('name')
         body = body or item.get('email')
         photo = item.get('userrec', dict()).get('person_photo')
         if photo:
-            src = "%s/download/%s/user.jpg?size=thumb"%(ctxt.root, photo)
-
+            src = "%s/download/%s/user.jpg?size=thumb"%(ROOT, photo)
     elif item.get('keytype') == 'group':
-        title = item.get('displayname') or item.get('name')
+        src = "%s/static/images/group.png"%ROOT
+        title = item.get('displayname')
         body = body or '%s members'%sum([len(i) for i in item.get('permissions',[])])
         if item.get('name') == 'authenticated':
             body = "All logged in users"
-        elif item.get('name') == 'anon':
+        elif item.get('name') == 'anonymous':
             body = "Public access"
-
+        
     elif item.get('keytype') == 'paramdef':
-        # body = 'Data type: %s'%(item.vartype)
-        # if item.get('iter'):
-        #     body += ' iterable'
-        body = ''
+        body = '%s (%s)'%(item.name, item.vartype)
+
     %>
-	
     <div class="e2-infobox" data-name="${item.get('name')}" data-keytype="${item.get('keytype')}">
 
         % if link:
@@ -117,25 +117,23 @@
             <img alt="Photo" class="e2l-thumbnail" src="${src}" />
         % endif
 
-        <h4>
-            % if link:
-                <a href="${link}">
-            % endif
+        <div>
+            <h4>
+                % if link:
+                    <a href="${link}">
+                % endif
 
-            ${title}
+                ${title}
 
-            % if time:
-                @ <time class="e2-localize" datetime="${time}">${time}</time>
-            % endif    
+                % if time:
+                    @ <time class="e2-localize" datetime="${time}">${time}</time>
+                % endif    
 
-            % if link:
-                </a>
-            % endif
-        </h4>
-
-        <p class="e2l-small">
-			${body}
-		</p>
-
+                % if link:
+                    </a>
+                % endif
+            </h4>
+            <div class="e2l-small">${body}</div>
+        </div>
     </div>
 </%def>

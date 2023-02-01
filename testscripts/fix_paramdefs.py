@@ -1,3 +1,4 @@
+# $Id: fix_paramdefs.py,v 1.10 2012/07/28 06:31:19 irees Exp $
 raise Exception, "Needs to be updated"
 
 from test import *
@@ -39,3 +40,4 @@ for i in db.getparamdefnames():
             print "wtf %s, %s"%(z.name, z.defaultunits)
 
 
+__version__ = "$Revision: 1.10 $".split(":")[1][:-1].strip()

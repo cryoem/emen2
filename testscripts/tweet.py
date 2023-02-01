@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+# $Id: tweet.py,v 1.1 2012/07/29 07:43:55 irees Exp $
 
 import subprocess
 import twitter
@@ -57,4 +58,4 @@ if __name__ == "__main__":
     uptime()
     
     
-__version__ = "$Revision$".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.1 $".split(":")[1][:-1].strip()

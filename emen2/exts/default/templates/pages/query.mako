@@ -2,8 +2,6 @@
 
 <%def name="table(q, parent=None, rectype=None, qc=True, header=True, controls=True)">
     <%
-        checkbox = q.get('checkbox', False)
-        keytype = q.get('keytype', 'record')
         tname = uuid.uuid4().hex
     %>
     <script type="text/javascript">
@@ -25,11 +23,11 @@
     <div class="e2-query" id="${tname}">
         
         % if controls:
-            <div class="e2-tab e2-tab-query" data-tabgroup="query" role="tablist">
+            <div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tablist">
                 <ul class="e2-query-header e2l-cf" role="tab"></ul>
             </div>
 
-            <div class="e2-tab e2-tab-query" data-tabgroup="query" role="tabpanel"></div>
+            <div class="e2-tab e2-tab-editbar" data-tabgroup="query" role="tabpanel"></div>
         % endif
 
         ## This form is used for editing table cells
@@ -40,12 +38,8 @@
                 % if header:
                     <thead>
                         <tr>
-                            % if checkbox:
-                                <th><input type="checkbox" checked="checked" /></th>
-                            % endif
-                            
-                            % for key in q['keys']:
-                                <th><div data-name="${key}">${q['keys_desc'].get(key, key)}</div></th>
+                            % for v in q['table']['headers'].get(None, []):
+                                <th><div data-name="${v[2]}" data-args="${v[3]}">${v[0]}</div></th>
                             % endfor
                         </tr>
                     </thead>
@@ -57,29 +51,18 @@
                         <tr><td colspan="0">No Records found for this query.</td></tr>
                     % endif
 
-                    % for name in q['names']:
-                        <tr>                   
-                            
-                        % if checkbox:
-                            <td>
-                                <input class="e2-query-checkbox" type="checkbox" value="${name}" checked="checked" />
-                            </td>
-                        % endif    
-                                                 
-                        % for key in q['keys']:
-                            <td>
-                                ## Inelegant, but will do for now...
-                                % if key == 'thumbnail()':
-                                    <a href="${ctxt.root}/${keytype}/${name}/"><img class="e2l-thumbnail" src="${ctxt.root}/${q['rendered'][name].get(key)}" alt="Thumb" /></a>
-                                % else:
-                                    <a href="${ctxt.root}/${keytype}/${name}/">${q['rendered'][name].get(key)}</a>
-                                % endif
-							</td>
+                    % for rowid, name in enumerate(q['names']):
+                        <tr>
+                    
+                        ## <td>
+                        ##     <input type="checkbox" data-name="${name}" />
+                        ## </td>
+                                        
+                        % for v in q['table'].get(name, []):
+                            <td>${v}</td>
                         % endfor
-                        
                         </tr>
                     % endfor            
-
                 </tbody>
 
             </table>

@@ -1,4 +1,4 @@
-# $Id: config.py,v 1.171 2013/06/04 10:12:23 irees Exp $
+# $Id: config.py,v 1.165 2012/10/19 08:19:05 irees Exp $
 """This module manages EMEN2 configurations and options.
 
 Methods:
@@ -31,6 +31,7 @@ import emen2.db.globalns
 
 basestring = (str, unicode)
 
+
 ##### Mako template lookup #####
 
 import mako
@@ -60,8 +61,8 @@ class AddExtLookup(mako.lookup.TemplateLookup):
 
 templates = AddExtLookup(
     input_encoding='utf-8', 
-    imports=['from emen2.db.util import jsonencode'],
-    default_filters=['h'],
+    imports=['from emen2.db.util import jsonencode']
+    # default_filters=['h'],
     )
 
 
@@ -102,14 +103,6 @@ def set(key, value):
     raise NotImplementedError, "Soon."
 
 
-##### Email config helper #####
-
-def mailconfig():
-    from_addr = get('mail.from')
-    smtphost = get('mail.smtphost') 
-    return from_addr, smtphost
-
-
 ##### Extensions #####
 
 def load_exts():
@@ -120,9 +113,9 @@ def load_views():
     for ext in Config.globalns.extensions.exts:
         load_view(ext)
 
-def load_jsons(cb=None, *args, **kwargs):
+def load_jsons(cb=None):
     for ext in Config.globalns.extensions.exts:
-        load_json(ext, cb=cb, *args, **kwargs)
+        load_json(ext, cb=cb)
 
 def load_ext(ext):
     modulename = 'emen2.exts.%s'%ext
@@ -156,12 +149,14 @@ def load_view(ext):
         imp.load_module(modulename, *viewmodule)
 
 
-def load_json(ext, cb=None, *args, **kwargs):
+def load_json(ext, cb=None):
+    modulename = 'emen2.exts.%s.json'%ext
+    # print "Loading json...", modulename
     path = resolve_ext(ext)
     if not cb:
         return
     for j in sorted(glob.glob(os.path.join(path, 'json', '*.json'))):
-        cb(j, *args, **kwargs)
+        cb(j)
 
 def resolve_ext(ext):
     paths = list(Config.globalns.paths.exts)
@@ -230,6 +225,8 @@ class DBOptions(usage.Options):
         ['ext', 'e', None, 'Add extension; can be comma-separated.'],
         ['loglevel', 'l', None, '']
     ]
+    # ['repmgr_host', None, None, 'Replication manager host'],
+    # ['repmgr_port', None, None, 'Replication manager port']        
 
     def opt_configfile(self, file_):
         self.setdefault('configfile', []).append(file_)
@@ -307,16 +304,23 @@ class UsageParser(object):
         # Set default log levels
         log_level = self.config.globalns.getattr('log_level', 'INFO')
         if self.options['quiet']:
-            log_level = 'ERROR'
+            loglevel = 'ERROR'
         elif self.options['debug']:
-            log_level = 'DEBUG'
+            loglevel = 'DEBUG'
         elif self.options['loglevel']:
-            log_level = self.options['loglevel']
+            loglevel = self.options['loglevel']
         self.config.load_data(log_level=log_level)
 
         # Make sure paths to log files exist
         if not os.path.exists(self.config.globalns.paths.log):
             os.makedirs(self.config.globalns.paths.log)
+
+        # Extend the python module path
+        # if getattr(self.config.globalns.paths, 'PYTHONPATH', []):
+        #    pp = self.config.globalns.paths.PYTHONPATH
+        #    if not hasattr(pp, '__iter__'):
+        #        pp = [pp]
+        #    sys.path.extend(pp)
 
         # EXTPATHS points to directories containing emen2 ext modules.
         # This will be used with imp.find_module(ext, self.config.globalns.paths.exts)
@@ -327,6 +331,7 @@ class UsageParser(object):
 
         self.config.globalns.paths.exts.append(os.path.join(h, 'exts'))
 
+
         # Add the extensions, including the 'base' extension
         exts = self.options.get('ext')
         if exts:
@@ -335,6 +340,9 @@ class UsageParser(object):
                 exts.insert(0,'base')
             exts.extend(self.config.globalns.extensions.exts)
             self.config.globalns.extensions.exts = exts
+
+        # Enable/disable snapshot
+        self.config.globalns.bdb.snapshot = (not self.options['nosnapshot'])
 
         # Create new database?
         self.config.globalns.params.create = self.options['create']
@@ -350,4 +358,4 @@ class UsageParser(object):
         emen2.db.log.logger.init()
 
 
-__version__ = "$Revision: 1.171 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.165 $".split(":")[1][:-1].strip()

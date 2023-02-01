@@ -1,5 +1,6 @@
-# $Id: handlers.py,v 1.6 2013/02/28 00:49:55 irees Exp $
-'''File handlers.'''
+# $Id: handlers.py,v 1.5 2012/07/31 19:37:07 irees Exp $
+'''File handlers
+'''
 
 import time
 import math
@@ -60,7 +61,13 @@ class EMDataBuilder(object):
     def build(self, workfile, outfile, copyout=None):
         '''Main build function.'''
         # print "Building: %s -> %s"%(workfile, outfile)
-        self.workfile = workfile
+	if not os.access(workfile, os.F_OK) and os.access(workfile+".gz", os.F_OK) :
+		os.system("gzip -d -k %s.gz"%workfile)
+		undo=True
+	else:
+		undo=False
+
+       	self.workfile = workfile
         self.outfile = outfile
 
         # Temporary directory
@@ -83,6 +90,7 @@ class EMDataBuilder(object):
         # CLeanup
         try:
             # print "Removing tmpdir:", self.tmpdir
+            if undo and os.access(workfile+".gz", os.F_OK): os.unlink(workfile)
             os.rmdir(self.tmpdir)
         except:
             # print "Couldn't remove tmpdir: ", self.tmpdir
@@ -336,7 +344,7 @@ class EMDataHandler(BinaryHandler):
         
 
 
-@BinaryHandler.register(['dm3', 'mrc', 'tif', 'tiff', 'hdf'])
+@BinaryHandler.register(['dm3', 'mrc', 'st', 'tif', 'tiff', 'hdf'])
 class MicrographHandler(EMDataHandler):
     _allow_gzip = True
     

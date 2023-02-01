@@ -24,6 +24,7 @@ Contents:
    debug
    dump
    exceptions
+   globalns
    group
    handlers
    load
@@ -35,3 +36,4 @@ Contents:
    proxy
    recorddef
    vartypes
+   workflow

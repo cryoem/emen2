@@ -1,4 +1,4 @@
-# $Id: record.py,v 1.94 2013/06/20 23:05:53 irees Exp $
+# $Id: record.py,v 1.86 2012/10/19 09:51:48 irees Exp $
 import urllib
 import time
 import collections
@@ -20,11 +20,11 @@ class RecordNotFoundError(emen2.web.responsecodes.NotFoundError):
 class Record(View):
     
     @View.add_matcher(r'^/record/(?P<name>[^/]*)/$')
-    def main(self, name=None, children=True, parents=True, sibling=None, viewname="mainview", **kwargs):
+    def main(self, name=None, children=True, parents=True, sibling=None, viewname="defaultview", **kwargs):
         """Main record rendering."""
         # Get record..
         self.rec = self.db.record.get(name, filt=False)
-        recnames = self.db.view([name])
+        recnames = self.db.record.render([self.rec])
         self.title = recnames.get(self.rec.name, self.rec.name)
 
         # Look for any recorddef-specific template.
@@ -36,20 +36,30 @@ class Record(View):
         self.template = template
 
         # Render main view
-        rendered = self.db.view(name, viewname=viewname, options={'output':'html', 'markdown':True})
-        rendered_edit = self.db.view(name, viewname=viewname, options={'output':'form', 'markdown':True, 'name': self.rec.name})
-        
-        # Access tags
-        accesstags = []
+        rendered = self.db.record.render(self.rec, viewname=viewname, edit=self.rec.writable())
+
+        # Some warnings/alerts
         if self.rec.get('deleted'):
-            accesstags.append('Hidden record')
+            self.notify('Hidden record', error=True)
         if 'publish' in self.rec.get('groups',[]):
-            accesstags.append('Published data')
+            self.notify('Record marked as published data')
         if 'authenticated' in self.rec.get('groups',[]):
-            accesstags.append('All users')
+            self.notify('Any authenticated user can read this record')
         if 'anon' in self.rec.get('groups', []):
-            accesstags.append('Anonymous access')
-        self.ctxt['accesstags'] = accesstags
+            self.notify('Anyone may access this record anonymously')
+
+        # Find if this record is in the user's bookmarks
+        bookmarks = []
+        user = None
+        try:
+            t = time.time()
+            user = self.ctxt['USER']
+            brec = self.db.record.get(sorted(self.db.rel.children(user.record, rectype='bookmarks')))
+            if brec:
+                bookmarks = brec[-1].get('bookmarks', [])
+        except Exception, e:
+            pass
+        self.ctxt['bookmarks'] = bookmarks
 
         # User display names
         users = self.db.user.get([self.rec.get('creator'), self.rec.get('modifyuser')])
@@ -66,7 +76,8 @@ class Record(View):
         # Siblings
         if sibling == None:
             sibling = self.rec.name
-        siblings = self.db.rel.siblings(sibling)
+        siblings = self.db.rel.siblings(sibling, rectype=self.rec.rectype)
+
 
         # Get RecordDefs
         recdef = self.db.recorddef.get(self.rec.rectype)
@@ -96,7 +107,6 @@ class Record(View):
             edit = False,
             create = self.db.auth.check.create(),
             rendered = rendered,
-            rendered_edit = rendered_edit,
             viewname = viewname,
             sibling = sibling,
             siblings = siblings,
@@ -185,12 +195,12 @@ class Record(View):
         """Create a new record."""
         self.main(name=name)
     
-        newrec = self.db.record.new(rectype=rectype, inherit=[self.rec.name])
+        newrec = self.db.record.new(rectype, inherit=[self.rec.name])
         if self.request_method not in ['post', 'put']:
             self.template = '/record/record.new'
             viewname = 'mainview'
             recdef = self.db.recorddef.get(newrec.rectype)
-            rendered = self.db.view(newrec, viewname=viewname)
+            rendered = self.db.record.render(newrec, edit=True, viewname=viewname)
             self.title = 'New %s'%(recdef.desc_short)
             self.ctxt.update(
                 tab = 'new',
@@ -237,7 +247,7 @@ class Record(View):
         users = self.db.user.get(users)
         # self.ctxt['tab'] = 'attachments'
         self.ctxt['users'].extend(users)
-        self.ctxt['recnames'].update(self.db.view(records))
+        self.ctxt['recnames'].update(self.db.record.render(records))
         self.ctxt['bdos'] = bdos
     
     
@@ -245,7 +255,7 @@ class Record(View):
     def children_map(self, name=None):
         self.main(name=name)
         self.template = '/record/record.tree'
-        childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, expandable=True)
+        childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, expandable=True, collapse_rectype=["grid_imaging"])
         self.ctxt['childmap'] = childmap
 
 
@@ -338,6 +348,9 @@ class Record(View):
             users_permissions |= set(v)
 
         emailusers = self.db.user.get(users_ref | users_permissions)
+        for user in emailusers:
+            user.getdisplayname(lnf=True)
+
         self.ctxt['emailusers'] = emailusers
 
 
@@ -362,7 +375,7 @@ class Record(View):
         
         if self.request_method != 'post':
             self.template = '/record/record.publish'
-            childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2)
+            childmap = self.routing.execute('Tree/embed', db=self.db, root=self.rec.name, mode='children', recurse=2, collapse_rectype='grid_imaging')
             self.ctxt['childmap'] = childmap
             # self.ctxt['tab'] = 'publish'
             return
@@ -412,7 +425,9 @@ class Records(View):
             return
             
         self.db.rel.relink(removerels=removerels, addrels=addrels)
-        self.redirect('%s/records/edit/relationships/?root=%s'%(self.ctxt.root, root), title=self.title, content="Your changes were saved.")
+        self.redirect('%s/records/edit/relationships/?root=%s'%(self.ctxt['ROOT'], root), title=self.title, content="Your changes were saved.")
+
+
 
     @View.add_matcher("^/records/edit/$", write=True)
     def edit(self, *args, **kwargs):
@@ -442,4 +457,4 @@ class Records(View):
 
 
 
-__version__ = "$Revision: 1.94 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.86 $".split(":")[1][:-1].strip()

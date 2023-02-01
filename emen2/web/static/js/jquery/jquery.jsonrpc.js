@@ -49,7 +49,7 @@
 
             call: function(method, params, callback, errback) {
                 callback = callback || function(json){console.log("JSON RPC Result:", json)};
-                errback = errback || function(error){console.log("Error:", error)};
+                errback = errback || function(error){console.log("Error:", error.message)};
                 return this.request(method, params, {success:function(u){callback(u.result)}, error: function(u){errback(u)}});
             },
 

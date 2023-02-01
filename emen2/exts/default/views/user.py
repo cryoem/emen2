@@ -1,4 +1,4 @@
-# $Id: user.py,v 1.29 2013/05/14 14:12:37 irees Exp $
+# $Id: user.py,v 1.27 2012/10/31 13:00:49 irees Exp $
 import re
 import os
 import time
@@ -68,7 +68,7 @@ class Users(View):
     def main(self, q=None):
         self.template = "/pages/users"
         self.title = "User directory"
-        usernames = self.db.user.filter(None)
+        usernames = self.db.user.names()
 
         if q:
             users = self.db.user.find(q)
@@ -91,7 +91,7 @@ class Users(View):
         if q:
             users = self.db.user.find(q)
         else:
-            users = self.db.user.get(self.db.user.filter(None))
+            users = self.db.user.get(self.db.user.names())
 
         self.ctxt['args'] = kwargs
         self.ctxt['q'] = q
@@ -133,7 +133,12 @@ class NewUser(View):
         # Snap off the base user parameters
         email = user.get('email', '').strip()
         password = user.get('password', None)
-        
+        comments = userrec.get('comments','')
+
+        if "magic" not in str(comments):
+            self.simple(content="""<p>New user request rejected, please contact database administrator</p>""")
+            return
+
         try:
             user = self.db.newuser.new(password=password, email=email)
             user.setsignupinfo(userrec)
@@ -141,7 +146,10 @@ class NewUser(View):
         except Exception, e:
             self.notify('There was a problem creating your account: %s'%e, error=True)
         else:
-            self.simple(content='''Your request for a new account (%s) is being processed. You will be notified via email when it is approved.'''%(user.email))
+            self.simple(content='''
+                <p>Your request for a new account is being processed. You will be notified via email when it is approved.</p>
+                <p>Email: %s</p>
+                '''%(user.email))
 
     @View.add_matcher(r'^/users/queue/$', view='Users', name='queue')    
     def queue(self, action=None, name=None, **kwargs):
@@ -175,14 +183,14 @@ class NewUser(View):
                     group.adduser(user.name)
                     self.db.group.put(group)
 
-        queue = self.db.newuser.get(self.db.newuser.filter(None))
+        queue = self.db.newuser.get(self.db.newuser.names())
         self.ctxt['queue'] = queue
 
-        groupnames = self.db.group.filter(None)
+        groupnames = self.db.group.names()
         groupnames -= set(['anon', 'authenticated'])
         self.ctxt['groups'] = self.db.group.get(groupnames)
         self.ctxt['groups_default'] = set(['create'])
 
 
 
-__version__ = "$Revision: 1.29 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.27 $".split(":")[1][:-1].strip()

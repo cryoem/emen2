@@ -1,6 +1,5 @@
 From: ${from_addr}
 To: ${to_addr}
-Cc: ${from_addr}
 Subject: RE: ${TITLE} account request -- declined
 
 ${to_addr}:

@@ -2,6 +2,7 @@
 <%namespace name="buttons" file="/buttons"  /> 
 <%namespace name="forms" file="/forms"  /> 
 
+
 <%block name="js_ready">
     ${parent.js_ready()}
     ${buttons.tocache(paramdef)}
@@ -12,10 +13,9 @@
     // Add choices
     $('.e2-paramdef-addchoices').click(function(){
         var elem = $(this);
-        for (var i=0;i<3;i++) {
-            var j = $('<input type="text" />').attr('name', 'choices');
-            $('<li />').append(j).insertBefore(elem.parent());
-        }
+        elem.parent().before('<li><input type="text" name="choices" value="" /></li>');
+        elem.parent().before('<li><input type="text" name="choices" value="" /></li>');
+        elem.parent().before('<li><input type="text" name="choices" value="" /></li>');
     })
     
     $('.e2-tree').TreeControl({'attach':true});
@@ -24,7 +24,7 @@
 
 <%block name="precontent">
     ${parent.precontent()}
-    <div class="e2-tree-main" style="overflow:hidden">${parentmap | n,unicode}</div>
+    <div class="e2-tree-main" style="overflow:hidden">${parentmap}</div>
 </%block>
 
 
@@ -109,12 +109,12 @@
     <table class="e2l-kv">
         <tr>
             <td>Created:</td>
-            <td><a href="${ctxt.root}/user/${paramdef.creator}">${paramdef.creator}</a> @ <time class="e2-localize" datetime="${paramdef.creationtime}">${paramdef.creationtime}</time></td>
+            <td><a href="${ROOT}/user/${paramdef.creator}">${paramdef.creator}</a> @ <time class="e2-localize" datetime="${paramdef.creationtime}">${paramdef.creationtime}</time></td>
         </tr>
 
         <tr>
             <td>Modified:</td>
-            <td><a href="${ctxt.root}/user/${paramdef.modifyuser}">${paramdef.modifyuser}</a> @ <time class="e2-localize" datetime="${paramdef.modifytime}">${paramdef.modifytime}</time></td>
+            <td><a href="${ROOT}/user/${paramdef.modifyuser}">${paramdef.modifyuser}</a> @ <time class="e2-localize" datetime="${paramdef.modifytime}">${paramdef.modifytime}</time></td>
         </tr>
     </table>
 </%def>

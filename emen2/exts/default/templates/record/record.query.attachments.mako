@@ -1,5 +1,5 @@
 <%inherit file="/record/record" />
-<%namespace name="query_files" file="/pages/query.attachments"  /> 
+<%namespace name="query_files" file="/pages/query.files"  /> 
 
 <%block name="js_ready">
     ${parent.js_ready()}
@@ -11,7 +11,7 @@ filesize = sum([(bdo.get('filesize') or 0) for bdo in bdos])
 %>
 
 
-<form id="e2-download" method="post" action="${ctxt.root}/download/">
+<form id="e2-download" method="post" action="${ROOT}/download/">
     <input type="hidden" name="tar" value="True" />
     <h1>
         Attachments in child records 

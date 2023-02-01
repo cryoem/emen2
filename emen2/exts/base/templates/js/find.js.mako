@@ -5,11 +5,12 @@
             name: null,
             keytype: null,
             time: null,
-            title: '',
-            body: '',
+            title: null,
+            body: null,
+            autolink: false,
             selectable: false,
             retry: true,
-            input: ['checkbox', '', true],
+            input: ['radio', '', false],
             show: true,
             // events
             built: function(self) {},
@@ -34,141 +35,153 @@
             if (this.built) {return}
             this.built = 1;
 
-            // Check if we have the item.
             var item = emen2.caches[this.options.keytype][this.options.name];
-            if (item) {
-                return this._build();
-            }
-
-            // Get and cache the item.
-            emen2.db('get', {
-            		keytype: this.options.keytype,
-					names: this.options.name
-          	  	}, 
-				function(item) {
-					emen2.caches[item.keytype][item.name] = item;
-					self._build();
-				}
-			);
-        }, 
-		
-        _build: function() {
-            var self = this;
-			var item = emen2.caches[this.options.keytype][this.options.name];
             if (!item) {
+                // Can't build for items that don't exist
+                if (this.options.name == null) {
+                    return
+                }
+                // We aren't going to try, or hit retry limit..
+                if (!this.options.retry || this.retry > 1) {
+                    // console.log("not going to retry:", this.options.name, "attempt:", this.retry);
+                    return
+                }
+                // console.log("Retry to get:", this.options.name, "attempt:", this.retry);
+                this.retry += 1;
+                // console.log("Trying to get:", this.options.keytype, this.options.name);
+                emen2.db('get', {
+                    keytype: this.options.keytype,
+                    names: this.options.name
+                }, function(item) {
+                    if (!item) {return}
+                    emen2.caches[item.keytype][item.name] = item;
+                    self._build();
+                });
                 return
             }
-
-			// Run the builder.
-			this['_build_'+this.options.keytype](item);
             
-            // Set the box properties.
+            this._build();
+            
+        }, 
+        
+        _build: function() {
+            var self = this;
+            var item = emen2.caches[this.options.keytype][this.options.name];
+            
+            // ian: todo: This could be refactored somewhat
+            var title = '';
+            var body = '';
+            if (this.options.keytype == 'user') {
+                title = $.trim(this.options.title || item.displayname) || item.name;
+                body = item.email;
+            } else if (this.options.keytype == 'group') {
+                title = $.trim(item.displayname) || item.name;
+                var count = 0;
+                for (var i=0;i<item['permissions'].length;i++) {
+                    count += item['permissions'][i].length;
+                }
+                body = count+' members';
+                if (item.name == 'authenticated') {
+                    body = 'All logged in users';
+                } else if (item.name == 'anon') {
+                    body = 'Public access';
+                }
+            } else if (this.options.keytype == 'record') {
+                var recname = emen2.caches['recnames'][item.name];
+                title = $.trim(recname || item.rectype);
+                body = item.rectype+', '+item.name+', created: '+$.localize(new Date(item.creationtime));
+                this.element.attr('data-rectype', item.rectype);
+            } else if (this.options.keytype == 'binary') {
+                title = item.filename;
+                if (item.filesize) {
+                    title = title+' ('+emen2.template.prettybytes(item.filesize)+')';
+                }
+                var user = item.creator;
+                body = 'Created by '+user+' on '+$.localize(new Date(item.creationtime));
+            } else {
+                title = $.trim(item.desc_short) || item.name;
+                body = '<em>'+item.name+'</em>';
+            }
+            
+            // Create the link
+            var link = '';
+            if (this.options.autolink) {
+                var link = ROOT+'/'+this.options.keytype+'/'+this.options.name+'/';
+            } else if (this.options.keytype == 'binary') {
+                var link = ROOT+'/download/'+item.name+'/'+item.filename;
+            }
+            
+            // Set the box properties
             this.element.addClass('e2-infobox');
             this.element.attr('data-name', this.options.name);
             this.element.attr('data-keytype', this.options.keytype);
 
-            // Widget!! Refactor this.
+            // Box title
+            var h4 = $('<h4 />');
+            if (link) {
+                title = '<a href="'+link+'">'+title+'</a>';
+            }
+            h4.append(title);
+            if (this.options.time) {
+                // h4.append(' @ '+this.options.time);
+                // <abbr class="timeago" title="2008-07-17T09:24:17Z">July 17, 2008</abbr>
+                var t = $('<time class="e2-localize e2l-float-right" datetime="'+this.options.time+'">'+this.options.time+'</time>');
+                t.localize();
+                h4.append(t);
+            }
+            
+            // Images
+            var src = 'gears.png';
+            if (this.options.keytype == 'group') {
+                src = 'group.png';
+            } else if (this.options.keytype == 'user') {
+                src = 'nophoto.png';
+            }
+            var img = $(emen2.template.image(src, '', 'e2l-thumbnail'));
+            
+            if (this.options.keytype == 'user' && item.userrec['person_photo']) {
+                src = ROOT+'/download/'+item.userrec['person_photo']+'/user.jpg?size=thumb';
+                img.attr('src', src);
+            } else if (this.options.keytype == 'binary') {
+                src = ROOT+'/download/'+item.name+'/user.jpg?size=thumb';
+                img.attr('src', src);
+            } 
+            
+            if (link) {img = $('<a href="'+link+'" target="_blank" />').append(img)}
+
+            // Widget!!
+            var input = ''
             if (this.options.selectable && this.options.input) {
                 var type = this.options.input[0];
                 var name = this.options.input[1];
                 var state = this.options.input[2];
-                // Todo: Only checkbox is supported right now...
-                $('<input type="checkbox" class="e2-infobox-input" />')
-                    .attr('name', name)
-                    .attr('checked', state)
-                    .val(this.options.name)
-                    .appendTo(this.element);
+                var input = $('<input class="e2-infobox-input" type="'+type+'" name="'+name+'" />');
+                input.val(this.options.name);
+                input.attr('checked', state);
             }
 
-			// Default thumbnail.
-            var img = emen2.template.image(this.options.keytype+'.png', '', 'e2l-thumbnail');
-			img.appendTo(this.element);
-            if (this.options.thumbnail) {
-				img.attr('src', this.options.thumbnail);
-			}
-
-            // Box title.
-            var title = $('<h4 />');
-            title.text(this.options.title);
-			title.appendTo(this.element);
-            
-			// Time
-            if (this.options.time) {
-                $('<time class="e2-localize e2l-float-right" />')
-                    .attr('datetime', this.options.time)
-                    .text(this.options.time)
-                    .localize()
-                    .appendTo(title);
-            }
-
-			// Are we linking?
-            if (this.options.link) {
-                img.wrap($('<a />').attr('href', this.options.link));
-                title.wrapInner($('<a />').attr('href', this.options.link));
-			}
-
-            // The body
-            // this is kindof hacky...
-            if (typeof(this.options.body) == "object") {
-                this.element.append(this.options.body);
+            // Body body
+            var p = $('<div />');
+            p.append(h4);
+            if (this.options.body) {
+                p.append(this.options.body)
             } else {
-                $('<p />')
-                    .text(this.options.body || '')
-                    .appendTo(this.element);
+                p.append('<div class="e2l-small">'+body+'</div>');
             }
+
 
             // Put it all together..
+            this.element.append(img, input, p);
+            
+            // I'm undecided on letting the entire element act as a click. Probably not.
+            // this.element.click(function(e) {
+            //     self.toggle(e);
+            //     self.options.selected(self, e);
+            // });
+            
+            // $('time.e2-timeago', this.element).timeago();
             this.options.built();
-        },        
-        
-		_build_user: function(item) {
-            this.options.title = this.options.title || item.displayname || item.name;
-            this.options.body = this.options.body || item.email;
-            if (item['person_photo']) {
-                this.options.thumbnail = emen2.template.uri(['download', item.userrec['person_photo'], 'user.jpg'], {'size':'thumb'});
-			}
-		},
-		
-		_build_recorddef: function(item) {
-			this.options.title = this.options.title || item.desc_short;
-		},
-
-		_build_paramdef: function(item) {
-			this.options.title = this.options.title || item.desc_short;
-		},
-        
-		_build_group: function(item) {
-            this.options.title = this.options.title || item.displayname || item.name;
-            var count = 0;
-            for (var i=0;i<item['permissions'].length;i++) {
-                count += item['permissions'][i].length;
-            }
-            var body = count+' members';
-            if (item.name == 'authenticated') {
-                body = 'All logged in users';
-            } else if (item.name == 'anon') {
-                body = 'Public access';
-            }
-			this.options.body = this.options.title || body;
-		},
-		
-		_build_record: function(item) {
-            var recname = emen2.caches['recnames'][item.name];
-            this.options.title = $.trim(recname || item.rectype);
-            this.options.body = 'Created: '+$.localize(new Date(item.creationtime));
-            this.element.attr('data-rectype', item.rectype);		
-		},
-		
-		_build_binary: function(item) {
-            var title = item.filename;
-            if (item.filesize) {
-                title = title+' ('+emen2.template.prettybytes(item.filesize)+')';
-            }
-			this.options.title = title;
-			this.options.body = 'Uploaded on '+$.localize(new Date(item.creationtime));
-            this.options.thumbnail = emen2.template.uri(['download', item.name, 'thumb.jpg'], {'size':'thumb'});
-            this.options.link = emen2.template.uri(['download', item.name, item.filename]);
-		},
+        },
         
         toggle: function(e) {
             var input = $('input', this.element);
@@ -178,7 +191,13 @@
             } else {
                 input.attr('checked','checked');        
             }
+        },
+        
+        check: function() {
+            var input = $('input', this.element);
+            input.attr('checked','checked');        
         }
+        
     });
     
     // Search for users, groups, parameters, etc..
@@ -194,10 +213,26 @@
             selected: function(self, value){self.selected(self, value)}
         },
         
+        selected: function(self, value) {
+            // Hacked together. Clean this up later.
+            if (this.options.target) {
+                $('#'+this.options.target).val(value);
+            }            
+            this.element.val(value);
+        },
+                
         _create: function() {
             this.built = 0;
             var self=this;
-			emen2.util.checkopts(this, ['keytype', 'vartype', 'modal', 'minimum', 'value', 'target']);
+            
+            this.options.keytype = emen2.util.checkopt(this, 'keytype');
+            this.options.vartype = emen2.util.checkopt(this, 'vartype');
+            this.options.modal = emen2.util.checkopt(this, 'modal');
+            this.options.minimum = emen2.util.checkopt(this, 'minimum');
+            this.options.value = emen2.util.checkopt(this, 'value');
+            this.options.target = emen2.util.checkopt(this, 'target');
+            
+
             this.element.click(function(e){self.show(e)});
             if (this.options.show) {
                 this.show();
@@ -210,46 +245,43 @@
 
             var self = this;
             this.dialog = $('<div class="e2-find" />');
-            // Todo: Find a smarter way of doing this.
-            var titles = {
-                'user':'Find User',
-                'group':'Find Group',
-                'paramdef':'Find Parameter',
-                'recorddef':'Find Protocol',
-                'record':'Find Record',
-                'binary':'Find Binary'
+            if (this.options.keytype == 'user'){
+                this.dialog.attr('title', 'Find User');
+            } else if (this.options.keytype == 'group') {
+                this.dialog.attr('title', 'Find Group');            
+            } else if (this.options.keytype == 'paramdef') {
+                this.dialog.attr('title', 'Find Parameter');
+            } else if (this.options.keytype == 'recorddef') {
+                this.dialog.attr('title', 'Find Protocol');
+            } else {
+                this.dialog.attr('title', 'Find '+this.options.keytype);
             }
-            this.dialog.attr('title', titles[this.options.keytype]);
+        
+            this.searchinput = $('<input type="text" />');
+            this.searchinput.val(this.options.value);
 
-            // Top part of dialog.
-            var searchbox = $('<div class="e2-find-searchbox">Search: </div>')
-                .appendTo(this.dialog);
-            
             // Run a search for every key press
-            // Todo: cancel searches properly on add'l input
-            this.searchinput = $('<input class="e2-find-input" type="text" />')
-                .val(this.options.value)
-                .keyup(function(e) {
-                    var v = self.searchinput.val();
-                    // // Enter should check for an exact match and return
-                    // if (e.keyCode == '13') { 
-                    //     e.preventDefault();
-                    //     var check = $('[data-name="'+$.escape(v)+'"]');
-                    //     if (check.length) {
-                    //         self.select(v);
-                    //     }
-                    // }
-                    self.search(v);
-                })
-                .appendTo(searchbox);
+            // ian: todo: event queue so long-running 
+            //    searches don't write over short ones
+            this.searchinput.keyup(function(e) {
+                var v = self.searchinput.val();
+                // Enter should check for an exact match and return
+                if (e.keyCode == '13') { 
+                    e.preventDefault();
+                    var check = $('[data-name="'+v+'"]');
+                    if (check.length) {
+                        self.select(v);
+                    }
+                }
+                self.search(v);
+            });
 
-            this.statusmsg = $('<span class="e2-find-count e2l-float-right">No Results</span>')
-                .appendTo(searchbox);
-
-            // Bottom part of dialog
-            this.resultsarea = $('<div class="e2-find-result">Results</div>').appendTo(this.dialog);
-
-            // Show the dialog.
+            this.statusmsg = $('<span class="e2l-float-right">No Results</span>');
+            var searchbox = $('<div class="e2-find-searchbox">Search: </div>');
+            searchbox.append(this.searchinput, this.statusmsg); //,this.searchbutton
+            this.resultsarea = $('<div>Results</div>');
+        
+            this.dialog.append(searchbox, this.resultsarea);
             this.dialog.dialog({
                 modal: this.options.modal,
                 autoOpen: false,
@@ -259,15 +291,14 @@
                 resizable: false,                
             });
             
-            // Show activity wheel.
-            // $('.ui-dialog-titlebar', this.dialog.dialog('widget')).append(emen2.template.spinner());        
+            $('.ui-dialog-titlebar', this.dialog.dialog('widget')).append(emen2.template.spinner());        
         },
     
         show: function(e) {
             this.build();        
             if (this.element.val() != "+") {
-                this.searchinput.val(this.element.val());
-                this.options.value = this.element.val();
+                // this.searchinput.val(this.element.val());
+                // this.options.value = this.searchinput.val();
             }
             this.dialog.dialog('open');
             this.search(this.options.value);        
@@ -280,56 +311,30 @@
                 this.dialog.dialog('close');                
             }
         },
-        
-        selected: function(self, value) {
-            // Hacked together. Clean this up later.
-            if (this.options.target) {
-                $('#'+$.escape(this.options.target)).val(value);
-            }            
-            this.element.val(value);
-        },
-                
+    
         add: function(item) {
             var self = this;
-            $('<div />')
-                .InfoBox({
-                    keytype: this.options.keytype,
-                    name: item.name
-                })
-                .click(function(e){
-                    self.select(item.name);
-                })
-                .appendTo(this.resultsarea);    
-        },
-        
-        cb: function(items) {
-            var self = this;
-            // $('.e2l-spinner', this.dialog.dialog('widget')).hide();
-            this.resultsarea.empty();
-            var l = items.length;
-            if (l==0) {
-                self.statusmsg.text('No results');
-                return
-            }
-            if (l>=100) {
-                self.statusmsg.text('More than 100 results; showing 1-100');
-            } else {
-                self.statusmsg.text(items.length+' results');                
-            }
-            items = items.slice(0,100);
-            $.each(items, function() {
-                emen2.caches[this.keytype][this.name] = this;
-                self.add(this)            
-            });            
+            emen2.caches[item.keytype][item.name] = item;
+            var d = $('<div />');
+            d.InfoBox({
+                keytype: this.options.keytype,
+                name: item.name
+            });
+            d.click(function(e){
+                self.select(item.name);
+                });
+            this.resultsarea.append(d);
         },
     
         search: function(q) {
-            var self = this;
+            var self=this;
             if (q.length < this.options.minimum) {
                 self.resultsarea.empty();
                 self.statusmsg.text('Minimum '+this.options.minimum+' characters');
                 return
             }
+            
+            $('.e2l-spinner', this.dialog.dialog('widget')).show();
             
             var query = {}
             query['query'] = q;
@@ -344,8 +349,26 @@
                     this.request = null;
                 }
             }
-            // $('.e2l-spinner', this.dialog.dialog('widget')).show();
-            this.request = emen2.db(this.options.keytype+'.find', query, function(items) {self.cb(items)});
+            
+            // New request
+            this.request = emen2.db(this.options.keytype+'.find', query, function(items) {
+                $('.e2l-spinner', self.dialog.dialog('widget')).hide();                
+                self.resultsarea.empty();
+                var l = items.length;
+                if (l==0) {
+                    self.statusmsg.text('No results');
+                    return
+                }
+                if (l>=100) {
+                    self.statusmsg.text('More than 100 results; showing 1-100');
+                } else {
+                    self.statusmsg.text(items.length + ' results');                
+                }
+                items = items.slice(0,100);
+                $.each(items, function() {
+                    self.add(this)            
+                });
+            })
         }
     });
     

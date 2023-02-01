@@ -8,7 +8,7 @@
         <h1>Record hidden</h1>
 
         <p>
-            <a href="${ctxt.root}/">Return to the home page.</a>
+            <a href="${ROOT}/">Return to the home page.</a>
         <p>
     
     % else:
@@ -46,7 +46,7 @@
 
             <ul class="e2l-controls">
                 <li>
-                    <a class="e2-button" href="${ctxt.root}/record/${rec.name}/">No, cancel</a>&nbsp;&nbsp;
+                    <a class="e2-button" href="${ROOT}/record/${rec.name}/">No, cancel</a>&nbsp;&nbsp;
                     <input type="submit" value="Yes, hide this record" />
                     <input type="hidden" name="confirm" value="True" />
                 </li>

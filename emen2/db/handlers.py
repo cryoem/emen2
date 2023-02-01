@@ -1,4 +1,4 @@
-# $Id: handlers.py,v 1.39 2013/02/28 00:49:55 irees Exp $
+# $Id: handlers.py,v 1.38 2012/10/18 09:41:40 irees Exp $
 '''File handlers
 
 '''
@@ -12,7 +12,6 @@ import os
 import signal
 import optparse
 import subprocess
-import sys
 
 # For file writing
 import shutil
@@ -66,12 +65,17 @@ def thumbnail_from_binary(bdo, force=False, wait=False, priority=0):
     # Prepare the command to run.
     
     # Grumble... Come up with a better way to get the script name.
-    args = [sys.executable]
+    args = []
     cmd = emen2.db.config.get_filename(handler.__module__)
     fix = ['.pyc', '.pyo']
     if cmd[-4:] in fix:
         for f in fix:
             cmd = cmd.replace(f, '.py')
+
+    # Use a specific Python interpreter if configured.
+    python = emen2.db.config.get('EMAN2.python')
+    if python:
+        args.append(python)
 
     args.append(cmd)
 
@@ -201,7 +205,10 @@ class BinaryHandler(object):
         
         if self.filepath:
             # If there is a filepath, open and return that
-            return open(self.filepath, "r")
+            try: ret=open(self.filepath,"r")		# quick hack
+            except: ret=os.popen("gzip -cd %s.gz"%self.filepath,"r")
+            return ret
+#            return open(self.filepath, "r")
 
         readfile = None
         if self.filedata:

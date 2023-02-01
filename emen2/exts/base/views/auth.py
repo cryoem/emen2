@@ -1,11 +1,11 @@
-# $Id: auth.py,v 1.21 2013/06/04 10:12:23 irees Exp $
+# $Id: auth.py,v 1.20 2012/10/19 10:12:45 irees Exp $
 from emen2.web.view import View
 
 @View.register
 class Auth(View):
 
     @View.add_matcher(r'^/auth/login/$')
-    def login(self, username=None, password=None, msg='', errmsg='', redirect=None, **kwargs):
+    def login(self, username=None, password=None, msg='', errmsg='', **kwargs):
         self.template = '/auth/login'
         self.title = 'Login'
         self.ctxt["username"] = username
@@ -13,7 +13,7 @@ class Auth(View):
             ctxid = self.db.auth.login(username, password, host=self.request_host)
             self.notify('Successfully logged in.')
             self.set_header('X-Ctxid', ctxid)
-            self.redirect(redirect or '/')
+            self.redirect('/')
 
     @View.add_matcher(r'^/auth/logout/$')
     def logout(self, msg='', **kwargs):
@@ -106,4 +106,4 @@ class Auth(View):
                 self.notify(errmsg, error=True)
 
 
-__version__ = "$Revision: 1.21 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.20 $".split(":")[1][:-1].strip()

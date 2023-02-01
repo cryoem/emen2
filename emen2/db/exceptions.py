@@ -1,4 +1,4 @@
-# $Id: exceptions.py,v 1.20 2013/06/04 10:12:23 irees Exp $
+# $Id: exceptions.py,v 1.19 2012/07/28 06:31:17 irees Exp $
 """Exceptions
 
 Exceptions:
@@ -13,27 +13,27 @@ Exceptions:
 
 # Security Errors
 class SecurityError(Exception):
-    """Security error."""
+    "Security error."
     code = 401
 
 class SessionError(SecurityError):
-    """Session expired."""
+    "Session expired."
 
 class AuthenticationError(SecurityError):
-    """Invalid account name or password."""
+    "Invalid account name or password."
 
 class DisabledUserError(SecurityError):
-    """Disabled user."""
+    "Disabled user."
 
 # Validation Errors
 class ValidationError(ValueError):
     """Validation error."""
 
 class ExistingKeyError(ValueError):
-    """This account name or email is already in use."""
+    "This account name or email is already in use."
 
 # Time out
 class TimeError(Exception):
     """Operation timed out."""
 
-__version__ = "$Revision: 1.20 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.19 $".split(":")[1][:-1].strip()

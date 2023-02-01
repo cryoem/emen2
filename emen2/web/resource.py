@@ -1,4 +1,4 @@
-# $Id: resource.py,v 1.50 2013/06/04 10:12:23 irees Exp $
+# $Id: resource.py,v 1.48 2012/10/03 07:30:34 irees Exp $
 
 import re
 import time
@@ -37,13 +37,12 @@ import emen2.web.server
 # http://krondo.com/?p=2601
 
 class RoutedResource(object):
-    
-    ##### Routing registration methods #####
+    #### Routing registration methods #####
     routing = emen2.web.routing
     isLeaf = True
 
     def render(self, request):
-        return "No content."
+        return "No content"
 
     @classmethod
     def add_matcher(cls, *matchers, **kwargs):
@@ -83,7 +82,7 @@ class RoutedResource(object):
     @classmethod
     def register(self, cls):
         '''Register a View and connect it to a URL.
-        - Multiple regular expressions can be registered per method
+        - Multiple regular expressions can be registered per sub view
         - This also registers urls defined by the add_matcher decorator. In this case, the sub view name will default to the method name.
         - These can be reversed with self.ctxt.reverse('ClassName/alt1', param1='asd') and such
         '''
@@ -119,7 +118,6 @@ class RoutedResource(object):
 
 
 class FixedArgsResource(object):
-    """Better handling of request args than Twisted's Resource."""
     
     def render(self, request):
         return "No content."
@@ -274,10 +272,7 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
     of setting up the deferreds, threadpool, handling errors, etc.
     """
 
-    def __init__(self, db=None):
-        # Database connection, if given.
-        self.db = db
-        
+    def __init__(self):
         # Response headers
         self.headers = {}
 
@@ -312,14 +307,14 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
 
     ##### Headers #####
+    
+    def _normalize_header_name(self, name):
+        return '-'.join(x.capitalize() for x in name.split('-'))
 
     def set_header(self, name, value):
         '''Set a single header'''
         name = self._normalize_header_name(name)
         self.headers[name] = value
-    
-    def _normalize_header_name(self, name):
-        return '-'.join(x.capitalize() for x in name.split('-'))
 
     def _set_ctxid(self, request, ctxid):
         request.addCookie("ctxid", ctxid, path='/')
@@ -499,15 +494,19 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
 
     ##### Error handlers #####
 
+    # ian: todo: Use a config value to choose which error pages (mako, or emen2) to use.
+    # ed: Couldn't that be based on the DEBUG flag?
     def render_error(self, location, e):
         # return unicode(emen2.web.routing.execute('Error/main', db=None, error=e, location=location)).encode('utf-8')
         return mako.exceptions.html_error_template().render()
 
     def render_error_security(self, location, e):
         return unicode(emen2.web.routing.execute('Error/auth', db=None, error=e, location=location)).encode('utf-8')
+        # return mako.exceptions.html_error_template().render()
 
     def render_error_response(self, location, e):
         return unicode(emen2.web.routing.execute('Error/resp', db=None, error=e, location=location)).encode('utf-8')
+        # return mako.exceptions.html_error_template().render()
 
     def _request_broken(self, failure, request, deferred):
         # Cancel the deferred.
@@ -606,4 +605,4 @@ class JSONRPCServerEvents(jsonrpc.server.ServerEvents):
 
 
 
-__version__ = "$Revision: 1.50 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.48 $".split(":")[1][:-1].strip()

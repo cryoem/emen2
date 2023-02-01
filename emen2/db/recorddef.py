@@ -1,4 +1,4 @@
-# $Id: recorddef.py,v 1.45 2013/06/27 06:52:52 irees Exp $
+# $Id: recorddef.py,v 1.39 2012/07/28 06:31:18 irees Exp $
 """RecordDef (Protocol) classes
 
 Classes:
@@ -11,30 +11,29 @@ import re
 import textwrap
 
 # EMEN2 imports
+import emen2.db.btrees
 import emen2.db.dataobject
 
 
 def parseparmvalues(text):
-    regex = re.compile(emen2.db.database.VIEW_REGEX_M)
+    regex = emen2.db.database.VIEW_REGEX
+
     params = set()
     required = set()
     defaults = {}
 
     for match in regex.finditer(text):
         n = match.group('name')
+        t = match.group('type')
+
         if not n:
             continue
-        if n.endswith('?'):
-            pass
-        elif n.endswith(')'):
-            pass
-        elif n.endswith('*'):
-            required.add(n[:-1])
-        else:
-            params.add(n)
-
-        #     if match.group('def'):
-        #         defaults[n] = match.group('def')
+        if t == '$' or t == '*':
+            params.add(match.group('name'))
+            if match.group('def'):
+                defaults[n] = match.group('def')
+        if t == '*':
+            required.add(n)
 
     return params, defaults, required
 
@@ -111,7 +110,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
 
     ##### Setters #####
 
-    def _set_mainview(self, key, value):
+    def _set_mainview(self, key, value, vtm=None, t=None):
         """Only an admin may change the mainview"""
         if not self.isnew() and not self._ctx.checkadmin():
             self.error("Cannot change mainview")
@@ -122,7 +121,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         return ret
 
     # These require normal record ownership
-    def _set_views(self, key, value):
+    def _set_views(self, key, value, vtm=None, t=None):
         views = {}
         value = value or {}
         for k,v in value.items():
@@ -132,19 +131,19 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         self.findparams()
         return ret
 
-    def _set_private(self, key, value):
+    def _set_private(self, key, value, vtm=None, t=None):
         return self._set('private', int(value), self.isowner())
 
     # ian: todo: Validate that these are actually valid RecordDefs
-    def _set_typicalchld(self, key, value):
+    def _set_typicalchld(self, key, value, vtm=None, t=None):
         value = emen2.util.listops.check_iterable(value)
         value = filter(None, [unicode(i) for i in value]) or None
         return self._set('typicalchld', value, self.isowner())
 
-    def _set_desc_short(self, key, value):
+    def _set_desc_short(self, key, value, vtm=None, t=None):
         return self._set('desc_short', unicode(value or self.name), self.isowner())
 
-    def _set_desc_long(self, key, value):
+    def _set_desc_long(self, key, value, vtm=None, t=None):
         return self._set('desc_long', unicode(value or ''), self.isowner())
 
 
@@ -181,7 +180,7 @@ class RecordDef(emen2.db.dataobject.BaseDBObject):
         p['paramsR'] = r
         self.__dict__.update(p)
 
-    def validate(self):
+    def validate(self, vtm=None, t=None):
         # Run findparams one last time before we commit...
         if not self.mainview:
             self.error("Main protocol (mainview) required")
@@ -218,6 +217,9 @@ class RecordDefHandler(object):
         return
 
 
+class RecordDefDB(emen2.db.btrees.RelateDB):
+    dataclass = RecordDef
 
 
-__version__ = "$Revision: 1.45 $".split(":")[1][:-1].strip()
+
+__version__ = "$Revision: 1.39 $".split(":")[1][:-1].strip()

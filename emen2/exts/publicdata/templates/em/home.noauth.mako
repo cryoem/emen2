@@ -38,6 +38,6 @@ import collections
 
 <ul>
 % for i in DB.getindexbyrectype('subproject'):
-    <li><a href="${ctxt.root}/record/${i}">${DB.renderview(i)}</a></li>
+    <li><a href="${ROOT}/record/${i}">${DB.renderview(i)}</a></li>
 % endfor
 </ul>

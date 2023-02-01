@@ -13,7 +13,7 @@
     Record tree 
     ## starting at ${recnames.get(rec.name)} (${rec.name})
     <ul class="e2l-actions">
-        <li><a href="${ctxt.root}/records/edit/relationships/?root=${rec.name}" class="e2-button">"Drag &amp; drop" relationship editor</a></li>
+        <li><a href="${ROOT}/records/edit/relationships/?root=${rec.name}" class="e2-button">"Drag &amp; drop" relationship editor</a></li>
     </ul>
 </h1>
 

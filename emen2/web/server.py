@@ -1,5 +1,6 @@
 #!/usr/bin/env python
-# $Id: server.py,v 1.105 2013/06/20 23:05:53 irees Exp $
+# $Id: server.py,v 1.101 2012/10/18 09:41:40 irees Exp $
+
 import traceback
 import thread
 import os.path
@@ -8,11 +9,6 @@ import contextlib
 import time
 import collections
 import sys
-
-try:
-    from cgi import escape
-except ImportError:
-    from html import escape
 
 # Twisted imports
 from twisted.application import internet
@@ -46,6 +42,10 @@ class DBPool(object):
         # Connect to reactor
         self.reactor = twisted.internet.reactor
         self.threadpool = twisted.python.threadpool.ThreadPool(self.min, self.max)
+
+    def start(self):
+        """Start a database connection on startup to run recovery, setup, etc."""
+        self.connect()
 
     def connect(self):
         """Create a new database connection."""
@@ -93,6 +93,7 @@ class WebServerOptions(emen2.db.config.DBOptions):
         ['https', None, 'Use HTTPS']
     ]
 
+
 class EMEN2Site(twisted.web.server.Site):
     def log(self, request):
         # rfc identd used for client supplied session ID
@@ -106,15 +107,17 @@ class EMEN2Site(twisted.web.server.Site):
             ctxid,
             username,
             self._logDateTime,
-            '%s %s %s' % (escape(request.method),
-                          escape(request.uri),
-                          escape(request.clientproto)),
+            '%s %s %s' % (self._escape(request.method),
+                          self._escape(request.uri),
+                          self._escape(request.clientproto)),
             request.code,
             request.sentLength or "-",
-            escape(request.getHeader("referer") or "-"),
-            escape(request.getHeader("user-agent") or "-"))
+            self._escape(request.getHeader("referer") or "-"),
+            self._escape(request.getHeader("user-agent") or "-"))
 
         emen2.db.log.web(line)
+
+
 
 class EMEN2BaseServer(object):
 
@@ -127,6 +130,9 @@ class EMEN2BaseServer(object):
     #@contextlib.contextmanager
     def start(self, service=None):
         '''Run the server main loop'''
+
+        pool.start()
+
         # Routing resource. This will look up request.uri in the routing table
         # and return View resources.
         root = emen2.web.routing.Router()
@@ -150,15 +156,18 @@ class EMEN2BaseServer(object):
 
     def attach_resources(self, root):
         pass
-
+        
     def attach_to_service(self, service):
         emen2_service = internet.TCPServer(self.port, self.site)
         emen2_service.setServiceParent(service)
+        # if self.https and ssl:
+        #    pass
 
     def attach_standalone(self):
         reactor = twisted.internet.reactor
         reactor.listenTCP(self.port, self.site)
         reactor.run()
+
 
 class EMEN2RPCServer(EMEN2BaseServer):
     """Only start the RPC server."""
@@ -166,6 +175,7 @@ class EMEN2RPCServer(EMEN2BaseServer):
         import jsonrpc.server
         from emen2.web.resource import JSONRPCServerEvents
         root.putChild('jsonrpc', jsonrpc.server.JSON_RPC().customize(JSONRPCServerEvents))
+    
 
 class EMEN2WebServer(EMEN2BaseServer):
     """Start the full web server."""
@@ -185,20 +195,24 @@ class EMEN2WebServer(EMEN2BaseServer):
         root.putChild('static-%s'%emen2.__version__, twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static')))
         root.putChild('favicon.ico', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/favicon.ico')))
         root.putChild('robots.txt', twisted.web.static.File(emen2.db.config.get_filename('emen2', 'web/static/robots.txt')))
+    
+    
 
 def start_standalone():
     opt = emen2.db.config.UsageParser(WebServerOptions)
     server = EMEN2WebServer(opt.options)
-    emen2.db.log.info("Web server started")
     server.start()
-
+    
+    
 def start_rpc():
     opt = emen2.db.config.UsageParser(WebServerOptions)
     server = EMEN2RPCServer(opt.options)
-    emen2.db.log.info("RPC server started")
     server.start()
+
 
 if __name__ == "__main__":
     start_standalone()
 
-__version__ = "$Revision: 1.105 $".split(":")[1][:-1].strip()
+
+
+__version__ = "$Revision: 1.101 $".split(":")[1][:-1].strip()

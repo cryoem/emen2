@@ -1,10 +1,13 @@
-# $Id: user.py,v 1.115 2013/06/04 10:12:23 irees Exp $
+# $Id: user.py,v 1.106 2012/10/31 13:00:49 irees Exp $
 """User DBOs
 
 Classes:
     BaseUser
     NewUser
     User
+    UserDB
+    NewUserDB
+
 """
 
 import time
@@ -14,10 +17,9 @@ import random
 import re
 import weakref
 import traceback
-import random
-import string
 
 # EMEN2 imports
+import emen2.db.btrees
 import emen2.db.exceptions
 import emen2.db.dataobject
 
@@ -27,6 +29,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
     attr_public = emen2.db.dataobject.BaseDBObject.attr_public | set(['email', 'password'])
     attr_protected = emen2.db.dataobject.BaseDBObject.attr_protected | set(['email', 'password'])
     attr_required = set(['email', 'password'])
+    username = property(lambda s:s.name)
 
     def init(self, d):
         super(BaseUser, self).init(d)
@@ -39,13 +42,13 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # action type, args, ctime for when the token is set, and secret
         self.__dict__['secret'] = None
 
-    def _set_password(self, key, value):
+    def _set_password(self, key, value, vtm=None, t=None):
         # This will always fail unless you're an admin
         #    setpassword requires either a password or auth token as arguments.
         self.setpassword(None, value)
         return set(['password'])
     
-    def _set_email(self, key, value):
+    def _set_email(self, key, value, vtm=None, t=None):
         # This will always fail unless you're an admin --
         #    setemail requires either a password or auth token as arguments.
         self.setemail(value)
@@ -53,6 +56,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
 
     def isowner(self):
         return super(BaseUser, self).isowner() or self._ctx.username == self.name
+
 
     ##### Password methods #####
 
@@ -62,12 +66,14 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             return password
         return hashlib.sha1(unicode(password)).hexdigest()
 
+
     def validate_password(self, password):
         # Only root is allowed to have no password. All user accounts must have a password.
         password = unicode(password or '')
         if len(password) < 6 and self.name != 'root' and len(password) != 40:
             self.error("Password too short; minimum 6 characters required")
         return password
+
 
     def checkpassword(self, password):
         try:
@@ -88,6 +94,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         time.sleep(2)
         self.error(e=emen2.db.exceptions.AuthenticationError)
 
+
     def setpassword(self, oldpassword, newpassword, secret=None):
         # Check that we know the existing password, or an authentication secret
         # checkpassword will sleep 2 seconds for each failed attempt
@@ -104,12 +111,14 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         self._set('password', newpassword, True)
         self._delsecret()
 
+
     def resetpassword(self):
         """Reset the user password. This creates an internal 'secret' token that can be used to reset a password.
         The secret should never be accessible via public methods.
         """
         # The second argument should be the email address
         self._setsecret('resetpassword', None)
+
 
     #################################
     # email setting/validation
@@ -122,6 +131,7 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # Note: the auth token is bound both to the method (setemail) and the
         #     specific requested email address.
         # Note: email can be changed before first commit.
+        
         if self.isnew():
             self._set('email', email, self.isowner())
         elif self._checksecret('setemail', email, secret):
@@ -131,17 +141,18 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             self._setsecret('setemail', email)
         else:
             self.error(e=emen2.db.exceptions.AuthenticationError)
+
         return self.email
+
 
     #################################
     # Secrets for account password resets
     #################################
 
-    def _makesecret(self, length=32):
-        l = length / 2
-        rg = random.SystemRandom()
-        r = range(255)
-        return ''.join(['%02x'%rg.choice(r) for i in range(l)])
+    def _set_secret(self, key, value, **kwargs):
+        # Complicated.. cput/cputs will strip out secret.
+        # You have to get/put directly to get or set the secret.
+        pass
 
     def _checksecret(self, action, args, secret):
         # I only want this to work on certain subclasses. See: User
@@ -156,12 +167,13 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
             if action == self.secret[0] and args == self.secret[1]:
                 return
 
-        # Generate random secret.
-        secret = self._makesecret()
+        import emen2.db.database
+        secret = emen2.db.database.getrandomid()
         self.__dict__['secret'] = (action, args, secret, time.time())
 
     def _delsecret(self):
         self.__dict__['secret'] = None
+
 
     #################################
     # validation methods
@@ -172,19 +184,25 @@ class BaseUser(emen2.db.dataobject.BaseDBObject):
         # After a long discussion in #python, it is impossible to validate
         #     emails other than checking for '@'
         # Note: Forcing emails to be stored as lower case.
-        email = unicode(email or '').strip().lower()
+        email = unicode(email or '').lower().strip()
         if not email or '@' not in email:
             self.error("Invalid email format '%s'"%email)
         return email
+
+
+
+
 
 
 signupinfo = set(["name_first", "name_middle", "name_last", "comments",    "institution",
     "department", "address_street", "address_city", "address_state", "address_zipcode",
     "country", "uri", "phone_voice", "phone_fax"])
 
+
 class NewUser(BaseUser):
     # displayname, userrec, and groups are unset when committing, so they can skip validation.
     attr_public = BaseUser.attr_public | set(['signupinfo'])
+
 
     def init(self, d):
         super(NewUser, self).init(d)
@@ -192,17 +210,20 @@ class NewUser(BaseUser):
         #     which is committed as a 'person' record when approved
         self.__dict__['signupinfo'] = {}
 
+
     # Setters
-    def _set_signupinfo(self, key, value):
+    def _set_signupinfo(self, key, value, vtm=None, t=None):
         self.setsignupinfo(value)
         return set(['signupinfo'])
+
 
     def setsignupinfo(self, update):
         self._set('signupinfo', update)
         self.validate()
 
-    def validate(self):
-        super(NewUser, self).validate()
+
+    def validate(self, vtm=None, t=None):
+        super(NewUser, self).validate(vtm=vtm, t=t)
 
         # Check signupinfo
         required = set(["name_first","name_last"])
@@ -214,7 +235,7 @@ class NewUser(BaseUser):
                 
             # These will be transferred to a Record
             try:
-                value = self.validate_param(param, value)
+                value = self.validate_param(param, value, vtm=vtm)
             except ValueError:
                 emen2.db.log.info("NewUser Validation: Couldn't validate new user signup field %s: %s"%(param, value))
                 continue
@@ -225,6 +246,7 @@ class NewUser(BaseUser):
             if not newsignup.get(param):
                 raise ValueError, "Required param %s"%param
 
+
         if self.signupinfo.get('child'):
             newsignup['child'] = self.signupinfo['child']
 
@@ -232,8 +254,13 @@ class NewUser(BaseUser):
         # print newsignup
         self.__dict__['signupinfo'] = newsignup
 
+
     # def setContext(...)
     #    Don't let non-admin users read this?
+
+
+
+
 
 class User(BaseUser):
     """User record. This contains the basic metadata information for a single user account, including username, password, primary email address, active/disabled, timestamps, and link to more complete user profile. Group membership is stored in Group instances, and set here by db.user.get by checking an index. If available during db.user.get, a copy of the profile record and the user's "displayname" will also be set.
@@ -248,13 +275,15 @@ class User(BaseUser):
     @property userrec Copy of profile record; set by database when accessed
     @property displayname User "display name"; set by database when accessed
     """
-    
+
+    # displayname, userrec, and groups are unset when committing, so they can skip validation.
     attr_public = BaseUser.attr_public | set(['privacy', 'disabled', 'displayname', 'userrec', 'groups', 'record'])
 
     # These get set during setContext and cleared before commit
     userrec = property(lambda s:s._userrec)
     displayname = property(lambda s:s._displayname)
     groups = property(lambda s:s._groups)
+
 
     def init(self, d):
         super(User, self).init(d)
@@ -263,27 +292,49 @@ class User(BaseUser):
         self.__dict__['privacy'] = 0
         self.__dict__['record'] = None
 
+
+
     #################################
     # Setters
     #################################
 
+    # These are unvalidated parameters because they cleared when committing
+    # They return an empty set because they don't really modify the User.
+
+    def _set_groups(self, key, value, vtm=None, t=None):
+        self._set('_groups', value, True)
+        return set()
+
+    def _set_displayname(self, key, value, vtm=None, t=None):
+        self._set('_displayname', value, True)
+        return set()
+
+    def _set_userrec(self, key, value, vtm=None, t=None):
+        self._set('_userrec', value, True)
+        return set()
+
+
     # Users can set their own privacy level
-    def _set_privacy(self, key, value):
+    def _set_privacy(self, key, value, vtm=None, t=None):
         value = int(value)
         if value not in [0,1,2]:
             self.error("User privacy setting may be 0, 1, or 2.")
         return self._set(key, value, self.isowner())
 
+
     # Only admin can change enabled/disabled or record reference
 
-    def _set_disabled(self, key, value):
+    def _set_disabled(self, key, value, vtm=None, t=None):
         value = bool(value)
         if self.name == self._ctx.username and value:
             self.error("Cannot disable self!")
         return self._set(key, value, self._ctx.checkadmin())
 
-    def _set_record(self, key, value):
+
+    def _set_record(self, key, value, vtm=None, t=None):
         return self._set(key, value, self._ctx.checkadmin())
+
+
 
     #################################
     # "Secret" Authentication tokens
@@ -307,6 +358,7 @@ class User(BaseUser):
 
         return False
 
+
     #################################
     # Enable/disable
     #################################
@@ -315,11 +367,16 @@ class User(BaseUser):
     def enable(self):
         self.disabled = False
 
+
     def disable(self):
         self.disabled = True
 
+
     def setprivacy(self, privacy):
         self.privacy = privacy
+
+
+
 
     #################################
     # Displayname and profile Record
@@ -328,15 +385,17 @@ class User(BaseUser):
     def getdisplayname(self, lnf=False, record=None):
         """Get the user profile record from the current Context"""
         if self.record is None:
-            return unicode(self.name)
+            return
 
         if not self._userrec:
             if not record:
                 record = self._ctx.db.record.get(self.record) or {}
             self._set('_userrec', record, True)
 
-        # self._set('_displayname', d, True)
-        return self._formatusername(lnf=lnf)
+        d = self._formatusername(lnf=lnf)
+        self._set('_displayname', d, True)
+        return d
+
 
     def _formatusername(self, lnf=False):
         if not self._userrec:
@@ -370,6 +429,8 @@ class User(BaseUser):
 
         return uname
 
+
+
     #################################
     # Access methods
     #################################
@@ -378,6 +439,7 @@ class User(BaseUser):
         super(User, self).setContext(ctx)
         admin = self._ctx.checkreadadmin()
         ctxuser = self._ctx.username
+
         p = {}
 
         # secret is never made available except through direct btree.get().
@@ -405,9 +467,110 @@ class User(BaseUser):
             p['record'] = None
 
         self.__dict__.update(p)
-        self.__dict__['_displayname'] = self.getdisplayname()
+        self.getdisplayname()
 
 
 
 
-__version__ = "$Revision: 1.115 $".split(":")[1][:-1].strip()
+
+class UserDB(emen2.db.btrees.DBODB):
+    dataclass = User
+
+    def getbyemail(self, name, filt=True, ctx=None, txn=None):
+        """Lookup a user by name or email address. This is not a setContext lookup;
+        cgets will also expand email addresses to usernames.
+        """
+        name = unicode(name or '').strip()
+        if not self.exists(name, txn=txn):
+            found = self.getindex('email', txn=txn).get(name, txn=txn)
+            if found:
+                name = found.pop()
+        return self.get(name, filt=filt, txn=txn)
+
+
+    def expand(self, names, ctx=None, txn=None):
+        """Expand names, e.g. expanding * into children, or using an email address for a user"""
+        if not isinstance(names, set):
+            names = set(names)
+
+        # Grumble.. some things like old-style binaries may have None for a user field.
+        names -= set([None])
+
+        # ian: todo: need to benchmark this...
+        ind = self.getindex('email', txn=txn)
+        add = set()
+        remove = set()
+        for i in names:
+            if not self.exists(i, txn=txn):
+                add |= ind.get(i, txn=txn)
+                remove.add(i)
+
+        names -= remove
+        names |= add
+        return names
+
+
+    def new(self, *args, **kwargs):
+        txn = kwargs.get('txn', None)
+
+        # DB.new. This will check the main bdb for an existing name.
+        user = super(UserDB, self).new(*args, **kwargs)
+
+        # Check  if this email already exists
+        indemail = self.getindex('email', txn=txn)
+        if indemail.get(user.email, txn=txn):
+            raise emen2.db.exceptions.ExistingKeyError
+
+        return user
+
+
+    def openindex(self, param, txn=None):
+        if param == 'email':
+            ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat='s', dataformat='s', dbenv=self.dbenv)
+        elif param == 'record':
+            ind = emen2.db.btrees.IndexDB(filename=self._indname(param), keyformat='d', dataformat='s', dbenv=self.dbenv)            
+        else:
+            ind = super(UserDB, self).openindex(param, txn=txn)
+        return ind
+
+
+    def names(self, names=None, ctx=None, txn=None, **kwargs):
+        # You need to be logged in to view this.
+        if not ctx or ctx.username == 'anonymous':
+            return set()
+        return super(UserDB, self).names(names=names, ctx=ctx, txn=txn)
+
+
+
+
+
+class NewUserDB(emen2.db.btrees.DBODB):
+    dataclass = NewUser
+
+    def new(self, *args, **kwargs):
+        txn = kwargs.get('txn', None)
+        newuser = super(NewUserDB, self).new(*args, **kwargs)
+
+        # Check if any pending accounts have this email address
+        for k,v in self.items(txn=txn):
+            if newuser.email == v.email:
+                raise emen2.db.exceptions.ExistingKeyError, emen2.db.exceptions.ExistingKeyError.__doc__
+
+        # Check if this email already exists
+        indemail = self.dbenv["user"].getindex('email', txn=txn)
+        if self.dbenv["user"].exists(newuser.name, txn=txn) or indemail.get(newuser.email, txn=txn):
+            raise emen2.db.exceptions.ExistingKeyError, emen2.db.exceptions.ExistingKeyError.__doc__
+
+        return newuser
+
+
+    def names(self, names=None, ctx=None, txn=None, **kwargs):
+        # This requires admin access
+        if not ctx or not ctx.checkadmin():
+            raise emen2.db.exceptions.SecurityError, "Admin rights needed to view user queue"
+        return super(NewUserDB, self).names(names=names, ctx=ctx, txn=txn)
+
+
+
+
+__version__ = "$Revision: 1.106 $".split(":")[1][:-1].strip()

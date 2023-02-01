@@ -3,27 +3,37 @@
     $.widget('emen2.RelationshipControl', {
         options: {
             name: null,
-            keytype: 'record',
+            keytype: null,
             edit: null,
             show: true,
             summary: false,
             help: false,
+            // events: saved
         },
 
         _create: function() {
             this.built = 0;
             var self = this;
-			emen2.util.checkopts(this, ['name', 'keytype', 'edit', 'summary']);
+            this.options.name = emen2.util.checkopt(this, 'name');
+            this.options.keytype = emen2.util.checkopt(this, 'keytype', 'record');
+            this.options.edit = emen2.util.checkopt(this, 'edit')
+            this.options.summary = emen2.util.checkopt(this, 'summary')
             if (this.options.show) {this.show()}            
         },
-                
+        
+        rebuild: function() {
+            // Clear out and rebuild
+            this.built = 0;
+            this.build();
+        },
+        
         show: function() {
             this.build();
         },
         
         build: function() {
+            // Cache items before real build..
             if (this.built) {return}
-            this.built = 1;
             var self = this;
 
             // Always empty the element before a rebuild, and place a spinner
@@ -44,7 +54,7 @@
                 
                 // 2a. Records need a second callback for pretty rendered text
                 if (self.options.keytype == 'record') {
-                    emen2.db('view', [found], function(recnames) {
+                    emen2.db('record.render', [found], function(recnames) {
                         $.each(recnames, function(k,v) {emen2.caches['recnames'][k] = v})
                         self._build();
                     });
@@ -56,6 +66,8 @@
         }, 
         
         _build: function() {
+            // Real build method
+            this.built = 1;
             var self = this;
 
             // Remove the spinner
@@ -67,10 +79,11 @@
             var children = rec.children;
             
             if (this.options.summary || this.options.help) {
-                $('<h2 class="e2l-cf">Relationships</h2>').appendTo(this.element);
+                this.element.append('<h2 class="e2l-cf">Relationships</h2>');
             }
             if (this.options.help) {
-                $('<div class="e2l-help" role="help"><p> \
+                var help = $(' \
+                <div class="e2l-help" role="help"><p> \
                     Records can have an arbitrary number of parent and child relationships. \
                 </p><p>To <strong>add parent or child relationships</strong>, click one of the <strong>+</strong> buttons below. \
                     This will show a record chooser. You can either navigate to the record you want to add, or type \
@@ -79,33 +92,59 @@
                 </p><p>To <strong>remove parent or child relationships</strong>, uncheck the relationships you want to remove and click <strong>save relationships</strong>. \
                 </p><p> \
                     Additional information is available at the <a href="http://blake.grid.bcm.edu/emanwiki/EMEN2/Help/Relationships">EMEN2 Wiki</a>. \
-                </p></div>').appendTo(this.element);
+                </p></div>');
+                this.element.append(help);
+                // var helper = $('<span class="e2-button e2l-float-right">Help</span>');
+                // helper.click(function(e){$('[role=help]', self.element).toggle()})
+                // $('h2', this.element).append(helper);
             }
+            // Build a textual summary
             if (this.options.summary && this.options.keytype == 'record') {
-                this.build_summary(parents, children).appendTo(this.element);
+                this.element.append(this.build_summary(parents, children));
             }
             
             // Add the items
-            this.build_level('Parents', 'parents', parents).appendTo(this.element);
-            this.build_level('Children', 'children', children).appendTo(this.element);
+            this.element.append(this.build_level('Parents', 'parents', parents));
+            this.element.append(this.build_level('Children', 'children', children));
             
             if (this.options.controls && this.options.edit) {
-                this.build_controls().appendTo(this.options.controls);
+                this.build_controls();
             }
+
+            // Show all the infoboxes...
+            $('.e2-relationships-infobox', this.element).InfoBox('show');
         },
         
         build_summary: function(parents, children) {
             // Make a descriptive summary of the parent and child relationships
-            var summary = $('<div />');
-            $('<span />').text('This record has ').appendTo(summary);
-            this.build_summary_label(parents, 'parents').appendTo(summary);
-            $('<span />').text(' and ').appendTo(summary);
-            this.build_summary_label(children, 'children').appendTo(summary);
-            $('<span />').text('. Click to ').appendTo(summary);
-            $('<a />')
-                .attr('href', emen2.template.uri(['records'], {'root':this.options.name}))
-                .text('view the record tree.')
-                .appendTo(summary);
+            var summary = $('<div class="e2-relationships-summary"></div>')
+            var p = this.build_summary_label(parents);
+            var c = this.build_summary_label(children);
+            var label = 'parent';
+            if (parents.length > 1) {label = 'parents'}        
+
+            summary.append('<p>This record has '+
+                this.build_summary_label(parents, 'parents')+
+                ' and '+
+                this.build_summary_label(children, 'children')+
+                '. Click to <a href="'+ROOT+'/records/?root='+this.options.name+'">view the record tree starting at this record</a>.</p>');
+            // '. Select <span class="e2l-a e2-permissions-all">all</span>
+            //    or <span class="e2l-a e2-permissions-none">none</span>.
+
+            // Select by rectype
+            $('.e2-relationships-rectype', summary).click(function() {
+                var state = $(this).attr('data-checked');
+                if (state=='checked') {
+                    $(this).attr('data-checked', '');
+                    state = true;
+                } else {
+                    $(this).attr('data-checked', 'checked');
+                    state = false
+                }
+                var rectype = $(this).attr('data-rectype');
+                var reltype = $(this).attr('data-reltype');
+                $('.e2-infobox[data-rectype='+rectype+'] input', self.element).attr('checked', state);
+            });
             return summary        
         },
         
@@ -118,123 +157,127 @@
                 ct[r.rectype].push(this);
             });                
 
-            var elem = $('<span />');
-            if (value.length == 0) {
-                $('<span />').text('no '+label).appendTo(elem);
-            } else {
-                $('<span />').text(value.length+' '+label+', including: ').appendTo(elem);
-            }
-
-            var self = this;
+            var ce = [];
             $.each(ct, function(k,v) {
                 var rd = emen2.caches['recorddef'][k] || {};
                 var rddesc = rd['desc_short'] || k;
-                $('<span />')
-                    .text(v.length+' '+rddesc)
-                    .appendTo(elem);
-                $('<span />')
-                    .text(' (toggle)')
-                    .attr('data-checked', 'checked')
-                    .attr('data-reltype', label)
-                    .attr('data-rectype', k)
-                    .addClass('e2l-a')
-                    .appendTo(elem)
-                    .click(function() {self.toggle_type(this)});
+                var adds = '';
+                if (v.length > 1) {adds='s'}
+                ce.push(v.length+' '+rddesc+
+                    ' <span data-checked="checked" data-reltype="'+label+
+                    '" data-rectype="'+k+
+                    '" class="e2l-small e2l-a e2-relationships-rectype">(toggle)</span>');
             });
-            return elem
-        },
-        
-        toggle_type: function(elem) {
-            var state = $(elem).attr('data-checked');
-            if (state=='checked') {
-                $(elem).attr('data-checked', '');
-                state = true;
+
+            var pstr = '';
+            if (ce.length == 0) {
+                pstr = '<span>no '+label+'</span>';
+            } else if (ce.length == 1) {
+                pstr = '<span>'+ce.join(', ')+' '+label+'</span>';
             } else {
-                $(elem).attr('data-checked', 'checked');
-                state = false
-            }
-            var rectype = $(elem).attr('data-rectype');
-            var reltype = $(elem).attr('data-reltype');
-            $('.e2-infobox[data-rectype='+$.escape(rectype)+'] input', this.element).attr('checked', state);
+                pstr = '<span>'+value.length+' '+label+'</span>, including '+ce.join(', ')
+            }    
+            return pstr
         },
         
         build_level: function(label, level, items) {
             var self = this;
-            var boxes = $('<div />')
-                .attr('data-level', level);
-            $('<input type="hidden" />')
-                .attr('name', level)
-                .appendTo(boxes);
-                
-            var header = $('<h4 />')
-                .addClass('e2l-cf')
-                .text(label)
-                .appendTo(boxes);
+            var header = $('<h4 class="e2l-cf">'+label+'</h4>');
             if (this.options.edit) {
-                $('<input type="button" />')
-                    .attr('data-level', level)
-                    .val('+')
-                    .TreeBrowseControl({
-                        root: this.options.name,
-                        selectable: this.options.edit,
-                        keytype: this.options.keytype,
-                        selected: function(browse, name) {
-                            self.add(level, name);
-                        }})
-                    .click(function(){
-                        $(this).TreeBrowseControl('show')})
-                    .prependTo(header)
+                header.prepend('<input data-level="'+level+'" type="button" value="+" /> ');
+            }
+
+            $('input:button', header).TreeBrowseControl({
+                root: this.options.name,
+                selectable: this.options.edit,
+                keytype: this.options.keytype,
+                selected: function(browse, name) {
+                    self.add(level, name);
+                }
+            }).click(function(){
+                $(this).TreeBrowseControl('show');
+            })
+
+            var d = $('<div data-level="'+level+'"></div>');
+            for (var i=0;i<items.length;i++) {
+                d.append(this.build_item(level, items[i], false))
             }
             
-            for (var i=0;i<items.length;i++) {
-                this.build_item(level, items[i], false).appendTo(boxes);
-            }
-            return boxes
+            d.append('<input type="hidden" name="'+level+'" value="" class="e2-relationships-hidden" />');
+            
+            return $('<div></div>').append(header, d);
         },
         
         build_item: function(level, name, retry) {
-            // Build an InfoBox.
             var self = this;
-            return $('<div />')
-                .InfoBox({
-                    show: true,
-                    keytype: this.options.keytype,
-                    name: name,
-                    selectable: this.options.edit,
-                    retry: retry,
-                    input: ['checkbox', level, true]
-                });
+            // Retry parameter indiciates try again to find item if not in cache.            
+            // Do not show immediately -- need to be in DOM for built() callback
+
+            // Update the select count when built or checked..
+            var cb = function() {$('.e2-select', self.options.controls).SelectControl('update')}
+
+            return $('<div class="e2-relationships-infobox"></div>').InfoBox({
+                show: false,
+                keytype: this.options.keytype,
+                name: name,
+                selectable: this.options.edit,
+                retry: retry,
+                input: ['checkbox', level, true],
+                selected: cb,
+                built: cb
+            });
         },
         
         build_controls: function() {
             var self = this;
+            // ian: todo: move "Select all or none" to a template function (utils.js)
             var controls = $(' \
+                <ul class="e2l-options"> \
+                    <li class="e2-select" /> \
+                </ul> \
                 <ul class="e2l-controls"> \
                     <li><input type="submit" value="Save relationships" /></li> \
                 </ul>');
+
+            // Selection control
+            $('.e2-select', controls).SelectControl({root: this.element});
+
+            // Save form
             $('input:submit', controls).click(function(e){self.save(e)});
-            return controls
+
+            // Show/hide advanced options
+            $('.e2-relationships-advanced', controls).click(function(){
+                emen2.template.caret('toggle', self.options.controls);
+                $('.e2l-controls', self.options.controls).toggle();
+                $('.e2l-advanced', self.options.controls).toggle();
+            });
+            
+            this.options.controls.append(controls);
         },
         
         add: function(level, name) {
-            // If the item isn't present, add it.
-            var boxes = $('div[data-level='+$.escape(level)+']', this.element);
-            if ($('.e2-infobox[data-name="'+$.escape(name)+'"]', boxes).length) {
+            var boxes = $('div[data-level='+level+']', this.element);
+            if ($('.e2-infobox[data-name="'+name+'"]', boxes).length) {
                 return
             }
-            this.build_item(level, name, true).appendTo(boxes);
+            var box = this.build_item(level, name, true);
+            boxes.prepend(box);
+            box.InfoBox('show');
         },
         
         save: function(e) {
-            // Check for orphans.
             e.preventDefault();
             var parents = $('input[type=checkbox][name=parents]', this.element);
             var checkedparents = $('input[type=checkbox][name=parents]:checked', this.element);            
             if (parents.length && !checkedparents.length) {
-                var ok = confirm("You are attempting to remove all parents of this record. Continue?");
+                var ok = confirm("You are attempting to remove all parents of this record. This will not delete the record, but might make it difficult to find. Continue?");
                 if (!ok) {return false}
             }
             this.element.submit();
+        },
+        
+        cache: function() {
+            return emen2.caches[this.options.keytype][this.options.name];
         }
     });
     
@@ -244,7 +287,9 @@
     $.widget('emen2.TreeBrowseControl', {
         options: {
             root: null,
-            keytype: 'record',
+            keytype: null,
+            embed: false,
+            // events
             selected: function(self, name) {},
             moved: function() {},
         },
@@ -252,7 +297,11 @@
         _create: function() {
             var self = this;
             this.built = 0;
-			emen2.util.checkopts(this, ['mode', 'root', 'keytype']);
+
+            this.options.mode = emen2.util.checkopt(this, 'mode');
+            this.options.root = emen2.util.checkopt(this, 'root');
+            this.options.keytype = emen2.util.checkopt(this, 'keytype', 'record');
+    
             this.element.click(function(e){self.show(e)});
             if (this.options.show) {
                 this.show();
@@ -261,118 +310,109 @@
         
         show: function(e) {
             this.build();
-            this.dialog.dialog('open');
+            if (this.options.embed) {
+                // pass
+            } else {
+                this.dialog.dialog('open');
+            }
         },
 
         build: function() {
-            var self = this;
             if (this.built) {return}
             this.built = 1;
+            var self = this;
 
             // Build the dialog
-            // ... todo: cleaner markup.
-            this.dialog = $('<div />')
-                .addClass('e2-browse')
-                .attr("title", "Relationship Browser")
-                .append('<div class="e2-browse-controls"></div> \
-                    <div class="e2l-cf e2-browse-header" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
-                        <div class="e2-browse-parents e2l-float-left" style="width:299px;"> Parents </div> \
-                        <div class="e2-browse-action e2l-float-left" style="width:299px;">&nbsp;</div> \
-                        <div class="e2-browse-children e2l-float-left" style="width:299px;"> Children </div> \
-                    </div> \
-                    <div class="e2l-cf e2-browse-tree" style="position:relative" />')
-                .dialog({
+            this.dialog = $('<div class="e2-browse" />');
+            this.dialog.append(' \
+                <div class="e2-browse-controls"></div> \
+                <div class="e2l-cf e2-browse-header" style="border-bottom:solid 1px #ccc;margin-bottom:6px;"> \
+                    <div class="e2-browse-parents e2l-float-left" style="width:299px;"> Parents </div> \
+                    <div class="e2-browse-action e2l-float-left" style="width:299px;">&nbsp;</div> \
+                    <div class="e2-browse-children e2l-float-left" style="width:299px;"> Children </div> \
+                </div> \
+                <div class="e2l-cf e2-browse-tree" style="position:relative" />');
+
+            // Refresh the map area
+            this.reroot(this.options.root);
+
+            // Build the browser controls
+            this.build_browse();
+
+            // Embed or show the dialog
+            if (this.options.embed) {
+                this.element.append(this.dialog);
+            } else {
+                // Show the dialog
+                this.dialog.attr("title", "Relationship Browser");
+                this.dialog.dialog({
                     modal: true,
                     width: 1000,
                     height: 600,
                     draggable: false,
                     resizable: false,                    
                 });            
-
-            // Build the controls
-            var action = $('.e2-browse-action', this.dialog);
-            this._build_browse().appendTo(action);
-
-            // Refresh
-            this.reroot(this.options.root);
+            }
         },
 
-        _build_browse: function() {
+        build_browse: function() {
             var self = this;
-            var controls = $('<span />');
-
-            // todo: cleaner markup
-            $('<input type="text" />')
-                .attr('name', 'value')
-                .css('margin-left', 16)
-                .css('width', 120)
-                .bind('keyup', function(e) {
-                    $('input[type=submit]', self.dialog).val('Go To');
-                })
-                .appendTo(controls);
+            var controls = $(' \
+                <span> \
+                    <input style="margin-left:16px;width:120px;" type="text" name="value" value="" /> \
+                    <input style="margin-right:16px" type="submit" name="submit" value="Select" /> \
+                </span>');
             
-            $('<input type="submit" />')
-                .attr('name', 'submit')
-                .val('Select')
-                .css('margin-right', 16)
-                .click(function(e) {
-                    var val = $('input[name=value]', self.dialog).val();
-                    if (val.toString() == self.options.root.toString()) {
-                        self.options.selected(self, val);
-                        self.dialog.dialog('close');
-                    } else {
-                        self.reroot(val);
-                    }
-                })
-                .appendTo(controls);
-            return controls;
+            $('input[name=value]', controls).bind('keyup', function(e) {
+                $('input[name=submit]', self.dialog).val('Go To');
+            });
+            
+            $('input[name=submit]', controls).click(function(e) {
+                var val = $('input[name=value]', self.dialog).val();
+                if (val.toString() == self.options.root.toString()) {
+                    self.options.selected(self, val);
+                    self.dialog.dialog('close');
+                } else {
+                    self.reroot(val);
+                }
+            });
+
+            var action = $('.e2-browse-action', this.dialog);
+            action.append(controls);
         },
         
         reroot: function(name) {
             var self = this;
             this.options.root = name;
-
             $('input[name=value]', this.dialog).val(name);
-
-            // Clear the tree.
-            var tree = $('.e2-browse-tree', this.dialog);
-            tree.empty();
             
-            // Callback
+            // Selected callback is an "outer callback" to pass off to this.mapselect
             var cb = function(w, elem, name) {self.reroot(name)}
-
-            // Parents
-            $('<div />')
-                .addClass('e2-tree')
-                .addClass('e2l-float-left')
-                .css('position', 'absoute')
-                .css('left', 0)
-                .css('width', 300)
-                .TreeControl({
-                    root: name, 
-                    keytype: this.options.keytype, 
-                    mode: 'parents',
-                    skiproot: true,
-                    show: true,
-                    selected: cb
-                })
-                .append(emen2.template.spinner(true))
-                .appendTo(tree);
             
-            // Children
-            $('<div />')
-                .addClass('e2-tree')
-                .addClass('e2l-float-left')
-                .css('position', 'absolute')
-                .css('left', 300)
-                .TreeControl({
-                    root: name, 
-                    keytype: this.options.keytype, 
-                    mode: 'children',
-                    show: true,
-                    selected: cb
-                })
-                .appendTo(tree);
+            var parents = $('<div class="e2-tree e2l-float-left" style="position:absolute;left:0px;width:300px;">&nbsp;</span>');
+            parents.TreeControl({
+                root: name, 
+                keytype: this.options.keytype, 
+                mode: 'parents',
+                skiproot: true,
+                show: true,
+                selected: cb
+            });            
+            
+            // The parents needs a spinner -- the TreeControl one doesn't work right
+            parents.append(emen2.template.spinner(true));
+
+            var children = $('<div class="e2-tree e2l-float-left" style="position:absolute;left:300px;" />');
+            children.TreeControl({
+                root: name, 
+                keytype: this.options.keytype, 
+                mode: 'children',
+                show: true,
+                selected: cb
+            });
+            
+            $('.e2-browse-tree', this.dialog).empty();
+            $('.e2-browse-tree', this.dialog).append(parents, children);
         }        
     });
     
@@ -381,11 +421,10 @@
     // Relationship tree control
     
     $.widget("emen2.TreeControl", {        
-        // This widget has evolved over time and needs cleanup.
         options: {
             root: null,
-            keytype: 'record',
-            mode: 'children',
+            keytype: null,
+            mode: null,
             expandable: true,
             show: false,
             attach: false,
@@ -403,8 +442,11 @@
             this.state = {};
             
             // Get options from data- attributes
-			emen2.util.checkopts(this, ['children', 'root', 'keytype']);
+            this.options.mode = emen2.util.checkopt(this, 'mode', 'children');
+            this.options.root = emen2.util.checkopt(this, 'root');
+            this.options.keytype = emen2.util.checkopt(this, 'keytype', 'record');
 
+            this.element.addClass('e2-tree-'+this.options.mode);            
             if (this.options.attach) {
                 this.bind(this.element);
             } else if (this.options.show) {
@@ -414,18 +456,12 @@
         },
         
         init: function() {
-            // init hook.
+            
         },
     
         build: function() {
             var self = this;
             this.element.empty();
-            if (this.options.mode == 'parents') {
-                this.element.addClass('e2-tree-parents');
-            } else if (this.options.mode == 'children') {
-                this.element.addClass('e2-tree-children');
-            }
-            
             if (this.options.skiproot) {
                 // Expand directly off this.element
                 this.element.attr('data-name', this.options.root);
@@ -436,45 +472,45 @@
             }
         },
         
+        // Build a tree root
         build_root: function(elem, name) {
-            // Build a tree root
             var self = this;
             var name = (name == null) ? elem.attr('data-name') : name;
             if (!emen2.caches[this.options.keytype][name]) {
+                // make a pass through this.getnames if we don't have this cached already
                 this.getviews([name], function(){self.build_root(elem, name)});
                 return
             }
-            
-            var li = $('<li />')
-                .attr('data-name', name);
-            $('<a />')
-                .attr('href','#')
-                .text(this.getname(this.options.root))
-                .appendTo(li);
 
-            var src = 'bg.open.'+this.options.mode+'.png'
-            emen2.template.image(src, '+', 'e2-tree-expand')
-                .appendTo(li);
-            li.wrap('<ul />');
-            li.appendTo(this.element);
-
-            // Expand the root.
-            this.bind(li);
-            this.expand(li);
+            var root = $('<ul></ul>');
+            root.append(' \
+                <li data-name="'+name+'"> \
+                    <a href="#">'+this.getname(this.options.root)+'</a>'+
+                    emen2.template.image('bg.open.'+this.options.mode+'.png', '+', 'e2-tree-expand')+
+                '</li>');
+            this.element.append(root);
+            this.bind(root);
+            this.expand(root.find('li'));            
         },
         
+        // Draw a branch
         build_tree: function(elem, name) {
-            // Draw a branch
             // elem is usually an li that will have the new ul added
             // name can be specified, or parsed from data-name            
             var self = this;
             var name = (name == null) ? elem.attr('data-name') : name; 
             
-            // Remove any activity spinners
+            // Remove any spinners
             elem.find('img.e2l-spinner').remove();
-            // Remove all sub trees.
-            elem.find('ul').remove();
                         
+            // Set the image to expanded
+            var img = elem.find('img.e2-tree-expand');
+            img.addClass('e2-tree-expanded');
+            img.attr('src', ROOT+'/static-'+VERSION+'/images/bg.close.'+this.options.mode+'.png');
+            
+            // The new ul
+            var ul = $('<ul data-name="'+name+'"></ul>');
+
             // Lower-case alpha sort...
             var sortby = {};
             $.each(emen2.caches[this.options.mode][name], function() {
@@ -482,41 +518,30 @@
             });
             var sortkeys = emen2.util.sortdictstr(sortby);
             sortkeys.reverse();            
-
-            // Set the image to expanded
-            var src = emen2.template.static(['images', 'bg.close.'+this.options.mode+'.png']);
-            var img = elem.find('img.e2-tree-expand');
-            img.addClass('e2-tree-expanded');
-            img.attr('src', src);
+    
+            // If there are no children, hide the expand image
             if (sortkeys.length == 0) {
-                // If there are no children, hide the expand image
                 img.remove();
             }
-
-            // The new ul
-            var ul = $('<ul  />')
-                .attr('data-name', name)
-                .appendTo(elem);
             
             // Build each child item
             $.each(sortkeys, function() {
-                var li = $('<li />')
-                    .attr('data-name', this)
-                    .appendTo(ul);
-
-                $('<a />')
-                    .attr('href', emen2.template.uri([self.options.keytype, this]))
-                    .text(self.getname(this)) // make sure to use .text()!
-                    .appendTo(li);
-                
+                var li = $(' \
+                    <li data-name="'+this+'"> \
+                        <a href="'+ROOT+'/'+self.options.keytype+'/'+this+'/">'
+                            +self.getname(this)+
+                        '</a> \
+                    </li>');
                 if (emen2.caches[self.options.mode][this] && self.options.expandable) {
-                    emen2.template.image('bg.open.'+self.options.mode+'.png')
-                        .addClass('e2-tree-expand')
-                        .appendTo(li);
+                    var expand = $(emen2.template.image('bg.open.'+self.options.mode+'.png', emen2.caches[self.options.mode][this].length, 'e2-tree-expand'))
+                    li.append(expand);
                 }
+                ul.append(li);
             });
-            
-            // Adjust the top margins.
+            elem.find('ul').remove();
+
+            // Don't forget to adjust top
+            elem.append(ul);
             var h = ul.siblings('a').height();
             ul.css('margin-top', -h);
             ul.css('min-height', h);
@@ -525,22 +550,24 @@
             this.bind(ul);
         },        
 
+        // rebuild a branch
         expand: function(elem, name) {
-            // rebuild a branch
             // elem is the LI
             var self = this;
             var name = (name == null) ? elem.attr('data-name') : name; 
 
             // Show activity indicator
-            var src = emen2.template.static(['images', 'spinner.gif']);
-            var img = elem.children('img.e2-tree-expand');
-            img.attr('src', src); 
+            var img = elem.children('img');
+            img.attr('src', ROOT+'/static-'+VERSION+'/images/spinner.gif'); 
             
             // Remove any current children
             elem.find('ul').remove();
 
-            // Get the links.
-            emen2.db('rel.tree', {names:name, rel:this.options.mode, recurse:2, keytype:this.options.keytype}, function(tree){
+            // We use rel.childrentree because we want to grab 2 levels of children/parents
+            //     to determine if each child is itself expandable...
+            var method = "rel.tree";
+
+            emen2.db(method, {names:name, rel:this.options.mode, recurse:2, keytype:this.options.keytype}, function(tree){
                 // Cache the result. This should be filtered for permissions
                 $.each(tree, function(k,v) {emen2.caches[self.options.mode][k] = v});                
                 // Get the items and/or rendered names, then build the tree
@@ -552,17 +579,16 @@
             });                
         },
         
+        // expand/contract a branch        
         toggle_expand: function(elem) {
-            // expand/contract a branch        
             // elem is the expand image element
             var self = this;
             var elem = $(elem);            
             if (elem.hasClass('e2-tree-expanded')) {
                 // Contract this branch
-                var src = emen2.template.static(['images', 'bg.open.'+this.options.mode+'.png']);
                 elem.removeClass('e2-tree-expanded');
                 elem.siblings('ul').remove();
-                elem.attr('src', src);
+                elem.attr('src', ROOT+'/static-'+VERSION+'/images/bg.open.'+this.options.mode+'.png');
             } else {
                 // Expand this branch
                 this.expand(elem.parent());
@@ -586,7 +612,7 @@
                 elem.css('min-height', h);
             });
 
-            // Click image to toggle expand/collapse.
+            // Click icon to toggle
             $('img.e2-tree-expand', root).click(function(e) {self.toggle_expand(this)});
         },
         
@@ -604,8 +630,8 @@
         bind_state: function(root) {
         },
         
+        // cache items that we need, then go to the callback
         getviews: function(names, cb) {
-            // Get rendered items, then call callback.
             var self = this;
             var names = emen2.cache.check(this.options.keytype, names);
             if (names.length == 0) {
@@ -617,7 +643,7 @@
                 if (self.options.keytype == 'record') {
                     // For records, we also want to render the names..
                     var found = $.map(items, function(k){return k.name});
-                    emen2.db('view', [found], function(recnames) {
+                    emen2.db('record.render', [found], function(recnames) {
                         $.each(recnames, function(k,v) {emen2.caches['recnames'][k]=v});
                         cb();
                     });
@@ -628,11 +654,13 @@
         },
         
         // more type-specific handling..
-        getname: function(name) {
+        getname: function(item) {
             if (this.options.keytype == 'record') {
-                return emen2.caches['recnames'][name] || String(name)
-            } else {
-                return emen2.caches[this.options.keytype][name].desc_short || name
+                return emen2.caches['recnames'][item] || '('+String(item)+')'
+            } else if (this.options.keytype == 'paramdef') {
+                return emen2.caches['paramdef'][item].desc_short || item
+            } else if (this.options.keytype == 'recorddef') {
+                return emen2.caches['recorddef'][item].desc_short || item
             }            
         }
     });
@@ -651,21 +679,18 @@
         },
         
         submit: function(e) {
-            // For each selected item, create a hidden form input, then submit.
             var self = this;
+            // console.log("Submitting -- building inputs");
             $('input[name=state]', this.element).remove();
             $.each(this.state, function(k,v) {
                 if (v) {
-                    $('<input type="hidden" />')
-                        .attr('name', 'state')
-                        .val(k)
-                        .appendTo(self.element);
+                    // console.log('adding', k);
+                    self.element.append('<input type="hidden" name="state" value="'+k+'" />');
                 }
             });
         },
         
         bind_state: function(root) {
-            // Toggle selected status.
             var self = this;
             $('li', root).each(function() {
                 var name = $(this).attr('data-name');
@@ -678,7 +703,6 @@
         },
 
         bind_select: function(root) {
-            // Add select toggle.
             var self = this;
             $('a', root).click(function(e) {
                 e.preventDefault();
@@ -691,7 +715,7 @@
             for (var i=0;i<items.length;i++) {
                 var name = items[i];
                 this.state[name] = true;
-                $('li[data-name="'+$.escape(name)+'"] > a').addClass('e2-browse-selected');
+                $('li[data-name="'+name+'"] > a').addClass('e2-browse-selected');
             }
             this.count_selected();        
         },
@@ -700,7 +724,7 @@
             for (var i=0;i<items.length;i++) {
                 var name = items[i];
                 this.state[name] = false;
-                $('li[data-name="'+$.escape(name)+'"] > a').removeClass('e2-browse-selected');
+                $('li[data-name="'+name+'"] > a').removeClass('e2-browse-selected');
             }
             this.count_selected();        
         },
@@ -710,7 +734,7 @@
             $.each(this.state, function(k,v) {
                 if (v) {count++}
             });
-            $(this.options.display_count).text(count);
+            $(this.options.display_count).html(count);
             return count
         },
         
@@ -718,8 +742,7 @@
             var state = this.state[name];
             var self = this;
             if (e.shiftKey && this.options.shiftselect) {
-                // If Shift key is held, select
-                //  this element and all children, recursively
+                // This element and all children, recursively
                 emen2.db('rel.children', {names: name, recurse:-1}, function(children) {
                     children.push(name);
                     if (state) {
@@ -747,21 +770,17 @@
             $('a', root).click(function(e) {
                 e.preventDefault();
                 $(this).toggleClass('e2-browse-selected');
+                // var name = $(this).parent().attr('data-name');
+                // self.toggle_select(e, this, name);
             });
 
-            // Drag and drop helper funciton.
             $('a', root).draggable({
                 helper: function() {
                     var count = $('.e2-browse-selected', self.element).length;
-                    var ret = $('<div />')
-                        .addClass('ui-widget-header')
-                        .css('z-index', 500)
-                        .text('Moving '+count+' items')
-                    return ret
+                    return '<div class="ui-widget-header" style="z-index:500">Moving '+count+' items</div>';
                 }
             });
 
-            // Drop function; confirm before action.
             $('a', root).droppable({
                 activeClass: 'e2-browse-active',
                 hoverClass: 'e2-browse-hover',
@@ -775,6 +794,8 @@
                         removerels.push([parent, name]);
                         addrels.push([newparent, name]);
                     });
+
+                    // console.log(removerels, addrels);
                     self.confirm_relink(removerels, addrels);
                 }
             });
@@ -782,70 +803,59 @@
 
         confirm_relink: function(removerels, addrels) {
             var self = this;
-            
-            var dialog = $('<div />')
-                .attr('title', 'Confirm')
-                .text('This action will add or remove the following relationships:')
-                .dialog({
-                    resizable: false,
-                    draggable: false,
-                    modal: true,
-                    buttons: {
-                        "Confirm": function(e) {
-                            $('.ui-button-text', e.target).text("Saving...");
-                            self.relink(removerels, addrels);
-                        },
-                        Cancel: function() {
-                            $(this).dialog("close");
-                        }
-                    }
-                }); 
-                
-            $('<h4 />').text('Remove').appendTo(dialog)
-            var ulr = $('<ul />').addClass('e2l-nonlist').appendTo(dialog);
-            $.each(removerels, function() {
-                // emen2.caches['recnames'][this[0]]||this[0])
-                $('<li />')
-                    .text(this[0]+', '+this[1])
-                    .appendTo(ulr);
-            });
 
-            $('<h4 />').text('Add').appendTo(dialog)
-            var ula = $('<ul />').addClass('e2l-nonlist').appendTo(dialog);
+            var dialog = $('<div title="Confirm move">This action will add and remove the following relationships:</div>');
+            dialog.append('<h4>Remove</h4>');
+            var ulr = $('<ul class="e2l-nonlist" />');
+            $.each(removerels, function() {
+                ulr.append('<li>'+(emen2.caches['recnames'][this[0]]||this[0]) + ', ' + (emen2.caches['recnames'][this[1]]||this[1])+'</li>');
+            });
+            dialog.append(ulr);
+            dialog.append('<h4>Add</h4>');
+            var ula = $('<ul class="e2l-nonlist" />');
             $.each(addrels, function() {
-                // emen2.caches['recnames'][this[0]]||this[0])
-                $('<li />')
-                    .text(this[0]+', '+this[1])
-                    .appendTo(ula);
-            });    
+                ula.append('<li>'+(emen2.caches['recnames'][this[0]]||this[0]) + ', ' + (emen2.caches['recnames'][this[1]]||this[1])+'</li>');
+            });
+            dialog.append(ula);
+
+
+            dialog.dialog({
+                resizable: false,
+                draggable: false,
+                modal: true,
+                buttons: {
+                    "Confirm": function(e) {
+                        $('.ui-button-text', e.target).html("Saving...");
+                        self.relink(removerels, addrels);
+                    },
+                    Cancel: function() {
+                        $(this).dialog("close");
+                    }
+                }
+            });            
         },
         
         relink: function(removerels, addrels) {
-            // Remove any existing form
-            $('.e2-browse-relinkform', this.element).remove();
-
-            var form = $('<div />')
-                .addClass('e2-browse-relinkform')
-                .appendTo(this.element);
-
+            var form = $('<div class="e2-browse-relinkform"></div>');
             removerels.map(function(i) {
-                $('<input type="hidden" />')
-                    .attr('name', 'removerels.'+i[0])
-                    .val(i[1])
-                    .appendTo(form);
+                form.append('<input type="hidden" name="removerels.'+i[0]+'" value="'+i[1]+'" />');
             });
-
             addrels.map(function(i) {
-                $('<input type="hidden" />')
-                    .attr('name', 'addrels.'+i[0])
-                    .val(i[1])
-                    .appendTo(form);
+                form.append('<input type="hidden" name="addrels.'+i[0]+'" value="'+i[1]+'" />');
             });
-
+            $('.e2-browse-relinkform', this.element).remove();
+            this.element.append(form);
             this.element.submit();
-        } 
+        }
+        
     });
+    
+    
+    
+    
 })(jQuery);
+
+
 
 <%!
 public = True

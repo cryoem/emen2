@@ -12,7 +12,7 @@
 <h1>
     ${ctxt.title}
     <ul class="e2l-actions">
-        <li><a href="${ctxt.root}/records/edit/relationships/?root=${root}" class="e2-button">Edit relationships</a></li>
+        <li><a href="${ROOT}/records/edit/relationships/?root=${root}" class="e2-button">Edit relationships</a></li>
     </ul>
 </h1>
 

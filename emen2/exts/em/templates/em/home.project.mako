@@ -3,7 +3,7 @@ import jsonrpc.jsonutil
 import collections
 %>
 
-<%inherit file="/pages/home" />
+<%inherit file="/em/home" />
 <%namespace name="buttons" file="/buttons"  /> 
 
 <%block name="js_ready">
@@ -16,7 +16,10 @@ import collections
         height:200,
     }, $('#recent_activity'));
     plot.z.build_legend($("#e2l-sidebar-activity-users"));
+    
+    
     $('#e2l-sidebar-project-children').TabControl();
+
 </%block>
 
 <%block name="css_inline">
@@ -70,8 +73,8 @@ if project['permissions'][0] or project['permissions'][1] or set(project['permis
     <h1>
         Project details
         <ul class="e2l-actions">
-            <li><a data-name="${project.name}" class="e2-button" href="${ctxt.root}/record/${project.name}/">View full record</a></li>
-            <li><a data-name="${project.name}" class="e2-button e2-record-edit" href="${ctxt.root}/record/${project.name}/edit">${buttons.image('edit.png')} Edit</a></li>
+            <li><a data-name="${project.name}" class="e2-button" href="${ROOT}/record/${project.name}/">View full record</a></li>
+            <li><a data-name="${project.name}" class="e2-button e2-record-edit" href="${ROOT}/record/${project.name}/edit">${buttons.image('edit.png')} Edit</a></li>
         </ul>
     </h1>
     
@@ -105,7 +108,7 @@ if project['permissions'][0] or project['permissions'][1] or set(project['permis
                 <strong>Note:</strong> this will overwrite the permissions in all child records, including any subprojects.
         
                 <br />
-                <form action="${ctxt.root}/home/project/${project.name}/resetpermissions/" method="post">
+                <form action="${ROOT}/em/home/project/${project.name}/resetpermissions/" method="post">
                 <ul class="e2l-actions">
                     <li><input type="submit" value="Set permissions to match investigators" /></li>
                 </ul>        

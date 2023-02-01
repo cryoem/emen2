@@ -1,9 +1,9 @@
-# $Id: map.py,v 1.26 2013/05/07 07:22:05 irees Exp $
+# $Id: map.py,v 1.23 2012/10/18 23:34:23 irees Exp $
 from emen2.web.view import View
 import emen2.db.config
 
 
-def bfs(root, tree, recurse=1):
+def dfs(root, tree, recurse=1):
     maxrecurse = emen2.db.config.get('params.maxrecurse')
     def inner(stack, children, depth=0):
         if depth >= maxrecurse:
@@ -23,6 +23,8 @@ def bfs(root, tree, recurse=1):
 
 @View.register
 class Tree(View):
+
+
     @View.add_matcher(r'^/tree/(?P<keytype>\w+)/(?P<root>[^/]*)/(?P<mode>\w+)/$', name='embed')
     def embed(self, root=None, recurse=1, keytype="record", action=None, mode="children", rectype=None, expandable=True, collapse_rectype=None, collapsed=None, id='', link=None, showroot=True):
         self.template = '/pages/tree'
@@ -43,25 +45,26 @@ class Tree(View):
 
         # add 2 to recurse to get enough info to draw the next level
         if mode == "children":
-            tree = self.db.rel.rel([root], rel="children", recurse=recurse+2, keytype=keytype, tree=True)
+            tree = self.db.rel.tree(root, rel="children", recurse=recurse+2, keytype=keytype, rectype=rectype)
             # get one level of parents as well..
             parents = self.db.rel.parents(root, keytype=keytype)
         else:
-            tree = self.db.rel.rel([root], rel="parents", recurse=recurse+2, keytype=keytype, tree=True)
-        # if collapse_rectype:
-        #    collapsed |= self.db.rel.children(root, recurse=-1, rectype=collapse_rectype)
+            tree = self.db.rel.tree(root, rel="parents", recurse=recurse+2, keytype=keytype)
+        
+        if collapse_rectype:
+            collapsed |= self.db.rel.children(root, recurse=-1, rectype=collapse_rectype)
 
         # connect the root to "None" to simplify drawing..
         tree[None] = [root]
         
         # Get all the names we need to render
-        stack = bfs(root, tree, recurse=recurse)
+        stack = dfs(root, tree, recurse=recurse)
         stack.add(root)
         stack |= parents
 
         recnames = {}
         if keytype == "record":
-            recnames.update(self.db.view(stack))
+            recnames.update(self.db.record.render(stack))
         elif keytype == "paramdef":
             pds = self.db.paramdef.get(stack)
             for pd in pds:
@@ -86,4 +89,4 @@ class Tree(View):
         self.ctxt['showroot'] = showroot
 
 
-__version__ = "$Revision: 1.26 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.23 $".split(":")[1][:-1].strip()

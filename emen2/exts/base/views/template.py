@@ -1,4 +1,4 @@
-# $Id: template.py,v 1.16 2012/12/14 05:24:29 irees Exp $
+# $Id: template.py,v 1.15 2012/09/14 06:26:24 irees Exp $
 import itertools
 
 from emen2.web.view import View
@@ -27,11 +27,14 @@ class TemplateRender(View):
         if (self.db and self.db._getctx().checkadmin()) or getattr(makot.module, 'public', False):
             self.template = template
             self.headers = getattr(makot.module, 'headers', {})
+
         else:
-            self.ctxt['content'] = '<b>Error, private template</b>'
+            self.ctxt['content'] = '<b>Error, Private Template</b>'
+
+        # self.etag = '"%s"' % template.mtime
 
 
 
         
 
-__version__ = "$Revision: 1.16 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.15 $".split(":")[1][:-1].strip()

@@ -6,7 +6,7 @@ db = emen2.db.opendb(admin=True)
 with db:
     ctx = db._getctx()
     txn = db._gettxn()
-    for name, bin in db._db["binary"].iteritems(txn=txn):
+    for name, bin in db._db.dbenv["binary"].iteritems(txn=txn):
         bin.setContext(ctx)
         record = bin.get('record')
         creator = 'root'
@@ -28,7 +28,7 @@ with db:
             print 'Already had filesize:', bin.get('filesize')
         
         if bin.get('record'):
-            rec = db._db["record"]._get(record, txn=txn)
+            rec = db._db.dbenv["record"].get(record, txn=txn)
             creator = rec['creator']
             creationtime = rec['creationtime']
             if creator.startswith('http'):
@@ -41,4 +41,5 @@ with db:
             bin.__dict__['creationtime'] = creationtime
         
         print bin.name
+        # db._db.dbenv["binary"].put(bin.name, bin, txn=txn)
         

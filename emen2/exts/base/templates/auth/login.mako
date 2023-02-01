@@ -2,9 +2,9 @@
 <%inherit file="/page" />
 
 <%def name="login(redirect='')">
-    <form action="${ctxt.root}/auth/login/" method="post">
+    <form action="${ROOT}/auth/login/" method="post">
 
-        <input type="hidden" name="redirect" value="${redirect}" />
+        <input type="hidden" name="_redirect" value="${redirect}" />
         <table class="login">
             <tr>
                 <td>Email:</td>
@@ -16,7 +16,7 @@
             </tr>
             <tr>
                 <td></td>
-                <td><button type="submit" onclick="emen2.ui.buttonfeedback(this)">Login</button> <span class="e2l-small">(<a href="${ctxt.root}/auth/password/reset/">Forgot password?</a>)</span></td>
+                <td><button type="submit" onclick="emen2.ui.buttonfeedback(this)">Login</button> <span class="e2l-small">(<a href="${ROOT}/auth/password/reset/">Forgot password?</a>)</span></td>
             </tr>
         </table>
     </form>

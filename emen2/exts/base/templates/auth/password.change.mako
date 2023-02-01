@@ -3,7 +3,7 @@
 
 <h1>${ctxt.title}</h1>
 
-<form action="${ctxt.root}/auth/password/change/" method="post">
+<form action="${ROOT}/auth/password/change/" method="post">
 
     <input type="hidden" name="name" value="${name or ''}" />
 

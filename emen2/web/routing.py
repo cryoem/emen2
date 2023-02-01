@@ -1,4 +1,4 @@
-# $Id: routing.py,v 1.56 2013/03/21 06:18:38 irees Exp $
+# $Id: routing.py,v 1.53 2012/10/19 09:51:48 irees Exp $
 import re
 import sre_parse
 import urllib
@@ -19,50 +19,34 @@ from emen2.web import responsecodes
 from emen2.util import listops
 
 
-def resolve(name=None, path=None):
-    """Resolve a route using either a route name or path URI."""
-    return _Router.resolve(name=name, path=path)
+class IndexedListIterator(object):
+    def __init__(self, lis):
+        self.lis = tuple(lis)
 
+        # public
+        self.pos = 0
 
-def execute(_execute_name, db=None, *args, **kwargs):
-    """Find and execute a route by name.
-    The route name (e.g. 'Home/main') must be the first positional argument.
-    """
-    view, method = _Router.resolve(name=_execute_name)
-    view = view(db=db)
-    view.init()
-    method(view, *args, **kwargs)
-    return view
-
-
-def reverse(*args, **kwargs):
-    return _Router.reverse(*args, **kwargs)
-
-
-def add(*args, **kwargs):
-    pass
-
-
-def force_unicode(string):
-    result = string
-    if isinstance(result, unicode):
+    def next(self, delta = 1):
+        try:
+            result = self.lis[self.pos]
+            self.pos += delta
+            self.pos %= len(self.lis)
+        except IndexError:
+            result = None
         return result
-    elif hasattr(result, '__unicode__'):
-        return unicode(result)
-    else:
-        return unicode(result, 'utf-8', errors='replace')
+
+    def prev(self, delta = 1):
+        self.pos -= delta
+        return self.lis[self.pos]
+
+    def __getitem__(self, arg):
+        return self.lis[arg]
 
 
 
 ##### Routing Resource #####
 
 class Router(twisted.web.resource.Resource):
-    """Twisted Resource router.
-
-    This is a Twisted Resource with a modified getChild method that will
-    search for a View based on the request's path.
-    """
-    
     isLeaf = False
 
     # Find a resource or view
@@ -80,10 +64,10 @@ class Router(twisted.web.resource.Resource):
             path = '/'
         if path[-1] != "/":
             path = "%s/"%path
-        # request.path = path
+        request.path = path
 
         try:
-            view, method = resolve(path=path)
+            view, method = resolve(path=request.path)
         except:
             return self
 
@@ -103,19 +87,64 @@ class Router(twisted.web.resource.Resource):
 
     # Resource was not found
     def render(self, request):
-        return unicode(
-            emen2.web.routing.execute(
-                'Error/resp', 
-                db=None,
-                error=responsecodes.NotFoundError(request.uri), 
-                location=request.uri)
-            ).encode('utf-8')
-        
+        try:
+            return unicode(
+                emen2.web.routing.execute('Error/resp', db=None, error=responsecodes.NotFoundError(request.uri), location=request.uri)
+                ).encode('utf-8')
+        except:
+            return 'Not found'
+            # raise responsecodes.NotFoundError(request.uri)
 
+
+
+
+def resolve(name=None, path=None):
+    """Resolve a route using either a route name or path URI.
+    This method returns a callable, and any keywords parsed from the path URI.
+    Bind the DB handle by passing it to the callable. This will produce a second
+    callable that will instantiate the View and run the View's method.
+
+    Example:
+
+    # Get the callback
+    cb, kwargs = routing.resolve(path='/record/1')
+
+    # Update the keyword arguments
+    kwargs['blah'] = True
+
+    # Create the view and run the routed method
+    view = cb(db=db)(**kwargs)
+
+    # Render the View
+    print view
+    """
+    return _Router.resolve(name=name, path=path)
+
+
+
+def execute(_execute_name, db=None, *args, **kwargs):
+    """Find and execute a route by name.
+    The route name (e.g. 'Home/main') must be the first positional argument.
+    """
+    view, method = _Router.resolve(name=_execute_name)
+    view = view(db=db)
+    view.init()
+    method(view, *args, **kwargs)
+    return view
+
+
+
+def reverse(*args, **kwargs):
+    return _Router.reverse(*args, **kwargs)
+
+
+def add(*args, **kwargs):
+    pass
 
 
 class Route(object):
     """Private"""
+
     def __init__(self, name, matcher, cls=None, method=None, write=False):
         self.name = name
         if not hasattr(matcher, 'match'):
@@ -137,6 +166,7 @@ class Route(object):
             for k,v in match.groupdict().items():
                 result[urllib.unquote_plus(k)] = urllib.unquote_plus(v)
         return result
+
 
 
 
@@ -198,18 +228,7 @@ class _Router(emen2.util.registry.Registry):
                     f = route.method
                     f.write = getattr(route, 'write', False)
                     return route.cls, f
-        
-        # Try to find a public template.
-        try:
-            template = path[:-1]
-            makot = emen2.db.config.templates.get_template(template)
-            route = cls.registry.get('TemplateRender/main')
-            f = partial(route.method, template=template)
-            return route.cls, f
-        except:
-            pass
-            
-        # Raise a 404.
+
         raise responsecodes.NotFoundError(path or name)
 
 
@@ -284,7 +303,7 @@ class MatchChecker(object):
     "Class used in reverse lookup."
     def __init__(self, args, kwargs):
         # Don't forget to quote the values.
-        self.args = _IndexedListIterator( (urllib.quote_plus(x) for x in args) )
+        self.args = IndexedListIterator( (urllib.quote_plus(x) for x in args) )
         self.kwargs = dict(  ( x, urllib.quote_plus(y) ) for x, y in kwargs.items()  )
         self.used_kwargs = set([])
 
@@ -319,28 +338,14 @@ class MatchChecker(object):
         return force_unicode(value)
 
 
-class _IndexedListIterator(object):
-    def __init__(self, lis):
-        self.lis = tuple(lis)
-
-        # public
-        self.pos = 0
-
-    def next(self, delta = 1):
-        try:
-            result = self.lis[self.pos]
-            self.pos += delta
-            self.pos %= len(self.lis)
-        except IndexError:
-            result = None
+def force_unicode(string):
+    result = string
+    if isinstance(result, unicode):
         return result
+    elif hasattr(result, '__unicode__'):
+        return unicode(result)
+    else:
+        return unicode(result, 'utf-8', errors='replace')
 
-    def prev(self, delta = 1):
-        self.pos -= delta
-        return self.lis[self.pos]
 
-    def __getitem__(self, arg):
-        return self.lis[arg]
-        
-
-__version__ = "$Revision: 1.56 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.53 $".split(":")[1][:-1].strip()

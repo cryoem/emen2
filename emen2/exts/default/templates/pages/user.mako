@@ -76,63 +76,65 @@
                     <td>Last Name:</td>
                     <td><input name="${prefix}name_last" type="text" value="${userrec.get('name_last','')}" required /></td>
                 </tr>
-
+                <tr>
+                    <td>Degrees:</td>
+                    <td><input name="${prefix}academic_degree" type="text" value="${userrec.get('academic_degree','')}" required /></td>
+                </tr>
+                <tr>
+                    <td>Institution:</td>
+                    <td><input name="${prefix}institution" type="text" value="${userrec.get('institution','')}" required /></td>
+                </tr>
+                <tr>
+                    <td>Department:</td>
+                    <td><input name="${prefix}department" type="text" value="${userrec.get('department','')}" required /></td>
+                </tr>
+                <tr>
+                    <td>Street Address:</td>
+                    <td><input name="${prefix}address_street" type="text" value="${userrec.get('address_street','')}" required /></td>
+                </tr>
+                <tr>
+                    <td>City:</td>
+                    <td><input name="${prefix}address_city" type="text" value="${userrec.get('address_city','')}" required /></td>
+                </tr>
+                <tr>
+                    <td>State:</td>
+                    <td><input name="${prefix}address_state" type="text" value="${userrec.get('address_state','')}" required /></td>
+                </tr>
+                <tr>
+                    <td>Zipcode:</td>
+                    <td><input name="${prefix}address_zipcode" type="text" value="${userrec.get('address_zipcode','')}" required /></td>
+                </tr>
+                <tr>
+                    <td>Country:</td>
+                    <td>            
+                       <select name="${prefix}country" required />
+                            ${forms.countries()}
+                        </select>
+                        <script type="text/javascript">
+                            var country = ${userrec.get('country','United States') | n,jsonencode};
+                            $('select[name=userrec\\.country]').val(country);
+                        </script>
+                    </td>
+                </tr>
                 <tr>
                     <td>Phone:</td>
-                    <td><input name="${prefix}phone" type="text" value="${userrec.get('phone','')}"></td>
+                    <td><input name="${prefix}phone_voice" type="text" value="${userrec.get('phone_voice','')}"></td>
+                </tr>
+                <tr>
+                    <td>Fax:</td>
+                    <td><input name="${prefix}phone_fax" type="text" value="${userrec.get('phone_fax','')}"></td>
                 </tr>
                 <tr>
                     <td>Web page:</td>
                     <td><input name="${prefix}website" type="text" value="${userrec.get('website','')}"></td>
                 </tr>
-
-                ## <tr>
-                ##    <td>Fax:</td>
-                ##    <td><input name="${prefix}phone_fax" type="text" value="${userrec.get('phone_fax','')}"></td>
-                ## </tr>
-                ## <tr>
-                ##     <td>Institution:</td>
-                ##     <td><input name="${prefix}institution" type="text" value="${userrec.get('institution','')}" required /></td>
-                ## </tr>
-                ## <tr>
-                ##     <td>Department:</td>
-                ##     <td><input name="${prefix}department" type="text" value="${userrec.get('department','')}" required /></td>
-                ## </tr>
-                ## <tr>
-                ##     <td>Street Address:</td>
-                ##     <td><input name="${prefix}address_street" type="text" value="${userrec.get('address_street','')}" required /></td>
-                ## </tr>
-                ## <tr>
-                ##     <td>City:</td>
-                ##     <td><input name="${prefix}address_city" type="text" value="${userrec.get('address_city','')}" required /></td>
-                ## </tr>
-                ## <tr>
-                ##     <td>State:</td>
-                ##     <td><input name="${prefix}address_state" type="text" value="${userrec.get('address_state','')}" required /></td>
-                ## </tr>
-                ## <tr>
-                ##     <td>Zipcode:</td>
-                ##     <td><input name="${prefix}address_zipcode" type="text" value="${userrec.get('address_zipcode','')}" required /></td>
-                ## </tr>
-                ## <tr>
-                ##     <td>Country:</td>
-                ##     <td>            
-                ##         <select name="${prefix}country" required />
-                ##             ${forms.countries()}
-                ##         </select>
-                ##         <script type="text/javascript">
-                ##             var country = ${userrec.get('country','United States') | n,jsonencode};
-                ##             $('select[name=userrec\\.country]').val(country);
-                ##         </script>
-                ##     </td>
-                ## </tr>            
             </tbody>
         </table>
 
     % else:
     
         % if user.userrec.get('person_photo'):
-            <% pf_url = ctxt.root + "/download/" + user.userrec.get('person_photo') + "/user.jpg" %>
+            <% pf_url = ROOT + "/download/" + user.userrec.get('person_photo') + "/user.jpg" %>
             <a class="e2l-float-right" href="${pf_url}"><img src="${pf_url}?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" /></a>
         % endif
     

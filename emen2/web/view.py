@@ -1,4 +1,12 @@
-# $Id: view.py,v 1.146 2013/01/04 20:52:22 irees Exp $
+# $Id: view.py,v 1.145 2012/10/19 09:51:48 irees Exp $
+'''
+Module contents:
+
+I. Views
+    - class :py:class:`TemplateView`
+    - class :py:class:`View`
+'''
+
 import sys
 import os
 import time
@@ -17,10 +25,7 @@ import emen2.db.log
 ##### I. Views #####
 
 class TemplateContext(collections.MutableMapping):
-    '''Template context.
-    
-    This is a dict-like object that will be passed into the template renderer.
-    '''
+    '''Template Context'''
 
     def __init__(self, d=None):
         self.__dict = {}
@@ -29,16 +34,9 @@ class TemplateContext(collections.MutableMapping):
         
         self.notify = []
         self.errors = []
-        
-        # Page title and template
         self.title = 'No title'
         self.template = '/simple'
-
-        # Configuration settings
-        self.root = emen2.db.config.get('web.root')
-        self['TITLE'] = emen2.db.config.get('customization.title')
         self.version = emen2.__version__
-
 
     def __getitem__(self, n):
         return self.__dict[n]
@@ -98,12 +96,29 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
         lambda self: self.ctxt.template,
         lambda self, value: setattr(self.ctxt, "template", value))
 
-    def init(self, *arrgghs, **blarrgghs):
-        # Template context
+    def __init__(self, db=None, *args, **blargh):
+        super(TemplateView, self).__init__()
+
+        # Database connection
+        self.db = db
+
+        # Template Context
+        # Init context with headers, errors, etc.
+        # Then update with any extra arguments specified.
         self.ctxt = TemplateContext()
+        self.ctxt.update(dict(
+            ROOT = emen2.db.config.get('web.root'),
+            TITLE = emen2.db.config.get('customization.title'),
+            LOGO = emen2.db.config.get('customization.logo'),
+            BOOKMARKS = emen2.db.config.get('bookmarks.bookmarks')
+        ))
         
         # ETags
         self.etag = None
+
+    def init(self, *arrgghs, **blarrgghs):
+        pass
+
 
     #### Output methods #####
 
@@ -116,7 +131,6 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
             self.ctxt.notify.append(msg)
 
     def simple(self, title=None, content=None):
-        '''Set the output to a simple message.'''
         self.template = '/simple'
         self.title = title
         self.ctxt['content'] = content
@@ -128,8 +142,10 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
         self.ctxt['errmsg'] = msg
 
     def redirect(self, redirect=None, title=None, content='', auto=True, showlink=True):
-        '''Redirect by setting Location header and using the redirect template.'''
+        '''Redirect by setting Location header and
+        using the redirect template'''
         content = content or ''
+        # or """<p>Please <a href="%s">click here</a> if the page does not automatically redirect.</p>"""%(redirect)
         self.template = '/redirect'
         self.title = title or self.title
         self.ctxt['content'] = content        
@@ -140,14 +156,14 @@ class TemplateView(emen2.web.resource.EMEN2Resource):
             self._redirect = redirect.replace('//','/')
 
     def get_data(self):
-        '''Render the template.'''
+        '''Render the template'''
         return emen2.db.config.templates.render_template(self.ctxt.template, self.ctxt)
 
 
 
 
 class View(TemplateView):
-    '''A View with a database connection.'''
+    '''A View that checks some DB specific details'''
 
     def init(self, *args, **kwargs):
         '''Run this before the requested view method.'''
@@ -168,4 +184,4 @@ class View(TemplateView):
         ))
 
 
-__version__ = "$Revision: 1.146 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.145 $".split(":")[1][:-1].strip()

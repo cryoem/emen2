@@ -101,6 +101,8 @@ a:hover,
 .e2l-unselect,
 .e2-infobox h4
 {
+    -webkit-user-select: none;
+    -moz-user-select: none;    
 }
 
 /* I often show actions along 
@@ -213,10 +215,6 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 }
 
 
-.e2l-underline {
-    border-bottom:solid 1px #ccc;
-}
-
 
 /***** These should go in style.css *****/
 
@@ -291,9 +289,17 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 .e2-tab > ul > li img {
     vertical-align:middle;
 }
+.e2-tab > ul > li > a,
+.e2-tab > ul > li > span
+{
+    display:inline-block;
+    padding:5px;
+}
 .e2-tab > div {
     display:none;
     z-index: 1000;
+}
+.e2-tab > li.e2-tab-active {    
 }
 .e2-tab > div.e2-tab-active {
     display:block;
@@ -354,15 +360,13 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     border-bottom: dotted 1px <%self:NEUTRAL />;
     width: 50px;
 }
-.e2-edit input[type=text] {
-	width:400px;
-}
-.e2-edit textarea {
-	width:100%;
-	height:200px;
-}
-
 /* Editable items */
+.e2-edit-widget {
+    display:inline-block;
+}
+.e2-edit-containers {
+    list-style: none;
+}
 .e2l-help {
     display:none;
     margin:20px;
@@ -420,28 +424,29 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
 
 /***** e2-infobox: Display Infobox *****/
 .e2-infobox {
-	clear:both;
-	padding:5px;
-	padding-left:0px;
-	padding-right:0px;
+    float:left;
+    position:relative;
+    width:280px;
+    margin-right:50px;
+    padding:5px;
+    padding-left:0px;
+    padding-right:0px;
+    border-bottom:solid 1px #ddd;
 }
-.e2-infobox > h4 {
-	border:none;
-	margin:0px;
-    margin-left:35px;
-	padding:0px;
+.e2-infobox h4 {
+    margin-top: 0px;
+    margin-bottom: 5px;
     font-weight:normal;
     font-size:12pt;
 }
-.e2-infobox > p {
-	font-size:9pt;
+.e2-infobox > div {
     margin:0px;
-    margin-left:35px;
-	padding:0px;
+    margin-left: 50px;
 }
-.e2-infobox > input {
+.e2-infobox-input {
     float: left;
-	margin-top:8px;
+    margin:10px;
+    margin-left:0px;
 }
 .e2-infobox img.e2l-thumbnail {
     float: left;
@@ -449,6 +454,9 @@ table.e2l-shaded tr.e2l-shaded-indent td:first-child {
     width: 32px;
     margin-right: 4px;
 }
+.e2-infobox-hover {
+}
+
 .e2-infobox-selected {
     background: <%self:ADDED />;
 }
@@ -562,31 +570,31 @@ textarea.e2l-fw {
 
 /* Backgrounds */
 .e2-tree.e2-tree-children li {
-    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.F.children.png') repeat-y;    
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.F.children.png') repeat-y;    
 }
 .e2-tree.e2-tree-parents li {
-    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.F.parents.png') repeat-y;    
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.F.parents.png') repeat-y;    
     background-position:top right;    
 }
 .e2-tree.e2-tree-children li:first-child {
-    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.T.children.png') repeat-y;    
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.T.children.png') repeat-y;    
 }
 .e2-tree.e2-tree-parents li:first-child {
-    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.T.parents.png') repeat-y;    
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.T.parents.png') repeat-y;    
     background-position:top right;
 }
 .e2-tree.e2-tree-children li:last-child {
-    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.L.children.png') no-repeat;
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.L.children.png') no-repeat;
 }
 .e2-tree.e2-tree-parents li:last-child {
-    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.L.parents.png') no-repeat;
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.L.parents.png') no-repeat;
     background-position:top right;
 }
 .e2-tree.e2-tree-children ul li:only-child {
-    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.-.children.png') no-repeat;
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.-.children.png') no-repeat;
 }
 .e2-tree.e2-tree-parents ul li:only-child {
-    background:url('${ctxt.root}/static-${ctxt.version}/images/bg.-.parents.png') no-repeat;
+    background:url('${ROOT}/static-${ctxt.version}/images/bg.-.parents.png') no-repeat;
     background-position:top right;
 }
 /* why */
@@ -901,7 +909,6 @@ table p {
 }
 
 
- 
 
 
 <%!

@@ -4,6 +4,4 @@
     <h1>${ctxt.title}</h1>
 % endif
 
-<p>
 ${content or ''}
-</p>

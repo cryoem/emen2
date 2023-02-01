@@ -29,7 +29,7 @@
     when your account is approved.
 </p>
 
-<form action="${ctxt.root}/users/new/" method="post">
+<form action="${ROOT}/users/new/" method="post">
 
     <%buttons:singlepage label='Account Details'>
         ${user_util.newuser(user=user)}

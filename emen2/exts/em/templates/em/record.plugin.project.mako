@@ -39,7 +39,7 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
 
 <ul>
 % for subproject in subprojects:
-    <li><a href="${ctxt.root}/record/${subproject}/">${recnames.get(subproject, subproject)}</a></li>
+    <li><a href="${ROOT}/record/${subproject}/">${recnames.get(subproject, subproject)}</a></li>
 % endfor
 </ul>
 
@@ -58,7 +58,7 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
                     </strong>
                         <ul class="e2l-actions">
                             <li><span class="e2-button e2-record-new" data-rectype="${rectype}" data-parent="${name}">${buttons.image('edit.png')} New</span></li>
-                            <li><a class="e2-button" href="${ctxt.root}/query/children.is.${name}*/rectype.is.${rectype}/">View all</a></li>
+                            <li><a class="e2-button" href="${ROOT}/query/children.is.${name}*/rectype.is.${rectype}/">View all</a></li>
                         </ul>
 
                 </td>
@@ -67,10 +67,10 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
             % for item in sorted(items & recent, reverse=True):
                 <tr class="e2l-shaded-indent">
                     <td>
-                        <a href="${ctxt.root}/record/${item}/">${recnames.get(item, item)}</a>
+                        <a href="${ROOT}/record/${item}/">${recnames.get(item, item)}</a>
                     </td>
                     <td>
-                        <a href="${ctxt.root}/record/${item}/">${rendered_thumb.get(item,'')}</a>
+                        <a href="${ROOT}/record/${item}/">${rendered_thumb.get(item,'')}</a>
                     </td>
                 </tr>
             % endfor
@@ -78,7 +78,7 @@ recorddefs_d = emen2.util.listops.dictbykey(recorddefs, 'name')
             % if len(items) > 3:
                 <tr class="e2l-shaded-indent">
                     <td colspan="2">
-                        <a href="${ctxt.root}/query/children.is.${name}*/rectype.is.${rectype}/">... more</a>
+                        <a href="${ROOT}/query/children.is.${name}*/rectype.is.${rectype}/">... more</a>
                     </td>
                 </tr>
             % endif

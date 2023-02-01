@@ -13,7 +13,7 @@
 <h1>
     ${ctxt.title}
     <ul class="e2l-actions">
-        <li><a href="${ctxt.root}/records/?root=${root}" class="e2-button">Done editing</a></li>
+        <li><a href="${ROOT}/records/?root=${root}" class="e2-button">Done editing</a></li>
     </ul>    
 </h1>
 
@@ -34,5 +34,5 @@
 
 <form id="sitemaptest" method="post" action="">
     <input type="hidden" name="root" value="${root}" />
-    ${childmap | n,unicode}
+    ${childmap}
 </form>

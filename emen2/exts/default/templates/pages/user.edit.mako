@@ -8,7 +8,7 @@
 
     <%buttons:singlepage label='Profile'>
 
-        <form method="post" enctype="multipart/form-data" action="${ctxt.root}/record/${user.record}/edit/">
+        <form method="post" enctype="multipart/form-data" action="${ROOT}/record/${user.record}/edit/">
 
             <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='profile')}" />
         
@@ -21,7 +21,7 @@
                         <td>
 
                             % if user.userrec.get('person_photo'):
-                                <% pf_url = ctxt.root + "/download/" + user.userrec.get('person_photo') + "/user.jpg" %>
+                                <% pf_url = ROOT + "/download/" + user.userrec.get('person_photo') + "/user.jpg" %>
                                 <a href="${pf_url}"><img src="${pf_url}?size=small" class="e2l-thumbnail-mainprofile" alt="profile photo" /></a>
                                 <input type="hidden" name="person_photo" value="${user.userrec.get('person_photo')}" />
                             % else:
@@ -48,7 +48,7 @@
 
 
 <%buttons:singlepage label='Change email'>
-    <form method="post" action="${ctxt.root}/auth/email/change/">
+    <form method="post" action="${ROOT}/auth/email/change/">
 
         ## <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='email')}" />
         <input type="hidden" name="name" value="${user.name or ''}" />
@@ -74,7 +74,7 @@
 
 
 <%buttons:singlepage label='Change password'>
-    <form action="${ctxt.root}/auth/password/change/" method="post">
+    <form action="${ROOT}/auth/password/change/" method="post">
 
         ## <input type="hidden" name="_redirect" value="${ctxt.reverse('User/edit', name=user.name, saved='password')}" />
         <input type="hidden" name="name" value="${user.name or ''}" />

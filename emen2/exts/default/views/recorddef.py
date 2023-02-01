@@ -1,4 +1,4 @@
-# $Id: recorddef.py,v 1.30 2013/05/21 16:54:18 irees Exp $
+# $Id: recorddef.py,v 1.27 2012/10/18 23:34:23 irees Exp $
 import collections
 
 from emen2.web.view import View
@@ -20,7 +20,7 @@ class RecordDef(View):
                     views[k] = v
             kwargs['views'] = views
             if kwargs.get('private') == None: kwargs['private'] = False
-            recorddef = self.db.recorddef.new(mainview=mainview, name=name)
+            recorddef = self.db.recorddef.new(mainview, name=name)
             recorddef.update(kwargs)
             rd = self.db.recorddef.put(recorddef)
             if rd:
@@ -70,17 +70,11 @@ class RecordDef(View):
 
         parentmap = self.routing.execute('Tree/embed', db=self.db, keytype='recorddef', root=self.recorddef.name, mode='parents', recurse=3)
 
-        users = set()
-        users.add(self.recorddef.creator)
-        users.add(self.recorddef.modifyuser)
-        displaynames = dict((i.name, i.displayname) for i in self.db.user.get(users))
-
         self.ctxt.update(dict(
             parentmap = parentmap,
             editable = self.recorddef.writable(),
             create = self.db.auth.check.create(),
             recorddef = self.recorddef,
-            displaynames = displaynames,
             edit = False,
             new = False,
         ))
@@ -107,7 +101,7 @@ class RecordDefs(View):
 
     @View.add_matcher(r'^/recorddefs/$')
     def main(self, action=None, q=None):
-        recorddefnames = self.db.recorddef.filter(None)
+        recorddefnames = self.db.recorddef.names()
         
         if action == None or action not in ["tree", "name", "count"]:
             action = "tree"
@@ -152,4 +146,4 @@ class RecordDefs(View):
 
 
 
-__version__ = "$Revision: 1.30 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.27 $".split(":")[1][:-1].strip()

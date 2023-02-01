@@ -10,6 +10,15 @@
     ${buttons.tocache(newrec)}
     ${buttons.tocache(recdef)}
     
+    // Save Record
+    $('#e2-edit').MultiEditControl({
+        show: true,
+        permissions: $('#e2-permissions')
+    });
+
+    // var tab = $('#e2-tab-editbar');
+    // tab.TabControl({});
+
     // Permissions editor
     // tab.TabControl('setcb','permissions', function(page){
     //    // console.log('perm');
@@ -18,7 +27,8 @@
     //        show: true,
     //        edit: true
     //    });
-    // });    
+    // });
+    
 </%block>
 
 
@@ -38,7 +48,7 @@
 
 ## Main rendered record
 
-<form id="e2-edit" data-name="None" method="post" action="${ctxt.root}/record/${rec.name}/new/${newrec.rectype}/" enctype="multipart/form-data">
+<form id="e2-edit" data-name="None" method="post" action="${ROOT}/record/${rec.name}/new/${newrec.rectype}/" enctype="multipart/form-data">
     <div id="rendered" class="e2-view" data-viewname="${viewname}">
         ${rendered}
     </div>

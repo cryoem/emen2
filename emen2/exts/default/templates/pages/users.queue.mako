@@ -4,8 +4,9 @@
 
 <%block name="js_ready">
     ${parent.js_ready()}
+    
     $('input[name=all]').click(function(){
-        $('input[value='+$.escape((this).val())+']').attr('checked', true);
+        $('input[value='+$(this).val()+']').attr('checked', true);
     });
 </%block>
 
@@ -44,7 +45,7 @@
         % for user in queue:
             <tr>
                 <td><input type="radio" name="actions.${user.name}" value="approve" ${forms.ifchecked(actions.get(user.name)=='approve')} /></td>
-                <td><input type="radio" name="actions.${user.name}" value="reject" ${forms.ifchecked(actions.get(user.name)=='reject')} /></td>
+                <td><input type="radio" name="actions.${user.name}" value="reject" checked="true" ${forms.ifchecked(actions.get(user.name)=='reject')} /></td>
 
                 <td>                
                     <ul class="e2l-nonlist">    
@@ -75,7 +76,7 @@
                         <li>${k}: ${v}</li>
                     % endfor
                         <li>
-                            Comments: ${user.signupinfo.get('comments', '')}
+                            Comments: ${user.signupinfo.get('comments', '')[:400]}
                         </li>
                     </ul>
                 </td>

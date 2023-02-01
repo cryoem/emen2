@@ -1,8 +1,9 @@
-# $Id: listops.py,v 1.43 2013/02/05 05:13:23 irees Exp $
+# $Id: listops.py,v 1.42 2012/07/28 06:31:18 irees Exp $
 import collections
 import itertools
 from UserDict import DictMixin
 from functools import partial
+import emen2.db.datatypes
 
 
 
@@ -308,4 +309,4 @@ def run_tests():
 
 if __name__ == '__main__':
     run_tests()
-__version__ = "$Revision: 1.43 $".split(":")[1][:-1].strip()
+__version__ = "$Revision: 1.42 $".split(":")[1][:-1].strip()
