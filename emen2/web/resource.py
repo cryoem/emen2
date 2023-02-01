@@ -302,13 +302,13 @@ class EMEN2Resource(RoutedResource, FixedArgsResource):
         # HTTP ETags (cache control)
         self.etag = None
 
-    def __unicode__(self):
+    def __str__(self):
         '''Render the resource into a string that can be sent to the client'''
         return str(self.get_data())
 
-    def __str__(self):
-        '''Render the resource, encoded as UTF-8'''
-        return self.get_data().encode('utf-8', 'replace')
+    # def __str__(self):
+    #     '''Render the resource, encoded as UTF-8'''
+    #     return self.get_data().encode('utf-8', 'replace')
 
 
     ##### Headers #####

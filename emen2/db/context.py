@@ -126,6 +126,10 @@ class Context(object):
 
 
 class SpecialRootContext(Context):
+    def __init__(self, *args, **kwargs):
+        Context.__init__(self, *args, **kwargs)
+        self.refresh()
+
     def refresh(self, user=None, grouplevels=None, host=None, username=None, db=None, txn=None):
         self.name = None
         self.setdb(db=db)
@@ -138,6 +142,10 @@ class SpecialRootContext(Context):
 
 
 class AnonymousContext(Context):
+    def __init__(self, *args, **kwargs):
+        Context.__init__(self, *args, **kwargs)
+        self.refresh()
+
     def refresh(self, user=None, grouplevels=None, host=None, db=None, txn=None):
         self.name = None
         self.setdb(db=db)

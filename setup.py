@@ -14,13 +14,13 @@ if __name__ == "__main__":
         ]
 
     package_data = {
-        'emen2.db': ['config.core.json', 'skeleton.json', 'base.json', 'bulk.c'],
+        'emen2.db': ['config.base.json', 'skeleton.json', 'base.json', 'bulk.c'],
         'emen2.web': ['static/*.*', 'static/*/*.*', 'static/*/*/*.*', 'static/*/*/*/*.*']
     }
 
     scripts = ['scripts/emen2ctl']
 
-    exts = ['base', 'default', 'em', 'site', 'publicdata']
+    exts = ['base', 'default', 'em', 'site', 'publicdata', 'ncmi']
 
     for ext in exts:
         packages.append('emen2.exts.%s'%ext)
@@ -31,8 +31,8 @@ if __name__ == "__main__":
         name='emen2',
         version=emen2.__version__,
         description='EMEN2: An extesible electronic lab notebook and database.',
-        author='Ian Rees',
-        author_email='ian.rees@bcm.edu',
+        author='Ian Rees/Steve Ludtke',
+        author_email='sludtke@bcm.edu',
         url='http://blake.grid.bcm.edu/emanwiki/EMEN2/',
         packages=packages,
         package_data=package_data,

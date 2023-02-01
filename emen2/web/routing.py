@@ -21,6 +21,9 @@ from emen2.util import listops
 
 def resolve(name=None, path=None):
     """Resolve a route using either a route name or path URI."""
+    if isinstance(path,bytes) : path=path.decode()
+    if isinstance(name,bytes) : name=name.decode()
+
     return _Router.resolve(name=name, path=path)
 
 
@@ -47,8 +50,10 @@ def force_unicode(string):
     result = string
     if isinstance(result, str):
         return result
-    elif hasattr(result, '__unicode__'):
-        return str(result)
+    elif isinstance(result,bytes):
+        return result.decode()
+    # elif hasattr(result, '__unicode__'):
+    #     return str(result)
     else:
         return str(result, 'utf-8', errors='replace')
 
@@ -67,6 +72,7 @@ class Router(twisted.web.resource.Resource):
 
     # Find a resource or view
     def getChildWithDefault(self, path, request):
+        if isinstance(path,bytes) : path=path.decode()
         d = request.notifyFinish()
         d.addCallback(self.logrequest, request, t=time.time())
 
@@ -76,6 +82,7 @@ class Router(twisted.web.resource.Resource):
         # Add a final slash.
         # Most of the view matchers expect this.
         path = request.path
+        if isinstance(path,bytes) : path=path.decode()
         if not path:
             path = '/'
         if path[-1] != "/":
@@ -103,16 +110,8 @@ class Router(twisted.web.resource.Resource):
 
     # Resource was not found
     def render(self, request):
-        return str(
-            emen2.web.routing.execute(
-                'Error/resp', 
-                db=None,
-                error=responsecodes.NotFoundError(request.uri), 
-                location=request.uri)
-            ).encode('utf-8')
-        
-
-
+        return(str(emen2.web.routing.execute('Error/resp', db=None,error=responsecodes.NotFoundError(request.uri.decode()), location=request.uri.decode())).encode('utf-8'))
+#        return str(emen2.web.routing.execute('Error/resp', db=None,error=responsecodes.NotFoundError(request.uri), location=request.uri)).encode('utf-8')
 
 class Route(object):
     """Private"""
@@ -174,6 +173,13 @@ class _Router(emen2.util.registry.Registry):
         Returns (class, method) of the matching route.
         Keywords found in the match will be bound to the method.
         """
+
+        if isinstance(path,bytes) : path=path.decode()
+        if isinstance(name,bytes) : name=name.decode()
+
+#        print("### ",type(path),path,name,[r.name for r in cls.registry.values()])
+        # import traceback
+        # traceback.print_stack(limit=5)
 
         if (not path and not name) or (path and name):
             raise ValueError("You must specify either a path or a name")

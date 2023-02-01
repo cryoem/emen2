@@ -326,6 +326,8 @@ class DB(object):
         if not context:
             raise SessionError("Session expired")
 
+#        print("Context ",ctxid,host,context.user,context.username,context.groups,context.grouplevels)
+
         # Fetch group memberships.
         grouplevels = {}
         if context.username != 'anonymous':

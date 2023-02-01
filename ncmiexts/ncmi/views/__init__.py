@@ -1,1 +1,1 @@
-import ncmiweb
+from . import ncmiweb

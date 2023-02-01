@@ -74,7 +74,7 @@ class Hier(collections.MutableMapping):
         try:
             result = object.__getattribute__(self, name)
         except AttributeError:
-            if name.startswith('_'): raise
+            if name.startswith('_'): raise Exception(f"No attribute {name}")
             else:
                 result = self.getattr(name, default=_Null, prefix=self._name)
                 if isinstance(result, self.__class__):
@@ -84,7 +84,8 @@ class Hier(collections.MutableMapping):
             if self._create:
                 self.setattr(name, {})
             else:
-                raise
+#                print(self.hier)
+                raise Exception(f"No attribute '{name}'")
         return result
 
     def __setattr__(self, name, value):
@@ -547,6 +548,7 @@ class Watch(object):
         return self.get()
 
     def get(self):
+#        print("GT: ",self.ns,self.name,self.default)
         result = getattr(self.ns, self.name[0], self.default)
         for n in self.name[1:]:
             result = getattr(result, n, self.default)

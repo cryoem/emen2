@@ -178,6 +178,7 @@ class Config(object):
         '''Load a single configuration file
 
         :param fn: the filename of the configuration file'''
+        print("LOAD CONFIG: ",fn)
         self.globalns.from_file(fn)
 
     def load_data(self, *args, **data):

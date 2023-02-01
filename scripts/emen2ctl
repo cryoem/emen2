@@ -29,8 +29,8 @@ fi
 
 
 pidfile=$EMEN2DBHOME/emen2.pid
-EMAN2DIR=${HOME}/EMAN2
-PATH=${EMAN2DIR}/Python/bin:${EMAN2DIR}/usr/bin:/bin:/usr/sbin:/sbin:$PATH
+#EMAN2DIR=${HOME}/EMAN2
+#PATH=${EMAN2DIR}/Python/bin:${EMAN2DIR}/usr/bin:/bin:/usr/sbin:/sbin:$PATH
 # TWISTD=`which twistd`
 
 case $COMMAND in

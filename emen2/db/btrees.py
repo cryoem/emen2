@@ -12,7 +12,7 @@ import pickle as pickle
 
 # Berkeley DB
 # Note: the 'bsddb' module is not sufficient.
-import bsddb3
+import berkeleydb
 
 # EMEN2 imports
 import emen2.db.config
@@ -71,7 +71,7 @@ class EMEN2DBEnv(object):
         
         # Database environment directory
         self.path = path
-        self.snapshot = snapshot or (not emen2.db.config.get('params.snapshot'))
+        self.snapshot = snapshot or emen2.db.config.get('bdb.snapshot') # seems like this was messed up previously?
         self.cachesize = emen2.db.config.get('bdb.cachesize') * 1024 * 1024
 
         # Make sure the data and journal directories exists.
@@ -142,29 +142,31 @@ class EMEN2DBEnv(object):
     def open(self):
         """Open the Database Environment."""
         emen2.db.log.info("BDB: Opening database environment: %s"%self.path)
-        dbenv = bsddb3.db.DBEnv()
+        dbenv = berkeleydb.db.DBEnv()
 
-        if self.snapshot:
-            dbenv.set_flags(bsddb3.db.DB_MULTIVERSION, 1)
+
         
-        txncount = (self.cachesize / 4096) * 2
+        txncount = (self.cachesize // 4096) * 2
         if txncount > 1024*128:
             txncount = 1024*128
             
-        dbenv.set_cachesize(0, self.cachesize)
+        dbenv.set_cachesize(self.cachesize//(1024**3), self.cachesize%(1024**3))
         dbenv.set_tx_max(txncount)
         dbenv.set_lk_max_locks(300000)
         dbenv.set_lk_max_lockers(300000)
         dbenv.set_lk_max_objects(300000)
 
         flags = 0
-        flags |= bsddb3.db.DB_CREATE
-        flags |= bsddb3.db.DB_INIT_MPOOL
-        flags |= bsddb3.db.DB_INIT_TXN
-        flags |= bsddb3.db.DB_INIT_LOCK
-        flags |= bsddb3.db.DB_INIT_LOG
-        flags |= bsddb3.db.DB_THREAD
+        flags |= berkeleydb.db.DB_CREATE
+        flags |= berkeleydb.db.DB_INIT_MPOOL
+        flags |= berkeleydb.db.DB_INIT_TXN
+        flags |= berkeleydb.db.DB_INIT_LOCK
+        flags |= berkeleydb.db.DB_INIT_LOG
+        flags |= berkeleydb.db.DB_THREAD
+        if self.snapshot: flags|=berkeleydb.db.DB_MULTIVERSION
         dbenv.open(self.path, flags)
+
+
         return dbenv
 
     def init(self):
@@ -198,7 +200,7 @@ class EMEN2DBEnv(object):
         :keyword write: Transaction will be likely to write data; turns off Berkeley DB Snapshot
         :return: New transaction
         """
-        flags = bsddb3.db.DB_TXN_SNAPSHOT
+        flags = berkeleydb.db.DB_TXN_SNAPSHOT
         if write:
             flags = 0
 
@@ -305,7 +307,7 @@ class EMEN2DBEnv(object):
             emen2.db.log.info("BDB: Log Archive: Checkpoint")
             self.dbenv.txn_checkpoint()
 
-        archivefiles = self.dbenv.journal_archive(bsddb3.db.DB_ARCH_ABS)
+        archivefiles = self.dbenv.journal_archive(berkeleydb.db.DB_ARCH_ABS)
 
         emen2.db.log.info("BDB: Log Archive: Preparing to move %s completed log files to %s"%(len(archivefiles), outpath))
 
@@ -359,7 +361,7 @@ class BaseDB(object):
 
         # BDB handle and open flags.
         self.bdb = None
-        self.DBOPENFLAGS = bsddb3.db.DB_AUTO_COMMIT | bsddb3.db.DB_THREAD | bsddb3.db.DB_CREATE
+        self.DBOPENFLAGS = berkeleydb.db.DB_AUTO_COMMIT | berkeleydb.db.DB_THREAD | berkeleydb.db.DB_CREATE
         self.DBSETFLAGS = []
 
         # Init and open.
@@ -378,7 +380,7 @@ class BaseDB(object):
             raise Exception("DB already open")
 
         # Create the DB handle and set flags
-        self.bdb = bsddb3.db.DB(self.dbenv.dbenv)
+        self.bdb = berkeleydb.db.DB(self.dbenv.dbenv)
 
         # Set DB flags, e.g. duplicate keys allowed
         for flag in self.DBSETFLAGS:
@@ -387,7 +389,8 @@ class BaseDB(object):
         # Open the DB with the correct flags.
         emen2.db.log.debug("BDB: %s open"%self.filename)
         fn = '%s.%s'%(self.filename, self.extension)
-        self.bdb.open(filename=fn, dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
+#        print("open ",fn,self.DBOPENFLAGS)
+        self.bdb.open(filename=fn, dbtype=berkeleydb.db.DB_BTREE, flags=self.DBOPENFLAGS)
 
     def close(self):
         """Close the DB."""
@@ -429,12 +432,12 @@ class BaseDB(object):
             self.keyload = lambda x:x.decode('utf-8')
         elif keyformat == 'int':
             self.keyclass = int
-            self.keydump = str
+            self.keydump = lambda x:str(x).encode('utf-8')
             self.keyload = int
         elif keyformat == 'float':
             self.keyclass = float
             self.keydump = lambda x:pickle.dumps(x)
-            self.keyload = lambda x:pickle.loads(x or 'N.')
+            self.keyload = lambda x:pickle.loads(x or b'N.')
         else:
             raise ValueError("Invalid key format: %s. Supported: str, int, float"%keyformat)
         self.keyformat = keyformat
@@ -452,18 +455,18 @@ class BaseDB(object):
         elif dataformat == 'int':
             # Decimal dataformat, use str encoded ints.
             self.dataclass = int
-            self.datadump = str
+            self.datadump = lambda x:str(x).encode("utf-8")
             self.dataload = int
         elif dataformat == 'float':
             # Float dataformat; these do not sort natively, so pickle them.
             self.dataclass = float
             self.datadump = lambda x:pickle.dumps(x)
-            self.dataload = lambda x:pickle.loads(x or 'N.')
+            self.dataload = lambda x:pickle.loads(x or b'N.')
         elif dataformat == 'pickle':
             # This DB stores a DBO as a pickle.
             self.dataclass = dataclass
             self.datadump = lambda x:pickle.dumps(x)
-            self.dataload = lambda x:pickle.loads(x or 'N.')
+            self.dataload = lambda x:pickle.loads(x or b'N.')
         else:
             # Unknown dataformat.
             raise Exception("Invalid data format: %s. Supported: str, int, float, pickle"%dataformat)
@@ -483,7 +486,7 @@ class IndexDB(BaseDB):
 
     This class is intended for use with an OPTIONAL C module, _bulk.so, that
     accelerates reading from the index. The Berkeley DB bulk reading mode
-    is not fully implemented in the bsddb3 package; the C module does the bulk
+    is not fully implemented in the berkeleydb package; the C module does the bulk
     reading in a single function call, greatly speeding up performance, and
     returns the correct native Python type. The C module is totally optional
     and is transparent; the only change is read speed.
@@ -505,7 +508,7 @@ class IndexDB(BaseDB):
 
     def init(self):
         """Open DB with support for duplicate keys."""
-        self.DBSETFLAGS = [bsddb3.db.DB_DUPSORT]
+        self.DBSETFLAGS = [berkeleydb.db.DB_DUPSORT]
         self._setbulkmode(True)
         super(IndexDB, self).init()
 
@@ -675,8 +678,8 @@ class IndexDB(BaseDB):
 
         for ditem in ditems:
             try:
-                cursor.put(dkey, ditem, flags=bsddb3.db.DB_KEYFIRST)
-            except bsddb3.db.DBKeyExistError as e:
+                cursor.put(dkey, ditem, flags=berkeleydb.db.DB_KEYFIRST)
+            except berkeleydb.db.DBKeyExistError as e:
                 pass
 
         cursor.close()
@@ -771,8 +774,8 @@ class CollectionDB(BaseDB):
     def open(self):
         """Open DB, and sequence."""
         super(CollectionDB, self).open()
-        self.sequencedb = bsddb3.db.DB(self.dbenv.dbenv)
-        self.sequencedb.open(os.path.join('%s.sequence.bdb'%self.filename), dbtype=bsddb3.db.DB_BTREE, flags=self.DBOPENFLAGS)
+        self.sequencedb = berkeleydb.db.DB(self.dbenv.dbenv)
+        self.sequencedb.open(os.path.join('%s.sequence.bdb'%self.filename), dbtype=berkeleydb.db.DB_BTREE, flags=self.DBOPENFLAGS)
 
     def close(self):
         """Close DB, sequence, and indexes."""
@@ -812,7 +815,7 @@ class CollectionDB(BaseDB):
             item['parents'].add(i.name)
 
         # Acquire a write lock on this name.
-        if self.exists(item.name, txn=txn, flags=bsddb3.db.DB_RMW):
+        if self.exists(item.name, txn=txn, flags=berkeleydb.db.DB_RMW):
             raise emen2.db.exceptions.ExistingKeyError("%s already exists"%item.name)
 
         return item
@@ -947,9 +950,9 @@ class CollectionDB(BaseDB):
             name = updrec.get('name')
             
             # Get the existing item or create a new one.
-            if self.exists(name, txn=txn, flags=bsddb3.db.DB_RMW):
+            if self.exists(name, txn=txn, flags=berkeleydb.db.DB_RMW):
                 # Get the existing item.
-                orec = self._get_data(name, txn=txn, flags=bsddb3.db.DB_RMW)
+                orec = self._get_data(name, txn=txn, flags=berkeleydb.db.DB_RMW)
                 # May raise a SecurityError if you can't read it.
                 orec.setContext(ctx)
                 orec.update(updrec)
@@ -1188,7 +1191,7 @@ class CollectionDB(BaseDB):
                 except:
                     raise Exception("Invalid name: %s"%newname)
                 # Check the name is still available, and acquire lock.
-                if self.exists(newname, txn=txn, flags=bsddb3.db.DB_RMW):
+                if self.exists(newname, txn=txn, flags=berkeleydb.db.DB_RMW):
                     raise emen2.db.exceptions.ExistingKeyError("%s already exists"%newname)
                 # Update the item's name.
                 namemap[item.name] = newname
@@ -1211,7 +1214,7 @@ class CollectionDB(BaseDB):
         # binaries, each day has its own sequence key.
         delta = 1
         
-        val = self.sequencedb.get(key, txn=txn, flags=bsddb3.db.DB_RMW)
+        val = self.sequencedb.get(key, txn=txn, flags=berkeleydb.db.DB_RMW)
         if val == None:
             val = 0
         val = int(val)
@@ -1442,8 +1445,8 @@ class CollectionDB(BaseDB):
 
         # Check that we have enough permissions to write to one item
         # Use raw get; manually setContext. Allow KeyErrors to raise.
-        p = self._get_data(parent, txn=txn, flags=bsddb3.db.DB_RMW)
-        c = self._get_data(child, txn=txn, flags=bsddb3.db.DB_RMW)
+        p = self._get_data(parent, txn=txn, flags=berkeleydb.db.DB_RMW)
+        c = self._get_data(child, txn=txn, flags=berkeleydb.db.DB_RMW)
         perm = []
 
         # Both items must exist, and we need to be able to write to one
